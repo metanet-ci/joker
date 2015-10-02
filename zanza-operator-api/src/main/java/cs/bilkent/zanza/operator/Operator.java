@@ -1,7 +1,8 @@
 package cs.bilkent.zanza.operator;
 
-public interface Operator {
+public interface Operator
+{
 
-    PortsToTuples process(PortsToTuples portsToTuples);
+	PortsToTuples process(PortsToTuples portsToTuples);
 
 }

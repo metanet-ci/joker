@@ -2,14 +2,15 @@ package cs.bilkent.zanza.operator;
 
 import java.util.List;
 
-public interface OperatorContext {
+public interface OperatorContext
+{
 
-    String getName();
+	String getName();
 
-    OperatorConfig getConfig();
+	OperatorConfig getConfig();
 
-    List<Port> getIncomingPorts();
+	List<Port> getIncomingPorts();
 
-    List<Port> getOutgoingPorts();
+	List<Port> getOutgoingPorts();
 
 }

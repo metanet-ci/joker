@@ -10,59 +10,70 @@ import java.util.List;
 /**
  * Used for incoming and outgoing tuples
  */
-public class PortsToTuples {
+public class PortsToTuples
+{
 
-    private final Int2ObjectHashMap<List<Tuple>> tuplesByPort = new Int2ObjectHashMap<>();
+	private final Int2ObjectHashMap<List<Tuple>> tuplesByPort = new Int2ObjectHashMap<>();
 
-    public void add(Tuple tuple) {
-        add(Port.DEFAULT_PORT_INDEX, tuple);
-    }
+	public void add(Tuple tuple)
+	{
+		add(Port.DEFAULT_PORT_INDEX, tuple);
+	}
 
-    public void addAll(List<Tuple> tuples) {
+	public void addAll(List<Tuple> tuples)
+	{
 
-        addAll(Port.DEFAULT_PORT_INDEX, tuples);
-    }
+		addAll(Port.DEFAULT_PORT_INDEX, tuples);
+	}
 
-    public void add(int portIndex, Tuple tuple) {
-        final List<Tuple> tuples = getOrCreateTuples(portIndex);
-        tuples.add(tuple);
-    }
+	public void add(int portIndex, Tuple tuple)
+	{
+		final List<Tuple> tuples = getOrCreateTuples(portIndex);
+		tuples.add(tuple);
+	}
 
-    public void addAll(int portIndex, List<Tuple> tuplesToAdd) {
-        final List<Tuple> tuples = getOrCreateTuples(portIndex);
-        tuples.addAll(tuplesToAdd);
-    }
+	public void addAll(int portIndex, List<Tuple> tuplesToAdd)
+	{
+		final List<Tuple> tuples = getOrCreateTuples(portIndex);
+		tuples.addAll(tuplesToAdd);
+	}
 
-    private List<Tuple> getOrCreateTuples(int portIndex) {
-        return tuplesByPort.computeIfAbsent(portIndex, ignoredPortIndex -> new ArrayList<>());
-    }
+	private List<Tuple> getOrCreateTuples(int portIndex)
+	{
+		return tuplesByPort.computeIfAbsent(portIndex, ignoredPortIndex -> new ArrayList<>());
+	}
 
-    public List<Tuple> getTuples(int portIndex) {
-        final List<Tuple> tuples = tuplesByPort.get(portIndex);
-        return tuples != null ? tuples : Collections.emptyList();
-    }
+	public List<Tuple> getTuples(int portIndex)
+	{
+		final List<Tuple> tuples = tuplesByPort.get(portIndex);
+		return tuples != null ? tuples : Collections.emptyList();
+	}
 
-    public List<Tuple> getTuplesByDefaultPort() {
-        return getTuples(Port.DEFAULT_PORT_INDEX);
-    }
+	public List<Tuple> getTuplesByDefaultPort()
+	{
+		return getTuples(Port.DEFAULT_PORT_INDEX);
+	}
 
-    public int[] getPorts() {
-        final Int2ObjectHashMap<List<Tuple>>.KeySet keys = tuplesByPort.keySet();
-        final int[] ports = new int[keys.size()];
+	public int[] getPorts()
+	{
+		final Int2ObjectHashMap<List<Tuple>>.KeySet keys = tuplesByPort.keySet();
+		final int[] ports = new int[keys.size()];
 
-        final Int2ObjectHashMap<List<Tuple>>.KeyIterator it = keys.iterator();
+		final Int2ObjectHashMap<List<Tuple>>.KeyIterator it = keys.iterator();
 
-        for (int i = 0; i < keys.size(); i++) {
-            ports[i] = it.nextInt();
-        }
+		for (int i = 0; i < keys.size(); i++)
+		{
+			ports[i] = it.nextInt();
+		}
 
-        Arrays.sort(ports);
+		Arrays.sort(ports);
 
-        return ports;
-    }
+		return ports;
+	}
 
-    public int getPortCount() {
-        return tuplesByPort.keySet().size();
-    }
+	public int getPortCount()
+	{
+		return tuplesByPort.keySet().size();
+	}
 
 }

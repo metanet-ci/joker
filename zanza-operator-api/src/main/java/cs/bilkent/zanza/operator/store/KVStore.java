@@ -1,4 +1,6 @@
 package cs.bilkent.zanza.operator.store;
 
-public interface KVStore<K, V> {
+public interface KVStore<K, V>
+{
+
 }
