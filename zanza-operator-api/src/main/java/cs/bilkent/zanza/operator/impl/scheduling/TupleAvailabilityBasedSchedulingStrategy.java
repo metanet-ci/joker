@@ -1,6 +1,7 @@
-package cs.bilkent.zanza.operator.scheduling;
+package cs.bilkent.zanza.operator.impl.scheduling;
 
 import cs.bilkent.zanza.operator.Port;
+import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import uk.co.real_logic.agrona.collections.Int2IntHashMap;
 
 import java.util.Map;

@@ -1,22 +1,28 @@
 package cs.bilkent.zanza.operator;
 
-import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
+import java.util.HashMap;
+import java.util.Map;
 
-public class OperatorConfig
+public class OperatorConfig implements Fields
 {
 
-	private SchedulingStrategy schedulingStrategy;
+	private final Map<String, Object> values = new HashMap<>();
 
 	private PartitionKeyExtractor partitionKeyExtractor;
 
-	public SchedulingStrategy getSchedulingStrategy()
+	public OperatorConfig()
 	{
-		return schedulingStrategy;
 	}
 
-	public void setSchedulingStrategy(SchedulingStrategy schedulingStrategy)
+	public OperatorConfig(PartitionKeyExtractor partitionKeyExtractor)
 	{
-		this.schedulingStrategy = schedulingStrategy;
+		this.partitionKeyExtractor = partitionKeyExtractor;
+	}
+
+	public OperatorConfig(Map<String, Object> values, PartitionKeyExtractor partitionKeyExtractor)
+	{
+		this.values.putAll(values);
+		this.partitionKeyExtractor = partitionKeyExtractor;
 	}
 
 	public PartitionKeyExtractor getPartitionKeyExtractor()
@@ -29,6 +35,49 @@ public class OperatorConfig
 		this.partitionKeyExtractor = partitionKeyExtractor;
 	}
 
-	// setInt getInt setBool getBool ...
+	public Map<String, Object> getValues()
+	{
+		return values;
+	}
+
+	@Override public <T> T get(String field)
+	{
+		return (T) values.get(field);
+	}
+
+	@Override public <T> T getOrDefault(String field, T defaultVal)
+	{
+		return (T) values.getOrDefault(field, defaultVal);
+	}
+
+	@Override public void set(String field, Object value)
+	{
+		this.values.put(field, value);
+	}
+
+	@Override public <T> T put(String field, T value)
+	{
+		return (T) this.values.put(field, value);
+	}
+
+	@Override public Object remove(String field)
+	{
+		return this.values.remove(field);
+	}
+
+	@Override public boolean delete(String field)
+	{
+		return this.values.remove(field) != null;
+	}
+
+	@Override public void clear()
+	{
+		this.values.clear();
+	}
+
+	@Override public int size()
+	{
+		return this.values.size();
+	}
 
 }

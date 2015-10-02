@@ -1,4 +1,6 @@
-package cs.bilkent.zanza.operator.scheduling;
+package cs.bilkent.zanza.operator.impl.scheduling;
+
+import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 import java.util.concurrent.TimeUnit;
 

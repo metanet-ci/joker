@@ -15,6 +15,20 @@ public class PortsToTuples
 
 	private final Int2ObjectHashMap<List<Tuple>> tuplesByPort = new Int2ObjectHashMap<>();
 
+	public PortsToTuples()
+	{
+	}
+
+	public PortsToTuples(Tuple tuple)
+	{
+		add(tuple);
+	}
+
+	public PortsToTuples(List<Tuple> tuples)
+	{
+		addAll(tuples);
+	}
+
 	public void add(Tuple tuple)
 	{
 		add(Port.DEFAULT_PORT_INDEX, tuple);

@@ -1,8 +1,5 @@
-package cs.bilkent.zanza.operator.api;
+package cs.bilkent.zanza.operator;
 
-import cs.bilkent.zanza.operator.Port;
-import cs.bilkent.zanza.operator.PortsToTuples;
-import cs.bilkent.zanza.operator.Tuple;
 import org.junit.Test;
 
 import java.util.List;

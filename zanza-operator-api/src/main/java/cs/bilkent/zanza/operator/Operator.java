@@ -3,6 +3,6 @@ package cs.bilkent.zanza.operator;
 public interface Operator
 {
 
-	PortsToTuples process(PortsToTuples portsToTuples);
+	ProcessingResult process(PortsToTuples portsToTuples); // todo status object
 
 }
