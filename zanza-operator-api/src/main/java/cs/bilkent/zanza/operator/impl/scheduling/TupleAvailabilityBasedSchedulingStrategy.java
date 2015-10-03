@@ -1,10 +1,10 @@
 package cs.bilkent.zanza.operator.impl.scheduling;
 
+import java.util.Map;
+
+import uk.co.real_logic.agrona.collections.Int2IntHashMap;
 import cs.bilkent.zanza.operator.Port;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
-import uk.co.real_logic.agrona.collections.Int2IntHashMap;
-
-import java.util.Map;
 
 public class TupleAvailabilityBasedSchedulingStrategy implements SchedulingStrategy
 {
@@ -49,8 +49,7 @@ public class TupleAvailabilityBasedSchedulingStrategy implements SchedulingStrat
 
 	enum TupleAvailabilityType
 	{
-		AVAILABLE_ON_ALL,
-		AVAILABLE_ON_ANY
+		AVAILABLE_ON_ALL, AVAILABLE_ON_ANY
 	}
 
 }

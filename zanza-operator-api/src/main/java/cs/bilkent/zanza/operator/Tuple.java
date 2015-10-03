@@ -38,42 +38,50 @@ public class Tuple implements Fields
 		return values;
 	}
 
-	@Override public <T> T get(String field)
+	@Override
+	public <T> T get(String field)
 	{
 		return (T) values.get(field);
 	}
 
-	@Override public <T> T getOrDefault(String field, T defaultVal)
+	@Override
+	public <T> T getOrDefault(String field, T defaultVal)
 	{
 		return (T) values.getOrDefault(field, defaultVal);
 	}
 
-	@Override public void set(String field, Object value)
+	@Override
+	public void set(String field, Object value)
 	{
 		this.values.put(field, value);
 	}
 
-	@Override public <T> T put(String field, T value)
+	@Override
+	public <T> T put(String field, T value)
 	{
 		return (T) this.values.put(field, value);
 	}
 
-	@Override public Object remove(String field)
+	@Override
+	public Object remove(String field)
 	{
 		return this.values.remove(field);
 	}
 
-	@Override public boolean delete(String field)
+	@Override
+	public boolean delete(String field)
 	{
 		return this.values.remove(field) != null;
 	}
 
-	@Override public void clear()
+	@Override
+	public void clear()
 	{
 		this.values.clear();
 	}
 
-	@Override public int size()
+	@Override
+	public int size()
 	{
 		return this.values.size();
 	}
