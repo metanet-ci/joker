@@ -6,9 +6,9 @@ import cs.bilkent.zanza.operator.AbstractFieldsTest;
 import cs.bilkent.zanza.operator.Fields;
 import cs.bilkent.zanza.operator.impl.kvstore.InMemoryKVStore;
 
-public class InMemoryKVStoreTest extends AbstractFieldsTest
+public class InMemoryKvStoreTest extends AbstractFieldsTest
 {
-
+	@Override
 	protected Fields newFieldsInstance()
 	{
 		return new InMemoryKVStore();
@@ -25,5 +25,4 @@ public class InMemoryKVStoreTest extends AbstractFieldsTest
 	{
 		getFields().size();
 	}
-
 }

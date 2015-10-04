@@ -12,8 +12,7 @@ import org.junit.Test;
 
 public class PortsToTuplesTest
 {
-
-	private PortsToTuples portsToTuples = new PortsToTuples();
+	private final PortsToTuples portsToTuples = new PortsToTuples();
 
 	@Test
 	public void shouldAddTupleToDefaultPort()

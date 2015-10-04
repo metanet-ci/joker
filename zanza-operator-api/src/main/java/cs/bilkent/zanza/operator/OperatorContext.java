@@ -6,7 +6,6 @@ import cs.bilkent.zanza.operator.kvstore.KVStore;
 
 public interface OperatorContext
 {
-
 	String getName();
 
 	OperatorConfig getConfig();
@@ -16,5 +15,4 @@ public interface OperatorContext
 	List<Port> getOutgoingPorts();
 
 	KVStore getKVStore();
-
 }

@@ -383,7 +383,7 @@
                 value="16"/>
         <setting
                 id="org.eclipse.jdt.core.formatter.blank_lines_before_first_class_body_declaration"
-                value="1"/>
+                value="0"/>
         <setting
                 id="org.eclipse.jdt.core.formatter.alignment_for_conditional_expression"
                 value="32"/>

@@ -4,7 +4,6 @@ import cs.bilkent.zanza.operator.InvocationReason;
 
 public class ShutdownRequested implements InvocationReason
 {
-
 	public static final InvocationReason INSTANCE = new ShutdownRequested();
 
 	private ShutdownRequested()
@@ -17,5 +16,4 @@ public class ShutdownRequested implements InvocationReason
 	{
 		return false;
 	}
-
 }

@@ -4,7 +4,6 @@ import cs.bilkent.zanza.operator.InvocationReason;
 
 public final class SuccessfulInvocation implements InvocationReason
 {
-
 	public static final InvocationReason INSTANCE = new SuccessfulInvocation();
 
 	private SuccessfulInvocation()
@@ -17,5 +16,4 @@ public final class SuccessfulInvocation implements InvocationReason
 	{
 		return true;
 	}
-
 }

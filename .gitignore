@@ -14,3 +14,4 @@ reports/
 atlassian-ide-plugin.xml
 performance*.log
 .surefire-*
+/bin/

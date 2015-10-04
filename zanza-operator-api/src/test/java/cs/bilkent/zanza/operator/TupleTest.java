@@ -8,7 +8,6 @@ import org.junit.Test;
 
 public class TupleTest extends AbstractFieldsTest
 {
-
 	private Tuple tuple;
 
 	@Before
@@ -17,6 +16,7 @@ public class TupleTest extends AbstractFieldsTest
 		tuple = getFields();
 	}
 
+	@Override
 	protected Fields newFieldsInstance()
 	{
 		return new Tuple();

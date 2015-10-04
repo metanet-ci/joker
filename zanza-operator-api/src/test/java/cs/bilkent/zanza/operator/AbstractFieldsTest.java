@@ -1,21 +1,27 @@
 package cs.bilkent.zanza.operator;
 
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.TestCase.assertNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
 
 public abstract class AbstractFieldsTest
 {
-
 	private Fields fields;
 
 	@Before
@@ -26,6 +32,7 @@ public abstract class AbstractFieldsTest
 
 	protected abstract Fields newFieldsInstance();
 
+	@SuppressWarnings("unchecked")
 	protected <T extends Fields> T getFields()
 	{
 		return (T) fields;
@@ -239,7 +246,7 @@ public abstract class AbstractFieldsTest
 	@Test
 	public void shouldGetGetExistingShort()
 	{
-		short val = 1;
+		final short val = 1;
 		fields.put("field", val);
 		assertThat(fields.getShort("field"), equalTo(val));
 	}
@@ -253,8 +260,8 @@ public abstract class AbstractFieldsTest
 	@Test
 	public void shouldGetExistingShortOrDefault()
 	{
-		short val = 1;
-		short other = 2;
+		final short val = 1;
+		final short other = 2;
 		fields.put("field", val);
 		assertThat(fields.getShortOrDefault("field", other), equalTo(val));
 	}
@@ -262,14 +269,14 @@ public abstract class AbstractFieldsTest
 	@Test
 	public void shouldGetNonExistingShortOrDefault()
 	{
-		short val = 1;
+		final short val = 1;
 		assertThat(fields.getShortOrDefault("field", val), equalTo(val));
 	}
 
 	@Test
 	public void shouldGetExistingByte()
 	{
-		byte val = 1;
+		final byte val = 1;
 		fields.put("field", val);
 		assertThat(fields.getByte("field"), equalTo(val));
 	}
@@ -283,8 +290,8 @@ public abstract class AbstractFieldsTest
 	@Test
 	public void shouldGetExistingByteOrDefault()
 	{
-		byte val = 1;
-		byte other = 1;
+		final byte val = 1;
+		final byte other = 1;
 		fields.put("field", val);
 		assertThat(fields.getByteOrDefault("field", other), equalTo(val));
 	}
@@ -292,7 +299,7 @@ public abstract class AbstractFieldsTest
 	@Test
 	public void shouldGetNonExistingByteOrDefault()
 	{
-		byte val = 1;
+		final byte val = 1;
 		assertThat(fields.getByteOrDefault("field", val), equalTo(val));
 	}
 
@@ -351,7 +358,7 @@ public abstract class AbstractFieldsTest
 	@Test
 	public void shouldGetExistingBinary()
 	{
-		byte[] val = new byte[] { 1 };
+		final byte[] val = new byte[] { 1 };
 		fields.put("field", val);
 		assertThat(fields.getBinary("field"), equalTo(val));
 	}
@@ -359,7 +366,7 @@ public abstract class AbstractFieldsTest
 	@Test
 	public void shouldGetExistingBinaryOrDefault()
 	{
-		byte[] val = new byte[] { 1 };
+		final byte[] val = new byte[] { 1 };
 		fields.put("field", val);
 		assertThat(fields.getBinaryOrDefault("field", new byte[] {}), equalTo(val));
 	}
@@ -367,20 +374,47 @@ public abstract class AbstractFieldsTest
 	@Test
 	public void shouldGetNonExistingBinaryOrDefault()
 	{
-		byte[] val = new byte[] { 1 };
+		final byte[] val = new byte[] { 1 };
 		assertThat(fields.getBinaryOrDefault("field", val), equalTo(val));
+	}
+
+	@SuppressWarnings("serial")
+	private static List<Integer> makeArrayList()
+	{
+		return new ArrayList<Integer>()
+		{
+			{
+				add(1);
+			}
+		};
+	}
+
+	@SuppressWarnings("serial")
+	private static Set<Integer> makeHashSet()
+	{
+		return new HashSet<Integer>()
+		{
+			{
+				add(1);
+			}
+		};
+	}
+
+	@SuppressWarnings("serial")
+	private static Map<Integer, Integer> makeHashMap()
+	{
+		return new HashMap<Integer, Integer>()
+		{
+			{
+				put(1, 1);
+			}
+		};
 	}
 
 	@Test
 	public void shouldGetExistingCollection()
 	{
-		Collection<Integer> value = new ArrayList<Integer>()
-		{
-
-			{
-				add(1);
-			}
-		};
+		final Collection<Integer> value = makeArrayList();
 		fields.put("field", value);
 		assertThat(fields.getCollection("field"), equalTo(value));
 	}
@@ -394,13 +428,7 @@ public abstract class AbstractFieldsTest
 	@Test
 	public void shouldGetExistingCollectionOrDefault()
 	{
-		Collection<Integer> value = new ArrayList<Integer>()
-		{
-
-			{
-				add(1);
-			}
-		};
+		final Collection<Integer> value = makeArrayList();
 		fields.put("field", value);
 		assertThat(fields.getCollectionOrDefault("field", Collections.emptyList()), equalTo(value));
 	}
@@ -408,26 +436,14 @@ public abstract class AbstractFieldsTest
 	@Test
 	public void shouldGetNonExistingCollectionOrDefault()
 	{
-		Collection<Integer> value = new ArrayList<Integer>()
-		{
-
-			{
-				add(1);
-			}
-		};
+		final Collection<Integer> value = makeArrayList();
 		assertThat(fields.getCollectionOrDefault("field", value), equalTo(value));
 	}
 
 	@Test
 	public void shouldGetExistingCollectionOrEmpty()
 	{
-		Collection<Integer> value = new ArrayList<Integer>()
-		{
-
-			{
-				add(1);
-			}
-		};
+		final Collection<Integer> value = makeArrayList();
 		fields.put("field", value);
 		assertThat(fields.getCollectionOrEmpty("field"), equalTo(value));
 	}
@@ -441,13 +457,7 @@ public abstract class AbstractFieldsTest
 	@Test
 	public void shouldGetExistingList()
 	{
-		List<Integer> value = new ArrayList<Integer>()
-		{
-
-			{
-				add(1);
-			}
-		};
+		final List<Integer> value = makeArrayList();
 		fields.put("field", value);
 		assertThat(fields.getList("field"), equalTo(value));
 	}
@@ -461,13 +471,7 @@ public abstract class AbstractFieldsTest
 	@Test
 	public void shouldGetExistingListOrDefault()
 	{
-		List<Integer> value = new ArrayList<Integer>()
-		{
-
-			{
-				add(1);
-			}
-		};
+		final List<Integer> value = makeArrayList();
 		fields.put("field", value);
 		assertThat(fields.getListOrDefault("field", Collections.emptyList()), equalTo(value));
 	}
@@ -475,26 +479,14 @@ public abstract class AbstractFieldsTest
 	@Test
 	public void shouldGetNonExistingListOrDefault()
 	{
-		List<Integer> value = new ArrayList<Integer>()
-		{
-
-			{
-				add(1);
-			}
-		};
+		final List<Integer> value = makeArrayList();
 		assertThat(fields.getListOrDefault("field", value), equalTo(value));
 	}
 
 	@Test
 	public void shouldGetExistingListOrEmpty()
 	{
-		List<Integer> value = new ArrayList<Integer>()
-		{
-
-			{
-				add(1);
-			}
-		};
+		final List<Integer> value = makeArrayList();
 		fields.put("field", value);
 		assertThat(fields.getListOrEmpty("field"), equalTo(value));
 	}
@@ -508,13 +500,7 @@ public abstract class AbstractFieldsTest
 	@Test
 	public void shouldGetExistingSet()
 	{
-		Set<Integer> value = new HashSet<Integer>()
-		{
-
-			{
-				add(1);
-			}
-		};
+		final Set<Integer> value = makeHashSet();
 		fields.put("field", value);
 		assertThat(fields.getSet("field"), equalTo(value));
 	}
@@ -528,13 +514,7 @@ public abstract class AbstractFieldsTest
 	@Test
 	public void shouldGetExistingSetOrDefault()
 	{
-		Set<Integer> value = new HashSet<Integer>()
-		{
-
-			{
-				add(1);
-			}
-		};
+		final Set<Integer> value = makeHashSet();
 		fields.put("field", value);
 		assertThat(fields.getSetOrDefault("field", Collections.emptySet()), equalTo(value));
 	}
@@ -542,26 +522,14 @@ public abstract class AbstractFieldsTest
 	@Test
 	public void shouldGetNonExistingSetOrDefault()
 	{
-		Set<Integer> value = new HashSet<Integer>()
-		{
-
-			{
-				add(1);
-			}
-		};
+		final Set<Integer> value = makeHashSet();
 		assertThat(fields.getSetOrDefault("field", value), equalTo(value));
 	}
 
 	@Test
 	public void shouldGetExistingSetOrEmpty()
 	{
-		Set<Integer> value = new HashSet<Integer>()
-		{
-
-			{
-				add(1);
-			}
-		};
+		final Set<Integer> value = makeHashSet();
 		fields.put("field", value);
 		assertThat(fields.getSetOrEmpty("field"), equalTo(value));
 	}
@@ -575,13 +543,7 @@ public abstract class AbstractFieldsTest
 	@Test
 	public void shouldGetExistingMap()
 	{
-		Map<Integer, Integer> value = new HashMap<Integer, Integer>()
-		{
-
-			{
-				put(1, 1);
-			}
-		};
+		final Map<Integer, Integer> value = makeHashMap();
 		fields.put("field", value);
 		assertThat(fields.getMap("field"), equalTo(value));
 	}
@@ -595,13 +557,7 @@ public abstract class AbstractFieldsTest
 	@Test
 	public void shouldGetExistingMapOrDefault()
 	{
-		Map<Integer, Integer> value = new HashMap<Integer, Integer>()
-		{
-
-			{
-				put(1, 1);
-			}
-		};
+		final Map<Integer, Integer> value = makeHashMap();
 		fields.put("field", value);
 		assertThat(fields.getMapOrDefault("field", Collections.emptyMap()), equalTo(value));
 	}
@@ -609,26 +565,14 @@ public abstract class AbstractFieldsTest
 	@Test
 	public void shouldGetNonExistingMapOrDefault()
 	{
-		Map<Integer, Integer> value = new HashMap<Integer, Integer>()
-		{
-
-			{
-				put(1, 1);
-			}
-		};
+		final Map<Integer, Integer> value = makeHashMap();
 		assertThat(fields.getMapOrDefault("field", value), equalTo(value));
 	}
 
 	@Test
 	public void shouldGetExistingMapOrEmpty()
 	{
-		Map<Integer, Integer> value = new HashMap<Integer, Integer>()
-		{
-
-			{
-				put(1, 1);
-			}
-		};
+		final Map<Integer, Integer> value = makeHashMap();
 		fields.put("field", value);
 		assertThat(fields.getMapOrEmpty("field"), equalTo(value));
 	}

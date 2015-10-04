@@ -12,52 +12,51 @@ import uk.co.real_logic.agrona.collections.Int2ObjectHashMap;
  */
 public class PortsToTuples
 {
-
 	private final Int2ObjectHashMap<List<Tuple>> tuplesByPort = new Int2ObjectHashMap<>();
 
 	public PortsToTuples()
 	{
 	}
 
-	public PortsToTuples(Tuple tuple)
+	public PortsToTuples(final Tuple tuple)
 	{
 		add(tuple);
 	}
 
-	public PortsToTuples(List<Tuple> tuples)
+	public PortsToTuples(final List<Tuple> tuples)
 	{
 		addAll(tuples);
 	}
 
-	public void add(Tuple tuple)
+	public void add(final Tuple tuple)
 	{
 		add(Port.DEFAULT_PORT_INDEX, tuple);
 	}
 
-	public void addAll(List<Tuple> tuples)
+	public void addAll(final List<Tuple> tuples)
 	{
 
 		addAll(Port.DEFAULT_PORT_INDEX, tuples);
 	}
 
-	public void add(int portIndex, Tuple tuple)
+	public void add(final int portIndex, final Tuple tuple)
 	{
 		final List<Tuple> tuples = getOrCreateTuples(portIndex);
 		tuples.add(tuple);
 	}
 
-	public void addAll(int portIndex, List<Tuple> tuplesToAdd)
+	public void addAll(final int portIndex, final List<Tuple> tuplesToAdd)
 	{
 		final List<Tuple> tuples = getOrCreateTuples(portIndex);
 		tuples.addAll(tuplesToAdd);
 	}
 
-	private List<Tuple> getOrCreateTuples(int portIndex)
+	private List<Tuple> getOrCreateTuples(final int portIndex)
 	{
 		return tuplesByPort.computeIfAbsent(portIndex, ignoredPortIndex -> new ArrayList<>());
 	}
 
-	public List<Tuple> getTuples(int portIndex)
+	public List<Tuple> getTuples(final int portIndex)
 	{
 		final List<Tuple> tuples = tuplesByPort.get(portIndex);
 		return tuples != null ? tuples : Collections.emptyList();
@@ -89,5 +88,4 @@ public class PortsToTuples
 	{
 		return tuplesByPort.keySet().size();
 	}
-
 }

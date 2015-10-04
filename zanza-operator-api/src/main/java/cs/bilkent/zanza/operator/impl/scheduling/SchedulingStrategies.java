@@ -11,10 +11,8 @@ import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 public final class SchedulingStrategies
 {
-
 	private SchedulingStrategies()
 	{
-
 	}
 
 	public static SchedulingStrategy scheduleWhenSingleTupleAvailableOnDefaultPort()
@@ -22,34 +20,34 @@ public final class SchedulingStrategies
 		return new ScheduleWhenTuplesAvailable();
 	}
 
-	public static SchedulingStrategy scheduleWhenTtuplesAvailableOnDefaultPort(int tupleCount)
+	public static SchedulingStrategy scheduleWhenTtuplesAvailableOnDefaultPort(final int tupleCount)
 	{
 		return new ScheduleWhenTuplesAvailable(Port.DEFAULT_PORT_INDEX, tupleCount);
 	}
 
-	public static SchedulingStrategy scheduleWhenTuplesAvailable(TupleAvailabilityType type, int tupleCount, int... ports)
+	public static SchedulingStrategy scheduleWhenTuplesAvailable(final TupleAvailabilityType type, final int tupleCount,
+			final int... ports)
 	{
 		return new ScheduleWhenTuplesAvailable(type, tupleCount, ports);
 	}
 
-	public static SchedulingStrategy scheduleWhenTuplesAvailableOnAll(int tupleCount, int... ports)
+	public static SchedulingStrategy scheduleWhenTuplesAvailableOnAll(final int tupleCount, final int... ports)
 	{
 		return new ScheduleWhenTuplesAvailable(AVAILABLE_ON_ALL, tupleCount, ports);
 	}
 
-	public static SchedulingStrategy scheduleWhenTuplesAvailableOnAny(int tupleCount, int... ports)
+	public static SchedulingStrategy scheduleWhenTuplesAvailableOnAny(final int tupleCount, final int... ports)
 	{
 		return new ScheduleWhenTuplesAvailable(AVAILABLE_ON_ANY, tupleCount, ports);
 	}
 
-	public static SchedulingStrategy scheduleAfterDelay(long delayAmount, TimeUnit timeUnit)
+	public static SchedulingStrategy scheduleAfterDelay(final long delayAmount, final TimeUnit timeUnit)
 	{
 		return new DelayedScheduling(delayAmount, timeUnit);
 	}
 
-	public static SchedulingStrategy scheduleOnTime(long timestampInMillis)
+	public static SchedulingStrategy scheduleOnTime(final long timestampInMillis)
 	{
 		return new OnTimeScheduling(timestampInMillis);
 	}
-
 }

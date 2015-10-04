@@ -4,8 +4,7 @@ import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 public abstract class AbstractOperator implements Operator
 {
-
-	public SchedulingStrategy onInit(OperatorContext context)
+	public SchedulingStrategy onInit(final OperatorContext context)
 	{
 		return null;
 	}
@@ -14,5 +13,4 @@ public abstract class AbstractOperator implements Operator
 	{
 
 	}
-
 }

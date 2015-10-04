@@ -6,25 +6,24 @@ import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 public class ProcessingResult extends PortsToTuples
 {
-
 	private SchedulingStrategy schedulingStrategy;
 
 	public ProcessingResult()
 	{
 	}
 
-	public ProcessingResult(Tuple tuple)
+	public ProcessingResult(final Tuple tuple)
 	{
 		super(tuple);
 	}
 
-	public ProcessingResult(Tuple tuple, SchedulingStrategy schedulingStrategy)
+	public ProcessingResult(final Tuple tuple, final SchedulingStrategy schedulingStrategy)
 	{
 		super(tuple);
 		this.schedulingStrategy = schedulingStrategy;
 	}
 
-	public ProcessingResult(List<Tuple> tuples, SchedulingStrategy schedulingStrategy)
+	public ProcessingResult(final List<Tuple> tuples, final SchedulingStrategy schedulingStrategy)
 	{
 		super(tuples);
 		this.schedulingStrategy = schedulingStrategy;
@@ -35,9 +34,8 @@ public class ProcessingResult extends PortsToTuples
 		return schedulingStrategy;
 	}
 
-	public void setSchedulingStrategy(SchedulingStrategy schedulingStrategy)
+	public void setSchedulingStrategy(final SchedulingStrategy schedulingStrategy)
 	{
 		this.schedulingStrategy = schedulingStrategy;
 	}
-
 }

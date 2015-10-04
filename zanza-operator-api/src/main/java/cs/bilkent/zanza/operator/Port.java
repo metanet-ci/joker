@@ -2,7 +2,6 @@ package cs.bilkent.zanza.operator;
 
 public class Port
 {
-
 	public static final int DEFAULT_PORT_INDEX = 0;
 
 	public final String sourceOperatorName;
@@ -13,12 +12,13 @@ public class Port
 
 	public final int targetPortIndex;
 
-	public Port(String sourceOperatorName, String targetOperatorName)
+	public Port(final String sourceOperatorName, final String targetOperatorName)
 	{
 		this(sourceOperatorName, DEFAULT_PORT_INDEX, targetOperatorName, DEFAULT_PORT_INDEX);
 	}
 
-	public Port(String sourceOperatorName, int sourcePortIndex, String targetOperatorName, int targetPortIndex)
+	public Port(final String sourceOperatorName, final int sourcePortIndex, final String targetOperatorName,
+			final int targetPortIndex)
 	{
 		this.sourceOperatorName = sourceOperatorName;
 		this.sourcePortIndex = sourcePortIndex;
@@ -35,5 +35,4 @@ public class Port
 	{
 		return targetPortIndex == DEFAULT_PORT_INDEX;
 	}
-
 }

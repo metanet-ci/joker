@@ -4,10 +4,9 @@ import cs.bilkent.zanza.operator.InvocationReason;
 
 public class PortsClosed implements InvocationReason
 {
-
 	private final int[] ports;
 
-	public PortsClosed(int[] ports)
+	public PortsClosed(final int[] ports)
 	{
 		this.ports = ports;
 	}
@@ -22,5 +21,4 @@ public class PortsClosed implements InvocationReason
 	{
 		return ports;
 	}
-
 }

@@ -4,10 +4,9 @@ import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 public class OnTimeScheduling implements SchedulingStrategy
 {
-
 	private final long timestampInMillis;
 
-	public OnTimeScheduling(long timestampInMillis)
+	public OnTimeScheduling(final long timestampInMillis)
 	{
 		this.timestampInMillis = timestampInMillis;
 	}
@@ -16,5 +15,4 @@ public class OnTimeScheduling implements SchedulingStrategy
 	{
 		return timestampInMillis;
 	}
-
 }

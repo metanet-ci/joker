@@ -7,7 +7,6 @@ import java.util.Map;
 
 public class OperatorConfig implements Fields
 {
-
 	private final Map<String, Object> values = new HashMap<>();
 
 	private PartitionKeyExtractor partitionKeyExtractor;
@@ -16,12 +15,12 @@ public class OperatorConfig implements Fields
 	{
 	}
 
-	public OperatorConfig(PartitionKeyExtractor partitionKeyExtractor)
+	public OperatorConfig(final PartitionKeyExtractor partitionKeyExtractor)
 	{
 		this.partitionKeyExtractor = partitionKeyExtractor;
 	}
 
-	public OperatorConfig(Map<String, Object> values, PartitionKeyExtractor partitionKeyExtractor)
+	public OperatorConfig(final Map<String, Object> values, final PartitionKeyExtractor partitionKeyExtractor)
 	{
 		this.values.putAll(values);
 		this.partitionKeyExtractor = partitionKeyExtractor;
@@ -32,7 +31,7 @@ public class OperatorConfig implements Fields
 		return partitionKeyExtractor;
 	}
 
-	public void setPartitionKeyExtractor(PartitionKeyExtractor partitionKeyExtractor)
+	public void setPartitionKeyExtractor(final PartitionKeyExtractor partitionKeyExtractor)
 	{
 		this.partitionKeyExtractor = partitionKeyExtractor;
 	}
@@ -42,38 +41,41 @@ public class OperatorConfig implements Fields
 		return values;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
-	public <T> T get(String field)
+	public <T> T get(final String field)
 	{
 		return (T) values.get(field);
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
-	public <T> T getOrDefault(String field, T defaultVal)
+	public <T> T getOrDefault(final String field, final T defaultVal)
 	{
 		return (T) values.getOrDefault(field, defaultVal);
 	}
 
 	@Override
-	public void set(String field, Object value)
+	public void set(final String field, final Object value)
 	{
 		this.values.put(field, value);
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
-	public <T> T put(String field, T value)
+	public <T> T put(final String field, final T value)
 	{
 		return (T) this.values.put(field, value);
 	}
 
 	@Override
-	public Object remove(String field)
+	public Object remove(final String field)
 	{
 		return this.values.remove(field);
 	}
 
 	@Override
-	public boolean delete(String field)
+	public boolean delete(final String field)
 	{
 		return this.values.remove(field) != null;
 	}
@@ -95,5 +97,4 @@ public class OperatorConfig implements Fields
 	{
 		return Collections.unmodifiableCollection(this.values.keySet());
 	}
-
 }

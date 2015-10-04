@@ -4,7 +4,6 @@ import cs.bilkent.zanza.operator.PartitionKeyExtractor;
 
 public final class PartitionKeyExtractors
 {
-
 	private PartitionKeyExtractors()
 	{
 	}
@@ -13,5 +12,4 @@ public final class PartitionKeyExtractors
 	{
 		return (tuple) -> tuple.getObject(fieldName);
 	}
-
 }
