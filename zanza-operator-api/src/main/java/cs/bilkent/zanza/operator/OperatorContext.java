@@ -6,13 +6,13 @@ import cs.bilkent.zanza.operator.kvstore.KVStore;
 
 public interface OperatorContext
 {
-	String getName();
+    String getName();
 
-	OperatorConfig getConfig();
+    OperatorConfig getConfig();
 
-	List<Port> getIncomingPorts();
+    List<Port> getIncomingPorts();
 
-	List<Port> getOutgoingPorts();
+    List<Port> getOutgoingPorts();
 
-	KVStore getKVStore();
+    KVStore getKVStore();
 }

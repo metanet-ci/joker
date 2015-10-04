@@ -4,12 +4,12 @@ import cs.bilkent.zanza.operator.PartitionKeyExtractor;
 
 public final class PartitionKeyExtractors
 {
-	private PartitionKeyExtractors()
-	{
-	}
+    private PartitionKeyExtractors()
+    {
+    }
 
-	public static PartitionKeyExtractor fieldAsPartitionKey(final String fieldName)
-	{
-		return (tuple) -> tuple.getObject(fieldName);
-	}
+    public static PartitionKeyExtractor fieldAsPartitionKey(final String fieldName)
+    {
+        return (tuple) -> tuple.getObject(fieldName);
+    }
 }

@@ -4,13 +4,13 @@ import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 public abstract class AbstractOperator implements Operator
 {
-	public SchedulingStrategy onInit(final OperatorContext context)
-	{
-		return null;
-	}
+    public SchedulingStrategy onInit(final OperatorContext context)
+    {
+        return null;
+    }
 
-	public void onDestroy() // TODO reason object?
-	{
+    public void onDestroy() // TODO reason object?
+    {
 
-	}
+    }
 }

@@ -6,23 +6,23 @@ import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 public class ScheduleDelayed implements SchedulingStrategy
 {
-	private final long delayAmount;
+    private final long delayAmount;
 
-	private final TimeUnit timeUnit;
+    private final TimeUnit timeUnit;
 
-	public ScheduleDelayed(final long delayAmount, final TimeUnit timeUnit)
-	{
-		this.delayAmount = delayAmount;
-		this.timeUnit = timeUnit;
-	}
+    public ScheduleDelayed(final long delayAmount, final TimeUnit timeUnit)
+    {
+        this.delayAmount = delayAmount;
+        this.timeUnit = timeUnit;
+    }
 
-	public long getDelayAmount()
-	{
-		return delayAmount;
-	}
+    public long getDelayAmount()
+    {
+        return delayAmount;
+    }
 
-	public TimeUnit getTimeUnit()
-	{
-		return timeUnit;
-	}
+    public TimeUnit getTimeUnit()
+    {
+        return timeUnit;
+    }
 }

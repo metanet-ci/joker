@@ -4,8 +4,8 @@ import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 public class ScheduleWhenAvailable implements SchedulingStrategy
 {
-	ScheduleWhenAvailable()
-	{
+    ScheduleWhenAvailable()
+    {
 
-	}
+    }
 }
