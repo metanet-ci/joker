@@ -1,8 +1,8 @@
 package cs.bilkent.zanza.operator;
 
-import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
-
 import java.util.List;
+
+import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 public class ProcessingResult extends PortsToTuples
 {

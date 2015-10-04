@@ -1,8 +1,6 @@
 package cs.bilkent.zanza.operator;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 // TODO Comparable, Serializable, Iterable
 // supports immutable or effectively final objects
@@ -84,6 +82,12 @@ public class Tuple implements Fields
 	public int size()
 	{
 		return this.values.size();
+	}
+
+	@Override
+	public Collection<String> fieldNames()
+	{
+		return Collections.unmodifiableCollection(values.keySet());
 	}
 
 }

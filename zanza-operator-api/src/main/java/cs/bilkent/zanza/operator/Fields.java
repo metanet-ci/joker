@@ -21,6 +21,13 @@ public interface Fields
 
 	int size();
 
+	/**
+	 * Returns immutable collection of field names
+	 * 
+	 * @return immutable collection of field names
+	 */
+	Collection<String> fieldNames();
+
 	default boolean contains(String field)
 	{
 		return getObject(field) != null;

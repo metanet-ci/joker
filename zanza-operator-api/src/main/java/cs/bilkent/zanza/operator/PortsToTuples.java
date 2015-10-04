@@ -1,11 +1,11 @@
 package cs.bilkent.zanza.operator;
 
-import uk.co.real_logic.agrona.collections.Int2ObjectHashMap;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+
+import uk.co.real_logic.agrona.collections.Int2ObjectHashMap;
 
 /**
  * Used for incoming and outgoing tuples

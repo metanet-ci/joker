@@ -1,21 +1,22 @@
 package cs.bilkent.zanza.operator;
 
-import org.junit.Test;
-
-import java.util.List;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.Mockito.mock;
 
+import java.util.List;
+
+import org.junit.Test;
+
 public class PortsToTuplesTest
 {
 
 	private PortsToTuples portsToTuples = new PortsToTuples();
 
-	@Test public void shouldAddTupleToDefaultPort()
+	@Test
+	public void shouldAddTupleToDefaultPort()
 	{
 		final Tuple tuple = mock(Tuple.class);
 
@@ -29,7 +30,8 @@ public class PortsToTuplesTest
 		assertThat(tuples, hasItem(tuple));
 	}
 
-	@Test public void shouldGetTuplesByDefaultPort()
+	@Test
+	public void shouldGetTuplesByDefaultPort()
 	{
 		final Tuple tuple = mock(Tuple.class);
 
@@ -41,7 +43,8 @@ public class PortsToTuplesTest
 		assertThat(tuples, hasItem(tuple));
 	}
 
-	@Test public void shouldNotGetTuplesByDefaultPort()
+	@Test
+	public void shouldNotGetTuplesByDefaultPort()
 	{
 		final Tuple tuple = mock(Tuple.class);
 
@@ -55,7 +58,8 @@ public class PortsToTuplesTest
 		assertThat(tuples, hasSize(0));
 	}
 
-	@Test public void shouldAddTuplesToMultiplePorts()
+	@Test
+	public void shouldAddTuplesToMultiplePorts()
 	{
 		final Tuple tuple = mock(Tuple.class);
 

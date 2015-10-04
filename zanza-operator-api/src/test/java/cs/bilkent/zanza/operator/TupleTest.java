@@ -1,17 +1,18 @@
 package cs.bilkent.zanza.operator;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+
+import org.junit.Before;
+import org.junit.Test;
 
 public class TupleTest extends AbstractFieldsTest
 {
 
 	private Tuple tuple;
 
-	@Before public void init()
+	@Before
+	public void init()
 	{
 		tuple = getFields();
 	}
@@ -21,14 +22,16 @@ public class TupleTest extends AbstractFieldsTest
 		return new Tuple();
 	}
 
-	@Test public void shouldClear()
+	@Test
+	public void shouldClear()
 	{
 		tuple.set("field", "value");
 		tuple.clear();
 		assertThat(tuple.size(), equalTo(0));
 	}
 
-	@Test public void shouldGetSize()
+	@Test
+	public void shouldGetSize()
 	{
 		tuple.set("field", "value");
 		assertThat(tuple.size(), equalTo(1));

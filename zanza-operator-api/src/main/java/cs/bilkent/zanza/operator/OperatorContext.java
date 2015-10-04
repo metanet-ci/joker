@@ -1,8 +1,8 @@
 package cs.bilkent.zanza.operator;
 
-import cs.bilkent.zanza.operator.kvstore.KVStore;
-
 import java.util.List;
+
+import cs.bilkent.zanza.operator.kvstore.KVStore;
 
 public interface OperatorContext
 {

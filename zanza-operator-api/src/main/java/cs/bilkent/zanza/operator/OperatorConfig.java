@@ -1,5 +1,7 @@
 package cs.bilkent.zanza.operator;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -86,6 +88,12 @@ public class OperatorConfig implements Fields
 	public int size()
 	{
 		return this.values.size();
+	}
+
+	@Override
+	public Collection<String> fieldNames()
+	{
+		return Collections.unmodifiableCollection(this.values.keySet());
 	}
 
 }
