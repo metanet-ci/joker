@@ -1,16 +1,19 @@
 package cs.bilkent.zanza.operator.impl.scheduling;
 
-import static cs.bilkent.zanza.operator.impl.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityType.AVAILABLE_ON_ALL;
-import static cs.bilkent.zanza.operator.impl.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityType.AVAILABLE_ON_ANY;
-
 import java.util.concurrent.TimeUnit;
 
 import cs.bilkent.zanza.operator.Port;
 import cs.bilkent.zanza.operator.impl.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityType;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
+import static cs.bilkent.zanza.operator.impl.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityType.AVAILABLE_ON_ALL;
+import static cs.bilkent.zanza.operator.impl.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityType.AVAILABLE_ON_ANY;
+
 public final class SchedulingStrategies
 {
+
+	public static final SchedulingStrategy SCHEDULE_WHEN_AVAILABLE = new ScheduleWhenAvailable();
+
 	private SchedulingStrategies()
 	{
 	}
@@ -43,11 +46,11 @@ public final class SchedulingStrategies
 
 	public static SchedulingStrategy scheduleAfterDelay(final long delayAmount, final TimeUnit timeUnit)
 	{
-		return new DelayedScheduling(delayAmount, timeUnit);
+		return new ScheduleDelayed(delayAmount, timeUnit);
 	}
 
 	public static SchedulingStrategy scheduleOnTime(final long timestampInMillis)
 	{
-		return new OnTimeScheduling(timestampInMillis);
+		return new ScheduleOnTime(timestampInMillis);
 	}
 }
