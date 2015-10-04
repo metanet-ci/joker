@@ -1,6 +1,4 @@
-package cs.bilkent.zanza.operator.impl;
-
-import cs.bilkent.zanza.operator.PartitionKeyExtractor;
+package cs.bilkent.zanza.operator;
 
 public final class PartitionKeyExtractors
 {

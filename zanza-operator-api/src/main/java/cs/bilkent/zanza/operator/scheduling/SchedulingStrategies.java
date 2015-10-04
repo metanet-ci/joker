@@ -1,13 +1,13 @@
-package cs.bilkent.zanza.operator.impl.scheduling;
+package cs.bilkent.zanza.operator.scheduling;
 
 
 import java.util.concurrent.TimeUnit;
 
 import cs.bilkent.zanza.operator.Port;
-import cs.bilkent.zanza.operator.impl.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityType;
-import static cs.bilkent.zanza.operator.impl.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityType.AVAILABLE_ON_ALL;
-import static cs.bilkent.zanza.operator.impl.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityType.AVAILABLE_ON_ANY;
-import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
+import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityType;
+import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityType.AVAILABLE_ON_ALL;
+import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityType.AVAILABLE_ON_ANY;
+
 
 public final class SchedulingStrategies
 {

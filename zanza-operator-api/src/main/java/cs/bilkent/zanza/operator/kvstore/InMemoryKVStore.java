@@ -1,9 +1,7 @@
-package cs.bilkent.zanza.operator.impl.kvstore;
+package cs.bilkent.zanza.operator.kvstore;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import cs.bilkent.zanza.operator.kvstore.KVStore;
 
 public class InMemoryKVStore implements KVStore
 {

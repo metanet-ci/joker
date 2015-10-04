@@ -1,4 +1,4 @@
-package cs.bilkent.zanza.operator.impl.invocationreason;
+package cs.bilkent.zanza.operator.invocationreason;
 
 import cs.bilkent.zanza.operator.InvocationReason;
 

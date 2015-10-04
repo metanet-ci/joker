@@ -4,7 +4,7 @@ import org.junit.Test;
 
 import cs.bilkent.zanza.operator.AbstractFieldsTest;
 import cs.bilkent.zanza.operator.Fields;
-import cs.bilkent.zanza.operator.impl.kvstore.InMemoryKVStore;
+
 
 public class InMemoryKvStoreTest extends AbstractFieldsTest
 {

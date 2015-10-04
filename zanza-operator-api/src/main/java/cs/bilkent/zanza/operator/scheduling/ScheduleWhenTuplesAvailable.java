@@ -1,10 +1,9 @@
-package cs.bilkent.zanza.operator.impl.scheduling;
+package cs.bilkent.zanza.operator.scheduling;
 
 
 import java.util.Map;
 
 import cs.bilkent.zanza.operator.Port;
-import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import uk.co.real_logic.agrona.collections.Int2IntHashMap;
 
 public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
