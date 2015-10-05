@@ -6,9 +6,10 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
 import cs.bilkent.zanza.operator.Port;
@@ -37,7 +38,7 @@ public class FlowBuilder
     public FlowBuilder add ( final String operatorId, final Class<? extends Operator> clazz, final OperatorConfig config )
     {
         failIfEmptyOperatorId( operatorId );
-        Preconditions.checkArgument( clazz != null, "Operator class must be provided!" );
+        checkArgument( clazz != null, "Operator class must be provided!" );
         failIfAlreadyBuilt();
 
         operators.put( operatorId, new OperatorDefinition( operatorId, clazz, config ) );
@@ -67,7 +68,7 @@ public class FlowBuilder
         failIfEmptyOperatorId( targetOperatorId );
         failIfNonExistingOperatorId( targetOperatorId );
         failIfNegativePort( targetPort );
-        Preconditions.checkArgument( !sourceOperatorId.equals( targetOperatorId ), "operator ids must be different!" );
+        checkArgument( !sourceOperatorId.equals( targetOperatorId ), "operator ids must be different!" );
         failIfAlreadyBuilt();
 
         final Port source = new Port( sourceOperatorId, sourcePort );
@@ -78,21 +79,21 @@ public class FlowBuilder
 
     private void failIfEmptyOperatorId ( final String operatorId )
     {
-        Preconditions.checkArgument( !Strings.isNullOrEmpty( operatorId ), "operator id must be non-empty!" );
+        checkArgument( !Strings.isNullOrEmpty( operatorId ), "operator id must be non-empty!" );
     }
 
     private void failIfNonExistingOperatorId ( final String operatorId )
     {
-        Preconditions.checkArgument( operators.containsKey( operatorId ), "Non-existing operator id!" );
+        checkArgument( operators.containsKey( operatorId ), "Non-existing operator id!" );
     }
 
     private void failIfNegativePort ( final int port )
     {
-        Preconditions.checkArgument( port >= Port.DEFAULT_PORT_INDEX, "Invalid port!" );
+        checkArgument( port >= Port.DEFAULT_PORT_INDEX, "Invalid port!" );
     }
 
     private void failIfAlreadyBuilt ()
     {
-        Preconditions.checkState( !built, "Flow already built!" );
+        checkState( !built, "Flow already built!" );
     }
 }

@@ -8,192 +8,189 @@ import java.util.Set;
 
 public interface Fields
 {
-    <T> T get( String field );
+    <T> T get ( String key );
 
-    <T> T getOrDefault( String field, T defaultVal );
+    <T> T getOrDefault ( String key, T defaultVal );
 
-    void set( String field, Object value );
+    boolean contains ( String key );
 
-    <T> T put( String field, T value );
+    void set ( String key, Object value );
 
-    Object remove( String field );
+    <T> T put ( String key, T value );
 
-    boolean delete( String field );
+    Object remove ( String key );
+
+    boolean delete ( String key );
 
     void clear();
 
     int size();
 
     /**
-     * Returns immutable collection of field names
+     * Returns immutable collection of key names
      *
-     * @return immutable collection of field names
+     * @return immutable collection of key names
      */
-    Collection<String> fieldNames();
+    Collection<String> keys ();
 
-    default boolean contains( final String field )
+    default Object getObject ( final String key )
     {
-        return getObject( field ) != null;
+        return get( key );
     }
 
-    default Object getObject( final String field )
+    default Object getObjectOrDefault ( final String key, final Object defaultVal )
     {
-        return get( field );
+        return getOrDefault( key, defaultVal );
     }
 
-    default Object getObjectOrDefault( final String field, final Object defaultVal )
+    default String getString ( final String key )
     {
-        return getOrDefault( field, defaultVal );
+        return get( key );
     }
 
-    default String getString( final String field )
+    default String getStringOrDefault ( final String key, final String defaultVal )
     {
-        return get( field );
+        return getOrDefault( key, defaultVal );
     }
 
-    default String getStringOrDefault( final String field, final String defaultVal )
+    default Integer getInteger ( final String key )
     {
-        return getOrDefault( field, defaultVal );
+        return get( key );
     }
 
-    default Integer getInteger( final String field )
+    default Integer getIntegerOrDefault ( final String key, final Integer defaultVal )
     {
-        return get( field );
+        return getOrDefault( key, defaultVal );
     }
 
-    default Integer getIntegerOrDefault( final String field, final Integer defaultVal )
+    default Long getLong ( final String key )
     {
-        return getOrDefault( field, defaultVal );
+        return get( key );
     }
 
-    default Long getLong( final String field )
+    default Long getLongOrDefault ( final String key, final Long defaultVal )
     {
-        return get( field );
+        return getOrDefault( key, defaultVal );
     }
 
-    default Long getLongOrDefault( final String field, final Long defaultVal )
+    default Boolean getBoolean ( final String key )
     {
-        return getOrDefault( field, defaultVal );
+        return get( key );
     }
 
-    default Boolean getBoolean( final String field )
+    default Boolean getBooleanOrDefault ( final String key, final Boolean defaultVal )
     {
-        return get( field );
+        return getOrDefault( key, defaultVal );
     }
 
-    default Boolean getBooleanOrDefault( final String field, final Boolean defaultVal )
+    default Short getShort ( final String key )
     {
-        return getOrDefault( field, defaultVal );
+        return get( key );
     }
 
-    default Short getShort( final String field )
+    default Short getShortOrDefault ( final String key, final Short defaultVal )
     {
-        return get( field );
+        return getOrDefault( key, defaultVal );
     }
 
-    default Short getShortOrDefault( final String field, final Short defaultVal )
+    default Byte getByte ( final String key )
     {
-        return getOrDefault( field, defaultVal );
+        return get( key );
     }
 
-    default Byte getByte( final String field )
+    default Byte getByteOrDefault ( final String key, final Byte defaultVal )
     {
-        return get( field );
+        return getOrDefault( key, defaultVal );
     }
 
-    default Byte getByteOrDefault( final String field, final Byte defaultVal )
+    default Double getDouble ( final String key )
     {
-        return getOrDefault( field, defaultVal );
+        return get( key );
     }
 
-    default Double getDouble( final String field )
+    default Double getDoubleOrDefault ( final String key, final Double defaultVal )
     {
-        return get( field );
+        return getOrDefault( key, defaultVal );
     }
 
-    default Double getDoubleOrDefault( final String field, final Double defaultVal )
+    default Float getFloat ( final String key )
     {
-        return getOrDefault( field, defaultVal );
+        return get( key );
     }
 
-    default Float getFloat( final String field )
+    default Float getFloatOrDefault ( final String key, final Float defaultVal )
     {
-        return get( field );
+        return getOrDefault( key, defaultVal );
     }
 
-    default Float getFloatOrDefault( final String field, final Float defaultVal )
+    default byte[] getBinary ( final String key )
     {
-        return getOrDefault( field, defaultVal );
+        return get( key );
     }
 
-    default byte[] getBinary( final String field )
+    default byte[] getBinaryOrDefault ( final String key, final byte[] defaultVal )
     {
-        return get( field );
+        return getOrDefault( key, defaultVal );
     }
 
-    default byte[] getBinaryOrDefault( final String field, final byte[] defaultVal )
+    default <T> Collection<T> getCollection ( final String key )
     {
-        return getOrDefault( field, defaultVal );
+        return get( key );
     }
 
-    default <T> Collection<T> getCollection( final String field )
-    {
-        return get( field );
-    }
-
-    default <T> Collection<T> getCollectionOrDefault( final String field,
+    default <T> Collection<T> getCollectionOrDefault ( final String key,
                                                       final Collection<T> defaultVal )
     {
-        return getOrDefault( field, defaultVal );
+        return getOrDefault( key, defaultVal );
     }
 
-    default <T> Collection<T> getCollectionOrEmpty( final String field )
+    default <T> Collection<T> getCollectionOrEmpty ( final String key )
     {
-        return getOrDefault( field, Collections.emptyList() );
+        return getOrDefault( key, Collections.emptyList() );
     }
 
-    default <T> List<T> getList( final String field )
+    default <T> List<T> getList ( final String key )
     {
-        return get( field );
+        return get( key );
     }
 
-    default <T> List<T> getListOrDefault( final String field, final List<T> defaultVal )
+    default <T> List<T> getListOrDefault ( final String key, final List<T> defaultVal )
     {
-        return getOrDefault( field, defaultVal );
+        return getOrDefault( key, defaultVal );
     }
 
-    default <T> List<T> getListOrEmpty( final String field )
+    default <T> List<T> getListOrEmpty ( final String key )
     {
-        return getOrDefault( field, Collections.emptyList() );
+        return getOrDefault( key, Collections.emptyList() );
     }
 
-    default <T> Set<T> getSet( final String field )
+    default <T> Set<T> getSet ( final String key )
     {
-        return get( field );
+        return get( key );
     }
 
-    default <T> Set<T> getSetOrDefault( final String field, final Set<T> defaultVal )
+    default <T> Set<T> getSetOrDefault ( final String key, final Set<T> defaultVal )
     {
-        return getOrDefault( field, defaultVal );
+        return getOrDefault( key, defaultVal );
     }
 
-    default <T> Set<T> getSetOrEmpty( final String field )
+    default <T> Set<T> getSetOrEmpty ( final String key )
     {
-        return getOrDefault( field, Collections.emptySet() );
+        return getOrDefault( key, Collections.emptySet() );
     }
 
-    default <K, V> Map<K, V> getMap( final String field )
+    default <K, V> Map<K, V> getMap ( final String key )
     {
-        return get( field );
+        return get( key );
     }
 
-    default <K, V> Map<K, V> getMapOrDefault( final String field, final Map<K, V> defaultVal )
+    default <K, V> Map<K, V> getMapOrDefault ( final String key, final Map<K, V> defaultVal )
     {
-        return getOrDefault( field, defaultVal );
+        return getOrDefault( key, defaultVal );
     }
 
-    default <K, V> Map<K, V> getMapOrEmpty( final String field )
+    default <K, V> Map<K, V> getMapOrEmpty ( final String key )
     {
-        return getOrDefault( field, Collections.emptyMap() );
+        return getOrDefault( key, Collections.emptyMap() );
     }
 }

@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 public class OperatorConfig implements Fields
 {
     private final Map<String, Object> values = new HashMap<>();
@@ -43,58 +45,73 @@ public class OperatorConfig implements Fields
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T> T get(final String field)
+    public <T> T get ( final String key )
     {
-        return (T) values.get(field);
+        checkNotNull( key, "key can't be null" );
+        return (T) values.get( key );
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T> T getOrDefault(final String field, final T defaultVal)
+    public <T> T getOrDefault ( final String key, final T defaultVal )
     {
-        return (T) values.getOrDefault(field, defaultVal);
+        checkNotNull( key, "key can't be null" );
+        return (T) values.getOrDefault( key, defaultVal );
     }
 
     @Override
-    public void set(final String field, final Object value)
+    public boolean contains ( final String key )
     {
-        this.values.put(field, value);
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public <T> T put(final String field, final T value)
-    {
-        return (T) this.values.put(field, value);
+        checkNotNull( key, "key can't be null" );
+        return values.containsKey( key );
     }
 
     @Override
-    public Object remove(final String field)
+    public void set ( final String key, final Object value )
     {
-        return this.values.remove(field);
+        checkNotNull( key, "key can't be null!" );
+        checkNotNull( value, "value can't be null!" );
+        this.values.put( key, value );
+    }
+
+    @SuppressWarnings( "unchecked" )
+    @Override
+    public <T> T put ( final String key, final T value )
+    {
+        checkNotNull( key, "key can't be null" );
+        checkNotNull( value, "value can't be null!" );
+        return (T) this.values.put( key, value );
     }
 
     @Override
-    public boolean delete(final String field)
+    public Object remove ( final String key )
     {
-        return this.values.remove(field) != null;
+        checkNotNull( key, "key can't be null" );
+        return this.values.remove( key );
     }
 
     @Override
-    public void clear()
+    public boolean delete ( final String key )
+    {
+        checkNotNull( key, "key can't be null" );
+        return this.values.remove( key ) != null;
+    }
+
+    @Override
+    public void clear ()
     {
         this.values.clear();
     }
 
     @Override
-    public int size()
+    public int size ()
     {
         return this.values.size();
     }
 
     @Override
-    public Collection<String> fieldNames()
+    public Collection<String> keys ()
     {
-        return Collections.unmodifiableCollection(this.values.keySet());
+        return Collections.unmodifiableCollection( this.values.keySet() );
     }
 }

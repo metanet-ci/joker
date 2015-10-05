@@ -19,7 +19,7 @@ public interface KVStore extends Fields
     }
 
     @Override
-    default Collection<String> fieldNames()
+    default Collection<String> keys ()
     {
         throw new UnsupportedOperationException();
     }

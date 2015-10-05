@@ -1,6 +1,7 @@
 package cs.bilkent.zanza.operator.flow;
 
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import cs.bilkent.zanza.operator.Port;
 
 
@@ -12,6 +13,8 @@ public class ConnectionDefinition
 
     public ConnectionDefinition ( final Port source, final Port target )
     {
+        checkNotNull( source, "source can't be null" );
+        checkNotNull( target, "target can't be null" );
         this.source = source;
         this.target = target;
     }

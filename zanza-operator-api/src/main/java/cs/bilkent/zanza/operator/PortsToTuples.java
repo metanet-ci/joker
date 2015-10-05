@@ -5,6 +5,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import uk.co.real_logic.agrona.collections.Int2ObjectHashMap;
 
 /**
@@ -20,33 +22,40 @@ public class PortsToTuples
 
     public PortsToTuples(final Tuple tuple)
     {
+        checkNotNull( tuple, "tuple can't be null" );
         add(tuple);
     }
 
     public PortsToTuples(final List<Tuple> tuples)
     {
+        checkNotNull( tuples, "tuples can't be null" );
         addAll(tuples);
     }
 
     public void add(final Tuple tuple)
     {
+        checkNotNull( tuple, "tuple can't be null" );
         add(Port.DEFAULT_PORT_INDEX, tuple);
     }
 
     public void addAll(final List<Tuple> tuples)
     {
-
+        checkNotNull( tuples, "tuples can't be null" );
         addAll(Port.DEFAULT_PORT_INDEX, tuples);
     }
 
     public void add(final int portIndex, final Tuple tuple)
     {
+        checkArgument( portIndex >= 0, "port must be non-negative" );
+        checkNotNull( tuple, "tuple can't be null" );
         final List<Tuple> tuples = getOrCreateTuples(portIndex);
         tuples.add(tuple);
     }
 
     public void addAll(final int portIndex, final List<Tuple> tuplesToAdd)
     {
+        checkArgument( portIndex >= 0, "port must be non-negative" );
+        checkNotNull( tuplesToAdd, "tuples can't be null" );
         final List<Tuple> tuples = getOrCreateTuples(portIndex);
         tuples.addAll(tuplesToAdd);
     }

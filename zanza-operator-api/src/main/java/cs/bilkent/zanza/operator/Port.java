@@ -1,5 +1,8 @@
 package cs.bilkent.zanza.operator;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 public class Port
 {
     public static final int DEFAULT_PORT_INDEX = 0;
@@ -10,6 +13,8 @@ public class Port
 
     public Port(String operatorName, int portIndex)
     {
+        checkNotNull( operatorName, "key can't be null" );
+        checkArgument( portIndex >= 0, "port must be non-negative" );
         this.operatorName = operatorName;
         this.portIndex = portIndex;
     }
