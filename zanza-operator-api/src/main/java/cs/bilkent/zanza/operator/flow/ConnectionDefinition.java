@@ -16,11 +16,6 @@ public class ConnectionDefinition
         this.target = target;
     }
 
-    public boolean matches ( final String operator )
-    {
-        return source.operatorName.equals( operator ) || target.operatorName.equals( operator );
-    }
-
     @Override
     public boolean equals ( final Object o )
     {

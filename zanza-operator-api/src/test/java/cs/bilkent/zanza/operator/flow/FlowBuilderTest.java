@@ -89,7 +89,7 @@ public class FlowBuilderTest
     }
 
     @Test
-    public void shouldBuildWithValidFlowDefinition ()
+    public void shouldConnectSingleOutputPortMultipleTimes ()
     {
         builder.add( "op1", Operator.class );
         builder.add( "op2", Operator.class );
@@ -98,18 +98,16 @@ public class FlowBuilderTest
         builder.connect( "op1", "op3" );
         final FlowDefinition flow = builder.build();
         assertNotNull( flow );
-        assertTrue( flow.operators.containsKey( "op1" ) );
-        assertTrue( flow.operators.containsKey( "op2" ) );
-        assertTrue( flow.operators.containsKey( "op3" ) );
+        assertTrue( flow.containsOperator( "op1" ) );
+        assertTrue( flow.containsOperator( "op2" ) );
+        assertTrue( flow.containsOperator( "op3" ) );
         assertTrue( flow.isConnected( "op1", "op2" ) );
-        assertTrue( flow.isConnected( "op2", "op1" ) );
         assertTrue( flow.isConnected( "op1", "op3" ) );
-        assertTrue( flow.isConnected( "op3", "op1" ) );
-        assertFalse( flow.isConnected( "op1", "op2" ) );
+        assertFalse( flow.isConnected( "op3", "op1" ) );
         assertFalse( flow.isConnected( "op2", "op1" ) );
     }
 
-    @Test( expected = IllegalArgumentException.class )
+    @Test( expected = IllegalStateException.class )
     public void shouldFailWithInvalidFlowDefinition ()
     {
         builder.add( "op1", Operator.class );
@@ -133,6 +131,16 @@ public class FlowBuilderTest
         builder.connect( "op1", "op2" );
         builder.build();
         builder.connect( "op1", "op2" );
+    }
+
+    @Test( expected = IllegalStateException.class )
+    public void shouldNotBuildWhenThereAreNotConnectedOperators ()
+    {
+        builder.add( "op1", Operator.class );
+        builder.add( "op2", Operator.class );
+        builder.add( "op3", Operator.class );
+        builder.connect( "op1", "op2" );
+        builder.build();
     }
 
 }

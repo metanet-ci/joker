@@ -31,11 +31,17 @@ public class FlowDefinition
                                                 .flatMap( con -> Stream.of( con.source.operatorName, con.target.operatorName ) )
                                                 .distinct()
                                                 .count();
-        Preconditions.checkArgument( operators.size() == connectionCount, "Invalid flow definition!" );
+        Preconditions.checkState( operators.size() == connectionCount, "Invalid flow definition!" );
+    }
+
+    public boolean containsOperator ( final String operatorId )
+    {
+        return operators.containsKey( operatorId );
     }
 
     public boolean isConnected ( final String operator1, final String operator2 )
     {
-        return connections.stream().anyMatch( con -> con.matches( operator1 ) && con.matches( operator2 ) );
+        return connections.stream()
+                          .anyMatch( con -> con.source.operatorName.equals( operator1 ) && con.target.operatorName.equals( operator2 ) );
     }
 }
