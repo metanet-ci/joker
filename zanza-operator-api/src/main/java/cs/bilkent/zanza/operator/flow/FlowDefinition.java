@@ -28,8 +28,7 @@ public class FlowDefinition
     {
         checkNotNull( operators );
         checkNotNull( connections );
-        final long connectionCount = connections.stream()
-                                                .flatMap( con -> Stream.of( con.source.operatorName, con.target.operatorName ) )
+        final long connectionCount = connections.stream().flatMap( con -> Stream.of( con.source.operatorId, con.target.operatorId ) )
                                                 .distinct()
                                                 .count();
         checkState( operators.size() == connectionCount, "Invalid flow definition!" );
@@ -40,9 +39,14 @@ public class FlowDefinition
         return operators.containsKey( operatorId );
     }
 
+    public OperatorDefinition getOperator ( final String operatorId )
+    {
+        return operators.get( operatorId );
+    }
+
     public boolean isConnected ( final String operator1, final String operator2 )
     {
         return connections.stream()
-                          .anyMatch( con -> con.source.operatorName.equals( operator1 ) && con.target.operatorName.equals( operator2 ) );
+                          .anyMatch( con -> con.source.operatorId.equals( operator1 ) && con.target.operatorId.equals( operator2 ) );
     }
 }

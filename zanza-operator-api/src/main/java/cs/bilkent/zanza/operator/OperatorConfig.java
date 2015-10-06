@@ -11,39 +11,37 @@ public class OperatorConfig implements Fields
 {
     private final Map<String, Object> values = new HashMap<>();
 
+    private int inputPortCount = Port.DEFAULT_PORT_COUNT;
+
+    private int outputPortCount = Port.DEFAULT_PORT_COUNT;
+
     private PartitionKeyExtractor partitionKeyExtractor;
 
-    public OperatorConfig()
+    public OperatorConfig ()
     {
     }
 
-    public OperatorConfig(final PartitionKeyExtractor partitionKeyExtractor)
+    public OperatorConfig ( final Map<String, Object> values )
     {
-        this.partitionKeyExtractor = partitionKeyExtractor;
+        this.values.putAll( values );
     }
 
-    public OperatorConfig(final Map<String, Object> values, final PartitionKeyExtractor partitionKeyExtractor)
-    {
-        this.values.putAll(values);
-        this.partitionKeyExtractor = partitionKeyExtractor;
-    }
-
-    public PartitionKeyExtractor getPartitionKeyExtractor()
+    public PartitionKeyExtractor getPartitionKeyExtractor ()
     {
         return partitionKeyExtractor;
     }
 
-    public void setPartitionKeyExtractor(final PartitionKeyExtractor partitionKeyExtractor)
+    public void setPartitionKeyExtractor ( final PartitionKeyExtractor partitionKeyExtractor )
     {
         this.partitionKeyExtractor = partitionKeyExtractor;
     }
 
-    public Map<String, Object> getValues()
+    public Map<String, Object> getValues ()
     {
         return values;
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings( "unchecked" )
     @Override
     public <T> T get ( final String key )
     {
@@ -51,7 +49,7 @@ public class OperatorConfig implements Fields
         return (T) values.get( key );
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings( "unchecked" )
     @Override
     public <T> T getOrDefault ( final String key, final T defaultVal )
     {
@@ -95,6 +93,26 @@ public class OperatorConfig implements Fields
     {
         checkNotNull( key, "key can't be null" );
         return this.values.remove( key ) != null;
+    }
+
+    public int getInputPortCount ()
+    {
+        return inputPortCount;
+    }
+
+    public void setInputPortCount ( final int inputPortCount )
+    {
+        this.inputPortCount = inputPortCount;
+    }
+
+    public int getOutputPortCount ()
+    {
+        return outputPortCount;
+    }
+
+    public void setOutputPortCount ( final int outputPortCount )
+    {
+        this.outputPortCount = outputPortCount;
     }
 
     @Override

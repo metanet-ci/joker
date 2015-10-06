@@ -5,17 +5,21 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public class Port
 {
+    public static final int DYNAMIC_PORT_COUNT = -1;
+
+    public static final int DEFAULT_PORT_COUNT = 1;
+
     public static final int DEFAULT_PORT_INDEX = 0;
 
-    public final String operatorName;
+    public final String operatorId;
 
     public final int portIndex;
 
-    public Port(String operatorName, int portIndex)
+    public Port ( String operatorId, int portIndex )
     {
-        checkNotNull( operatorName, "key can't be null" );
+        checkNotNull( operatorId, "operator id can't be null" );
         checkArgument( portIndex >= 0, "port must be non-negative" );
-        this.operatorName = operatorName;
+        this.operatorId = operatorId;
         this.portIndex = portIndex;
     }
 
@@ -37,14 +41,14 @@ public class Port
         {
             return false;
         }
-        return operatorName.equals( port.operatorName );
+        return operatorId.equals( port.operatorId );
 
     }
 
     @Override
     public int hashCode ()
     {
-        int result = operatorName.hashCode();
+        int result = operatorId.hashCode();
         result = 31 * result + portIndex;
         return result;
     }

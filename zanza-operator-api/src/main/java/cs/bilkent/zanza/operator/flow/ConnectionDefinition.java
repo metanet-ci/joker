@@ -48,4 +48,9 @@ public class ConnectionDefinition
         result = 31 * result + target.hashCode();
         return result;
     }
+
+    public boolean targetPortMatches ( final String targetOperatorId, final int targetPort )
+    {
+        return this.target.operatorId.equals( targetOperatorId ) && this.target.portIndex == targetPort;
+    }
 }
