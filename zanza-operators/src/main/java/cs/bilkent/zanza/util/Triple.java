@@ -1,27 +1,29 @@
-package cs.bilkent.zanza.operator.util;
+package cs.bilkent.zanza.util;
 
 
-public class Pair<T1, T2>
+public class Triple<T1, T2, T3>
 {
-
     public final T1 _1;
 
     public final T2 _2;
 
-    public static <T1, T2> Pair<T1, T2> of ( final T1 _1, final T2 _2 )
+    public final T3 _3;
+
+    public static <T1, T2, T3> Triple<T1, T2, T3> of ( final T1 _1, final T2 _2, final T3 _3 )
     {
-        return new Pair<>( _1, _2 );
+        return new Triple<>( _1, _2, _3 );
     }
 
-    public Pair ( final T1 _1, final T2 _2 )
+    public Triple ( final T1 _1, final T2 _2, final T3 _3 )
     {
         this._1 = _1;
         this._2 = _2;
+        this._3 = _3;
     }
 
     public int productArity ()
     {
-        return 2;
+        return 3;
     }
 
     public Object productElement ( int n ) throws IndexOutOfBoundsException
@@ -34,6 +36,10 @@ public class Pair<T1, T2>
         {
             return this._2;
         }
+        else if ( n == 2 )
+        {
+            return this._3;
+        }
         else
         {
             throw new IndexOutOfBoundsException();
@@ -43,9 +49,10 @@ public class Pair<T1, T2>
     @Override
     public String toString ()
     {
-        return "Tuple2{" +
+        return "Tuple3{" +
                "_1=" + _1 +
                ", _2=" + _2 +
+               ", _3=" + _3 +
                '}';
     }
 }

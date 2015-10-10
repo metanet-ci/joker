@@ -1,62 +1,78 @@
 package cs.bilkent.zanza.operator.scheduling;
 
 
+import java.util.HashMap;
 import java.util.Map;
 
 import cs.bilkent.zanza.operator.Port;
-import uk.co.real_logic.agrona.collections.Int2IntHashMap;
+import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityType.AVAILABLE_ON_ALL;
+import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityType.AVAILABLE_ON_ANY;
 
 public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
 {
-    private final Int2IntHashMap tupleCountByPortIndex = new Int2IntHashMap(0);
+
+    public static final int ANY_NUMBER_OF_TUPLES = 0;
+
+    private final Map<Integer, Integer> tupleCountByPortIndex = new HashMap<>();
+
     private final TupleAvailabilityType tupleAvailabilityType;
 
-    public ScheduleWhenTuplesAvailable()
+    public static ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailableOnAll ( final int tupleCount, final int... ports )
     {
-        this.tupleAvailabilityType = TupleAvailabilityType.AVAILABLE_ON_ANY;
-        this.tupleCountByPortIndex.put(Port.DEFAULT_PORT_INDEX, 1);
+        return new ScheduleWhenTuplesAvailable( AVAILABLE_ON_ALL, tupleCount, ports );
     }
 
-    public ScheduleWhenTuplesAvailable(final int portIndex, final int tupleCount)
+    public static ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailableOnAny ( final int tupleCount, final int... ports )
     {
-        this.tupleAvailabilityType = TupleAvailabilityType.AVAILABLE_ON_ANY;
-        tupleCountByPortIndex.put(portIndex, tupleCount);
+        return new ScheduleWhenTuplesAvailable( AVAILABLE_ON_ANY, tupleCount, ports );
     }
 
-    public ScheduleWhenTuplesAvailable(final Map<Integer, Integer> tupleCountByPortIndex)
+    public static ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailableOnDefaultPort ( final int tupleCount )
+    {
+        return new ScheduleWhenTuplesAvailable( Port.DEFAULT_PORT_INDEX, tupleCount );
+    }
+
+
+    public ScheduleWhenTuplesAvailable ( final int portIndex, final int tupleCount )
+    {
+        this.tupleAvailabilityType = TupleAvailabilityType.AVAILABLE_ON_ANY;
+        tupleCountByPortIndex.put( portIndex, tupleCount );
+    }
+
+    public ScheduleWhenTuplesAvailable ( final Map<Integer, Integer> tupleCountByPortIndex )
     {
         this.tupleAvailabilityType = TupleAvailabilityType.AVAILABLE_ON_ALL;
-        this.tupleCountByPortIndex.putAll(tupleCountByPortIndex);
+        this.tupleCountByPortIndex.putAll( tupleCountByPortIndex );
     }
 
-    public ScheduleWhenTuplesAvailable(final Map<Integer, Integer> tupleCountByPortIndex,
-            final TupleAvailabilityType tupleAvailabilityType)
+    public ScheduleWhenTuplesAvailable ( final Map<Integer, Integer> tupleCountByPortIndex,
+                                         final TupleAvailabilityType tupleAvailabilityType )
     {
         this.tupleAvailabilityType = tupleAvailabilityType;
-        this.tupleCountByPortIndex.putAll(tupleCountByPortIndex);
+        this.tupleCountByPortIndex.putAll( tupleCountByPortIndex );
     }
 
-    public ScheduleWhenTuplesAvailable(final TupleAvailabilityType type, final int tupleCount, final int... ports)
+    public ScheduleWhenTuplesAvailable ( final TupleAvailabilityType type, final int tupleCount, final int... ports )
     {
-        if (ports.length == 0)
+        if ( ports.length == 0 )
         {
             throw new IllegalArgumentException();
         }
 
-        for (final int port : ports)
+        for ( final int port : ports )
         {
-            this.tupleCountByPortIndex.put(port, tupleCount);
+            this.tupleCountByPortIndex.put( port, tupleCount );
         }
 
         this.tupleAvailabilityType = type;
     }
 
-    public Map<Integer, Integer> getTupleCountByPortIndex()
+    public Map<Integer, Integer> getTupleCountByPortIndex ()
     {
         return tupleCountByPortIndex;
     }
 
-    public TupleAvailabilityType getTupleAvailabilityType()
+    public TupleAvailabilityType getTupleAvailabilityType ()
     {
         return tupleAvailabilityType;
     }

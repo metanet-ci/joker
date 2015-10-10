@@ -4,9 +4,9 @@ import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 public interface Operator
 {
-    ProcessingResult process ( PortsToTuples portsToTuples, InvocationReason reason );
-
     SchedulingStrategy init ( final OperatorContext context );
+
+    ProcessingResult process ( PortsToTuples portsToTuples, InvocationReason reason );
 
     default void destroy ()
     {

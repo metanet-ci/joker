@@ -12,6 +12,7 @@
 
     <modules>
         <module>zanza-operator-api</module>
+		<module>zanza-operators</module>
     </modules>
 
     <properties>
