@@ -1,6 +1,6 @@
 package cs.bilkent.zanza.operators;
 
-import java.util.function.Function;
+import java.util.function.Predicate;
 
 import cs.bilkent.zanza.operator.InvocationReason;
 import cs.bilkent.zanza.operator.Operator;
@@ -17,14 +17,14 @@ import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.s
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 @OperatorSpec( type = OperatorType.STATELESS, inputPortCount = 1, outputPortCount = 1 )
-public class MapperOperator implements Operator
+public class FilterOperator implements Operator
 {
 
-    public static final String MAPPER_CONFIG_PARAMETER = "mapper";
+    public static final String PREDICATE_CONFIG_PARAMETER = "predicate";
 
     public static final String TUPLE_COUNT_CONFIG_PARAMETER = "tupleCount";
 
-    private Function<Tuple, Tuple> mapper;
+    private Predicate<Tuple> predicate;
 
     private int tupleCount = ANY_NUMBER_OF_TUPLES;
 
@@ -33,14 +33,14 @@ public class MapperOperator implements Operator
     {
         final OperatorConfig config = context.getConfig();
 
-        Object mapperObject = config.getObject( MAPPER_CONFIG_PARAMETER );
-        if ( mapperObject instanceof Function )
+        Object predicateObject = config.getObject( PREDICATE_CONFIG_PARAMETER );
+        if ( predicateObject instanceof Predicate )
         {
-            this.mapper = (Function<Tuple, Tuple>) mapperObject;
+            this.predicate = (Predicate) predicateObject;
         }
         else
         {
-            throw new IllegalArgumentException( "mapper function is not provided" );
+            throw new IllegalArgumentException( "predicate is not provided" );
         }
 
         if ( config.contains( TUPLE_COUNT_CONFIG_PARAMETER ) )
@@ -56,7 +56,7 @@ public class MapperOperator implements Operator
     {
         final PortsToTuples output = portsToTuples.getTuplesByDefaultPort()
                                                   .stream()
-                                                  .map( mapper )
+                                                  .filter( predicate )
                                                   .collect( PortsToTuples.COLLECT_TO_DEFAULT_PORT );
 
         final SchedulingStrategy nextStrategy = reason.isSuccessful()
@@ -65,5 +65,4 @@ public class MapperOperator implements Operator
 
         return new ProcessingResult( nextStrategy, output );
     }
-
 }

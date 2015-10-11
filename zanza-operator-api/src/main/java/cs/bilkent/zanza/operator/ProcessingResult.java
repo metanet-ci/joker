@@ -1,41 +1,32 @@
 package cs.bilkent.zanza.operator;
 
-import java.util.List;
-
+import static com.google.common.base.Preconditions.checkNotNull;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
-public class ProcessingResult extends PortsToTuples
+public class ProcessingResult
 {
-    private SchedulingStrategy schedulingStrategy;
 
-    public ProcessingResult()
-    {
-    }
+    private final SchedulingStrategy schedulingStrategy;
 
-    public ProcessingResult(final Tuple tuple)
-    {
-        super(tuple);
-    }
+    private final PortsToTuples portsToTuples;
 
-    public ProcessingResult(final Tuple tuple, final SchedulingStrategy schedulingStrategy)
+
+    public ProcessingResult ( final SchedulingStrategy schedulingStrategy, final PortsToTuples portsToTuples )
     {
-        super(tuple);
+        checkNotNull( schedulingStrategy, "scheduling strategy can't be null" );
+        checkNotNull( portsToTuples, "ports to tuples can't be null" );
         this.schedulingStrategy = schedulingStrategy;
+        this.portsToTuples = portsToTuples;
     }
 
-    public ProcessingResult(final List<Tuple> tuples, final SchedulingStrategy schedulingStrategy)
-    {
-        super(tuples);
-        this.schedulingStrategy = schedulingStrategy;
-    }
-
-    public SchedulingStrategy getSchedulingStrategy()
+    public SchedulingStrategy getSchedulingStrategy ()
     {
         return schedulingStrategy;
     }
 
-    public void setSchedulingStrategy(final SchedulingStrategy schedulingStrategy)
+    public PortsToTuples getPortsToTuples ()
     {
-        this.schedulingStrategy = schedulingStrategy;
+        return portsToTuples;
     }
+
 }

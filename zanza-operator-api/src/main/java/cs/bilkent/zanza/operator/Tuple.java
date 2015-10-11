@@ -14,12 +14,12 @@ public class Tuple implements Fields
 {
     private final Map<String, Object> values;
 
-    public Tuple()
+    public Tuple ()
     {
         this.values = new HashMap<>();
     }
 
-    public Tuple(final boolean withInsertionOrder)
+    public Tuple ( final boolean withInsertionOrder )
     {
         this.values = withInsertionOrder ? new LinkedHashMap<>() : new HashMap<>();
     }
@@ -32,11 +32,11 @@ public class Tuple implements Fields
         this.values.put( key, value );
     }
 
-    public Tuple(final Map<String, Object> values)
+    public Tuple ( final Map<String, Object> values )
     {
         checkNotNull( values, "values can't be null" );
         this.values = new HashMap<>();
-        this.values.putAll(values);
+        this.values.putAll( values );
     }
 
     public Map<String, Object> getKeysValues ()
@@ -44,7 +44,7 @@ public class Tuple implements Fields
         return values;
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings( "unchecked" )
     @Override
     public <T> T get ( final String key )
     {
@@ -52,7 +52,7 @@ public class Tuple implements Fields
         return (T) values.get( key );
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings( "unchecked" )
     @Override
     public <T> T getOrDefault ( final String key, final T defaultVal )
     {
@@ -75,7 +75,7 @@ public class Tuple implements Fields
         this.values.put( key, value );
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings( "unchecked" )
     @Override
     public <T> T put ( final String key, final T value )
     {
@@ -99,13 +99,13 @@ public class Tuple implements Fields
     }
 
     @Override
-    public void clear()
+    public void clear ()
     {
         this.values.clear();
     }
 
     @Override
-    public int size()
+    public int size ()
     {
         return this.values.size();
     }
@@ -113,6 +113,36 @@ public class Tuple implements Fields
     @Override
     public Collection<String> keys ()
     {
-        return Collections.unmodifiableCollection(values.keySet());
+        return Collections.unmodifiableCollection( values.keySet() );
+    }
+
+    @Override
+    public boolean equals ( final Object o )
+    {
+        if ( this == o )
+        {
+            return true;
+        }
+        if ( o == null || getClass() != o.getClass() )
+        {
+            return false;
+        }
+
+        final Tuple tuple = (Tuple) o;
+
+        return values.equals( tuple.values );
+
+    }
+
+    @Override
+    public int hashCode ()
+    {
+        return values.hashCode();
+    }
+
+    @Override
+    public String toString ()
+    {
+        return "Tuple{" + values + '}';
     }
 }

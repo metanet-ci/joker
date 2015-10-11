@@ -11,20 +11,20 @@ import cs.bilkent.zanza.operator.OperatorType;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.ProcessingResult;
 import cs.bilkent.zanza.operator.Tuple;
-import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
+import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.ANY_NUMBER_OF_TUPLES;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 @OperatorSpec( type = OperatorType.STATELESS, inputPortCount = 1, outputPortCount = 1 )
-public class MapperOperator implements Operator
+public class ConsoleAppenderOperator implements Operator
 {
 
-    public static final String MAPPER_CONFIG_PARAMETER = "mapper";
+    public static final String TO_STRING_FUNCTION_CONFIG_PARAMETER = "toString";
 
     public static final String TUPLE_COUNT_CONFIG_PARAMETER = "tupleCount";
 
-    private Function<Tuple, Tuple> mapper;
+    private Function<Tuple, String> toStringFunction;
 
     private int tupleCount = ANY_NUMBER_OF_TUPLES;
 
@@ -33,14 +33,14 @@ public class MapperOperator implements Operator
     {
         final OperatorConfig config = context.getConfig();
 
-        Object mapperObject = config.getObject( MAPPER_CONFIG_PARAMETER );
-        if ( mapperObject instanceof Function )
+        Object toStringObject = config.getObject( TO_STRING_FUNCTION_CONFIG_PARAMETER );
+        if ( toStringObject instanceof Function )
         {
-            this.mapper = (Function<Tuple, Tuple>) mapperObject;
+            this.toStringFunction = (Function<Tuple, String>) toStringObject;
         }
         else
         {
-            throw new IllegalArgumentException( "mapper function is not provided" );
+            this.toStringFunction = Tuple::toString;
         }
 
         if ( config.contains( TUPLE_COUNT_CONFIG_PARAMETER ) )
@@ -48,22 +48,16 @@ public class MapperOperator implements Operator
             this.tupleCount = config.getInteger( TUPLE_COUNT_CONFIG_PARAMETER );
         }
 
-        return scheduleWhenTuplesAvailableOnDefaultPort( this.tupleCount );
+        return scheduleWhenTuplesAvailableOnDefaultPort( tupleCount );
     }
 
     @Override
     public ProcessingResult process ( final PortsToTuples portsToTuples, final InvocationReason reason )
     {
-        final PortsToTuples output = portsToTuples.getTuplesByDefaultPort()
-                                                  .stream()
-                                                  .map( mapper )
-                                                  .collect( PortsToTuples.COLLECT_TO_DEFAULT_PORT );
+        portsToTuples.getTuplesByDefaultPort().stream().map( toStringFunction ).forEach( System.out::println );
 
-        final SchedulingStrategy nextStrategy = reason.isSuccessful()
-                                                ? scheduleWhenTuplesAvailableOnDefaultPort( tupleCount )
-                                                : ScheduleNever.INSTANCE;
-
-        return new ProcessingResult( nextStrategy, output );
+        final ScheduleWhenTuplesAvailable next = scheduleWhenTuplesAvailableOnDefaultPort( tupleCount );
+        return new ProcessingResult( next, portsToTuples );
     }
 
 }
