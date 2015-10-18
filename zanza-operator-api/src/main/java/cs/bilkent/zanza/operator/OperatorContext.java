@@ -10,9 +10,9 @@ public interface OperatorContext
 
     OperatorConfig getConfig();
 
-    List<Port> getIncomingPorts();
+    List<Port> getInputPorts ();
 
-    List<Port> getOutgoingPorts();
+    List<Port> getOutputPorts ();
 
     KVStore getKVStore();
 }

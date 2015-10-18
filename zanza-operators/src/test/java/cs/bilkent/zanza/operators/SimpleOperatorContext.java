@@ -13,9 +13,9 @@ public class SimpleOperatorContext implements OperatorContext
 
     private OperatorConfig config = new OperatorConfig();
 
-    private List<Port> incomingPorts;
+    private List<Port> inputPorts;
 
-    private List<Port> outgoingPorts;
+    private List<Port> outputPorts;
 
     private KVStore kvStore;
 
@@ -24,14 +24,14 @@ public class SimpleOperatorContext implements OperatorContext
         this.name = name;
     }
 
-    public void setIncomingPorts ( final List<Port> incomingPorts )
+    public void setInputPorts ( final List<Port> inputPorts )
     {
-        this.incomingPorts = incomingPorts;
+        this.inputPorts = inputPorts;
     }
 
-    public void setOutgoingPorts ( final List<Port> outgoingPorts )
+    public void setOutputPorts ( final List<Port> outputPorts )
     {
-        this.outgoingPorts = outgoingPorts;
+        this.outputPorts = outputPorts;
     }
 
     public void setKvStore ( final KVStore kvStore )
@@ -52,15 +52,15 @@ public class SimpleOperatorContext implements OperatorContext
     }
 
     @Override
-    public List<Port> getIncomingPorts ()
+    public List<Port> getInputPorts ()
     {
-        return incomingPorts;
+        return inputPorts;
     }
 
     @Override
-    public List<Port> getOutgoingPorts ()
+    public List<Port> getOutputPorts ()
     {
-        return outgoingPorts;
+        return outputPorts;
     }
 
     @Override

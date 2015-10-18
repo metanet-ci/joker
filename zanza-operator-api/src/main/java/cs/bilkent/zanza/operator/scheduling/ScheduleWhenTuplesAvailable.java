@@ -2,6 +2,7 @@ package cs.bilkent.zanza.operator.scheduling;
 
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import cs.bilkent.zanza.operator.Port;
@@ -22,7 +23,17 @@ public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
         return new ScheduleWhenTuplesAvailable( AVAILABLE_ON_ALL, tupleCount, ports );
     }
 
+    public static ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailableOnAll ( final int tupleCount, final List<Integer> ports )
+    {
+        return new ScheduleWhenTuplesAvailable( AVAILABLE_ON_ALL, tupleCount, ports );
+    }
+
     public static ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailableOnAny ( final int tupleCount, final int... ports )
+    {
+        return new ScheduleWhenTuplesAvailable( AVAILABLE_ON_ANY, tupleCount, ports );
+    }
+
+    public static ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailableOnAny ( final int tupleCount, final List<Integer> ports )
     {
         return new ScheduleWhenTuplesAvailable( AVAILABLE_ON_ANY, tupleCount, ports );
     }
@@ -67,6 +78,21 @@ public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
         this.tupleAvailabilityType = type;
     }
 
+    public ScheduleWhenTuplesAvailable ( final TupleAvailabilityType type, final int tupleCount, final List<Integer> ports )
+    {
+        if ( ports.size() == 0 )
+        {
+            throw new IllegalArgumentException();
+        }
+
+        for ( final int port : ports )
+        {
+            this.tupleCountByPortIndex.put( port, tupleCount );
+        }
+
+        this.tupleAvailabilityType = type;
+    }
+
     public Map<Integer, Integer> getTupleCountByPortIndex ()
     {
         return tupleCountByPortIndex;
@@ -75,6 +101,11 @@ public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
     public TupleAvailabilityType getTupleAvailabilityType ()
     {
         return tupleAvailabilityType;
+    }
+
+    public int getTupleCount ( final int portIndex )
+    {
+        return tupleCountByPortIndex.getOrDefault( portIndex, 0 );
     }
 
     enum TupleAvailabilityType

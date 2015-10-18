@@ -120,6 +120,17 @@ public class PortsToTuples
         return tuples != null ? tuples : Collections.emptyList();
     }
 
+    public Tuple getTuple ( final int portIndex, final int tupleIndex )
+    {
+        final List<Tuple> tuples = tuplesByPort.get( portIndex );
+        if ( tuples != null && tuples.size() > tupleIndex )
+        {
+            return tuples.get( tupleIndex );
+        }
+
+        throw new IllegalArgumentException( "no tuple exists for port index " + portIndex + " and tuple index " + tupleIndex );
+    }
+
     public List<Tuple> getTuplesByDefaultPort ()
     {
         return getTuples( Port.DEFAULT_PORT_INDEX );
@@ -148,26 +159,10 @@ public class PortsToTuples
     }
 
     @Override
-    public boolean equals ( final Object o )
+    public String toString ()
     {
-        if ( this == o )
-        {
-            return true;
-        }
-        if ( o == null || getClass() != o.getClass() )
-        {
-            return false;
-        }
-
-        final PortsToTuples that = (PortsToTuples) o;
-
-        return tuplesByPort.equals( that.tuplesByPort );
-
-    }
-
-    @Override
-    public int hashCode ()
-    {
-        return tuplesByPort.hashCode();
+        return "PortsToTuples{" +
+               "tuplesByPort=" + tuplesByPort +
+               '}';
     }
 }

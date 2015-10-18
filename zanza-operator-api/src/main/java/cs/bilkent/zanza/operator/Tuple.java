@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Collections.unmodifiableMap;
 
 // TODO Comparable, Serializable, Iterable
 // supports immutable or effectively final objects
@@ -39,9 +40,9 @@ public class Tuple implements Fields
         this.values.putAll( values );
     }
 
-    public Map<String, Object> getKeysValues ()
+    public Map<String, Object> asMap ()
     {
-        return values;
+        return unmodifiableMap( values );
     }
 
     @SuppressWarnings( "unchecked" )
