@@ -18,7 +18,7 @@ import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAll;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
-@OperatorSpec( type = OperatorType.PARTITIONED_STATEFUL, outputPortCount = 1 )
+@OperatorSpec( type = OperatorType.STATEFUL, outputPortCount = 1 )
 public class BarrierOperator implements Operator
 {
 
