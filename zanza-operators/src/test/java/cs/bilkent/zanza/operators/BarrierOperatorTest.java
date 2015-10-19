@@ -84,7 +84,7 @@ public class BarrierOperatorTest
     }
 
     @Test
-    public void shouldMergeTuples ()
+    public void shouldMergeSingleTuplePerPort ()
     {
         operatorContext.getConfig().set( BarrierOperator.MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
         operator.init( operatorContext );
