@@ -17,6 +17,7 @@ import cs.bilkent.zanza.operator.ProcessingResult;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.invocationreason.SuccessfulInvocation;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
+import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST_BUT_SAME_ON_ALL_PORTS;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAll;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
@@ -104,7 +105,7 @@ public class BarrierOperator implements Operator
 
     private SchedulingStrategy getSchedulingStrategyForInputPorts ()
     {
-        return scheduleWhenTuplesAvailableOnAll( 1, inputPortIndices );
+        return scheduleWhenTuplesAvailableOnAll( AT_LEAST_BUT_SAME_ON_ALL_PORTS, 1, inputPortIndices );
     }
 
     @Override
