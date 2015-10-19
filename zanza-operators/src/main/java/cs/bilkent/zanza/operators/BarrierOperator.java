@@ -2,8 +2,10 @@ package cs.bilkent.zanza.operators;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import cs.bilkent.zanza.operator.InvocationReason;
 import cs.bilkent.zanza.operator.Operator;
@@ -18,7 +20,7 @@ import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAll;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
-@OperatorSpec( type = OperatorType.STATEFUL, outputPortCount = 1 )
+@OperatorSpec( type = OperatorType.STATELESS, outputPortCount = 1 )
 public class BarrierOperator implements Operator
 {
 
@@ -102,17 +104,32 @@ public class BarrierOperator implements Operator
 
     private SchedulingStrategy getSchedulingStrategyForInputPorts ()
     {
-
         return scheduleWhenTuplesAvailableOnAll( 1, inputPortIndices );
     }
 
     @Override
     public ProcessingResult process ( final PortsToTuples portsToTuples, final InvocationReason reason )
     {
-        final PortsToTuples output = new PortsToTuples();
+        final PortsToTuples output;
         final SchedulingStrategy next;
         if ( reason == SuccessfulInvocation.INSTANCE )
         {
+            final Optional<Integer> tupleCountOpt = inputPortIndices.stream()
+                                                                    .map( portIndex -> portsToTuples.getTuples( portIndex ).size() )
+                                                                    .reduce( ( count1, count2 ) -> count1.equals( count2 ) ? count1 : 0 );
+            final int tupleCount = tupleCountOpt.orElse( 0 );
+            if ( tupleCount == 0 )
+            {
+                throw new IllegalArgumentException( "number of tuples are not equal for all ports!" );
+            }
+
+            output = IntStream.range( 0, tupleCount )
+                              .mapToObj( tupleIndex -> inputPortIndices.stream()
+                                                                       .map( portIndex -> portsToTuples.getTuple( portIndex,
+                                                                                                                  tupleIndex ) ) )
+                              .map( tuples -> tuples.reduce( new Tuple(), tupleMergeFunc ) )
+                              .collect( PortsToTuples.COLLECT_TO_DEFAULT_PORT );
+
             final Tuple result = inputPortIndices.stream()
                                                  .map( portIndex -> portsToTuples.getTuple( portIndex, 0 ) )
                                                  .reduce( new Tuple(), tupleMergeFunc );
@@ -123,6 +140,7 @@ public class BarrierOperator implements Operator
         else
         {
             next = ScheduleNever.INSTANCE;
+            output = new PortsToTuples();
         }
 
         return new ProcessingResult( next, output );

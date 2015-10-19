@@ -90,9 +90,7 @@ public class BarrierOperatorTest
         operator.init( operatorContext );
 
         final PortsToTuples input = new PortsToTuples();
-        inputPorts.stream()
-                  .map( port -> port.portIndex )
-                  .forEach( portIndex -> input.add( portIndex, new Tuple( "field" + portIndex, portIndex ) ) );
+        populateTuplesWithUniqueFields( input );
 
         final ProcessingResult result = operator.process( input, SuccessfulInvocation.INSTANCE );
         assertSchedulingStrategy( result.getSchedulingStrategy() );
@@ -128,6 +126,49 @@ public class BarrierOperatorTest
 
         final Tuple output = result.getPortsToTuples().getTuple( 0, 0 );
         assertThat( output.getInteger( "count" ), equalTo( expectedValue ) );
+    }
+
+    @Test( expected = IllegalArgumentException.class )
+    public void shouldFailForDifferentNumberOfTuplesPerPort ()
+    {
+        operatorContext.getConfig().set( BarrierOperator.MERGE_POLICY_CONfIG_PARAMETER, TupleValueMergePolicy.KEEP_EXISTING_VALUE );
+        operator.init( operatorContext );
+        final PortsToTuples input = new PortsToTuples();
+        inputPorts.stream().map( port -> port.portIndex ).forEach( portIndex -> input.add( portIndex, new Tuple( "count", portIndex ) ) );
+        input.add( new Tuple( "count", -1 ) );
+
+        operator.process( input, SuccessfulInvocation.INSTANCE );
+    }
+
+    @Test
+    public void shouldMergeMultipleTuplesPerPort ()
+    {
+        operatorContext.getConfig().set( BarrierOperator.MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
+        operator.init( operatorContext );
+
+        final PortsToTuples input = new PortsToTuples();
+        populateTuplesWithUniqueFields( input );
+        populateTuplesWithUniqueFields( input );
+
+        final ProcessingResult result = operator.process( input, SuccessfulInvocation.INSTANCE );
+        assertSchedulingStrategy( result.getSchedulingStrategy() );
+
+        result.getPortsToTuples().getTuplesByDefaultPort().forEach( output -> {
+            final int matchingFieldCount = (int) inputPorts.stream()
+                                                           .map( port -> port.portIndex )
+                                                           .filter( portIndex -> output.getInteger( "field" + portIndex )
+                                                                                       .equals( portIndex ) )
+                                                           .count();
+
+            assertThat( matchingFieldCount, equalTo( inputPorts.size() ) );
+        } );
+    }
+
+    private void populateTuplesWithUniqueFields ( final PortsToTuples input )
+    {
+        inputPorts.stream()
+                  .map( port -> port.portIndex )
+                  .forEach( portIndex -> input.add( portIndex, new Tuple( "field" + portIndex, portIndex ) ) );
     }
 
 }
