@@ -4,7 +4,7 @@ import java.util.Collection;
 
 import cs.bilkent.zanza.operator.Fields;
 
-public interface KVStore extends Fields
+public interface KVStore extends Fields<Object>
 {
     @Override
     default void clear()
@@ -19,7 +19,7 @@ public interface KVStore extends Fields
     }
 
     @Override
-    default Collection<String> keys ()
+    default Collection<Object> keys ()
     {
         throw new UnsupportedOperationException();
     }

@@ -1,196 +1,201 @@
 package cs.bilkent.zanza.operator;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public interface Fields
+public interface Fields<K>
 {
-    <T> T get ( String key );
+    <T> T get ( K key );
 
-    <T> T getOrDefault ( String key, T defaultVal );
+    <T> T getOrDefault ( K key, T defaultVal );
 
-    boolean contains ( String key );
+    boolean contains ( K key );
 
-    void set ( String key, Object value );
+    void set ( K key, Object value );
 
-    <T> T put ( String key, T value );
+    <T> T put ( K key, T value );
 
-    Object remove ( String key );
+    Object remove ( K key );
 
-    boolean delete ( String key );
+    boolean delete ( K key );
 
-    void clear();
+    void clear ();
 
-    int size();
+    int size ();
 
     /**
-     * Returns immutable collection of key names
+     * Returns immutable collection of keys
      *
-     * @return immutable collection of key names
+     * @return immutable collection of keys
      */
-    Collection<String> keys ();
+    Collection<K> keys ();
 
-    default Object getObject ( final String key )
+    default Object getObject ( final K key )
     {
         return get( key );
     }
 
-    default Object getObjectOrDefault ( final String key, final Object defaultVal )
+    default Object getObjectOrDefault ( final K key, final Object defaultVal )
     {
         return getOrDefault( key, defaultVal );
     }
 
-    default String getString ( final String key )
+    default String getString ( final K key )
     {
         return get( key );
     }
 
-    default String getStringOrDefault ( final String key, final String defaultVal )
+    default String getStringOrDefault ( final K key, final String defaultVal )
     {
         return getOrDefault( key, defaultVal );
     }
 
-    default Integer getInteger ( final String key )
+    default Integer getInteger ( final K key )
     {
         return get( key );
     }
 
-    default Integer getIntegerOrDefault ( final String key, final Integer defaultVal )
+    default Integer getIntegerOrDefault ( final K key, final Integer defaultVal )
     {
         return getOrDefault( key, defaultVal );
     }
 
-    default Long getLong ( final String key )
+    default Long getLong ( final K key )
     {
         return get( key );
     }
 
-    default Long getLongOrDefault ( final String key, final Long defaultVal )
+    default Long getLongOrDefault ( final K key, final Long defaultVal )
     {
         return getOrDefault( key, defaultVal );
     }
 
-    default Boolean getBoolean ( final String key )
+    default Boolean getBoolean ( final K key )
     {
         return get( key );
     }
 
-    default Boolean getBooleanOrDefault ( final String key, final Boolean defaultVal )
+    default Boolean getBooleanOrDefault ( final K key, final Boolean defaultVal )
     {
         return getOrDefault( key, defaultVal );
     }
 
-    default Short getShort ( final String key )
+    default Short getShort ( final K key )
     {
         return get( key );
     }
 
-    default Short getShortOrDefault ( final String key, final Short defaultVal )
+    default Short getShortOrDefault ( final K key, final Short defaultVal )
     {
         return getOrDefault( key, defaultVal );
     }
 
-    default Byte getByte ( final String key )
+    default Byte getByte ( final K key )
     {
         return get( key );
     }
 
-    default Byte getByteOrDefault ( final String key, final Byte defaultVal )
+    default Byte getByteOrDefault ( final K key, final Byte defaultVal )
     {
         return getOrDefault( key, defaultVal );
     }
 
-    default Double getDouble ( final String key )
+    default Double getDouble ( final K key )
     {
         return get( key );
     }
 
-    default Double getDoubleOrDefault ( final String key, final Double defaultVal )
+    default Double getDoubleOrDefault ( final K key, final Double defaultVal )
     {
         return getOrDefault( key, defaultVal );
     }
 
-    default Float getFloat ( final String key )
+    default Float getFloat ( final K key )
     {
         return get( key );
     }
 
-    default Float getFloatOrDefault ( final String key, final Float defaultVal )
+    default Float getFloatOrDefault ( final K key, final Float defaultVal )
     {
         return getOrDefault( key, defaultVal );
     }
 
-    default byte[] getBinary ( final String key )
+    default byte[] getBinary ( final K key )
     {
         return get( key );
     }
 
-    default byte[] getBinaryOrDefault ( final String key, final byte[] defaultVal )
+    default byte[] getBinaryOrDefault ( final K key, final byte[] defaultVal )
     {
         return getOrDefault( key, defaultVal );
     }
 
-    default <T> Collection<T> getCollection ( final String key )
+    default <T> Collection<T> getCollection ( final K key )
     {
         return get( key );
     }
 
-    default <T> Collection<T> getCollectionOrDefault ( final String key,
-                                                      final Collection<T> defaultVal )
+    default <T> Collection<T> getCollectionOrDefault ( final K key, final Collection<T> defaultVal )
     {
         return getOrDefault( key, defaultVal );
     }
 
-    default <T> Collection<T> getCollectionOrEmpty ( final String key )
+    default <T> Collection<T> getCollectionOrEmpty ( final K key )
     {
         return getOrDefault( key, Collections.emptyList() );
     }
 
-    default <T> List<T> getList ( final String key )
+    default <T> List<T> getList ( final K key )
     {
         return get( key );
     }
 
-    default <T> List<T> getListOrDefault ( final String key, final List<T> defaultVal )
+    default <T> List<T> getListOrDefault ( final K key, final List<T> defaultVal )
     {
         return getOrDefault( key, defaultVal );
     }
 
-    default <T> List<T> getListOrEmpty ( final String key )
+    default <T> List<T> getListOrEmpty ( final K key )
     {
-        return getOrDefault( key, Collections.emptyList() );
+        final List<T> list = getList( key );
+        return list != null ? list : new ArrayList<>();
     }
 
-    default <T> Set<T> getSet ( final String key )
+    default <T> Set<T> getSet ( final K key )
     {
         return get( key );
     }
 
-    default <T> Set<T> getSetOrDefault ( final String key, final Set<T> defaultVal )
+    default <T> Set<T> getSetOrDefault ( final K key, final Set<T> defaultVal )
     {
         return getOrDefault( key, defaultVal );
     }
 
-    default <T> Set<T> getSetOrEmpty ( final String key )
+    default <T> Set<T> getSetOrEmpty ( final K key )
     {
-        return getOrDefault( key, Collections.emptySet() );
+        final Set<T> set = getSet( key );
+        return set != null ? set : new HashSet<>();
     }
 
-    default <K, V> Map<K, V> getMap ( final String key )
+    default <K2, V> Map<K2, V> getMap ( final K key )
     {
         return get( key );
     }
 
-    default <K, V> Map<K, V> getMapOrDefault ( final String key, final Map<K, V> defaultVal )
+    default <K2, V> Map<K2, V> getMapOrDefault ( final K key, final Map<K2, V> defaultVal )
     {
         return getOrDefault( key, defaultVal );
     }
 
-    default <K, V> Map<K, V> getMapOrEmpty ( final String key )
+    default <K2, V> Map<K2, V> getMapOrEmpty ( final K key )
     {
-        return getOrDefault( key, Collections.emptyMap() );
+        final Map<K2, V> map = getMap( key );
+        return map != null ? map : new HashMap<>();
     }
 }

@@ -7,7 +7,7 @@ import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class OperatorConfig implements Fields
+public class OperatorConfig implements Fields<String>
 {
     private final Map<String, Object> values = new HashMap<>();
 

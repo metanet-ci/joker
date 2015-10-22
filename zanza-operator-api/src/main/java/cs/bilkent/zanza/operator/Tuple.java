@@ -7,13 +7,18 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static java.util.Collections.unmodifiableMap;
 
 // TODO Comparable, Serializable, Iterable
 // supports immutable or effectively final objects
-public class Tuple implements Fields
+public final class Tuple implements Fields<String>
 {
     private final Map<String, Object> values;
+
+    private Object partitionKey;
+
+    private int partitionHash;
 
     public Tuple ()
     {
@@ -117,6 +122,32 @@ public class Tuple implements Fields
         return Collections.unmodifiableCollection( values.keySet() );
     }
 
+
+    public Object getPartitionKey ()
+    {
+        checkState( partitionKey != null, "partition key is not set!" );
+        return partitionKey;
+    }
+
+    public int getPartitionHash ()
+    {
+        checkState( partitionKey != null, "partition key is not set!" );
+        return partitionHash;
+    }
+
+    void setPartition ( final Object partitionKey, final int partitionHash )
+    {
+        checkState( this.partitionKey == null, "partition key is already assigned!" );
+        this.partitionKey = partitionKey;
+        this.partitionHash = partitionHash;
+    }
+
+    void clearPartition ()
+    {
+        this.partitionKey = null;
+        this.partitionHash = 0;
+    }
+
     @Override
     public boolean equals ( final Object o )
     {
@@ -144,6 +175,13 @@ public class Tuple implements Fields
     @Override
     public String toString ()
     {
-        return "Tuple{" + values + '}';
+        if ( partitionKey != null )
+        {
+            return "Tuple[pKey=" + partitionKey + ",pHash=" + partitionHash + "]{" + values + '}';
+        }
+        else
+        {
+            return "Tuple{" + values + '}';
+        }
     }
 }
