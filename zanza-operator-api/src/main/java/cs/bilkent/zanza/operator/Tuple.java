@@ -10,8 +10,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Collections.unmodifiableMap;
 
-// TODO Comparable, Serializable, Iterable
-// supports immutable or effectively final objects
+/**
+ * The tuple is the main data structure to manipulate data in Zanza.
+ * A tuple is a mapping of keys to values where each value can be any type.
+ * <p>
+ * TODO Serializable, Iterable ???
+ */
 public final class Tuple implements Fields<String>
 {
     private final Map<String, Object> values;
@@ -122,19 +126,55 @@ public final class Tuple implements Fields<String>
         return Collections.unmodifiableCollection( values.keySet() );
     }
 
+    /**
+     * Copies partition key and partition hash to the other tuple object.
+     * Can be used only within {@link OperatorType#PARTITIONED_STATEFUL} operators.
+     *
+     * @param that
+     *         tuple object to copy the partition key and partition hash
+     */
+    public void copyPartitionTo ( final Tuple other )
+    {
+        other.setPartition( getPartitionKey(), getPartitionHash() );
+    }
 
+    /**
+     * Returns the partition key assigned to the tuple by the engine
+     *
+     * @return the partition key assigned to the tuple by the engine
+     *
+     * @throws IllegalStateException
+     *         if no partition key is assigned
+     */
     public Object getPartitionKey ()
     {
         checkState( partitionKey != null, "partition key is not set!" );
         return partitionKey;
     }
 
+    /**
+     * Returns the partition hash assigned to the tuple by the engine
+     *
+     * @return the partition hash assigned to the tuple by the engine
+     *
+     * @throws IllegalStateException
+     *         if no partition hash is assigned
+     */
     public int getPartitionHash ()
     {
         checkState( partitionKey != null, "partition key is not set!" );
         return partitionHash;
     }
 
+    /**
+     * Only for use of the engine. Not exposed to the user.
+     * Assigns partition key and hash for the tuple
+     *
+     * @param partitionKey
+     *         the partition key to be assigned
+     * @param partitionHash
+     *         the partition has to be assigned
+     */
     void setPartition ( final Object partitionKey, final int partitionHash )
     {
         checkState( this.partitionKey == null, "partition key is already assigned!" );
@@ -142,6 +182,10 @@ public final class Tuple implements Fields<String>
         this.partitionHash = partitionHash;
     }
 
+    /**
+     * Only for use of the engine. Not exposed to the user.
+     * Clears partition key and partition hash of the tuple
+     */
     void clearPartition ()
     {
         this.partitionKey = null;

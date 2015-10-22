@@ -3,6 +3,11 @@ package cs.bilkent.zanza.operator;
 import static com.google.common.base.Preconditions.checkNotNull;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
+/**
+ * Used for specifying the output of an {@link Operator#process(PortsToTuples, InvocationReason)} invocation.
+ * Contains the {@link SchedulingStrategy} that will be used for the next invocation of an operator and the
+ * tuples produced by an invocation of {@link Operator#process(PortsToTuples, InvocationReason)} method.
+ */
 public class ProcessingResult
 {
 

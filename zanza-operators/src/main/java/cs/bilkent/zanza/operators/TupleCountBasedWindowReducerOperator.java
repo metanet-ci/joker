@@ -14,7 +14,6 @@ import cs.bilkent.zanza.operator.OperatorType;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.ProcessingResult;
 import cs.bilkent.zanza.operator.Tuple;
-import cs.bilkent.zanza.operator.TupleAccessor;
 import cs.bilkent.zanza.operator.kvstore.KVStore;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
@@ -128,7 +127,7 @@ public class TupleCountBasedWindowReducerOperator implements Operator
             {
                 currentTupleCount = 0;
                 accumulator.set( "window", windowCount++ );
-                TupleAccessor.setPartition( accumulator, key, tuple.getPartitionHash() );
+                tuple.copyPartitionTo( accumulator );
 
                 result.add( accumulator );
                 accumulator = null;

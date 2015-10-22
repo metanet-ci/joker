@@ -16,7 +16,8 @@ import static java.util.stream.Collector.Characteristics.IDENTITY_FINISH;
 import uk.co.real_logic.agrona.collections.Int2ObjectHashMap;
 
 /**
- * Used for incoming and outgoing tuples
+ * Contains {@link Tuple} instances mapped to some ports specified by indices.
+ * Used for providing input tuples and output tuples of the {@link Operator#process(PortsToTuples, InvocationReason)} method.
  */
 public class PortsToTuples
 {
@@ -65,6 +66,16 @@ public class PortsToTuples
     {
     }
 
+    /**
+     * Initializes a new object and adds the provided tuples into the default port.
+     *
+     * @param tuple
+     *         tuple to add to the default port
+     * @param tuples
+     *         tuples to add to the default port
+     *
+     * @see Port#DEFAULT_PORT_INDEX
+     */
     public PortsToTuples ( final Tuple tuple, final Tuple... tuples )
     {
         checkNotNull( tuple, "tuple can't be null" );
@@ -75,24 +86,56 @@ public class PortsToTuples
         }
     }
 
+    /**
+     * Initializes a new object and adds the provided tuples into the default port.
+     *
+     * @param tuples
+     *         tuples to add to the default port
+     *
+     * @see Port#DEFAULT_PORT_INDEX
+     */
     public PortsToTuples ( final List<Tuple> tuples )
     {
         checkNotNull( tuples, "tuples can't be null" );
         addAll( tuples );
     }
 
+    /**
+     * Adds the tuple to the default port.
+     *
+     * @param tuple
+     *         tuple to add to the default port
+     *
+     * @see Port#DEFAULT_PORT_INDEX
+     */
     public void add ( final Tuple tuple )
     {
         checkNotNull( tuple, "tuple can't be null" );
         add( Port.DEFAULT_PORT_INDEX, tuple );
     }
 
+    /**
+     * Adds the tuples to the default port.
+     *
+     * @param tuples
+     *         tuples to add to the default port
+     *
+     * @see Port#DEFAULT_PORT_INDEX
+     */
     public void addAll ( final List<Tuple> tuples )
     {
         checkNotNull( tuples, "tuples can't be null" );
         addAll( Port.DEFAULT_PORT_INDEX, tuples );
     }
 
+    /**
+     * Adds the tuple to the port specified by the port index.
+     *
+     * @param portIndex
+     *         the index of the port to which the tuple is added
+     * @param tuple
+     *         tuple to add to the specified port
+     */
     public void add ( final int portIndex, final Tuple tuple )
     {
         checkArgument( portIndex >= 0, "port must be non-negative" );
@@ -101,6 +144,14 @@ public class PortsToTuples
         tuples.add( tuple );
     }
 
+    /**
+     * Adds the tuples to the port specified by the port index.
+     *
+     * @param portIndex
+     *         the index of the port to which the tuple is added
+     * @param tuples
+     *         tuples to add to the specified port
+     */
     public void addAll ( final int portIndex, final List<Tuple> tuplesToAdd )
     {
         checkArgument( portIndex >= 0, "port must be non-negative" );
@@ -109,17 +160,30 @@ public class PortsToTuples
         tuples.addAll( tuplesToAdd );
     }
 
-    private List<Tuple> getOrCreateTuples ( final int portIndex )
-    {
-        return tuplesByPort.computeIfAbsent( portIndex, ignoredPortIndex -> new ArrayList<>() );
-    }
-
+    /**
+     * Returns the tuples added to the given port index.
+     *
+     * @param portIndex
+     *         the port index that tuples are added to
+     *
+     * @return the tuples added to the given port index
+     */
     public List<Tuple> getTuples ( final int portIndex )
     {
         final List<Tuple> tuples = tuplesByPort.get( portIndex );
         return tuples != null ? tuples : Collections.emptyList();
     }
 
+    /**
+     * Returns the tuple added to the given port index with the given tuple index.
+     *
+     * @param portIndex
+     *         the port index that tuple is added to
+     * @param tupleIndex
+     *         the order which the tuple is added to the given port index
+     *
+     * @return the tuple added to the given port index with the given order
+     */
     public Tuple getTuple ( final int portIndex, final int tupleIndex )
     {
         final List<Tuple> tuples = tuplesByPort.get( portIndex );
@@ -131,11 +195,23 @@ public class PortsToTuples
         throw new IllegalArgumentException( "no tuple exists for port index " + portIndex + " and tuple index " + tupleIndex );
     }
 
+    /**
+     * Returns all the tuples added to the default port.
+     *
+     * @return all the tuples added to the default port
+     *
+     * @see Port#DEFAULT_PORT_INDEX
+     */
     public List<Tuple> getTuplesByDefaultPort ()
     {
         return getTuples( Port.DEFAULT_PORT_INDEX );
     }
 
+    /**
+     * Returns all the port indices to which some tuples are added.
+     *
+     * @return all the port indices to which some tuples are added
+     */
     public int[] getPorts ()
     {
         final Int2ObjectHashMap<List<Tuple>>.KeySet keys = tuplesByPort.keySet();
@@ -153,9 +229,19 @@ public class PortsToTuples
         return ports;
     }
 
+    /**
+     * Returns the number of ports to which tuples are added.
+     *
+     * @return the number of ports to which tuples are added
+     */
     public int getPortCount ()
     {
         return tuplesByPort.keySet().size();
+    }
+
+    private List<Tuple> getOrCreateTuples ( final int portIndex )
+    {
+        return tuplesByPort.computeIfAbsent( portIndex, ignoredPortIndex -> new ArrayList<>() );
     }
 
     @Override

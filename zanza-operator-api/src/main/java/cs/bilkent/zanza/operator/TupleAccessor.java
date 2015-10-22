@@ -1,5 +1,8 @@
 package cs.bilkent.zanza.operator;
 
+/**
+ * Only for internal use
+ */
 public final class TupleAccessor
 {
 

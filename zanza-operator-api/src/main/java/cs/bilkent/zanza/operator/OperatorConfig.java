@@ -7,6 +7,11 @@ import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+/**
+ * Contains all the custom configuration information that can be used by an operator.
+ * Additionally, contains input port count and output port count if they are specified as dynamic in {@link OperatorSpec}
+ * and {@link PartitionKeyExtractor} function if the operator is {@link OperatorType#PARTITIONED_STATEFUL}
+ */
 public class OperatorConfig implements Fields<String>
 {
     private final Map<String, Object> values = new HashMap<>();
