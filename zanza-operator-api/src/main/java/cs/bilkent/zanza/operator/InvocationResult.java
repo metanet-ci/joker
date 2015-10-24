@@ -1,14 +1,13 @@
 package cs.bilkent.zanza.operator;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 /**
- * Used for specifying the output of an {@link Operator#process(PortsToTuples, InvocationReason)} invocation.
+ * Used for specifying the output of an {@link Operator#process(PortsToTuples, InvocationContext)} invocation.
  * Contains the {@link SchedulingStrategy} that will be used for the next invocation of an operator and the
- * tuples produced by an invocation of {@link Operator#process(PortsToTuples, InvocationReason)} method.
+ * tuples produced by an invocation of {@link Operator#process(PortsToTuples, InvocationContext)} method.
  */
-public class ProcessingResult
+public class InvocationResult
 {
 
     private final SchedulingStrategy schedulingStrategy;
@@ -16,7 +15,7 @@ public class ProcessingResult
     private final PortsToTuples portsToTuples;
 
 
-    public ProcessingResult ( final SchedulingStrategy schedulingStrategy, final PortsToTuples portsToTuples )
+    public InvocationResult ( final SchedulingStrategy schedulingStrategy, final PortsToTuples portsToTuples )
     {
         checkNotNull( schedulingStrategy, "scheduling strategy can't be null" );
         checkNotNull( portsToTuples, "ports to tuples can't be null" );

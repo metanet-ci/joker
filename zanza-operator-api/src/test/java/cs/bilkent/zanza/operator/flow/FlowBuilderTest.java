@@ -4,16 +4,14 @@ package cs.bilkent.zanza.operator.flow;
 import org.junit.Before;
 import org.junit.Test;
 
-import cs.bilkent.zanza.operator.InvocationReason;
+import cs.bilkent.zanza.operator.InitializationContext;
+import cs.bilkent.zanza.operator.InvocationContext;
+import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
-import cs.bilkent.zanza.operator.OperatorContext;
 import cs.bilkent.zanza.operator.OperatorSpec;
 import cs.bilkent.zanza.operator.OperatorType;
-import cs.bilkent.zanza.operator.Port;
-import cs.bilkent.zanza.operator.PortsToTuples;
-import cs.bilkent.zanza.operator.ProcessingResult;
-import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
+import cs.bilkent.zanza.operator.SchedulingStrategy;
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;
@@ -257,13 +255,13 @@ public class FlowBuilderTest
     {
 
         @Override
-        public ProcessingResult process ( final PortsToTuples portsToTuples, final InvocationReason reason )
+        public InvocationResult process ( final InvocationContext invocationContext )
         {
             return null;
         }
 
         @Override
-        public SchedulingStrategy init ( final OperatorContext context )
+        public SchedulingStrategy init ( final InitializationContext context )
         {
             return null;
         }
@@ -275,13 +273,13 @@ public class FlowBuilderTest
     {
 
         @Override
-        public ProcessingResult process ( final PortsToTuples portsToTuples, final InvocationReason reason )
+        public InvocationResult process ( final InvocationContext invocationContext )
         {
             return null;
         }
 
         @Override
-        public SchedulingStrategy init ( final OperatorContext context )
+        public SchedulingStrategy init ( final InitializationContext context )
         {
             return null;
         }
@@ -293,13 +291,13 @@ public class FlowBuilderTest
     {
 
         @Override
-        public ProcessingResult process ( final PortsToTuples portsToTuples, final InvocationReason reason )
+        public InvocationResult process ( InvocationContext invocationContext )
         {
             return null;
         }
 
         @Override
-        public SchedulingStrategy init ( final OperatorContext context )
+        public SchedulingStrategy init ( final InitializationContext context )
         {
             return null;
         }
@@ -311,13 +309,13 @@ public class FlowBuilderTest
     {
 
         @Override
-        public ProcessingResult process ( final PortsToTuples portsToTuples, final InvocationReason reason )
+        public InvocationResult process ( InvocationContext invocationContext )
         {
             return null;
         }
 
         @Override
-        public SchedulingStrategy init ( final OperatorContext context )
+        public SchedulingStrategy init ( final InitializationContext context )
         {
             return null;
         }
@@ -329,13 +327,13 @@ public class FlowBuilderTest
     {
 
         @Override
-        public ProcessingResult process ( final PortsToTuples portsToTuples, final InvocationReason reason )
+        public InvocationResult process ( InvocationContext invocationContext )
         {
             return null;
         }
 
         @Override
-        public SchedulingStrategy init ( final OperatorContext context )
+        public SchedulingStrategy init ( final InitializationContext context )
         {
             return null;
         }

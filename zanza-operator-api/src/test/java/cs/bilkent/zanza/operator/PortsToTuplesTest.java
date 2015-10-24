@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import cs.bilkent.zanza.operator.flow.Port;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;

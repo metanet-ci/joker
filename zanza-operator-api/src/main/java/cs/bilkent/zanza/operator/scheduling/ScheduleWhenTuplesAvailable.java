@@ -5,9 +5,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import cs.bilkent.zanza.operator.Port;
+import cs.bilkent.zanza.operator.SchedulingStrategy;
+import cs.bilkent.zanza.operator.flow.Port;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
+import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST_BUT_SAME_ON_ALL_PORTS;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.AVAILABLE_ON_ALL_PORTS;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.AVAILABLE_ON_ANY_PORT;
 
@@ -69,6 +72,7 @@ public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
                                                                                  final int tupleCount,
                                                                                  final int... ports )
     {
+        checkArgument( tupleAvailabilityByCount != AT_LEAST_BUT_SAME_ON_ALL_PORTS );
         return new ScheduleWhenTuplesAvailable( tupleAvailabilityByCount, AVAILABLE_ON_ANY_PORT, tupleCount, ports );
     }
 
@@ -81,6 +85,7 @@ public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
                                                                                  final int tupleCount,
                                                                                  final List<Integer> ports )
     {
+        checkArgument( tupleAvailabilityByCount != AT_LEAST_BUT_SAME_ON_ALL_PORTS );
         return new ScheduleWhenTuplesAvailable( tupleAvailabilityByCount, AVAILABLE_ON_ANY_PORT, tupleCount, ports );
     }
 
@@ -89,10 +94,25 @@ public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
         return new ScheduleWhenTuplesAvailable( Port.DEFAULT_PORT_INDEX, tupleCount );
     }
 
+    public static ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailableOnDefaultPort ( final TupleAvailabilityByCount tupleAvailabilityByCount,
+                                                                                         final int tupleCount )
+    {
+        return new ScheduleWhenTuplesAvailable( tupleAvailabilityByCount, Port.DEFAULT_PORT_INDEX, tupleCount );
+    }
+
 
     public ScheduleWhenTuplesAvailable ( final int portIndex, final int tupleCount )
     {
         this.tupleAvailabilityByCount = AT_LEAST;
+        this.tupleAvailabilityByPort = AVAILABLE_ON_ANY_PORT;
+        tupleCountByPortIndex.put( portIndex, tupleCount );
+    }
+
+    public ScheduleWhenTuplesAvailable ( final TupleAvailabilityByCount tupleAvailabilityByCount,
+                                         final int portIndex,
+                                         final int tupleCount )
+    {
+        this.tupleAvailabilityByCount = tupleAvailabilityByCount;
         this.tupleAvailabilityByPort = AVAILABLE_ON_ANY_PORT;
         tupleCountByPortIndex.put( portIndex, tupleCount );
     }

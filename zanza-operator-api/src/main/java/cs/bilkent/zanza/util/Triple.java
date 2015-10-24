@@ -47,9 +47,44 @@ public class Triple<T1, T2, T3>
     }
 
     @Override
+    public boolean equals ( final Object o )
+    {
+        if ( this == o )
+        {
+            return true;
+        }
+        if ( o == null || getClass() != o.getClass() )
+        {
+            return false;
+        }
+
+        final Triple<?, ?, ?> triple = (Triple<?, ?, ?>) o;
+
+        if ( !_1.equals( triple._1 ) )
+        {
+            return false;
+        }
+        if ( !_2.equals( triple._2 ) )
+        {
+            return false;
+        }
+        return _3.equals( triple._3 );
+
+    }
+
+    @Override
+    public int hashCode ()
+    {
+        int result = _1.hashCode();
+        result = 31 * result + _2.hashCode();
+        result = 31 * result + _3.hashCode();
+        return result;
+    }
+
+    @Override
     public String toString ()
     {
-        return "Tuple3{" +
+        return "Triple{" +
                "_1=" + _1 +
                ", _2=" + _2 +
                ", _3=" + _3 +

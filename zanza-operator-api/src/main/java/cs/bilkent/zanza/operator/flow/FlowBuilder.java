@@ -18,7 +18,6 @@ import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
 import cs.bilkent.zanza.operator.OperatorSpec;
-import cs.bilkent.zanza.operator.Port;
 
 
 public class FlowBuilder

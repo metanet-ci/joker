@@ -1,25 +1,22 @@
 package cs.bilkent.zanza.operators;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BinaryOperator;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import cs.bilkent.zanza.operator.InvocationReason;
+import cs.bilkent.zanza.operator.InitializationContext;
+import cs.bilkent.zanza.operator.InvocationContext;
+import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.Operator;
-import cs.bilkent.zanza.operator.OperatorContext;
 import cs.bilkent.zanza.operator.OperatorSpec;
 import cs.bilkent.zanza.operator.OperatorType;
 import cs.bilkent.zanza.operator.PortsToTuples;
-import cs.bilkent.zanza.operator.ProcessingResult;
+import cs.bilkent.zanza.operator.SchedulingStrategy;
 import cs.bilkent.zanza.operator.Tuple;
-import cs.bilkent.zanza.operator.invocationreason.SuccessfulInvocation;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST_BUT_SAME_ON_ALL_PORTS;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAll;
-import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 @OperatorSpec( type = OperatorType.STATELESS, outputPortCount = 1 )
 public class BarrierOperator implements Operator
@@ -83,11 +80,11 @@ public class BarrierOperator implements Operator
 
     private BinaryOperator<Tuple> tupleMergeFunc;
 
-    private List<Integer> inputPortIndices;
+    private int[] inputPorts;
 
 
     @Override
-    public SchedulingStrategy init ( final OperatorContext context )
+    public SchedulingStrategy init ( final InitializationContext context )
     {
         final Object mergePolicyObject = context.getConfig().getObject( MERGE_POLICY_CONfIG_PARAMETER );
         if ( mergePolicyObject instanceof TupleValueMergePolicy )
@@ -99,24 +96,26 @@ public class BarrierOperator implements Operator
             throw new IllegalArgumentException( "merge policy is missing!" );
         }
 
-        this.inputPortIndices = context.getInputPorts().stream().map( port -> port.portIndex ).collect( Collectors.toList() );
+        this.inputPorts = IntStream.range( 0, context.getConfig().getInputPortCount() ).toArray();
         return getSchedulingStrategyForInputPorts();
     }
 
     private SchedulingStrategy getSchedulingStrategyForInputPorts ()
     {
-        return scheduleWhenTuplesAvailableOnAll( AT_LEAST_BUT_SAME_ON_ALL_PORTS, 1, inputPortIndices );
+        return scheduleWhenTuplesAvailableOnAll( AT_LEAST_BUT_SAME_ON_ALL_PORTS, 1, inputPorts );
     }
 
     @Override
-    public ProcessingResult process ( final PortsToTuples portsToTuples, final InvocationReason reason )
+    public InvocationResult process ( final InvocationContext invocationContext )
     {
         final PortsToTuples output;
         final SchedulingStrategy next;
-        if ( reason == SuccessfulInvocation.INSTANCE )
+
+        if ( invocationContext.isSuccessfulInvocation() )
         {
-            final Optional<Integer> tupleCountOpt = inputPortIndices.stream()
-                                                                    .map( portIndex -> portsToTuples.getTuples( portIndex ).size() )
+            final PortsToTuples portsToTuples = invocationContext.getTuples();
+            final Optional<Integer> tupleCountOpt = IntStream.of( inputPorts )
+                                                             .mapToObj( portIndex -> portsToTuples.getTuples( portIndex ).size() )
                                                                     .reduce( ( count1, count2 ) -> count1.equals( count2 ) ? count1 : 0 );
             final int tupleCount = tupleCountOpt.orElse( 0 );
             if ( tupleCount == 0 )
@@ -125,14 +124,12 @@ public class BarrierOperator implements Operator
             }
 
             output = IntStream.range( 0, tupleCount )
-                              .mapToObj( tupleIndex -> inputPortIndices.stream()
-                                                                       .map( portIndex -> portsToTuples.getTuple( portIndex,
-                                                                                                                  tupleIndex ) ) )
+                              .mapToObj( tupleIndex -> IntStream.of( inputPorts )
+                                                                .mapToObj( portIndex -> portsToTuples.getTuple( portIndex, tupleIndex ) ) )
                               .map( tuples -> tuples.reduce( new Tuple(), tupleMergeFunc ) )
                               .collect( PortsToTuples.COLLECT_TO_DEFAULT_PORT );
 
-            final Tuple result = inputPortIndices.stream()
-                                                 .map( portIndex -> portsToTuples.getTuple( portIndex, 0 ) )
+            final Tuple result = IntStream.of( inputPorts ).mapToObj( portIndex -> portsToTuples.getTuple( portIndex, 0 ) )
                                                  .reduce( new Tuple(), tupleMergeFunc );
 
             output.add( result );
@@ -144,6 +141,6 @@ public class BarrierOperator implements Operator
             output = new PortsToTuples();
         }
 
-        return new ProcessingResult( next, output );
+        return new InvocationResult( next, output );
     }
 }

@@ -6,10 +6,10 @@ import java.util.function.Function;
 
 import org.junit.Test;
 
+import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
+import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.PortsToTuples;
-import cs.bilkent.zanza.operator.ProcessingResult;
 import cs.bilkent.zanza.operator.Tuple;
-import cs.bilkent.zanza.operator.invocationreason.SuccessfulInvocation;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenAvailable;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -21,7 +21,7 @@ public class BeaconOperatorTest
 
     private final BeaconOperator operator = new BeaconOperator();
 
-    private final SimpleOperatorContext operatorContext = new SimpleOperatorContext();
+    private final SimpleInitializationContext initContext = new SimpleInitializationContext();
 
     @Test
     public void shouldGenerateTuplesWithRandomCountField ()
@@ -29,11 +29,11 @@ public class BeaconOperatorTest
         final int tupleCount = 10;
         final int maxInt = 100;
         final Function<Random, Tuple> generator = ( random ) -> new Tuple( "count", random.nextInt( maxInt ) );
-        operatorContext.getConfig().set( BeaconOperator.TUPLE_GENERATOR_CONFIG_PARAMETER, generator );
-        operatorContext.getConfig().set( BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER, tupleCount );
-        operator.init( operatorContext );
+        initContext.getConfig().set( BeaconOperator.TUPLE_GENERATOR_CONFIG_PARAMETER, generator );
+        initContext.getConfig().set( BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER, tupleCount );
+        operator.init( initContext );
 
-        final ProcessingResult result = operator.process( null, SuccessfulInvocation.INSTANCE );
+        final InvocationResult result = operator.process( new SimpleInvocationContext( null, InvocationReason.SUCCESS ) );
         assertThat( result.getSchedulingStrategy(), equalTo( ScheduleWhenAvailable.INSTANCE ) );
 
         final PortsToTuples output = result.getPortsToTuples();

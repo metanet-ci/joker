@@ -4,19 +4,18 @@ import java.util.Random;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
-import cs.bilkent.zanza.operator.InvocationReason;
+import cs.bilkent.zanza.operator.InitializationContext;
+import cs.bilkent.zanza.operator.InvocationContext;
+import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
-import cs.bilkent.zanza.operator.OperatorContext;
 import cs.bilkent.zanza.operator.OperatorSpec;
 import cs.bilkent.zanza.operator.OperatorType;
 import cs.bilkent.zanza.operator.PortsToTuples;
-import cs.bilkent.zanza.operator.ProcessingResult;
+import cs.bilkent.zanza.operator.SchedulingStrategy;
 import cs.bilkent.zanza.operator.Tuple;
-import cs.bilkent.zanza.operator.invocationreason.SuccessfulInvocation;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenAvailable;
-import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 @OperatorSpec( type = OperatorType.STATELESS, inputPortCount = 0, outputPortCount = 1 )
 public class BeaconOperator implements Operator
@@ -33,7 +32,7 @@ public class BeaconOperator implements Operator
     private int tupleCount;
 
     @Override
-    public SchedulingStrategy init ( final OperatorContext context )
+    public SchedulingStrategy init ( final InitializationContext context )
     {
         final OperatorConfig config = context.getConfig();
 
@@ -56,11 +55,11 @@ public class BeaconOperator implements Operator
     }
 
     @Override
-    public ProcessingResult process ( final PortsToTuples portsToTuples, final InvocationReason reason )
+    public InvocationResult process ( final InvocationContext invocationContext )
     {
         final PortsToTuples output;
         final SchedulingStrategy next;
-        if ( reason == SuccessfulInvocation.INSTANCE )
+        if ( invocationContext.isSuccessfulInvocation() )
         {
             output = IntStream.range( 0, tupleCount )
                               .mapToObj( ( c ) -> tupleGeneratorFunc.apply( random ) )
@@ -73,6 +72,6 @@ public class BeaconOperator implements Operator
             next = ScheduleNever.INSTANCE;
         }
 
-        return new ProcessingResult( next, output );
+        return new InvocationResult( next, output );
     }
 }

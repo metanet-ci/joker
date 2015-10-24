@@ -41,9 +41,39 @@ public class Pair<T1, T2>
     }
 
     @Override
+    public boolean equals ( final Object o )
+    {
+        if ( this == o )
+        {
+            return true;
+        }
+        if ( o == null || getClass() != o.getClass() )
+        {
+            return false;
+        }
+
+        final Pair<?, ?> pair = (Pair<?, ?>) o;
+
+        if ( !_1.equals( pair._1 ) )
+        {
+            return false;
+        }
+        return _2.equals( pair._2 );
+
+    }
+
+    @Override
+    public int hashCode ()
+    {
+        int result = _1.hashCode();
+        result = 31 * result + _2.hashCode();
+        return result;
+    }
+
+    @Override
     public String toString ()
     {
-        return "Tuple2{" +
+        return "Pair{" +
                "_1=" + _1 +
                ", _2=" + _2 +
                '}';

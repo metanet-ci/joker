@@ -8,12 +8,19 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
-public interface Fields<K>
+/**
+ * For internal use
+ * <p>
+ * A utility interface that provides some methods for key-value accesses
+ *
+ * @param <K>
+ *         type of the key
+ */
+interface Fields<K>
 {
     <T> T get ( K key );
-
-    <T> T getOrDefault ( K key, T defaultVal );
 
     boolean contains ( K key );
 
@@ -35,6 +42,18 @@ public interface Fields<K>
      * @return immutable collection of keys
      */
     Collection<K> keys ();
+
+    default <T> T getOrDefault ( K key, T defaultVal )
+    {
+        T val = get( key );
+        return val != null ? val : defaultVal;
+    }
+
+    default <T> T getOrDefault ( K key, Supplier<T> supplier )
+    {
+        T val = get( key );
+        return val != null ? val : supplier.get();
+    }
 
     default Object getObject ( final K key )
     {

@@ -12,12 +12,13 @@ import java.util.stream.Collector;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import cs.bilkent.zanza.operator.flow.Port;
 import static java.util.stream.Collector.Characteristics.IDENTITY_FINISH;
 import uk.co.real_logic.agrona.collections.Int2ObjectHashMap;
 
 /**
  * Contains {@link Tuple} instances mapped to some ports specified by indices.
- * Used for providing input tuples and output tuples of the {@link Operator#process(PortsToTuples, InvocationReason)} method.
+ * Used for providing input tuples and output tuples of the {@link Operator#process(InvocationContext)} method.
  */
 public class PortsToTuples
 {

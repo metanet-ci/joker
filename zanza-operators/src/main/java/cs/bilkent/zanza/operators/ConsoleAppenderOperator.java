@@ -2,19 +2,19 @@ package cs.bilkent.zanza.operators;
 
 import java.util.function.Function;
 
-import cs.bilkent.zanza.operator.InvocationReason;
+import cs.bilkent.zanza.operator.InitializationContext;
+import cs.bilkent.zanza.operator.InvocationContext;
+import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
-import cs.bilkent.zanza.operator.OperatorContext;
 import cs.bilkent.zanza.operator.OperatorSpec;
 import cs.bilkent.zanza.operator.OperatorType;
 import cs.bilkent.zanza.operator.PortsToTuples;
-import cs.bilkent.zanza.operator.ProcessingResult;
+import cs.bilkent.zanza.operator.SchedulingStrategy;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.ANY_NUMBER_OF_TUPLES;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
-import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 @OperatorSpec( type = OperatorType.STATELESS, inputPortCount = 1, outputPortCount = 1 )
 public class ConsoleAppenderOperator implements Operator
@@ -29,7 +29,7 @@ public class ConsoleAppenderOperator implements Operator
     private int tupleCount = ANY_NUMBER_OF_TUPLES;
 
     @Override
-    public SchedulingStrategy init ( final OperatorContext context )
+    public SchedulingStrategy init ( final InitializationContext context )
     {
         final OperatorConfig config = context.getConfig();
 
@@ -52,12 +52,13 @@ public class ConsoleAppenderOperator implements Operator
     }
 
     @Override
-    public ProcessingResult process ( final PortsToTuples portsToTuples, final InvocationReason reason )
+    public InvocationResult process ( final InvocationContext invocationContext )
     {
-        portsToTuples.getTuplesByDefaultPort().stream().map( toStringFunction ).forEach( System.out::println );
+        final PortsToTuples tuples = invocationContext.getTuples();
+        tuples.getTuplesByDefaultPort().stream().map( toStringFunction ).forEach( System.out::println );
 
         final ScheduleWhenTuplesAvailable next = scheduleWhenTuplesAvailableOnDefaultPort( tupleCount );
-        return new ProcessingResult( next, portsToTuples );
+        return new InvocationResult( next, tuples );
     }
 
 }

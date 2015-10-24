@@ -2,7 +2,6 @@ package cs.bilkent.zanza.operator.flow;
 
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import cs.bilkent.zanza.operator.Port;
 
 
 public class ConnectionDefinition

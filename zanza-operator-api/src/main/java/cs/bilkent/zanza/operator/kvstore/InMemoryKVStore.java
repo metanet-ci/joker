@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import cs.bilkent.zanza.operator.KVStore;
 
 public class InMemoryKVStore implements KVStore
 {
@@ -19,14 +20,6 @@ public class InMemoryKVStore implements KVStore
     {
         checkNotNull( key, "key can't be null" );
         return (T) values.get( key );
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public <T> T getOrDefault ( final Object key, final T defaultVal )
-    {
-        checkNotNull( key, "key can't be null" );
-        return (T) values.getOrDefault( key, defaultVal );
     }
 
     @Override

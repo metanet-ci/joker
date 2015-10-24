@@ -1,13 +1,12 @@
 package cs.bilkent.zanza.operator;
 
-import cs.bilkent.zanza.operator.kvstore.KVStore;
-
 /**
  * Defines type of an {@link Operator} within {@link OperatorSpec}
  *
- * @see Operator
  * @see OperatorSpec
+ * @see Operator
  * @see KVStore
+ * @see PartitionKeyExtractor
  */
 public enum OperatorType
 {
@@ -15,30 +14,36 @@ public enum OperatorType
      * The engine may create as many instances as it decides of an operator defined as {@code STATELESS}
      * <p>
      * The engine does not provide any state manipulation capabilities to an operator defined as {@code STATELESS}.
+     * No {@link KVStore} implementation is given to the {@link Operator#process(InvocationContext)} for an invocation.
      */
     STATELESS,
 
     /**
      * The engine creates multiple instances of the operator and divides the key space into partitions
      * to process each partition using a single instance of the operator.
-     *
-     * A {@link KVStore} implementation is provided to an operator defined as {@code STATEFUL}.
-     * Operator must manage its local state using the provided {@link KVStore} implementation.
-     * Then the engine handles the safety and migrations of the local state.
-     *
+     * <p>
+     * Operator must manage its local state using the provided {@link KVStore} implementation provided within
+     * the {@link InvocationContext}. Then the engine handles the safety and migrations of the local state.
+     * <p>
+     * The engine does not provide any ordering guarantees for the tuples with different partition keys. However,
+     * ordering guarantees are given for the tuples of a particular partition key.
+     * <p>
+     * For an operator defined as {@code PARTITIONED_STATEFUL}, all {@link Operator#process(InvocationContext)}
+     * invocations are guaranteed to be done with tuples which have the same partition key.
+     * <p>
      * A {@link PartitionKeyExtractor} implementation must be provided during the operator composition.
      *
-     * @see PartitionKeyExtractor
      * @see KVStore
+     * @see PartitionKeyExtractor
      */
     PARTITIONED_STATEFUL,
 
     /**
-     * The engine processes all the keys using a single instance of the operator.
+     * The engine processes all the keys using only a single instance of the operator.
+     * <p>
+     * Operator must manage its local state using the provided {@link KVStore} implementation provided within
+     * the {@link InvocationContext}. Then the engine handles the safety and migrations of the local state.
      *
-     * A {@link KVStore} implementation is provided to an operator defined as {@code STATEFUL}.
-     * Operator must manage its local state using the provided {@link KVStore} implementation.
-     * Then the engine handles the safety and migrations of the local state.
      * @see KVStore
      */
     STATEFUL

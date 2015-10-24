@@ -6,9 +6,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import cs.bilkent.zanza.operator.flow.Port;
 
 /**
- * Contains all the custom configuration information that can be used by an operator.
+ * Contains all the configuration information that can be used by an operator. Users can provide operator specific
+ * configuration parameters using this class.
+ * <p>
  * Additionally, contains input port count and output port count if they are specified as dynamic in {@link OperatorSpec}
  * and {@link PartitionKeyExtractor} function if the operator is {@link OperatorType#PARTITIONED_STATEFUL}
  */
@@ -52,14 +55,6 @@ public class OperatorConfig implements Fields<String>
     {
         checkNotNull( key, "key can't be null" );
         return (T) values.get( key );
-    }
-
-    @SuppressWarnings( "unchecked" )
-    @Override
-    public <T> T getOrDefault ( final String key, final T defaultVal )
-    {
-        checkNotNull( key, "key can't be null" );
-        return (T) values.getOrDefault( key, defaultVal );
     }
 
     @Override

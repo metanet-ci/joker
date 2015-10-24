@@ -62,14 +62,6 @@ public final class Tuple implements Fields<String>
         return (T) values.get( key );
     }
 
-    @SuppressWarnings( "unchecked" )
-    @Override
-    public <T> T getOrDefault ( final String key, final T defaultVal )
-    {
-        checkNotNull( key, "key can't be null" );
-        return (T) values.getOrDefault( key, defaultVal );
-    }
-
     @Override
     public boolean contains ( final String key )
     {
