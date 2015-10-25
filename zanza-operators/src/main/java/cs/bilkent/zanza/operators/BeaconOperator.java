@@ -36,20 +36,8 @@ public class BeaconOperator implements Operator
     {
         final OperatorConfig config = context.getConfig();
 
-        Object tupleGeneratorObject = config.getObject( TUPLE_GENERATOR_CONFIG_PARAMETER );
-        if ( tupleGeneratorObject instanceof Function )
-        {
-            this.tupleGeneratorFunc = (Function) tupleGeneratorObject;
-        }
-        else
-        {
-            throw new IllegalArgumentException( "tuple generator is not provided" );
-        }
-
-        if ( config.contains( TUPLE_COUNT_CONFIG_PARAMETER ) )
-        {
-            this.tupleCount = config.getInteger( TUPLE_COUNT_CONFIG_PARAMETER );
-        }
+        this.tupleGeneratorFunc = config.getOrFail( TUPLE_GENERATOR_CONFIG_PARAMETER );
+        this.tupleCount = config.getOrFail( TUPLE_COUNT_CONFIG_PARAMETER );
 
         return ScheduleWhenAvailable.INSTANCE;
     }

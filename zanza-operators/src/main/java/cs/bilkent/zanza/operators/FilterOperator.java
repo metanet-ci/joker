@@ -26,27 +26,15 @@ public class FilterOperator implements Operator
 
     private Predicate<Tuple> predicate;
 
-    private int tupleCount = ANY_NUMBER_OF_TUPLES;
+    private int tupleCount;
 
     @Override
     public SchedulingStrategy init ( final InitializationContext context )
     {
         final OperatorConfig config = context.getConfig();
 
-        Object predicateObject = config.getObject( PREDICATE_CONFIG_PARAMETER );
-        if ( predicateObject instanceof Predicate )
-        {
-            this.predicate = (Predicate) predicateObject;
-        }
-        else
-        {
-            throw new IllegalArgumentException( "predicate is not provided" );
-        }
-
-        if ( config.contains( TUPLE_COUNT_CONFIG_PARAMETER ) )
-        {
-            this.tupleCount = config.getInteger( TUPLE_COUNT_CONFIG_PARAMETER );
-        }
+        this.predicate = config.getOrFail( PREDICATE_CONFIG_PARAMETER );
+        this.tupleCount = config.getIntegerOrDefault( TUPLE_COUNT_CONFIG_PARAMETER, ANY_NUMBER_OF_TUPLES );
 
         return scheduleWhenTuplesAvailableOnDefaultPort( this.tupleCount );
     }

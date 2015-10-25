@@ -26,7 +26,7 @@ public class ConsoleAppenderOperator implements Operator
 
     private Function<Tuple, String> toStringFunction;
 
-    private int tupleCount = ANY_NUMBER_OF_TUPLES;
+    private int tupleCount;
 
     @Override
     public SchedulingStrategy init ( final InitializationContext context )
@@ -34,6 +34,7 @@ public class ConsoleAppenderOperator implements Operator
         final OperatorConfig config = context.getConfig();
 
         Object toStringObject = config.getObject( TO_STRING_FUNCTION_CONFIG_PARAMETER );
+
         if ( toStringObject instanceof Function )
         {
             this.toStringFunction = (Function<Tuple, String>) toStringObject;
@@ -43,10 +44,7 @@ public class ConsoleAppenderOperator implements Operator
             this.toStringFunction = Tuple::toString;
         }
 
-        if ( config.contains( TUPLE_COUNT_CONFIG_PARAMETER ) )
-        {
-            this.tupleCount = config.getInteger( TUPLE_COUNT_CONFIG_PARAMETER );
-        }
+        this.tupleCount = config.getIntegerOrDefault( TUPLE_COUNT_CONFIG_PARAMETER, ANY_NUMBER_OF_TUPLES );
 
         return scheduleWhenTuplesAvailableOnDefaultPort( tupleCount );
     }

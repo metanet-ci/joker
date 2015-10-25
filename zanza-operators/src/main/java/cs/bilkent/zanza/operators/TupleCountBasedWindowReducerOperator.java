@@ -46,31 +46,9 @@ public class TupleCountBasedWindowReducerOperator implements Operator
     {
         final OperatorConfig config = context.getConfig();
 
-        Object reducerFuncObject = config.getObject( REDUCER_CONFIG_PARAMETER );
-        if ( reducerFuncObject instanceof BiFunction )
-        {
-            this.reducerFunc = (BiFunction<Tuple, Tuple, Tuple>) reducerFuncObject;
-        }
-        else
-        {
-            throw new IllegalArgumentException( "reducer function is not provided!" );
-        }
-
-        if ( config.contains( TUPLE_COUNT_CONFIG_PARAMETER ) )
-        {
-            this.tupleCount = config.getInteger( TUPLE_COUNT_CONFIG_PARAMETER );
-        }
-        else
-        {
-            throw new IllegalArgumentException( "tuple count is not specified!" );
-        }
-
-        Object initialValueObject = config.getObject( INITIAL_VALUE_CONFIG_PARAMETER );
-
-        if ( initialValueObject instanceof Tuple )
-        {
-            this.initialValue = (Tuple) initialValueObject;
-        }
+        this.reducerFunc = config.getOrFail( REDUCER_CONFIG_PARAMETER );
+        this.tupleCount = config.getOrFail( TUPLE_COUNT_CONFIG_PARAMETER );
+        this.initialValue = config.get( INITIAL_VALUE_CONFIG_PARAMETER );
 
         return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
     }
@@ -85,9 +63,9 @@ public class TupleCountBasedWindowReducerOperator implements Operator
         {
             final KVStore kvStore = invocationContext.getKVStore();
 
-            final Tuple window = kvStore.getOrDefault( CURRENT_WINDOW_KEY, this::newInitialWindow );
-            int currentTupleCount = window.getInteger( TUPLE_COUNT_FIELD );
-            int windowCount = window.getInteger( WINDOW_FIELD );
+            final Tuple window = kvStore.getOrDefault( CURRENT_WINDOW_KEY, Tuple::new );
+            int currentTupleCount = window.getIntegerOrDefault( TUPLE_COUNT_FIELD, 0 );
+            int windowCount = window.getIntegerOrDefault( WINDOW_FIELD, 0 );
             Tuple accumulator = kvStore.getOrDefault( ACCUMULATOR_TUPLE_KEY, initialValue );
 
             for ( Tuple tuple : invocationContext.getTuples().getTuplesByDefaultPort() )
@@ -126,15 +104,6 @@ public class TupleCountBasedWindowReducerOperator implements Operator
         }
 
         return new InvocationResult( nextStrategy, result );
-    }
-
-    private Tuple newInitialWindow ()
-    {
-        final Tuple tuple = new Tuple();
-        tuple.set( WINDOW_FIELD, 0 );
-        tuple.set( TUPLE_COUNT_FIELD, 0 );
-
-        return tuple;
     }
 
 }

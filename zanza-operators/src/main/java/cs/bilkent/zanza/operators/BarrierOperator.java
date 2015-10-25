@@ -9,6 +9,7 @@ import cs.bilkent.zanza.operator.InitializationContext;
 import cs.bilkent.zanza.operator.InvocationContext;
 import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.Operator;
+import cs.bilkent.zanza.operator.OperatorConfig;
 import cs.bilkent.zanza.operator.OperatorSpec;
 import cs.bilkent.zanza.operator.OperatorType;
 import cs.bilkent.zanza.operator.PortsToTuples;
@@ -86,17 +87,12 @@ public class BarrierOperator implements Operator
     @Override
     public SchedulingStrategy init ( final InitializationContext context )
     {
-        final Object mergePolicyObject = context.getConfig().getObject( MERGE_POLICY_CONfIG_PARAMETER );
-        if ( mergePolicyObject instanceof TupleValueMergePolicy )
-        {
-            this.tupleMergeFunc = new TupleMerger( (TupleValueMergePolicy) mergePolicyObject );
-        }
-        else
-        {
-            throw new IllegalArgumentException( "merge policy is missing!" );
-        }
+        final OperatorConfig config = context.getConfig();
 
-        this.inputPorts = IntStream.range( 0, context.getConfig().getInputPortCount() ).toArray();
+        final TupleValueMergePolicy mergePolicy = config.getOrFail( MERGE_POLICY_CONfIG_PARAMETER );
+        this.tupleMergeFunc = new TupleMerger( mergePolicy );
+        this.inputPorts = IntStream.range( 0, config.getInputPortCount() ).toArray();
+
         return getSchedulingStrategyForInputPorts();
     }
 
@@ -116,7 +112,7 @@ public class BarrierOperator implements Operator
             final PortsToTuples portsToTuples = invocationContext.getTuples();
             final Optional<Integer> tupleCountOpt = IntStream.of( inputPorts )
                                                              .mapToObj( portIndex -> portsToTuples.getTuples( portIndex ).size() )
-                                                                    .reduce( ( count1, count2 ) -> count1.equals( count2 ) ? count1 : 0 );
+                                                             .reduce( ( count1, count2 ) -> count1.equals( count2 ) ? count1 : 0 );
             final int tupleCount = tupleCountOpt.orElse( 0 );
             if ( tupleCount == 0 )
             {
@@ -129,8 +125,9 @@ public class BarrierOperator implements Operator
                               .map( tuples -> tuples.reduce( new Tuple(), tupleMergeFunc ) )
                               .collect( PortsToTuples.COLLECT_TO_DEFAULT_PORT );
 
-            final Tuple result = IntStream.of( inputPorts ).mapToObj( portIndex -> portsToTuples.getTuple( portIndex, 0 ) )
-                                                 .reduce( new Tuple(), tupleMergeFunc );
+            final Tuple result = IntStream.of( inputPorts )
+                                          .mapToObj( portIndex -> portsToTuples.getTuple( portIndex, 0 ) )
+                                          .reduce( new Tuple(), tupleMergeFunc );
 
             output.add( result );
             next = getSchedulingStrategyForInputPorts();

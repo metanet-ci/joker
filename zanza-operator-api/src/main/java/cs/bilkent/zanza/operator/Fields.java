@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -43,6 +44,28 @@ interface Fields<K>
      */
     Collection<K> keys ();
 
+    default <T> T getOrFail ( K key )
+    {
+        T val = get( key );
+        if ( val != null )
+        {
+            return val;
+        }
+
+        throw new IllegalArgumentException( key + " not provided!" );
+    }
+
+    default <T> T getOrFail ( K key, Function<K, RuntimeException> exceptionFunc )
+    {
+        T val = get( key );
+        if ( val != null )
+        {
+            return val;
+        }
+
+        throw exceptionFunc.apply( key );
+    }
+
     default <T> T getOrDefault ( K key, T defaultVal )
     {
         T val = get( key );
@@ -77,22 +100,58 @@ interface Fields<K>
 
     default Integer getInteger ( final K key )
     {
-        return get( key );
+        final Number number = get( key );
+        if ( number != null )
+        {
+            return number instanceof Integer ? (Integer) number : number.intValue();
+        }
+
+        return null;
     }
 
     default Integer getIntegerOrDefault ( final K key, final Integer defaultVal )
     {
-        return getOrDefault( key, defaultVal );
+        final Number number = get( key );
+        if ( number != null )
+        {
+            return number instanceof Integer ? (Integer) number : number.intValue();
+        }
+
+        return defaultVal;
+    }
+
+    default int getIntegerValueOrDefault ( final K key, final int defaultVal )
+    {
+        final Number number = get( key );
+        return number != null ? number.intValue() : defaultVal;
     }
 
     default Long getLong ( final K key )
     {
-        return get( key );
+        final Number number = get( key );
+        if ( number != null )
+        {
+            return number instanceof Long ? (Long) number : number.longValue();
+        }
+
+        return null;
     }
 
     default Long getLongOrDefault ( final K key, final Long defaultVal )
     {
-        return getOrDefault( key, defaultVal );
+        final Number number = get( key );
+        if ( number != null )
+        {
+            return number instanceof Long ? (Long) number : number.longValue();
+        }
+
+        return defaultVal;
+    }
+
+    default long getLongValueOrDefault ( final K key, final long defaultVal )
+    {
+        final Number number = get( key );
+        return number != null ? number.longValue() : defaultVal;
     }
 
     default Boolean getBoolean ( final K key )
@@ -107,42 +166,114 @@ interface Fields<K>
 
     default Short getShort ( final K key )
     {
-        return get( key );
+        final Number number = get( key );
+        if ( number != null )
+        {
+            return number instanceof Short ? (Short) number : number.shortValue();
+        }
+
+        return null;
     }
 
     default Short getShortOrDefault ( final K key, final Short defaultVal )
     {
-        return getOrDefault( key, defaultVal );
+        final Number number = get( key );
+        if ( number != null )
+        {
+            return number instanceof Short ? (Short) number : number.shortValue();
+        }
+
+        return defaultVal;
+    }
+
+    default short getShortValueOrDefault ( final K key, final short defaultVal )
+    {
+        final Number number = get( key );
+        return number != null ? number.shortValue() : defaultVal;
     }
 
     default Byte getByte ( final K key )
     {
-        return get( key );
+        final Number number = get( key );
+        if ( number != null )
+        {
+            return number instanceof Byte ? (Byte) number : number.byteValue();
+        }
+
+        return null;
     }
 
     default Byte getByteOrDefault ( final K key, final Byte defaultVal )
     {
-        return getOrDefault( key, defaultVal );
+        final Number number = get( key );
+        if ( number != null )
+        {
+            return number instanceof Byte ? (Byte) number : number.byteValue();
+        }
+
+        return defaultVal;
+    }
+
+    default byte getByteValueOrDefault ( final K key, final byte defaultVal )
+    {
+        final Number number = get( key );
+        return number != null ? number.byteValue() : defaultVal;
     }
 
     default Double getDouble ( final K key )
     {
-        return get( key );
+        final Number number = get( key );
+        if ( number != null )
+        {
+            return number instanceof Double ? (Double) number : number.doubleValue();
+        }
+
+        return null;
     }
 
     default Double getDoubleOrDefault ( final K key, final Double defaultVal )
     {
-        return getOrDefault( key, defaultVal );
+        final Number number = get( key );
+        if ( number != null )
+        {
+            return number instanceof Double ? (Double) number : number.doubleValue();
+        }
+
+        return defaultVal;
+    }
+
+    default double getDoubleValueOrDefault ( final K key, final double defaultVal )
+    {
+        final Number number = get( key );
+        return number != null ? number.doubleValue() : defaultVal;
     }
 
     default Float getFloat ( final K key )
     {
-        return get( key );
+        final Number number = get( key );
+        if ( number != null )
+        {
+            return number instanceof Float ? (Float) number : number.floatValue();
+        }
+
+        return null;
     }
 
     default Float getFloatOrDefault ( final K key, final Float defaultVal )
     {
-        return getOrDefault( key, defaultVal );
+        final Number number = get( key );
+        if ( number != null )
+        {
+            return number instanceof Float ? (Float) number : number.floatValue();
+        }
+
+        return defaultVal;
+    }
+
+    default float getFloatValueOrDefault ( final K key, final float defaultVal )
+    {
+        final Number number = get( key );
+        return number != null ? number.floatValue() : defaultVal;
     }
 
     default byte[] getBinary ( final K key )

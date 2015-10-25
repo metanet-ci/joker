@@ -26,27 +26,15 @@ public class MapperOperator implements Operator
 
     private Function<Tuple, Tuple> mapper;
 
-    private int tupleCount = ANY_NUMBER_OF_TUPLES;
+    private int tupleCount;
 
     @Override
     public SchedulingStrategy init ( final InitializationContext context )
     {
         final OperatorConfig config = context.getConfig();
 
-        Object mapperObject = config.getObject( MAPPER_CONFIG_PARAMETER );
-        if ( mapperObject instanceof Function )
-        {
-            this.mapper = (Function<Tuple, Tuple>) mapperObject;
-        }
-        else
-        {
-            throw new IllegalArgumentException( "mapper function is not provided" );
-        }
-
-        if ( config.contains( TUPLE_COUNT_CONFIG_PARAMETER ) )
-        {
-            this.tupleCount = config.getInteger( TUPLE_COUNT_CONFIG_PARAMETER );
-        }
+        this.mapper = config.getOrFail( MAPPER_CONFIG_PARAMETER );
+        this.tupleCount = config.getIntegerOrDefault( TUPLE_COUNT_CONFIG_PARAMETER, ANY_NUMBER_OF_TUPLES );
 
         return scheduleWhenTuplesAvailableOnDefaultPort( this.tupleCount );
     }
@@ -54,10 +42,11 @@ public class MapperOperator implements Operator
     @Override
     public InvocationResult process ( final InvocationContext invocationContext )
     {
-        final PortsToTuples output = invocationContext.getTuples().getTuplesByDefaultPort()
-                                                  .stream()
-                                                  .map( mapper )
-                                                  .collect( PortsToTuples.COLLECT_TO_DEFAULT_PORT );
+        final PortsToTuples output = invocationContext.getTuples()
+                                                      .getTuplesByDefaultPort()
+                                                      .stream()
+                                                      .map( mapper )
+                                                      .collect( PortsToTuples.COLLECT_TO_DEFAULT_PORT );
 
         final SchedulingStrategy nextStrategy = invocationContext.isSuccessfulInvocation()
                                                 ? scheduleWhenTuplesAvailableOnDefaultPort( tupleCount )
