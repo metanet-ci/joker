@@ -109,7 +109,7 @@ public class BarrierOperator implements Operator
 
         if ( invocationContext.isSuccessfulInvocation() )
         {
-            final PortsToTuples portsToTuples = invocationContext.getTuples();
+            final PortsToTuples portsToTuples = invocationContext.getInputTuples();
             final Optional<Integer> tupleCountOpt = IntStream.of( inputPorts )
                                                              .mapToObj( portIndex -> portsToTuples.getTuples( portIndex ).size() )
                                                              .reduce( ( count1, count2 ) -> count1.equals( count2 ) ? count1 : 0 );

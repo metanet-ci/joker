@@ -51,7 +51,7 @@ public class MovingAverageAggregationOperator implements Operator
         if ( invocationContext.isSuccessfulInvocation() )
         {
             final KVStore kvStore = invocationContext.getKVStore();
-            final PortsToTuples input = invocationContext.getTuples();
+            final PortsToTuples input = invocationContext.getInputTuples();
 
             final Tuple currentWindow = kvStore.getOrDefault( CURRENT_AVERAGE_KEY, Tuple::new );
 

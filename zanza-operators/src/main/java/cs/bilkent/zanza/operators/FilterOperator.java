@@ -42,7 +42,7 @@ public class FilterOperator implements Operator
     @Override
     public InvocationResult process ( final InvocationContext invocationContext )
     {
-        final PortsToTuples output = invocationContext.getTuples().getTuplesByDefaultPort()
+        final PortsToTuples output = invocationContext.getInputTuples().getTuplesByDefaultPort()
                                                   .stream()
                                                   .filter( predicate )
                                                   .collect( PortsToTuples.COLLECT_TO_DEFAULT_PORT );

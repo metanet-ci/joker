@@ -46,7 +46,7 @@ public class SimpleInvocationContext implements InvocationContext
     }
 
     @Override
-    public PortsToTuples getTuples ()
+    public PortsToTuples getInputTuples ()
     {
         return tuples;
     }

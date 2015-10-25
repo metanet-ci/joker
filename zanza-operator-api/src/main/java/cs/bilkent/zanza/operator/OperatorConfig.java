@@ -130,6 +130,6 @@ public class OperatorConfig implements Fields<String>
     @Override
     public Collection<String> keys ()
     {
-        return Collections.unmodifiableCollection( this.values.keySet() );
+        return Collections.unmodifiableSet( this.values.keySet() );
     }
 }

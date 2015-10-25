@@ -76,7 +76,7 @@ public class BarrierOperatorTest
         operator.init( initContext );
         final InvocationResult result = operator.process( new SimpleInvocationContext( new PortsToTuples(), InvocationReason.SHUTDOWN ) );
         assertTrue( result.getSchedulingStrategy() instanceof ScheduleNever );
-        assertThat( result.getPortsToTuples().getPortCount(), equalTo( 0 ) );
+        assertThat( result.getOutputTuples().getPortCount(), equalTo( 0 ) );
     }
 
     @Test
@@ -90,7 +90,7 @@ public class BarrierOperatorTest
 
         final InvocationResult result = operator.process( new SimpleInvocationContext( input, InvocationReason.SUCCESS ) );
         assertSchedulingStrategy( result.getSchedulingStrategy() );
-        final Tuple output = result.getPortsToTuples().getTuple( 0, 0 );
+        final Tuple output = result.getOutputTuples().getTuple( 0, 0 );
         final int matchingFieldCount = (int) IntStream.of( inputPorts )
                                                        .filter( portIndex -> output.getInteger( "field" + portIndex ).equals( portIndex ) )
                                                        .count();
@@ -119,7 +119,7 @@ public class BarrierOperatorTest
         IntStream.of( inputPorts ).forEach( portIndex -> input.add( portIndex, new Tuple( "count", portIndex ) ) );
         final InvocationResult result = operator.process( new SimpleInvocationContext( input, InvocationReason.SUCCESS ) );
 
-        final Tuple output = result.getPortsToTuples().getTuple( 0, 0 );
+        final Tuple output = result.getOutputTuples().getTuple( 0, 0 );
         assertThat( output.getInteger( "count" ), equalTo( expectedValue ) );
     }
 
@@ -148,7 +148,7 @@ public class BarrierOperatorTest
         final InvocationResult result = operator.process( new SimpleInvocationContext( input, InvocationReason.SUCCESS ) );
         assertSchedulingStrategy( result.getSchedulingStrategy() );
 
-        result.getPortsToTuples().getTuplesByDefaultPort().forEach( output -> {
+        result.getOutputTuples().getTuplesByDefaultPort().forEach( output -> {
             final int matchingFieldCount = (int) IntStream.of( inputPorts )
                                                            .filter( portIndex -> output.getInteger( "field" + portIndex )
                                                                                        .equals( portIndex ) )

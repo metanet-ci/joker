@@ -88,12 +88,12 @@ public class FilterOperatorTest
         operator.init( initContext );
 
         final InvocationResult result = operator.process( invocationContext );
-        final List<Tuple> outputTuples = result.getPortsToTuples().getTuplesByDefaultPort();
+        final List<Tuple> outputTuples = result.getOutputTuples().getTuplesByDefaultPort();
 
         final long expectedCount = outputTuples.stream().filter( positiveCountsPredicate ).count();
 
         assertThat( outputTuples, hasSize( (int) expectedCount ) );
-        final List<Tuple> inputTuples = invocationContext.getTuples().getTuplesByDefaultPort();
+        final List<Tuple> inputTuples = invocationContext.getInputTuples().getTuplesByDefaultPort();
         for ( Tuple outputTuple : outputTuples )
         {
             assertTrue( positiveCountsPredicate.test( outputTuple ) );

@@ -71,7 +71,7 @@ public class MovingAverageAggregationOperatorTest
         input.add( new Tuple( "val", 10 ) );
 
         final InvocationResult result = operator.process( invocationContext );
-        final PortsToTuples output = result.getPortsToTuples();
+        final PortsToTuples output = result.getOutputTuples();
         assertThat( output.getPortCount(), equalTo( 0 ) );
 
         final Tuple value = kvStore.get( CURRENT_AVERAGE_KEY );
@@ -91,7 +91,7 @@ public class MovingAverageAggregationOperatorTest
         input.add( new Tuple( "val", 10 ) );
 
         final InvocationResult result = operator.process( invocationContext );
-        final PortsToTuples output = result.getPortsToTuples();
+        final PortsToTuples output = result.getOutputTuples();
         assertThat( output.getPortCount(), equalTo( 0 ) );
 
         final Tuple value = kvStore.get( CURRENT_AVERAGE_KEY );
@@ -111,7 +111,7 @@ public class MovingAverageAggregationOperatorTest
         input.add( new Tuple( "val", 4 ) );
 
         final InvocationResult result = operator.process( invocationContext );
-        final PortsToTuples output = result.getPortsToTuples();
+        final PortsToTuples output = result.getOutputTuples();
         assertThat( output.getPortCount(), equalTo( 1 ) );
         final Tuple tuple = output.getTuple( DEFAULT_PORT_INDEX, 0 );
         assertThat( tuple.getInteger( WINDOW_COUNT_FIELD ), equalTo( 0 ) );
@@ -135,7 +135,7 @@ public class MovingAverageAggregationOperatorTest
         input.add( new Tuple( "val", 5 ) );
 
         final InvocationResult result = operator.process( invocationContext );
-        final PortsToTuples output = result.getPortsToTuples();
+        final PortsToTuples output = result.getOutputTuples();
         assertThat( output.getPortCount(), equalTo( 1 ) );
         final Tuple tuple = output.getTuple( DEFAULT_PORT_INDEX, 0 );
         assertThat( tuple.getInteger( WINDOW_COUNT_FIELD ), equalTo( 0 ) );

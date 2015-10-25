@@ -12,35 +12,101 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * For internal use
- * <p>
  * A utility interface that provides some methods for key-value accesses
  *
  * @param <K>
  *         type of the key
  */
-interface Fields<K>
+public interface Fields<K>
 {
+    /**
+     * Returns the value associated with the given key if it exists, {@code NULL} otherwise
+     *
+     * @param key
+     *         the key to retrieve the associated value
+     * @param <T>
+     *         type of the associated value
+     *
+     * @return the value associated with the given key if it exists, {@code NULL} otherwise
+     */
     <T> T get ( K key );
 
+    /**
+     * Checks if any value is value associated with the given key or not
+     *
+     * @param key
+     *         the key to check the associated value
+     * @param <T>
+     *         type of the value
+     *
+     * @return if there exists a value associated with the given key, false otherwise
+     */
     boolean contains ( K key );
 
-    void set ( K key, Object value );
+    /**
+     * Associates a value with the given key.
+     * {@code NULL} is forbidden for both {@code key} and {@code value}.
+     *
+     * @param key
+     *         the key to associate the value
+     * @param value
+     *         the value to associate with the given key.
+     * @param <T>
+     *         type of the given value
+     */
+    <T> void set ( K key, T value );
 
+    /**
+     * Associates a value with the given key and returns the previous value associated with the same key, {@code NULL} otherwise.
+     * {@code NULL} is forbidden for both {@code key} and {@code value}.
+     *
+     * @param key
+     *         the key to associate the value
+     * @param value
+     *         the value to associate with the given key
+     * @param <T>
+     *         type of the given value
+     *
+     * @return the previous value associated with the given key if it exists, {@code NULL} otherwise
+     */
     <T> T put ( K key, T value );
 
-    Object remove ( K key );
+    /**
+     * Deletes the value associated with the given key if it exists, and returns the value or {@code NULL} if it doesn't exist.
+     * {@code NULL} is forbidden for {@code key}
+     *
+     * @param key
+     *         the key to delete the associated value
+     * @param <T>
+     *         type of the associated value
+     *
+     * @return the deleted value associated with the given key
+     */
+    <T> T remove ( K key );
 
+    /**
+     * Deletes the value associated with the given key and returns true if any value exists for the given key before deletion.
+     *
+     * @param key
+     *         the key to delete the associated value
+     *
+     * @return true if any value is associated with the given key before deletion
+     */
     boolean delete ( K key );
 
+    /**
+     * Deletes all the keys and associated values.
+     * Optional to implement. May throw {@code java.lang.UnsupportedOperationException}
+     */
     void clear ();
 
     int size ();
 
     /**
-     * Returns immutable collection of keys
+     * Returns immutable collection of keys.
+     * Optional to implement. May throw {@code java.lang.UnsupportedOperationException}
      *
-     * @return immutable collection of keys
+     * @return immutable collection of keys if implemented, throws {@code java.lang.UnsupportedOperationException} otherwise
      */
     Collection<K> keys ();
 

@@ -54,7 +54,7 @@ public class ConsoleAppenderOperatorTest
         final PortsToTuples input = new PortsToTuples( tuple1, tuple2 );
         final InvocationResult output = operator.process( new SimpleInvocationContext( input, InvocationReason.SUCCESS ) );
 
-        assertThat( output.getPortsToTuples(), equalTo( input ) );
+        assertThat( output.getOutputTuples(), equalTo( input ) );
         verify( sysOut ).println( tuple1.toString() );
         verify( sysOut ).println( tuple2.toString() );
     }
@@ -71,7 +71,7 @@ public class ConsoleAppenderOperatorTest
         final PortsToTuples input = new PortsToTuples( tuple1, tuple2 );
         final InvocationResult output = operator.process( new SimpleInvocationContext( input, InvocationReason.SUCCESS ) );
 
-        assertThat( output.getPortsToTuples(), equalTo( input ) );
+        assertThat( output.getOutputTuples(), equalTo( input ) );
         verify( sysOut ).println( toStringFunc.apply( tuple1 ) );
         verify( sysOut ).println( toStringFunc.apply( tuple2 ) );
     }

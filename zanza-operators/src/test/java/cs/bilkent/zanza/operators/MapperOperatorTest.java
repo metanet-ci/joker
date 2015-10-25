@@ -106,7 +106,7 @@ public class MapperOperatorTest
     @Test( expected = ClassCastException.class )
     public void shouldNotMapWithInvalidMapperForErroneousInvocation ()
     {
-        shouldNotMapWitHInvalidMapperFor( InvocationReason.CLOSED_PORT );
+        shouldNotMapWitHInvalidMapperFor( InvocationReason.INPUT_PORT_CLOSED );
     }
 
     private void shouldNotMapWitHInvalidMapperFor ( final InvocationReason invocationReason )
@@ -142,8 +142,8 @@ public class MapperOperatorTest
         initializeOperatorWithMultipleBy2Mapper();
 
         final InvocationResult result = operator.process( invocationContext );
-        final List<Tuple> inputTuples = invocationContext.getTuples().getTuplesByDefaultPort();
-        final List<Tuple> outputTuples = result.getPortsToTuples().getTuplesByDefaultPort();
+        final List<Tuple> inputTuples = invocationContext.getInputTuples().getTuplesByDefaultPort();
+        final List<Tuple> outputTuples = result.getOutputTuples().getTuplesByDefaultPort();
         assertThat( outputTuples, hasSize( inputTuples.size() ) );
         for ( int i = 0; i < outputTuples.size(); i++ )
         {

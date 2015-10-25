@@ -36,7 +36,7 @@ public class BeaconOperatorTest
         final InvocationResult result = operator.process( new SimpleInvocationContext( null, InvocationReason.SUCCESS ) );
         assertThat( result.getSchedulingStrategy(), equalTo( ScheduleWhenAvailable.INSTANCE ) );
 
-        final PortsToTuples output = result.getPortsToTuples();
+        final PortsToTuples output = result.getOutputTuples();
         assertThat( output.getPortCount(), equalTo( 1 ) );
 
         final List<Tuple> tuples = output.getTuplesByDefaultPort();

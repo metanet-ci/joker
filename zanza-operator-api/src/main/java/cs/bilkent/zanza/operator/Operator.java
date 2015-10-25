@@ -53,7 +53,7 @@ public interface Operator
      * {@link #process(InvocationContext)} method is given in the {@link InvocationContext} object.
      * <p>
      * The tuples sent by all incoming ports are contained within the {@link PortsToTuples} object that can be obtained via
-     * {@link InvocationContext#getTuples()}. This object is a read-only object such that any modifications within the process
+     * {@link InvocationContext#getInputTuples()}. This object is a read-only object such that any modifications within the process
      * method can cause inconsistent behavior in the system. Additionally, the {@link Tuple} objects contained within the
      * {@link PortsToTuples} should not be modified.
      * <p>

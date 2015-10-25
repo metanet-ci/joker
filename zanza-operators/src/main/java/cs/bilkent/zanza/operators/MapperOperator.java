@@ -42,7 +42,7 @@ public class MapperOperator implements Operator
     @Override
     public InvocationResult process ( final InvocationContext invocationContext )
     {
-        final PortsToTuples output = invocationContext.getTuples()
+        final PortsToTuples output = invocationContext.getInputTuples()
                                                       .getTuplesByDefaultPort()
                                                       .stream()
                                                       .map( mapper )

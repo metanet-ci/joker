@@ -53,7 +53,7 @@ public class ForEachOperator implements Operator
         final SchedulingStrategy nextScheduling = invocationContext.isSuccessfulInvocation()
                                                   ? getTupleCountBasedSchedulingStrategy()
                                                   : ScheduleNever.INSTANCE;
-        final PortsToTuples input = invocationContext.getTuples();
+        final PortsToTuples input = invocationContext.getInputTuples();
         input.getTuplesByDefaultPort().stream().forEach( consumerFunc );
         return new InvocationResult( nextScheduling, input );
     }

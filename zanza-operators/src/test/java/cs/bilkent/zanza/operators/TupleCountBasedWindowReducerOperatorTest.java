@@ -81,7 +81,7 @@ public class TupleCountBasedWindowReducerOperatorTest
         input.add( newTupleWithKey( TUPLE_PARTITION_KEY, 1 ) );
 
         final InvocationResult result = operator.process( invocationContext );
-        final PortsToTuples output = result.getPortsToTuples();
+        final PortsToTuples output = result.getOutputTuples();
 
         assertStrategy( result.getSchedulingStrategy() );
         assertThat( output.getTuplesByDefaultPort(), hasSize( 0 ) );
@@ -100,7 +100,7 @@ public class TupleCountBasedWindowReducerOperatorTest
         input.add( newTupleWithKey( TUPLE_PARTITION_KEY, 1 ) );
 
         final InvocationResult result = operator.process( invocationContext );
-        final PortsToTuples output = result.getPortsToTuples();
+        final PortsToTuples output = result.getOutputTuples();
 
         assertStrategy( result.getSchedulingStrategy() );
         assertThat( output.getTuplesByDefaultPort(), hasSize( 0 ) );
@@ -118,7 +118,7 @@ public class TupleCountBasedWindowReducerOperatorTest
         input.add( newTupleWithKey( TUPLE_PARTITION_KEY, 1 ) );
         input.add( newTupleWithKey( TUPLE_PARTITION_KEY, 2 ) );
         final InvocationResult result = operator.process( invocationContext );
-        final PortsToTuples output = result.getPortsToTuples();
+        final PortsToTuples output = result.getOutputTuples();
 
         assertStrategy( result.getSchedulingStrategy() );
         assertThat( output.getTuplesByDefaultPort(), hasSize( 1 ) );
@@ -138,7 +138,7 @@ public class TupleCountBasedWindowReducerOperatorTest
         input.add( newTupleWithKey( TUPLE_PARTITION_KEY, 2 ) );
         input.add( newTupleWithKey( TUPLE_PARTITION_KEY, 3 ) );
         final InvocationResult result = operator.process( invocationContext );
-        final PortsToTuples output = result.getPortsToTuples();
+        final PortsToTuples output = result.getOutputTuples();
 
         assertStrategy( result.getSchedulingStrategy() );
         assertThat( output.getTuplesByDefaultPort(), hasSize( 1 ) );
@@ -158,7 +158,7 @@ public class TupleCountBasedWindowReducerOperatorTest
         input.add( newTupleWithKey( TUPLE_PARTITION_KEY, 1 ) );
         input.add( newTupleWithKey( TUPLE_PARTITION_KEY, 2 ) );
         final InvocationResult result = operator.process( invocationContext );
-        final PortsToTuples output = result.getPortsToTuples();
+        final PortsToTuples output = result.getOutputTuples();
 
         assertStrategy( result.getSchedulingStrategy() );
         assertThat( output.getTuplesByDefaultPort(), hasSize( 1 ) );
@@ -179,7 +179,7 @@ public class TupleCountBasedWindowReducerOperatorTest
         input.add( newTupleWithKey( TUPLE_PARTITION_KEY, 2 ) );
         input.add( newTupleWithKey( TUPLE_PARTITION_KEY, 3 ) );
         final InvocationResult result = operator.process( invocationContext );
-        final PortsToTuples output = result.getPortsToTuples();
+        final PortsToTuples output = result.getOutputTuples();
 
         assertStrategy( result.getSchedulingStrategy() );
         assertThat( output.getTuplesByDefaultPort(), hasSize( 1 ) );
