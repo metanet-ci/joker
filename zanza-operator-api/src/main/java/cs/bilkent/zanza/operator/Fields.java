@@ -100,6 +100,11 @@ public interface Fields<K>
      */
     void clear ();
 
+    /**
+     * Returns number of the keys
+     *
+     * @return number of the keys
+     */
     int size ();
 
     /**
@@ -110,6 +115,18 @@ public interface Fields<K>
      */
     Collection<K> keys ();
 
+    /**
+     * Returns the associated value of the given key, or throws {@link IllegalArgumentException} if the key is not present
+     *
+     * @param key
+     *         key to get the associated value
+     * @param <T>
+     *         type of the associated value
+     *
+     * @return the associated value
+     *
+     * @throws IllegalArgumentException
+     */
     default <T> T getOrFail ( K key )
     {
         T val = get( key );
@@ -118,10 +135,25 @@ public interface Fields<K>
             return val;
         }
 
-        throw new IllegalArgumentException( key + " not provided!" );
+        throw new IllegalArgumentException( key + " is not present!" );
     }
 
-    default <T> T getOrFail ( K key, Function<K, RuntimeException> exceptionFunc )
+    /**
+     * Returns the associated value of the given key, or throws a {@link RuntimeException} which is created by the provided function
+     *
+     * @param key
+     *         key to get the associated value
+     * @param exceptionFunc
+     *         the function to create the exception to be thrown
+     * @param <T>
+     *         type of the associated value
+     *
+     * @return the associated value
+     *
+     * @throws RuntimeException
+     *         craeted by the provided function
+     */
+    default <T> T getOrFail ( K key, Function<K, ? extends RuntimeException> exceptionFunc )
     {
         T val = get( key );
         if ( val != null )
@@ -132,12 +164,36 @@ public interface Fields<K>
         throw exceptionFunc.apply( key );
     }
 
+    /**
+     * Returns the associated value of the given key, or returns the provided value if the key is not present
+     *
+     * @param key
+     *         key to get the associated value
+     * @param defaultVal
+     *         value to return if the key is not present
+     * @param <T>
+     *         type of the associated value
+     *
+     * @return the value associated with the key or the provided value if the key is not present
+     */
     default <T> T getOrDefault ( K key, T defaultVal )
     {
         T val = get( key );
         return val != null ? val : defaultVal;
     }
 
+    /**
+     * Returns the associated value of the given key, or returns the value that is created by the provided function, if the key is not present
+     *
+     * @param key
+     *         key to get the associated value
+     * @param supplier
+     *         the function to create the value to be returned if the key is not present
+     * @param <T>
+     *         type of the associated value
+     *
+     * @return the associated value of the given key, or returns the value that is created by the provided function, if the key is not present
+     */
     default <T> T getOrDefault ( K key, Supplier<T> supplier )
     {
         T val = get( key );
