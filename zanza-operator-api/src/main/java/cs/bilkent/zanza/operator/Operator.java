@@ -97,7 +97,7 @@ public interface Operator
      * <p>
      * This method is not guaranteed to be invoked during crashes.
      */
-    default void destroy ()
+    default void shutdown ()
     {
 
     }

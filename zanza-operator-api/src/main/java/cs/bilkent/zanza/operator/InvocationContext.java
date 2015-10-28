@@ -35,7 +35,7 @@ public interface InvocationContext
 
     /**
      * Indicates that the invocation is done with respect to the last provided {@link SchedulingStrategy}.
-     * If it is false, there may be no more invocations for the operator.
+     * If it is false, it means that the invocation is done without the provided {@link SchedulingStrategy} has met
      *
      * @return true if the invocation is done with respect to the last provided {@link SchedulingStrategy}, false otherwise
      */
@@ -99,7 +99,7 @@ public interface InvocationContext
 
         /**
          * Indicates that the invocation is done with respect to the last provided {@link SchedulingStrategy}.
-         * If it is false, there may be no more invocations for the operator.
+         * If it is false, it means that the invocation is done without the provided {@link SchedulingStrategy} has met
          *
          * @return true if the invocation is done with respect to the last provided {@link SchedulingStrategy}, false otherwise
          */
