@@ -5,8 +5,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import cs.bilkent.zanza.operator.flow.FlowDefinition;
-import static cs.bilkent.zanza.operator.flow.Port.DYNAMIC_PORT_COUNT;
+import cs.bilkent.zanza.flow.FlowDefinition;
+import static cs.bilkent.zanza.flow.Port.DYNAMIC_PORT_COUNT;
 
 /**
  * Defines specifications of the {@link Operator} that will be used by the Engine to create,

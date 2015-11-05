@@ -1,10 +1,9 @@
-package cs.bilkent.zanza.operator.kvstore;
+package cs.bilkent.zanza.kvstore;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import cs.bilkent.zanza.operator.KVStore;
 
 public class InMemoryKVStore implements KVStore
 {

@@ -1,4 +1,4 @@
-package cs.bilkent.zanza.operator;
+package cs.bilkent.zanza.scheduling;
 
 /**
  * Interface for implementing scheduling strategies

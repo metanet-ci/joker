@@ -1,8 +1,6 @@
-package cs.bilkent.zanza.operator.scheduling;
+package cs.bilkent.zanza.scheduling;
 
 import java.util.concurrent.TimeUnit;
-
-import cs.bilkent.zanza.operator.SchedulingStrategy;
 
 public class ScheduleDelayed implements SchedulingStrategy
 {

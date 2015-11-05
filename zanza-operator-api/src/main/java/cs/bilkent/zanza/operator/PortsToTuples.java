@@ -12,7 +12,7 @@ import java.util.stream.Collector;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import cs.bilkent.zanza.operator.flow.Port;
+import cs.bilkent.zanza.flow.Port;
 import static java.util.stream.Collector.Characteristics.IDENTITY_FINISH;
 import uk.co.real_logic.agrona.collections.Int2ObjectHashMap;
 
@@ -150,7 +150,7 @@ public class PortsToTuples
      *
      * @param portIndex
      *         the index of the port to which the tuple is added
-     * @param tuples
+     * @param tuplesToAdd
      *         tuples to add to the specified port
      */
     public void addAll ( final int portIndex, final List<Tuple> tuplesToAdd )
@@ -231,13 +231,27 @@ public class PortsToTuples
     }
 
     /**
-     * Returns the number of ports to which tuples are added.
+     * Returns the number of ports that contain tuples.
      *
-     * @return the number of ports to which tuples are added
+     * @return the number of ports that contain tuples.
      */
     public int getPortCount ()
     {
         return tuplesByPort.keySet().size();
+    }
+
+    /**
+     * Returns the number of tuples that are added to the given port.
+     *
+     * @param portIndex
+     *         port index to check number of tuples that are added.
+     *
+     * @return the number of tuples that are added to the given port.
+     */
+    public int getTupleCount ( final int portIndex )
+    {
+        final List<Tuple> tuples = getTuples( portIndex );
+        return tuples != null ? tuples.size() : 0;
     }
 
     private List<Tuple> getOrCreateTuples ( final int portIndex )

@@ -1,6 +1,4 @@
-package cs.bilkent.zanza.operator.scheduling;
-
-import cs.bilkent.zanza.operator.SchedulingStrategy;
+package cs.bilkent.zanza.scheduling;
 
 public class ScheduleNever implements SchedulingStrategy
 {

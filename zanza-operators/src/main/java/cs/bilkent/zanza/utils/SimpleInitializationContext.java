@@ -1,4 +1,4 @@
-package cs.bilkent.zanza.operators;
+package cs.bilkent.zanza.utils;
 
 import cs.bilkent.zanza.operator.InitializationContext;
 import cs.bilkent.zanza.operator.OperatorConfig;

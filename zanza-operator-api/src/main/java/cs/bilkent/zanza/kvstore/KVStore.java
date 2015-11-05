@@ -1,6 +1,8 @@
-package cs.bilkent.zanza.operator;
+package cs.bilkent.zanza.kvstore;
 
 import java.util.Collection;
+
+import cs.bilkent.zanza.operator.Fields;
 
 public interface KVStore extends Fields<Object>
 {

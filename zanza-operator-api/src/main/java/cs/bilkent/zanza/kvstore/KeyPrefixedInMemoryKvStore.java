@@ -1,6 +1,5 @@
-package cs.bilkent.zanza.operator.kvstore;
+package cs.bilkent.zanza.kvstore;
 
-import cs.bilkent.zanza.operator.KVStore;
 import cs.bilkent.zanza.util.Pair;
 
 public class KeyPrefixedInMemoryKvStore implements KVStore

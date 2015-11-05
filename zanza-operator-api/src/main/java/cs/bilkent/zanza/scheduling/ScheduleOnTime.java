@@ -1,7 +1,5 @@
-package cs.bilkent.zanza.operator.scheduling;
+package cs.bilkent.zanza.scheduling;
 
-
-import cs.bilkent.zanza.operator.SchedulingStrategy;
 
 public class ScheduleOnTime implements SchedulingStrategy
 {

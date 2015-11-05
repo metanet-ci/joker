@@ -1,4 +1,4 @@
-package cs.bilkent.zanza.operator.flow;
+package cs.bilkent.zanza.flow;
 
 
 import org.junit.Before;
@@ -11,7 +11,7 @@ import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
 import cs.bilkent.zanza.operator.OperatorSpec;
 import cs.bilkent.zanza.operator.OperatorType;
-import cs.bilkent.zanza.operator.SchedulingStrategy;
+import cs.bilkent.zanza.scheduling.SchedulingStrategy;
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;

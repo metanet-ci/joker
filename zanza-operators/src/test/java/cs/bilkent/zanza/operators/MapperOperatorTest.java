@@ -6,17 +6,19 @@ import java.util.function.Function;
 
 import org.junit.Test;
 
+import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
 import cs.bilkent.zanza.operator.InvocationContext;
 import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
 import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.PortsToTuples;
-import cs.bilkent.zanza.operator.SchedulingStrategy;
 import cs.bilkent.zanza.operator.Tuple;
-import static cs.bilkent.zanza.operator.flow.Port.DEFAULT_PORT_INDEX;
-import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
-import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
-import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.ANY_NUMBER_OF_TUPLES;
 import static cs.bilkent.zanza.operators.MapperOperator.MAPPER_CONFIG_PARAMETER;
+import cs.bilkent.zanza.scheduling.ScheduleNever;
+import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable;
+import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.ANY_NUMBER_OF_TUPLES;
+import cs.bilkent.zanza.scheduling.SchedulingStrategy;
+import cs.bilkent.zanza.utils.SimpleInitializationContext;
+import cs.bilkent.zanza.utils.SimpleInvocationContext;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;

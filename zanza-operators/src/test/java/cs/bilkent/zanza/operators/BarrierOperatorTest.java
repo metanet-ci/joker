@@ -8,13 +8,15 @@ import org.junit.Test;
 import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
 import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.PortsToTuples;
-import cs.bilkent.zanza.operator.SchedulingStrategy;
 import cs.bilkent.zanza.operator.Tuple;
-import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
-import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
 import cs.bilkent.zanza.operators.BarrierOperator.TupleValueMergePolicy;
 import static cs.bilkent.zanza.operators.BarrierOperator.TupleValueMergePolicy.KEEP_EXISTING_VALUE;
 import static cs.bilkent.zanza.operators.BarrierOperator.TupleValueMergePolicy.OVERWRITE_WITH_NEW_VALUE;
+import cs.bilkent.zanza.scheduling.ScheduleNever;
+import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable;
+import cs.bilkent.zanza.scheduling.SchedulingStrategy;
+import cs.bilkent.zanza.utils.SimpleInitializationContext;
+import cs.bilkent.zanza.utils.SimpleInvocationContext;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertTrue;
@@ -69,8 +71,8 @@ public class BarrierOperatorTest
         operator.process( new SimpleInvocationContext( new PortsToTuples(), InvocationReason.SUCCESS ) );
     }
 
-    @Test
-    public void shouldNotFailWithMissingTuplesOnErroneousInvocation ()
+    @Test( expected = IllegalArgumentException.class )
+    public void shouldFailWithMissingTuplesOnErroneousInvocation ()
     {
         initContext.getConfig().set( BarrierOperator.MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
         operator.init( initContext );

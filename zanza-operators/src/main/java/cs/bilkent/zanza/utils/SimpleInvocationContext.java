@@ -1,7 +1,7 @@
-package cs.bilkent.zanza.operators;
+package cs.bilkent.zanza.utils;
 
+import cs.bilkent.zanza.kvstore.KVStore;
 import cs.bilkent.zanza.operator.InvocationContext;
-import cs.bilkent.zanza.operator.KVStore;
 import cs.bilkent.zanza.operator.PortsToTuples;
 
 public class SimpleInvocationContext implements InvocationContext

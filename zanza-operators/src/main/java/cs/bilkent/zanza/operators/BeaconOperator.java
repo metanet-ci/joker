@@ -12,10 +12,10 @@ import cs.bilkent.zanza.operator.OperatorConfig;
 import cs.bilkent.zanza.operator.OperatorSpec;
 import cs.bilkent.zanza.operator.OperatorType;
 import cs.bilkent.zanza.operator.PortsToTuples;
-import cs.bilkent.zanza.operator.SchedulingStrategy;
 import cs.bilkent.zanza.operator.Tuple;
-import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
-import cs.bilkent.zanza.operator.scheduling.ScheduleWhenAvailable;
+import cs.bilkent.zanza.scheduling.ScheduleNever;
+import cs.bilkent.zanza.scheduling.ScheduleWhenAvailable;
+import cs.bilkent.zanza.scheduling.SchedulingStrategy;
 
 @OperatorSpec( type = OperatorType.STATELESS, inputPortCount = 0, outputPortCount = 1 )
 public class BeaconOperator implements Operator
@@ -45,20 +45,12 @@ public class BeaconOperator implements Operator
     @Override
     public InvocationResult process ( final InvocationContext invocationContext )
     {
-        final PortsToTuples output;
-        final SchedulingStrategy next;
-        if ( invocationContext.isSuccessfulInvocation() )
-        {
-            output = IntStream.range( 0, tupleCount )
-                              .mapToObj( ( c ) -> tupleGeneratorFunc.apply( random ) )
-                              .collect( PortsToTuples.COLLECT_TO_DEFAULT_PORT );
-            next = ScheduleWhenAvailable.INSTANCE;
-        }
-        else
-        {
-            output = new PortsToTuples();
-            next = ScheduleNever.INSTANCE;
-        }
+        final PortsToTuples output = IntStream.range( 0, tupleCount )
+                                              .mapToObj( ( c ) -> tupleGeneratorFunc.apply( random ) )
+                                              .collect( PortsToTuples.COLLECT_TO_DEFAULT_PORT );
+        final SchedulingStrategy next = invocationContext.isSuccessfulInvocation()
+                                        ? ScheduleWhenAvailable.INSTANCE
+                                        : ScheduleNever.INSTANCE;
 
         return new InvocationResult( next, output );
     }

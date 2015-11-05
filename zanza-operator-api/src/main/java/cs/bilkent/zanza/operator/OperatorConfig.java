@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import cs.bilkent.zanza.operator.flow.Port;
+import cs.bilkent.zanza.flow.Port;
 
 /**
  * Contains all the configuration information that can be used by an operator. Users can provide operator specific

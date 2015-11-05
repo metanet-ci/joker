@@ -1,4 +1,4 @@
-package cs.bilkent.zanza.operator.flow;
+package cs.bilkent.zanza.flow;
 
 
 import java.util.Collections;

@@ -1,5 +1,7 @@
 package cs.bilkent.zanza.operator;
 
+import cs.bilkent.zanza.kvstore.KVStore;
+
 /**
  * Defines type of an {@link Operator} within {@link OperatorSpec}
  *

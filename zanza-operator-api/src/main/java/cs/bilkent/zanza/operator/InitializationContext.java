@@ -1,6 +1,6 @@
 package cs.bilkent.zanza.operator;
 
-import cs.bilkent.zanza.operator.flow.FlowDefinition;
+import cs.bilkent.zanza.flow.FlowDefinition;
 
 /**
  * Contains information about configuration and initialization of an operator
