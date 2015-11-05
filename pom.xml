@@ -14,6 +14,7 @@
         <module>zanza-operator-api</module>
 		<module>zanza-operators</module>
         <module>zanza-engine</module>
+        <module>zanza-examples</module>
     </modules>
 
     <properties>
