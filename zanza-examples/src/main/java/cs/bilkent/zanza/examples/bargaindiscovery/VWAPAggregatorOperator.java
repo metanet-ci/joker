@@ -31,6 +31,8 @@ public class VWAPAggregatorOperator implements Operator
 
     public static final String TUPLE_VOLUME_FIELD = "volume";
 
+    public static final String TIMESTAMP_FIELD = "timestamp";
+
     static final String TUPLE_COUNT_FIELD = "tupleCount";
 
     static final String WINDOW_KEY = "window";
@@ -89,7 +91,10 @@ public class VWAPAggregatorOperator implements Operator
 
             if ( endOfWindow( tupleCount ) || endOfSlide( tupleCount ) )
             {
-                final Tuple outputTuple = createOutputTuple( tuple.getString( TICKER_SYMBOL_FIELD ), vwapSum, volumeSum );
+                final Tuple outputTuple = createOutputTuple( tuple.getString( TICKER_SYMBOL_FIELD ),
+                                                             tuple.getLong( TIMESTAMP_FIELD ),
+                                                             vwapSum,
+                                                             volumeSum );
                 tuple.copyPartitionTo( outputTuple );
                 output.add( outputTuple );
             }
@@ -124,10 +129,11 @@ public class VWAPAggregatorOperator implements Operator
         return tupleCount > windowSize && ( tupleCount - this.windowSize ) % this.slideFactor == 0;
     }
 
-    private Tuple createOutputTuple ( final String tickerSymbol, final double vwapSum, final double volumeSum )
+    private Tuple createOutputTuple ( final String tickerSymbol, final long timestamp, final double vwapSum, final double volumeSum )
     {
         final Tuple tuple = new Tuple();
         tuple.set( TICKER_SYMBOL_FIELD, tickerSymbol );
+        tuple.set( TIMESTAMP_FIELD, timestamp );
 
         tuple.set( SINGLE_VWAP_FIELD, vwapSum );
         tuple.set( SINGLE_VOLUME_FIELD, volumeSum );
