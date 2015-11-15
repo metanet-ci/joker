@@ -15,6 +15,7 @@ import com.google.common.base.Strings;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
 import cs.bilkent.zanza.operator.OperatorSpec;
@@ -64,17 +65,17 @@ public class FlowBuilder
 
     public FlowBuilder connect ( final String sourceOperatorId, final String targetOperatorId )
     {
-        return connect( sourceOperatorId, Port.DEFAULT_PORT_INDEX, targetOperatorId, Port.DEFAULT_PORT_INDEX );
+        return connect( sourceOperatorId, DEFAULT_PORT_INDEX, targetOperatorId, DEFAULT_PORT_INDEX );
     }
 
     public FlowBuilder connect ( final String sourceOperatorId, int sourcePort, final String targetOperatorId )
     {
-        return connect( sourceOperatorId, sourcePort, targetOperatorId, Port.DEFAULT_PORT_INDEX );
+        return connect( sourceOperatorId, sourcePort, targetOperatorId, DEFAULT_PORT_INDEX );
     }
 
     public FlowBuilder connect ( final String sourceOperatorId, final String targetOperatorId, final int targetPort )
     {
-        return connect( sourceOperatorId, Port.DEFAULT_PORT_INDEX, targetOperatorId, targetPort );
+        return connect( sourceOperatorId, DEFAULT_PORT_INDEX, targetOperatorId, targetPort );
     }
 
     public FlowBuilder connect ( final String sourceOperatorId, final int sourcePort, final String targetOperatorId, final int targetPort )
@@ -82,10 +83,10 @@ public class FlowBuilder
         failIfAlreadyBuilt();
         failIfEmptyOperatorId( sourceOperatorId );
         failIfNonExistingOperatorId( sourceOperatorId );
-        failIfNegativePort( sourcePort );
+        failIfInvalidPort( operators.get( sourceOperatorId ).config.getOutputPortCount(), sourcePort );
         failIfEmptyOperatorId( targetOperatorId );
         failIfNonExistingOperatorId( targetOperatorId );
-        failIfNegativePort( targetPort );
+        failIfInvalidPort( operators.get( targetOperatorId ).config.getInputPortCount(), targetPort );
         checkArgument( !sourceOperatorId.equals( targetOperatorId ), "operator ids must be different!" );
         failIfTargetOperatorPortAlreadyUsed( targetOperatorId, targetPort );
 
@@ -146,9 +147,9 @@ public class FlowBuilder
         checkArgument( operators.containsKey( operatorId ), "Non-existing operator id!" );
     }
 
-    private void failIfNegativePort ( final int port )
+    private void failIfInvalidPort ( final int validPortCount, final int port )
     {
-        checkArgument( port >= Port.DEFAULT_PORT_INDEX, "Invalid port!" );
+        checkArgument( port >= DEFAULT_PORT_INDEX && port < validPortCount, "Invalid port!" );
     }
 
     private void failIfAlreadyBuilt ()

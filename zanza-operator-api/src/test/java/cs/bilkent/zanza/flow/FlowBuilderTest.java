@@ -170,6 +170,14 @@ public class FlowBuilderTest
     }
 
     @Test( expected = IllegalArgumentException.class )
+    public void shouldNotAddConnectionWithInvalidSourcePort2 ()
+    {
+        builder.add( "op1", OperatorWithDynamicPortCounts.class );
+        builder.add( "op2", OperatorWithDynamicPortCounts.class );
+        builder.connect( "op1", 1, "op2" );
+    }
+
+    @Test( expected = IllegalArgumentException.class )
     public void shouldNotAddConnectionToNonExistingTargetOperator ()
     {
         builder.add( "op1", OperatorWithDynamicPortCounts.class );
@@ -180,6 +188,14 @@ public class FlowBuilderTest
     public void shouldNotAddConnectionWithInvalidTargetPort ()
     {
         builder.connect( "op1", "op2", -1 );
+    }
+
+    @Test( expected = IllegalArgumentException.class )
+    public void shouldNotAddConnectionWithInvalidTargetPort2 ()
+    {
+        builder.add( "op1", OperatorWithDynamicPortCounts.class );
+        builder.add( "op2", OperatorWithDynamicPortCounts.class );
+        builder.connect( "op1", "op2", 1 );
     }
 
     @Test( expected = IllegalArgumentException.class )
