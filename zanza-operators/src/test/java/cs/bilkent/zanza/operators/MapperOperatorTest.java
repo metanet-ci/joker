@@ -81,7 +81,7 @@ public class MapperOperatorTest
         initContext.getConfig().set( MapperOperator.TUPLE_COUNT_CONFIG_PARAMETER, tupleCount );
 
         operator.init( initContext );
-        final InvocationResult result = operator.process( new SimpleInvocationContext( new PortsToTuples(), InvocationReason.SUCCESS ) );
+        final InvocationResult result = operator.process( new SimpleInvocationContext( InvocationReason.SUCCESS, new PortsToTuples() ) );
         assertScheduleWhenTuplesAvailableStrategy( result.getSchedulingStrategy(), tupleCount );
     }
 
@@ -89,14 +89,14 @@ public class MapperOperatorTest
     public void shouldMapSingleTupleForSuccessfulInvocation ()
     {
         final PortsToTuples portsToTuples = new PortsToTuples( new Tuple( "count", 5 ) );
-        shouldMultiplyCountValuesBy2( new SimpleInvocationContext( portsToTuples, InvocationReason.SUCCESS ) );
+        shouldMultiplyCountValuesBy2( new SimpleInvocationContext( InvocationReason.SUCCESS, portsToTuples ) );
     }
 
     @Test
     public void shouldMapSingleTupleForErroneousInvocation ()
     {
         final PortsToTuples portsToTuples = new PortsToTuples( new Tuple( "count", 5 ) );
-        shouldMultiplyCountValuesBy2( new SimpleInvocationContext( portsToTuples, InvocationReason.SHUTDOWN ) );
+        shouldMultiplyCountValuesBy2( new SimpleInvocationContext( InvocationReason.SHUTDOWN, portsToTuples ) );
     }
 
     @Test( expected = ClassCastException.class )
@@ -118,7 +118,7 @@ public class MapperOperatorTest
 
         operator.init( initContext );
         final PortsToTuples portsToTuples = new PortsToTuples( new Tuple( "count", 5 ) );
-        operator.process( new SimpleInvocationContext( portsToTuples, invocationReason ) );
+        operator.process( new SimpleInvocationContext( invocationReason, portsToTuples ) );
     }
 
     @Test
@@ -127,7 +127,7 @@ public class MapperOperatorTest
         final PortsToTuples portsToTuples = new PortsToTuples();
         portsToTuples.add( new Tuple( "count", 5 ) );
         portsToTuples.add( new Tuple( "count", 10 ) );
-        shouldMultiplyCountValuesBy2( new SimpleInvocationContext( portsToTuples, InvocationReason.SUCCESS ) );
+        shouldMultiplyCountValuesBy2( new SimpleInvocationContext( InvocationReason.SUCCESS, portsToTuples ) );
     }
 
     @Test
@@ -136,7 +136,7 @@ public class MapperOperatorTest
         final PortsToTuples portsToTuples = new PortsToTuples();
         portsToTuples.add( new Tuple( "count", 5 ) );
         portsToTuples.add( new Tuple( "count", 10 ) );
-        shouldMultiplyCountValuesBy2( new SimpleInvocationContext( portsToTuples, InvocationReason.SUCCESS ) );
+        shouldMultiplyCountValuesBy2( new SimpleInvocationContext( InvocationReason.SUCCESS, portsToTuples ) );
     }
 
     private void shouldMultiplyCountValuesBy2 ( final InvocationContext invocationContext )
@@ -160,7 +160,7 @@ public class MapperOperatorTest
     {
         initializeOperatorWithMultipleBy2Mapper();
 
-        final InvocationResult result = operator.process( new SimpleInvocationContext( new PortsToTuples(), InvocationReason.SUCCESS ) );
+        final InvocationResult result = operator.process( new SimpleInvocationContext( InvocationReason.SUCCESS, new PortsToTuples() ) );
 
         assertScheduleWhenTuplesAvailableStrategy( result.getSchedulingStrategy(), ANY_NUMBER_OF_TUPLES );
     }
@@ -170,7 +170,7 @@ public class MapperOperatorTest
     {
         initializeOperatorWithMultipleBy2Mapper();
 
-        final InvocationResult result = operator.process( new SimpleInvocationContext( new PortsToTuples(), InvocationReason.SHUTDOWN ) );
+        final InvocationResult result = operator.process( new SimpleInvocationContext( InvocationReason.SHUTDOWN, new PortsToTuples() ) );
 
         assertThat( result.getSchedulingStrategy(), equalTo( ScheduleNever.INSTANCE ) );
     }

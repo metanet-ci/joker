@@ -60,24 +60,24 @@ public class Triple<T1, T2, T3>
 
         final Triple<?, ?, ?> triple = (Triple<?, ?, ?>) o;
 
-        if ( !_1.equals( triple._1 ) )
+        if ( _1 != null ? !_1.equals( triple._1 ) : triple._1 != null )
         {
             return false;
         }
-        if ( !_2.equals( triple._2 ) )
+        if ( _2 != null ? !_2.equals( triple._2 ) : triple._2 != null )
         {
             return false;
         }
-        return _3.equals( triple._3 );
 
+        return !( _3 != null ? !_3.equals( triple._3 ) : triple._3 != null );
     }
 
     @Override
     public int hashCode ()
     {
-        int result = _1.hashCode();
-        result = 31 * result + _2.hashCode();
-        result = 31 * result + _3.hashCode();
+        int result = _1 != null ? _1.hashCode() : 0;
+        result = 31 * result + ( _2 != null ? _2.hashCode() : 0 );
+        result = 31 * result + ( _3 != null ? _3.hashCode() : 0 );
         return result;
     }
 

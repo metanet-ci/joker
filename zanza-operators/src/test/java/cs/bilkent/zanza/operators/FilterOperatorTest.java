@@ -72,7 +72,7 @@ public class FilterOperatorTest
         final PortsToTuples input = new PortsToTuples();
         input.add( new Tuple( "count", -1 ) );
         input.add( new Tuple( "count", 1 ) );
-        shouldFilterTuplesWithPositiveCount( new SimpleInvocationContext( input, InvocationReason.SUCCESS ) );
+        shouldFilterTuplesWithPositiveCount( new SimpleInvocationContext( InvocationReason.SUCCESS, input ) );
     }
 
     @Test
@@ -81,7 +81,7 @@ public class FilterOperatorTest
         final PortsToTuples input = new PortsToTuples();
         input.add( new Tuple( "count", -1 ) );
         input.add( new Tuple( "count", 1 ) );
-        shouldFilterTuplesWithPositiveCount( new SimpleInvocationContext( input, InvocationReason.SHUTDOWN ) );
+        shouldFilterTuplesWithPositiveCount( new SimpleInvocationContext( InvocationReason.SHUTDOWN, input ) );
     }
 
     private void shouldFilterTuplesWithPositiveCount ( final InvocationContext invocationContext )

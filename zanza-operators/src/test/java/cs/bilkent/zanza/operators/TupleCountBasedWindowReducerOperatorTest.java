@@ -13,7 +13,6 @@ import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
 import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
-import cs.bilkent.zanza.operator.TupleAccessor;
 import static cs.bilkent.zanza.operators.TupleCountBasedWindowReducerOperator.INITIAL_VALUE_CONFIG_PARAMETER;
 import static cs.bilkent.zanza.operators.TupleCountBasedWindowReducerOperator.REDUCER_CONFIG_PARAMETER;
 import static cs.bilkent.zanza.operators.TupleCountBasedWindowReducerOperator.TUPLE_COUNT_CONFIG_PARAMETER;
@@ -43,7 +42,7 @@ public class TupleCountBasedWindowReducerOperatorTest
 
     private final KVStore kvStore = new KeyPrefixedInMemoryKvStore( TUPLE_PARTITION_KEY, new InMemoryKVStore() );
 
-    private final InvocationContext invocationContext = new SimpleInvocationContext( input, InvocationReason.SUCCESS, kvStore );
+    private final InvocationContext invocationContext = new SimpleInvocationContext( InvocationReason.SUCCESS, input, kvStore );
 
     private final BiFunction<Tuple, Tuple, Tuple> adder = ( tuple1, tuple2 ) -> new Tuple( "count",
                                                                                            tuple1.getInteger( "count" )
@@ -80,7 +79,7 @@ public class TupleCountBasedWindowReducerOperatorTest
         configureReducerAndTupleCount();
         operator.init( initContext );
 
-        input.add( newTupleWithKey( TUPLE_PARTITION_KEY, 1 ) );
+        input.add( new Tuple( "count", 1 ) );
 
         final InvocationResult result = operator.process( invocationContext );
         final PortsToTuples output = result.getOutputTuples();
@@ -99,7 +98,7 @@ public class TupleCountBasedWindowReducerOperatorTest
         initContext.getConfig().set( INITIAL_VALUE_CONFIG_PARAMETER, new Tuple( "count", 2 ) );
         operator.init( initContext );
 
-        input.add( newTupleWithKey( TUPLE_PARTITION_KEY, 1 ) );
+        input.add( new Tuple( "count", 1 ) );
 
         final InvocationResult result = operator.process( invocationContext );
         final PortsToTuples output = result.getOutputTuples();
@@ -117,8 +116,8 @@ public class TupleCountBasedWindowReducerOperatorTest
         configureReducerAndTupleCount();
         operator.init( initContext );
 
-        input.add( newTupleWithKey( TUPLE_PARTITION_KEY, 1 ) );
-        input.add( newTupleWithKey( TUPLE_PARTITION_KEY, 2 ) );
+        input.add( new Tuple( "count", 1 ) );
+        input.add( new Tuple( "count", 2 ) );
         final InvocationResult result = operator.process( invocationContext );
         final PortsToTuples output = result.getOutputTuples();
 
@@ -136,9 +135,9 @@ public class TupleCountBasedWindowReducerOperatorTest
         configureReducerAndTupleCount();
         operator.init( initContext );
 
-        input.add( newTupleWithKey( TUPLE_PARTITION_KEY, 1 ) );
-        input.add( newTupleWithKey( TUPLE_PARTITION_KEY, 2 ) );
-        input.add( newTupleWithKey( TUPLE_PARTITION_KEY, 3 ) );
+        input.add( new Tuple( "count", 1 ) );
+        input.add( new Tuple( "count", 2 ) );
+        input.add( new Tuple( "count", 3 ) );
         final InvocationResult result = operator.process( invocationContext );
         final PortsToTuples output = result.getOutputTuples();
 
@@ -157,8 +156,8 @@ public class TupleCountBasedWindowReducerOperatorTest
         initContext.getConfig().set( INITIAL_VALUE_CONFIG_PARAMETER, new Tuple( "count", 3 ) );
         operator.init( initContext );
 
-        input.add( newTupleWithKey( TUPLE_PARTITION_KEY, 1 ) );
-        input.add( newTupleWithKey( TUPLE_PARTITION_KEY, 2 ) );
+        input.add( new Tuple( "count", 1 ) );
+        input.add( new Tuple( "count", 2 ) );
         final InvocationResult result = operator.process( invocationContext );
         final PortsToTuples output = result.getOutputTuples();
 
@@ -177,9 +176,9 @@ public class TupleCountBasedWindowReducerOperatorTest
         initContext.getConfig().set( INITIAL_VALUE_CONFIG_PARAMETER, new Tuple( "count", 4 ) );
         operator.init( initContext );
 
-        input.add( newTupleWithKey( TUPLE_PARTITION_KEY, 1 ) );
-        input.add( newTupleWithKey( TUPLE_PARTITION_KEY, 2 ) );
-        input.add( newTupleWithKey( TUPLE_PARTITION_KEY, 3 ) );
+        input.add( new Tuple( "count", 1 ) );
+        input.add( new Tuple( "count", 2 ) );
+        input.add( new Tuple( "count", 3 ) );
         final InvocationResult result = operator.process( invocationContext );
         final PortsToTuples output = result.getOutputTuples();
 
@@ -195,13 +194,6 @@ public class TupleCountBasedWindowReducerOperatorTest
     {
         initContext.getConfig().set( REDUCER_CONFIG_PARAMETER, adder );
         initContext.getConfig().set( TUPLE_COUNT_CONFIG_PARAMETER, tupleCount );
-    }
-
-    private Tuple newTupleWithKey ( final Object key, final int count )
-    {
-        final Tuple tuple = new Tuple( "count", count );
-        TupleAccessor.setPartition( tuple, key, 1 );
-        return tuple;
     }
 
     private void assertStrategy ( final SchedulingStrategy strategy )
@@ -227,7 +219,6 @@ public class TupleCountBasedWindowReducerOperatorTest
 
     private void assertOutput ( final Tuple tuple, final Object key, final int window, final int count )
     {
-        assertThat( tuple.getPartitionKey(), equalTo( key ) );
         assertThat( tuple.getInteger( WINDOW_FIELD ), equalTo( window ) );
         assertThat( tuple.getInteger( "count" ), equalTo( count ) );
     }

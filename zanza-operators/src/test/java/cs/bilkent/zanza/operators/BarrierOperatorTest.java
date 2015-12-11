@@ -68,7 +68,7 @@ public class BarrierOperatorTest
     {
         initContext.getConfig().set( BarrierOperator.MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
         operator.init( initContext );
-        operator.process( new SimpleInvocationContext( new PortsToTuples(), InvocationReason.SUCCESS ) );
+        operator.process( new SimpleInvocationContext( InvocationReason.SUCCESS, new PortsToTuples() ) );
     }
 
     @Test( expected = IllegalArgumentException.class )
@@ -76,7 +76,7 @@ public class BarrierOperatorTest
     {
         initContext.getConfig().set( BarrierOperator.MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
         operator.init( initContext );
-        final InvocationResult result = operator.process( new SimpleInvocationContext( new PortsToTuples(), InvocationReason.SHUTDOWN ) );
+        final InvocationResult result = operator.process( new SimpleInvocationContext( InvocationReason.SHUTDOWN, new PortsToTuples() ) );
         assertTrue( result.getSchedulingStrategy() instanceof ScheduleNever );
         assertThat( result.getOutputTuples().getPortCount(), equalTo( 0 ) );
     }
@@ -90,7 +90,7 @@ public class BarrierOperatorTest
         final PortsToTuples input = new PortsToTuples();
         populateTuplesWithUniqueFields( input );
 
-        final InvocationResult result = operator.process( new SimpleInvocationContext( input, InvocationReason.SUCCESS ) );
+        final InvocationResult result = operator.process( new SimpleInvocationContext( InvocationReason.SUCCESS, input ) );
         assertSchedulingStrategy( result.getSchedulingStrategy() );
         final Tuple output = result.getOutputTuples().getTuple( 0, 0 );
         final int matchingFieldCount = (int) IntStream.of( inputPorts )
@@ -119,7 +119,7 @@ public class BarrierOperatorTest
 
         final PortsToTuples input = new PortsToTuples();
         IntStream.of( inputPorts ).forEach( portIndex -> input.add( portIndex, new Tuple( "count", portIndex ) ) );
-        final InvocationResult result = operator.process( new SimpleInvocationContext( input, InvocationReason.SUCCESS ) );
+        final InvocationResult result = operator.process( new SimpleInvocationContext( InvocationReason.SUCCESS, input ) );
 
         final Tuple output = result.getOutputTuples().getTuple( 0, 0 );
         assertThat( output.getInteger( "count" ), equalTo( expectedValue ) );
@@ -134,7 +134,7 @@ public class BarrierOperatorTest
         IntStream.of( inputPorts ).forEach( portIndex -> input.add( portIndex, new Tuple( "count", portIndex ) ) );
         input.add( new Tuple( "count", -1 ) );
 
-        operator.process( new SimpleInvocationContext( input, InvocationReason.SUCCESS ) );
+        operator.process( new SimpleInvocationContext( InvocationReason.SUCCESS, input ) );
     }
 
     @Test
@@ -147,7 +147,7 @@ public class BarrierOperatorTest
         populateTuplesWithUniqueFields( input );
         populateTuplesWithUniqueFields( input );
 
-        final InvocationResult result = operator.process( new SimpleInvocationContext( input, InvocationReason.SUCCESS ) );
+        final InvocationResult result = operator.process( new SimpleInvocationContext( InvocationReason.SUCCESS, input ) );
         assertSchedulingStrategy( result.getSchedulingStrategy() );
 
         result.getOutputTuples().getTuplesByDefaultPort().forEach( output -> {

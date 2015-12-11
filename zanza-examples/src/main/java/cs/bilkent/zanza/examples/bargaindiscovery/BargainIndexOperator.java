@@ -92,7 +92,6 @@ public class BargainIndexOperator implements Operator
             final double bargainIndex = Math.exp( cvwap - askedTickerSymbolPrice ) * askedSize;
 
             final Tuple outputTuple = new Tuple();
-            quote.copyPartitionTo( outputTuple );
             outputTuple.set( BARGAIN_INDEX_FIELD, bargainIndex );
 
             return outputTuple;

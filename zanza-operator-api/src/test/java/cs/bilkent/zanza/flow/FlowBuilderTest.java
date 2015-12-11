@@ -224,16 +224,6 @@ public class FlowBuilderTest
     }
 
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotConnectSingleInputPortMultipleTimes ()
-    {
-        builder.add( "op1", OperatorWithDynamicPortCounts.class );
-        builder.add( "op2", OperatorWithDynamicPortCounts.class );
-        builder.add( "op3", OperatorWithDynamicPortCounts.class );
-        builder.connect( "op1", "op3" );
-        builder.connect( "op2", "op3" );
-    }
-
-    @Test( expected = IllegalArgumentException.class )
     public void shouldNotConnectToItself ()
     {
         builder.add( "op1", OperatorWithDynamicPortCounts.class );
@@ -285,7 +275,7 @@ public class FlowBuilderTest
 
 
     @OperatorSpec( type = OperatorType.STATELESS )
-    private static class OperatorWithDynamicPortCounts implements Operator
+    public static class OperatorWithDynamicPortCounts implements Operator
     {
 
         @Override
@@ -303,7 +293,7 @@ public class FlowBuilderTest
 
 
     @OperatorSpec( type = OperatorType.PARTITIONED_STATEFUL, inputPortCount = SPEC_INPUT_PORT_COUNT, outputPortCount = SPEC_OUTPUT_PORT_COUNT )
-    private static class OperatorWithFixedPortCounts implements Operator
+    public static class OperatorWithFixedPortCounts implements Operator
     {
 
         @Override
@@ -321,7 +311,7 @@ public class FlowBuilderTest
 
 
     @OperatorSpec( type = OperatorType.STATEFUL, inputPortCount = INVALID_PORT_COUNT, outputPortCount = SPEC_OUTPUT_PORT_COUNT )
-    private static class OperatorWithInvalidInputPortCount implements Operator
+    public static class OperatorWithInvalidInputPortCount implements Operator
     {
 
         @Override
@@ -339,7 +329,7 @@ public class FlowBuilderTest
 
 
     @OperatorSpec( type = OperatorType.STATEFUL, inputPortCount = SPEC_INPUT_PORT_COUNT, outputPortCount = INVALID_PORT_COUNT )
-    private static class OperatorWithInvalidOutputPortCount implements Operator
+    public static class OperatorWithInvalidOutputPortCount implements Operator
     {
 
         @Override

@@ -4,13 +4,14 @@ package cs.bilkent.zanza.flow;
 import java.lang.annotation.Annotation;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
 import org.reflections.ReflectionUtils;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -28,7 +29,7 @@ public class FlowBuilder
 
     private final Map<String, OperatorDefinition> operators = new LinkedHashMap<>();
 
-    private final Set<ConnectionDefinition> connections = new LinkedHashSet<>();
+    private final Multimap<Port, Port> connections = HashMultimap.create();
 
     private boolean built;
 
@@ -88,11 +89,10 @@ public class FlowBuilder
         failIfNonExistingOperatorId( targetOperatorId );
         failIfInvalidPort( operators.get( targetOperatorId ).config.getInputPortCount(), targetPort );
         checkArgument( !sourceOperatorId.equals( targetOperatorId ), "operator ids must be different!" );
-        failIfTargetOperatorPortAlreadyUsed( targetOperatorId, targetPort );
 
         final Port source = new Port( sourceOperatorId, sourcePort );
         final Port target = new Port( targetOperatorId, targetPort );
-        connections.add( new ConnectionDefinition( source, target ) );
+        connections.put( source, target );
         return this;
     }
 
@@ -162,15 +162,4 @@ public class FlowBuilder
         checkArgument( portCount >= 0, portType + " port count in config must be non-negative!" );
     }
 
-    private void failIfTargetOperatorPortAlreadyUsed ( final String targetOperatorId, final int targetPort )
-    {
-        for ( ConnectionDefinition con : connections )
-        {
-            if ( con.targetPortMatches( targetOperatorId, targetPort ) )
-            {
-                throw new IllegalArgumentException( "you can not bind multiple inputs to a single input port! operator id: "
-                                                    + targetOperatorId + " port: " + targetPort );
-            }
-        }
-    }
 }

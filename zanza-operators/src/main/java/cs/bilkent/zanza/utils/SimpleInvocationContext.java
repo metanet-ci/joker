@@ -7,9 +7,9 @@ import cs.bilkent.zanza.operator.PortsToTuples;
 public class SimpleInvocationContext implements InvocationContext
 {
 
-    private PortsToTuples tuples;
-
     private InvocationReason reason;
+
+    private PortsToTuples tuples;
 
     private KVStore kvStore;
 
@@ -17,27 +17,27 @@ public class SimpleInvocationContext implements InvocationContext
     {
     }
 
-    public SimpleInvocationContext ( final PortsToTuples tuples, final InvocationReason reason )
+    public SimpleInvocationContext ( final InvocationReason reason, final PortsToTuples tuples )
     {
         this.tuples = tuples;
         this.reason = reason;
     }
 
-    public SimpleInvocationContext ( final PortsToTuples tuples, final InvocationReason reason, final KVStore kvStore )
+    public SimpleInvocationContext ( final InvocationReason reason, final PortsToTuples tuples, final KVStore kvStore )
     {
         this.tuples = tuples;
         this.reason = reason;
         this.kvStore = kvStore;
     }
 
-    public void setTuples ( final PortsToTuples tuples )
-    {
-        this.tuples = tuples;
-    }
-
     public void setReason ( final InvocationReason reason )
     {
         this.reason = reason;
+    }
+
+    public void setTuples ( final PortsToTuples tuples )
+    {
+        this.tuples = tuples;
     }
 
     public void setKvStore ( final KVStore kvStore )

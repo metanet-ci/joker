@@ -34,7 +34,7 @@ public class ExponentialMovingAverageAggregationOperatorTest
 
     private final KVStore kvStore = new InMemoryKVStore();
 
-    private final InvocationContext invocationContext = new SimpleInvocationContext( input, InvocationReason.SUCCESS, kvStore );
+    private final InvocationContext invocationContext = new SimpleInvocationContext( InvocationReason.SUCCESS, input, kvStore );
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithNoTupleCount ()

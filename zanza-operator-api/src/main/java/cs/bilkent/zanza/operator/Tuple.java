@@ -7,7 +7,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 import static java.util.Collections.unmodifiableMap;
 
 /**
@@ -19,10 +18,6 @@ import static java.util.Collections.unmodifiableMap;
 public final class Tuple implements Fields<String>
 {
     private final Map<String, Object> values;
-
-    private Object partitionKey;
-
-    private int partitionHash;
 
     public Tuple ()
     {
@@ -118,72 +113,6 @@ public final class Tuple implements Fields<String>
         return Collections.unmodifiableCollection( values.keySet() );
     }
 
-    /**
-     * Copies partition key and partition hash to the other tuple object.
-     * Can be used only within {@link OperatorType#PARTITIONED_STATEFUL} operators.
-     *
-     * @param that
-     *         tuple object to copy the partition key and partition hash
-     */
-    public void copyPartitionTo ( final Tuple other )
-    {
-        other.setPartition( getPartitionKey(), getPartitionHash() );
-    }
-
-    /**
-     * Returns the partition key assigned to the tuple by the engine
-     *
-     * @return the partition key assigned to the tuple by the engine
-     *
-     * @throws IllegalStateException
-     *         if no partition key is assigned
-     */
-    public Object getPartitionKey ()
-    {
-        checkState( partitionKey != null, "partition key is not set!" );
-        return partitionKey;
-    }
-
-    /**
-     * Returns the partition hash assigned to the tuple by the engine
-     *
-     * @return the partition hash assigned to the tuple by the engine
-     *
-     * @throws IllegalStateException
-     *         if no partition hash is assigned
-     */
-    public int getPartitionHash ()
-    {
-        checkState( partitionKey != null, "partition key is not set!" );
-        return partitionHash;
-    }
-
-    /**
-     * Only for use of the engine. Not exposed to the user.
-     * Assigns partition key and hash for the tuple
-     *
-     * @param partitionKey
-     *         the partition key to be assigned
-     * @param partitionHash
-     *         the partition has to be assigned
-     */
-    void setPartition ( final Object partitionKey, final int partitionHash )
-    {
-        checkState( this.partitionKey == null, "partition key is already assigned!" );
-        this.partitionKey = partitionKey;
-        this.partitionHash = partitionHash;
-    }
-
-    /**
-     * Only for use of the engine. Not exposed to the user.
-     * Clears partition key and partition hash of the tuple
-     */
-    void clearPartition ()
-    {
-        this.partitionKey = null;
-        this.partitionHash = 0;
-    }
-
     @Override
     public boolean equals ( final Object o )
     {
@@ -211,13 +140,6 @@ public final class Tuple implements Fields<String>
     @Override
     public String toString ()
     {
-        if ( partitionKey != null )
-        {
-            return "Tuple[pKey=" + partitionKey + ",pHash=" + partitionHash + "]{" + values + '}';
-        }
-        else
-        {
-            return "Tuple{" + values + '}';
-        }
+        return "Tuple{" + values + '}';
     }
 }

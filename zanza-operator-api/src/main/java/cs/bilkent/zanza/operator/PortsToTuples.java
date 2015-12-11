@@ -61,10 +61,17 @@ public class PortsToTuples
         return Collector.of( supplier, biConsumer, PORTS_TO_TUPLES_COMBINER, finisher );
     }
 
-    private final Int2ObjectHashMap<List<Tuple>> tuplesByPort = new Int2ObjectHashMap<>();
+
+    private final Int2ObjectHashMap<List<Tuple>> tuplesByPort;
 
     public PortsToTuples ()
     {
+        tuplesByPort = new Int2ObjectHashMap<>();
+    }
+
+    PortsToTuples ( Int2ObjectHashMap<List<Tuple>> tuplesByPort )
+    {
+        this.tuplesByPort = tuplesByPort;
     }
 
     /**
@@ -79,6 +86,7 @@ public class PortsToTuples
      */
     public PortsToTuples ( final Tuple tuple, final Tuple... tuples )
     {
+        this();
         checkNotNull( tuple, "tuple can't be null" );
         add( tuple );
         for ( Tuple t : tuples )
@@ -97,6 +105,7 @@ public class PortsToTuples
      */
     public PortsToTuples ( final List<Tuple> tuples )
     {
+        this();
         checkNotNull( tuples, "tuples can't be null" );
         addAll( tuples );
     }

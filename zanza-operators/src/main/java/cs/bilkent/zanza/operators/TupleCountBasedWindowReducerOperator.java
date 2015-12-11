@@ -78,7 +78,6 @@ public class TupleCountBasedWindowReducerOperator implements Operator
             {
                 currentTupleCount = 0;
                 accumulator.set( WINDOW_FIELD, windowCount++ );
-                tuple.copyPartitionTo( accumulator );
 
                 result.add( accumulator );
                 accumulator = initialValue;

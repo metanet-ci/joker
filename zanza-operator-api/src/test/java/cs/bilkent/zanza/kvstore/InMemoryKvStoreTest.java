@@ -570,15 +570,19 @@ public class InMemoryKvStoreTest
         assertThat( kvStore.getMapOrEmpty( "field" ).size(), equalTo( 0 ) );
     }
 
-    @Test(expected = UnsupportedOperationException.class)
-	public void shouldFailToClear()
-	{
+    @Test
+    public void shouldClearKeys ()
+    {
+        kvStore.put( "field", 1 );
         kvStore.clear();
+        assertNull( kvStore.get( "field" ) );
     }
 
-	@Test(expected = UnsupportedOperationException.class)
-	public void shouldFailToGetSize()
-	{
-        kvStore.size();
+    @Test
+    public void shouldFailToGetSize ()
+    {
+        kvStore.put( "field", 1 );
+        assertThat( kvStore.size(), equalTo( 1 ) );
     }
+
 }

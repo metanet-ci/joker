@@ -17,8 +17,6 @@ import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
 import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
-import cs.bilkent.zanza.operator.TupleAccessor;
-import cs.bilkent.zanza.utils.SimpleInitializationContext;
 import cs.bilkent.zanza.utils.SimpleInvocationContext;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -30,13 +28,11 @@ public class BargainIndexOperatorTest
 
     private final BargainIndexOperator operator = new BargainIndexOperator();
 
-    private final SimpleInitializationContext initContext = new SimpleInitializationContext();
-
     private final PortsToTuples input = new PortsToTuples();
 
     private final KVStore kvStore = new KeyPrefixedInMemoryKvStore( TUPLE_PARTITION_KEY, new InMemoryKVStore() );
 
-    private final InvocationContext invocationContext = new SimpleInvocationContext( input, InvocationReason.SUCCESS, kvStore );
+    private final InvocationContext invocationContext = new SimpleInvocationContext( InvocationReason.SUCCESS, input, kvStore );
 
 
     @Test
@@ -101,8 +97,6 @@ public class BargainIndexOperatorTest
         tuple.set( TIMESTAMP_FIELD, timestamp );
         tuple.set( ASKED_TICKER_SYMBOL_PRICE_FIELD, askedPrice );
         tuple.set( ASKED_SIZE_FIELD, askedSize );
-
-        TupleAccessor.setPartition( tuple, TUPLE_PARTITION_KEY, 0 );
 
         return tuple;
     }

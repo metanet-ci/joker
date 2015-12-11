@@ -35,7 +35,7 @@ public class BeaconOperatorTest
         initContext.getConfig().set( BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER, tupleCount );
         operator.init( initContext );
 
-        final InvocationResult result = operator.process( new SimpleInvocationContext( null, InvocationReason.SUCCESS ) );
+        final InvocationResult result = operator.process( new SimpleInvocationContext( InvocationReason.SUCCESS, null ) );
         assertThat( result.getSchedulingStrategy(), equalTo( ScheduleWhenAvailable.INSTANCE ) );
 
         final PortsToTuples output = result.getOutputTuples();

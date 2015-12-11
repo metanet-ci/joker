@@ -58,4 +58,17 @@ public class InMemoryKVStore implements KVStore
         checkNotNull( key, "key can't be null" );
         return values.remove( key ) != null;
     }
+
+    @Override
+    public void clear ()
+    {
+        values.clear();
+    }
+
+    @Override
+    public int size ()
+    {
+        return values.size();
+    }
+
 }

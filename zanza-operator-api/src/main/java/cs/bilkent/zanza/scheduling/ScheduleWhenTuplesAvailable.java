@@ -12,6 +12,7 @@ import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvail
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST_BUT_SAME_ON_ALL_PORTS;
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.AVAILABLE_ON_ALL_PORTS;
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.AVAILABLE_ON_ANY_PORT;
+import static java.util.Collections.unmodifiableMap;
 
 public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
 {
@@ -129,6 +130,8 @@ public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
     {
         checkNotNull( tupleAvailabilityByCount );
         checkNotNull( tupleAvailabilityByPort );
+        checkArgument( tupleCountByPortIndex.size() == 1 || !( tupleAvailabilityByCount == AT_LEAST_BUT_SAME_ON_ALL_PORTS
+                                                               && tupleAvailabilityByPort == AVAILABLE_ON_ANY_PORT ) );
         this.tupleAvailabilityByCount = tupleAvailabilityByCount;
         this.tupleAvailabilityByPort = tupleAvailabilityByPort;
         this.tupleCountByPortIndex.putAll( tupleCountByPortIndex );
@@ -176,7 +179,7 @@ public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
 
     public Map<Integer, Integer> getTupleCountByPortIndex ()
     {
-        return tupleCountByPortIndex;
+        return unmodifiableMap( tupleCountByPortIndex );
     }
 
     public TupleAvailabilityByPort getTupleAvailabilityByPort ()

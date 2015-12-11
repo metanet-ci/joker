@@ -16,9 +16,9 @@ import cs.bilkent.zanza.kvstore.KeyPrefixedInMemoryKvStore;
 import cs.bilkent.zanza.operator.InvocationContext;
 import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
 import cs.bilkent.zanza.operator.InvocationResult;
+import cs.bilkent.zanza.operator.PartitionKeyExtractors;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
-import cs.bilkent.zanza.operator.TupleAccessor;
 import cs.bilkent.zanza.utils.SimpleInitializationContext;
 import cs.bilkent.zanza.utils.SimpleInvocationContext;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -38,7 +38,7 @@ public class VWAPAggregatorOperatorTest
 
     private final KVStore kvStore = new KeyPrefixedInMemoryKvStore( TUPLE_PARTITION_KEY, new InMemoryKVStore() );
 
-    private final InvocationContext invocationContext = new SimpleInvocationContext( input, InvocationReason.SUCCESS, kvStore );
+    private final InvocationContext invocationContext = new SimpleInvocationContext( InvocationReason.SUCCESS, input, kvStore );
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailToInitWithNoWindowSize ()
@@ -51,8 +51,8 @@ public class VWAPAggregatorOperatorTest
     {
         configure();
 
-        addInputTuple( 5, 20 );
-        addInputTuple( 10, 25 );
+        addInputTuple( 5, 20, 1 );
+        addInputTuple( 10, 25, 2 );
 
         final InvocationResult result = operator.process( invocationContext );
 
@@ -65,9 +65,9 @@ public class VWAPAggregatorOperatorTest
     {
         configure();
 
-        addInputTuple( 5, 20 );
-        addInputTuple( 10, 25 );
-        addInputTuple( 30, 60 );
+        addInputTuple( 5, 20, 1 );
+        addInputTuple( 10, 25, 2 );
+        addInputTuple( 30, 60, 3 );
 
         final InvocationResult result = operator.process( invocationContext );
 
@@ -83,10 +83,10 @@ public class VWAPAggregatorOperatorTest
     {
         configure();
 
-        addInputTuple( 5, 20 );
-        addInputTuple( 10, 25 );
-        addInputTuple( 30, 60 );
-        addInputTuple( 40, 50 );
+        addInputTuple( 5, 20, 1 );
+        addInputTuple( 10, 25, 2 );
+        addInputTuple( 30, 60, 3 );
+        addInputTuple( 40, 50, 4 );
 
         final InvocationResult result = operator.process( invocationContext );
 
@@ -102,11 +102,11 @@ public class VWAPAggregatorOperatorTest
     {
         configure();
 
-        addInputTuple( 5, 20 );
-        addInputTuple( 10, 25 );
-        addInputTuple( 30, 60 );
-        addInputTuple( 40, 50 );
-        addInputTuple( 50, 40 );
+        addInputTuple( 5, 20, 1 );
+        addInputTuple( 10, 25, 2 );
+        addInputTuple( 30, 60, 3 );
+        addInputTuple( 40, 50, 4 );
+        addInputTuple( 50, 40, 5 );
 
         final InvocationResult result = operator.process( invocationContext );
 
@@ -125,18 +125,18 @@ public class VWAPAggregatorOperatorTest
 
         initContext.getConfig().set( VWAPAggregatorOperator.WINDOW_SIZE_CONfIG_PARAMETER, windowSize );
         initContext.getConfig().set( VWAPAggregatorOperator.SLIDE_FACTOR_CONfIG_PARAMETER, slideFactor );
+        initContext.getConfig().setPartitionKeyExtractor( PartitionKeyExtractors.fieldAsPartitionKey( TICKER_SYMBOL_FIELD ) );
 
         operator.init( initContext );
     }
 
-    private void addInputTuple ( final double vwap, final double volume )
+    private void addInputTuple ( final double vwap, final double volume, final long timestamp )
     {
         final Tuple tuple = new Tuple();
         tuple.set( VWAPAggregatorOperator.TUPLE_INPUT_VWAP_FIELD, vwap );
         tuple.set( VWAPAggregatorOperator.TUPLE_VOLUME_FIELD, volume );
         tuple.set( TICKER_SYMBOL_FIELD, TUPLE_PARTITION_KEY );
-
-        TupleAccessor.setPartition( tuple, TUPLE_PARTITION_KEY, 0 );
+        tuple.set( VWAPAggregatorOperator.TIMESTAMP_FIELD, timestamp );
 
         input.add( tuple );
     }
@@ -144,7 +144,6 @@ public class VWAPAggregatorOperatorTest
     private void assertTuple ( final Tuple tuple, final double vwap, final double volume )
     {
         assertThat( tuple.get( TICKER_SYMBOL_FIELD ), equalTo( TUPLE_PARTITION_KEY ) );
-        assertThat( tuple.getPartitionKey(), equalTo( TUPLE_PARTITION_KEY ) );
         assertThat( tuple.getDouble( VWAPAggregatorOperator.SINGLE_VWAP_FIELD ), equalTo( vwap ) );
         assertThat( tuple.getDouble( VWAPAggregatorOperator.SINGLE_VOLUME_FIELD ), equalTo( volume ) );
     }

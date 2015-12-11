@@ -95,7 +95,6 @@ public class VWAPAggregatorOperator implements Operator
                                                              tuple.getLong( TIMESTAMP_FIELD ),
                                                              vwapSum,
                                                              volumeSum );
-                tuple.copyPartitionTo( outputTuple );
                 output.add( outputTuple );
             }
         }

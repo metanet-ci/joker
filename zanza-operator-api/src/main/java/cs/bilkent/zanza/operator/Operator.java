@@ -59,8 +59,8 @@ public interface Operator
      * method can cause inconsistent behavior in the system. Additionally, the {@link Tuple} objects contained within the
      * {@link PortsToTuples} should not be modified.
      * <p>
-     * {@link PortsToTuples} object in the {@link InvocationContext} or the tuples it contains can be returned within the
-     * {@link InvocationResult} object as output.
+     * {@link PortsToTuples} object in the {@link InvocationContext} or the {@link Tuple} objects it contains can be returned
+     * within the {@link InvocationResult} object as output.
      * <p>
      * Invocation can be done due to the {@link SchedulingStrategy} of the operator or a system event that requires immediate
      * processing of the remaining tuples. Status of the invocation can be queried via {@link InvocationReason#isSuccessful()}.
@@ -73,8 +73,7 @@ public interface Operator
      * (i.e. {@link InvocationReason#isSuccessful()}), the next invocation is not guaranteed.
      * <p>
      * If type of the operator is {@link OperatorType#PARTITIONED_STATEFUL}, then all invocations are guaranteed to be done with
-     * tuples which have the same partition key. Partition keys of the tuples can be queried via {@link Tuple#getPartitionKey()}
-     * method. Additionally, partition keys of the produced tuples can be set using {@link Tuple#copyPartitionTo(Tuple)} method.
+     * {@link Tuple} objects that have the same partition key.
      * <p>
      * If type of the operator is {@link OperatorType#PARTITIONED_STATEFUL} or {@link OperatorType#STATEFUL}, a {@link KVStore}
      * implementation is provided with the {@link InvocationContext#getKVStore()} method. Additionally, the Engine isolates
