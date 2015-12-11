@@ -20,7 +20,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
-        <agrona.version>0.4.4</agrona.version>
+        <agrona.version>0.4.8</agrona.version>
         <guava.version>18.0</guava.version>
         <reflections.version>0.9.10</reflections.version>
         <slf4j.api.version>1.7.12</slf4j.api.version>
