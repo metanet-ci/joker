@@ -1,9 +1,9 @@
 package cs.bilkent.zanza.engine.util;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import cs.bilkent.zanza.operator.OperatorType;
-import static cs.bilkent.zanza.operator.OperatorType.PARTITIONED_STATEFUL;
 import cs.bilkent.zanza.operator.PartitionKeyExtractor;
+import cs.bilkent.zanza.operator.spec.OperatorType;
+import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 
 public final class Preconditions
 {

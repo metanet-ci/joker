@@ -22,7 +22,6 @@
         <java.version>1.8</java.version>
         <agrona.version>0.4.8</agrona.version>
         <guava.version>18.0</guava.version>
-        <reflections.version>0.9.10</reflections.version>
         <slf4j.api.version>1.7.12</slf4j.api.version>
         <log4j.version>2.4.1</log4j.version>
         <junit.version>4.12</junit.version>
@@ -43,12 +42,6 @@
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>${guava.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.reflections</groupId>
-            <artifactId>reflections</artifactId>
-            <version>${reflections.version}</version>
         </dependency>
 
         <!-- DI dependencies -->

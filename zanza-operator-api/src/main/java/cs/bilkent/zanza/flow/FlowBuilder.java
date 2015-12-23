@@ -2,12 +2,11 @@ package cs.bilkent.zanza.flow;
 
 
 import java.lang.annotation.Annotation;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.function.Function;
 
-import org.reflections.ReflectionUtils;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashMultimap;
@@ -19,7 +18,11 @@ import static com.google.common.base.Preconditions.checkState;
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
-import cs.bilkent.zanza.operator.OperatorSpec;
+import cs.bilkent.zanza.operator.schema.annotation.OperatorSchema;
+import cs.bilkent.zanza.operator.schema.runtime.OperatorRuntimeSchema;
+import cs.bilkent.zanza.operator.schema.runtime.PortRuntimeSchema;
+import cs.bilkent.zanza.operator.schema.runtime.RuntimeSchemaField;
+import cs.bilkent.zanza.operator.spec.OperatorSpec;
 
 
 public class FlowBuilder
@@ -59,6 +62,7 @@ public class FlowBuilder
         }
 
         setPortCounts( config, spec );
+        setOperatorRuntimeSchema( clazz, config );
 
         operators.put( operatorId, new OperatorDefinition( operatorId, clazz, spec.type(), config ) );
         return this;
@@ -102,17 +106,52 @@ public class FlowBuilder
         return operators.get( operatorId );
     }
 
-    private OperatorSpec getOperatorSpecOrFail ( Class<? extends Operator> clazz )
+    private void setOperatorRuntimeSchema ( Class<? extends Operator> clazz, final OperatorConfig config )
     {
-        final Set<Annotation> annotations = ReflectionUtils.getAllAnnotations( clazz, OPERATOR_SPEC_ANNOTATION_PREDICATE );
-        Iterator<Annotation> it = annotations.iterator();
-        if ( it.hasNext() )
+        final OperatorSchema schema = getOperatorSchema( clazz );
+        final OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( config.getInputPortCount(),
+                                                                                             config.getOutputPortCount(),
+                                                                                             schema );
+
+        final OperatorRuntimeSchema configSchema = config.getOperatorRuntimeSchema();
+        if ( configSchema != null )
         {
-            return (OperatorSpec) it.next();
+            addToSchema( configSchema.getInputSchemas(), schemaBuilder::getInputPortSchemaBuilder );
+            addToSchema( configSchema.getOutputSchemas(), schemaBuilder::getOutputPortSchemaBuilder );
         }
 
-        throw new IllegalArgumentException( clazz + " Operator class must have " + OperatorSpec.class.getSimpleName() + " annotation!" );
+        config.setOperatorRuntimeSchema( schemaBuilder.build() );
     }
+
+    private void addToSchema ( final List<PortRuntimeSchema> portSchemas,
+                               final Function<Integer, PortRuntimeSchemaBuilder> portSchemaBuilderProvider )
+    {
+        for ( PortRuntimeSchema portSchema : portSchemas )
+        {
+            final PortRuntimeSchemaBuilder portSchemaBuilder = portSchemaBuilderProvider.apply( portSchema.getPortIndex() );
+            for ( RuntimeSchemaField schemaField : portSchema.getFields() )
+            {
+                portSchemaBuilder.addField( schemaField.name, schemaField.type );
+            }
+        }
+    }
+
+    private OperatorSpec getOperatorSpecOrFail ( Class<? extends Operator> clazz )
+    {
+        final OperatorSpec[] annotations = clazz.getDeclaredAnnotationsByType( OperatorSpec.class );
+        checkArgument                                                                                             ( annotations.length == 1,
+                       clazz + " Operator class must have " + OperatorSpec.class.getSimpleName() + " annotation!" );
+        return annotations[ 0 ];
+    }
+
+    private OperatorSchema getOperatorSchema ( Class<? extends Operator> clazz )
+    {
+        final OperatorSchema[] annotations = clazz.getDeclaredAnnotationsByType( OperatorSchema.class );
+        checkArgument                                                                                                        ( annotations.length <= 1,
+                       clazz + " Operator class can have at most 1 " + OperatorSchema.class.getSimpleName() + " annotation!" );
+        return annotations.length > 0 ? annotations[ 0 ] : null;
+    }
+
 
     private void setPortCounts ( final OperatorConfig config, final OperatorSpec spec )
     {

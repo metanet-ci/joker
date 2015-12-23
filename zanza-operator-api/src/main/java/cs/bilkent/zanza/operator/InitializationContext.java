@@ -17,6 +17,7 @@ public interface InitializationContext
 
     /**
      * Configuration of the operator instance given during building the {@link FlowDefinition}
+     *
      * @return configuration of the operator instance given during building the {@link FlowDefinition}
      */
     OperatorConfig getConfig();

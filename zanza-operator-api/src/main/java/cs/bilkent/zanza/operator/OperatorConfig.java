@@ -6,7 +6,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import cs.bilkent.zanza.flow.Port;
+import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_COUNT;
+import cs.bilkent.zanza.operator.schema.runtime.OperatorRuntimeSchema;
+import cs.bilkent.zanza.operator.spec.OperatorSpec;
+import cs.bilkent.zanza.operator.spec.OperatorType;
 
 /**
  * Contains all the configuration information that can be used by an operator. Users can provide operator specific
@@ -19,11 +22,13 @@ public class OperatorConfig implements Fields<String>
 {
     private final Map<String, Object> values = new HashMap<>();
 
-    private int inputPortCount = Port.DEFAULT_PORT_COUNT;
+    private int inputPortCount = DEFAULT_PORT_COUNT;
 
-    private int outputPortCount = Port.DEFAULT_PORT_COUNT;
+    private int outputPortCount = DEFAULT_PORT_COUNT;
 
     private PartitionKeyExtractor partitionKeyExtractor;
+
+    private OperatorRuntimeSchema operatorRuntimeSchema;
 
     public OperatorConfig ()
     {
@@ -95,6 +100,24 @@ public class OperatorConfig implements Fields<String>
         return this.values.remove( key ) != null;
     }
 
+    @Override
+    public void clear ()
+    {
+        this.values.clear();
+    }
+
+    @Override
+    public int size ()
+    {
+        return this.values.size();
+    }
+
+    @Override
+    public Collection<String> keys ()
+    {
+        return Collections.unmodifiableSet( this.values.keySet() );
+    }
+
     public int getInputPortCount ()
     {
         return inputPortCount;
@@ -115,21 +138,15 @@ public class OperatorConfig implements Fields<String>
         this.outputPortCount = outputPortCount;
     }
 
-    @Override
-    public void clear ()
+    public OperatorRuntimeSchema getOperatorRuntimeSchema ()
     {
-        this.values.clear();
+        return operatorRuntimeSchema;
     }
 
-    @Override
-    public int size ()
+    public void setOperatorRuntimeSchema ( final OperatorRuntimeSchema operatorRuntimeSchema )
     {
-        return this.values.size();
+        checkNotNull( operatorRuntimeSchema, "operator runtime schema can't be null" );
+        this.operatorRuntimeSchema = operatorRuntimeSchema;
     }
 
-    @Override
-    public Collection<String> keys ()
-    {
-        return Collections.unmodifiableSet( this.values.keySet() );
-    }
 }

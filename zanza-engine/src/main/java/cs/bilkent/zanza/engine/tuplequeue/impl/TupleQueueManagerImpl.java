@@ -19,9 +19,9 @@ import cs.bilkent.zanza.engine.tuplequeue.impl.context.PartitionedTupleQueueCont
 import cs.bilkent.zanza.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import static cs.bilkent.zanza.engine.util.Preconditions.checkOperatorTypeAndPartitionKeyExtractor;
-import cs.bilkent.zanza.operator.OperatorType;
-import static cs.bilkent.zanza.operator.OperatorType.PARTITIONED_STATEFUL;
 import cs.bilkent.zanza.operator.PartitionKeyExtractor;
+import cs.bilkent.zanza.operator.spec.OperatorType;
+import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 
 class TupleQueueManagerImpl implements TupleQueueManager
 {

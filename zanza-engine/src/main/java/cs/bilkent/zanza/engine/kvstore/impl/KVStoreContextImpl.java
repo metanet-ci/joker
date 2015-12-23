@@ -7,7 +7,7 @@ import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.zanza.engine.kvstore.KVStoreContext;
 import cs.bilkent.zanza.kvstore.KVStore;
 import cs.bilkent.zanza.kvstore.KeyPrefixedInMemoryKvStore;
-import cs.bilkent.zanza.operator.OperatorType;
+import cs.bilkent.zanza.operator.spec.OperatorType;
 
 public class KVStoreContextImpl implements KVStoreContext
 {

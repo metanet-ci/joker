@@ -4,10 +4,10 @@ import org.junit.Test;
 
 import cs.bilkent.zanza.engine.kvstore.KVStoreContext;
 import cs.bilkent.zanza.kvstore.KVStore;
-import static cs.bilkent.zanza.operator.OperatorType.PARTITIONED_STATEFUL;
-import static cs.bilkent.zanza.operator.OperatorType.STATEFUL;
-import static cs.bilkent.zanza.operator.OperatorType.STATELESS;
 import cs.bilkent.zanza.operator.PartitionKeyExtractor;
+import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
+import static cs.bilkent.zanza.operator.spec.OperatorType.STATEFUL;
+import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;

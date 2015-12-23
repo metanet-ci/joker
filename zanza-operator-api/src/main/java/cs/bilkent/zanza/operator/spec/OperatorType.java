@@ -1,6 +1,9 @@
-package cs.bilkent.zanza.operator;
+package cs.bilkent.zanza.operator.spec;
 
 import cs.bilkent.zanza.kvstore.KVStore;
+import cs.bilkent.zanza.operator.InvocationContext;
+import cs.bilkent.zanza.operator.Operator;
+import cs.bilkent.zanza.operator.PartitionKeyExtractor;
 
 /**
  * Defines type of an {@link Operator} within {@link OperatorSpec}

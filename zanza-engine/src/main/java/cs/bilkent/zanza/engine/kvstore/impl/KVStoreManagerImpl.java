@@ -12,10 +12,10 @@ import cs.bilkent.zanza.engine.kvstore.KVStoreManager;
 import static cs.bilkent.zanza.engine.util.Preconditions.checkOperatorTypeAndPartitionKeyExtractor;
 import cs.bilkent.zanza.kvstore.InMemoryKVStore;
 import cs.bilkent.zanza.kvstore.KVStore;
-import cs.bilkent.zanza.operator.OperatorType;
-import static cs.bilkent.zanza.operator.OperatorType.PARTITIONED_STATEFUL;
-import static cs.bilkent.zanza.operator.OperatorType.STATELESS;
 import cs.bilkent.zanza.operator.PartitionKeyExtractor;
+import cs.bilkent.zanza.operator.spec.OperatorType;
+import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
+import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
 
 public class KVStoreManagerImpl implements KVStoreManager
 {

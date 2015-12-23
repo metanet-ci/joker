@@ -1,4 +1,4 @@
-package cs.bilkent.zanza.operator;
+package cs.bilkent.zanza.operator.spec;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -7,6 +7,7 @@ import java.lang.annotation.Target;
 
 import cs.bilkent.zanza.flow.FlowDefinition;
 import static cs.bilkent.zanza.flow.Port.DYNAMIC_PORT_COUNT;
+import cs.bilkent.zanza.operator.Operator;
 
 /**
  * Defines specifications of the {@link Operator} that will be used by the Engine to create,
@@ -22,6 +23,7 @@ import static cs.bilkent.zanza.flow.Port.DYNAMIC_PORT_COUNT;
 @Target( ElementType.TYPE )
 public @interface OperatorSpec
 {
+
     /**
      * Returns type of the operator that defines its state-related characteristics
      *
@@ -48,4 +50,5 @@ public @interface OperatorSpec
      * @see FlowDefinition
      */
     int outputPortCount () default DYNAMIC_PORT_COUNT;
+
 }

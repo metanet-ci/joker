@@ -1,7 +1,7 @@
 package cs.bilkent.zanza.engine.kvstore;
 
-import cs.bilkent.zanza.operator.OperatorType;
 import cs.bilkent.zanza.operator.PartitionKeyExtractor;
+import cs.bilkent.zanza.operator.spec.OperatorType;
 
 public interface KVStoreManager
 {

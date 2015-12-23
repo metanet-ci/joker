@@ -4,7 +4,7 @@ package cs.bilkent.zanza.flow;
 import static com.google.common.base.Preconditions.checkNotNull;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
-import cs.bilkent.zanza.operator.OperatorType;
+import cs.bilkent.zanza.operator.spec.OperatorType;
 
 
 public class OperatorDefinition
