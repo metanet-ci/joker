@@ -38,13 +38,13 @@ public class BargainDiscoveryFlowTest
         final OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
         schemaBuilder.getInputPortSchemaBuilder( 0 )
                      .addField( TICKER_SYMBOL_FIELD, String.class )
-                     .addField( SINGLE_VOLUME_FIELD, double.class )
-                     .addField( SINGLE_VWAP_FIELD, double.class )
-                     .addField( TIMESTAMP_FIELD, long.class );
+                     .addField( SINGLE_VOLUME_FIELD, Double.class )
+                     .addField( SINGLE_VWAP_FIELD, Double.class )
+                     .addField( TIMESTAMP_FIELD, Long.class );
         schemaBuilder.getOutputPortSchemaBuilder( 0 )
                      .addField( TICKER_SYMBOL_FIELD, String.class )
-                     .addField( CVWAP_FIELD, double.class )
-                     .addField( TIMESTAMP_FIELD, long.class );
+                     .addField( CVWAP_FIELD, Double.class )
+                     .addField( TIMESTAMP_FIELD, Long.class );
 
         flowBuilder.add( OperatorDefinitionBuilder.newInstance( "cvwap", MapperOperator.class )
                                                   .setConfig( cvwapConfig )

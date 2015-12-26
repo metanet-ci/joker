@@ -21,14 +21,14 @@ import cs.bilkent.zanza.scheduling.SchedulingStrategy;
 @OperatorSpec( type = OperatorType.PARTITIONED_STATEFUL, inputPortCount = 1, outputPortCount = 1 )
 @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = BASE_FIELD_SET,
         fields = { @SchemaField( name = VWAPAggregatorOperator.TICKER_SYMBOL_FIELD, type = String.class ),
-                   @SchemaField( name = VWAPAggregatorOperator.TUPLE_INPUT_VWAP_FIELD, type = double.class ),
-                   @SchemaField( name = VWAPAggregatorOperator.TUPLE_VOLUME_FIELD, type = double.class ),
-                   @SchemaField( name = VWAPAggregatorOperator.TIMESTAMP_FIELD, type = long.class ) } ) },
+                   @SchemaField( name = VWAPAggregatorOperator.TUPLE_INPUT_VWAP_FIELD, type = Double.class ),
+                   @SchemaField( name = VWAPAggregatorOperator.TUPLE_VOLUME_FIELD, type = Double.class ),
+                   @SchemaField( name = VWAPAggregatorOperator.TIMESTAMP_FIELD, type = Long.class ) } ) },
         outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET,
                 fields = { @SchemaField( name = VWAPAggregatorOperator.TICKER_SYMBOL_FIELD, type = String.class ),
-                           @SchemaField( name = VWAPAggregatorOperator.SINGLE_VOLUME_FIELD, type = double.class ),
-                           @SchemaField( name = VWAPAggregatorOperator.SINGLE_VWAP_FIELD, type = double.class ),
-                           @SchemaField( name = VWAPAggregatorOperator.TIMESTAMP_FIELD, type = long.class ) } ) } )
+                           @SchemaField( name = VWAPAggregatorOperator.SINGLE_VOLUME_FIELD, type = Double.class ),
+                           @SchemaField( name = VWAPAggregatorOperator.SINGLE_VWAP_FIELD, type = Double.class ),
+                           @SchemaField( name = VWAPAggregatorOperator.TIMESTAMP_FIELD, type = Long.class ) } ) } )
 public class VWAPAggregatorOperator implements Operator
 {
 

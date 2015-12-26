@@ -17,6 +17,11 @@ public class RuntimeSchemaField
         this.type = type;
     }
 
+    public boolean isCompatibleWith ( final RuntimeSchemaField other )
+    {
+        return name.equals( other.name ) && this.type.isAssignableFrom( other.type );
+    }
+
     @Override
     public boolean equals ( final Object o )
     {

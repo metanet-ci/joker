@@ -28,4 +28,27 @@ public class PortRuntimeSchema
         return fields;
     }
 
+    public boolean isCompatibleWith ( final PortRuntimeSchema other )
+    {
+        for ( RuntimeSchemaField otherField : other.getFields() )
+        {
+            boolean match = false;
+            for ( RuntimeSchemaField thisField : this.fields )
+            {
+                if ( otherField.isCompatibleWith( thisField ) )
+                {
+                    match = true;
+                    break;
+                }
+            }
+
+            if ( !match )
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
 }

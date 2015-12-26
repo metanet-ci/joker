@@ -13,6 +13,7 @@ import com.google.common.collect.Multimap;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
+import cs.bilkent.zanza.operator.schema.runtime.OperatorRuntimeSchema;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
 
 
@@ -73,6 +74,11 @@ public class FlowBuilder
         failIfNonExistingOperatorId( targetOperatorId );
         failIfInvalidPort( operators.get( targetOperatorId ).inputPortCount, targetPort );
         checkArgument( !sourceOperatorId.equals( targetOperatorId ), "operator ids must be different!" );
+
+        final OperatorRuntimeSchema sourceOperatorSchema = operators.get( sourceOperatorId ).schema;
+        final OperatorRuntimeSchema targetOperatorSchema = operators.get( targetOperatorId ).schema;
+        checkState( sourceOperatorSchema.getOutputSchema( sourcePort )
+                                        .isCompatibleWith( targetOperatorSchema.getInputSchema( targetPort ) ) );
 
         final Port source = new Port( sourceOperatorId, sourcePort );
         final Port target = new Port( targetOperatorId, targetPort );

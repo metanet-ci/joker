@@ -194,6 +194,51 @@ public class FlowBuilderTest
         assertThat( op3Connections.iterator().next(), equalTo( new Port( "op4", 1 ) ) );
     }
 
+    @Test( expected = IllegalStateException.class )
+    public void shouldNotConnectPortsWithMismatchingSchemas ()
+    {
+        final OperatorRuntimeSchemaBuilder targetSchemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
+        targetSchemaBuilder.getInputPortSchemaBuilder( 0 ).addField( "field1", Integer.class );
+
+        builder.add( OperatorDefinitionBuilder.newInstance( "op1", OperatorWithFixedPortCounts.class ) );
+        builder.add( OperatorDefinitionBuilder.newInstance( "op2", OperatorWithFixedPortCounts.class )
+                                              .setExtendingSchema( targetSchemaBuilder.build() ) );
+
+        builder.connect( "op1", "op2" );
+    }
+
+    @Test
+    public void shouldConnectCompatibleSourceSchemaToTargetSchema ()
+    {
+        final OperatorRuntimeSchemaBuilder sourceSchemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
+        final OperatorRuntimeSchemaBuilder targetSchemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
+        sourceSchemaBuilder.getOutputPortSchemaBuilder( 0 ).addField( "field1", Integer.class );
+        targetSchemaBuilder.getInputPortSchemaBuilder( 0 ).addField( "field1", Number.class );
+
+        builder.add( OperatorDefinitionBuilder.newInstance( "op1", OperatorWithFixedPortCounts.class )
+                                              .setExtendingSchema( sourceSchemaBuilder.build() ) );
+        builder.add( OperatorDefinitionBuilder.newInstance( "op2", OperatorWithFixedPortCounts.class )
+                                              .setExtendingSchema( targetSchemaBuilder.build() ) );
+
+        builder.connect( "op1", "op2" );
+    }
+
+    @Test( expected = IllegalStateException.class )
+    public void shouldNotConnectIncompatibleSourceSchemaToTargetSchema ()
+    {
+        final OperatorRuntimeSchemaBuilder sourceSchemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
+        final OperatorRuntimeSchemaBuilder targetSchemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
+        sourceSchemaBuilder.getOutputPortSchemaBuilder( 0 ).addField( "field1", Number.class );
+        targetSchemaBuilder.getInputPortSchemaBuilder( 0 ).addField( "field1", Integer.class );
+
+        builder.add( OperatorDefinitionBuilder.newInstance( "op1", OperatorWithFixedPortCounts.class )
+                                              .setExtendingSchema( sourceSchemaBuilder.build() ) );
+        builder.add( OperatorDefinitionBuilder.newInstance( "op2", OperatorWithFixedPortCounts.class )
+                                              .setExtendingSchema( targetSchemaBuilder.build() ) );
+
+        builder.connect( "op1", "op2" );
+    }
+
 
     public static class OperatorWithNoSpec implements Operator
     {
