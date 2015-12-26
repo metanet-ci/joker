@@ -17,9 +17,17 @@ public class RuntimeSchemaField
         this.type = type;
     }
 
+    /**
+     * Checks if this field has same name with other field and its type is a sub-class of other field or not
+     *
+     * @param other
+     *         field to check
+     *
+     * @return true if this field has same name with other field and its type is a sub-class of other field
+     */
     public boolean isCompatibleWith ( final RuntimeSchemaField other )
     {
-        return name.equals( other.name ) && this.type.isAssignableFrom( other.type );
+        return name.equals( other.name ) && other.type.isAssignableFrom( this.type );
     }
 
     @Override

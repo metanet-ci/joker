@@ -28,6 +28,14 @@ public class PortRuntimeSchema
         return fields;
     }
 
+    /**
+     * Checks if all of the fields in the other schema has a corresponding compatible field in this schema or not
+     *
+     * @param other
+     *         schema to check
+     *
+     * @return true if all of the fields in the other schema has a corresponding compatible field in this schema
+     */
     public boolean isCompatibleWith ( final PortRuntimeSchema other )
     {
         for ( RuntimeSchemaField otherField : other.getFields() )
@@ -35,7 +43,7 @@ public class PortRuntimeSchema
             boolean match = false;
             for ( RuntimeSchemaField thisField : this.fields )
             {
-                if ( otherField.isCompatibleWith( thisField ) )
+                if ( thisField.isCompatibleWith( otherField ) )
                 {
                     match = true;
                     break;
