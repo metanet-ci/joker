@@ -7,8 +7,6 @@ public class Port
 {
     public static final int DYNAMIC_PORT_COUNT = -1;
 
-    public static final int DEFAULT_PORT_COUNT = 1;
-
     public static final int DEFAULT_PORT_INDEX = 0;
 
     public final String operatorId;

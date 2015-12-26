@@ -6,8 +6,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_COUNT;
-import cs.bilkent.zanza.operator.schema.runtime.OperatorRuntimeSchema;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
 import cs.bilkent.zanza.operator.spec.OperatorType;
 
@@ -22,14 +20,6 @@ public class OperatorConfig implements Fields<String>
 {
     private final Map<String, Object> values = new HashMap<>();
 
-    private int inputPortCount = DEFAULT_PORT_COUNT;
-
-    private int outputPortCount = DEFAULT_PORT_COUNT;
-
-    private PartitionKeyExtractor partitionKeyExtractor;
-
-    private OperatorRuntimeSchema operatorRuntimeSchema;
-
     public OperatorConfig ()
     {
     }
@@ -37,16 +27,6 @@ public class OperatorConfig implements Fields<String>
     public OperatorConfig ( final Map<String, Object> values )
     {
         this.values.putAll( values );
-    }
-
-    public PartitionKeyExtractor getPartitionKeyExtractor ()
-    {
-        return partitionKeyExtractor;
-    }
-
-    public void setPartitionKeyExtractor ( final PartitionKeyExtractor partitionKeyExtractor )
-    {
-        this.partitionKeyExtractor = partitionKeyExtractor;
     }
 
     public Map<String, Object> getValues ()
@@ -116,37 +96,6 @@ public class OperatorConfig implements Fields<String>
     public Collection<String> keys ()
     {
         return Collections.unmodifiableSet( this.values.keySet() );
-    }
-
-    public int getInputPortCount ()
-    {
-        return inputPortCount;
-    }
-
-    public void setInputPortCount ( final int inputPortCount )
-    {
-        this.inputPortCount = inputPortCount;
-    }
-
-    public int getOutputPortCount ()
-    {
-        return outputPortCount;
-    }
-
-    public void setOutputPortCount ( final int outputPortCount )
-    {
-        this.outputPortCount = outputPortCount;
-    }
-
-    public OperatorRuntimeSchema getOperatorRuntimeSchema ()
-    {
-        return operatorRuntimeSchema;
-    }
-
-    public void setOperatorRuntimeSchema ( final OperatorRuntimeSchema operatorRuntimeSchema )
-    {
-        checkNotNull( operatorRuntimeSchema, "operator runtime schema can't be null" );
-        this.operatorRuntimeSchema = operatorRuntimeSchema;
     }
 
 }

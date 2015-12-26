@@ -1,8 +1,9 @@
 package cs.bilkent.zanza.operator.schema.runtime;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+
+import static java.util.Collections.unmodifiableList;
 
 public class PortRuntimeSchema
 {
@@ -14,7 +15,7 @@ public class PortRuntimeSchema
     public PortRuntimeSchema ( final int portIndex, final List<RuntimeSchemaField> fields )
     {
         this.portIndex = portIndex;
-        this.fields = Collections.unmodifiableList( new ArrayList<>( fields ) );
+        this.fields = unmodifiableList( new ArrayList<>( fields ) );
     }
 
     public int getPortIndex ()

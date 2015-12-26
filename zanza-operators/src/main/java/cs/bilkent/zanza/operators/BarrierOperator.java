@@ -91,7 +91,7 @@ public class BarrierOperator implements Operator
 
         final TupleValueMergePolicy mergePolicy = config.getOrFail( MERGE_POLICY_CONfIG_PARAMETER );
         this.tupleMergeFunc = new TupleMerger( mergePolicy );
-        this.inputPorts = IntStream.range( 0, config.getInputPortCount() ).toArray();
+        this.inputPorts = IntStream.range( 0, context.getInputPortCount() ).toArray();
 
         return getSchedulingStrategyForInputPorts();
     }

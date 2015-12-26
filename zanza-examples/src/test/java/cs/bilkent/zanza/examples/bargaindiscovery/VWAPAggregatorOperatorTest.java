@@ -125,7 +125,7 @@ public class VWAPAggregatorOperatorTest
 
         initContext.getConfig().set( VWAPAggregatorOperator.WINDOW_SIZE_CONfIG_PARAMETER, windowSize );
         initContext.getConfig().set( VWAPAggregatorOperator.SLIDE_FACTOR_CONfIG_PARAMETER, slideFactor );
-        initContext.getConfig().setPartitionKeyExtractor( PartitionKeyExtractors.fieldAsPartitionKey( TICKER_SYMBOL_FIELD ) );
+        initContext.setPartitionKeyExtractor( PartitionKeyExtractors.fieldAsPartitionKey( TICKER_SYMBOL_FIELD ) );
 
         operator.init( initContext );
     }

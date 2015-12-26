@@ -1,29 +1,26 @@
 package cs.bilkent.zanza.flow;
 
 
-import org.junit.Before;
+import java.util.Collection;
+
 import org.junit.Test;
 
 import cs.bilkent.zanza.operator.InitializationContext;
 import cs.bilkent.zanza.operator.InvocationContext;
 import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.Operator;
-import cs.bilkent.zanza.operator.OperatorConfig;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
 import cs.bilkent.zanza.operator.spec.OperatorType;
 import cs.bilkent.zanza.scheduling.SchedulingStrategy;
-import static java.util.Arrays.asList;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 
 public class FlowBuilderTest
 {
-
-    private static final int CONFIG_INPUT_PORT_COUNT = 2;
-
-    private static final int CONFIG_OUTPUT_PORT_COUNT = 3;
 
     private static final int SPEC_INPUT_PORT_COUNT = 4;
 
@@ -33,128 +30,19 @@ public class FlowBuilderTest
 
     private final FlowBuilder builder = new FlowBuilder();
 
-    private final OperatorConfig emptyConfig = new OperatorConfig();
-
-    private final OperatorConfig correctConfig = new OperatorConfig();
-
-    private final OperatorConfig invalidConfigWithNegativeInputPortCount = new OperatorConfig();
-
-    private final OperatorConfig invalidConfigWithNegativeOutputPortCount = new OperatorConfig();
-
-    @Before
-    public void init ()
-    {
-        correctConfig.setInputPortCount( CONFIG_INPUT_PORT_COUNT );
-        correctConfig.setOutputPortCount( CONFIG_OUTPUT_PORT_COUNT );
-        invalidConfigWithNegativeInputPortCount.setInputPortCount( INVALID_PORT_COUNT );
-        invalidConfigWithNegativeOutputPortCount.setOutputPortCount( INVALID_PORT_COUNT );
-    }
-
-    @Test( expected = IllegalArgumentException.class )
-    public void shouldNotAddOperatorWithNullId ()
-    {
-        builder.add( null, OperatorWithDynamicPortCounts.class );
-    }
-
-    @Test( expected = IllegalArgumentException.class )
-    public void shouldNotAddOperatorWithEmptyId ()
-    {
-        builder.add( "", OperatorWithDynamicPortCounts.class );
-    }
-
-    @Test( expected = IllegalArgumentException.class )
-    public void shouldNotAddOperatorWithNullClass ()
-    {
-        builder.add( "op1", null );
-    }
-
-    @Test( expected = IllegalArgumentException.class )
-    public void shouldNotAddOperatorWithoutSpec ()
-    {
-        builder.add( "op1", OperatorWithNoSpec.class );
-    }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotAddOperatorMultipleTimesWithSameOperatorId ()
     {
-        builder.add( "op1", OperatorWithDynamicPortCounts.class );
-        builder.add( "op1", OperatorWithFixedPortCounts.class );
+        builder.add( OperatorDefinitionBuilder.newInstance( "op1", OperatorWithFixedPortCounts.class ) );
+        builder.add( OperatorDefinitionBuilder.newInstance( "op1", OperatorWithFixedPortCounts.class ) );
     }
 
     @Test( expected = IllegalStateException.class )
     public void shouldNotAddOperatorAfterBuilt ()
     {
         builder.build();
-        builder.add( "op", OperatorWithDynamicPortCounts.class );
-    }
-
-    @Test
-    public void shouldAddOperatorsWithDynamicPortCounts ()
-    {
-        builder.add( "op1", OperatorWithDynamicPortCounts.class );
-        builder.add( "op2", OperatorWithDynamicPortCounts.class, emptyConfig );
-        builder.add( "op3", OperatorWithDynamicPortCounts.class, correctConfig );
-
-        assertThat( builder.getOperator( "op1" ).config.getInputPortCount(), equalTo( Port.DEFAULT_PORT_COUNT ) );
-        assertThat( builder.getOperator( "op1" ).config.getOutputPortCount(), equalTo( Port.DEFAULT_PORT_COUNT ) );
-
-        assertThat( builder.getOperator( "op2" ).config.getInputPortCount(), equalTo( Port.DEFAULT_PORT_COUNT ) );
-        assertThat( builder.getOperator( "op2" ).config.getOutputPortCount(), equalTo( Port.DEFAULT_PORT_COUNT ) );
-
-        assertThat( builder.getOperator( "op3" ).config.getInputPortCount(), equalTo( CONFIG_INPUT_PORT_COUNT ) );
-        assertThat( builder.getOperator( "op3" ).config.getOutputPortCount(), equalTo( CONFIG_OUTPUT_PORT_COUNT ) );
-    }
-
-    @Test( expected = IllegalArgumentException.class )
-    public void shouldNotAddOperatorWithDynamicInvalidInputPortCount ()
-    {
-        builder.add( "op1", OperatorWithDynamicPortCounts.class, invalidConfigWithNegativeInputPortCount );
-    }
-
-    @Test( expected = IllegalArgumentException.class )
-    public void shouldNotAddOperatorWithDynamicInvalidOutputPortCount ()
-    {
-        builder.add( "op1", OperatorWithDynamicPortCounts.class, invalidConfigWithNegativeOutputPortCount );
-    }
-
-    @Test
-    public void shouldAddOperatorsWithFixedPortCount ()
-    {
-        builder.add( "op1", OperatorWithFixedPortCounts.class );
-        builder.add( "op2", OperatorWithFixedPortCounts.class, emptyConfig );
-        builder.add( "op3", OperatorWithFixedPortCounts.class, correctConfig );
-        builder.add( "op4", OperatorWithFixedPortCounts.class, invalidConfigWithNegativeInputPortCount );
-        builder.add( "op5", OperatorWithFixedPortCounts.class, invalidConfigWithNegativeOutputPortCount );
-
-        for ( String operatorId : asList( "op1", "op2", "op3", "op4", "op5" ) )
-        {
-            assertThat( builder.getOperator( operatorId ).config.getInputPortCount(), equalTo( SPEC_INPUT_PORT_COUNT ) );
-            assertThat( builder.getOperator( operatorId ).config.getOutputPortCount(), equalTo( SPEC_OUTPUT_PORT_COUNT ) );
-        }
-    }
-
-    @Test( expected = IllegalArgumentException.class )
-    public void shouldNotAddOperatorWithInvalidFixedInputCountAndNullConfig ()
-    {
-        builder.add( "op1", OperatorWithInvalidInputPortCount.class );
-    }
-
-    @Test( expected = IllegalArgumentException.class )
-    public void shouldNotAddOperatorWithInvalidFixedInputCountAndEmptyConfig ()
-    {
-        builder.add( "op1", OperatorWithInvalidInputPortCount.class, emptyConfig );
-    }
-
-    @Test( expected = IllegalArgumentException.class )
-    public void shouldNotAddOperatorWithInvalidFixedOutputCountAndNullConfig ()
-    {
-        builder.add( "op1", OperatorWithInvalidOutputPortCount.class );
-    }
-
-    @Test( expected = IllegalArgumentException.class )
-    public void shouldNotAddOperatorWithInvalidFixedOutputCountAndEmptyConfig ()
-    {
-        builder.add( "op1", OperatorWithInvalidOutputPortCount.class, emptyConfig );
+        builder.add( OperatorDefinitionBuilder.newInstance( "op", OperatorWithDynamicPortCounts.class ) );
     }
 
     @Test( expected = IllegalArgumentException.class )
@@ -172,15 +60,21 @@ public class FlowBuilderTest
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotAddConnectionWithInvalidSourcePort2 ()
     {
-        builder.add( "op1", OperatorWithDynamicPortCounts.class );
-        builder.add( "op2", OperatorWithDynamicPortCounts.class );
+        builder.add( OperatorDefinitionBuilder.newInstance( "op1", OperatorWithDynamicPortCounts.class )
+                                              .setInputPortCount( 1 )
+                                              .setOutputPortCount( 1 ) );
+        builder.add( OperatorDefinitionBuilder.newInstance( "op2", OperatorWithDynamicPortCounts.class )
+                                              .setInputPortCount( 1 )
+                                              .setOutputPortCount( 1 ) );
         builder.connect( "op1", 1, "op2" );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotAddConnectionToNonExistingTargetOperator ()
     {
-        builder.add( "op1", OperatorWithDynamicPortCounts.class );
+        builder.add( OperatorDefinitionBuilder.newInstance( "op1", OperatorWithDynamicPortCounts.class )
+                                              .setInputPortCount( 1 )
+                                              .setOutputPortCount( 1 ) );
         builder.connect( "op1", "op2" );
     }
 
@@ -193,54 +87,29 @@ public class FlowBuilderTest
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotAddConnectionWithInvalidTargetPort2 ()
     {
-        builder.add( "op1", OperatorWithDynamicPortCounts.class );
-        builder.add( "op2", OperatorWithDynamicPortCounts.class );
+        builder.add( OperatorDefinitionBuilder.newInstance( "op1", OperatorWithDynamicPortCounts.class )
+                                              .setInputPortCount( 1 )
+                                              .setOutputPortCount( 1 ) );
+        builder.add( OperatorDefinitionBuilder.newInstance( "op2", OperatorWithDynamicPortCounts.class )
+                                              .setInputPortCount( 1 )
+                                              .setOutputPortCount( 1 ) );
         builder.connect( "op1", "op2", 1 );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotAddConnectionToItself ()
     {
-        builder.add( "op1", OperatorWithDynamicPortCounts.class );
+        builder.add( OperatorDefinitionBuilder.newInstance( "op1", OperatorWithDynamicPortCounts.class )
+                                              .setInputPortCount( 1 )
+                                              .setOutputPortCount( 1 ) );
         builder.connect( "op1", "op1" );
-    }
-
-    @Test
-    public void shouldAddConnection ()
-    {
-        builder.add( "op1", OperatorWithDynamicPortCounts.class );
-        builder.add( "op2", OperatorWithDynamicPortCounts.class );
-        builder.connect( "op1", "op2" );
-    }
-
-    @Test
-    public void shouldConnectSingleOutputPortMultipleTimes ()
-    {
-        builder.add( "op1", OperatorWithDynamicPortCounts.class );
-        builder.add( "op2", OperatorWithDynamicPortCounts.class );
-        builder.add( "op3", OperatorWithDynamicPortCounts.class );
-        builder.connect( "op1", "op2" );
-        builder.connect( "op1", "op3" );
-    }
-
-    @Test( expected = IllegalArgumentException.class )
-    public void shouldNotConnectToItself ()
-    {
-        builder.add( "op1", OperatorWithDynamicPortCounts.class );
-        builder.connect( "op1", "op1" );
-    }
-
-    @Test
-    public void shouldBuildEmptyFlow ()
-    {
-        assertNotNull( builder.build() );
     }
 
     @Test( expected = IllegalStateException.class )
     public void shouldNotAddConnectionAfterBuilt ()
     {
-        builder.add( "op1", OperatorWithDynamicPortCounts.class );
-        builder.add( "op2", OperatorWithDynamicPortCounts.class );
+        builder.add( OperatorDefinitionBuilder.newInstance( "op1", OperatorWithDynamicPortCounts.class ).setInputPortCount( 1 ) );
+        builder.add( OperatorDefinitionBuilder.newInstance( "op2", OperatorWithDynamicPortCounts.class ).setInputPortCount( 1 ) );
         builder.connect( "op1", "op2" );
         builder.build();
         builder.connect( "op1", "op2" );
@@ -249,15 +118,84 @@ public class FlowBuilderTest
     @Test( expected = IllegalStateException.class )
     public void shouldNotBuildWhenThereAreNotConnectedOperators ()
     {
-        builder.add( "op1", OperatorWithDynamicPortCounts.class );
-        builder.add( "op2", OperatorWithDynamicPortCounts.class );
-        builder.add( "op3", OperatorWithDynamicPortCounts.class );
+        builder.add( OperatorDefinitionBuilder.newInstance( "op1", OperatorWithDynamicPortCounts.class ).setInputPortCount( 1 ) );
+        builder.add( OperatorDefinitionBuilder.newInstance( "op2", OperatorWithDynamicPortCounts.class ).setInputPortCount( 1 ) );
+        builder.add( OperatorDefinitionBuilder.newInstance( "op3", OperatorWithDynamicPortCounts.class ).setInputPortCount( 1 ) );
         builder.connect( "op1", "op2" );
         builder.build();
     }
 
+    @Test
+    public void shouldAddConnection ()
+    {
+        builder.add( OperatorDefinitionBuilder.newInstance( "op1", OperatorWithDynamicPortCounts.class )
+                                              .setInputPortCount( 1 )
+                                              .setOutputPortCount( 1 ) );
+        builder.add( OperatorDefinitionBuilder.newInstance( "op2", OperatorWithDynamicPortCounts.class )
+                                              .setInputPortCount( 1 )
+                                              .setOutputPortCount( 1 ) );
+        builder.connect( "op1", "op2" );
+    }
 
-    private static class OperatorWithNoSpec implements Operator
+    @Test
+    public void shouldConnectSingleOutputPortMultipleTimes ()
+    {
+        builder.add( OperatorDefinitionBuilder.newInstance( "op1", OperatorWithDynamicPortCounts.class )
+                                              .setInputPortCount( 1 )
+                                              .setOutputPortCount( 1 ) );
+        builder.add( OperatorDefinitionBuilder.newInstance( "op2", OperatorWithDynamicPortCounts.class )
+                                              .setInputPortCount( 1 )
+                                              .setOutputPortCount( 1 ) );
+        builder.add( OperatorDefinitionBuilder.newInstance( "op3", OperatorWithDynamicPortCounts.class )
+                                              .setInputPortCount( 1 )
+                                              .setOutputPortCount( 1 ) );
+        builder.connect( "op1", "op2" );
+        builder.connect( "op1", "op3" );
+    }
+
+    @Test
+    public void shouldBuildEmptyFlow ()
+    {
+        assertNotNull( builder.build() );
+    }
+
+    @Test
+    public void shouldBuildFlow ()
+    {
+        builder.add( OperatorDefinitionBuilder.newInstance( "op1", OperatorWithFixedPortCounts.class ) );
+        builder.add( OperatorDefinitionBuilder.newInstance( "op2", OperatorWithFixedPortCounts.class ) );
+        builder.add( OperatorDefinitionBuilder.newInstance( "op3", OperatorWithDynamicPortCounts.class )
+                                              .setInputPortCount( 0 )
+                                              .setOutputPortCount( 1 ) );
+        builder.add( OperatorDefinitionBuilder.newInstance( "op4", OperatorWithDynamicPortCounts.class )
+                                              .setInputPortCount( 2 )
+                                              .setOutputPortCount( 0 ) );
+
+        builder.connect( "op1", "op2" );
+        builder.connect( "op2", "op4", 0 );
+        builder.connect( "op3", "op4", 1 );
+        final FlowDefinition flowDefinition = builder.build();
+
+        assertTrue( flowDefinition.operators.containsKey( "op1" ) );
+        assertTrue( flowDefinition.operators.containsKey( "op2" ) );
+        assertTrue( flowDefinition.operators.containsKey( "op3" ) );
+        assertTrue( flowDefinition.operators.containsKey( "op4" ) );
+
+        final Collection<Port> op1Connections = flowDefinition.connections.get( new Port( "op1", 0 ) );
+        assertThat( op1Connections, hasSize( 1 ) );
+        assertThat( op1Connections.iterator().next(), equalTo( new Port( "op2", 0 ) ) );
+
+        final Collection<Port> op2Connections = flowDefinition.connections.get( new Port( "op2", 0 ) );
+        assertThat( op2Connections, hasSize( 1 ) );
+        assertThat( op2Connections.iterator().next(), equalTo( new Port( "op4", 0 ) ) );
+
+        final Collection<Port> op3Connections = flowDefinition.connections.get( new Port( "op3", 0 ) );
+        assertThat( op3Connections, hasSize( 1 ) );
+        assertThat( op3Connections.iterator().next(), equalTo( new Port( "op4", 1 ) ) );
+    }
+
+
+    public static class OperatorWithNoSpec implements Operator
     {
 
         @Override
@@ -292,7 +230,7 @@ public class FlowBuilderTest
     }
 
 
-    @OperatorSpec( type = OperatorType.PARTITIONED_STATEFUL, inputPortCount = SPEC_INPUT_PORT_COUNT, outputPortCount = SPEC_OUTPUT_PORT_COUNT )
+    @OperatorSpec( type = OperatorType.STATEFUL, inputPortCount = SPEC_INPUT_PORT_COUNT, outputPortCount = SPEC_OUTPUT_PORT_COUNT )
     public static class OperatorWithFixedPortCounts implements Operator
     {
 
@@ -344,4 +282,5 @@ public class FlowBuilderTest
             return null;
         }
     }
+
 }

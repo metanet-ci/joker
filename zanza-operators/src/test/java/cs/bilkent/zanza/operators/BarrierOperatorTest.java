@@ -33,7 +33,7 @@ public class BarrierOperatorTest
     @Before
     public void init ()
     {
-        initContext.getConfig().setInputPortCount( inputPorts.length );
+        initContext.setInputPortCount( inputPorts.length );
     }
 
     @Test( expected = IllegalArgumentException.class )
