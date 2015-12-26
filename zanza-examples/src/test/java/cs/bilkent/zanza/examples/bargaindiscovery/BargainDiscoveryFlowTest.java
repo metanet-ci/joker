@@ -35,7 +35,7 @@ public class BargainDiscoveryFlowTest
         final OperatorConfig cvwapConfig = new OperatorConfig();
         cvwapConfig.set( MAPPER_CONFIG_PARAMETER, new CVWAPFunction() );
 
-        OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
+        final OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
         schemaBuilder.getInputPortSchemaBuilder( 0 )
                      .addField( TICKER_SYMBOL_FIELD, String.class )
                      .addField( SINGLE_VOLUME_FIELD, double.class )
