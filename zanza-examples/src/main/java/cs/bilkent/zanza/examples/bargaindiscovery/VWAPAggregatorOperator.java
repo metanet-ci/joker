@@ -7,6 +7,11 @@ import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
+import cs.bilkent.zanza.operator.schema.annotation.OperatorSchema;
+import cs.bilkent.zanza.operator.schema.annotation.PortSchema;
+import static cs.bilkent.zanza.operator.schema.annotation.PortSchemaScope.BASE_FIELD_SET;
+import static cs.bilkent.zanza.operator.schema.annotation.PortSchemaScope.EXACT_FIELD_SET;
+import cs.bilkent.zanza.operator.schema.annotation.SchemaField;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
 import cs.bilkent.zanza.operator.spec.OperatorType;
 import cs.bilkent.zanza.scheduling.ScheduleNever;
@@ -14,6 +19,16 @@ import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.scheduleWh
 import cs.bilkent.zanza.scheduling.SchedulingStrategy;
 
 @OperatorSpec( type = OperatorType.PARTITIONED_STATEFUL, inputPortCount = 1, outputPortCount = 1 )
+@OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = BASE_FIELD_SET,
+        fields = { @SchemaField( name = VWAPAggregatorOperator.TICKER_SYMBOL_FIELD, type = String.class ),
+                   @SchemaField( name = VWAPAggregatorOperator.TUPLE_INPUT_VWAP_FIELD, type = double.class ),
+                   @SchemaField( name = VWAPAggregatorOperator.TUPLE_VOLUME_FIELD, type = double.class ),
+                   @SchemaField( name = VWAPAggregatorOperator.TIMESTAMP_FIELD, type = long.class ) } ) },
+        outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET,
+                fields = { @SchemaField( name = VWAPAggregatorOperator.TICKER_SYMBOL_FIELD, type = String.class ),
+                           @SchemaField( name = VWAPAggregatorOperator.SINGLE_VOLUME_FIELD, type = double.class ),
+                           @SchemaField( name = VWAPAggregatorOperator.SINGLE_VWAP_FIELD, type = double.class ),
+                           @SchemaField( name = VWAPAggregatorOperator.TIMESTAMP_FIELD, type = long.class ) } ) } )
 public class VWAPAggregatorOperator implements Operator
 {
 

@@ -15,6 +15,11 @@ import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
+import cs.bilkent.zanza.operator.schema.annotation.OperatorSchema;
+import cs.bilkent.zanza.operator.schema.annotation.PortSchema;
+import static cs.bilkent.zanza.operator.schema.annotation.PortSchemaScope.BASE_FIELD_SET;
+import static cs.bilkent.zanza.operator.schema.annotation.PortSchemaScope.EXACT_FIELD_SET;
+import cs.bilkent.zanza.operator.schema.annotation.SchemaField;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
 import cs.bilkent.zanza.operator.spec.OperatorType;
 import cs.bilkent.zanza.scheduling.ScheduleNever;
@@ -22,6 +27,18 @@ import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.scheduleWh
 import cs.bilkent.zanza.scheduling.SchedulingStrategy;
 
 @OperatorSpec( type = OperatorType.PARTITIONED_STATEFUL, inputPortCount = 2, outputPortCount = 1 )
+@OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = BASE_FIELD_SET,
+        fields = { @SchemaField( name = VWAPAggregatorOperator.TICKER_SYMBOL_FIELD, type = String.class ),
+                   @SchemaField( name = CVWAPFunction.CVWAP_FIELD, type = double.class ),
+                   @SchemaField( name = VWAPAggregatorOperator.TIMESTAMP_FIELD, type = long.class ) } ),
+                            @PortSchema( portIndex = 1, scope = BASE_FIELD_SET,
+                                    fields = { @SchemaField( name = VWAPAggregatorOperator.TICKER_SYMBOL_FIELD, type = String.class ),
+                                               @SchemaField( name = BargainIndexOperator.ASKED_TICKER_SYMBOL_PRICE_FIELD, type = double.class ),
+                                               @SchemaField( name = BargainIndexOperator.ASKED_SIZE_FIELD, type = int.class ),
+                                               @SchemaField( name = VWAPAggregatorOperator.TIMESTAMP_FIELD, type = long.class ) } ) },
+        outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET,
+                fields = { @SchemaField( name = VWAPAggregatorOperator.TICKER_SYMBOL_FIELD, type = String.class ),
+                           @SchemaField( name = BargainIndexOperator.BARGAIN_INDEX_FIELD, type = double.class ) } ) } )
 public class BargainIndexOperator implements Operator
 {
 

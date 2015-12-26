@@ -38,14 +38,16 @@ public class PortRuntimeSchemaBuilder
         this.fields.addAll( fields );
     }
 
-    public void addField ( final String fieldName, final Class<?> type )
+    public PortRuntimeSchemaBuilder addField ( final String fieldName, final Class<?> type )
     {
         checkArgument( fieldName != null, "field name must be provided" );
         checkArgument( type != null, "field type must be provided" );
         addField( new RuntimeSchemaField( fieldName, type ) );
+
+        return this;
     }
 
-    public void addField ( final RuntimeSchemaField field )
+    public PortRuntimeSchemaBuilder addField ( final RuntimeSchemaField field )
     {
         checkArgument( field != null, "field must be provided" );
         checkState                                                                                                ( scope == BASE_FIELD_SET,
@@ -53,6 +55,8 @@ public class PortRuntimeSchemaBuilder
         checkState                                                                            ( fields.stream().noneMatch( f -> f.name.equals( field.name ) ),
                     field.name + " already exists in port schema of port index: " + portIndex );
         fields.add( field );
+
+        return this;
     }
 
     public int getPortIndex ()
