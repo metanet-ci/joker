@@ -584,10 +584,10 @@ public class TupleTest
 	}
 
     @Test
-    public void testTupleEquality1 ()
+    public void testTupleEquality ()
     {
-        final Tuple tuple1 = new Tuple( true );
-        final Tuple tuple2 = new Tuple( true );
+        final Tuple tuple1 = new Tuple();
+        final Tuple tuple2 = new Tuple();
 
         tuple1.set( "k1", "v1" );
         tuple1.set( "k2", "v2" );
@@ -599,115 +599,4 @@ public class TupleTest
         assertThat( tuple1.hashCode(), equalTo( tuple2.hashCode() ) );
     }
 
-    @Test
-    public void testTupleEquality2 ()
-    {
-        final Tuple tuple1 = new Tuple( true );
-        final Tuple tuple2 = new Tuple( true );
-
-        tuple1.set( "k1", "v1" );
-        tuple1.set( "k2", "v2" );
-
-        tuple2.set( "k2", "v2" );
-        tuple2.set( "k1", "v1" );
-
-        assertThat( tuple1, equalTo( tuple2 ) );
-        assertThat( tuple1.hashCode(), equalTo( tuple2.hashCode() ) );
-    }
-
-    @Test
-    public void testTupleEquality3 ()
-    {
-        final Tuple tuple1 = new Tuple( false );
-        final Tuple tuple2 = new Tuple( false );
-
-        tuple1.set( "k1", "v1" );
-        tuple1.set( "k2", "v2" );
-
-        tuple2.set( "k1", "v1" );
-        tuple2.set( "k2", "v2" );
-
-        assertThat( tuple1, equalTo( tuple2 ) );
-        assertThat( tuple1.hashCode(), equalTo( tuple2.hashCode() ) );
-    }
-
-    @Test
-    public void testTupleEquality4 ()
-    {
-        final Tuple tuple1 = new Tuple( false );
-        final Tuple tuple2 = new Tuple( false );
-
-        tuple1.set( "k1", "v1" );
-        tuple1.set( "k2", "v2" );
-
-        tuple2.set( "k2", "v2" );
-        tuple2.set( "k1", "v1" );
-
-        assertThat( tuple1, equalTo( tuple2 ) );
-        assertThat( tuple1.hashCode(), equalTo( tuple2.hashCode() ) );
-    }
-
-    @Test
-    public void testTupleEquality5 ()
-    {
-        final Tuple tuple1 = new Tuple( true );
-        final Tuple tuple2 = new Tuple( false );
-
-        tuple1.set( "k1", "v1" );
-        tuple1.set( "k2", "v2" );
-
-        tuple2.set( "k1", "v1" );
-        tuple2.set( "k2", "v2" );
-
-        assertThat( tuple1, equalTo( tuple2 ) );
-        assertThat( tuple1.hashCode(), equalTo( tuple2.hashCode() ) );
-    }
-
-    @Test
-    public void testTupleEquality6 ()
-    {
-        final Tuple tuple1 = new Tuple( true );
-        final Tuple tuple2 = new Tuple( false );
-
-        tuple1.set( "k1", "v1" );
-        tuple1.set( "k2", "v2" );
-
-        tuple2.set( "k2", "v2" );
-        tuple2.set( "k1", "v1" );
-
-        assertThat( tuple1, equalTo( tuple2 ) );
-        assertThat( tuple1.hashCode(), equalTo( tuple2.hashCode() ) );
-    }
-
-    @Test
-    public void testTupleEquality7 ()
-    {
-        final Tuple tuple1 = new Tuple( false );
-        final Tuple tuple2 = new Tuple( true );
-
-        tuple1.set( "k1", "v1" );
-        tuple1.set( "k2", "v2" );
-
-        tuple2.set( "k1", "v1" );
-        tuple2.set( "k2", "v2" );
-
-        assertThat( tuple1, equalTo( tuple2 ) );
-        assertThat( tuple1.hashCode(), equalTo( tuple2.hashCode() ) );
-    }
-
-    @Test
-    public void testTupleEquality8 ()
-    {
-        final Tuple tuple1 = new Tuple( false );
-        final Tuple tuple2 = new Tuple( true );
-
-        tuple1.set( "k1", "v1" );
-        tuple1.set( "k2", "v2" );
-
-        tuple2.set( "k2", "v2" );
-        tuple2.set( "k1", "v1" );
-
-        assertThat( tuple1, equalTo( tuple2 ) );
-        assertThat( tuple1.hashCode(), equalTo( tuple2.hashCode() ) );
-    }
 }

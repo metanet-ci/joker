@@ -1,9 +1,11 @@
 package cs.bilkent.zanza.utils;
 
+import java.util.List;
+
 import cs.bilkent.zanza.operator.InitializationContext;
 import cs.bilkent.zanza.operator.OperatorConfig;
-import cs.bilkent.zanza.operator.PartitionKeyExtractor;
 import cs.bilkent.zanza.operator.schema.runtime.OperatorRuntimeSchema;
+import static java.util.Collections.emptyList;
 
 public class SimpleInitializationContext implements InitializationContext
 {
@@ -13,7 +15,7 @@ public class SimpleInitializationContext implements InitializationContext
 
     private int outputPortCount;
 
-    private PartitionKeyExtractor partitionKeyExtractor;
+    private List<String> partitionFieldNames = emptyList();
 
     private OperatorRuntimeSchema runtimeSchema;
 
@@ -64,14 +66,19 @@ public class SimpleInitializationContext implements InitializationContext
     }
 
     @Override
-    public PartitionKeyExtractor getPartitionKeyExtractor ()
+    public List<String> getPartitionFieldNames ()
     {
-        return partitionKeyExtractor;
+        return partitionFieldNames;
     }
 
-    public void setPartitionKeyExtractor ( final PartitionKeyExtractor partitionKeyExtractor )
+    public void setPartitionFieldNames ( final List<String> partitionFieldNames )
     {
-        this.partitionKeyExtractor = partitionKeyExtractor;
+        this.partitionFieldNames = partitionFieldNames;
+    }
+
+    public void setConfig ( final OperatorConfig config )
+    {
+        this.config = config;
     }
 
     @Override

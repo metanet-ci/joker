@@ -1,12 +1,16 @@
 package cs.bilkent.zanza.flow;
 
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
-import cs.bilkent.zanza.operator.PartitionKeyExtractor;
 import cs.bilkent.zanza.operator.schema.runtime.OperatorRuntimeSchema;
 import cs.bilkent.zanza.operator.spec.OperatorType;
+import static java.util.Collections.unmodifiableList;
 
 
 public class OperatorDefinition
@@ -25,7 +29,7 @@ public class OperatorDefinition
 
     public final OperatorConfig config;
 
-    public final PartitionKeyExtractor partitionKeyExtractor;
+    public final List<String> partitionFieldNames;
 
     public OperatorDefinition ( final String id,
                                 final Class<? extends Operator> clazz,
@@ -33,8 +37,7 @@ public class OperatorDefinition
                                 final int inputPortCount,
                                 final int outputPortCount,
                                 final OperatorRuntimeSchema schema,
-                                final OperatorConfig config,
-                                final PartitionKeyExtractor partitionKeyExtractor )
+                                final OperatorConfig config, final List<String> partitionFieldNames )
     {
         checkArgument( id != null, "id can't be null" );
         checkArgument( clazz != null, "clazz can't be null" );
@@ -50,7 +53,8 @@ public class OperatorDefinition
         this.outputPortCount = outputPortCount;
         this.schema = schema;
         this.config = config;
-        this.partitionKeyExtractor = partitionKeyExtractor;
+        this.partitionFieldNames =
+                partitionFieldNames != null ? unmodifiableList( new ArrayList<>( partitionFieldNames ) ) : Collections.emptyList();
     }
 
 }

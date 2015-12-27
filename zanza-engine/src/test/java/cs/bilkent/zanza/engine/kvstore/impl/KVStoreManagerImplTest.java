@@ -4,15 +4,15 @@ import org.junit.Test;
 
 import cs.bilkent.zanza.engine.kvstore.KVStoreContext;
 import cs.bilkent.zanza.kvstore.KVStore;
-import cs.bilkent.zanza.operator.PartitionKeyExtractor;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 public class KVStoreManagerImplTest
 {
@@ -38,21 +38,51 @@ public class KVStoreManagerImplTest
     }
 
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotCreatePartitionedStatefulOperatorWithoutPartitionKeyExtractor ()
+    public void shouldNotCreatePartitionedStatefulOperatorWithNullPartitionFieldNames ()
     {
         kvStoreManager.createKVStoreContext( "op1", PARTITIONED_STATEFUL, null, 1 );
     }
 
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotCreateStatefulOperatorWithWithPartitionKeyExtractor ()
+    public void shouldNotCreatePartitionedStatefulOperatorWithEmptyPartitionFieldNames ()
     {
-        kvStoreManager.createKVStoreContext( "op1", STATEFUL, mock( PartitionKeyExtractor.class ), 1 );
+        kvStoreManager.createKVStoreContext( "op1", PARTITIONED_STATEFUL, emptyList(), 1 );
     }
 
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotCreateStatelessOperatorWithWithPartitionKeyExtractor ()
+    public void shouldNotCreateStatefulOperatorWithWithPartitionFieldNames ()
     {
-        kvStoreManager.createKVStoreContext( "op1", STATELESS, mock( PartitionKeyExtractor.class ), 1 );
+        kvStoreManager.createKVStoreContext( "op1", STATEFUL, singletonList( "field1" ), 1 );
+    }
+
+    @Test
+    public void shouldCreateStatefulOperatorWithWithEmptyPartitionFieldNames ()
+    {
+        kvStoreManager.createKVStoreContext( "op1", STATEFUL, emptyList(), 1 );
+    }
+
+    @Test
+    public void shouldCreateStatefulOperatorWithWithNullPartitionFieldNames ()
+    {
+        kvStoreManager.createKVStoreContext( "op1", STATEFUL, null, 1 );
+    }
+
+    @Test( expected = IllegalArgumentException.class )
+    public void shouldNotCreateStatelessOperatorWithPartitionFieldNames ()
+    {
+        kvStoreManager.createKVStoreContext( "op1", STATELESS, singletonList( "field1" ), 1 );
+    }
+
+    @Test( expected = IllegalArgumentException.class )
+    public void shouldNotCreateStatelessOperatorWithEmptyPartitionFieldNames ()
+    {
+        kvStoreManager.createKVStoreContext( "op1", STATELESS, emptyList(), 1 );
+    }
+
+    @Test( expected = IllegalArgumentException.class )
+    public void shouldNotCreateStatelessOperatorWithNullPartitionFieldNames ()
+    {
+        kvStoreManager.createKVStoreContext( "op1", STATELESS, null, 1 );
     }
 
     @Test( expected = IllegalArgumentException.class )
@@ -86,7 +116,7 @@ public class KVStoreManagerImplTest
     {
         final KVStoreContextImpl kvStoreContext = (KVStoreContextImpl) kvStoreManager.createKVStoreContext( "op1",
                                                                                                             PARTITIONED_STATEFUL,
-                                                                                                            mock( PartitionKeyExtractor.class ),
+                                                                                                            singletonList( "field1" ),
                                                                                                             2 );
         assertThat( kvStoreContext.getKVStoresSize(), equalTo( 2 ) );
     }
@@ -95,12 +125,10 @@ public class KVStoreManagerImplTest
     public void shouldCreateKVStoreContextOnlyOnceForAnOperator ()
     {
         final KVStoreContext kvStoreContext1 = kvStoreManager.createKVStoreContext( "op1",
-                                                                                    PARTITIONED_STATEFUL,
-                                                                                    mock( PartitionKeyExtractor.class ),
+                                                                                    PARTITIONED_STATEFUL, singletonList( "field1" ),
                                                                                     2 );
         final KVStoreContext kvStoreContext2 = kvStoreManager.createKVStoreContext( "op1",
-                                                                                    PARTITIONED_STATEFUL,
-                                                                                    mock( PartitionKeyExtractor.class ),
+                                                                                    PARTITIONED_STATEFUL, singletonList( "field1" ),
                                                                                     2 );
         assertTrue( kvStoreContext1 == kvStoreContext2 );
     }

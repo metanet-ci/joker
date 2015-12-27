@@ -12,9 +12,9 @@ import cs.bilkent.zanza.flow.FlowBuilder;
 import cs.bilkent.zanza.flow.OperatorDefinitionBuilder;
 import cs.bilkent.zanza.flow.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.zanza.operator.OperatorConfig;
-import cs.bilkent.zanza.operator.PartitionKeyExtractors;
 import cs.bilkent.zanza.operators.MapperOperator;
 import static cs.bilkent.zanza.operators.MapperOperator.MAPPER_CONFIG_PARAMETER;
+import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertNotNull;
 
 public class BargainDiscoveryFlowTest
@@ -30,7 +30,7 @@ public class BargainDiscoveryFlowTest
 
         flowBuilder.add( OperatorDefinitionBuilder.newInstance( "vwapAggregator", VWAPAggregatorOperator.class )
                                                   .setConfig( vwapAggregatorConfig )
-                                                  .setPartitionKeyExtractor( PartitionKeyExtractors.fieldAsPartitionKey( TICKER_SYMBOL_FIELD ) ) );
+                                                  .setPartitionFieldNames( singletonList( TICKER_SYMBOL_FIELD ) ) );
 
         final OperatorConfig cvwapConfig = new OperatorConfig();
         cvwapConfig.set( MAPPER_CONFIG_PARAMETER, new CVWAPFunction() );

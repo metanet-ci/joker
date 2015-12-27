@@ -6,16 +6,16 @@ import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import static cs.bilkent.zanza.engine.tuplequeue.TupleQueueManager.TupleQueueThreading.MULTI_THREADED;
 import static cs.bilkent.zanza.engine.tuplequeue.TupleQueueManager.TupleQueueThreading.SINGLE_THREADED;
 import cs.bilkent.zanza.engine.tuplequeue.impl.consumer.DrainAllAvailableTuples;
-import cs.bilkent.zanza.operator.PartitionKeyExtractor;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 public class TupleQueueManagerImplTest
 {
@@ -53,21 +53,51 @@ public class TupleQueueManagerImplTest
     }
 
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotCreateTupleQueueContextForPartitionedStatefulOperatorWithoutPartitionKeyExtractor ()
+    public void shouldNotCreateTupleQueueContextForPartitionedStatefulOperatorWithNullPartitionFieldNames ()
     {
         tupleQueueManager.createTupleQueueContext( "op1", 1, PARTITIONED_STATEFUL, null, MULTI_THREADED, 1 );
     }
 
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotCreateTupleQueueContextForStatefulOperatorWithWithPartitionKeyExtractor ()
+    public void shouldNotCreateTupleQueueContextForPartitionedStatefulOperatorWithEmptyPartitionFieldNames ()
     {
-        tupleQueueManager.createTupleQueueContext( "op1", 1, STATEFUL, mock( PartitionKeyExtractor.class ), MULTI_THREADED, 1 );
+        tupleQueueManager.createTupleQueueContext( "op1", 1, PARTITIONED_STATEFUL, emptyList(), MULTI_THREADED, 1 );
     }
 
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotCreateTupleQueueContextForStatelessOperatorWithWithPartitionKeyExtractor ()
+    public void shouldNotCreateTupleQueueContextForStatefulOperatorWithPartitionFieldNames ()
     {
-        tupleQueueManager.createTupleQueueContext( "op1", 1, STATELESS, mock( PartitionKeyExtractor.class ), MULTI_THREADED, 1 );
+        tupleQueueManager.createTupleQueueContext( "op1", 1, STATEFUL, singletonList( "field1" ), MULTI_THREADED, 1 );
+    }
+
+    @Test
+    public void shouldCreateTupleQueueContextForStatefulOperatorWithNullPartitionFieldNames ()
+    {
+        tupleQueueManager.createTupleQueueContext( "op1", 1, STATEFUL, null, MULTI_THREADED, 1 );
+    }
+
+    @Test
+    public void shouldCreateTupleQueueContextForStatefulOperatorWithEmptyPartitionFieldNames ()
+    {
+        tupleQueueManager.createTupleQueueContext( "op1", 1, STATEFUL, emptyList(), MULTI_THREADED, 1 );
+    }
+
+    @Test( expected = IllegalArgumentException.class )
+    public void shouldNotCreateTupleQueueContextForStatelessOperatorWithPartitionFieldNames ()
+    {
+        tupleQueueManager.createTupleQueueContext( "op1", 1, STATELESS, singletonList( "field1" ), MULTI_THREADED, 1 );
+    }
+
+    @Test
+    public void shouldCreateTupleQueueContextForStatelessOperatorWithNullPartitionFieldNames ()
+    {
+        tupleQueueManager.createTupleQueueContext( "op1", 1, STATELESS, null, MULTI_THREADED, 1 );
+    }
+
+    @Test
+    public void shouldCreateTupleQueueContextForStatelessOperatorWithEmptyPartitionFieldNames ()
+    {
+        tupleQueueManager.createTupleQueueContext( "op1", 1, STATELESS, emptyList(), MULTI_THREADED, 1 );
     }
 
     @Test

@@ -16,11 +16,11 @@ import cs.bilkent.zanza.kvstore.KeyPrefixedInMemoryKvStore;
 import cs.bilkent.zanza.operator.InvocationContext;
 import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
 import cs.bilkent.zanza.operator.InvocationResult;
-import cs.bilkent.zanza.operator.PartitionKeyExtractors;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.utils.SimpleInitializationContext;
 import cs.bilkent.zanza.utils.SimpleInvocationContext;
+import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;
@@ -125,7 +125,7 @@ public class VWAPAggregatorOperatorTest
 
         initContext.getConfig().set( VWAPAggregatorOperator.WINDOW_SIZE_CONfIG_PARAMETER, windowSize );
         initContext.getConfig().set( VWAPAggregatorOperator.SLIDE_FACTOR_CONfIG_PARAMETER, slideFactor );
-        initContext.setPartitionKeyExtractor( PartitionKeyExtractors.fieldAsPartitionKey( TICKER_SYMBOL_FIELD ) );
+        initContext.setPartitionFieldNames( singletonList( TICKER_SYMBOL_FIELD ) );
 
         operator.init( initContext );
     }

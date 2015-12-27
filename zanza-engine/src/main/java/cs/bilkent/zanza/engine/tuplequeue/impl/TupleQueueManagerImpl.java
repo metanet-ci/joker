@@ -1,6 +1,7 @@
 package cs.bilkent.zanza.engine.tuplequeue.impl;
 
 
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
@@ -18,8 +19,7 @@ import cs.bilkent.zanza.engine.tuplequeue.impl.context.DefaultTupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.impl.context.PartitionedTupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
-import static cs.bilkent.zanza.engine.util.Preconditions.checkOperatorTypeAndPartitionKeyExtractor;
-import cs.bilkent.zanza.operator.PartitionKeyExtractor;
+import static cs.bilkent.zanza.engine.util.Preconditions.checkOperatorTypeAndPartitionKeyFieldNames;
 import cs.bilkent.zanza.operator.spec.OperatorType;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 
@@ -38,22 +38,21 @@ class TupleQueueManagerImpl implements TupleQueueManager
     @Override
     public TupleQueueContext createTupleQueueContext ( final String operatorId,
                                                        final int inputPortCount,
-                                                       final OperatorType operatorType,
-                                                       final PartitionKeyExtractor partitionKeyExtractor,
+                                                       final OperatorType operatorType, final List<String> partitionFieldNames,
                                                        final TupleQueueThreading tupleQueueThreading,
                                                        final int initialQueueCapacity )
     {
         checkArgument( operatorId != null );
         checkArgument( inputPortCount > 0 );
         checkArgument( operatorType != null );
-        checkOperatorTypeAndPartitionKeyExtractor( operatorType, partitionKeyExtractor );
+        checkOperatorTypeAndPartitionKeyFieldNames( operatorType, partitionFieldNames );
         checkArgument( initialQueueCapacity > 0 );
 
         final Supplier<TupleQueue> tupleQueueSupplier = getTupleQueueSupplier( tupleQueueThreading, initialQueueCapacity );
         final Function<String, TupleQueueContext> tupleQueueContextConstructor = getTupleQueueContextConstructor( operatorId,
                                                                                                                   inputPortCount,
                                                                                                                   operatorType,
-                                                                                                                  partitionKeyExtractor,
+                                                                                                                  partitionFieldNames,
                                                                                                                   tupleQueueSupplier );
 
         return tupleQueueContexts.computeIfAbsent( operatorId, tupleQueueContextConstructor );
@@ -69,13 +68,12 @@ class TupleQueueManagerImpl implements TupleQueueManager
     private Function<String, TupleQueueContext> getTupleQueueContextConstructor ( final String operatorId,
                                                                                   final int inputPortCount,
                                                                                   final OperatorType operatorType,
-                                                                                  final PartitionKeyExtractor partitionKeyExtractor,
+                                                                                  final List<String> partitionFieldNames,
                                                                                   final Supplier<TupleQueue> tupleQueueSupplier )
     {
         return operatorType == PARTITIONED_STATEFUL
                ? s -> new PartitionedTupleQueueContext( operatorId,
-                                                        inputPortCount,
-                                                        partitionKeyExtractor,
+                                                        inputPortCount, partitionFieldNames,
                                                         tupleQueueSupplier )
                : s -> new DefaultTupleQueueContext( operatorId, inputPortCount, tupleQueueSupplier );
     }

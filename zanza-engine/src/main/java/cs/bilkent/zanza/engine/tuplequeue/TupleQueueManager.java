@@ -1,6 +1,7 @@
 package cs.bilkent.zanza.engine.tuplequeue;
 
-import cs.bilkent.zanza.operator.PartitionKeyExtractor;
+import java.util.List;
+
 import cs.bilkent.zanza.operator.spec.OperatorType;
 
 public interface TupleQueueManager
@@ -14,8 +15,7 @@ public interface TupleQueueManager
 
     TupleQueueContext createTupleQueueContext ( String operatorId,
                                                 int inputPortCount,
-                                                OperatorType operatorType,
-                                                PartitionKeyExtractor partitionKeyExtractor,
+                                                OperatorType operatorType, List<String> partitionFieldNames,
                                                 TupleQueueThreading tupleQueueThreading,
                                                 int initialQueueCapacity );
 

@@ -9,7 +9,6 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import static cs.bilkent.zanza.flow.Port.DYNAMIC_PORT_COUNT;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
-import cs.bilkent.zanza.operator.PartitionKeyExtractor;
 import cs.bilkent.zanza.operator.schema.annotation.OperatorSchema;
 import cs.bilkent.zanza.operator.schema.runtime.OperatorRuntimeSchema;
 import cs.bilkent.zanza.operator.schema.runtime.PortRuntimeSchema;
@@ -50,7 +49,7 @@ public class OperatorDefinitionBuilder
 
     private OperatorConfig config;
 
-    private PartitionKeyExtractor partitionKeyExtractor;
+    private List<String> partitionFieldNames;
 
     private OperatorDefinitionBuilder ( final String id,
                                         final Class<? extends Operator> clazz,
@@ -95,12 +94,14 @@ public class OperatorDefinitionBuilder
         return this;
     }
 
-    public OperatorDefinitionBuilder setPartitionKeyExtractor ( final PartitionKeyExtractor partitionKeyExtractor )
+    public OperatorDefinitionBuilder setPartitionFieldNames ( final List<String> partitionFieldNames )
     {
-        checkState                                                                                          ( this.type == PARTITIONED_STATEFUL,
-                    "partition key extractor can be only used with " + PARTITIONED_STATEFUL + " operators!" );
-        checkState( this.partitionKeyExtractor == null, "partition key extractor can be set only once" );
-        this.partitionKeyExtractor = partitionKeyExtractor;
+        checkArgument( partitionFieldNames != null, "partition field names must be non-null" );
+        checkState                                                                                        ( ( this.type == PARTITIONED_STATEFUL && !partitionFieldNames.isEmpty() ) || ( this.type != PARTITIONED_STATEFUL
+                                                                                                 && partitionFieldNames.isEmpty() ),
+                    "partition field names can be only used with " + PARTITIONED_STATEFUL + " operators!" );
+        checkState( this.partitionFieldNames == null, "partition key extractor can be set only once" );
+        this.partitionFieldNames = partitionFieldNames;
         return this;
     }
 
@@ -114,8 +115,7 @@ public class OperatorDefinitionBuilder
                                        inputPortCount,
                                        outputPortCount,
                                        buildOperatorRuntimeSchema(),
-                                       getConfigOrEmptyConfig(),
-                                       partitionKeyExtractor );
+                                       getConfigOrEmptyConfig(), partitionFieldNames );
     }
 
     private OperatorConfig getConfigOrEmptyConfig ()

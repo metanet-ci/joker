@@ -6,15 +6,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import cs.bilkent.zanza.operator.spec.OperatorSpec;
-import cs.bilkent.zanza.operator.spec.OperatorType;
 
 /**
  * Contains all the configuration information that can be used by an operator. Users can provide operator specific
  * configuration parameters using this class.
- * <p>
- * Additionally, contains input port count and output port count if they are specified as dynamic in {@link OperatorSpec}
- * and {@link PartitionKeyExtractor} function if the operator is {@link OperatorType#PARTITIONED_STATEFUL}
  */
 public class OperatorConfig implements Fields<String>
 {

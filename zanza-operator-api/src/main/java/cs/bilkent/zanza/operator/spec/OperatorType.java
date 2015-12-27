@@ -3,7 +3,6 @@ package cs.bilkent.zanza.operator.spec;
 import cs.bilkent.zanza.kvstore.KVStore;
 import cs.bilkent.zanza.operator.InvocationContext;
 import cs.bilkent.zanza.operator.Operator;
-import cs.bilkent.zanza.operator.PartitionKeyExtractor;
 
 /**
  * Defines type of an {@link Operator} within {@link OperatorSpec}
@@ -11,7 +10,6 @@ import cs.bilkent.zanza.operator.PartitionKeyExtractor;
  * @see OperatorSpec
  * @see Operator
  * @see KVStore
- * @see PartitionKeyExtractor
  */
 public enum OperatorType
 {
@@ -36,10 +34,9 @@ public enum OperatorType
      * For an operator defined as {@code PARTITIONED_STATEFUL}, all {@link Operator#process(InvocationContext)}
      * invocations are guaranteed to be done with tuples which have the same partition key.
      * <p>
-     * A {@link PartitionKeyExtractor} implementation must be provided during the operator composition.
+     * A list of partition field names must be provided during the operator composition.
      *
      * @see KVStore
-     * @see PartitionKeyExtractor
      */
     PARTITIONED_STATEFUL,
 

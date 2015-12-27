@@ -1,5 +1,6 @@
 package cs.bilkent.zanza.engine.kvstore.impl;
 
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -9,10 +10,9 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.zanza.engine.kvstore.KVStoreContext;
 import cs.bilkent.zanza.engine.kvstore.KVStoreManager;
-import static cs.bilkent.zanza.engine.util.Preconditions.checkOperatorTypeAndPartitionKeyExtractor;
+import static cs.bilkent.zanza.engine.util.Preconditions.checkOperatorTypeAndPartitionKeyFieldNames;
 import cs.bilkent.zanza.kvstore.InMemoryKVStore;
 import cs.bilkent.zanza.kvstore.KVStore;
-import cs.bilkent.zanza.operator.PartitionKeyExtractor;
 import cs.bilkent.zanza.operator.spec.OperatorType;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
@@ -27,15 +27,14 @@ public class KVStoreManagerImpl implements KVStoreManager
 
     @Override
     public KVStoreContext createKVStoreContext ( final String operatorId,
-                                                 final OperatorType operatorType,
-                                                 final PartitionKeyExtractor partitionKeyExtractor,
+                                                 final OperatorType operatorType, final List<String> partitionFieldNames,
                                                  final int kvStoreInstanceCount )
     {
         checkArgument( operatorId != null );
         checkArgument( operatorType != null );
         checkArgument( operatorType != STATELESS );
         checkArgument( kvStoreInstanceCount > 0 );
-        checkOperatorTypeAndPartitionKeyExtractor( operatorType, partitionKeyExtractor );
+        checkOperatorTypeAndPartitionKeyFieldNames( operatorType, partitionFieldNames );
         checkArgument( operatorType == PARTITIONED_STATEFUL || kvStoreInstanceCount == 1 );
 
         return kvStoresByOperatorId.computeIfAbsent( operatorId, opId -> {

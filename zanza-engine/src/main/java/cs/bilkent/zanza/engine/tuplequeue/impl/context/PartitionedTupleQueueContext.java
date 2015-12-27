@@ -1,5 +1,6 @@
 package cs.bilkent.zanza.engine.tuplequeue.impl.context;
 
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
@@ -12,7 +13,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueuesConsumer;
-import cs.bilkent.zanza.operator.PartitionKeyExtractor;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
 
@@ -26,21 +26,19 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
 
     private final int inputPortCount;
 
-    private final PartitionKeyExtractor partitionKeyExtractor;
-
+    private final List<String> partitionFieldNames;
 
     private final Function<Object, TupleQueue[]> tupleQueuesConstructor;
 
     private final ConcurrentMap<Object, TupleQueue[]> tupleQueuesByPartitionKeys = new ConcurrentHashMap<>();
 
     public PartitionedTupleQueueContext ( final String operatorId,
-                                          final int inputPortCount,
-                                          final PartitionKeyExtractor partitionKeyExtractor,
+                                          final int inputPortCount, final List<String> partitionFieldNames,
                                           final Supplier<TupleQueue> tupleQueueSupplier )
     {
         this.operatorId = operatorId;
         this.inputPortCount = inputPortCount;
-        this.partitionKeyExtractor = partitionKeyExtractor;
+        this.partitionFieldNames = partitionFieldNames;
         this.tupleQueuesConstructor = ( partitionKey ) -> {
             final TupleQueue[] tupleQueues = new TupleQueue[ inputPortCount ];
             for ( int i = 0; i < inputPortCount; i++ )
@@ -67,7 +65,7 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
                            + " input port index: " + portIndex );
             for ( Tuple tuple : portsToTuples.getTuples( portIndex ) )
             {
-                final TupleQueue[] tupleQueues = tupleQueuesByPartitionKeys.computeIfAbsent( partitionKeyExtractor.apply( tuple ),
+                final TupleQueue[] tupleQueues = tupleQueuesByPartitionKeys.computeIfAbsent                         ( tuple.getValues( partitionFieldNames ),
                                                                                              tupleQueuesConstructor );
                 tupleQueues[ portIndex ].offerTuple( tuple );
             }

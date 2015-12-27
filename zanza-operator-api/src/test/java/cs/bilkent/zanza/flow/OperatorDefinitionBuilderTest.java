@@ -14,7 +14,6 @@ import cs.bilkent.zanza.operator.InitializationContext;
 import cs.bilkent.zanza.operator.InvocationContext;
 import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.Operator;
-import cs.bilkent.zanza.operator.PartitionKeyExtractor;
 import cs.bilkent.zanza.operator.schema.annotation.OperatorSchema;
 import cs.bilkent.zanza.operator.schema.annotation.PortSchema;
 import static cs.bilkent.zanza.operator.schema.annotation.PortSchemaScope.BASE_FIELD_SET;
@@ -26,12 +25,12 @@ import cs.bilkent.zanza.operator.schema.runtime.RuntimeSchemaField;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import cs.bilkent.zanza.scheduling.SchedulingStrategy;
+import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 public class OperatorDefinitionBuilderTest
 {
@@ -155,28 +154,28 @@ public class OperatorDefinitionBuilderTest
     }
 
     @Test( expected = IllegalStateException.class )
-    public void shouldNotSetPartitionKeyExtractorToStatelessOperator ()
+    public void shouldNotSetPartitionFieldNamesToStatelessOperator ()
     {
         OperatorDefinitionBuilder.newInstance( "op1", OperatorWithDynamicPortCounts.class )
-                                 .setPartitionKeyExtractor( mock( PartitionKeyExtractor.class ) );
+                                 .setPartitionFieldNames( singletonList( "field1" ) );
     }
 
     @Test( expected = IllegalStateException.class )
-    public void shouldNotSetPartitionKeyExtractorToStatefulOperator ()
+    public void shouldNotSetPartitionFieldNamesToStatefulOperator ()
     {
         OperatorDefinitionBuilder.newInstance( "op1", OperatorWithFixedPortCounts.class )
-                                 .setPartitionKeyExtractor( mock( PartitionKeyExtractor.class ) );
+                                 .setPartitionFieldNames( singletonList( "field1" ) );
     }
 
     @Test
-    public void shouldSetPartitionKeyExtractorToPartitionedStatefulOperator ()
+    public void shouldSetPartitionFieldNamesToPartitionedStatefulOperator ()
     {
-        final PartitionKeyExtractor partitionKeyExtractor = mock( PartitionKeyExtractor.class );
+        final List<String> partitionFieldNames = singletonList( "field1" );
         final OperatorDefinition definition = OperatorDefinitionBuilder.newInstance( "op1", OperatorWithExactInputPortSchema.class )
-                                                                       .setPartitionKeyExtractor( partitionKeyExtractor )
+                                                                       .setPartitionFieldNames( partitionFieldNames )
                                                                        .build();
 
-        assertTrue( partitionKeyExtractor == definition.partitionKeyExtractor );
+        assertTrue( partitionFieldNames.equals( definition.partitionFieldNames ) );
     }
 
     @OperatorSpec( type = PARTITIONED_STATEFUL, inputPortCount = 1, outputPortCount = 1 )
