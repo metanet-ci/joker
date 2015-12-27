@@ -1,13 +1,28 @@
 package cs.bilkent.zanza.operator.schema.annotation;
 
 import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
 
-@Retention( RetentionPolicy.RUNTIME )
+import cs.bilkent.zanza.operator.Tuple;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
+
+/**
+ * Annotation to define a field of a {@link Tuple} in the design time
+ */
+@Retention( RUNTIME )
 public @interface SchemaField
 {
+    /**
+     * Name of the field
+     *
+     * @return name of the field
+     */
     String name ();
 
+    /**
+     * Type of the value of the field
+     *
+     * @return type of the value of the field
+     */
     Class<?> type ();
 
 }

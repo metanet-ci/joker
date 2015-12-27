@@ -2,6 +2,9 @@ package cs.bilkent.zanza.operator.schema.runtime;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+/**
+ * Runtime representation of {@link RuntimeSchemaField}
+ */
 public class RuntimeSchemaField
 {
 

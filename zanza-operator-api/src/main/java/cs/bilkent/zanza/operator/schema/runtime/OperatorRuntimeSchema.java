@@ -4,8 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import cs.bilkent.zanza.operator.schema.annotation.OperatorSchema;
 import static java.util.Collections.unmodifiableList;
 
+/**
+ * Runtime representation of {@link OperatorSchema}
+ */
 public class OperatorRuntimeSchema
 {
 
