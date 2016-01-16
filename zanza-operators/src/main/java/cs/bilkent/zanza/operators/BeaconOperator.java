@@ -17,6 +17,9 @@ import cs.bilkent.zanza.scheduling.ScheduleNever;
 import cs.bilkent.zanza.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.zanza.scheduling.SchedulingStrategy;
 
+/**
+ * Produces output tuples on each invocation using the provided tuple generator function
+ */
 @OperatorSpec( type = OperatorType.STATELESS, inputPortCount = 0, outputPortCount = 1 )
 public class BeaconOperator implements Operator
 {

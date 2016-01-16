@@ -110,6 +110,8 @@ public class VWAPAggregatorOperator implements Operator
                                                              tuple.getLong( TIMESTAMP_FIELD ),
                                                              vwapSum,
                                                              volumeSum );
+                outputTuple.setSequenceNumber( tuple.getSequenceNumber() );
+
                 output.add( outputTuple );
             }
         }

@@ -88,14 +88,14 @@ public class MapperOperatorTest
     @Test
     public void shouldMapSingleTupleForSuccessfulInvocation ()
     {
-        final PortsToTuples portsToTuples = new PortsToTuples( new Tuple( "count", 5 ) );
+        final PortsToTuples portsToTuples = new PortsToTuples( new Tuple( 1, "count", 5 ) );
         shouldMultiplyCountValuesBy2( new SimpleInvocationContext( InvocationReason.SUCCESS, portsToTuples ) );
     }
 
     @Test
     public void shouldMapSingleTupleForErroneousInvocation ()
     {
-        final PortsToTuples portsToTuples = new PortsToTuples( new Tuple( "count", 5 ) );
+        final PortsToTuples portsToTuples = new PortsToTuples( new Tuple( 1, "count", 5 ) );
         shouldMultiplyCountValuesBy2( new SimpleInvocationContext( InvocationReason.SHUTDOWN, portsToTuples ) );
     }
 
@@ -117,7 +117,7 @@ public class MapperOperatorTest
         initContext.getConfig().set( MAPPER_CONFIG_PARAMETER, mapper );
 
         operator.init( initContext );
-        final PortsToTuples portsToTuples = new PortsToTuples( new Tuple( "count", 5 ) );
+        final PortsToTuples portsToTuples = new PortsToTuples( new Tuple( 1, "count", 5 ) );
         operator.process( new SimpleInvocationContext( invocationReason, portsToTuples ) );
     }
 
@@ -125,8 +125,8 @@ public class MapperOperatorTest
     public void shouldMapMultipleTuplesForSuccessfulInvocation ()
     {
         final PortsToTuples portsToTuples = new PortsToTuples();
-        portsToTuples.add( new Tuple( "count", 5 ) );
-        portsToTuples.add( new Tuple( "count", 10 ) );
+        portsToTuples.add( new Tuple( 1, "count", 5 ) );
+        portsToTuples.add( new Tuple( 2, "count", 10 ) );
         shouldMultiplyCountValuesBy2( new SimpleInvocationContext( InvocationReason.SUCCESS, portsToTuples ) );
     }
 
@@ -134,8 +134,8 @@ public class MapperOperatorTest
     public void shouldMapMultipleTuplesForErroneousInvocation ()
     {
         final PortsToTuples portsToTuples = new PortsToTuples();
-        portsToTuples.add( new Tuple( "count", 5 ) );
-        portsToTuples.add( new Tuple( "count", 10 ) );
+        portsToTuples.add( new Tuple( 1, "count", 5 ) );
+        portsToTuples.add( new Tuple( 2, "count", 10 ) );
         shouldMultiplyCountValuesBy2( new SimpleInvocationContext( InvocationReason.SUCCESS, portsToTuples ) );
     }
 
@@ -152,6 +152,7 @@ public class MapperOperatorTest
             final Tuple inputTuple = inputTuples.get( i );
             final Tuple outputTuple = outputTuples.get( i );
             assertThat( outputTuple.getInteger( "count" ), equalTo( 2 * inputTuple.getInteger( "count" ) ) );
+            assertThat( outputTuple.getSequenceNumber(), equalTo( inputTuple.getSequenceNumber() ) );
         }
     }
 

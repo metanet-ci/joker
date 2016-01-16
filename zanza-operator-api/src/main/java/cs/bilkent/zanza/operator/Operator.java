@@ -3,6 +3,7 @@ package cs.bilkent.zanza.operator;
 import cs.bilkent.zanza.flow.FlowDefinition;
 import cs.bilkent.zanza.kvstore.KVStore;
 import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
+import cs.bilkent.zanza.operator.schema.annotation.OperatorSchema;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
 import cs.bilkent.zanza.operator.spec.OperatorType;
 import cs.bilkent.zanza.scheduling.SchedulingStrategy;
@@ -11,13 +12,14 @@ import cs.bilkent.zanza.scheduling.SchedulingStrategy;
  * {@code Operator} is the main component that is responsible for producing or processing tuples.
  * An operator implementation is provided to {@link FlowDefinition}
  * with its configuration and its life-cycle is managed by the Engine afterwards.
- *
- * State-related characteristics of a user-defined operator must be annotated with the {@link OperatorSpec}
- * annotation.
- *
+ * <p>
+ * State-related characteristics of a user-defined operator must be specified with {@link OperatorSpec} annotation.
+ * A design time schema of an operator can be specified with {@link OperatorSchema} annotation.
+ * <p>
  * TODO TALK ABOUT THREAD SAFETY AND OPERATOR EXECUTION
  *
  * @see OperatorSpec
+ * @see OperatorSchema
  * @see InitializationContext
  * @see InvocationContext
  * @see InvocationResult
@@ -82,6 +84,10 @@ public interface Operator
      * the data in the {@link KVStore} manipulated by the invocations done for different partition keys from each other. Therefore,
      * If an operator puts an object into the {@link KVStore} using the same {@link KVStore} object key for different partition keys,
      * there will be 2 different objects in the {@link KVStore}, of which each one of them are put for a particular partition key.
+     * <p>
+     * If an operator produces output tuples using the tuples provided for the invocation of {@link Operator#process(InvocationContext)}
+     * method, output tuples must have their sequence numbers assigned based on sequence numbers of the input tuples.
+     * </p>
      *
      * @param invocationContext
      *         all the necessary information about a particular invocation of the method, such as input tuples, invocation reason etc.

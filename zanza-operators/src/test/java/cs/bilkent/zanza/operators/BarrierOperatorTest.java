@@ -1,5 +1,6 @@
 package cs.bilkent.zanza.operators;
 
+import java.util.List;
 import java.util.stream.IntStream;
 
 import org.junit.Before;
@@ -19,6 +20,7 @@ import cs.bilkent.zanza.utils.SimpleInitializationContext;
 import cs.bilkent.zanza.utils.SimpleInvocationContext;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertTrue;
 
 public class BarrierOperatorTest
@@ -56,9 +58,9 @@ public class BarrierOperatorTest
         final ScheduleWhenTuplesAvailable strategy = (ScheduleWhenTuplesAvailable) initialStrategy;
 
         final int tupleExpectedPortCount = (int) IntStream.of( inputPorts )
-                                                           .map( strategy::getTupleCount )
-                                                           .filter( count -> count == 1 )
-                                                           .count();
+                                                          .map( strategy::getTupleCount )
+                                                          .filter( count -> count == 1 )
+                                                          .count();
 
         assertThat( tupleExpectedPortCount, equalTo( inputPorts.length ) );
     }
@@ -88,14 +90,13 @@ public class BarrierOperatorTest
         operator.init( initContext );
 
         final PortsToTuples input = new PortsToTuples();
-        populateTuplesWithUniqueFields( input );
+        populateTuplesWithUniqueFields( input, 1 );
 
         final InvocationResult result = operator.process( new SimpleInvocationContext( InvocationReason.SUCCESS, input ) );
         assertSchedulingStrategy( result.getSchedulingStrategy() );
         final Tuple output = result.getOutputTuples().getTuple( 0, 0 );
-        final int matchingFieldCount = (int) IntStream.of( inputPorts )
-                                                       .filter( portIndex -> output.getInteger( "field" + portIndex ).equals( portIndex ) )
-                                                       .count();
+        assertThat( output.getSequenceNumber(), equalTo( 1 ) );
+        final int matchingFieldCount = getMatchingFieldCount( output );
 
         assertThat( matchingFieldCount, equalTo( inputPorts.length ) );
     }
@@ -118,10 +119,14 @@ public class BarrierOperatorTest
         operator.init( initContext );
 
         final PortsToTuples input = new PortsToTuples();
-        IntStream.of( inputPorts ).forEach( portIndex -> input.add( portIndex, new Tuple( "count", portIndex ) ) );
+        IntStream.of( inputPorts ).forEach( portIndex -> {
+            final Tuple tuple = new Tuple( 1, "count", portIndex );
+            input.add( portIndex, tuple );
+        } );
         final InvocationResult result = operator.process( new SimpleInvocationContext( InvocationReason.SUCCESS, input ) );
 
         final Tuple output = result.getOutputTuples().getTuple( 0, 0 );
+        assertThat( output.getSequenceNumber(), equalTo( 1 ) );
         assertThat( output.getInteger( "count" ), equalTo( expectedValue ) );
     }
 
@@ -131,7 +136,11 @@ public class BarrierOperatorTest
         initContext.getConfig().set( BarrierOperator.MERGE_POLICY_CONfIG_PARAMETER, TupleValueMergePolicy.KEEP_EXISTING_VALUE );
         operator.init( initContext );
         final PortsToTuples input = new PortsToTuples();
-        IntStream.of( inputPorts ).forEach( portIndex -> input.add( portIndex, new Tuple( "count", portIndex ) ) );
+        IntStream.of( inputPorts ).forEach( portIndex -> {
+            final Tuple tuple = new Tuple( "count", portIndex );
+            tuple.setSequenceNumber( 1 );
+            input.add( portIndex, tuple );
+        } );
         input.add( new Tuple( "count", -1 ) );
 
         operator.process( new SimpleInvocationContext( InvocationReason.SUCCESS, input ) );
@@ -144,26 +153,33 @@ public class BarrierOperatorTest
         operator.init( initContext );
 
         final PortsToTuples input = new PortsToTuples();
-        populateTuplesWithUniqueFields( input );
-        populateTuplesWithUniqueFields( input );
+        populateTuplesWithUniqueFields( input, 1 );
+        populateTuplesWithUniqueFields( input, 2 );
 
         final InvocationResult result = operator.process( new SimpleInvocationContext( InvocationReason.SUCCESS, input ) );
         assertSchedulingStrategy( result.getSchedulingStrategy() );
 
-        result.getOutputTuples().getTuplesByDefaultPort().forEach( output -> {
-            final int matchingFieldCount = (int) IntStream.of( inputPorts )
-                                                           .filter( portIndex -> output.getInteger( "field" + portIndex )
-                                                                                       .equals( portIndex ) )
-                                                           .count();
-
-            assertThat( matchingFieldCount, equalTo( inputPorts.length ) );
-        } );
+        final List<Tuple> output = result.getOutputTuples().getTuplesByDefaultPort();
+        assertThat( output, hasSize( 2 ) );
+        final Tuple tuple1 = output.get( 0 );
+        assertThat( getMatchingFieldCount( tuple1 ), equalTo( inputPorts.length ) );
+        assertThat( tuple1.getSequenceNumber(), equalTo( 1 ) );
+        final Tuple tuple2 = output.get( 1 );
+        assertThat( getMatchingFieldCount( tuple2 ), equalTo( inputPorts.length ) );
+        assertThat( tuple2.getSequenceNumber(), equalTo( 2 ) );
     }
 
-    private void populateTuplesWithUniqueFields ( final PortsToTuples input )
+    private int getMatchingFieldCount ( final Tuple tuple )
     {
-        IntStream.of( inputPorts )
-                  .forEach( portIndex -> input.add( portIndex, new Tuple( "field" + portIndex, portIndex ) ) );
+        return (int) IntStream.of( inputPorts ).filter( portIndex -> tuple.getInteger( "field" + portIndex ).equals( portIndex ) ).count();
+    }
+
+    private void populateTuplesWithUniqueFields ( final PortsToTuples input, final int sequenceNumber )
+    {
+        IntStream.of( inputPorts ).forEach( portIndex -> {
+            final Tuple tuple = new Tuple( sequenceNumber, "field" + portIndex, portIndex );
+            input.add( portIndex, tuple );
+        } );
     }
 
 }

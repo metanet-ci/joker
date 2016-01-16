@@ -16,6 +16,11 @@ import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailability
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.zanza.scheduling.SchedulingStrategy;
 
+/**
+ * A side-effecting operator which applies the given function to each input tuple.
+ * Forwards all input tuples to default output port directly.
+ * {@link Consumer} function is assumed not to mutate input tuples.
+ */
 @OperatorSpec( type = OperatorType.STATELESS, inputPortCount = 1, outputPortCount = 1 )
 public class ForEachOperator implements Operator
 {

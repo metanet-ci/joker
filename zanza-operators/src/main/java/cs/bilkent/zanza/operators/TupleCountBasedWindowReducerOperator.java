@@ -79,7 +79,9 @@ public class TupleCountBasedWindowReducerOperator implements Operator
         int windowCount = window.getIntegerOrDefault( WINDOW_FIELD, 0 );
         Tuple accumulator = kvStore.getOrDefault( ACCUMULATOR_TUPLE_KEY, initialValue );
 
-        for ( Tuple tuple : invocationContext.getInputTuples().getTuplesByDefaultPort() )
+        final PortsToTuples input = invocationContext.getInputTuples();
+
+        for ( Tuple tuple : input.getTuplesByDefaultPort() )
         {
             accumulator = accumulator == null ? tuple : reducerFunc.apply( accumulator, tuple );
 
@@ -87,6 +89,7 @@ public class TupleCountBasedWindowReducerOperator implements Operator
             {
                 currentTupleCount = 0;
                 accumulator.set( WINDOW_FIELD, windowCount++ );
+                accumulator.setSequenceNumber( tuple.getSequenceNumber() );
 
                 result.add( accumulator );
                 accumulator = initialValue;

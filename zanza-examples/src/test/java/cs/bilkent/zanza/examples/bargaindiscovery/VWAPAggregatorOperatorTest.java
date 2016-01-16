@@ -51,8 +51,8 @@ public class VWAPAggregatorOperatorTest
     {
         configure();
 
-        addInputTuple( 5, 20, 1 );
-        addInputTuple( 10, 25, 2 );
+        addInputTuple( 5, 20, 1, 1 );
+        addInputTuple( 10, 25, 2, 2 );
 
         final InvocationResult result = operator.process( invocationContext );
 
@@ -65,15 +65,15 @@ public class VWAPAggregatorOperatorTest
     {
         configure();
 
-        addInputTuple( 5, 20, 1 );
-        addInputTuple( 10, 25, 2 );
-        addInputTuple( 30, 60, 3 );
+        addInputTuple( 5, 20, 1, 1 );
+        addInputTuple( 10, 25, 2, 2 );
+        addInputTuple( 30, 60, 3, 3 );
 
         final InvocationResult result = operator.process( invocationContext );
 
         final PortsToTuples outputTuples = result.getOutputTuples();
         assertThat( outputTuples.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
-        assertTuple( outputTuples.getTuple( DEFAULT_PORT_INDEX, 0 ), 45, 105 );
+        assertTuple( outputTuples.getTuple( DEFAULT_PORT_INDEX, 0 ), 45, 105, 3 );
 
         assertWindow( 3, new double[] { 5, 10, 30 }, new double[] { 20, 25, 60 }, 45, 105 );
     }
@@ -83,16 +83,16 @@ public class VWAPAggregatorOperatorTest
     {
         configure();
 
-        addInputTuple( 5, 20, 1 );
-        addInputTuple( 10, 25, 2 );
-        addInputTuple( 30, 60, 3 );
-        addInputTuple( 40, 50, 4 );
+        addInputTuple( 5, 20, 1, 1 );
+        addInputTuple( 10, 25, 2, 2 );
+        addInputTuple( 30, 60, 3, 3 );
+        addInputTuple( 40, 50, 4, 4 );
 
         final InvocationResult result = operator.process( invocationContext );
 
         final PortsToTuples outputTuples = result.getOutputTuples();
         assertThat( outputTuples.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
-        assertTuple( outputTuples.getTuple( DEFAULT_PORT_INDEX, 0 ), 45, 105 );
+        assertTuple( outputTuples.getTuple( DEFAULT_PORT_INDEX, 0 ), 45, 105, 3 );
 
         assertWindow( 4, new double[] { 40, 10, 30 }, new double[] { 50, 25, 60 }, 80, 135 );
     }
@@ -102,18 +102,18 @@ public class VWAPAggregatorOperatorTest
     {
         configure();
 
-        addInputTuple( 5, 20, 1 );
-        addInputTuple( 10, 25, 2 );
-        addInputTuple( 30, 60, 3 );
-        addInputTuple( 40, 50, 4 );
-        addInputTuple( 50, 40, 5 );
+        addInputTuple( 5, 20, 1, 1 );
+        addInputTuple( 10, 25, 2, 2 );
+        addInputTuple( 30, 60, 3, 3 );
+        addInputTuple( 40, 50, 4, 4 );
+        addInputTuple( 50, 40, 5, 5 );
 
         final InvocationResult result = operator.process( invocationContext );
 
         final PortsToTuples outputTuples = result.getOutputTuples();
         assertThat( outputTuples.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 2 ) );
-        assertTuple( outputTuples.getTuple( DEFAULT_PORT_INDEX, 0 ), 45, 105 );
-        assertTuple( outputTuples.getTuple( DEFAULT_PORT_INDEX, 1 ), 120, 150 );
+        assertTuple( outputTuples.getTuple( DEFAULT_PORT_INDEX, 0 ), 45, 105, 3 );
+        assertTuple( outputTuples.getTuple( DEFAULT_PORT_INDEX, 1 ), 120, 150, 5 );
 
         assertWindow( 5, new double[] { 40, 50, 30 }, new double[] { 50, 40, 60 }, 120, 150 );
     }
@@ -130,22 +130,24 @@ public class VWAPAggregatorOperatorTest
         operator.init( initContext );
     }
 
-    private void addInputTuple ( final double vwap, final double volume, final long timestamp )
+    private void addInputTuple ( final double vwap, final double volume, final long timestamp, final int sequenceNumber )
     {
         final Tuple tuple = new Tuple();
         tuple.set( VWAPAggregatorOperator.TUPLE_INPUT_VWAP_FIELD, vwap );
         tuple.set( VWAPAggregatorOperator.TUPLE_VOLUME_FIELD, volume );
         tuple.set( TICKER_SYMBOL_FIELD, TUPLE_PARTITION_KEY );
         tuple.set( VWAPAggregatorOperator.TIMESTAMP_FIELD, timestamp );
+        tuple.setSequenceNumber( sequenceNumber );
 
         input.add( tuple );
     }
 
-    private void assertTuple ( final Tuple tuple, final double vwap, final double volume )
+    private void assertTuple ( final Tuple tuple, final double vwap, final double volume, final int sequenceNumber )
     {
         assertThat( tuple.get( TICKER_SYMBOL_FIELD ), equalTo( TUPLE_PARTITION_KEY ) );
         assertThat( tuple.getDouble( VWAPAggregatorOperator.SINGLE_VWAP_FIELD ), equalTo( vwap ) );
         assertThat( tuple.getDouble( VWAPAggregatorOperator.SINGLE_VOLUME_FIELD ), equalTo( volume ) );
+        assertThat( tuple.getSequenceNumber(), equalTo( sequenceNumber ) );
     }
 
     private void assertWindow ( final int tupleCount,

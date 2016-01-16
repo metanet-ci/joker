@@ -16,6 +16,9 @@ import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.ANY_NUMBER
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.zanza.scheduling.SchedulingStrategy;
 
+/**
+ * Applies the given predicate function to each input tuple and only returns the ones that satisfy the predicate
+ */
 @OperatorSpec( type = OperatorType.STATELESS, inputPortCount = 1, outputPortCount = 1 )
 public class FilterOperator implements Operator
 {
@@ -53,4 +56,5 @@ public class FilterOperator implements Operator
 
         return new InvocationResult( nextStrategy, output );
     }
+
 }

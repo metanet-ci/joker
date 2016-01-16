@@ -19,6 +19,10 @@ import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvail
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAll;
 import cs.bilkent.zanza.scheduling.SchedulingStrategy;
 
+/**
+ * Produces an single output tuple with the given merge function using a single tuple from each one of the input ports.
+ * Input tuples are assumed to have the same sequence number and this sequence number is set to the output tuple.
+ */
 @OperatorSpec( type = OperatorType.STATELESS, outputPortCount = 1 )
 public class BarrierOperator implements Operator
 {
@@ -104,14 +108,15 @@ public class BarrierOperator implements Operator
     @Override
     public InvocationResult process ( final InvocationContext invocationContext )
     {
-        final PortsToTuples output;
+        final PortsToTuples output = new PortsToTuples();
         final SchedulingStrategy next = invocationContext.isSuccessfulInvocation()
                                         ? getSchedulingStrategyForInputPorts()
                                         : ScheduleNever.INSTANCE;
 
-        final PortsToTuples portsToTuples = invocationContext.getInputTuples();
+        final PortsToTuples input = invocationContext.getInputTuples();
+
         final Optional<Integer> tupleCountOpt = IntStream.of( inputPorts )
-                                                         .mapToObj( portIndex -> portsToTuples.getTuples( portIndex ).size() )
+                                                         .mapToObj( portIndex -> input.getTuples( portIndex ).size() )
                                                          .reduce( ( count1, count2 ) -> count1.equals( count2 ) ? count1 : 0 );
         final int tupleCount = tupleCountOpt.orElse( 0 );
         if ( tupleCount == 0 )
@@ -119,17 +124,19 @@ public class BarrierOperator implements Operator
             throw new IllegalArgumentException( "number of tuples are not equal for all ports!" );
         }
 
-        output = IntStream.range( 0, tupleCount )
-                          .mapToObj( tupleIndex -> IntStream.of( inputPorts )
-                                                            .mapToObj( portIndex -> portsToTuples.getTuple( portIndex, tupleIndex ) ) )
-                          .map( tuples -> tuples.reduce( new Tuple(), tupleMergeFunc ) )
-                          .collect( PortsToTuples.COLLECT_TO_DEFAULT_PORT );
+        for ( int i = 0; i < tupleCount; i++ )
+        {
+            Tuple prev = new Tuple();
+            final int[] ports = input.getPorts();
+            for ( int portIndex : ports )
+            {
+                final Tuple tuple = input.getTuple( portIndex, i );
+                prev = tupleMergeFunc.apply( prev, tuple );
+            }
 
-        final Tuple result = IntStream.of( inputPorts )
-                                      .mapToObj( portIndex -> portsToTuples.getTuple( portIndex, 0 ) )
-                                      .reduce( new Tuple(), tupleMergeFunc );
-
-        output.add( result );
+            prev.setSequenceNumber( input.getTuple( ports[ 0 ], i ).getSequenceNumber() );
+            output.add( prev );
+        }
 
         return new InvocationResult( next, output );
     }

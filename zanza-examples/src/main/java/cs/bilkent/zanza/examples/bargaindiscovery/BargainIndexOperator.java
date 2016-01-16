@@ -44,7 +44,7 @@ public class BargainIndexOperator implements Operator
 
     private static final Logger LOGGER = LoggerFactory.getLogger( BargainIndexOperator.class );
 
-    static final String ASKED_TICKER_SYMBOL_PRICE_FIELD = "askptickersymbole";
+    static final String ASKED_TICKER_SYMBOL_PRICE_FIELD = "askptickersymbol";
 
     static final String ASKED_SIZE_FIELD = "asksize";
 
@@ -84,7 +84,7 @@ public class BargainIndexOperator implements Operator
                 final Double cvwap = kvStore.get( tickerSymbol );
                 if ( cvwap != null )
                 {
-                    final Tuple bargainIndex = getBargainIndex( cvwap, tuple );
+                    final Tuple bargainIndex = createBargainIndexTuple( cvwap, tuple );
                     if ( bargainIndex != null )
                     {
                         output.add( bargainIndex );
@@ -100,7 +100,7 @@ public class BargainIndexOperator implements Operator
         return new InvocationResult( nextStrategy, output );
     }
 
-    private Tuple getBargainIndex ( final double cvwap, final Tuple quote )
+    private Tuple createBargainIndexTuple ( final double cvwap, final Tuple quote )
     {
         final double askedTickerSymbolPrice = quote.getDouble( ASKED_TICKER_SYMBOL_PRICE_FIELD ) * 100;
         if ( cvwap > askedTickerSymbolPrice )
@@ -110,6 +110,7 @@ public class BargainIndexOperator implements Operator
 
             final Tuple outputTuple = new Tuple();
             outputTuple.set( BARGAIN_INDEX_FIELD, bargainIndex );
+            outputTuple.setSequenceNumber( quote.getSequenceNumber() );
 
             return outputTuple;
         }
