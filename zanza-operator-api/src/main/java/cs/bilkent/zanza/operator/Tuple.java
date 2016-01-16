@@ -209,6 +209,6 @@ public final class Tuple implements Fields<String>
     @Override
     public String toString ()
     {
-        return "Tuple{" + values + '}';
+        return "Tuple{" + ( sequenceNumber != NO_SEQUENCE_NUMBER ? "SN=" + sequenceNumber + ", " : "" ) + values + '}';
     }
 }

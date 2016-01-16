@@ -6,7 +6,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueuesConsumer;
 import cs.bilkent.zanza.operator.PortsToTuples;
-import static cs.bilkent.zanza.operator.PortsToTuplesAccessor.PORTS_TO_TUPLES_CONSTRUCTOR;
+import cs.bilkent.zanza.operator.PortsToTuplesAccessor;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable;
 import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.PortToTupleCount;
@@ -16,7 +16,6 @@ import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvail
 import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort;
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.AVAILABLE_ON_ALL_PORTS;
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.AVAILABLE_ON_ANY_PORT;
-import uk.co.real_logic.agrona.collections.Int2ObjectHashMap;
 
 public class DrainMultiPortTuples implements TupleQueuesConsumer
 {
@@ -46,8 +45,6 @@ public class DrainMultiPortTuples implements TupleQueuesConsumer
         checkArgument( tupleQueues != null );
         checkArgument( tupleQueues.length > 1 );
 
-        Int2ObjectHashMap<List<Tuple>> tuplesByPorts = null;
-
         if ( checkQueueSizes( tupleQueues ) )
         {
             for ( PortToTupleCount p : tupleCountByPortIndex )
@@ -65,16 +62,15 @@ public class DrainMultiPortTuples implements TupleQueuesConsumer
 
                 if ( !tuples.isEmpty() )
                 {
-                    if ( tuplesByPorts == null )
+                    if ( portsToTuples == null )
                     {
-                        tuplesByPorts = new Int2ObjectHashMap<>( tupleQueues.length, .9 );
+                        portsToTuples = new PortsToTuples();
                     }
-                    tuplesByPorts.put( portIndex, tuples );
+
+                    PortsToTuplesAccessor.addAll( portsToTuples, portIndex, tuples );
                 }
             }
         }
-
-        portsToTuples = tuplesByPorts != null ? PORTS_TO_TUPLES_CONSTRUCTOR.apply( tuplesByPorts ) : null;
     }
 
     @Override

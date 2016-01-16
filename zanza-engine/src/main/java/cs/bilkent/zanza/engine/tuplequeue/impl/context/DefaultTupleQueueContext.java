@@ -10,6 +10,7 @@ import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueuesConsumer;
 import cs.bilkent.zanza.operator.PortsToTuples;
+import cs.bilkent.zanza.operator.PortsToTuples.PortToTuples;
 import cs.bilkent.zanza.operator.Tuple;
 
 public class DefaultTupleQueueContext implements TupleQueueContext
@@ -46,14 +47,15 @@ public class DefaultTupleQueueContext implements TupleQueueContext
     @Override
     public void add ( final PortsToTuples portsToTuples )
     {
-        for ( int portIndex : portsToTuples.getPorts() )
+        for ( PortToTuples portToTuples : portsToTuples.getPortToTuplesList() )
         {
-            checkArgument( portIndex < this.inputPortCount,
+            final int portIndex = portToTuples.getPortIndex();
+            checkArgument                                      ( portIndex < this.inputPortCount,
                            "Tuples have invalid input port index for operator: " + operatorId + " input port count: " + inputPortCount
                            + " input port index: " + portIndex );
 
             final TupleQueue tupleQueue = tupleQueues[ portIndex ];
-            for ( Tuple tuple : portsToTuples.getTuples( portIndex ) )
+            for ( Tuple tuple : portToTuples.getTuples() )
             {
                 tupleQueue.offerTuple( tuple );
             }

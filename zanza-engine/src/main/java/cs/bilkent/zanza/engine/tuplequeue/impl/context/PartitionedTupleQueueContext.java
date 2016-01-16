@@ -14,6 +14,7 @@ import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueuesConsumer;
 import cs.bilkent.zanza.operator.PortsToTuples;
+import cs.bilkent.zanza.operator.PortsToTuples.PortToTuples;
 import cs.bilkent.zanza.operator.Tuple;
 
 public class PartitionedTupleQueueContext implements TupleQueueContext
@@ -58,12 +59,13 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
     @Override
     public void add ( final PortsToTuples portsToTuples )
     {
-        for ( int portIndex : portsToTuples.getPorts() )
+        for ( PortToTuples portToTuples : portsToTuples.getPortToTuplesList() )
         {
-            checkArgument( portIndex >= this.inputPortCount,
+            final int portIndex = portToTuples.getPortIndex();
+            checkArgument                                      ( portIndex >= this.inputPortCount,
                            "Tuples have invalid input port index for operator: " + operatorId + " input port count: " + inputPortCount
-                           + " input port index: " + portIndex );
-            for ( Tuple tuple : portsToTuples.getTuples( portIndex ) )
+                           +                                                                                            " input port index: "                                                                      + portIndex );
+            for ( Tuple tuple : portToTuples.getTuples() )
             {
                 final TupleQueue[] tupleQueues = tupleQueuesByPartitionKeys.computeIfAbsent                         ( tuple.getValues( partitionFieldNames ),
                                                                                              tupleQueuesConstructor );

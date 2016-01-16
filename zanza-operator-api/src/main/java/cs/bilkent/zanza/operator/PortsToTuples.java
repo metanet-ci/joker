@@ -1,7 +1,6 @@
 package cs.bilkent.zanza.operator;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -13,8 +12,8 @@ import java.util.stream.Collector;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import cs.bilkent.zanza.flow.Port;
+import static java.util.Collections.unmodifiableList;
 import static java.util.stream.Collector.Characteristics.IDENTITY_FINISH;
-import uk.co.real_logic.agrona.collections.Int2ObjectHashMap;
 
 /**
  * Contains {@link Tuple} instances mapped to some ports specified by indices.
@@ -23,12 +22,49 @@ import uk.co.real_logic.agrona.collections.Int2ObjectHashMap;
 public class PortsToTuples
 {
 
-    private static final BinaryOperator<PortsToTuples> PORTS_TO_TUPLES_COMBINER = ( p1, p2 ) -> {
-        for ( int port : p2.getPorts() )
+    /**
+     * Holds list of tuples added to a port index
+     */
+    public static class PortToTuples
+    {
+
+        private final int portIndex;
+
+        private final List<Tuple> tuples;
+
+        PortToTuples ( final int portIndex, final List<Tuple> tuples )
         {
-            for ( Tuple tuple : p2.getTuples( port ) )
+            this.portIndex = portIndex;
+            this.tuples = tuples;
+        }
+
+        public int getPortIndex ()
+        {
+            return portIndex;
+        }
+
+        public List<Tuple> getTuples ()
+        {
+            return tuples;
+        }
+
+        @Override
+        public String toString ()
+        {
+            return "PortToTuples{" +
+                   "portIndex=" + portIndex +
+                   ", tuples=" + tuples +
+                   '}';
+        }
+    }
+
+
+    private static final BinaryOperator<PortsToTuples> PORTS_TO_TUPLES_COMBINER = ( p1, p2 ) -> {
+        for ( PortToTuples portToTuples : p2.getPortToTuplesList() )
+        {
+            for ( Tuple tuple : portToTuples.getTuples() )
             {
-                p1.add( port, tuple );
+                p1.add( portToTuples.portIndex, tuple );
             }
         }
 
@@ -36,7 +72,7 @@ public class PortsToTuples
     };
 
 
-    public static final Collector<Tuple, PortsToTuples, PortsToTuples> COLLECT_TO_DEFAULT_PORT = Collector.of( PortsToTuples::new,
+    public static final Collector<Tuple, PortsToTuples, PortsToTuples> COLLECT_TO_DEFAULT_PORT = Collector.of                  ( PortsToTuples::new,
                                                                                                                PortsToTuples::add,
                                                                                                                PORTS_TO_TUPLES_COMBINER,
                                                                                                                IDENTITY_FINISH );
@@ -62,16 +98,11 @@ public class PortsToTuples
     }
 
 
-    private final Int2ObjectHashMap<List<Tuple>> tuplesByPort;
+    private final ArrayList<PortToTuples> tuplesByPort;
 
     public PortsToTuples ()
     {
-        tuplesByPort = new Int2ObjectHashMap<>();
-    }
-
-    PortsToTuples ( Int2ObjectHashMap<List<Tuple>> tuplesByPort )
-    {
-        this.tuplesByPort = tuplesByPort;
+        tuplesByPort = new ArrayList<>( 1 );
     }
 
     /**
@@ -150,8 +181,25 @@ public class PortsToTuples
     {
         checkArgument( portIndex >= 0, "port must be non-negative" );
         checkNotNull( tuple, "tuple can't be null" );
-        final List<Tuple> tuples = getOrCreateTuples( portIndex );
+        int i = 0;
+        for (; i < tuplesByPort.size(); i++ )
+        {
+            final PortToTuples portToTuples = tuplesByPort.get( i );
+            switch ( Integer.compare( portToTuples.portIndex, portIndex ) )
+            {
+                case -1:
+                    continue;
+                case 0:
+                    portToTuples.tuples.add( tuple );
+                    return;
+                case 1:
+                    break;
+            }
+        }
+
+        final List<Tuple> tuples = new ArrayList<>( 2 );
         tuples.add( tuple );
+        tuplesByPort.add( i, new PortToTuples( portIndex, tuples ) );
     }
 
     /**
@@ -164,10 +212,31 @@ public class PortsToTuples
      */
     public void addAll ( final int portIndex, final List<Tuple> tuplesToAdd )
     {
+        addAll( portIndex, tuplesToAdd, true );
+    }
+
+    void addAll ( final int portIndex, final List<Tuple> tuplesToAdd, boolean copy )
+    {
         checkArgument( portIndex >= 0, "port must be non-negative" );
         checkNotNull( tuplesToAdd, "tuples can't be null" );
-        final List<Tuple> tuples = getOrCreateTuples( portIndex );
-        tuples.addAll( tuplesToAdd );
+        int i = 0;
+        for (; i < tuplesByPort.size(); i++ )
+        {
+            final PortToTuples portToTuples = tuplesByPort.get( i );
+            switch ( Integer.compare( portToTuples.portIndex, portIndex ) )
+            {
+                case -1:
+                    continue;
+                case 0:
+                    portToTuples.tuples.addAll( tuplesToAdd );
+                    return;
+                case 1:
+                    break;
+            }
+        }
+
+        final List<Tuple> tuples = copy ? new ArrayList<>( tuplesToAdd ) : tuplesToAdd;
+        tuplesByPort.add( i, new PortToTuples( portIndex, tuples ) );
     }
 
     /**
@@ -180,8 +249,8 @@ public class PortsToTuples
      */
     public List<Tuple> getTuples ( final int portIndex )
     {
-        final List<Tuple> tuples = tuplesByPort.get( portIndex );
-        return tuples != null ? tuples : Collections.emptyList();
+        final PortToTuples portToTuples = getPortToTuples( portIndex );
+        return portToTuples != null ? portToTuples.getTuples() : Collections.emptyList();
     }
 
     /**
@@ -196,10 +265,10 @@ public class PortsToTuples
      */
     public Tuple getTuple ( final int portIndex, final int tupleIndex )
     {
-        final List<Tuple> tuples = tuplesByPort.get( portIndex );
-        if ( tuples != null && tuples.size() > tupleIndex )
+        final PortToTuples portToTuples = getPortToTuples( portIndex );
+        if ( portToTuples != null && portToTuples.tuples.size() > tupleIndex )
         {
-            return tuples.get( tupleIndex );
+            return portToTuples.getTuples().get( tupleIndex );
         }
 
         throw new IllegalArgumentException( "no tuple exists for port index " + portIndex + " and tuple index " + tupleIndex );
@@ -218,25 +287,13 @@ public class PortsToTuples
     }
 
     /**
-     * Returns all the port indices to which some tuples are added.
+     * Returns list of {@link PortToTuples} instances of which each one contains tuples added to a port index
      *
-     * @return all the port indices to which some tuples are added
+     * @return list of {@link PortToTuples} instances of which each one contains tuples added to a port index
      */
-    public int[] getPorts ()
+    public List<PortToTuples> getPortToTuplesList ()
     {
-        final Int2ObjectHashMap<List<Tuple>>.KeySet keys = tuplesByPort.keySet();
-        final int[] ports = new int[ keys.size() ];
-
-        final Int2ObjectHashMap<List<Tuple>>.KeyIterator it = keys.iterator();
-
-        for ( int i = 0; i < keys.size(); i++ )
-        {
-            ports[ i ] = it.nextInt();
-        }
-
-        Arrays.sort( ports );
-
-        return ports;
+        return unmodifiableList( tuplesByPort );
     }
 
     /**
@@ -246,7 +303,7 @@ public class PortsToTuples
      */
     public int getPortCount ()
     {
-        return tuplesByPort.keySet().size();
+        return tuplesByPort.size();
     }
 
     /**
@@ -263,9 +320,17 @@ public class PortsToTuples
         return tuples != null ? tuples.size() : 0;
     }
 
-    private List<Tuple> getOrCreateTuples ( final int portIndex )
+    private PortToTuples getPortToTuples ( final int portIndex )
     {
-        return tuplesByPort.computeIfAbsent( portIndex, ignoredPortIndex -> new ArrayList<>() );
+        for ( PortToTuples p : tuplesByPort )
+        {
+            if ( p.portIndex == portIndex )
+            {
+                return p;
+            }
+        }
+
+        return null;
     }
 
     @Override

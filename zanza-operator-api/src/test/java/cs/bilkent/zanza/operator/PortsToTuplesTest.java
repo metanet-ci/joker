@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.junit.Test;
 
-import cs.bilkent.zanza.flow.Port;
+import cs.bilkent.zanza.operator.PortsToTuples.PortToTuples;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -24,9 +24,13 @@ public class PortsToTuplesTest
         portsToTuples.add( tuple );
 
         assertThat( portsToTuples.getPortCount(), equalTo( 1 ) );
-        assertThat( portsToTuples.getPorts(), equalTo( new int[] { Port.DEFAULT_PORT_INDEX } ) );
+        final List<PortToTuples> portToTuplesList = portsToTuples.getPortToTuplesList();
+        assertThat( portToTuplesList, hasSize( 1 ) );
+        final PortToTuples portToTuples = portToTuplesList.get( 0 );
+        assertThat( portToTuples.getPortIndex(), equalTo( 0 ) );
+        assertThat( portToTuples.getTuples(), hasSize( 1 ) );
 
-        final List<Tuple> tuples = portsToTuples.getTuples( Port.DEFAULT_PORT_INDEX );
+        final List<Tuple> tuples = portsToTuples.getTuples( 0 );
         assertThat( tuples, hasSize( 1 ) );
         assertThat( tuples, hasItem( tuple ) );
     }
@@ -53,7 +57,11 @@ public class PortsToTuplesTest
         portsToTuples.add( portIndex, tuple );
 
         assertThat( portsToTuples.getPortCount(), equalTo( portIndex ) );
-        assertThat( portsToTuples.getPorts(), equalTo( new int[] { portIndex } ) );
+        final List<PortToTuples> portToTuplesList = portsToTuples.getPortToTuplesList();
+        assertThat( portToTuplesList, hasSize( 1 ) );
+        final PortToTuples portToTuples = portToTuplesList.get( 0 );
+        assertThat( portToTuples.getPortIndex(), equalTo( portIndex ) );
+        assertThat( portToTuples.getTuples(), hasSize( 1 ) );
 
         final List<Tuple> tuples = portsToTuples.getTuplesByDefaultPort();
         assertThat( tuples, hasSize( 0 ) );
@@ -68,8 +76,13 @@ public class PortsToTuplesTest
         portsToTuples.add( 1, tuple );
 
         assertThat( portsToTuples.getPortCount(), equalTo( 2 ) );
-        final int[] ports = portsToTuples.getPorts();
-        assertThat( ports, equalTo( new int[] { 0, 1 } ) );
+        final List<PortToTuples> portToTuplesList = portsToTuples.getPortToTuplesList();
+        final PortToTuples portToTuples1 = portToTuplesList.get( 0 );
+        final PortToTuples portToTuples2 = portToTuplesList.get( 1 );
+        assertThat( portToTuples1.getPortIndex(), equalTo( 0 ) );
+        assertThat( portToTuples1.getTuples(), hasSize( 1 ) );
+        assertThat( portToTuples2.getPortIndex(), equalTo( 1 ) );
+        assertThat( portToTuples2.getTuples(), hasSize( 1 ) );
 
         final List<Tuple> tuples1 = portsToTuples.getTuples( 0 );
         assertThat( tuples1, hasSize( 1 ) );

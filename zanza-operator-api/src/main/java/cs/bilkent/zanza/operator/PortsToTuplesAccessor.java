@@ -1,9 +1,6 @@
 package cs.bilkent.zanza.operator;
 
 import java.util.List;
-import java.util.function.Function;
-
-import uk.co.real_logic.agrona.collections.Int2ObjectHashMap;
 
 /**
  * Only for internal use
@@ -11,6 +8,9 @@ import uk.co.real_logic.agrona.collections.Int2ObjectHashMap;
 public class PortsToTuplesAccessor
 {
 
-    public static final Function<Int2ObjectHashMap<List<Tuple>>, PortsToTuples> PORTS_TO_TUPLES_CONSTRUCTOR = PortsToTuples::new;
+    public static void addAll ( final PortsToTuples portsToTuples, final int portIndex, final List<Tuple> tuples )
+    {
+        portsToTuples.addAll( portIndex, tuples, false );
+    }
 
 }

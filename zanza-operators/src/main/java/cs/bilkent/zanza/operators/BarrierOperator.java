@@ -11,6 +11,7 @@ import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
 import cs.bilkent.zanza.operator.PortsToTuples;
+import cs.bilkent.zanza.operator.PortsToTuples.PortToTuples;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
 import cs.bilkent.zanza.operator.spec.OperatorType;
@@ -126,10 +127,9 @@ public class BarrierOperator implements Operator
         for ( int i = 0; i < tupleCount; i++ )
         {
             Tuple prev = new Tuple();
-            final int[] ports = input.getPorts();
-            for ( int portIndex : ports )
+            for ( PortToTuples portToTuples : input.getPortToTuplesList() )
             {
-                final Tuple tuple = input.getTuple( portIndex, i );
+                final Tuple tuple = portToTuples.getTuples().get( i );
                 prev = tupleMergeFunc.apply( prev, tuple );
             }
 
