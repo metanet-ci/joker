@@ -1,7 +1,6 @@
 package cs.bilkent.zanza.engine.tuplequeue.impl.consumer;
 
 import java.util.List;
-import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
@@ -10,6 +9,7 @@ import cs.bilkent.zanza.operator.PortsToTuples;
 import static cs.bilkent.zanza.operator.PortsToTuplesAccessor.PORTS_TO_TUPLES_CONSTRUCTOR;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable;
+import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.PortToTupleCount;
 import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount;
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST_BUT_SAME_ON_ALL_PORTS;
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.EXACT;
@@ -26,7 +26,7 @@ public class DrainMultiPortTuples implements TupleQueuesConsumer
 
     private final TupleAvailabilityByPort tupleAvailabilityByPort;
 
-    private final Map<Integer, Integer> tupleCountByPortIndex;
+    private final List<PortToTupleCount> tupleCountByPortIndex;
 
     private PortsToTuples portsToTuples;
 
@@ -50,11 +50,12 @@ public class DrainMultiPortTuples implements TupleQueuesConsumer
 
         if ( checkQueueSizes( tupleQueues ) )
         {
-            for ( int portIndex = 0; portIndex < tupleQueues.length; portIndex++ )
+            for ( PortToTupleCount p : tupleCountByPortIndex )
             {
-                final TupleQueue tupleQueue = tupleQueues[ portIndex ];
-                final int tupleCount = tupleCountByPortIndex.getOrDefault( portIndex, 0 );
+                final int portIndex = p.portIndex;
+                final int tupleCount = p.tupleCount;
 
+                final TupleQueue tupleQueue = tupleQueues[ portIndex ];
                 final boolean pollWithExactCount =
                         tupleAvailabilityByCount == EXACT || tupleAvailabilityByCount == AT_LEAST_BUT_SAME_ON_ALL_PORTS;
 
@@ -84,13 +85,12 @@ public class DrainMultiPortTuples implements TupleQueuesConsumer
 
     private boolean checkQueueSizes ( final TupleQueue[] tupleQueues )
     {
-
         if ( tupleAvailabilityByPort == AVAILABLE_ON_ALL_PORTS )
         {
-            for ( int portIndex = 0; portIndex < tupleQueues.length; portIndex++ )
+            for ( PortToTupleCount p : tupleCountByPortIndex )
             {
-                final int size = tupleQueues[ portIndex ].size();
-                if ( size < tupleCountByPortIndex.getOrDefault( portIndex, 0 ) )
+                final int size = tupleQueues[ p.portIndex ].size();
+                if ( size < p.tupleCount )
                 {
                     return false;
                 }

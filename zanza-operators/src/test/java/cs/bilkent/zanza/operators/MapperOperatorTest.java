@@ -1,7 +1,6 @@
 package cs.bilkent.zanza.operators;
 
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 
 import org.junit.Test;
@@ -16,6 +15,7 @@ import static cs.bilkent.zanza.operators.MapperOperator.MAPPER_CONFIG_PARAMETER;
 import cs.bilkent.zanza.scheduling.ScheduleNever;
 import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable;
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.ANY_NUMBER_OF_TUPLES;
+import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.PortToTupleCount;
 import cs.bilkent.zanza.scheduling.SchedulingStrategy;
 import cs.bilkent.zanza.utils.SimpleInitializationContext;
 import cs.bilkent.zanza.utils.SimpleInvocationContext;
@@ -192,9 +192,9 @@ public class MapperOperatorTest
     {
         assertTrue( strategy instanceof ScheduleWhenTuplesAvailable );
         final ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailable = (ScheduleWhenTuplesAvailable) strategy;
-        final Map<Integer, Integer> tupleCountByPortIndex = scheduleWhenTuplesAvailable.getTupleCountByPortIndex();
+        final List<PortToTupleCount> tupleCountByPortIndex = scheduleWhenTuplesAvailable.getTupleCountByPortIndex();
         assertThat( tupleCountByPortIndex.size(), equalTo( 1 ) );
-        assertThat( tupleCountByPortIndex.get( DEFAULT_PORT_INDEX ), equalTo( tupleCount ) );
+        assertThat( scheduleWhenTuplesAvailable.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( tupleCount ) );
     }
 
 }

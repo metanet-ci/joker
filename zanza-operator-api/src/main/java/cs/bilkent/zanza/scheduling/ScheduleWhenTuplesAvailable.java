@@ -1,9 +1,8 @@
 package cs.bilkent.zanza.scheduling;
 
 
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -12,7 +11,8 @@ import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvail
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST_BUT_SAME_ON_ALL_PORTS;
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.AVAILABLE_ON_ALL_PORTS;
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.AVAILABLE_ON_ANY_PORT;
-import static java.util.Collections.unmodifiableMap;
+import static java.util.Collections.singletonList;
+import static java.util.Collections.unmodifiableList;
 
 public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
 {
@@ -31,9 +31,25 @@ public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
     }
 
 
+    public static class PortToTupleCount
+    {
+
+        public final int portIndex;
+
+        public final int tupleCount;
+
+        public PortToTupleCount ( final int portIndex, final int tupleCount )
+        {
+            this.portIndex = portIndex;
+            this.tupleCount = tupleCount;
+        }
+
+    }
+
     public static final int ANY_NUMBER_OF_TUPLES = 0;
 
-    private final Map<Integer, Integer> tupleCountByPortIndex = new HashMap<>();
+
+    private final List<PortToTupleCount> tupleCountByPortIndex;
 
     private final TupleAvailabilityByCount tupleAvailabilityByCount;
 
@@ -103,30 +119,24 @@ public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
 
     public ScheduleWhenTuplesAvailable ( final int portIndex, final int tupleCount )
     {
-        this.tupleAvailabilityByCount = AT_LEAST;
-        this.tupleAvailabilityByPort = AVAILABLE_ON_ANY_PORT;
-        tupleCountByPortIndex.put( portIndex, tupleCount );
+        this( AT_LEAST, AVAILABLE_ON_ANY_PORT, singletonList( new PortToTupleCount( portIndex, tupleCount ) ) );
     }
 
     public ScheduleWhenTuplesAvailable ( final TupleAvailabilityByCount tupleAvailabilityByCount,
                                          final int portIndex,
                                          final int tupleCount )
     {
-        this.tupleAvailabilityByCount = tupleAvailabilityByCount;
-        this.tupleAvailabilityByPort = AVAILABLE_ON_ANY_PORT;
-        tupleCountByPortIndex.put( portIndex, tupleCount );
+        this( tupleAvailabilityByCount, AVAILABLE_ON_ANY_PORT, singletonList( new PortToTupleCount( portIndex, tupleCount ) ) );
     }
 
-    public ScheduleWhenTuplesAvailable ( final Map<Integer, Integer> tupleCountByPortIndex )
+    public ScheduleWhenTuplesAvailable ( final List<PortToTupleCount> tupleCountByPortIndex )
     {
-        this.tupleAvailabilityByCount = AT_LEAST;
-        this.tupleAvailabilityByPort = AVAILABLE_ON_ALL_PORTS;
-        this.tupleCountByPortIndex.putAll( tupleCountByPortIndex );
+        this( AT_LEAST, AVAILABLE_ON_ALL_PORTS, tupleCountByPortIndex );
     }
 
     public ScheduleWhenTuplesAvailable ( final TupleAvailabilityByCount tupleAvailabilityByCount,
                                          final TupleAvailabilityByPort tupleAvailabilityByPort,
-                                         final Map<Integer, Integer> tupleCountByPortIndex )
+                                         final List<PortToTupleCount> tupleCountByPortIndex )
     {
         checkNotNull( tupleAvailabilityByCount );
         checkNotNull( tupleAvailabilityByPort );
@@ -134,7 +144,9 @@ public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
                                                                && tupleAvailabilityByPort == AVAILABLE_ON_ANY_PORT ) );
         this.tupleAvailabilityByCount = tupleAvailabilityByCount;
         this.tupleAvailabilityByPort = tupleAvailabilityByPort;
-        this.tupleCountByPortIndex.putAll( tupleCountByPortIndex );
+        final ArrayList<PortToTupleCount> copy = new ArrayList<>( tupleCountByPortIndex.size() );
+        copy.addAll( tupleCountByPortIndex );
+        this.tupleCountByPortIndex = unmodifiableList( copy );
     }
 
     public ScheduleWhenTuplesAvailable ( final TupleAvailabilityByCount tupleAvailabilityByCount,
@@ -151,10 +163,12 @@ public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
 
         this.tupleAvailabilityByCount = tupleAvailabilityByCount;
         this.tupleAvailabilityByPort = tupleAvailabilityByPort;
+        final ArrayList<PortToTupleCount> copy = new ArrayList<>( ports.length );
         for ( final int port : ports )
         {
-            this.tupleCountByPortIndex.put( port, tupleCount );
+            copy.add( new PortToTupleCount( port, tupleCount ) );
         }
+        this.tupleCountByPortIndex = unmodifiableList( copy );
     }
 
     public ScheduleWhenTuplesAvailable ( final TupleAvailabilityByCount tupleAvailabilityByCount,
@@ -171,15 +185,17 @@ public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
 
         this.tupleAvailabilityByCount = tupleAvailabilityByCount;
         this.tupleAvailabilityByPort = tupleAvailabilityByPort;
+        final ArrayList<PortToTupleCount> copy = new ArrayList<>( ports.size() );
         for ( final int port : ports )
         {
-            this.tupleCountByPortIndex.put( port, tupleCount );
+            copy.add( new PortToTupleCount( port, tupleCount ) );
         }
+        this.tupleCountByPortIndex = unmodifiableList( copy );
     }
 
-    public Map<Integer, Integer> getTupleCountByPortIndex ()
+    public List<PortToTupleCount> getTupleCountByPortIndex ()
     {
-        return unmodifiableMap( tupleCountByPortIndex );
+        return tupleCountByPortIndex;
     }
 
     public TupleAvailabilityByPort getTupleAvailabilityByPort ()
@@ -194,7 +210,15 @@ public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
 
     public int getTupleCount ( final int portIndex )
     {
-        return tupleCountByPortIndex.getOrDefault( portIndex, 0 );
+        for ( PortToTupleCount p : tupleCountByPortIndex )
+        {
+            if ( p.portIndex == portIndex )
+            {
+                return p.tupleCount;
+            }
+        }
+
+        return 0;
     }
 
 }
