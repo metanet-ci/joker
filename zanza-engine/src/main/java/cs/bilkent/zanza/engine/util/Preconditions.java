@@ -6,6 +6,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.zanza.operator.spec.OperatorType;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 
+
 public final class Preconditions
 {
     private Preconditions ()

@@ -1,9 +1,11 @@
 package cs.bilkent.zanza.operator.schema.annotation;
 
+
 import java.lang.annotation.Retention;
 
 import cs.bilkent.zanza.flow.FlowBuilder;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
+
 
 /**
  * Annotation to define schema of an input / output port of an operator at design time.

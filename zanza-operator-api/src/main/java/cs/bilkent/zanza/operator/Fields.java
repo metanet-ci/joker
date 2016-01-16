@@ -1,5 +1,6 @@
 package cs.bilkent.zanza.operator;
 
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -10,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
 
 /**
  * A utility interface that provides some methods for key-value accesses
@@ -183,7 +185,8 @@ public interface Fields<K>
     }
 
     /**
-     * Returns the associated value of the given key, or returns the value that is created by the provided function, if the key is not present
+     * Returns the associated value of the given key, or returns the value that is created by the provided function, if the key is not
+     * present
      *
      * @param key
      *         key to get the associated value
@@ -192,7 +195,8 @@ public interface Fields<K>
      * @param <T>
      *         type of the associated value
      *
-     * @return the associated value of the given key, or returns the value that is created by the provided function, if the key is not present
+     * @return the associated value of the given key, or returns the value that is created by the provided function, if the key is not
+     * present
      */
     default <T> T getOrDefault ( K key, Supplier<T> supplier )
     {

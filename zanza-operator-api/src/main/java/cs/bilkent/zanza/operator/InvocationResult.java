@@ -1,8 +1,10 @@
 package cs.bilkent.zanza.operator;
 
+
 import static com.google.common.base.Preconditions.checkNotNull;
 import cs.bilkent.zanza.scheduling.ScheduleNever;
 import cs.bilkent.zanza.scheduling.SchedulingStrategy;
+
 
 /**
  * Used for specifying the output of an {@link Operator#process(InvocationContext)} invocation.

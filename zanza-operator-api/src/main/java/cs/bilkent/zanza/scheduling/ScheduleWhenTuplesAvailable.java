@@ -14,6 +14,7 @@ import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvail
 import static java.util.Collections.singletonList;
 import static java.util.Collections.unmodifiableList;
 
+
 public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
 {
 
@@ -45,6 +46,7 @@ public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
         }
 
     }
+
 
     public static final int ANY_NUMBER_OF_TUPLES = 0;
 
@@ -110,7 +112,8 @@ public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
         return new ScheduleWhenTuplesAvailable( Port.DEFAULT_PORT_INDEX, tupleCount );
     }
 
-    public static ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailableOnDefaultPort ( final TupleAvailabilityByCount tupleAvailabilityByCount,
+    public static ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailableOnDefaultPort ( final TupleAvailabilityByCount
+                                                                                                 tupleAvailabilityByCount,
                                                                                          final int tupleCount )
     {
         return new ScheduleWhenTuplesAvailable( tupleAvailabilityByCount, Port.DEFAULT_PORT_INDEX, tupleCount );

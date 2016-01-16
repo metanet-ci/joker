@@ -1,5 +1,6 @@
 package cs.bilkent.zanza.operator;
 
+
 import cs.bilkent.zanza.flow.FlowDefinition;
 import cs.bilkent.zanza.kvstore.KVStore;
 import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
@@ -7,6 +8,7 @@ import cs.bilkent.zanza.operator.schema.annotation.OperatorSchema;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
 import cs.bilkent.zanza.operator.spec.OperatorType;
 import cs.bilkent.zanza.scheduling.SchedulingStrategy;
+
 
 /**
  * {@code Operator} is the main component that is responsible for producing or processing tuples.

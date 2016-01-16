@@ -1,6 +1,8 @@
 package cs.bilkent.zanza.operator;
 
+
 import java.util.List;
+
 
 /**
  * Only for internal use

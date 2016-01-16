@@ -1,15 +1,15 @@
 package cs.bilkent.zanza.flow;
 
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Stream;
 
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Multimaps.unmodifiableMultimap;
+import static java.util.Collections.unmodifiableMap;
 
 
 public class FlowDefinition
@@ -21,8 +21,8 @@ public class FlowDefinition
     public FlowDefinition ( final Map<String, OperatorDefinition> operators, final Multimap<Port, Port> connections )
     {
         validateFlowDefinition( operators, connections );
-        this.operators = Collections.unmodifiableMap( operators );
-        this.connections = Multimaps.unmodifiableMultimap( connections );
+        this.operators = unmodifiableMap( operators );
+        this.connections = unmodifiableMultimap( connections );
     }
 
     // TODO improve flow validation

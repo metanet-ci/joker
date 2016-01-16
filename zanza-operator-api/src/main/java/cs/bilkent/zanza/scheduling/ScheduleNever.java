@@ -1,5 +1,6 @@
 package cs.bilkent.zanza.scheduling;
 
+
 public class ScheduleNever implements SchedulingStrategy
 {
 

@@ -7,6 +7,7 @@ import cs.bilkent.zanza.operator.OperatorConfig;
 import cs.bilkent.zanza.operator.schema.runtime.OperatorRuntimeSchema;
 import static java.util.Collections.emptyList;
 
+
 public class SimpleInitializationContext implements InitializationContext
 {
     private String name;

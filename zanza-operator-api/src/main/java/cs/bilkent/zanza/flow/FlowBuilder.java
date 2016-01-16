@@ -1,11 +1,9 @@
 package cs.bilkent.zanza.flow;
 
 
-import java.lang.annotation.Annotation;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -14,13 +12,10 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
 import cs.bilkent.zanza.operator.schema.runtime.OperatorRuntimeSchema;
-import cs.bilkent.zanza.operator.spec.OperatorSpec;
 
 
 public class FlowBuilder
 {
-
-    private static final Predicate<Annotation> OPERATOR_SPEC_ANNOTATION_PREDICATE = input -> input instanceof OperatorSpec;
 
     private final Map<String, OperatorDefinition> operators = new LinkedHashMap<>();
 

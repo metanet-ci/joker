@@ -16,6 +16,7 @@ import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.ANY_NUMBER
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.zanza.scheduling.SchedulingStrategy;
 
+
 /**
  * Prints all input tuples to {@link System#out} and forwards them to the default output port
  */

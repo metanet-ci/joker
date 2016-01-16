@@ -1,5 +1,6 @@
 package cs.bilkent.zanza.flow;
 
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,6 +10,7 @@ import cs.bilkent.zanza.operator.schema.annotation.PortSchemaScope;
 import static cs.bilkent.zanza.operator.schema.annotation.PortSchemaScope.BASE_FIELD_SET;
 import cs.bilkent.zanza.operator.schema.runtime.PortRuntimeSchema;
 import cs.bilkent.zanza.operator.schema.runtime.RuntimeSchemaField;
+
 
 public class PortRuntimeSchemaBuilder
 {
@@ -50,9 +52,9 @@ public class PortRuntimeSchemaBuilder
     public PortRuntimeSchemaBuilder addField ( final RuntimeSchemaField field )
     {
         checkArgument( field != null, "field must be provided" );
-        checkState                                                                                                ( scope == BASE_FIELD_SET,
+        checkState( scope == BASE_FIELD_SET,
                     "port schema of port index: " + portIndex + "  with " + BASE_FIELD_SET + " can't be modified" );
-        checkState                                                                            ( fields.stream().noneMatch( f -> f.name.equals( field.name ) ),
+        checkState( fields.stream().noneMatch( f -> f.name.equals( field.name ) ),
                     field.name + " already exists in port schema of port index: " + portIndex );
         fields.add( field );
 

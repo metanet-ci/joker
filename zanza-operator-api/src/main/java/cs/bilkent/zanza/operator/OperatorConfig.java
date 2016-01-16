@@ -1,11 +1,13 @@
 package cs.bilkent.zanza.operator;
 
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+
 
 /**
  * Contains all the configuration information that can be used by an operator. Users can provide operator specific

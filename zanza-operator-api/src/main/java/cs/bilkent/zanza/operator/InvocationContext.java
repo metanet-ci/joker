@@ -1,8 +1,10 @@
 package cs.bilkent.zanza.operator;
 
+
 import cs.bilkent.zanza.kvstore.KVStore;
 import cs.bilkent.zanza.operator.spec.OperatorType;
 import cs.bilkent.zanza.scheduling.SchedulingStrategy;
+
 
 /**
  * Contains necessary objects and information for an invocation of {@link Operator#process(InvocationContext)} method.

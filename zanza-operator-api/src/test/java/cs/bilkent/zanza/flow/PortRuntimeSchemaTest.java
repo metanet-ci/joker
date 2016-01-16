@@ -6,6 +6,7 @@ import cs.bilkent.zanza.operator.schema.runtime.PortRuntimeSchema;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+
 public class PortRuntimeSchemaTest
 {
 

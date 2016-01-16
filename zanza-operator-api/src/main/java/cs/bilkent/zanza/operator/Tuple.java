@@ -1,5 +1,6 @@
 package cs.bilkent.zanza.operator;
 
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -11,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Collections.unmodifiableMap;
+
 
 /**
  * The tuple is the main data structure to manipulate data in Zanza.

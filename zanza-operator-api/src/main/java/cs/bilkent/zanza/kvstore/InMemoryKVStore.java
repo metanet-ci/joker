@@ -1,19 +1,21 @@
 package cs.bilkent.zanza.kvstore;
 
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+
 public class InMemoryKVStore implements KVStore
 {
     private final Map<Object, Object> values = new ConcurrentHashMap<>();
 
-    public InMemoryKVStore()
+    public InMemoryKVStore ()
     {
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings( "unchecked" )
     @Override
     public <T> T get ( final Object key )
     {
@@ -36,7 +38,7 @@ public class InMemoryKVStore implements KVStore
         values.put( key, value );
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings( "unchecked" )
     @Override
     public <T> T put ( final Object key, final T value )
     {

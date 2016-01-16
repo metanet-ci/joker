@@ -36,8 +36,7 @@ public class OperatorDefinition
                                 final OperatorType type,
                                 final int inputPortCount,
                                 final int outputPortCount,
-                                final OperatorRuntimeSchema schema,
-                                final OperatorConfig config, final List<String> partitionFieldNames )
+                                final OperatorRuntimeSchema schema, final OperatorConfig config, final List<String> partitionFieldNames )
     {
         checkArgument( id != null, "id can't be null" );
         checkArgument( clazz != null, "clazz can't be null" );

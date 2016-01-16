@@ -1,8 +1,10 @@
 package cs.bilkent.zanza.operator.spec;
 
+
 import cs.bilkent.zanza.kvstore.KVStore;
 import cs.bilkent.zanza.operator.InvocationContext;
 import cs.bilkent.zanza.operator.Operator;
+
 
 /**
  * Defines type of an {@link Operator} within {@link OperatorSpec}

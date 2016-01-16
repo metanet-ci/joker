@@ -1,5 +1,6 @@
 package cs.bilkent.zanza.flow;
 
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -10,6 +11,7 @@ import cs.bilkent.zanza.operator.schema.runtime.OperatorRuntimeSchema;
 import cs.bilkent.zanza.operator.schema.runtime.PortRuntimeSchema;
 import cs.bilkent.zanza.operator.schema.runtime.RuntimeSchemaField;
 import static java.util.stream.Collectors.toList;
+
 
 public class OperatorRuntimeSchemaBuilder
 {
@@ -86,7 +88,7 @@ public class OperatorRuntimeSchemaBuilder
 
     private PortRuntimeSchemaBuilder getOrCreate ( final PortRuntimeSchemaBuilder[] builders, final int portIndex )
     {
-        checkArgument                                                                                           ( portIndex >= 0 && portIndex < builders.length,
+        checkArgument( portIndex >= 0 && portIndex < builders.length,
                        "invalid port index! input port count: " + builders.length + " port index: " + portIndex );
         PortRuntimeSchemaBuilder builder = builders[ portIndex ];
         if ( builder == null )

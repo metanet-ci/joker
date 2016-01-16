@@ -19,6 +19,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+
 public class TupleTest
 {
     private Tuple tuple = new Tuple();
@@ -567,21 +568,21 @@ public class TupleTest
     {
         assertThat( tuple.getMapOrEmpty( "field" ).size(), equalTo( 0 ) );
     }
-    
-	@Test
-	public void shouldClear()
-	{
-		tuple.set("field", "value");
-		tuple.clear();
-		assertThat(tuple.size(), equalTo(0));
-	}
 
-	@Test
-	public void shouldGetSize()
-	{
-		tuple.set("field", "value");
-		assertThat(tuple.size(), equalTo(1));
-	}
+    @Test
+    public void shouldClear ()
+    {
+        tuple.set( "field", "value" );
+        tuple.clear();
+        assertThat( tuple.size(), equalTo( 0 ) );
+    }
+
+    @Test
+    public void shouldGetSize ()
+    {
+        tuple.set( "field", "value" );
+        assertThat( tuple.size(), equalTo( 1 ) );
+    }
 
     @Test
     public void testTupleEquality ()

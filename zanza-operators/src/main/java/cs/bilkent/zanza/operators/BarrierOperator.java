@@ -20,6 +20,7 @@ import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvail
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAll;
 import cs.bilkent.zanza.scheduling.SchedulingStrategy;
 
+
 /**
  * Produces an single output tuple with the given merge function using a single tuple from each one of the input ports.
  */

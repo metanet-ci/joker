@@ -32,6 +32,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+
 public class OperatorDefinitionBuilderTest
 {
     @Test( expected = IllegalArgumentException.class )
@@ -180,7 +181,8 @@ public class OperatorDefinitionBuilderTest
 
     @OperatorSpec( type = PARTITIONED_STATEFUL, inputPortCount = 1, outputPortCount = 1 )
     @OperatorSchema( inputs = { @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = int.class ) } ) },
-            outputs = { @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = BASE_FIELD_SET, fields = { @SchemaField( name = "field2", type = long.class ) } ) } )
+            outputs = { @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = BASE_FIELD_SET, fields = { @SchemaField( name = "field2",
+                    type = long.class ) } ) } )
     public static class OperatorWithExactInputPortSchema implements Operator
     {
 

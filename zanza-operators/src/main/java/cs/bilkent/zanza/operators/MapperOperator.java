@@ -16,6 +16,7 @@ import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.ANY_NUMBER
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.zanza.scheduling.SchedulingStrategy;
 
+
 /**
  * Maps the input tuples into new output tuples with the provided mapper function.
  * Output tuples have same sequence number with their corresponding input tuples.
@@ -58,7 +59,7 @@ public class MapperOperator implements Operator
                                                       .collect( PortsToTuples.COLLECT_TO_DEFAULT_PORT );
 
         final SchedulingStrategy nextStrategy = invocationContext.isSuccessfulInvocation() ? scheduleWhenTuplesAvailableOnDefaultPort(
-                tupleCount                                                                                                           )                                                               : ScheduleNever.INSTANCE;
+                tupleCount )                                                               : ScheduleNever.INSTANCE;
 
         return new InvocationResult( nextStrategy, output );
     }

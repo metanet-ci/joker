@@ -1,5 +1,6 @@
 package cs.bilkent.zanza.operator.schema.annotation;
 
+
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
@@ -10,6 +11,7 @@ import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.schema.runtime.PortRuntimeSchema;
 import static java.lang.annotation.ElementType.TYPE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
+
 
 /**
  * Annotation to define schema of an operator at design time. Schema of an operator is defined separately

@@ -21,6 +21,7 @@ import cs.bilkent.zanza.scheduling.ScheduleNever;
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.zanza.scheduling.SchedulingStrategy;
 
+
 @OperatorSpec( type = OperatorType.PARTITIONED_STATEFUL, inputPortCount = 1, outputPortCount = 1 )
 @OperatorSchema( inputs = {}, outputs = { @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = BASE_FIELD_SET,
         fields = { @SchemaField(

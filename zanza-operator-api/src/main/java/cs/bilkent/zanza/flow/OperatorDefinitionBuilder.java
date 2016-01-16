@@ -1,5 +1,6 @@
 package cs.bilkent.zanza.flow;
 
+
 import java.util.List;
 import java.util.function.Function;
 
@@ -17,6 +18,7 @@ import cs.bilkent.zanza.operator.spec.OperatorSpec;
 import cs.bilkent.zanza.operator.spec.OperatorType;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 
+
 public class OperatorDefinitionBuilder
 {
 
@@ -30,6 +32,22 @@ public class OperatorDefinitionBuilder
         final OperatorSchema schema = getOperatorSchema( clazz );
 
         return new OperatorDefinitionBuilder( id, clazz, spec, schema );
+    }
+
+    private static OperatorSpec getOperatorSpecOrFail ( Class<? extends Operator> clazz )
+    {
+        final OperatorSpec[] annotations = clazz.getDeclaredAnnotationsByType( OperatorSpec.class );
+        final String errorMessage = clazz + " Operator class must have " + OperatorSpec.class.getSimpleName() + " annotation!";
+        checkArgument( annotations.length == 1, errorMessage );
+        return annotations[ 0 ];
+    }
+
+    private static OperatorSchema getOperatorSchema ( Class<? extends Operator> clazz )
+    {
+        final OperatorSchema[] annotations = clazz.getDeclaredAnnotationsByType( OperatorSchema.class );
+        final String errorMessage = clazz + " Operator class can have at most 1 " + OperatorSchema.class.getSimpleName() + " annotation!";
+        checkArgument( annotations.length <= 1, errorMessage );
+        return annotations.length > 0 ? annotations[ 0 ] : null;
     }
 
 
@@ -97,7 +115,7 @@ public class OperatorDefinitionBuilder
     public OperatorDefinitionBuilder setPartitionFieldNames ( final List<String> partitionFieldNames )
     {
         checkArgument( partitionFieldNames != null, "partition field names must be non-null" );
-        checkState                                                                                        ( ( this.type == PARTITIONED_STATEFUL && !partitionFieldNames.isEmpty() ) || ( this.type != PARTITIONED_STATEFUL
+        checkState( ( this.type == PARTITIONED_STATEFUL && !partitionFieldNames.isEmpty() ) || ( this.type != PARTITIONED_STATEFUL
                                                                                                  && partitionFieldNames.isEmpty() ),
                     "partition field names can be only used with " + PARTITIONED_STATEFUL + " operators!" );
         checkState( this.partitionFieldNames == null, "partition key extractor can be set only once" );
@@ -114,8 +132,7 @@ public class OperatorDefinitionBuilder
                                        type,
                                        inputPortCount,
                                        outputPortCount,
-                                       buildOperatorRuntimeSchema(),
-                                       getConfigOrEmptyConfig(), partitionFieldNames );
+                                       buildOperatorRuntimeSchema(), getConfigOrEmptyConfig(), partitionFieldNames );
     }
 
     private OperatorConfig getConfigOrEmptyConfig ()
@@ -131,22 +148,6 @@ public class OperatorDefinitionBuilder
     private void failIfNegativePortCount ( final int portCount, final String portType )
     {
         checkArgument( portCount >= 0, portType + " port count must be non-negative!" );
-    }
-
-    private static OperatorSpec getOperatorSpecOrFail ( Class<? extends Operator> clazz )
-    {
-        final OperatorSpec[] annotations = clazz.getDeclaredAnnotationsByType( OperatorSpec.class );
-        final String errorMessage = clazz + " Operator class must have " + OperatorSpec.class.getSimpleName() + " annotation!";
-        checkArgument( annotations.length == 1, errorMessage );
-        return annotations[ 0 ];
-    }
-
-    private static OperatorSchema getOperatorSchema ( Class<? extends Operator> clazz )
-    {
-        final OperatorSchema[] annotations = clazz.getDeclaredAnnotationsByType( OperatorSchema.class );
-        final String errorMessage = clazz + " Operator class can have at most 1 " + OperatorSchema.class.getSimpleName() + " annotation!";
-        checkArgument( annotations.length <= 1, errorMessage );
-        return annotations.length > 0 ? annotations[ 0 ] : null;
     }
 
     private OperatorRuntimeSchema buildOperatorRuntimeSchema ()

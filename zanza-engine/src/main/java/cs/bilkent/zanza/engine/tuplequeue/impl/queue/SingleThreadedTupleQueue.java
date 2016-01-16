@@ -10,6 +10,7 @@ import java.util.Queue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.operator.Tuple;
 
+
 public class SingleThreadedTupleQueue implements TupleQueue
 {
 

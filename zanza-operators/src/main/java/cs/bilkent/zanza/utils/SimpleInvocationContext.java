@@ -4,6 +4,7 @@ import cs.bilkent.zanza.kvstore.KVStore;
 import cs.bilkent.zanza.operator.InvocationContext;
 import cs.bilkent.zanza.operator.PortsToTuples;
 
+
 public class SimpleInvocationContext implements InvocationContext
 {
 

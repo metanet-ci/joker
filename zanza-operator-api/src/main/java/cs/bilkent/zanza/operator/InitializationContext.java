@@ -1,10 +1,12 @@
 package cs.bilkent.zanza.operator;
 
+
 import java.util.List;
 
 import cs.bilkent.zanza.flow.FlowDefinition;
 import cs.bilkent.zanza.operator.schema.annotation.OperatorSchema;
 import cs.bilkent.zanza.operator.schema.runtime.OperatorRuntimeSchema;
+
 
 /**
  * Contains information about configuration and initialization of an operator
@@ -37,7 +39,8 @@ public interface InitializationContext
      * Schema of the operator that has been built in the run time. It is the combination of the schema given in {@link OperatorSchema}
      * with the {@link Operator} class and given in {@link OperatorRuntimeSchema} during the {@link FlowDefinition} composition
      *
-     * @return schema of the operator that has been built in the run time. It is the combination of the schema given in {@link OperatorSchema}
+     * @return schema of the operator that has been built in the run time. It is the combination of the schema given in
+     * {@link OperatorSchema}
      * with the {@link Operator} class and given in {@link OperatorRuntimeSchema} during the {@link FlowDefinition} composition
      */
     OperatorRuntimeSchema getRuntimeSchema ();
@@ -54,6 +57,6 @@ public interface InitializationContext
      *
      * @return configuration of the operator instance given during building the {@link FlowDefinition}
      */
-    OperatorConfig getConfig();
+    OperatorConfig getConfig ();
 
 }

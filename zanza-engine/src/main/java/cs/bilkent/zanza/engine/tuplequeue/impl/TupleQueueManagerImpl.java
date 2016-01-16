@@ -23,6 +23,7 @@ import static cs.bilkent.zanza.engine.util.Preconditions.checkOperatorTypeAndPar
 import cs.bilkent.zanza.operator.spec.OperatorType;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 
+
 class TupleQueueManagerImpl implements TupleQueueManager
 {
 
@@ -38,7 +39,8 @@ class TupleQueueManagerImpl implements TupleQueueManager
     @Override
     public TupleQueueContext createTupleQueueContext ( final String operatorId,
                                                        final int inputPortCount,
-                                                       final OperatorType operatorType, final List<String> partitionFieldNames,
+                                                       final OperatorType operatorType,
+                                                       final List<String> partitionFieldNames,
                                                        final TupleQueueThreading tupleQueueThreading,
                                                        final int initialQueueCapacity )
     {
@@ -72,8 +74,7 @@ class TupleQueueManagerImpl implements TupleQueueManager
                                                                                   final Supplier<TupleQueue> tupleQueueSupplier )
     {
         return operatorType == PARTITIONED_STATEFUL
-               ? s -> new PartitionedTupleQueueContext( operatorId,
-                                                        inputPortCount, partitionFieldNames,
+               ? s -> new PartitionedTupleQueueContext( operatorId, inputPortCount, partitionFieldNames,
                                                         tupleQueueSupplier )
                : s -> new DefaultTupleQueueContext( operatorId, inputPortCount, tupleQueueSupplier );
     }

@@ -27,7 +27,8 @@ public class KVStoreManagerImpl implements KVStoreManager
 
     @Override
     public KVStoreContext createKVStoreContext ( final String operatorId,
-                                                 final OperatorType operatorType, final List<String> partitionFieldNames,
+                                                 final OperatorType operatorType,
+                                                 final List<String> partitionFieldNames,
                                                  final int kvStoreInstanceCount )
     {
         checkArgument( operatorId != null );

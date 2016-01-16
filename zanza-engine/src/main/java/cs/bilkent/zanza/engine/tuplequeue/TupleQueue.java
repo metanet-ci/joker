@@ -4,6 +4,7 @@ import java.util.List;
 
 import cs.bilkent.zanza.operator.Tuple;
 
+
 public interface TupleQueue
 {
 

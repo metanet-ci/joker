@@ -29,6 +29,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+
 public class TupleCountBasedWindowReducerOperatorTest
 {
 
@@ -46,7 +47,7 @@ public class TupleCountBasedWindowReducerOperatorTest
 
     private final BiFunction<Tuple, Tuple, Tuple> adder = ( tuple1, tuple2 ) -> new Tuple( "count",
                                                                                            tuple1.getInteger( "count" ) + tuple2.getInteger(
-                                                                                                   "count"                                 ) );
+                                                                                                   "count" ) );
 
     private final int tupleCount = 2;
 

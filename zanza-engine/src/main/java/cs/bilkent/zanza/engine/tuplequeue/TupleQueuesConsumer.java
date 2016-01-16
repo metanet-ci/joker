@@ -4,6 +4,7 @@ import java.util.function.Consumer;
 
 import cs.bilkent.zanza.operator.PortsToTuples;
 
+
 public interface TupleQueuesConsumer extends Consumer<TupleQueue[]>
 {
 

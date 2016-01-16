@@ -1,5 +1,6 @@
 package cs.bilkent.zanza.operator;
 
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -14,6 +15,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import cs.bilkent.zanza.flow.Port;
 import static java.util.Collections.unmodifiableList;
 import static java.util.stream.Collector.Characteristics.IDENTITY_FINISH;
+
 
 /**
  * Contains {@link Tuple} instances mapped to some ports specified by indices.
@@ -72,7 +74,7 @@ public class PortsToTuples
     };
 
 
-    public static final Collector<Tuple, PortsToTuples, PortsToTuples> COLLECT_TO_DEFAULT_PORT = Collector.of                  ( PortsToTuples::new,
+    public static final Collector<Tuple, PortsToTuples, PortsToTuples> COLLECT_TO_DEFAULT_PORT = Collector.of( PortsToTuples::new,
                                                                                                                PortsToTuples::add,
                                                                                                                PORTS_TO_TUPLES_COMBINER,
                                                                                                                IDENTITY_FINISH );

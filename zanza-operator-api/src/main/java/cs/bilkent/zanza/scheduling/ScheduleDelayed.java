@@ -1,6 +1,8 @@
 package cs.bilkent.zanza.scheduling;
 
+
 import java.util.concurrent.TimeUnit;
+
 
 public class ScheduleDelayed implements SchedulingStrategy
 {
@@ -8,18 +10,18 @@ public class ScheduleDelayed implements SchedulingStrategy
 
     private final TimeUnit timeUnit;
 
-    public ScheduleDelayed(final long delayAmount, final TimeUnit timeUnit)
+    public ScheduleDelayed ( final long delayAmount, final TimeUnit timeUnit )
     {
         this.delayAmount = delayAmount;
         this.timeUnit = timeUnit;
     }
 
-    public long getDelayAmount()
+    public long getDelayAmount ()
     {
         return delayAmount;
     }
 
-    public TimeUnit getTimeUnit()
+    public TimeUnit getTimeUnit ()
     {
         return timeUnit;
     }

@@ -16,6 +16,7 @@ import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.ANY_NUMBER
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.zanza.scheduling.SchedulingStrategy;
 
+
 /**
  * Applies the given predicate function to each input tuple and only returns the ones that satisfy the predicate
  */
@@ -45,14 +46,14 @@ public class FilterOperator implements Operator
     @Override
     public InvocationResult process ( final InvocationContext invocationContext )
     {
-        final PortsToTuples output = invocationContext.getInputTuples().getTuplesByDefaultPort()
-                                                  .stream()
-                                                  .filter( predicate )
-                                                  .collect( PortsToTuples.COLLECT_TO_DEFAULT_PORT );
+        final PortsToTuples output = invocationContext.getInputTuples()
+                                                      .getTuplesByDefaultPort()
+                                                      .stream()
+                                                      .filter( predicate )
+                                                      .collect( PortsToTuples.COLLECT_TO_DEFAULT_PORT );
 
-        final SchedulingStrategy nextStrategy = invocationContext.isSuccessfulInvocation()
-                                                ? scheduleWhenTuplesAvailableOnDefaultPort( tupleCount )
-                                                : ScheduleNever.INSTANCE;
+        final SchedulingStrategy nextStrategy = invocationContext.isSuccessfulInvocation() ? scheduleWhenTuplesAvailableOnDefaultPort(
+                tupleCount )                                                               : ScheduleNever.INSTANCE;
 
         return new InvocationResult( nextStrategy, output );
     }

@@ -12,6 +12,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertTrue;
 
+
 public class PortsToTuplesTest
 {
     private final PortsToTuples portsToTuples = new PortsToTuples();
