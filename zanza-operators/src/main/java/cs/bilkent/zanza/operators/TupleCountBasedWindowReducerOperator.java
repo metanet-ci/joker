@@ -89,7 +89,6 @@ public class TupleCountBasedWindowReducerOperator implements Operator
             {
                 currentTupleCount = 0;
                 accumulator.set( WINDOW_FIELD, windowCount++ );
-                accumulator.setSequenceNumber( tuple.getSequenceNumber() );
 
                 result.add( accumulator );
                 accumulator = initialValue;

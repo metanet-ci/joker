@@ -110,7 +110,6 @@ public class BargainIndexOperator implements Operator
 
             final Tuple outputTuple = new Tuple();
             outputTuple.set( BARGAIN_INDEX_FIELD, bargainIndex );
-            outputTuple.setSequenceNumber( quote.getSequenceNumber() );
 
             return outputTuple;
         }

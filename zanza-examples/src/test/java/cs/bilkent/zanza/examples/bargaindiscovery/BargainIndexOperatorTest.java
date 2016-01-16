@@ -38,7 +38,7 @@ public class BargainIndexOperatorTest
     @Test
     public void shouldReturnNoOutputWithQuoteButNoVWAP ()
     {
-        input.add( 1, newQuoteTuple( 0, 5d, 100, 1 ) );
+        input.add( 1, newQuoteTuple( 0, 5d, 100 ) );
         final InvocationResult result = operator.process( invocationContext );
         assertThat( result.getOutputTuples().getPortCount(), equalTo( 0 ) );
     }
@@ -47,7 +47,7 @@ public class BargainIndexOperatorTest
     public void shouldReturnNoOutputFromQuoteWithAskedPriceHigherThanCVWAP ()
     {
         setCVWAPInKvStore( 50 );
-        input.add( 1, newQuoteTuple( 0, 0.6, 1, 1 ) );
+        input.add( 1, newQuoteTuple( 0, 0.6, 1 ) );
         final InvocationResult result = operator.process( invocationContext );
         assertThat( result.getOutputTuples().getPortCount(), equalTo( 0 ) );
     }
@@ -56,54 +56,50 @@ public class BargainIndexOperatorTest
     public void shouldReturnOutputFromQuoteWithAskedPriceLowerThanCVWAP ()
     {
         setCVWAPInKvStore( 50 );
-        input.add( 1, newQuoteTuple( 0, 0.4, 1, 2 ) );
+        input.add( 1, newQuoteTuple( 0, 0.4, 1 ) );
         final InvocationResult result = operator.process( invocationContext );
         assertThat( result.getOutputTuples().getPortCount(), equalTo( 1 ) );
 
         final Tuple output = result.getOutputTuples().getTuple( DEFAULT_PORT_INDEX, 0 );
         assertThat( output.get( BARGAIN_INDEX_FIELD ), equalTo( Math.exp( 10 ) ) );
-        assertThat( output.getSequenceNumber(), equalTo( 2 ) );
     }
 
     @Test
     public void shouldReturnOutputsFromQuotesWithUpToDateVWAPs ()
     {
         setCVWAPInKvStore( 50 );
-        input.add( 1, newQuoteTuple( 0, 0.4, 1, 1 ) );
-        input.add( 0, newCVWAPTuple( 1, 60, 2 ) );
-        input.add( 1, newQuoteTuple( 1, 0.3, 2, 2 ) );
+        input.add( 1, newQuoteTuple( 0, 0.4, 1 ) );
+        input.add( 0, newCVWAPTuple( 1, 60 ) );
+        input.add( 1, newQuoteTuple( 1, 0.3, 2 ) );
         final InvocationResult result = operator.process( invocationContext );
         final PortsToTuples outputTuples = result.getOutputTuples();
         assertThat( outputTuples.getPortCount(), equalTo( 1 ) );
 
         final Tuple output1 = outputTuples.getTuple( DEFAULT_PORT_INDEX, 0 );
         assertThat( output1.get( BARGAIN_INDEX_FIELD ), equalTo( Math.exp( 10 ) ) );
-        assertThat( output1.getSequenceNumber(), equalTo( 1 ) );
         final Tuple output2 = outputTuples.getTuple( DEFAULT_PORT_INDEX, 1 );
         assertThat( output2.get( BARGAIN_INDEX_FIELD ), equalTo( Math.exp( 30 ) * 2 ) );
-        assertThat( output2.getSequenceNumber(), equalTo( 2 ) );
+
         assertThat( kvStore.get( TUPLE_PARTITION_KEY ), equalTo( 60d ) );
     }
 
-    private Tuple newCVWAPTuple ( final long timestamp, final double cvwap, final int sequenceNumber )
+    private Tuple newCVWAPTuple ( final long timestamp, final double cvwap )
     {
         final Tuple tuple = new Tuple();
         tuple.set( TICKER_SYMBOL_FIELD, TUPLE_PARTITION_KEY );
         tuple.set( CVWAP_FIELD, cvwap );
         tuple.set( TIMESTAMP_FIELD, timestamp );
-        tuple.setSequenceNumber( sequenceNumber );
 
         return tuple;
     }
 
-    private Tuple newQuoteTuple ( final long timestamp, final double askedPrice, final int askedSize, final int sequenceNumber )
+    private Tuple newQuoteTuple ( final long timestamp, final double askedPrice, final int askedSize )
     {
         final Tuple tuple = new Tuple();
         tuple.set( TICKER_SYMBOL_FIELD, TUPLE_PARTITION_KEY );
         tuple.set( TIMESTAMP_FIELD, timestamp );
         tuple.set( ASKED_TICKER_SYMBOL_PRICE_FIELD, askedPrice );
         tuple.set( ASKED_SIZE_FIELD, askedSize );
-        tuple.setSequenceNumber( sequenceNumber );
 
         return tuple;
     }

@@ -85,8 +85,9 @@ public interface Operator
      * If an operator puts an object into the {@link KVStore} using the same {@link KVStore} object key for different partition keys,
      * there will be 2 different objects in the {@link KVStore}, of which each one of them are put for a particular partition key.
      * <p>
-     * If an operator produces output tuples using the tuples provided for the invocation of {@link Operator#process(InvocationContext)}
-     * method, output tuples must have their sequence numbers assigned based on sequence numbers of the input tuples.
+     * If a {@link OperatorType#STATELESS} operator produces output tuples using the tuples provided for the invocation of
+     * {@link Operator#process(InvocationContext)} method, output tuples must have their sequence numbers assigned based on
+     * sequence numbers of the input tuples.
      * </p>
      *
      * @param invocationContext

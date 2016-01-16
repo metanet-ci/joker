@@ -22,7 +22,6 @@ import cs.bilkent.zanza.scheduling.SchedulingStrategy;
 
 /**
  * Produces output tuples that contain Exponential Moving Average of values of input tuples.
- * Sequence number of an output tuple is same with the input tuple that causes that output tuple.
  *
  * @see <a href="https://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average">Exponential Moving Average Wikipedia</a>
  */
@@ -81,7 +80,7 @@ public class ExponentialMovingAverageAggregationOperator implements Operator
             value = ( tupleCount++ == 0 ) ? tupleValue : ( weight * tupleValue + ( 1 - weight ) * value );
             final Tuple avgTuple = new Tuple();
             avgTuple.set( VALUE_FIELD, value );
-            avgTuple.setSequenceNumber( tuple.getSequenceNumber() );
+
             output.add( avgTuple );
         }
 

@@ -69,7 +69,7 @@ public class ExponentialMovingAverageAggregationOperatorTest
         setConfig();
 
         operator.init( initContext );
-        input.add( new Tuple( 1, "val", 10 ) );
+        input.add( new Tuple( "val", 10 ) );
 
         operator.process( invocationContext );
 
@@ -86,7 +86,7 @@ public class ExponentialMovingAverageAggregationOperatorTest
         setCurrentAvgInKVStore( 0, 5 );
 
         operator.init( initContext );
-        input.add( new Tuple( 1, "val", 10 ) );
+        input.add( new Tuple( "val", 10 ) );
 
         operator.process( invocationContext );
 
@@ -103,14 +103,13 @@ public class ExponentialMovingAverageAggregationOperatorTest
         setCurrentAvgInKVStore( 3, 6 );
 
         operator.init( initContext );
-        input.add( new Tuple( 2, "val", 4 ) );
+        input.add( new Tuple( "val", 4 ) );
 
         final InvocationResult result = operator.process( invocationContext );
         final PortsToTuples output = result.getOutputTuples();
         assertThat( output.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
         final Tuple tuple = output.getTuple( DEFAULT_PORT_INDEX, 0 );
         assertValue( tuple, 5 );
-        assertThat( tuple.getSequenceNumber(), equalTo( 2 ) );
 
         final Tuple value = kvStore.get( CURRENT_WINDOW_KEY );
         assertNotNull( value );
@@ -126,14 +125,13 @@ public class ExponentialMovingAverageAggregationOperatorTest
         setCurrentAvgInKVStore( 4, 10 );
 
         operator.init( initContext );
-        input.add( new Tuple( 2, "val", 5 ) );
+        input.add( new Tuple( "val", 5 ) );
 
         final InvocationResult result = operator.process( invocationContext );
         final PortsToTuples output = result.getOutputTuples();
         assertThat( output.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
         final Tuple tuple = output.getTuple( DEFAULT_PORT_INDEX, 0 );
         assertValue( tuple, 7.5 );
-        assertThat( tuple.getSequenceNumber(), equalTo( 2 ) );
 
         final Tuple value = kvStore.get( CURRENT_WINDOW_KEY );
         assertNotNull( value );
@@ -149,8 +147,8 @@ public class ExponentialMovingAverageAggregationOperatorTest
         setCurrentAvgInKVStore( 3, 6 );
 
         operator.init( initContext );
-        input.add( new Tuple( 1, "val", 4 ) );
-        input.add( new Tuple( 2, "val", 7 ) );
+        input.add( new Tuple( "val", 4 ) );
+        input.add( new Tuple( "val", 7 ) );
 
         final InvocationResult result = operator.process( invocationContext );
         final PortsToTuples output = result.getOutputTuples();
@@ -158,10 +156,8 @@ public class ExponentialMovingAverageAggregationOperatorTest
 
         final Tuple tuple1 = output.getTuple( DEFAULT_PORT_INDEX, 0 );
         assertValue( tuple1, 5 );
-        assertThat( tuple1.getSequenceNumber(), equalTo( 1 ) );
         final Tuple tuple2 = output.getTuple( DEFAULT_PORT_INDEX, 1 );
         assertValue( tuple2, 6 );
-        assertThat( tuple2.getSequenceNumber(), equalTo( 2 ) );
 
     }
 

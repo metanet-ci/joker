@@ -21,7 +21,6 @@ import cs.bilkent.zanza.scheduling.SchedulingStrategy;
 
 /**
  * Produces an single output tuple with the given merge function using a single tuple from each one of the input ports.
- * Input tuples are assumed to have the same sequence number and this sequence number is set to the output tuple.
  */
 @OperatorSpec( type = OperatorType.STATELESS, outputPortCount = 1 )
 public class BarrierOperator implements Operator
@@ -134,7 +133,6 @@ public class BarrierOperator implements Operator
                 prev = tupleMergeFunc.apply( prev, tuple );
             }
 
-            prev.setSequenceNumber( input.getTuple( ports[ 0 ], i ).getSequenceNumber() );
             output.add( prev );
         }
 

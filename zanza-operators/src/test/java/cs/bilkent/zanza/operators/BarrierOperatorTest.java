@@ -90,12 +90,11 @@ public class BarrierOperatorTest
         operator.init( initContext );
 
         final PortsToTuples input = new PortsToTuples();
-        populateTuplesWithUniqueFields( input, 1 );
+        populateTuplesWithUniqueFields( input );
 
         final InvocationResult result = operator.process( new SimpleInvocationContext( InvocationReason.SUCCESS, input ) );
         assertSchedulingStrategy( result.getSchedulingStrategy() );
         final Tuple output = result.getOutputTuples().getTuple( 0, 0 );
-        assertThat( output.getSequenceNumber(), equalTo( 1 ) );
         final int matchingFieldCount = getMatchingFieldCount( output );
 
         assertThat( matchingFieldCount, equalTo( inputPorts.length ) );
@@ -126,7 +125,6 @@ public class BarrierOperatorTest
         final InvocationResult result = operator.process( new SimpleInvocationContext( InvocationReason.SUCCESS, input ) );
 
         final Tuple output = result.getOutputTuples().getTuple( 0, 0 );
-        assertThat( output.getSequenceNumber(), equalTo( 1 ) );
         assertThat( output.getInteger( "count" ), equalTo( expectedValue ) );
     }
 
@@ -138,7 +136,6 @@ public class BarrierOperatorTest
         final PortsToTuples input = new PortsToTuples();
         IntStream.of( inputPorts ).forEach( portIndex -> {
             final Tuple tuple = new Tuple( "count", portIndex );
-            tuple.setSequenceNumber( 1 );
             input.add( portIndex, tuple );
         } );
         input.add( new Tuple( "count", -1 ) );
@@ -153,8 +150,8 @@ public class BarrierOperatorTest
         operator.init( initContext );
 
         final PortsToTuples input = new PortsToTuples();
-        populateTuplesWithUniqueFields( input, 1 );
-        populateTuplesWithUniqueFields( input, 2 );
+        populateTuplesWithUniqueFields( input );
+        populateTuplesWithUniqueFields( input );
 
         final InvocationResult result = operator.process( new SimpleInvocationContext( InvocationReason.SUCCESS, input ) );
         assertSchedulingStrategy( result.getSchedulingStrategy() );
@@ -163,10 +160,8 @@ public class BarrierOperatorTest
         assertThat( output, hasSize( 2 ) );
         final Tuple tuple1 = output.get( 0 );
         assertThat( getMatchingFieldCount( tuple1 ), equalTo( inputPorts.length ) );
-        assertThat( tuple1.getSequenceNumber(), equalTo( 1 ) );
         final Tuple tuple2 = output.get( 1 );
         assertThat( getMatchingFieldCount( tuple2 ), equalTo( inputPorts.length ) );
-        assertThat( tuple2.getSequenceNumber(), equalTo( 2 ) );
     }
 
     private int getMatchingFieldCount ( final Tuple tuple )
@@ -174,10 +169,10 @@ public class BarrierOperatorTest
         return (int) IntStream.of( inputPorts ).filter( portIndex -> tuple.getInteger( "field" + portIndex ).equals( portIndex ) ).count();
     }
 
-    private void populateTuplesWithUniqueFields ( final PortsToTuples input, final int sequenceNumber )
+    private void populateTuplesWithUniqueFields ( final PortsToTuples input )
     {
         IntStream.of( inputPorts ).forEach( portIndex -> {
-            final Tuple tuple = new Tuple( sequenceNumber, "field" + portIndex, portIndex );
+            final Tuple tuple = new Tuple( "field" + portIndex, portIndex );
             input.add( portIndex, tuple );
         } );
     }
