@@ -55,4 +55,28 @@ public class OperatorDefinition
         this.partitionFieldNames = partitionFieldNames != null ? unmodifiableList( new ArrayList<>( partitionFieldNames ) ) : emptyList();
     }
 
+    @Override
+    public boolean equals ( final Object o )
+    {
+        if ( this == o )
+        {
+            return true;
+        }
+        if ( o == null || getClass() != o.getClass() )
+        {
+            return false;
+        }
+
+        final OperatorDefinition that = (OperatorDefinition) o;
+
+        return id.equals( that.id );
+
+    }
+
+    @Override
+    public int hashCode ()
+    {
+        return id.hashCode();
+    }
+
 }

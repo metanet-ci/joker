@@ -16,10 +16,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 
-public class FlowBuilderTest
+public class FlowDefinitionBuilderTest
 {
 
     private static final int SPEC_INPUT_PORT_COUNT = 4;
@@ -28,7 +27,7 @@ public class FlowBuilderTest
 
     private static final int INVALID_PORT_COUNT = -2;
 
-    private final FlowBuilder builder = new FlowBuilder();
+    private final FlowDefinitionBuilder builder = new FlowDefinitionBuilder();
 
 
     @Test( expected = IllegalArgumentException.class )
@@ -176,20 +175,20 @@ public class FlowBuilderTest
         builder.connect( "op3", "op4", 1 );
         final FlowDefinition flowDefinition = builder.build();
 
-        assertTrue( flowDefinition.operators.containsKey( "op1" ) );
-        assertTrue( flowDefinition.operators.containsKey( "op2" ) );
-        assertTrue( flowDefinition.operators.containsKey( "op3" ) );
-        assertTrue( flowDefinition.operators.containsKey( "op4" ) );
+        assertNotNull( flowDefinition.getOperator( "op1" ) );
+        assertNotNull( flowDefinition.getOperator( "op2" ) );
+        assertNotNull( flowDefinition.getOperator( "op3" ) );
+        assertNotNull( flowDefinition.getOperator( "op4" ) );
 
-        final Collection<Port> op1Connections = flowDefinition.connections.get( new Port( "op1", 0 ) );
+        final Collection<Port> op1Connections = flowDefinition.getDownstreamPorts( "op1" );
         assertThat( op1Connections, hasSize( 1 ) );
         assertThat( op1Connections.iterator().next(), equalTo( new Port( "op2", 0 ) ) );
 
-        final Collection<Port> op2Connections = flowDefinition.connections.get( new Port( "op2", 0 ) );
+        final Collection<Port> op2Connections = flowDefinition.getDownstreamPorts( "op2" );
         assertThat( op2Connections, hasSize( 1 ) );
         assertThat( op2Connections.iterator().next(), equalTo( new Port( "op4", 0 ) ) );
 
-        final Collection<Port> op3Connections = flowDefinition.connections.get( new Port( "op3", 0 ) );
+        final Collection<Port> op3Connections = flowDefinition.getDownstreamPorts( "op3" );
         assertThat( op3Connections, hasSize( 1 ) );
         assertThat( op3Connections.iterator().next(), equalTo( new Port( "op4", 1 ) ) );
     }

@@ -65,4 +65,17 @@ public class PortRuntimeSchema
         return true;
     }
 
+    public RuntimeSchemaField getField ( final String fieldName )
+    {
+        for ( RuntimeSchemaField thisField : this.fields )
+        {
+            if ( thisField.name.equals( fieldName ) )
+            {
+                return thisField;
+            }
+        }
+
+        return null;
+    }
+
 }

@@ -14,7 +14,7 @@ import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
 import cs.bilkent.zanza.operator.schema.runtime.OperatorRuntimeSchema;
 
 
-public class FlowBuilder
+public class FlowDefinitionBuilder
 {
 
     private final Map<String, OperatorDefinition> operators = new LinkedHashMap<>();
@@ -29,13 +29,13 @@ public class FlowBuilder
         return new FlowDefinition( operators, connections );
     }
 
-    public FlowBuilder add ( final OperatorDefinitionBuilder operatorDefinitionBuilder )
+    public FlowDefinitionBuilder add ( final OperatorDefinitionBuilder operatorDefinitionBuilder )
     {
         add( operatorDefinitionBuilder.build() );
         return this;
     }
 
-    public FlowBuilder add ( final OperatorDefinition operatorDefinition )
+    public FlowDefinitionBuilder add ( final OperatorDefinition operatorDefinition )
     {
         failIfAlreadyBuilt();
         checkArgument( !operators.containsKey( operatorDefinition.id ), "only 1 operator can be added with a operator id!" );
@@ -44,22 +44,25 @@ public class FlowBuilder
         return this;
     }
 
-    public FlowBuilder connect ( final String sourceOperatorId, final String targetOperatorId )
+    public FlowDefinitionBuilder connect ( final String sourceOperatorId, final String targetOperatorId )
     {
         return connect( sourceOperatorId, DEFAULT_PORT_INDEX, targetOperatorId, DEFAULT_PORT_INDEX );
     }
 
-    public FlowBuilder connect ( final String sourceOperatorId, int sourcePort, final String targetOperatorId )
+    public FlowDefinitionBuilder connect ( final String sourceOperatorId, int sourcePort, final String targetOperatorId )
     {
         return connect( sourceOperatorId, sourcePort, targetOperatorId, DEFAULT_PORT_INDEX );
     }
 
-    public FlowBuilder connect ( final String sourceOperatorId, final String targetOperatorId, final int targetPort )
+    public FlowDefinitionBuilder connect ( final String sourceOperatorId, final String targetOperatorId, final int targetPort )
     {
         return connect( sourceOperatorId, DEFAULT_PORT_INDEX, targetOperatorId, targetPort );
     }
 
-    public FlowBuilder connect ( final String sourceOperatorId, final int sourcePort, final String targetOperatorId, final int targetPort )
+    public FlowDefinitionBuilder connect ( final String sourceOperatorId,
+                                           final int sourcePort,
+                                           final String targetOperatorId,
+                                           final int targetPort )
     {
         failIfAlreadyBuilt();
         failIfEmptyOperatorId( sourceOperatorId );

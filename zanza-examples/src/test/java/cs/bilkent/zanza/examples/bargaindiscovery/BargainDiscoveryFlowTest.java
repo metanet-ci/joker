@@ -8,7 +8,7 @@ import static cs.bilkent.zanza.examples.bargaindiscovery.VWAPAggregatorOperator.
 import static cs.bilkent.zanza.examples.bargaindiscovery.VWAPAggregatorOperator.TICKER_SYMBOL_FIELD;
 import static cs.bilkent.zanza.examples.bargaindiscovery.VWAPAggregatorOperator.TIMESTAMP_FIELD;
 import static cs.bilkent.zanza.examples.bargaindiscovery.VWAPAggregatorOperator.WINDOW_SIZE_CONfIG_PARAMETER;
-import cs.bilkent.zanza.flow.FlowBuilder;
+import cs.bilkent.zanza.flow.FlowDefinitionBuilder;
 import cs.bilkent.zanza.flow.OperatorDefinitionBuilder;
 import cs.bilkent.zanza.flow.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.zanza.operator.OperatorConfig;
@@ -23,7 +23,7 @@ public class BargainDiscoveryFlowTest
     @Test
     public void shouldCreateBargainDiscoveryFlow ()
     {
-        final FlowBuilder flowBuilder = new FlowBuilder();
+        final FlowDefinitionBuilder flowBuilder = new FlowDefinitionBuilder();
 
         final OperatorConfig vwapAggregatorConfig = new OperatorConfig();
         vwapAggregatorConfig.set( WINDOW_SIZE_CONfIG_PARAMETER, 5 );

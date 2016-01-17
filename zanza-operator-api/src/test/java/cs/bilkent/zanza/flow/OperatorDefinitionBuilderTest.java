@@ -4,11 +4,11 @@ import java.util.List;
 
 import org.junit.Test;
 
-import cs.bilkent.zanza.flow.FlowBuilderTest.OperatorWithDynamicPortCounts;
-import cs.bilkent.zanza.flow.FlowBuilderTest.OperatorWithFixedPortCounts;
-import cs.bilkent.zanza.flow.FlowBuilderTest.OperatorWithInvalidInputPortCount;
-import cs.bilkent.zanza.flow.FlowBuilderTest.OperatorWithInvalidOutputPortCount;
-import cs.bilkent.zanza.flow.FlowBuilderTest.OperatorWithNoSpec;
+import cs.bilkent.zanza.flow.FlowDefinitionBuilderTest.OperatorWithDynamicPortCounts;
+import cs.bilkent.zanza.flow.FlowDefinitionBuilderTest.OperatorWithFixedPortCounts;
+import cs.bilkent.zanza.flow.FlowDefinitionBuilderTest.OperatorWithInvalidInputPortCount;
+import cs.bilkent.zanza.flow.FlowDefinitionBuilderTest.OperatorWithInvalidOutputPortCount;
+import cs.bilkent.zanza.flow.FlowDefinitionBuilderTest.OperatorWithNoSpec;
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
 import cs.bilkent.zanza.operator.InitializationContext;
 import cs.bilkent.zanza.operator.InvocationContext;
