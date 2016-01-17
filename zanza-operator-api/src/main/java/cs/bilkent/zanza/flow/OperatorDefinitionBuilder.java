@@ -107,9 +107,16 @@ public class OperatorDefinitionBuilder
 
     public OperatorDefinitionBuilder setExtendingSchema ( final OperatorRuntimeSchema extendingSchema )
     {
+        checkArgument( extendingSchema != null, "extending schema argument can not be null" );
         checkState( this.extendingSchema == null, "extending schema can be set only once" );
         this.extendingSchema = extendingSchema;
         return this;
+    }
+
+    public OperatorDefinitionBuilder setExtendingSchema ( final OperatorRuntimeSchemaBuilder extendingSchemaBuilder )
+    {
+        checkArgument( extendingSchemaBuilder != null, "exdending schema builder can not be null" );
+        return setExtendingSchema( extendingSchemaBuilder.build() );
     }
 
     public OperatorDefinitionBuilder setPartitionFieldNames ( final List<String> partitionFieldNames )

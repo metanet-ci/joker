@@ -6,6 +6,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -71,7 +73,7 @@ public class FlowDefinition
         checkState( operators.size() == connectedOperatorCount, "Invalid flow definition!" );
     }
 
-    public Collection<Map.Entry<Port, Port>> getAllConnections ()
+    public Collection<Entry<Port, Port>> getAllConnections ()
     {
         return connections.entries();
     }
@@ -86,6 +88,21 @@ public class FlowDefinition
         return getDownstreamPortsStream( operatorId ).collect( Collectors.toList() );
     }
 
+    public Collection<Port> getUpstreamPorts ( final Port port )
+    {
+        return getUpstreamPortsStream( port ).collect( Collectors.toList() );
+    }
+
+    public Collection<Port> getDownstreamPorts ( final Port port )
+    {
+        return getDownstreamPortsStream( port ).collect( Collectors.toList() );
+    }
+
+    public Collection<OperatorDefinition> getUpstreamOperators ( final String operatorId )
+    {
+        return getUpstreamPortsStream( operatorId ).map( port -> getOperator( port.operatorId ) ).collect( Collectors.toList() );
+    }
+
     public Collection<OperatorDefinition> getDownstreamOperators ( final String operatorId )
     {
         return getDownstreamPortsStream( operatorId ).map( port -> getOperator( port.operatorId ) ).collect( Collectors.toList() );
@@ -93,12 +110,27 @@ public class FlowDefinition
 
     private Stream<Port> getUpstreamPortsStream ( final String operatorId )
     {
-        return connections.entries().stream().filter( entry -> entry.getValue().operatorId.equals( operatorId ) ).map( Entry::getKey );
+        return getPortStream( entry -> entry.getValue().operatorId.equals( operatorId ), Entry::getKey );
+    }
+
+    private Stream<Port> getUpstreamPortsStream ( final Port port )
+    {
+        return getPortStream( entry -> entry.getValue().equals( port ), Entry::getKey );
     }
 
     private Stream<Port> getDownstreamPortsStream ( final String operatorId )
     {
-        return connections.entries().stream().filter( entry -> entry.getKey().operatorId.equals( operatorId ) ).map( Entry::getValue );
+        return getPortStream( entry -> entry.getKey().operatorId.equals( operatorId ), Entry::getValue );
+    }
+
+    private Stream<Port> getDownstreamPortsStream ( final Port port )
+    {
+        return connections.get( port ).stream();
+    }
+
+    private Stream<Port> getPortStream ( final Predicate<Entry<Port, Port>> predicate, final Function<Entry<Port, Port>, Port> mapper )
+    {
+        return connections.entries().stream().filter( predicate ).map( mapper );
     }
 
 }
