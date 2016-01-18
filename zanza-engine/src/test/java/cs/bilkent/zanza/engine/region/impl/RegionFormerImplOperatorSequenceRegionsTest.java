@@ -138,6 +138,30 @@ public class RegionFormerImplOperatorSequenceRegionsTest
     }
 
     @Test
+    public void test_STATELESS_MULTI_PORTS___PARTITIONED_STATEFUL ()
+    {
+        final OperatorDefinitionBuilder builder = OperatorDefinitionBuilder.newInstance( "o1", StatelessOperator.class );
+        final OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( 2, 1 );
+        schemaBuilder.getInputPortSchemaBuilder( 0 ).addField( "A", Integer.class );
+        schemaBuilder.getInputPortSchemaBuilder( 1 ).addField( "A", Integer.class );
+        schemaBuilder.getInputPortSchemaBuilder( 1 ).addField( "B", Integer.class );
+        final OperatorDefinition operator1 = builder.setInputPortCount( 2 )
+                                                    .setOutputPortCount( 1 )
+                                                    .setExtendingSchema( schemaBuilder )
+                                                    .build();
+
+        final OperatorDefinition operator2 = createOperator( "o2",
+                                                             PartitionedStatefulOperator.class,
+                                                             asList( "A", "B" ),
+                                                             asList( "A", "B" ) );
+
+        final List<RegionDefinition> regions = regionFormer.createRegions( asList( operator1, operator2 ) );
+
+        assertThat( regions, hasSize( 1 ) );
+        assertPartitionedStatefulRegion( regions.get( 0 ), singletonList( "A" ), asList( operator1, operator2 ) );
+    }
+
+    @Test
     public void test_STATEFUL___STATEFUL ()
     {
         final OperatorDefinition operator1 = createOperator( "o1", StatefulOperator.class );

@@ -50,7 +50,11 @@ public class BargainDiscoveryFlowTest
                                                   .setConfig( cvwapConfig )
                                                   .setExtendingSchema( schemaBuilder.build() ) );
 
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "bargainIndex", BargainIndexOperator.class ) );
+        final OperatorDefinitionBuilder bargainIndexOperatorBuilder = OperatorDefinitionBuilder.newInstance( "bargainIndex",
+                                                                                                             BargainIndexOperator.class )
+                                                                                               .setPartitionFieldNames( singletonList(
+                                                                                                       TICKER_SYMBOL_FIELD ) );
+        flowBuilder.add( bargainIndexOperatorBuilder );
 
         flowBuilder.connect( "vwapAggregator", "cvwap" );
         flowBuilder.connect( "cvwap", "bargainIndex" );
