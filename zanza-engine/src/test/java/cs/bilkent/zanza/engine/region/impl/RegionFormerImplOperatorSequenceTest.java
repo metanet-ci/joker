@@ -38,7 +38,7 @@ public class RegionFormerImplOperatorSequenceTest
         flowBuilder.connect( "o1", "o2" );
         final FlowDefinition flow = flowBuilder.build();
 
-        final Collection<List<OperatorDefinition>> operatorSequences = regionFormer.getOperatorSequences( flow );
+        final Collection<List<OperatorDefinition>> operatorSequences = regionFormer.createOperatorSequences( flow );
 
         assertThat( operatorSequences, hasSize( 1 ) );
 
@@ -62,7 +62,7 @@ public class RegionFormerImplOperatorSequenceTest
         flowBuilder.connect( "o2", "o3" );
         final FlowDefinition flow = flowBuilder.build();
 
-        final Collection<List<OperatorDefinition>> operatorSequences = regionFormer.getOperatorSequences( flow );
+        final Collection<List<OperatorDefinition>> operatorSequences = regionFormer.createOperatorSequences( flow );
 
         assertThat( operatorSequences, hasSize( 1 ) );
 
@@ -97,7 +97,7 @@ public class RegionFormerImplOperatorSequenceTest
         flowBuilder.connect( "o3", "o5" );
         final FlowDefinition flow = flowBuilder.build();
 
-        final Collection<List<OperatorDefinition>> operatorSequences = regionFormer.getOperatorSequences( flow );
+        final Collection<List<OperatorDefinition>> operatorSequences = regionFormer.createOperatorSequences( flow );
 
         assertThat( operatorSequences, hasSize( 3 ) );
         assertOperatorSequence( asList( "o1", "o2", "o3" ), operatorSequences );
@@ -127,7 +127,7 @@ public class RegionFormerImplOperatorSequenceTest
         flowBuilder.connect( "o3", "o5" );
         final FlowDefinition flow = flowBuilder.build();
 
-        final Collection<List<OperatorDefinition>> operatorSequences = regionFormer.getOperatorSequences( flow );
+        final Collection<List<OperatorDefinition>> operatorSequences = regionFormer.createOperatorSequences( flow );
 
         assertThat( operatorSequences, hasSize( 3 ) );
         assertOperatorSequence( asList( "o1", "o2" ), operatorSequences );
@@ -155,7 +155,7 @@ public class RegionFormerImplOperatorSequenceTest
         flowBuilder.connect( "o4", "o3" );
         final FlowDefinition flow = flowBuilder.build();
 
-        final Collection<List<OperatorDefinition>> operatorSequences = regionFormer.getOperatorSequences( flow );
+        final Collection<List<OperatorDefinition>> operatorSequences = regionFormer.createOperatorSequences( flow );
 
         assertThat( operatorSequences, hasSize( 3 ) );
         assertOperatorSequence( asList( "o1", "o2" ), operatorSequences );
@@ -188,7 +188,7 @@ public class RegionFormerImplOperatorSequenceTest
         flowBuilder.connect( "o4", "o5" );
         final FlowDefinition flow = flowBuilder.build();
 
-        final Collection<List<OperatorDefinition>> operatorSequences = regionFormer.getOperatorSequences( flow );
+        final Collection<List<OperatorDefinition>> operatorSequences = regionFormer.createOperatorSequences( flow );
 
         assertThat( operatorSequences, hasSize( 4 ) );
         assertOperatorSequence( singletonList( "o1" ), operatorSequences );
@@ -223,7 +223,7 @@ public class RegionFormerImplOperatorSequenceTest
         flowBuilder.connect( "o2", "o5" );
         final FlowDefinition flow = flowBuilder.build();
 
-        final Collection<List<OperatorDefinition>> operatorSequences = regionFormer.getOperatorSequences( flow );
+        final Collection<List<OperatorDefinition>> operatorSequences = regionFormer.createOperatorSequences( flow );
 
         assertThat( operatorSequences, hasSize( 5 ) );
         assertOperatorSequence( singletonList( "o1" ), operatorSequences );
@@ -259,7 +259,7 @@ public class RegionFormerImplOperatorSequenceTest
         flowBuilder.connect( "o5", "o4" );
         final FlowDefinition flow = flowBuilder.build();
 
-        final Collection<List<OperatorDefinition>> operatorSequences = regionFormer.getOperatorSequences( flow );
+        final Collection<List<OperatorDefinition>> operatorSequences = regionFormer.createOperatorSequences( flow );
 
         assertThat( operatorSequences, hasSize( 5 ) );
         assertOperatorSequence( singletonList( "o1" ), operatorSequences );

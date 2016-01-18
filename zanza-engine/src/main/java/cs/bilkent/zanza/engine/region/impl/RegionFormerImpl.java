@@ -32,9 +32,16 @@ public class RegionFormerImpl implements RegionFormer
 
 
     @Override
-    public List<RegionDefinition> createRegions ( final FlowDefinition flowDefinition )
+    public List<RegionDefinition> createRegions ( final FlowDefinition flow )
     {
-        return null;
+        final List<RegionDefinition> regions = new ArrayList<>();
+
+        for ( List<OperatorDefinition> operatorSequence : createOperatorSequences( flow ) )
+        {
+            regions.addAll( createRegions( operatorSequence ) );
+        }
+
+        return regions;
     }
 
     List<RegionDefinition> createRegions ( final List<OperatorDefinition> operatorSequence )
@@ -145,29 +152,7 @@ public class RegionFormerImpl implements RegionFormer
         return regions;
     }
 
-    private List<String> getCommonInputFieldNames ( final OperatorDefinition operator, final List<String> partitionFieldNames )
-    {
-        final List<String> commonPartitionFieldNames = new ArrayList<>();
-        if ( operator.inputPortCount > 0 )
-        {
-            for ( String partitionFieldName : partitionFieldNames )
-            {
-                final boolean isCommon = operator.schema.getInputSchemas()
-                                                        .stream()
-                                                        .allMatch( portSchema -> portSchema.getField( partitionFieldName ) != null );
-
-                if ( isCommon )
-                {
-                    commonPartitionFieldNames.add( partitionFieldName );
-                }
-            }
-        }
-
-        return commonPartitionFieldNames;
-    }
-
-
-    Collection<List<OperatorDefinition>> getOperatorSequences ( final FlowDefinition flow )
+    Collection<List<OperatorDefinition>> createOperatorSequences ( final FlowDefinition flow )
     {
 
         final Collection<List<OperatorDefinition>> sequences = new ArrayList<>();
@@ -209,6 +194,27 @@ public class RegionFormerImpl implements RegionFormer
         }
 
         return sequences;
+    }
+
+    private List<String> getCommonInputFieldNames ( final OperatorDefinition operator, final List<String> partitionFieldNames )
+    {
+        final List<String> commonPartitionFieldNames = new ArrayList<>();
+        if ( operator.inputPortCount > 0 )
+        {
+            for ( String partitionFieldName : partitionFieldNames )
+            {
+                final boolean isCommon = operator.schema.getInputSchemas()
+                                                        .stream()
+                                                        .allMatch( portSchema -> portSchema.getField( partitionFieldName ) != null );
+
+                if ( isCommon )
+                {
+                    commonPartitionFieldNames.add( partitionFieldName );
+                }
+            }
+        }
+
+        return commonPartitionFieldNames;
     }
 
     private OperatorDefinition removeRandomOperator ( final Set<OperatorDefinition> operators )
