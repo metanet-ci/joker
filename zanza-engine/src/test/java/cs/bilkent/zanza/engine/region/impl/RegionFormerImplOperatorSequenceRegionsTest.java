@@ -184,6 +184,25 @@ public class RegionFormerImplOperatorSequenceRegionsTest
     }
 
     @Test
+    public void test_PARTITIONED_STATEFUL___PARTITIONED_STATEFUL___ABD___ABC ()
+    {
+        final OperatorDefinition operator1 = createOperator( "o1",
+                                                             PartitionedStatefulOperator.class,
+                                                             asList( "A", "B", "D" ),
+                                                             asList( "A", "B", "D" ) );
+        final OperatorDefinition operator2 = createOperator( "o1",
+                                                             PartitionedStatefulOperator.class,
+                                                             asList( "A", "B", "C" ),
+                                                             asList( "A", "B", "C" ) );
+
+        final List<RegionDefinition> regions = regionFormer.createRegions( asList( operator1, operator2 ) );
+
+        assertThat( regions, hasSize( 2 ) );
+        assertPartitionedStatefulRegion( regions.get( 0 ), asList( "A", "B", "D" ), singletonList( operator1 ) );
+        assertPartitionedStatefulRegion( regions.get( 1 ), asList( "A", "B", "C" ), singletonList( operator2 ) );
+    }
+
+    @Test
     public void test_PARTITIONED_STATEFUL___PARTITIONED_STATEFUL___AB___ABC ()
     {
         final OperatorDefinition operator1 = createOperator( "o1",
