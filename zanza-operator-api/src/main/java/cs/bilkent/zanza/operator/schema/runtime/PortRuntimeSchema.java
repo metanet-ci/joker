@@ -78,4 +78,13 @@ public class PortRuntimeSchema
         return null;
     }
 
+    @Override
+    public String toString ()
+    {
+        return "PortRuntimeSchema{" +
+               "portIndex=" + portIndex +
+               ", fields=" + fields +
+               '}';
+    }
+
 }

@@ -35,10 +35,20 @@ public class OperatorDefinitionBuilder
         final OperatorSchema schema = getOperatorSchema( clazz );
         if ( schema != null )
         {
-            checkArgument( spec.inputPortCount() != DYNAMIC_PORT_COUNT );
-            checkArgument( spec.outputPortCount() != DYNAMIC_PORT_COUNT );
-            checkArgument( spec.inputPortCount() >= schema.inputs().length );
-            checkArgument( spec.outputPortCount() >= schema.outputs().length );
+            if ( schema.inputs().length > 0 )
+            {
+                checkArgument( spec.inputPortCount() != DYNAMIC_PORT_COUNT,
+                               "input port count must be defined in OperatorSpec if operator is annotated with OperatorSchema" );
+                checkArgument( spec.inputPortCount() >= schema.inputs().length,
+                               "Number of input port schemas in OperatorSchema exceeds input port count in OperatorSpec" );
+            }
+            if ( schema.outputs().length > 0 )
+            {
+                checkArgument( spec.outputPortCount() != DYNAMIC_PORT_COUNT,
+                               "output port count must be defined in OperatorSpec if operator is annotated with OperatorSchema" );
+                checkArgument( spec.outputPortCount() >= schema.outputs().length,
+                               "Number of output port schemas in OperatorSchema exceeds output port count in OperatorSpec" );
+            }
             failIfOperatorSchemaHasDuplicatePortIndices( schema );
             failIfInvalidPortIndexOnPortSchemas( spec.inputPortCount(), schema.inputs() );
             failIfInvalidPortIndexOnPortSchemas( spec.outputPortCount(), schema.outputs() );
@@ -50,16 +60,14 @@ public class OperatorDefinitionBuilder
     private static OperatorSpec getOperatorSpecOrFail ( Class<? extends Operator> clazz )
     {
         final OperatorSpec[] annotations = clazz.getDeclaredAnnotationsByType( OperatorSpec.class );
-        final String errorMessage = clazz + " Operator class must have " + OperatorSpec.class.getSimpleName() + " annotation!";
-        checkArgument( annotations.length == 1, errorMessage );
+        checkArgument( annotations.length == 1, clazz + " must have " + OperatorSpec.class.getSimpleName() + " annotation!" );
         return annotations[ 0 ];
     }
 
     private static OperatorSchema getOperatorSchema ( Class<? extends Operator> clazz )
     {
         final OperatorSchema[] annotations = clazz.getDeclaredAnnotationsByType( OperatorSchema.class );
-        final String errorMessage = clazz + " Operator class can have at most 1 " + OperatorSchema.class.getSimpleName() + " annotation!";
-        checkArgument( annotations.length <= 1, errorMessage );
+        checkArgument( annotations.length <= 1, clazz + " can have at most 1 " + OperatorSchema.class.getSimpleName() + " annotation!" );
         return annotations.length > 0 ? annotations[ 0 ] : null;
     }
 
@@ -67,8 +75,10 @@ public class OperatorDefinitionBuilder
     {
         if ( schema != null )
         {
-            checkArgument( schema.inputs().length == getPortIndexCount( schema.inputs() ) );
-            checkArgument( schema.outputs().length == getPortIndexCount( schema.outputs() ) );
+            checkArgument( schema.inputs().length == getPortIndexCount( schema.inputs() ),
+                           "There are multiple schemas for some input ports in OperatorSpec " );
+            checkArgument( schema.outputs().length == getPortIndexCount( schema.outputs() ),
+                           "There are multiple schemas for some output ports in OperatorSpec " );
         }
     }
 
@@ -76,7 +86,8 @@ public class OperatorDefinitionBuilder
     {
         for ( PortSchema portSchema : portSchemas )
         {
-            checkArgument( portSchema.portIndex() >= 0 && portSchema.portIndex() < portCount );
+            final int portIndex = portSchema.portIndex();
+            checkArgument( portIndex >= 0 && portIndex < portCount, "invalid port index: " + portIndex + " in OperatorSchema" );
         }
     }
 
@@ -109,8 +120,8 @@ public class OperatorDefinitionBuilder
                                         final OperatorSpec spec,
                                         final OperatorSchema schema )
     {
-        failIfNegativePortCount( inputPortCount, "input" );
-        failIfNegativePortCount( outputPortCount, "output" );
+        failIfInvalidPortCount( spec.inputPortCount(), "input" );
+        failIfInvalidPortCount( spec.outputPortCount(), "output" );
         this.id = id;
         this.clazz = clazz;
         this.type = spec.type();
@@ -122,6 +133,7 @@ public class OperatorDefinitionBuilder
     public OperatorDefinitionBuilder setInputPortCount ( final int inputPortCount )
     {
         checkState( this.inputPortCount == DYNAMIC_PORT_COUNT, "input port count can be set only once" );
+        checkArgument( inputPortCount >= 0, "input port count must be non-negative" );
         this.inputPortCount = inputPortCount;
         return this;
     }
@@ -129,6 +141,7 @@ public class OperatorDefinitionBuilder
     public OperatorDefinitionBuilder setOutputPortCount ( final int outputPortCount )
     {
         checkState( this.outputPortCount == DYNAMIC_PORT_COUNT, "output port count can be set only once" );
+        checkArgument( outputPortCount >= 0, "output port count must be non-negative" );
         this.outputPortCount = outputPortCount;
         return this;
     }
@@ -136,6 +149,7 @@ public class OperatorDefinitionBuilder
     public OperatorDefinitionBuilder setConfig ( final OperatorConfig config )
     {
         checkState( this.config == null, "config can be set only once" );
+        checkArgument( config != null, "config argument can not be null" );
         this.config = config;
         return this;
     }
@@ -150,8 +164,8 @@ public class OperatorDefinitionBuilder
     {
         checkArgument( extendingSchema != null, "extending schema argument can not be null" );
         checkState( this.extendingSchema == null, "extending schema can be set only once" );
-        failIfPortSchemaSizesMismatch( extendingSchema.getInputSchemas().size(), this.inputPortCount );
-        failIfPortSchemaSizesMismatch( extendingSchema.getOutputSchemas().size(), this.outputPortCount );
+        failIfExtendingSchemaPortSchemaSizesMismatch( extendingSchema.getInputSchemas().size(), this.inputPortCount );
+        failIfExtendingSchemaPortSchemaSizesMismatch( extendingSchema.getOutputSchemas().size(), this.outputPortCount );
         if ( this.schema != null )
         {
             extendingSchema.getInputSchemas()
@@ -193,10 +207,10 @@ public class OperatorDefinitionBuilder
                                        partitionFieldNames );
     }
 
-    private void failIfPortSchemaSizesMismatch ( final int schemaSize, final int portCount )
+    private void failIfExtendingSchemaPortSchemaSizesMismatch ( final int schemaSize, final int portCount )
     {
-        checkState( portCount != DYNAMIC_PORT_COUNT );
-        checkArgument( schemaSize <= portCount );
+        checkState( portCount != DYNAMIC_PORT_COUNT, "port count of operator must be set before extending schema is given" );
+        checkArgument( schemaSize <= portCount, "number of port schemas in extending schema exceeds port count of operator" );
     }
 
     private void failIfExtendingSchemaContainsDuplicateField ( final PortRuntimeSchema runtimeSchema, final PortSchema[] portSchemas )
@@ -208,13 +222,14 @@ public class OperatorDefinitionBuilder
                                             .filter( portSchema -> portSchema.portIndex() == runtimeSchema.getPortIndex() )
                                             .flatMap( portSchema -> Arrays.stream( portSchema.fields() ).map( SchemaField::name ) )
                                             .anyMatch( runtimeSchemaFieldNames::contains );
-            checkArgument( !duplicate );
+            checkArgument( !duplicate, runtimeSchema + " contains duplicate fields with OperatorSchema" );
         }
     }
 
 
     private void failIfFieldNotExistInInputPortsOrExistWithDifferentTypes ( final String fieldName )
     {
+        final String errorMessage = "partition field " + fieldName + " must have same type on all input port schemas";
         Class<?> type = null;
         for ( int i = 0; i < inputPortCount; i++ )
         {
@@ -230,7 +245,8 @@ public class OperatorDefinitionBuilder
                     }
                     else
                     {
-                        checkArgument( type.equals( field.type ) );
+
+                        checkArgument( type.equals( field.type ), errorMessage );
                     }
                 }
                 else
@@ -242,7 +258,7 @@ public class OperatorDefinitionBuilder
                     }
                     else
                     {
-                        checkArgument( type.equals( schemaField.type() ) );
+                        checkArgument( type.equals( schemaField.type() ), errorMessage );
                     }
                 }
             }
@@ -255,7 +271,7 @@ public class OperatorDefinitionBuilder
                 }
                 else
                 {
-                    checkArgument( type.equals( schemaField.type() ) );
+                    checkArgument( type.equals( schemaField.type() ), errorMessage );
                 }
             }
         }
@@ -291,9 +307,9 @@ public class OperatorDefinitionBuilder
         checkArgument( !isNullOrEmpty( operatorId ), "operator id must be non-empty!" );
     }
 
-    private void failIfNegativePortCount ( final int portCount, final String portType )
+    private void failIfInvalidPortCount ( final int portCount, final String portType )
     {
-        checkArgument( portCount >= 0, portType + " port count must be non-negative!" );
+        checkArgument( portCount >= DYNAMIC_PORT_COUNT, portType + " port count must be non-negative!" );
     }
 
     private OperatorRuntimeSchema buildOperatorRuntimeSchema ()

@@ -47,4 +47,13 @@ public class OperatorRuntimeSchema
         return outputSchemas;
     }
 
+    @Override
+    public String toString ()
+    {
+        return "OperatorRuntimeSchema{" +
+               "inputSchemas=" + inputSchemas +
+               ", outputSchemas=" + outputSchemas +
+               '}';
+    }
+
 }
