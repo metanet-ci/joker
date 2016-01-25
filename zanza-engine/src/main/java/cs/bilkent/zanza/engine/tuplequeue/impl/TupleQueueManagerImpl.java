@@ -73,10 +73,11 @@ class TupleQueueManagerImpl implements TupleQueueManager
                                                                                   final List<String> partitionFieldNames,
                                                                                   final Supplier<TupleQueue> tupleQueueSupplier )
     {
-        return operatorType == PARTITIONED_STATEFUL
-               ? s -> new PartitionedTupleQueueContext( operatorId, inputPortCount, partitionFieldNames,
-                                                        tupleQueueSupplier )
-               : s -> new DefaultTupleQueueContext( operatorId, inputPortCount, tupleQueueSupplier );
+        return operatorType == PARTITIONED_STATEFUL ? s -> new PartitionedTupleQueueContext( operatorId,
+                                                                                             inputPortCount,
+                                                                                             partitionFieldNames,
+                                                                                             tupleQueueSupplier )
+                                                    : s -> new DefaultTupleQueueContext( operatorId, inputPortCount, tupleQueueSupplier );
     }
 
     @Override

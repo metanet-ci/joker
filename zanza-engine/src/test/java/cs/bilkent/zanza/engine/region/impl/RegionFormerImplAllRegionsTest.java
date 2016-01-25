@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.junit.Test;
 
-import static cs.bilkent.zanza.engine.region.impl.RegionFormerImplOperatorSequenceRegionsTest.assertRegion;
+import static cs.bilkent.zanza.engine.region.impl.RegionFormerImplRegionTest.assertRegion;
 import cs.bilkent.zanza.flow.FlowDefinition;
 import cs.bilkent.zanza.flow.FlowDefinitionBuilder;
 import cs.bilkent.zanza.flow.OperatorDefinition;

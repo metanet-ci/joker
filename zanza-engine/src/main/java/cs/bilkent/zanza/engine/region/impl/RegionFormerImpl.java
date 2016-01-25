@@ -16,6 +16,7 @@ import cs.bilkent.zanza.engine.region.RegionFormer;
 import cs.bilkent.zanza.flow.FlowDefinition;
 import cs.bilkent.zanza.flow.OperatorDefinition;
 import cs.bilkent.zanza.flow.Port;
+import cs.bilkent.zanza.operator.schema.runtime.PortRuntimeSchema;
 import cs.bilkent.zanza.operator.spec.OperatorType;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATEFUL;
@@ -89,17 +90,11 @@ public class RegionFormerImpl implements RegionFormer
                 }
                 else if ( regionType == PARTITIONED_STATEFUL )
                 {
-                    final List<String> newPartitionFieldNames = new ArrayList<>( regionPartitionFieldNames );
-                    newPartitionFieldNames.retainAll( currentOperator.partitionFieldNames );
-                    if ( newPartitionFieldNames.isEmpty() )
+                    if ( !currentOperator.partitionFieldNames.containsAll( regionPartitionFieldNames ) )
                     {
                         regions.add( new RegionDefinition( PARTITIONED_STATEFUL, regionPartitionFieldNames, regionOperators ) );
                         regionPartitionFieldNames = new ArrayList<>( currentOperator.partitionFieldNames );
                         regionOperators = new ArrayList<>();
-                    }
-                    else
-                    {
-                        regionPartitionFieldNames = newPartitionFieldNames;
                     }
 
                     regionOperators.add( currentOperator );
@@ -108,21 +103,18 @@ public class RegionFormerImpl implements RegionFormer
                 {
                     // regionType is STATELESS
                     final ListIterator<OperatorDefinition> it = regionOperators.listIterator( regionOperators.size() );
-                    List<String> newPartitionFieldNames = new ArrayList<>( currentOperator.partitionFieldNames );
                     final List<OperatorDefinition> newRegionOperators = new ArrayList<>();
                     while ( it.hasPrevious() )
                     {
                         final OperatorDefinition prev = it.previous();
-                        final List<String> commonPartitionFieldNames = getCommonInputFieldNames( prev, newPartitionFieldNames );
-                        if ( commonPartitionFieldNames.isEmpty() )
+                        if ( containsAllFieldNamesOnInputPort( prev, currentOperator.partitionFieldNames ) )
                         {
-                            break;
+                            newRegionOperators.add( prev );
+                            it.remove();
                         }
                         else
                         {
-                            newPartitionFieldNames = commonPartitionFieldNames;
-                            newRegionOperators.add( prev );
-                            it.remove();
+                            break;
                         }
                     }
 
@@ -132,10 +124,10 @@ public class RegionFormerImpl implements RegionFormer
                     }
 
                     regionType = PARTITIONED_STATEFUL;
-                    regionPartitionFieldNames = newPartitionFieldNames;
                     reverse( newRegionOperators );
                     newRegionOperators.add( currentOperator );
                     regionOperators = newRegionOperators;
+                    regionPartitionFieldNames = new ArrayList<>( currentOperator.partitionFieldNames );
                 }
             }
             else
@@ -196,25 +188,17 @@ public class RegionFormerImpl implements RegionFormer
         return sequences;
     }
 
-    private List<String> getCommonInputFieldNames ( final OperatorDefinition operator, final List<String> partitionFieldNames )
+    private boolean containsAllFieldNamesOnInputPort ( final OperatorDefinition operator, final List<String> fieldNames )
     {
-        final List<String> commonPartitionFieldNames = new ArrayList<>();
-        if ( operator.inputPortCount > 0 )
+        if ( operator.inputPortCount == 1 )
         {
-            for ( String partitionFieldName : partitionFieldNames )
-            {
-                final boolean isCommon = operator.schema.getInputSchemas()
-                                                        .stream()
-                                                        .allMatch( portSchema -> portSchema.getField( partitionFieldName ) != null );
-
-                if ( isCommon )
-                {
-                    commonPartitionFieldNames.add( partitionFieldName );
-                }
-            }
+            final PortRuntimeSchema inputSchema = operator.schema.getInputSchema( 0 );
+            return fieldNames.stream().allMatch( fieldName -> inputSchema.getField( fieldName ) != null );
         }
-
-        return commonPartitionFieldNames;
+        else
+        {
+            return false;
+        }
     }
 
     private OperatorDefinition removeRandomOperator ( final Set<OperatorDefinition> operators )

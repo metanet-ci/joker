@@ -20,6 +20,7 @@ import cs.bilkent.zanza.operator.schema.runtime.RuntimeSchemaField;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
 import cs.bilkent.zanza.operator.spec.OperatorType;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
+import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
 import static java.util.stream.Collectors.toList;
 
 
@@ -52,6 +53,16 @@ public class OperatorDefinitionBuilder
             failIfOperatorSchemaHasDuplicatePortIndices( schema );
             failIfInvalidPortIndexOnPortSchemas( spec.inputPortCount(), schema.inputs() );
             failIfInvalidPortIndexOnPortSchemas( spec.outputPortCount(), schema.outputs() );
+        }
+
+        if ( spec.inputPortCount() != DYNAMIC_PORT_COUNT )
+        {
+            failIfInvalidPortCount( spec.type(), spec.inputPortCount(), "input" );
+        }
+
+        if ( spec.outputPortCount() != DYNAMIC_PORT_COUNT )
+        {
+            failIfInvalidPortCount( spec.type(), spec.outputPortCount(), "output" );
         }
 
         return new OperatorDefinitionBuilder( id, clazz, spec, schema );
@@ -91,6 +102,12 @@ public class OperatorDefinitionBuilder
         }
     }
 
+    private static void failIfInvalidPortCount ( final OperatorType type, final int portCount, final String portType )
+    {
+        checkArgument( portCount >= DYNAMIC_PORT_COUNT, "invalid " + portType + " port count: " + portCount );
+        checkArgument( type != STATELESS || portCount == 1, STATELESS + " operators can have 1 " + portType + " ports!" );
+    }
+
     private static int getPortIndexCount ( final PortSchema[] portSchemas )
     {
         return (int) Arrays.stream( portSchemas ).map( PortSchema::portIndex ).distinct().count();
@@ -120,8 +137,6 @@ public class OperatorDefinitionBuilder
                                         final OperatorSpec spec,
                                         final OperatorSchema schema )
     {
-        failIfInvalidPortCount( spec.inputPortCount(), "input" );
-        failIfInvalidPortCount( spec.outputPortCount(), "output" );
         this.id = id;
         this.clazz = clazz;
         this.type = spec.type();
@@ -134,6 +149,7 @@ public class OperatorDefinitionBuilder
     {
         checkState( this.inputPortCount == DYNAMIC_PORT_COUNT, "input port count can be set only once" );
         checkArgument( inputPortCount >= 0, "input port count must be non-negative" );
+        failIfInvalidPortCount( type, inputPortCount, "input" );
         this.inputPortCount = inputPortCount;
         return this;
     }
@@ -142,6 +158,7 @@ public class OperatorDefinitionBuilder
     {
         checkState( this.outputPortCount == DYNAMIC_PORT_COUNT, "output port count can be set only once" );
         checkArgument( outputPortCount >= 0, "output port count must be non-negative" );
+        failIfInvalidPortCount( type, outputPortCount, "output" );
         this.outputPortCount = outputPortCount;
         return this;
     }
@@ -305,11 +322,6 @@ public class OperatorDefinitionBuilder
     private static void failIfEmptyOperatorId ( final String operatorId )
     {
         checkArgument( !isNullOrEmpty( operatorId ), "operator id must be non-empty!" );
-    }
-
-    private void failIfInvalidPortCount ( final int portCount, final String portType )
-    {
-        checkArgument( portCount >= DYNAMIC_PORT_COUNT, portType + " port count must be non-negative!" );
     }
 
     private OperatorRuntimeSchema buildOperatorRuntimeSchema ()

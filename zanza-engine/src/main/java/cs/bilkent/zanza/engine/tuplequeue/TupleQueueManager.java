@@ -15,7 +15,9 @@ public interface TupleQueueManager
     }
 
     TupleQueueContext createTupleQueueContext ( String operatorId,
-                                                int inputPortCount, OperatorType operatorType, List<String> partitionFieldNames,
+                                                int inputPortCount,
+                                                OperatorType operatorType,
+                                                List<String> partitionFieldNames,
                                                 TupleQueueThreading tupleQueueThreading,
                                                 int initialQueueCapacity );
 

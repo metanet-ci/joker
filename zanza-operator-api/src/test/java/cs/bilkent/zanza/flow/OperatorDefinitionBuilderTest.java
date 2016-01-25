@@ -20,6 +20,7 @@ import cs.bilkent.zanza.operator.schema.runtime.OperatorRuntimeSchema;
 import cs.bilkent.zanza.operator.schema.runtime.PortRuntimeSchema;
 import cs.bilkent.zanza.operator.schema.runtime.RuntimeSchemaField;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
+import cs.bilkent.zanza.operator.spec.OperatorType;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
 import static java.util.Collections.singletonList;
@@ -33,55 +34,97 @@ import static org.junit.Assert.assertTrue;
 public class OperatorDefinitionBuilderTest
 {
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotCreateBuilderWithNullId ()
+    public void shouldNotBuildBuilderWithNullId ()
     {
         OperatorDefinitionBuilder.newInstance( null, StatelessOperatorWithDynamicPortCounts.class );
     }
 
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotCreateBuilderWithEmptyId ()
+    public void shouldNotBuildBuilderWithEmptyId ()
     {
         OperatorDefinitionBuilder.newInstance( "", StatelessOperatorWithDynamicPortCounts.class );
     }
 
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotCreateBuilderWithNullClass ()
+    public void shouldNotBuildBuilderWithNullClass ()
     {
         OperatorDefinitionBuilder.newInstance( "op1", null );
     }
 
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotCreateBuilderWithoutOperatorSpec ()
+    public void shouldNotBuildBuilderWithoutOperatorSpec ()
     {
         OperatorDefinitionBuilder.newInstance( "op1", OperatorWithNoSpec.class );
     }
 
     @Test( expected = IllegalStateException.class )
-    public void shouldNotCreateBuilderWithInvalidFixedInputCountAndNoConfig ()
+    public void shouldNotBuildOperatorDefinitionWithInvalidFixedInputCountAndNoConfig ()
     {
         OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).build();
     }
 
     @Test( expected = IllegalStateException.class )
-    public void shouldNotCreateBuilderWithDynamicInputPortCount ()
+    public void shouldNotBuildOperatorDefinitionWithDynamicInputPortCount ()
     {
         OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setOutputPortCount( 1 ).build();
     }
 
+    @Test
+    public void shouldSetSingleInputPortCountForStatelessOperator ()
+    {
+        OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setInputPortCount( 1 );
+    }
+
+    @Test
+    public void shouldSetSingleOutputPortCountForStatelessOperator ()
+    {
+        OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setOutputPortCount( 1 );
+    }
+
+    @Test( expected = IllegalArgumentException.class )
+    public void shouldNotSetMultipleInputPortCountForStatelessOperator ()
+    {
+        OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setInputPortCount( 2 );
+    }
+
+    @Test( expected = IllegalArgumentException.class )
+    public void shouldNotSetMultipleOutputPortCountForStatelessOperator ()
+    {
+        OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setOutputPortCount( 2 );
+    }
+
     @Test( expected = IllegalStateException.class )
-    public void shouldNotCreateBuilderWithDynamicOutputPortCount ()
+    public void shouldNotBuildOperatorDefinitionWithDynamicOutputPortCount ()
     {
         OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setInputPortCount( 1 ).build();
     }
 
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotCreateBuilderWithInvalidFixedInputCount ()
+    public void shouldNotBuildBuilderWithMultipleInputPortCount ()
+    {
+        OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithMultipleInputPortCount.class );
+    }
+
+    @Test( expected = IllegalArgumentException.class )
+    public void shouldNotBuildBuilderWithMultipleOutputPortCount ()
+    {
+        OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithMultipleOutputPortCount.class );
+    }
+
+    @Test
+    public void shouldBuildBuilderWithSingleInputOutputPortCount ()
+    {
+        OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithSingleInputOutputPortCount.class );
+    }
+
+    @Test( expected = IllegalArgumentException.class )
+    public void shouldNotBuildOperatorDefinitionWithInvalidFixedInputCount ()
     {
         OperatorDefinitionBuilder.newInstance( "op1", StatefulOperatorWithInvalidInputPortCount.class ).build();
     }
 
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotCreateBuilderWithInvalidFixedOutputCount ()
+    public void shouldNotBuildOperatorDefinitionWithInvalidFixedOutputCount ()
     {
         OperatorDefinitionBuilder.newInstance( "op1", StatefulOperatorWithInvalidOutputPortCount.class ).build();
     }
@@ -219,49 +262,49 @@ public class OperatorDefinitionBuilderTest
     }
 
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotCreateBuilderForOperatorWithNoInputPortCountButInputSchema ()
+    public void shouldNotBuildBuilderForOperatorWithNoInputPortCountButInputSchema ()
     {
         OperatorDefinitionBuilder.newInstance( "op1", OperatorWithNoInputPortCountButInputSchema.class );
     }
 
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotCreateBuilderForOperatorWithNoOutputPortCountButOutputSchema ()
+    public void shouldNotBuildBuilderForOperatorWithNoOutputPortCountButOutputSchema ()
     {
         OperatorDefinitionBuilder.newInstance( "op1", OperatorWithNoOutputPortCountButOutputSchema.class );
     }
 
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotCreateBuilderForOperatorWithDuplicateInputPortSchema ()
+    public void shouldNotBuildBuilderForOperatorWithDuplicateInputPortSchema ()
     {
         OperatorDefinitionBuilder.newInstance( "op1", OperatorWithDuplicateInputPortSchema.class );
     }
 
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotCreateBuilderForOperatorWithDuplicateOutputPortSchema ()
+    public void shouldNotBuildBuilderForOperatorWithDuplicateOutputPortSchema ()
     {
         OperatorDefinitionBuilder.newInstance( "op1", OperatorWithDuplicateOutputPortSchema.class );
     }
 
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotCreateBuilderForOperatorWithNegativeInputPortSchema ()
+    public void shouldNotBuildBuilderForOperatorWithNegativeInputPortSchema ()
     {
         OperatorDefinitionBuilder.newInstance( "op1", OperatorWithNegativeInputPortSchema.class );
     }
 
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotCreateBuilderForOperatorWithNegativeOutputPortSchema ()
+    public void shouldNotBuildBuilderForOperatorWithNegativeOutputPortSchema ()
     {
         OperatorDefinitionBuilder.newInstance( "op1", OperatorWithNegativeOutputPortSchema.class );
     }
 
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotCreateBuilderForOperatorWithExceedingInputPortSchema ()
+    public void shouldNotBuildBuilderForOperatorWithExceedingInputPortSchema ()
     {
         OperatorDefinitionBuilder.newInstance( "op1", OperatorWithExceedingInputPortSchema.class );
     }
 
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotCreateBuilderForOperatorWithExceedingOutputPortSchema ()
+    public void shouldNotBuildBuilderForOperatorWithExceedingOutputPortSchema ()
     {
         OperatorDefinitionBuilder.newInstance( "op1", OperatorWithExceedingOutputPortSchema.class );
     }
@@ -423,6 +466,24 @@ public class OperatorDefinitionBuilderTest
     }
 
 
+    @OperatorSpec( type = OperatorType.STATELESS, inputPortCount = 2 )
+    public static class StatelessOperatorWithMultipleInputPortCount extends NopOperator
+    {
 
+    }
+
+
+    @OperatorSpec( type = OperatorType.STATELESS, outputPortCount = 2 )
+    public static class StatelessOperatorWithMultipleOutputPortCount extends NopOperator
+    {
+
+    }
+
+
+    @OperatorSpec( type = OperatorType.STATELESS, inputPortCount = 1, outputPortCount = 1 )
+    public static class StatelessOperatorWithSingleInputOutputPortCount extends NopOperator
+    {
+
+    }
 
 }

@@ -163,10 +163,10 @@ public class FlowDefinitionBuilderTest
     {
         builder.add( OperatorDefinitionBuilder.newInstance( "op1", StatefulOperatorWithFixedPortCounts.class ) );
         builder.add( OperatorDefinitionBuilder.newInstance( "op2", StatefulOperatorWithFixedPortCounts.class ) );
-        builder.add( OperatorDefinitionBuilder.newInstance( "op3", StatelessOperatorWithDynamicPortCounts.class )
+        builder.add( OperatorDefinitionBuilder.newInstance( "op3", StatefulOperatorWithDynamicPortCounts.class )
                                               .setInputPortCount( 0 )
                                               .setOutputPortCount( 1 ) );
-        builder.add( OperatorDefinitionBuilder.newInstance( "op4", StatelessOperatorWithDynamicPortCounts.class )
+        builder.add( OperatorDefinitionBuilder.newInstance( "op4", StatefulOperatorWithDynamicPortCounts.class )
                                               .setInputPortCount( 2 )
                                               .setOutputPortCount( 0 ) );
 
@@ -254,6 +254,13 @@ public class FlowDefinitionBuilderTest
 
     @OperatorSpec( type = OperatorType.STATEFUL, inputPortCount = SPEC_INPUT_PORT_COUNT, outputPortCount = SPEC_OUTPUT_PORT_COUNT )
     public static class StatefulOperatorWithFixedPortCounts extends NopOperator
+    {
+
+    }
+
+
+    @OperatorSpec( type = OperatorType.STATEFUL )
+    public static class StatefulOperatorWithDynamicPortCounts extends NopOperator
     {
 
     }
