@@ -53,9 +53,7 @@ public class DefaultTupleQueueContext implements TupleQueueContext
             final int portIndex = portToTuples.getPortIndex();
             checkArgument( portIndex < this.inputPortCount,
                            "Tuples have invalid input port index for operator: " + operatorId + " input port count: " + inputPortCount
-                           + " input port " +
-                           "index: " +
-                           portIndex );
+                           + " input port " + "index: " + portIndex );
 
             final TupleQueue tupleQueue = tupleQueues[ portIndex ];
             for ( Tuple tuple : portToTuples.getTuples() )

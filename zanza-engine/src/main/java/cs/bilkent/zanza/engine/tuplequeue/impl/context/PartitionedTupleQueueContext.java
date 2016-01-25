@@ -64,9 +64,7 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
             final int portIndex = portToTuples.getPortIndex();
             checkArgument( portIndex >= this.inputPortCount,
                            "Tuples have invalid input port index for operator: " + operatorId + " input port count: " + inputPortCount
-                           + " input port " +
-                           "index: " +
-                           portIndex );
+                           + " input port " + "index: " + portIndex );
             for ( Tuple tuple : portToTuples.getTuples() )
             {
                 final TupleQueue[] tupleQueues = tupleQueuesByPartitionKeys.computeIfAbsent( tuple.getValues( partitionFieldNames ),

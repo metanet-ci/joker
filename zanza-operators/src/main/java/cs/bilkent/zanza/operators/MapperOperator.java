@@ -12,6 +12,7 @@ import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
 import cs.bilkent.zanza.operator.spec.OperatorType;
 import cs.bilkent.zanza.scheduling.ScheduleNever;
+import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable;
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.ANY_NUMBER_OF_TUPLES;
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.zanza.scheduling.SchedulingStrategy;
@@ -31,7 +32,7 @@ public class MapperOperator implements Operator
 
     private Function<Tuple, Tuple> mapper;
 
-    private int tupleCount;
+    private ScheduleWhenTuplesAvailable schedulingStrategy;
 
     @Override
     public SchedulingStrategy init ( final InitializationContext context )
@@ -44,9 +45,9 @@ public class MapperOperator implements Operator
             mapped.setSequenceNumber( tuple.getSequenceNumber() );
             return mapped;
         };
-        this.tupleCount = config.getIntegerOrDefault( TUPLE_COUNT_CONFIG_PARAMETER, ANY_NUMBER_OF_TUPLES );
-
-        return scheduleWhenTuplesAvailableOnDefaultPort( this.tupleCount );
+        final int tupleCount = config.getIntegerOrDefault( TUPLE_COUNT_CONFIG_PARAMETER, ANY_NUMBER_OF_TUPLES );
+        schedulingStrategy = scheduleWhenTuplesAvailableOnDefaultPort( tupleCount );
+        return schedulingStrategy;
     }
 
     @Override
@@ -58,8 +59,7 @@ public class MapperOperator implements Operator
                                                       .map( mapper )
                                                       .collect( PortsToTuples.COLLECT_TO_DEFAULT_PORT );
 
-        final SchedulingStrategy nextStrategy = invocationContext.isSuccessfulInvocation() ? scheduleWhenTuplesAvailableOnDefaultPort(
-                tupleCount )                                                               : ScheduleNever.INSTANCE;
+        final SchedulingStrategy nextStrategy = invocationContext.isSuccessfulInvocation() ? schedulingStrategy : ScheduleNever.INSTANCE;
 
         return new InvocationResult( nextStrategy, output );
     }

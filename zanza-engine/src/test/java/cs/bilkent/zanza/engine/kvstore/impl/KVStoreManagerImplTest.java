@@ -125,9 +125,13 @@ public class KVStoreManagerImplTest
     @Test
     public void shouldCreateKVStoreContextOnlyOnceForAnOperator ()
     {
-        final KVStoreContext kvStoreContext1 = kvStoreManager.createKVStoreContext( "op1", PARTITIONED_STATEFUL, singletonList( "field1" ),
+        final KVStoreContext kvStoreContext1 = kvStoreManager.createKVStoreContext( "op1",
+                                                                                    PARTITIONED_STATEFUL,
+                                                                                    singletonList( "field1" ),
                                                                                     2 );
-        final KVStoreContext kvStoreContext2 = kvStoreManager.createKVStoreContext( "op1", PARTITIONED_STATEFUL, singletonList( "field1" ),
+        final KVStoreContext kvStoreContext2 = kvStoreManager.createKVStoreContext( "op1",
+                                                                                    PARTITIONED_STATEFUL,
+                                                                                    singletonList( "field1" ),
                                                                                     2 );
         assertTrue( kvStoreContext1 == kvStoreContext2 );
     }
