@@ -16,3 +16,4 @@ performance*.log
 .surefire-*
 bin/
 zanza-paper/output/
+zanza-paper/text/paper.log
