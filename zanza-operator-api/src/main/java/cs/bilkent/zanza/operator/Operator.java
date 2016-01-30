@@ -50,7 +50,7 @@ public interface Operator
      * @see SchedulingStrategy
      * @see InitializationContext
      */
-    SchedulingStrategy init ( final InitializationContext context );
+    SchedulingStrategy init ( InitializationContext context );
 
     /**
      * Invoked to process incoming tuples sent to incoming connections of an operator and to produce tuples that will be
