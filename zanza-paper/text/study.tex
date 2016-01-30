@@ -1,0 +1,35 @@
+\section{Study}\label{sec:study}
+\lstset{language=JAVA}
+
+A streaming application can be represented as a directed graph where operators are vertices that manipulate data and streams are edges that passes data from an operator to other operators. Users can define a streaming application by implementing their own operators and connecting them via streams. We developed an Application Programming Interface (API) in Java to enable users to write their own streaming applications. Our operator development API achieves four main goals: simple processing paradigm, user code isolation, flexible operator life cycle management and operator behavior visibility. In the following subsections, we discuss how the API achieves each one of these goals.
+
+\subsection{Data Processing API}\label{sec:data-processing-api}
+
+We define \textit{Tuple} as the unit of data in our system. It defines the data model as a connection of key-value pairs. Values can be any type while keys are typed as \textit{String}. It also contains various methods to manipulate its internal key-value pairs. Tuples are manipulated by operators and moved through the streams between operators.
+
+We mimic functional programming paradigm to provide an API for tuple processing. In our API, we have a single processing method, \texttt{process()}, as displayed in Listing \ref{code:process}. Processing logic of the operator resides within this method. Streaming engine invokes \texttt{process()} method of an operator with the tuples sent to it by other operators, along with all other runtime elements required to perform the computation. For instance, if an operator declares itself as a stateful operator, a key value store API is provided to the operator on \texttt{process()} invocations. 
+
+Operators use implementations of \texttt{SchedulingStrategy} interface to specify when their \texttt{process()} method should be invoked. Currently, we are only focusing on invocations based on tuple availability in input queues of the operators. Therefore, operators specify how many tuples they need in each input queue to perform their computation. Once these requirements are met, streaming runtime is allowed to invoke the operator. An operator may have multiple input ports and it may also require different number of tuples for each one of its input ports. Streaming runtime will not invoke that operator until all of the specified tuple requirements are met. Additionally, operators also specify if they require an exact number of tuples for invocations or they can handle more tuples than required. For instance, an operator may specify that it requires exactly three tuples on its input queue for an invocation. Then, streaming runtime makes all invocations with exactly three tuples. On the other hand, if an operator specifies that it requires at least three tuples, streaming runtime can perform batching and invoke the operator with a high number of tuples. 
+
+Operators may change their \texttt{SchedulingStrategy} between invocations. \texttt{SchedulingStrategy} returned within the \texttt{InvocationResult} is used for next invocation of the operator. Related to this, an unexpected invocation can be done for some cases. For instance, streaming runtime may detect that tuple requirements of an operator will be never satisfied. If that is the case, it invokes \texttt{process()} method of the operator and notifies it with a field in the \texttt{InvocationContext} class.
+
+Result of computations is also represented with tuples which are returned from invocations of \texttt{process()} method. Streaming engine is responsible for delivering output tuples of an operator to the streams sourced by the same operator.
+
+Our data processing API is simple and powerful. An operator is only responsible for performing its own computation without dealing with any aspect of the streaming runtime. Similarly, All of the necessary information and runtime elements are provided to the operator. Lastly, there is an isolation between user code and the streaming runtime. Not only this advantage saves the operator developer from a lot of burden, but also it gives a lot of freedom to the streaming runtime to perform optimizations.
+
+\lstset{language=JAVA, caption="Data Processing API"}
+\begin{lstlisting}[frame=single] 
+public interface Operator
+{	 
+    InvocationResult process ( InvocationContext invocation );
+    // life cycle methods omitted
+}
+\end{lstlisting}
+\label{code:process}
+
+tuple'dan bahset
+process method'tan bahset
+state api'den bahset
+
+asdasdasasda asdad a asd ad asda dada dasdasdasd asd asda dsa asdasdasasda asdad a asd ad asda dada dasdasdasd asd aasda dsa asdasdasasda asdad a asd ad asda dada dasdasdasd asd asda dsa asda dsa asdasdasasda asdad a asd ad asda dada dasdasdasd asd asda dsa asda dsa asdasdasasda asdad a asd ad asda dada dasdasdasd asd asda dsa asda dsa asdasdasasda asdad a asd ad asda dada dasdasdasd asd asda dsa asda dsa asdasdasasda asdad a asd ad asda dada dasdasdasd asd asda dsa asda dsa asdasdasasda asdad a asd ad asda dada dasdasdasd asd asda dsa asda dsa asdasdasasda asdad a asd ad asda dada dasdasdasd asd asda dsa asda dsa asdasdasasda asdad a asd ad asda dada dasdasdasd asd asda dsa asda dsa asdasdasasda asdad a asd ad asda dada dasdasdasd asd asda dsa asda dsa asdasdasasda asdad a asd ad asda dada dasdasdasd asd asda dsa asda dsa asdasdasasda asdad a asd ad asda dada dasdasdasd asd asda dsa asda dsa asdasdasasda asdad a asd ad asda dada dasdasdasd asd asda dsa asda dsa asdasdasasda asdad a asd ad asda dada dasdasdasd asd asda dsa asda dsa asdasdasasda asdad a asd ad asda dada dasdasdasd asd asda dsa asda dsa asdasdasasda asdad a asd ad asda dada dasdasdasd asd asda dsa asda dsa asdasdasasda asdad a asd ad asda dada dasdasdasd asd asda dsa asda dsa asdasdasasda asdad a asd ad asda dada dasdasdasd asd asda dsa asda dsa asdasdasasda asdad a asd ad asda dada dasdasdasd asd asda dsa asda dsa asdasdasasda asdad a asd ad asda dada dasdasdasd asd asda dsa sda dsa asdasdasasda asdad a asd ad asda dada dasdasdasd asd asda dsa 
+
