@@ -87,8 +87,8 @@ public class OperatorDefinitionBuilderTest
         OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setInputPortCount( 2 );
     }
 
-    @Test( expected = IllegalArgumentException.class )
-    public void shouldNotSetMultipleOutputPortCountForStatelessOperator ()
+    @Test
+    public void shouldSetMultipleOutputPortCountForStatelessOperator ()
     {
         OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setOutputPortCount( 2 );
     }
@@ -105,10 +105,10 @@ public class OperatorDefinitionBuilderTest
         OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithMultipleInputPortCount.class );
     }
 
-    @Test( expected = IllegalArgumentException.class )
-    public void shouldNotBuildBuilderWithMultipleOutputPortCount ()
+    @Test
+    public void shouldBuildStatelessOperatorDefinitionWithMultipleOutputPortCount ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithMultipleOutputPortCount.class );
+        OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithMultipleOutputPortCount.class ).setInputPortCount( 1 ).build();
     }
 
     @Test
@@ -321,7 +321,7 @@ public class OperatorDefinitionBuilderTest
     }
 
     @Test
-    public void shouldBuildWithExtendedOutputPortSchema ()
+    public void shouldBuildOperatorDefinitionWithExtendedOutputPortSchema ()
     {
         final OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
         schemaBuilder.getOutputPortSchemaBuilder( DEFAULT_PORT_INDEX ).addField( "field3", boolean.class );
@@ -343,7 +343,7 @@ public class OperatorDefinitionBuilderTest
 
 
     @Test
-    public void shouldBuildWithPortSchemaDefinition ()
+    public void shouldBuildOperatorDefinitionWithPortSchemaDefinition ()
     {
         final OperatorDefinition definition = OperatorDefinitionBuilder.newInstance( "op1",
                                                                                      PartitionedStatefulOperatorWithExactInputPortSchema

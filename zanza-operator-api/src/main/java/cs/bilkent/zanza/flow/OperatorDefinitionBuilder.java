@@ -58,6 +58,7 @@ public class OperatorDefinitionBuilder
         if ( spec.inputPortCount() != DYNAMIC_PORT_COUNT )
         {
             failIfInvalidPortCount( spec.type(), spec.inputPortCount(), "input" );
+            failIfStatelessOperatorWithMultipleInputPorts( spec.type(), spec.inputPortCount(), "input" );
         }
 
         if ( spec.outputPortCount() != DYNAMIC_PORT_COUNT )
@@ -105,6 +106,12 @@ public class OperatorDefinitionBuilder
     private static void failIfInvalidPortCount ( final OperatorType type, final int portCount, final String portType )
     {
         checkArgument( portCount >= DYNAMIC_PORT_COUNT, "invalid " + portType + " port count: " + portCount );
+    }
+
+    private static void failIfStatelessOperatorWithMultipleInputPorts ( final OperatorType type,
+                                                                        final int portCount,
+                                                                        final String portType )
+    {
         checkArgument( type != STATELESS || portCount == 1, STATELESS + " operators can have 1 " + portType + " ports!" );
     }
 
@@ -150,6 +157,7 @@ public class OperatorDefinitionBuilder
         checkState( this.inputPortCount == DYNAMIC_PORT_COUNT, "input port count can be set only once" );
         checkArgument( inputPortCount >= 0, "input port count must be non-negative" );
         failIfInvalidPortCount( type, inputPortCount, "input" );
+        failIfStatelessOperatorWithMultipleInputPorts( type, inputPortCount, "input" );
         this.inputPortCount = inputPortCount;
         return this;
     }
