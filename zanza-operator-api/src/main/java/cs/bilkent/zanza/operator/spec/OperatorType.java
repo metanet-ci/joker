@@ -21,7 +21,7 @@ public enum OperatorType
      * The engine does not provide any state manipulation capabilities to an operator defined as {@code STATELESS}.
      * No {@link KVStore} implementation is given to the {@link Operator#process(InvocationContext)} for an invocation.
      * <p/>
-     * A {@code STATELESS} operator is not allowed to have multiple input ports.
+     * A {@code STATELESS} operator can have at most 1 input port.
      */
     STATELESS,
 

@@ -76,6 +76,12 @@ public class OperatorDefinitionBuilderTest
     }
 
     @Test
+    public void shouldSetZeroInputPortCountForStatelessOperator ()
+    {
+        OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setInputPortCount( 0 );
+    }
+
+    @Test
     public void shouldSetSingleOutputPortCountForStatelessOperator ()
     {
         OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setOutputPortCount( 1 );
@@ -115,6 +121,12 @@ public class OperatorDefinitionBuilderTest
     public void shouldBuildBuilderWithSingleInputOutputPortCount ()
     {
         OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithSingleInputOutputPortCount.class );
+    }
+
+    @Test
+    public void shouldBuildBuilderWithZeroInputOutputPortCount ()
+    {
+        OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithZeroInputOutputPortCount.class );
     }
 
     @Test( expected = IllegalArgumentException.class )
@@ -482,6 +494,13 @@ public class OperatorDefinitionBuilderTest
 
     @OperatorSpec( type = OperatorType.STATELESS, inputPortCount = 1, outputPortCount = 1 )
     public static class StatelessOperatorWithSingleInputOutputPortCount extends NopOperator
+    {
+
+    }
+
+
+    @OperatorSpec( type = OperatorType.STATELESS, inputPortCount = 0, outputPortCount = 1 )
+    public static class StatelessOperatorWithZeroInputOutputPortCount extends NopOperator
     {
 
     }

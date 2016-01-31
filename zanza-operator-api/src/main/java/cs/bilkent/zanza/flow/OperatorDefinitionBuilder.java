@@ -112,7 +112,7 @@ public class OperatorDefinitionBuilder
                                                                         final int portCount,
                                                                         final String portType )
     {
-        checkArgument( type != STATELESS || portCount == 1, STATELESS + " operators can have 1 " + portType + " ports!" );
+        checkArgument( type != STATELESS || portCount <= 1, STATELESS + " operators can have 1 " + portType + " ports!" );
     }
 
     private static int getPortIndexCount ( final PortSchema[] portSchemas )
