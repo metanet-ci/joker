@@ -4,15 +4,15 @@ As the world is becoming more connected and instrumented, we are receiving an in
 
 Stream processing systems process continuous data streams in an on-the-fly manner, as the data flows through the system. Their data processing paradigm represent the computation as a graph of operators and streams, where operators are generic data manipulators and streams are connections between operators. As long as they manage to cope with high data rates, they are a good fit for online data analytics tasks. 
 
-A few characteristics of stream processing systems have a significant effect on how they perform their tasks. First, they are long-running applications. Once deployed, they should perform their task continuously for a long time without any interruption. Secondly, rate of the data in continuous streams are highly dynamic. Therefore, they must perform performance optimizations to adapt to their workload changing during their lifetime. 
+A few characteristics of streaming applications play a key role in how stream processing systems should be designed. First, they are long-running applications. Secondly, they process continuous data with highly dynamic rates. Therefore, stream processing systems should be able to cope with all of the challenges come out of existence because of these characteristics. 
 
 In this study, we are researching new techniques to implement a distributed stream processing engine that can adapt to its dynamic workload by performing configuration changes with reasonable cost. It will be capable of changing all aspects of all logical-to-physical mapping at runtime. We call this capability \textit{organic adaptation}. It will have three important properties that will form a trivet (TODO corner stone???) for its adaptation capabilities:
 
 \begin{itemize}
 
-\item An operator development API that enables users to implement their generic, reusable operators with little effort. This API should free users from dealing with anything related to the runtime. Additionally, users should be able to define behavioral model of their operators in order to allow streaming runtime to perform optimizations in a safe and efficient manner.
+\item An operator development API that enables users to implement their generic, reusable operators with little effort. This API should free users from dealing with any aspect related to the runtime. Additionally, users should be able to define behavioral model of their operators in order to allow streaming runtime to perform optimizations in a safe and efficient manner.
 
-\item An integrated solution that can perform multiple optimizations (TODO list these optimizations) online, considering their interactions with each other.
+\item An integrated solution that analyze both system load and performance, and decide on various optimizations (TODO list these optimizations) online, considering their interactions with each other.
 
 \item Runtime mechanics required to provide parallel execution for a streaming application and to perform changes on configurations, and logical-to-physical mappings resiliently with little overhead.
 
