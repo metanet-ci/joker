@@ -1,0 +1,7 @@
+\section{Execution Model}\label{sec:execution-model}
+
+Streaming applications are structured as a directed graph where vertices are operators and edges are stream connections attached operator ports. Stream processing systems endeavor to map the operator graph to a set of available computing resources in order to achieve a scalable execution. Operator graph representation contains a lot of opportunities for performance optimizations. For instance, since operators only communicate via streams connecting them, they can execute tuples in parallel, which leads to \textit{pipeline parallelism}. An operator port connected to multiple operators forms distinct sub-graphs that can be executed in parallel, which leads to \textit{task parallelism}. The third type of parallelism, \textit{data parallelism}, is done by creating multiple instances of operators in the application graph and feeding each one of them with a different subset of input tuples. 
+
+Stream processing systems should investigate possible optimization opportunities, try to find the the most profitable ones, and apply them safely and transparently. While doing this, they should make operators utilize computing resources as much as possible with minimum distribution and optimization overhead. We aim to develop an organic stream processing engine that detects various optimization possibilities, apply them at runtime and monitor the overall system performance by different metrics afterwards and re-evaluate optimization opportunities repeatedly. 
+
+% give references in the paragraph above
