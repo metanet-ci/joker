@@ -12,22 +12,26 @@ import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount;
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.EXACT;
 
-
-public class DrainSinglePortTuples implements TupleQueuesConsumer
+public class DrainSinglePortTuplesBlocking implements TupleQueuesConsumer
 {
 
     private final int tupleCount;
 
     private final TupleAvailabilityByCount tupleAvailabilityByCount;
 
+    private final long timeoutInMillis;
+
     private PortsToTuples portsToTuples;
 
-    public DrainSinglePortTuples ( final int tupleCount, final TupleAvailabilityByCount tupleAvailabilityByCount )
+    public DrainSinglePortTuplesBlocking ( final int tupleCount,
+                                           final TupleAvailabilityByCount tupleAvailabilityByCount,
+                                           final long timeoutInMillis )
     {
         checkArgument( tupleCount > 0 );
         checkArgument( tupleAvailabilityByCount != null );
         this.tupleCount = tupleCount;
         this.tupleAvailabilityByCount = tupleAvailabilityByCount;
+        this.timeoutInMillis = timeoutInMillis;
     }
 
     @Override
@@ -38,8 +42,8 @@ public class DrainSinglePortTuples implements TupleQueuesConsumer
 
         final TupleQueue tupleQueue = tupleQueues[ 0 ];
         final List<Tuple> tuples = ( tupleAvailabilityByCount == EXACT )
-                                   ? tupleQueue.pollTuples( tupleCount )
-                                   : tupleQueue.pollTuplesAtLeast( tupleCount );
+                                   ? tupleQueue.pollTuples( tupleCount, timeoutInMillis )
+                                   : tupleQueue.pollTuplesAtLeast( tupleCount, timeoutInMillis );
         if ( !tuples.isEmpty() )
         {
             portsToTuples = new PortsToTuples();

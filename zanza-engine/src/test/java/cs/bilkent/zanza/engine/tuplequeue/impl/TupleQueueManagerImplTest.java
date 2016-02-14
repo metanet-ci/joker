@@ -5,16 +5,11 @@ import org.junit.Test;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import static cs.bilkent.zanza.engine.tuplequeue.TupleQueueManager.TupleQueueThreading.MULTI_THREADED;
 import static cs.bilkent.zanza.engine.tuplequeue.TupleQueueManager.TupleQueueThreading.SINGLE_THREADED;
-import cs.bilkent.zanza.engine.tuplequeue.impl.consumer.DrainAllAvailableTuples;
-import cs.bilkent.zanza.operator.PortsToTuples;
-import cs.bilkent.zanza.operator.Tuple;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 
@@ -119,41 +114,6 @@ public class TupleQueueManagerImplTest
                                                                                                 1 );
 
         assertTrue( tupleQueueContext1 == tupleQueueContext2 );
-    }
-
-    @Test
-    public void shouldReleaseCleanTupleQueueContext ()
-    {
-        final TupleQueueContext tupleQueueContext = tupleQueueManager.createTupleQueueContext( "op1",
-                                                                                               1,
-                                                                                               STATEFUL,
-                                                                                               null,
-                                                                                               MULTI_THREADED,
-                                                                                               1 );
-        tupleQueueContext.add( new PortsToTuples( new Tuple() ) );
-        tupleQueueManager.releaseTupleQueueContext( "op1" );
-        final DrainAllAvailableTuples drainAllAvailableTuples = new DrainAllAvailableTuples();
-        tupleQueueContext.drain( drainAllAvailableTuples );
-        assertNull( drainAllAvailableTuples.getPortsToTuples() );
-    }
-
-    @Test
-    public void shouldReCreateReleasedTupleQueueContext ()
-    {
-        final TupleQueueContext tupleQueueContex1 = tupleQueueManager.createTupleQueueContext( "op1",
-                                                                                               1,
-                                                                                               STATEFUL,
-                                                                                               null,
-                                                                                               MULTI_THREADED,
-                                                                                               1 );
-        tupleQueueManager.releaseTupleQueueContext( "op1" );
-        final TupleQueueContext tupleQueueContex2 = tupleQueueManager.createTupleQueueContext( "op1",
-                                                                                               1,
-                                                                                               STATEFUL,
-                                                                                               null,
-                                                                                               MULTI_THREADED,
-                                                                                               1 );
-        assertFalse( tupleQueueContex1 == tupleQueueContex2 );
     }
 
 }

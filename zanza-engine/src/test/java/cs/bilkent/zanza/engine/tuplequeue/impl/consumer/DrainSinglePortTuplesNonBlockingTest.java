@@ -16,27 +16,27 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 
-public class DrainSinglePortTuplesTest
+public class DrainSinglePortTuplesNonBlockingTest
 {
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithNullTupleQueues ()
     {
-        final DrainSinglePortTuples drainSinglePortTuples = new DrainSinglePortTuples( 1, AT_LEAST );
+        final DrainSinglePortTuplesNonBlocking drainSinglePortTuples = new DrainSinglePortTuplesNonBlocking( 1, AT_LEAST );
         drainSinglePortTuples.accept( null );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithEmptyTupleQueues ()
     {
-        final DrainSinglePortTuples drainSinglePortTuples = new DrainSinglePortTuples( 1, AT_LEAST );
+        final DrainSinglePortTuplesNonBlocking drainSinglePortTuples = new DrainSinglePortTuplesNonBlocking( 1, AT_LEAST );
         drainSinglePortTuples.accept( new TupleQueue[] {} );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithMultipleTupleQueues ()
     {
-        final DrainSinglePortTuples drainSinglePortTuples = new DrainSinglePortTuples( 1, AT_LEAST );
+        final DrainSinglePortTuplesNonBlocking drainSinglePortTuples = new DrainSinglePortTuplesNonBlocking( 1, AT_LEAST );
         drainSinglePortTuples.accept( new TupleQueue[] { new SingleThreadedTupleQueue( 1 ), new SingleThreadedTupleQueue( 1 ) } );
     }
 
@@ -49,7 +49,7 @@ public class DrainSinglePortTuplesTest
         final Tuple tuple2 = new Tuple();
         tupleQueue.offerTuple( tuple2 );
 
-        final DrainSinglePortTuples drainSinglePortTuples = new DrainSinglePortTuples( 1, AT_LEAST );
+        final DrainSinglePortTuplesNonBlocking drainSinglePortTuples = new DrainSinglePortTuplesNonBlocking( 1, AT_LEAST );
         drainSinglePortTuples.accept( new TupleQueue[] { tupleQueue } );
 
         final PortsToTuples portsToTuples = drainSinglePortTuples.getPortsToTuples();
@@ -70,7 +70,8 @@ public class DrainSinglePortTuplesTest
         final Tuple tuple2 = new Tuple();
         tupleQueue.offerTuple( tuple2 );
 
-        final DrainSinglePortTuples drainSinglePortTuples = new DrainSinglePortTuples( 1, AT_LEAST_BUT_SAME_ON_ALL_PORTS );
+        final DrainSinglePortTuplesNonBlocking drainSinglePortTuples = new DrainSinglePortTuplesNonBlocking( 1,
+                                                                                                             AT_LEAST_BUT_SAME_ON_ALL_PORTS );
         drainSinglePortTuples.accept( new TupleQueue[] { tupleQueue } );
 
         final PortsToTuples portsToTuples = drainSinglePortTuples.getPortsToTuples();
@@ -90,7 +91,7 @@ public class DrainSinglePortTuplesTest
         tupleQueue.offerTuple( tuple1 );
         tupleQueue.offerTuple( new Tuple() );
 
-        final DrainSinglePortTuples drainSinglePortTuples = new DrainSinglePortTuples( 1, EXACT );
+        final DrainSinglePortTuplesNonBlocking drainSinglePortTuples = new DrainSinglePortTuplesNonBlocking( 1, EXACT );
         drainSinglePortTuples.accept( new TupleQueue[] { tupleQueue } );
 
         final PortsToTuples portsToTuples = drainSinglePortTuples.getPortsToTuples();

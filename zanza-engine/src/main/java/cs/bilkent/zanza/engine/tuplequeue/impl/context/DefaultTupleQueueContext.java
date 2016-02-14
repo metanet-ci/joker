@@ -1,5 +1,8 @@
 package cs.bilkent.zanza.engine.tuplequeue.impl.context;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -11,7 +14,7 @@ import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueuesConsumer;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.PortsToTuples.PortToTuples;
-import cs.bilkent.zanza.operator.Tuple;
+import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.PortToTupleCount;
 
 
 public class DefaultTupleQueueContext implements TupleQueueContext
@@ -56,11 +59,34 @@ public class DefaultTupleQueueContext implements TupleQueueContext
                            + " input port " + "index: " + portIndex );
 
             final TupleQueue tupleQueue = tupleQueues[ portIndex ];
-            for ( Tuple tuple : portToTuples.getTuples() )
-            {
-                tupleQueue.offerTuple( tuple );
-            }
+            tupleQueue.offerTuples( portToTuples.getTuples() );
         }
+    }
+
+    @Override
+    public List<PortToTupleCount> tryAdd ( final PortsToTuples portsToTuples, final long timeoutInMillis )
+    {
+        final List<PortToTuples> portToTuplesList = portsToTuples.getPortToTuplesList();
+
+        if ( portToTuplesList.isEmpty() )
+        {
+            return Collections.emptyList();
+        }
+
+        final List<PortToTupleCount> counts = new ArrayList<>();
+        for ( PortToTuples portToTuples : portToTuplesList )
+        {
+            final int portIndex = portToTuples.getPortIndex();
+            checkArgument( portIndex < this.inputPortCount,
+                           "Tuples have invalid input port index for operator: " + operatorId + " input port count: " + inputPortCount
+                           + " input port " + "index: " + portIndex );
+
+            final TupleQueue tupleQueue = tupleQueues[ portIndex ];
+            final int count = tupleQueue.tryOfferTuples( portToTuples.getTuples(), timeoutInMillis );
+            counts.add( new PortToTupleCount( portIndex, count ) );
+        }
+
+        return counts;
     }
 
     @Override

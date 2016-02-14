@@ -1,18 +1,10 @@
 package cs.bilkent.zanza.engine.tuplequeue.impl.queue;
 
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
-import cs.bilkent.zanza.engine.tuplequeue.TupleQueueManager.TupleQueueThreading;
-import static cs.bilkent.zanza.engine.tuplequeue.TupleQueueManager.TupleQueueThreading.MULTI_THREADED;
-import static cs.bilkent.zanza.engine.tuplequeue.TupleQueueManager.TupleQueueThreading.SINGLE_THREADED;
 import cs.bilkent.zanza.operator.Tuple;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -20,23 +12,10 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertTrue;
 
 
-@RunWith( Parameterized.class )
-public class TupleQueueTest
+public class SingleThreadedTupleQueueTest
 {
 
-    @Parameters
-    public static Collection<TupleQueueThreading> data ()
-    {
-        return Arrays.asList( SINGLE_THREADED, MULTI_THREADED );
-    }
-
-
-    private final TupleQueue queue;
-
-    public TupleQueueTest ( TupleQueueThreading tupleQueueThreading )
-    {
-        this.queue = tupleQueueThreading == SINGLE_THREADED ? new SingleThreadedTupleQueue( 1 ) : new MultiThreadedTupleQueue( 1 );
-    }
+    private final TupleQueue queue = new SingleThreadedTupleQueue( 1 );
 
     @Test
     public void shouldOfferSingleTuple ()

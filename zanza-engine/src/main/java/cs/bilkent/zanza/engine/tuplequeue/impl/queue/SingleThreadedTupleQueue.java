@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Queue;
 
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.operator.Tuple;
@@ -14,7 +13,7 @@ import cs.bilkent.zanza.operator.Tuple;
 public class SingleThreadedTupleQueue implements TupleQueue
 {
 
-    private final Queue<Tuple> queue;
+    private final ArrayDeque<Tuple> queue;
 
     public SingleThreadedTupleQueue ( final int initialCapacity )
     {
@@ -22,9 +21,38 @@ public class SingleThreadedTupleQueue implements TupleQueue
     }
 
     @Override
+    public void ensureCapacity ( final int capacity )
+    {
+
+    }
+
+    @Override
     public void offerTuple ( final Tuple tuple )
     {
         queue.offer( tuple );
+    }
+
+    @Override
+    public boolean tryOfferTuple ( final Tuple tuple, final long timeoutInMillis )
+    {
+        offerTuple( tuple );
+        return true;
+    }
+
+    @Override
+    public void offerTuples ( final List<Tuple> tuples )
+    {
+        for ( Tuple tuple : tuples )
+        {
+            queue.offer( tuple );
+        }
+    }
+
+    @Override
+    public int tryOfferTuples ( final List<Tuple> tuples, final long timeoutInMillis )
+    {
+        offerTuples( tuples );
+        return tuples.size();
     }
 
     @Override
@@ -42,6 +70,12 @@ public class SingleThreadedTupleQueue implements TupleQueue
         }
 
         return Collections.emptyList();
+    }
+
+    @Override
+    public List<Tuple> pollTuples ( final int count, final long timeoutInMillis )
+    {
+        return pollTuples( count );
     }
 
     @Override
@@ -65,15 +99,38 @@ public class SingleThreadedTupleQueue implements TupleQueue
     }
 
     @Override
+    public List<Tuple> pollTuplesAtLeast ( final int count, final long timeoutInMillis )
+    {
+        return pollTuplesAtLeast( count );
+    }
+
+    @Override
     public int size ()
     {
         return queue.size();
     }
 
     @Override
+    public boolean isEmpty ()
+    {
+        return queue.isEmpty();
+    }
+
+    @Override
+    public boolean isNonEmpty ()
+    {
+        return !queue.isEmpty();
+    }
+
+    @Override
     public void clear ()
     {
         queue.clear();
+    }
+
+    ArrayDeque<Tuple> internalQueue ()
+    {
+        return queue;
     }
 
 }

@@ -23,7 +23,7 @@ public class DrainAllAvailableTuples implements TupleQueuesConsumer
 
         for ( int portIndex = 0; portIndex < tupleQueues.length; portIndex++ )
         {
-            final List<Tuple> tuples = tupleQueues[ portIndex ].pollTuplesAtLeast( 1 );
+            final List<Tuple> tuples = tupleQueues[ portIndex ].pollTuplesAtLeast( 0 );
             if ( !tuples.isEmpty() )
             {
                 if ( portsToTuples == null )

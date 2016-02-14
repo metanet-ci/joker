@@ -17,7 +17,7 @@ import cs.bilkent.zanza.engine.tuplequeue.TupleQueueManager;
 import static cs.bilkent.zanza.engine.tuplequeue.TupleQueueManager.TupleQueueThreading.SINGLE_THREADED;
 import cs.bilkent.zanza.engine.tuplequeue.impl.context.DefaultTupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.impl.context.PartitionedTupleQueueContext;
-import cs.bilkent.zanza.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
+import cs.bilkent.zanza.engine.tuplequeue.impl.queue.BlockingTupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import static cs.bilkent.zanza.engine.util.Preconditions.checkOperatorTypeAndPartitionKeyFieldNames;
 import cs.bilkent.zanza.operator.spec.OperatorType;
@@ -63,8 +63,7 @@ class TupleQueueManagerImpl implements TupleQueueManager
     private Supplier<TupleQueue> getTupleQueueSupplier ( final TupleQueueThreading tupleQueueThreading, final int queueCapacity )
     {
         return tupleQueueThreading == SINGLE_THREADED
-               ? () -> new SingleThreadedTupleQueue( queueCapacity )
-               : () -> new MultiThreadedTupleQueue( queueCapacity );
+               ? () -> new SingleThreadedTupleQueue( queueCapacity ) : () -> new BlockingTupleQueue( queueCapacity );
     }
 
     private Function<String, TupleQueueContext> getTupleQueueContextConstructor ( final String operatorId,

@@ -17,7 +17,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 
-public class DrainMultiPortTuplesTest
+public class DrainMultiPortTuplesNonBlockingTest
 {
 
     private static final int PORT_0 = DEFAULT_PORT_INDEX;
@@ -27,28 +27,40 @@ public class DrainMultiPortTuplesTest
     @Test( expected = IllegalArgumentException.class )
     public void test_input_nullTupleQueues ()
     {
-        final DrainMultiPortTuples drainMultiPortTuples = new DrainMultiPortTuples( scheduleWhenTuplesAvailableOnAll( 1, PORT_0, PORT_1 ) );
+        final DrainMultiPortTuplesNonBlocking drainMultiPortTuples = new DrainMultiPortTuplesNonBlocking( scheduleWhenTuplesAvailableOnAll(
+                1,
+                PORT_0,
+                PORT_1 ) );
         drainMultiPortTuples.accept( null );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void test_input_emptyTupleQueues ()
     {
-        final DrainMultiPortTuples drainMultiPortTuples = new DrainMultiPortTuples( scheduleWhenTuplesAvailableOnAll( 1, PORT_0, PORT_1 ) );
+        final DrainMultiPortTuplesNonBlocking drainMultiPortTuples = new DrainMultiPortTuplesNonBlocking( scheduleWhenTuplesAvailableOnAll(
+                1,
+                PORT_0,
+                PORT_1 ) );
         drainMultiPortTuples.accept( new TupleQueue[] {} );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void test_input_singleTupleQueue ()
     {
-        final DrainMultiPortTuples drainMultiPortTuples = new DrainMultiPortTuples( scheduleWhenTuplesAvailableOnAll( 1, PORT_0, PORT_1 ) );
+        final DrainMultiPortTuplesNonBlocking drainMultiPortTuples = new DrainMultiPortTuplesNonBlocking( scheduleWhenTuplesAvailableOnAll(
+                1,
+                PORT_0,
+                PORT_1 ) );
         drainMultiPortTuples.accept( new TupleQueue[] { new SingleThreadedTupleQueue( 1 ) } );
     }
 
     @Test
     public void test_TupleAvailabilityByPort_ALL_PORTS_TupleAvailabilityByCount_AT_LEAST_allQueuesSatisfy ()
     {
-        final DrainMultiPortTuples drainMultiPortTuples = new DrainMultiPortTuples( scheduleWhenTuplesAvailableOnAll( 1, PORT_0, PORT_1 ) );
+        final DrainMultiPortTuplesNonBlocking drainMultiPortTuples = new DrainMultiPortTuplesNonBlocking( scheduleWhenTuplesAvailableOnAll(
+                1,
+                PORT_0,
+                PORT_1 ) );
         final TupleQueue tupleQueue1 = new SingleThreadedTupleQueue( 1 );
         final TupleQueue tupleQueue2 = new SingleThreadedTupleQueue( 2 );
         tupleQueue1.offerTuple( new Tuple() );
@@ -68,7 +80,10 @@ public class DrainMultiPortTuplesTest
     @Test
     public void test_TupleAvailabilityByPort_ALL_PORTS_TupleAvailabilityByCount_AT_LEAST_allQueuesDoNotSatisfy ()
     {
-        final DrainMultiPortTuples drainMultiPortTuples = new DrainMultiPortTuples( scheduleWhenTuplesAvailableOnAll( 2, PORT_0, PORT_1 ) );
+        final DrainMultiPortTuplesNonBlocking drainMultiPortTuples = new DrainMultiPortTuplesNonBlocking( scheduleWhenTuplesAvailableOnAll(
+                2,
+                PORT_0,
+                PORT_1 ) );
         final TupleQueue tupleQueue1 = new SingleThreadedTupleQueue( 1 );
         final TupleQueue tupleQueue2 = new SingleThreadedTupleQueue( 2 );
         tupleQueue1.offerTuple( new Tuple() );
@@ -85,7 +100,10 @@ public class DrainMultiPortTuplesTest
     @Test
     public void test_TupleAvailabilityByPort_ANY_PORT_TupleAvailabilityByCount_AT_LEAST_allQueuesSatisfy ()
     {
-        final DrainMultiPortTuples drainMultiPortTuples = new DrainMultiPortTuples( scheduleWhenTuplesAvailableOnAny( 2, PORT_0, PORT_1 ) );
+        final DrainMultiPortTuplesNonBlocking drainMultiPortTuples = new DrainMultiPortTuplesNonBlocking( scheduleWhenTuplesAvailableOnAny(
+                2,
+                PORT_0,
+                PORT_1 ) );
         final TupleQueue tupleQueue1 = new SingleThreadedTupleQueue( 2 );
         final TupleQueue tupleQueue2 = new SingleThreadedTupleQueue( 2 );
         tupleQueue1.offerTuple( new Tuple() );
@@ -107,7 +125,10 @@ public class DrainMultiPortTuplesTest
     @Test
     public void test_TupleAvailabilityByPort_ANY_PORT_TupleAvailabilityByCount_AT_LEAST_allQueuesDoNotSatisfy ()
     {
-        final DrainMultiPortTuples drainMultiPortTuples = new DrainMultiPortTuples( scheduleWhenTuplesAvailableOnAny( 2, PORT_0, PORT_1 ) );
+        final DrainMultiPortTuplesNonBlocking drainMultiPortTuples = new DrainMultiPortTuplesNonBlocking( scheduleWhenTuplesAvailableOnAny(
+                2,
+                PORT_0,
+                PORT_1 ) );
         final TupleQueue tupleQueue1 = new SingleThreadedTupleQueue( 2 );
         final TupleQueue tupleQueue2 = new SingleThreadedTupleQueue( 2 );
         tupleQueue1.offerTuple( new Tuple() );
@@ -128,10 +149,11 @@ public class DrainMultiPortTuplesTest
     @Test
     public void test_TupleAvailabilityByPort_ALL_PORTS_TupleAvailabilityByCount_EXACT_allQueuesSatisfy ()
     {
-        final DrainMultiPortTuples drainMultiPortTuples = new DrainMultiPortTuples( scheduleWhenTuplesAvailableOnAll( EXACT,
-                                                                                                                      2,
-                                                                                                                      PORT_0,
-                                                                                                                      PORT_1 ) );
+        final DrainMultiPortTuplesNonBlocking drainMultiPortTuples = new DrainMultiPortTuplesNonBlocking( scheduleWhenTuplesAvailableOnAll(
+                EXACT,
+                2,
+                PORT_0,
+                PORT_1 ) );
         final TupleQueue tupleQueue1 = new SingleThreadedTupleQueue( 2 );
         final TupleQueue tupleQueue2 = new SingleThreadedTupleQueue( 2 );
         tupleQueue1.offerTuple( new Tuple() );
@@ -153,10 +175,11 @@ public class DrainMultiPortTuplesTest
     @Test
     public void test_TupleAvailabilityByPort_ALL_PORTS_TupleAvailabilityByCount_EXACT_allQueuesDoNotSatisfy ()
     {
-        final DrainMultiPortTuples drainMultiPortTuples = new DrainMultiPortTuples( scheduleWhenTuplesAvailableOnAll( EXACT,
-                                                                                                                      2,
-                                                                                                                      PORT_0,
-                                                                                                                      PORT_1 ) );
+        final DrainMultiPortTuplesNonBlocking drainMultiPortTuples = new DrainMultiPortTuplesNonBlocking( scheduleWhenTuplesAvailableOnAll(
+                EXACT,
+                2,
+                PORT_0,
+                PORT_1 ) );
         final TupleQueue tupleQueue1 = new SingleThreadedTupleQueue( 2 );
         final TupleQueue tupleQueue2 = new SingleThreadedTupleQueue( 2 );
         tupleQueue1.offerTuple( new Tuple() );
@@ -173,10 +196,11 @@ public class DrainMultiPortTuplesTest
     @Test
     public void test_TupleAvailabilityByPort_ANY_PORT_TupleAvailabilityByCount_EXACT_allQueuesSatisfy ()
     {
-        final DrainMultiPortTuples drainMultiPortTuples = new DrainMultiPortTuples( scheduleWhenTuplesAvailableOnAny( EXACT,
-                                                                                                                      2,
-                                                                                                                      PORT_0,
-                                                                                                                      PORT_1 ) );
+        final DrainMultiPortTuplesNonBlocking drainMultiPortTuples = new DrainMultiPortTuplesNonBlocking( scheduleWhenTuplesAvailableOnAny(
+                EXACT,
+                2,
+                PORT_0,
+                PORT_1 ) );
         final TupleQueue tupleQueue1 = new SingleThreadedTupleQueue( 2 );
         final TupleQueue tupleQueue2 = new SingleThreadedTupleQueue( 2 );
         tupleQueue1.offerTuple( new Tuple() );
@@ -199,10 +223,11 @@ public class DrainMultiPortTuplesTest
     @Test
     public void test_TupleAvailabilityByPort_ANY_PORT_TupleAvailabilityByCount_EXACT_allQueuesDoNotSatisfy ()
     {
-        final DrainMultiPortTuples drainMultiPortTuples = new DrainMultiPortTuples( scheduleWhenTuplesAvailableOnAny( EXACT,
-                                                                                                                      2,
-                                                                                                                      PORT_0,
-                                                                                                                      PORT_1 ) );
+        final DrainMultiPortTuplesNonBlocking drainMultiPortTuples = new DrainMultiPortTuplesNonBlocking( scheduleWhenTuplesAvailableOnAny(
+                EXACT,
+                2,
+                PORT_0,
+                PORT_1 ) );
         final TupleQueue tupleQueue1 = new SingleThreadedTupleQueue( 2 );
         final TupleQueue tupleQueue2 = new SingleThreadedTupleQueue( 2 );
         tupleQueue1.offerTuple( new Tuple() );
@@ -223,7 +248,7 @@ public class DrainMultiPortTuplesTest
     @Test
     public void test_TupleAvailabilityByPort_ALL_PORTS_TupleAvailabilityByCount_AT_LEAST_BUT_SAME_ON_ALL_PORTS_allQueuesSatisfy ()
     {
-        final DrainMultiPortTuples drainMultiPortTuples = new DrainMultiPortTuples( scheduleWhenTuplesAvailableOnAll(
+        final DrainMultiPortTuplesNonBlocking drainMultiPortTuples = new DrainMultiPortTuplesNonBlocking( scheduleWhenTuplesAvailableOnAll(
                 AT_LEAST_BUT_SAME_ON_ALL_PORTS,
                 2,
                 PORT_0,
@@ -250,7 +275,7 @@ public class DrainMultiPortTuplesTest
     @Test
     public void test_TupleAvailabilityByPort_ALL_PORTS_TupleAvailabilityByCount_AT_LEAST_BUT_SAME_ON_ALL_PORTS_allQueuesDoNotSatisfy ()
     {
-        final DrainMultiPortTuples drainMultiPortTuples = new DrainMultiPortTuples( scheduleWhenTuplesAvailableOnAll(
+        final DrainMultiPortTuplesNonBlocking drainMultiPortTuples = new DrainMultiPortTuplesNonBlocking( scheduleWhenTuplesAvailableOnAll(
                 AT_LEAST_BUT_SAME_ON_ALL_PORTS,
                 2,
                 PORT_0,
@@ -271,7 +296,7 @@ public class DrainMultiPortTuplesTest
     @Test( expected = IllegalArgumentException.class )
     public void test_TupleAvailabilityByPort_ANY_PORT_TupleAvailabilityByCount_AT_LEAST_BUT_SAME_ON_ALL_PORTS ()
     {
-        new DrainMultiPortTuples( scheduleWhenTuplesAvailableOnAny( AT_LEAST_BUT_SAME_ON_ALL_PORTS, 2, PORT_0, PORT_1 ) );
+        new DrainMultiPortTuplesNonBlocking( scheduleWhenTuplesAvailableOnAny( AT_LEAST_BUT_SAME_ON_ALL_PORTS, 2, PORT_0, PORT_1 ) );
     }
 
 }

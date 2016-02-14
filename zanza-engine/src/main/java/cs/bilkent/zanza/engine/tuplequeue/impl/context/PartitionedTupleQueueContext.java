@@ -1,5 +1,7 @@
 package cs.bilkent.zanza.engine.tuplequeue.impl.context;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -16,6 +18,7 @@ import cs.bilkent.zanza.engine.tuplequeue.TupleQueuesConsumer;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.PortsToTuples.PortToTuples;
 import cs.bilkent.zanza.operator.Tuple;
+import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.PortToTupleCount;
 
 
 public class PartitionedTupleQueueContext implements TupleQueueContext
@@ -59,20 +62,49 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
     @Override
     public void add ( final PortsToTuples portsToTuples )
     {
+        final List<Object> partitionFieldValues = getPartitionFieldValues( portsToTuples );
+        if ( partitionFieldValues == null )
+        {
+            return;
+        }
+
+        final TupleQueue[] tupleQueues = tupleQueuesByPartitionKeys.computeIfAbsent( partitionFieldValues, tupleQueuesConstructor );
+
+        for ( PortToTuples portToTuples : portsToTuples.getPortToTuplesList() )
+        {
+            final int portIndex = portToTuples.getPortIndex();
+            checkArgument( portIndex < this.inputPortCount,
+                           "Tuples have invalid input port index for operator: " + operatorId + " input port count: " + inputPortCount
+                           + " input port " + "index: " + portIndex );
+
+            tupleQueues[ portIndex ].offerTuples( portToTuples.getTuples() );
+        }
+    }
+
+    @Override
+    public List<PortToTupleCount> tryAdd ( final PortsToTuples portsToTuples, final long timeoutInMillis )
+    {
+        final List<Object> partitionFieldValues = getPartitionFieldValues( portsToTuples );
+        if ( partitionFieldValues == null )
+        {
+            return Collections.emptyList();
+        }
+
+        final List<PortToTupleCount> counts = new ArrayList<>();
+        final TupleQueue[] tupleQueues = tupleQueuesByPartitionKeys.computeIfAbsent( partitionFieldValues, tupleQueuesConstructor );
+
         for ( PortToTuples portToTuples : portsToTuples.getPortToTuplesList() )
         {
             final int portIndex = portToTuples.getPortIndex();
             checkArgument( portIndex >= this.inputPortCount,
                            "Tuples have invalid input port index for operator: " + operatorId + " input port count: " + inputPortCount
                            + " input port " + "index: " + portIndex );
-            for ( Tuple tuple : portToTuples.getTuples() )
-            {
-                final TupleQueue[] tupleQueues = tupleQueuesByPartitionKeys.computeIfAbsent( tuple.getValues( partitionFieldNames ),
-                                                                                             tupleQueuesConstructor );
-                tupleQueues[ portIndex ].offerTuple( tuple );
-            }
+
+            final int count = tupleQueues[ portIndex ].tryOfferTuples( portToTuples.getTuples(), timeoutInMillis );
+            counts.add( new PortToTupleCount( portIndex, count ) );
         }
 
+        return counts;
     }
 
     @Override
@@ -102,6 +134,19 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
         }
 
         tupleQueuesByPartitionKeys.clear();
+    }
+
+    private List<Object> getPartitionFieldValues ( final PortsToTuples portsToTuples )
+    {
+        final List<PortToTuples> portToTuplesList = portsToTuples.getPortToTuplesList();
+
+        if ( portToTuplesList.isEmpty() )
+        {
+            return null;
+        }
+
+        final List<Tuple> tuples = portToTuplesList.get( 0 ).getTuples();
+        return tuples.isEmpty() ? null : tuples.get( 0 ).getValues( partitionFieldNames );
     }
 
 }

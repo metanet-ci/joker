@@ -14,30 +14,27 @@ import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailability
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST_BUT_SAME_ON_ALL_PORTS;
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.EXACT;
 import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort;
-import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.AVAILABLE_ON_ALL_PORTS;
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.AVAILABLE_ON_ANY_PORT;
 
-
-public class DrainMultiPortTuples implements TupleQueuesConsumer
+abstract class DrainMultiPortTuples implements TupleQueuesConsumer
 {
 
+    protected final TupleAvailabilityByCount tupleAvailabilityByCount;
 
-    private final TupleAvailabilityByCount tupleAvailabilityByCount;
+    protected final TupleAvailabilityByPort tupleAvailabilityByPort;
 
-    private final TupleAvailabilityByPort tupleAvailabilityByPort;
+    protected final List<PortToTupleCount> tupleCountByPortIndex;
 
-    private final List<PortToTupleCount> tupleCountByPortIndex;
+    protected PortsToTuples portsToTuples;
 
-    private PortsToTuples portsToTuples;
-
-    public DrainMultiPortTuples ( ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailable )
+    public DrainMultiPortTuples ( ScheduleWhenTuplesAvailable strategy )
     {
-        checkArgument( !( scheduleWhenTuplesAvailable.getTupleAvailabilityByPort() == AVAILABLE_ON_ANY_PORT
-                          && scheduleWhenTuplesAvailable.getTupleAvailabilityByCount() == AT_LEAST_BUT_SAME_ON_ALL_PORTS ) );
+        checkArgument( !( strategy.getTupleAvailabilityByPort() == AVAILABLE_ON_ANY_PORT
+                          && strategy.getTupleAvailabilityByCount() == AT_LEAST_BUT_SAME_ON_ALL_PORTS ) );
 
-        this.tupleAvailabilityByCount = scheduleWhenTuplesAvailable.getTupleAvailabilityByCount();
-        this.tupleAvailabilityByPort = scheduleWhenTuplesAvailable.getTupleAvailabilityByPort();
-        this.tupleCountByPortIndex = scheduleWhenTuplesAvailable.getTupleCountByPortIndex();
+        this.tupleAvailabilityByCount = strategy.getTupleAvailabilityByCount();
+        this.tupleAvailabilityByPort = strategy.getTupleAvailabilityByPort();
+        this.tupleCountByPortIndex = strategy.getTupleCountByPortIndex();
     }
 
     @Override
@@ -80,21 +77,7 @@ public class DrainMultiPortTuples implements TupleQueuesConsumer
         return portsToTuples;
     }
 
-    private boolean checkQueueSizes ( final TupleQueue[] tupleQueues )
-    {
-        if ( tupleAvailabilityByPort == AVAILABLE_ON_ALL_PORTS )
-        {
-            for ( PortToTupleCount p : tupleCountByPortIndex )
-            {
-                final int size = tupleQueues[ p.portIndex ].size();
-                if ( size < p.tupleCount )
-                {
-                    return false;
-                }
-            }
-        }
+    protected abstract boolean checkQueueSizes ( final TupleQueue[] tupleQueues );
 
-        return true;
-    }
 
 }
