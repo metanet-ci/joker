@@ -15,11 +15,11 @@ public interface InitializationContext
 {
 
     /**
-     * Name of the operator instance given during building the {@link FlowDefinition}
+     * ID of the operator instance given during building the {@link FlowDefinition}
      *
-     * @return name of the operator instance given during building the {@link FlowDefinition}
+     * @return id of the operator instance given during building the {@link FlowDefinition}
      */
-    String getName ();
+    String getId ();
 
     /**
      * Input port count of the operator in the runtime

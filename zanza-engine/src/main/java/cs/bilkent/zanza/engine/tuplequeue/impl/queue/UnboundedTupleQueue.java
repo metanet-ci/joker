@@ -5,17 +5,18 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import javax.annotation.concurrent.NotThreadSafe;
 
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.operator.Tuple;
 
-
-public class SingleThreadedTupleQueue implements TupleQueue
+@NotThreadSafe
+public class UnboundedTupleQueue implements TupleQueue
 {
 
     private final ArrayDeque<Tuple> queue;
 
-    public SingleThreadedTupleQueue ( final int initialCapacity )
+    public UnboundedTupleQueue ( final int initialCapacity )
     {
         this.queue = new ArrayDeque<>( initialCapacity );
     }
@@ -105,6 +106,18 @@ public class SingleThreadedTupleQueue implements TupleQueue
     }
 
     @Override
+    public boolean awaitMinimumSize ( final int expectedSize )
+    {
+        return queue.size() >= expectedSize;
+    }
+
+    @Override
+    public boolean awaitMinimumSize ( final int expectedSize, final long timeoutInMillis )
+    {
+        return queue.size() >= expectedSize;
+    }
+
+    @Override
     public int size ()
     {
         return queue.size();
@@ -126,11 +139,6 @@ public class SingleThreadedTupleQueue implements TupleQueue
     public void clear ()
     {
         queue.clear();
-    }
-
-    ArrayDeque<Tuple> internalQueue ()
-    {
-        return queue;
     }
 
 }

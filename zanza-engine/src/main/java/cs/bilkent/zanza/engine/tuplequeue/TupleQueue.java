@@ -101,10 +101,33 @@ public interface TupleQueue
      *
      * @param count
      *         exact number of tuples to be polled from the queue
+     * @param timeoutInMillis
+     *         duration in milliseconds that is allowed for the call to be blocked if the queue has no enough number of tuples
      *
      * @return list of tuples polled from the queue. It may be an empty list if the queue has no enough number of tuples to be polled
      */
     List<Tuple> pollTuplesAtLeast ( int count, long timeoutInMillis );
+
+    /**
+     * Returns true if the queue has number of tuples greater than or equal to the expected size. It may block or directly return an
+     * empty false if the queue has no enough number of tuples
+     *
+     * @param expectedSize
+     *         number of tuples to be present in the queue
+     *
+     * @return true if the queue has number of tuples greater than or equal to the expected size
+     */
+    boolean awaitMinimumSize ( int expectedSize );
+
+    /**
+     * @param expectedSize
+     *         number of tuples to be present in the queue
+     * @param timeoutInMillis
+     *         duration in milliseconds that is allowed for the call to be blocked if the queue has no enough number of tuples
+     *
+     * @return true if the queue has number of tuples greater than or equal to the expected size
+     */
+    boolean awaitMinimumSize ( int expectedSize, long timeoutInMillis );
 
     int size ();
 

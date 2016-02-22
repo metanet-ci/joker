@@ -1,10 +1,10 @@
-package cs.bilkent.zanza.engine.tuplequeue.impl.consumer;
+package cs.bilkent.zanza.engine.tuplequeue.impl.drainer;
 
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
-import cs.bilkent.zanza.engine.tuplequeue.TupleQueuesConsumer;
+import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.PortsToTuplesAccessor;
@@ -13,7 +13,7 @@ import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailability
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.EXACT;
 
 
-public class DrainSinglePortTuplesNonBlocking implements TupleQueuesConsumer
+public class NonBlockingSinglePortDrainer implements TupleQueueDrainer
 {
 
     private final int tupleCount;
@@ -22,7 +22,9 @@ public class DrainSinglePortTuplesNonBlocking implements TupleQueuesConsumer
 
     private PortsToTuples portsToTuples;
 
-    public DrainSinglePortTuplesNonBlocking ( final int tupleCount, final TupleAvailabilityByCount tupleAvailabilityByCount )
+    private Object key;
+
+    public NonBlockingSinglePortDrainer ( final int tupleCount, final TupleAvailabilityByCount tupleAvailabilityByCount )
     {
         checkArgument( tupleCount > 0 );
         checkArgument( tupleAvailabilityByCount != null );
@@ -31,7 +33,7 @@ public class DrainSinglePortTuplesNonBlocking implements TupleQueuesConsumer
     }
 
     @Override
-    public void accept ( final TupleQueue[] tupleQueues )
+    public void drain ( final Object key, final TupleQueue[] tupleQueues )
     {
         checkArgument( tupleQueues != null );
         checkArgument( tupleQueues.length == 1 );
@@ -44,13 +46,20 @@ public class DrainSinglePortTuplesNonBlocking implements TupleQueuesConsumer
         {
             portsToTuples = new PortsToTuples();
             PortsToTuplesAccessor.addAll( portsToTuples, DEFAULT_PORT_INDEX, tuples );
+            this.key = key;
         }
     }
 
     @Override
-    public PortsToTuples getPortsToTuples ()
+    public PortsToTuples getResult ()
     {
         return portsToTuples;
+    }
+
+    @Override
+    public Object getKey ()
+    {
+        return key;
     }
 
 }

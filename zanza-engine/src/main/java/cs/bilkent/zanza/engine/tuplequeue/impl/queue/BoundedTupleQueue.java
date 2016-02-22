@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Queue;
+import javax.annotation.concurrent.GuardedBy;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,23 +15,24 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.operator.Tuple;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
-public class BlockingTupleQueue implements TupleQueue
+@ThreadSafe
+public class BoundedTupleQueue implements TupleQueue
 {
 
-    private static Logger LOGGER = LoggerFactory.getLogger( BlockingTupleQueue.class );
+    private static Logger LOGGER = LoggerFactory.getLogger( BoundedTupleQueue.class );
 
-    public static final int DEFAULT_WAIT_TIME_IN_MILLIS = 100;
+    public static final int DEFAULT_WAIT_TIME_IN_MILLIS = 50;
 
 
     private final Object monitor = new Object();
 
+    @GuardedBy( "monitor" )
     private final Queue<Tuple> queue;
 
     private volatile int capacity;
 
-    public BlockingTupleQueue ( final int initialCapacity )
+    public BoundedTupleQueue ( final int initialCapacity )
     {
         this.queue = new ArrayDeque<>( initialCapacity );
         this.capacity = initialCapacity;
@@ -53,7 +56,7 @@ public class BlockingTupleQueue implements TupleQueue
     @Override
     public boolean tryOfferTuple ( final Tuple tuple, final long timeoutInMillis )
     {
-        return doOfferTuple( tuple, MILLISECONDS.toNanos( timeoutInMillis ) );
+        return doOfferTuple( tuple, timeoutInMillis * 1_000_000 );
     }
 
     private boolean doOfferTuple ( final Tuple tuple, final long timeoutInNanos )
@@ -66,7 +69,7 @@ public class BlockingTupleQueue implements TupleQueue
         {
             while ( queue.size() >= capacity )
             {
-                if ( ( System.nanoTime() - startNanos ) > timeoutInNanos )
+                if ( ( System.nanoTime() - startNanos ) >= timeoutInNanos )
                 {
                     return false;
                 }
@@ -90,7 +93,7 @@ public class BlockingTupleQueue implements TupleQueue
     @Override
     public int tryOfferTuples ( final List<Tuple> tuples, final long timeoutInMillis )
     {
-        return doOfferTuples( tuples, MILLISECONDS.toNanos( timeoutInMillis ) );
+        return doOfferTuples( tuples, timeoutInMillis * 1_000_000 );
     }
 
     private int doOfferTuples ( final List<Tuple> tuples, final long timeoutInNanos )
@@ -108,7 +111,7 @@ public class BlockingTupleQueue implements TupleQueue
                 int availableCapacity;
                 while ( ( availableCapacity = ( capacity - queue.size() ) ) <= 0 )
                 {
-                    if ( ( System.nanoTime() - startNanos ) > timeoutInNanos )
+                    if ( ( System.nanoTime() - startNanos ) >= timeoutInNanos )
                     {
                         return i;
                     }
@@ -146,7 +149,7 @@ public class BlockingTupleQueue implements TupleQueue
     @Override
     public List<Tuple> pollTuples ( final int count, final long timeoutInMillis )
     {
-        return doPollTuples( count, MILLISECONDS.toNanos( timeoutInMillis ) );
+        return doPollTuples( count, timeoutInMillis * 1_000_000 );
     }
 
     private List<Tuple> doPollTuples ( final int count, final long timeoutInNanos )
@@ -159,11 +162,12 @@ public class BlockingTupleQueue implements TupleQueue
         {
             while ( queue.size() < count )
             {
-                if ( ( System.nanoTime() - startNanos ) > timeoutInNanos )
+                final long elapsed = System.nanoTime() - startNanos;
+                if ( elapsed >= timeoutInNanos )
                 {
                     return Collections.emptyList();
                 }
-                monitorWait( timeoutInNanos / 1000 );
+                monitorWait( ( timeoutInNanos - elapsed ) / 1_000_000 );
             }
 
             final List<Tuple> tuples = new ArrayList<>( count );
@@ -187,7 +191,7 @@ public class BlockingTupleQueue implements TupleQueue
     @Override
     public List<Tuple> pollTuplesAtLeast ( final int count, final long timeoutInMillis )
     {
-        return doPollTuplesAtLeast( count, MILLISECONDS.toNanos( timeoutInMillis ) );
+        return doPollTuplesAtLeast( count, timeoutInMillis * 1_000_000 );
     }
 
     private List<Tuple> doPollTuplesAtLeast ( final int count, final long timeoutInNanos )
@@ -200,11 +204,12 @@ public class BlockingTupleQueue implements TupleQueue
         {
             while ( queue.size() < count )
             {
-                if ( ( System.nanoTime() - startNanos ) > timeoutInNanos )
+                final long elapsed = System.nanoTime() - startNanos;
+                if ( elapsed >= timeoutInNanos )
                 {
                     return Collections.emptyList();
                 }
-                monitorWait( timeoutInNanos / 1000 );
+                monitorWait( ( timeoutInNanos - elapsed ) / 1_000_000 );
             }
 
             final List<Tuple> tuples = new ArrayList<>( count );
@@ -219,6 +224,37 @@ public class BlockingTupleQueue implements TupleQueue
 
             return tuples;
         }
+    }
+
+    @Override
+    public boolean awaitMinimumSize ( final int expectedSize )
+    {
+        return doAwaitMinimumSize( expectedSize, Long.MAX_VALUE );
+    }
+
+    @Override
+    public boolean awaitMinimumSize ( final int expectedSize, final long timeoutInMillis )
+    {
+        return doAwaitMinimumSize( expectedSize, timeoutInMillis * 1_000_000 );
+    }
+
+    private boolean doAwaitMinimumSize ( final int expectedSize, final long timeoutInNanos )
+    {
+        final long startNanos = System.nanoTime();
+        synchronized ( monitor )
+        {
+            while ( queue.size() < expectedSize )
+            {
+                final long elapsed = System.nanoTime() - startNanos;
+                if ( elapsed >= timeoutInNanos )
+                {
+                    return false;
+                }
+                monitorWait( ( timeoutInNanos - elapsed ) / 1_000_000 );
+            }
+        }
+
+        return true;
     }
 
     @Override
@@ -268,7 +304,7 @@ public class BlockingTupleQueue implements TupleQueue
     {
         try
         {
-            monitor.wait( durationInMillis, 0 );
+            monitor.wait( durationInMillis > 0 ? durationInMillis : 1 );
         }
         catch ( InterruptedException e )
         {

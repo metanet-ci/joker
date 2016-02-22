@@ -17,10 +17,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class BlockingTupleQueueTest
+public class BoundedTupleQueueTest
 {
 
-    private final TupleQueue queue = new BlockingTupleQueue( 3 );
+    public static final int TIMEOUT_IN_MILLIS = 5000;
+
+    private final TupleQueue queue = new BoundedTupleQueue( 3 );
 
     @Test
     public void shouldOfferSingleTuple ()
@@ -63,7 +65,7 @@ public class BlockingTupleQueueTest
 
         spawnThread( increaseCapacity( Thread.currentThread(), 4 ) );
 
-        final boolean result = queue.tryOfferTuple( newTuple( 4 ), Long.MAX_VALUE );
+        final boolean result = queue.tryOfferTuple( newTuple( 4 ), Integer.MAX_VALUE );
 
         assertTrue( result );
         assertQueueContent( 4 );
@@ -85,7 +87,7 @@ public class BlockingTupleQueueTest
     @Test
     public void shouldTryOfferTuples ()
     {
-        final int offered = queue.tryOfferTuples( asList( newTuple( 1 ), newTuple( 2 ) ), 5000 );
+        final int offered = queue.tryOfferTuples( asList( newTuple( 1 ), newTuple( 2 ) ), TIMEOUT_IN_MILLIS );
 
         assertEquals( 2, offered );
         assertQueueContent( 2 );
@@ -98,7 +100,7 @@ public class BlockingTupleQueueTest
         queue.offerTuple( newTuple( 2 ) );
         spawnThread( increaseCapacity( Thread.currentThread(), 4 ) );
 
-        final int offeredCount = queue.tryOfferTuples( asList( newTuple( 3 ), newTuple( 4 ), newTuple( 5 ) ), 5000 );
+        final int offeredCount = queue.tryOfferTuples( asList( newTuple( 3 ), newTuple( 4 ), newTuple( 5 ) ), TIMEOUT_IN_MILLIS );
 
         assertEquals( 2, offeredCount );
         assertQueueContent( 4 );
@@ -111,7 +113,7 @@ public class BlockingTupleQueueTest
         queue.offerTuple( newTuple( 2 ) );
         spawnThread( increaseCapacity( Thread.currentThread(), 5 ) );
 
-        final int offeredCount = queue.tryOfferTuples( asList( newTuple( 3 ), newTuple( 4 ), newTuple( 5 ) ), 5000 );
+        final int offeredCount = queue.tryOfferTuples( asList( newTuple( 3 ), newTuple( 4 ), newTuple( 5 ) ), TIMEOUT_IN_MILLIS );
 
         assertEquals( 3, offeredCount );
         assertQueueContent( 5 );
@@ -134,6 +136,27 @@ public class BlockingTupleQueueTest
         queue.offerTuples( asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ), newTuple( 4 ) ) );
 
         assertQueueContent( 4 );
+    }
+
+    @Test
+    public void shouldAwaitSizeSucceedWhenExpectedSizeIsAlreadyAvailable ()
+    {
+        queue.offerTuples( asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ) ) );
+        assertTrue( queue.awaitMinimumSize( 3 ) );
+    }
+
+    @Test
+    public void shouldAwaitSizeWithTimeoutSucceedWhenExpectedSizeIsAlreadyAvailable ()
+    {
+        queue.offerTuples( asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ) ) );
+        assertTrue( queue.awaitMinimumSize( 3, TIMEOUT_IN_MILLIS ) );
+    }
+
+    @Test
+    public void shouldAwaitSizeWithTimeoutSucceedWhenExpectedSizeIsSatisfiedTuplesAreOfferedAfterwards ()
+    {
+        spawnThread( offerTuples( Thread.currentThread(), queue, asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ) ) ) );
+        assertTrue( queue.awaitMinimumSize( 3, TIMEOUT_IN_MILLIS ) );
     }
 
     private Tuple newTuple ( final int val )
@@ -162,6 +185,18 @@ public class BlockingTupleQueueTest
             }
 
             queue.ensureCapacity( newCapacity );
+        };
+    }
+
+    public static Runnable offerTuples ( final Thread testThread, final TupleQueue queue, final List<Tuple> tuples )
+    {
+        return () -> {
+            while ( !( testThread.getState() == WAITING || testThread.getState() == TIMED_WAITING ) )
+            {
+                sleepUninterruptibly( 1, TimeUnit.MILLISECONDS );
+            }
+
+            queue.offerTuples( tuples );
         };
     }
 

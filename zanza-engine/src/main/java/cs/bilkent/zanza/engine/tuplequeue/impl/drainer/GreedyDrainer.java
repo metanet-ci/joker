@@ -1,22 +1,24 @@
-package cs.bilkent.zanza.engine.tuplequeue.impl.consumer;
+package cs.bilkent.zanza.engine.tuplequeue.impl.drainer;
 
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
-import cs.bilkent.zanza.engine.tuplequeue.TupleQueuesConsumer;
+import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.PortsToTuplesAccessor;
 import cs.bilkent.zanza.operator.Tuple;
 
 
-public class DrainAllAvailableTuples implements TupleQueuesConsumer
+public class GreedyDrainer implements TupleQueueDrainer
 {
 
-    private PortsToTuples portsToTuples;
+    private PortsToTuples portsToTuples = new PortsToTuples();
+
+    private Object key;
 
     @Override
-    public void accept ( final TupleQueue[] tupleQueues )
+    public void drain ( final Object key, final TupleQueue[] tupleQueues )
     {
         checkArgument( tupleQueues != null );
         checkArgument( tupleQueues.length > 0 );
@@ -26,20 +28,22 @@ public class DrainAllAvailableTuples implements TupleQueuesConsumer
             final List<Tuple> tuples = tupleQueues[ portIndex ].pollTuplesAtLeast( 0 );
             if ( !tuples.isEmpty() )
             {
-                if ( portsToTuples == null )
-                {
-                    portsToTuples = new PortsToTuples();
-                }
-
+                this.key = key;
                 PortsToTuplesAccessor.addAll( portsToTuples, portIndex, tuples );
             }
         }
     }
 
     @Override
-    public PortsToTuples getPortsToTuples ()
+    public PortsToTuples getResult ()
     {
         return portsToTuples;
+    }
+
+    @Override
+    public Object getKey ()
+    {
+        return key;
     }
 
 }

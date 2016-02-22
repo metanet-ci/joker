@@ -15,21 +15,21 @@ import static java.util.Collections.unmodifiableList;
 
 public class OperatorDefinition
 {
-    public final String id;
+    private final String id;
 
-    public final Class<? extends Operator> clazz;
+    private final Class<? extends Operator> clazz;
 
-    public final OperatorType type;
+    private final OperatorType type;
 
-    public final int inputPortCount;
+    private final int inputPortCount;
 
-    public final int outputPortCount;
+    private final int outputPortCount;
 
-    public final OperatorRuntimeSchema schema;
+    private final OperatorRuntimeSchema schema;
 
-    public final OperatorConfig config;
+    private final OperatorConfig config;
 
-    public final List<String> partitionFieldNames;
+    private final List<String> partitionFieldNames;
 
     public OperatorDefinition ( final String id,
                                 final Class<? extends Operator> clazz,
@@ -55,6 +55,51 @@ public class OperatorDefinition
         this.schema = schema;
         this.config = config;
         this.partitionFieldNames = partitionFieldNames != null ? unmodifiableList( new ArrayList<>( partitionFieldNames ) ) : emptyList();
+    }
+
+    public Operator createOperator () throws IllegalAccessException, InstantiationException
+    {
+        return clazz.newInstance();
+    }
+
+    public String id ()
+    {
+        return id;
+    }
+
+    public Class<? extends Operator> operatorClazz ()
+    {
+        return clazz;
+    }
+
+    public OperatorType operatorType ()
+    {
+        return type;
+    }
+
+    public int inputPortCount ()
+    {
+        return inputPortCount;
+    }
+
+    public int outputPortCount ()
+    {
+        return outputPortCount;
+    }
+
+    public OperatorRuntimeSchema schema ()
+    {
+        return schema;
+    }
+
+    public OperatorConfig config ()
+    {
+        return config;
+    }
+
+    public List<String> partitionFieldNames ()
+    {
+        return partitionFieldNames;
     }
 
     @Override

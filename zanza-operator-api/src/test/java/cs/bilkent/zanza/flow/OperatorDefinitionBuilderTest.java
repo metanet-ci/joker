@@ -258,7 +258,7 @@ public class OperatorDefinitionBuilderTest
                                                                        .setPartitionFieldNames( partitionFieldNames )
                                                                        .build();
 
-        assertTrue( partitionFieldNames.equals( definition.partitionFieldNames ) );
+        assertTrue( partitionFieldNames.equals( definition.partitionFieldNames() ) );
     }
 
     @Test( expected = IllegalStateException.class )
@@ -344,7 +344,7 @@ public class OperatorDefinitionBuilderTest
                                                                        .setExtendingSchema( schemaBuilder.build() )
                                                                        .setPartitionFieldNames( singletonList( "field1" ) )
                                                                        .build();
-        final OperatorRuntimeSchema schema = definition.schema;
+        final OperatorRuntimeSchema schema = definition.schema();
         assertThat( schema.getOutputSchemas(), hasSize( 1 ) );
         final PortRuntimeSchema outputSchema = schema.getOutputSchema( DEFAULT_PORT_INDEX );
         final List<RuntimeSchemaField> outputFields = outputSchema.getFields();
@@ -362,7 +362,7 @@ public class OperatorDefinitionBuilderTest
                                                                                              .class )
                                                                        .setPartitionFieldNames( singletonList( "field1" ) )
                                                                        .build();
-        final OperatorRuntimeSchema schema = definition.schema;
+        final OperatorRuntimeSchema schema = definition.schema();
         assertThat( schema.getInputSchemas(), hasSize( 1 ) );
         final PortRuntimeSchema inputSchema = schema.getInputSchema( DEFAULT_PORT_INDEX );
         final List<RuntimeSchemaField> inputFields = inputSchema.getFields();
@@ -382,13 +382,13 @@ public class OperatorDefinitionBuilderTest
                                                                        .build();
         assertNotNull( definition );
 
-        final OperatorRuntimeSchema schema = definition.schema;
-        for ( int portIndex = 0; portIndex < definition.inputPortCount; portIndex++ )
+        final OperatorRuntimeSchema schema = definition.schema();
+        for ( int portIndex = 0; portIndex < definition.inputPortCount(); portIndex++ )
         {
             final PortRuntimeSchema inputSchema = schema.getInputSchema( portIndex );
             assertTrue( inputSchema.getFields().isEmpty() );
         }
-        for ( int portIndex = 0; portIndex < definition.outputPortCount; portIndex++ )
+        for ( int portIndex = 0; portIndex < definition.outputPortCount(); portIndex++ )
         {
             final PortRuntimeSchema outputSchema = schema.getOutputSchema( portIndex );
             assertTrue( outputSchema.getFields().isEmpty() );

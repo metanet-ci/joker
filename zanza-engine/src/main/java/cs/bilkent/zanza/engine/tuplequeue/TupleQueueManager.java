@@ -1,26 +1,14 @@
 package cs.bilkent.zanza.engine.tuplequeue;
 
-import java.util.List;
-
-import cs.bilkent.zanza.operator.spec.OperatorType;
+import cs.bilkent.zanza.engine.config.ThreadingOption;
+import cs.bilkent.zanza.flow.OperatorDefinition;
 
 
 public interface TupleQueueManager
 {
 
-    enum TupleQueueThreading
-    {
-        SINGLE_THREADED,
-        MULTI_THREADED
-    }
+    TupleQueueContext createTupleQueueContext ( OperatorDefinition operatorDefinition, ThreadingOption threadingOption, int replicaIndex );
 
-    TupleQueueContext createTupleQueueContext ( String operatorId,
-                                                int inputPortCount,
-                                                OperatorType operatorType,
-                                                List<String> partitionFieldNames,
-                                                TupleQueueThreading tupleQueueThreading,
-                                                int initialQueueCapacity );
-
-    boolean releaseTupleQueueContext ( String operatorId );
+    boolean releaseTupleQueueContext ( String operatorId, int replicaIndex );
 
 }

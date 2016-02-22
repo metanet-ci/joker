@@ -44,8 +44,8 @@ public class RegionFormerImplOperatorSequenceTest
 
         final List<OperatorDefinition> operators = operatorSequences.iterator().next();
         assertThat( operators, hasSize( 2 ) );
-        assertThat( operators.get( 0 ).id, equalTo( "o1" ) );
-        assertThat( operators.get( 1 ).id, equalTo( "o2" ) );
+        assertThat( operators.get( 0 ).id(), equalTo( "o1" ) );
+        assertThat( operators.get( 1 ).id(), equalTo( "o2" ) );
     }
 
     @Test
@@ -68,9 +68,9 @@ public class RegionFormerImplOperatorSequenceTest
 
         final List<OperatorDefinition> operators = operatorSequences.iterator().next();
         assertThat( operators, hasSize( 3 ) );
-        assertThat( operators.get( 0 ).id, equalTo( "o1" ) );
-        assertThat( operators.get( 1 ).id, equalTo( "o2" ) );
-        assertThat( operators.get( 2 ).id, equalTo( "o3" ) );
+        assertThat( operators.get( 0 ).id(), equalTo( "o1" ) );
+        assertThat( operators.get( 1 ).id(), equalTo( "o2" ) );
+        assertThat( operators.get( 2 ).id(), equalTo( "o3" ) );
     }
 
     @Test
@@ -272,7 +272,7 @@ public class RegionFormerImplOperatorSequenceTest
     private void assertOperatorSequence ( final List<String> expectedOperatorIds, Collection<List<OperatorDefinition>> operatorSequences )
     {
         final boolean sequenceExists = operatorSequences.stream().anyMatch( operatorSequence -> {
-            final List<String> sequenceOperatorIds = operatorSequence.stream().map( op -> op.id ).collect( Collectors.toList() );
+            final List<String> sequenceOperatorIds = operatorSequence.stream().map( op -> op.id() ).collect( Collectors.toList() );
             return sequenceOperatorIds.equals( expectedOperatorIds );
         } );
 

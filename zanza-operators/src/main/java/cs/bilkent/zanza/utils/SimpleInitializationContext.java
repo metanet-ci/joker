@@ -28,7 +28,7 @@ public class SimpleInitializationContext implements InitializationContext
     }
 
     @Override
-    public String getName ()
+    public String getId ()
     {
         return name;
     }

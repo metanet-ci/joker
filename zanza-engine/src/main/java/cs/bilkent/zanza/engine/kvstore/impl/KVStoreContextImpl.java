@@ -3,11 +3,8 @@ package cs.bilkent.zanza.engine.kvstore.impl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.zanza.engine.kvstore.KVStoreContext;
 import cs.bilkent.zanza.kvstore.KVStore;
-import cs.bilkent.zanza.kvstore.KeyPrefixedInMemoryKvStore;
-import cs.bilkent.zanza.operator.spec.OperatorType;
 
 public class KVStoreContextImpl implements KVStoreContext
 {
@@ -17,14 +14,11 @@ public class KVStoreContextImpl implements KVStoreContext
 
     private final String operatorId;
 
-    private final OperatorType operatorType;
-
     private final KVStore[] kvStores;
 
-    public KVStoreContextImpl ( final String operatorId, final OperatorType operatorType, final KVStore[] kvStores )
+    public KVStoreContextImpl ( final String operatorId, final KVStore[] kvStores )
     {
         this.operatorId = operatorId;
-        this.operatorType = operatorType;
         this.kvStores = kvStores;
     }
 
@@ -35,21 +29,15 @@ public class KVStoreContextImpl implements KVStoreContext
     }
 
     @Override
-    public KVStore getKVStore ()
+    public int getKVStoreCount ()
     {
-        checkState( operatorType != OperatorType.PARTITIONED_STATEFUL );
-        return kvStores[ 0 ];
+        return kvStores.length;
     }
 
     @Override
-    public KVStore getKVStore ( final Object partitionKey )
+    public KVStore getKVStore ( final int replicaIndex )
     {
-        checkState( operatorType == OperatorType.PARTITIONED_STATEFUL );
-
-        final int i = partitionKey.hashCode() % kvStores.length;
-        final KVStore kvStore = kvStores[ i ];
-
-        return new KeyPrefixedInMemoryKvStore( partitionKey, kvStore );
+        return kvStores[ replicaIndex ];
     }
 
     public void clear ()
@@ -60,11 +48,6 @@ public class KVStoreContextImpl implements KVStoreContext
         {
             kvStore.clear();
         }
-    }
-
-    public int getKVStoresSize ()
-    {
-        return kvStores.length;
     }
 
 }

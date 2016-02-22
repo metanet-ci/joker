@@ -29,6 +29,7 @@
         <mockito.version>1.10.19</mockito.version>
         <guice.version>4.0</guice.version>
         <guice.ext.annotations.version>1.1.1</guice.ext.annotations.version>
+        <jsr305.version>3.0.1</jsr305.version>
     </properties>
 
     <dependencies>
@@ -43,6 +44,13 @@
             <artifactId>guava</artifactId>
             <version>${guava.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+            <version>${jsr305.version}</version>
+        </dependency>
+
 
         <!-- DI dependencies -->
 

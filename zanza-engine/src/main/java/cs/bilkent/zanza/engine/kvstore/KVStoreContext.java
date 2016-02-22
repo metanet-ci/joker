@@ -8,8 +8,13 @@ public interface KVStoreContext
 
     String getOperatorId ();
 
-    KVStore getKVStore ();
+    int getKVStoreCount ();
 
-    KVStore getKVStore ( Object partitionKey );
+    KVStore getKVStore ( int replicaIndex );
+
+    default KVStore getKVStore ()
+    {
+        return getKVStore( 0 );
+    }
 
 }

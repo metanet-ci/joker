@@ -1,15 +1,16 @@
 package cs.bilkent.zanza.kvstore;
 
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import javax.annotation.concurrent.NotThreadSafe;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-
+@NotThreadSafe
 public class InMemoryKVStore implements KVStore
 {
-    private final Map<Object, Object> values = new ConcurrentHashMap<>();
+    private final Map<Object, Object> values = new HashMap<>();
 
     public InMemoryKVStore ()
     {

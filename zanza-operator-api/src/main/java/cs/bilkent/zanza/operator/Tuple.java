@@ -1,11 +1,9 @@
 package cs.bilkent.zanza.operator;
 
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -116,18 +114,6 @@ public final class Tuple implements Fields<String>
     {
         checkNotNull( key, "key can't be null" );
         return this.values.remove( key ) != null;
-    }
-
-    public List<Object> getValues ( final List<String> keys )
-    {
-        checkNotNull( keys, "keys can't be null" );
-        final List<Object> values = new ArrayList<>( keys.size() );
-        for ( String key : keys )
-        {
-            values.add( get( key ) );
-        }
-
-        return values;
     }
 
     @Override

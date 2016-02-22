@@ -51,6 +51,36 @@ public class PortsToTuples
         }
 
         @Override
+        public boolean equals ( final Object o )
+        {
+            if ( this == o )
+            {
+                return true;
+            }
+            if ( o == null || getClass() != o.getClass() )
+            {
+                return false;
+            }
+
+            final PortToTuples that = (PortToTuples) o;
+
+            if ( portIndex != that.portIndex )
+            {
+                return false;
+            }
+            return tuples.equals( that.tuples );
+
+        }
+
+        @Override
+        public int hashCode ()
+        {
+            int result = portIndex;
+            result = 31 * result + tuples.hashCode();
+            return result;
+        }
+
+        @Override
         public String toString ()
         {
             return "PortToTuples{" +
@@ -333,6 +363,30 @@ public class PortsToTuples
         }
 
         return null;
+    }
+
+    @Override
+    public boolean equals ( final Object o )
+    {
+        if ( this == o )
+        {
+            return true;
+        }
+        if ( o == null || getClass() != o.getClass() )
+        {
+            return false;
+        }
+
+        final PortsToTuples that = (PortsToTuples) o;
+
+        return tuplesByPort.equals( that.tuplesByPort );
+
+    }
+
+    @Override
+    public int hashCode ()
+    {
+        return tuplesByPort.hashCode();
     }
 
     @Override

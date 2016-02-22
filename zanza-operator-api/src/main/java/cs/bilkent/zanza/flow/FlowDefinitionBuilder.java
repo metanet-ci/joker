@@ -38,8 +38,8 @@ public class FlowDefinitionBuilder
     public FlowDefinitionBuilder add ( final OperatorDefinition operatorDefinition )
     {
         failIfAlreadyBuilt();
-        checkArgument( !operators.containsKey( operatorDefinition.id ), "only 1 operator can be added with a operator id!" );
-        operators.put( operatorDefinition.id, operatorDefinition );
+        checkArgument( !operators.containsKey( operatorDefinition.id() ), "only 1 operator can be added with a operator id!" );
+        operators.put( operatorDefinition.id(), operatorDefinition );
 
         return this;
     }
@@ -67,14 +67,14 @@ public class FlowDefinitionBuilder
         failIfAlreadyBuilt();
         failIfEmptyOperatorId( sourceOperatorId );
         failIfNonExistingOperatorId( sourceOperatorId );
-        failIfInvalidPort( operators.get( sourceOperatorId ).outputPortCount, sourcePort );
+        failIfInvalidPort( operators.get( sourceOperatorId ).outputPortCount(), sourcePort );
         failIfEmptyOperatorId( targetOperatorId );
         failIfNonExistingOperatorId( targetOperatorId );
-        failIfInvalidPort( operators.get( targetOperatorId ).inputPortCount, targetPort );
+        failIfInvalidPort( operators.get( targetOperatorId ).inputPortCount(), targetPort );
         checkArgument( !sourceOperatorId.equals( targetOperatorId ), "operator ids must be different!" );
 
-        final OperatorRuntimeSchema sourceOperatorSchema = operators.get( sourceOperatorId ).schema;
-        final OperatorRuntimeSchema targetOperatorSchema = operators.get( targetOperatorId ).schema;
+        final OperatorRuntimeSchema sourceOperatorSchema = operators.get( sourceOperatorId ).schema();
+        final OperatorRuntimeSchema targetOperatorSchema = operators.get( targetOperatorId ).schema();
         checkState( sourceOperatorSchema.getOutputSchema( sourcePort )
                                         .isCompatibleWith( targetOperatorSchema.getInputSchema( targetPort ) ) );
 

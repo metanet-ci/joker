@@ -2,6 +2,7 @@ package cs.bilkent.zanza.scheduling;
 
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -43,6 +44,45 @@ public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
         {
             this.portIndex = portIndex;
             this.tupleCount = tupleCount;
+        }
+
+        @Override
+        public boolean equals ( final Object o )
+        {
+            if ( this == o )
+            {
+                return true;
+            }
+            if ( o == null || getClass() != o.getClass() )
+            {
+                return false;
+            }
+
+            final PortToTupleCount that = (PortToTupleCount) o;
+
+            if ( portIndex != that.portIndex )
+            {
+                return false;
+            }
+            return tupleCount == that.tupleCount;
+
+        }
+
+        @Override
+        public int hashCode ()
+        {
+            int result = portIndex;
+            result = 31 * result + tupleCount;
+            return result;
+        }
+
+        @Override
+        public String toString ()
+        {
+            return "PortToTupleCount{" +
+                   "portIndex=" + portIndex +
+                   ", tupleCount=" + tupleCount +
+                   '}';
         }
 
     }
@@ -149,6 +189,7 @@ public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
         this.tupleAvailabilityByPort = tupleAvailabilityByPort;
         final ArrayList<PortToTupleCount> copy = new ArrayList<>( tupleCountByPortIndex.size() );
         copy.addAll( tupleCountByPortIndex );
+        Collections.sort( copy, ( o1, o2 ) -> o1.portIndex - o2.portIndex );
         this.tupleCountByPortIndex = unmodifiableList( copy );
     }
 
@@ -171,6 +212,7 @@ public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
         {
             copy.add( new PortToTupleCount( port, tupleCount ) );
         }
+        Collections.sort( copy, ( o1, o2 ) -> o1.portIndex - o2.portIndex );
         this.tupleCountByPortIndex = unmodifiableList( copy );
     }
 
@@ -193,6 +235,7 @@ public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
         {
             copy.add( new PortToTupleCount( port, tupleCount ) );
         }
+        Collections.sort( copy, ( o1, o2 ) -> o1.portIndex - o2.portIndex );
         this.tupleCountByPortIndex = unmodifiableList( copy );
     }
 
@@ -224,4 +267,48 @@ public class ScheduleWhenTuplesAvailable implements SchedulingStrategy
         return 0;
     }
 
+    @Override
+    public boolean equals ( final Object o )
+    {
+        if ( this == o )
+        {
+            return true;
+        }
+        if ( o == null || getClass() != o.getClass() )
+        {
+            return false;
+        }
+
+        final ScheduleWhenTuplesAvailable that = (ScheduleWhenTuplesAvailable) o;
+
+        if ( !tupleCountByPortIndex.equals( that.tupleCountByPortIndex ) )
+        {
+            return false;
+        }
+        if ( tupleAvailabilityByCount != that.tupleAvailabilityByCount )
+        {
+            return false;
+        }
+        return tupleAvailabilityByPort == that.tupleAvailabilityByPort;
+
+    }
+
+    @Override
+    public int hashCode ()
+    {
+        int result = tupleCountByPortIndex.hashCode();
+        result = 31 * result + tupleAvailabilityByCount.hashCode();
+        result = 31 * result + tupleAvailabilityByPort.hashCode();
+        return result;
+    }
+
+    @Override
+    public String toString ()
+    {
+        return "ScheduleWhenTuplesAvailable{" +
+               "tupleCountByPortIndex=" + tupleCountByPortIndex +
+               ", tupleAvailabilityByCount=" + tupleAvailabilityByCount +
+               ", tupleAvailabilityByPort=" + tupleAvailabilityByPort +
+               '}';
+    }
 }
