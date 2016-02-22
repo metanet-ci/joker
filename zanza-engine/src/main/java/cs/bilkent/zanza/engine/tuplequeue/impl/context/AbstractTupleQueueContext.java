@@ -55,7 +55,7 @@ public abstract class AbstractTupleQueueContext implements TupleQueueContext
     }
 
     @Override
-    public List<PortToTupleCount> tryAdd ( final PortsToTuples input, final int timeoutInMillis )
+    public List<PortToTupleCount> tryAdd ( final PortsToTuples input, final long timeoutInMillis )
     {
         final TupleQueue[] tupleQueues = getTupleQueues( input );
 

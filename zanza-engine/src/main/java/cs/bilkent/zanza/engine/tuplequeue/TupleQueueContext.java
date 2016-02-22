@@ -34,7 +34,7 @@ public interface TupleQueueContext
      * @return if tuples are not completely added for some ports in the input, number of tuples successfully added to the queues are
      * returned. Otherwise, returns an empty list.
      */
-    List<PortToTupleCount> tryAdd ( PortsToTuples input, int timeoutInMillis );
+    List<PortToTupleCount> tryAdd ( PortsToTuples input, long timeoutInMillis );
 
     /**
      * Removes tuples from the underlying input queues using the given {@link TupleQueueDrainer}
