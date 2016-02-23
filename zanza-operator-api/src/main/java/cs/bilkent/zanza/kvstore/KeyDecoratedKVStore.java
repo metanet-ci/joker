@@ -4,14 +4,14 @@ package cs.bilkent.zanza.kvstore;
 import cs.bilkent.zanza.util.Pair;
 
 
-public class KeyPrefixedInMemoryKvStore implements KVStore
+public class KeyDecoratedKVStore implements KVStore
 {
 
     private final Object prefix;
 
     private final KVStore kvStore;
 
-    public KeyPrefixedInMemoryKvStore ( final Object prefix, final KVStore kvStore )
+    public KeyDecoratedKVStore ( final Object prefix, final KVStore kvStore )
     {
         this.prefix = prefix;
         this.kvStore = kvStore;

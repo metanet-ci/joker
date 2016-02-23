@@ -1,7 +1,5 @@
 package cs.bilkent.zanza.engine.pipeline;
 
-import java.util.function.Function;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -10,6 +8,7 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import cs.bilkent.zanza.engine.exception.InitializationException;
+import cs.bilkent.zanza.engine.kvstore.KVStoreProvider;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainerFactory;
@@ -51,7 +50,7 @@ public class OperatorInstanceTest
     private OperatorDefinition operatorDefinition;
 
     @Mock
-    private Function<Object, KVStore> kvStoreProvider;
+    private KVStoreProvider kvStoreProvider;
 
     @Mock
     private KVStore kvStore;
@@ -69,7 +68,7 @@ public class OperatorInstanceTest
     @Before
     public void before ()
     {
-        operatorInstance = new OperatorInstance( new PipelineInstanceId( 0, 0, 0 ),
+        operatorInstance = new OperatorInstance( PipelineInstanceId.of( 0, 0, 0 ),
                                                  "op1",
                                                  queue,
                                                  operatorDefinition,
@@ -78,7 +77,7 @@ public class OperatorInstanceTest
 
         when( drainerFactory.create( any( SchedulingStrategy.class ) ) ).thenReturn( drainer );
         when( drainer.getKey() ).thenReturn( key );
-        when( kvStoreProvider.apply( key ) ).thenReturn( kvStore );
+        when( kvStoreProvider.getKVStore( key ) ).thenReturn( kvStore );
     }
 
     @Test
@@ -143,7 +142,7 @@ public class OperatorInstanceTest
         verify( queue ).add( upstreamInput );
         verify( drainerFactory ).create( strategy );
         verify( queue ).drain( drainer );
-        verify( kvStoreProvider ).apply( key );
+        verify( kvStoreProvider ).getKVStore( key );
         verify( operator ).process( invocationContextCaptor.capture() );
 
         final InvocationContext context = invocationContextCaptor.getValue();
@@ -168,7 +167,7 @@ public class OperatorInstanceTest
         verify( queue ).add( upstreamInput );
         verify( drainerFactory ).create( strategy );
         verify( queue ).drain( drainer );
-        verify( kvStoreProvider, never() ).apply( key );
+        verify( kvStoreProvider, never() ).getKVStore( key );
         verify( operator, never() ).process( anyObject() );
         assertNull( result );
         assertThat( operatorInstance.getSchedulingStrategy(), equalTo( strategy ) );
@@ -199,7 +198,7 @@ public class OperatorInstanceTest
     private void testForceInvoke ( final SchedulingStrategy outputStrategy )
     {
         final ScheduleWhenTuplesAvailable strategy = scheduleWhenTuplesAvailableOnDefaultPort( 1 );
-        when( kvStoreProvider.apply( null ) ).thenReturn( kvStore );
+        when( kvStoreProvider.getKVStore( null ) ).thenReturn( kvStore );
         initOperatorInstance( strategy );
 
         final PortsToTuples upstreamInput = new PortsToTuples();
@@ -213,7 +212,7 @@ public class OperatorInstanceTest
 
         verify( queue ).add( upstreamInput );
         verify( queue ).drain( drainerCaptor.capture() );
-        verify( kvStoreProvider ).apply( null );
+        verify( kvStoreProvider ).getKVStore( null );
         assertTrue( drainerCaptor.getValue() instanceof GreedyDrainer );
 
         verify( operator ).process( invocationContextCaptor.capture() );

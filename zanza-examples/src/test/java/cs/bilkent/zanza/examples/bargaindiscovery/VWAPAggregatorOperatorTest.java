@@ -12,7 +12,7 @@ import static cs.bilkent.zanza.examples.bargaindiscovery.VWAPAggregatorOperator.
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
 import cs.bilkent.zanza.kvstore.InMemoryKVStore;
 import cs.bilkent.zanza.kvstore.KVStore;
-import cs.bilkent.zanza.kvstore.KeyPrefixedInMemoryKvStore;
+import cs.bilkent.zanza.kvstore.KeyDecoratedKVStore;
 import cs.bilkent.zanza.operator.InvocationContext;
 import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
 import cs.bilkent.zanza.operator.InvocationResult;
@@ -36,7 +36,7 @@ public class VWAPAggregatorOperatorTest
 
     private final PortsToTuples input = new PortsToTuples();
 
-    private final KVStore kvStore = new KeyPrefixedInMemoryKvStore( TUPLE_PARTITION_KEY, new InMemoryKVStore() );
+    private final KVStore kvStore = new KeyDecoratedKVStore( TUPLE_PARTITION_KEY, new InMemoryKVStore() );
 
     private final InvocationContext invocationContext = new SimpleInvocationContext( InvocationReason.SUCCESS, input, kvStore );
 

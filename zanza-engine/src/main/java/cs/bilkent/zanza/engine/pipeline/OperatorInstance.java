@@ -1,12 +1,11 @@
 package cs.bilkent.zanza.engine.pipeline;
 
-import java.util.function.Function;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.zanza.engine.exception.InitializationException;
+import cs.bilkent.zanza.engine.kvstore.KVStoreProvider;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainerFactory;
@@ -37,7 +36,7 @@ public class OperatorInstance
 
     private final OperatorDefinition operatorDefinition;
 
-    private final Function<Object, KVStore> kvStoreProvider;
+    private final KVStoreProvider kvStoreProvider;
 
     private final TupleQueueDrainerFactory drainerFactory;
 
@@ -51,7 +50,7 @@ public class OperatorInstance
                               final String operatorName,
                               final TupleQueueContext queue,
                               final OperatorDefinition operatorDefinition,
-                              final Function<Object, KVStore> kvStoreProvider,
+                              final KVStoreProvider kvStoreProvider,
                               final TupleQueueDrainerFactory drainerFactory )
     {
         this.pipelineInstanceId = pipelineInstanceId;
@@ -96,7 +95,7 @@ public class OperatorInstance
         final PortsToTuples input = drainer.getResult();
         if ( input != null )
         {
-            final KVStore kvStore = kvStoreProvider.apply( drainer.getKey() );
+            final KVStore kvStore = kvStoreProvider.getKVStore( drainer.getKey() );
             final InvocationResult result = operator.process( new SimpleInvocationContext( SUCCESS, input, kvStore ) );
             schedulingStrategy = result.getSchedulingStrategy();
             return result;
@@ -105,7 +104,7 @@ public class OperatorInstance
         return null;
     }
 
-    public PortsToTuples forceInvoke ( PortsToTuples portsToTuples, InvocationReason reason )
+    public PortsToTuples forceInvoke ( PortsToTuples upstreamInput, InvocationReason reason )
     {
         checkState( status == OperatorInstanceStatus.RUNNING );
 
@@ -115,11 +114,11 @@ public class OperatorInstance
             return null;
         }
 
-        queue.add( portsToTuples );
+        queue.add( upstreamInput );
         final TupleQueueDrainer drainer = new GreedyDrainer();
         queue.drain( drainer );
         final PortsToTuples input = drainer.getResult();
-        final KVStore kvStore = kvStoreProvider.apply( drainer.getKey() );
+        final KVStore kvStore = kvStoreProvider.getKVStore( drainer.getKey() );
         final InvocationResult result = operator.process( new SimpleInvocationContext( reason, input, kvStore ) );
         schedulingStrategy = result.getSchedulingStrategy();
         if ( schedulingStrategy instanceof ScheduleNever )
