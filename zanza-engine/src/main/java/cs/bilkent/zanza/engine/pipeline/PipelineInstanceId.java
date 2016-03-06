@@ -3,20 +3,39 @@ package cs.bilkent.zanza.engine.pipeline;
 public class PipelineInstanceId
 {
 
-    public static PipelineInstanceId of ( final int regionId, final int pipelineId, final int replicaId )
-    {
-        final String str = "PP<" + regionId + "_" + "_" + pipelineId + "_" + replicaId + ">";
-        return new PipelineInstanceId( str );
-    }
+    private final int regionId;
 
-    private final String id;
+    private final int pipelineId;
+
+    private final int replicaId;
+
+    private final String str;
 
     private final int hashCode;
 
-    private PipelineInstanceId ( final String id )
+    public PipelineInstanceId ( final int replicaId, final int pipelineId, final int regionId )
     {
-        this.id = id;
-        this.hashCode = id.hashCode();
+        this.replicaId = replicaId;
+        this.pipelineId = pipelineId;
+        this.regionId = regionId;
+        this.str = "PP<" + regionId + "_" + pipelineId + "_" + replicaId + ">";
+        ;
+        this.hashCode = str.hashCode();
+    }
+
+    public int regionId ()
+    {
+        return regionId;
+    }
+
+    public int pipelineId ()
+    {
+        return pipelineId;
+    }
+
+    public int replicaId ()
+    {
+        return replicaId;
     }
 
     @Override
@@ -33,10 +52,9 @@ public class PipelineInstanceId
 
         final PipelineInstanceId that = (PipelineInstanceId) o;
 
-        return id.equals( that.id );
-
+        return str.equals( that.str );
     }
-    
+
     @Override
     public int hashCode ()
     {
@@ -46,7 +64,7 @@ public class PipelineInstanceId
     @Override
     public String toString ()
     {
-        return id;
+        return str;
     }
 
 }

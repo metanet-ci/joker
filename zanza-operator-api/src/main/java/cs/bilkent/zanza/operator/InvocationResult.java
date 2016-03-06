@@ -30,7 +30,6 @@ public class InvocationResult
     public InvocationResult ( final SchedulingStrategy schedulingStrategy, final PortsToTuples outputTuples )
     {
         checkNotNull( schedulingStrategy, "scheduling strategy can't be null" );
-        checkNotNull( outputTuples, "ports to tuples can't be null" );
         this.schedulingStrategy = schedulingStrategy;
         this.outputTuples = outputTuples;
     }

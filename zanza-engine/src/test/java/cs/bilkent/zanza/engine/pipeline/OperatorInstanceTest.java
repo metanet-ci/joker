@@ -17,6 +17,7 @@ import cs.bilkent.zanza.flow.OperatorDefinition;
 import cs.bilkent.zanza.kvstore.KVStore;
 import cs.bilkent.zanza.operator.InvocationContext;
 import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
+import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.INPUT_PORT_CLOSED;
 import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.PortsToTuples;
@@ -25,10 +26,11 @@ import cs.bilkent.zanza.scheduling.ScheduleNever;
 import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable;
 import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.zanza.scheduling.SchedulingStrategy;
-import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyObject;
@@ -68,7 +70,7 @@ public class OperatorInstanceTest
     @Before
     public void before ()
     {
-        operatorInstance = new OperatorInstance( PipelineInstanceId.of( 0, 0, 0 ),
+        operatorInstance = new OperatorInstance( new PipelineInstanceId( 0, 0, 0 ),
                                                  "op1",
                                                  queue,
                                                  operatorDefinition,
@@ -84,7 +86,7 @@ public class OperatorInstanceTest
     public void shouldSetStatusWhenInitializationSucceeds ()
     {
         initOperatorInstance( ScheduleNever.INSTANCE );
-        assertThat( operatorInstance.getStatus(), equalTo( OperatorInstanceStatus.RUNNING ) );
+        assertThat( operatorInstance.status(), equalTo( OperatorInstanceStatus.RUNNING ) );
     }
 
     @Test
@@ -101,7 +103,7 @@ public class OperatorInstanceTest
         }
         catch ( InitializationException expected )
         {
-            assertThat( operatorInstance.getStatus(), equalTo( OperatorInstanceStatus.INITIALIZATION_FAILED ) );
+            assertThat( operatorInstance.status(), equalTo( OperatorInstanceStatus.INITIALIZATION_FAILED ) );
         }
     }
 
@@ -152,7 +154,7 @@ public class OperatorInstanceTest
 
         assertThat( result.getOutputTuples(), equalTo( output ) );
         assertThat( result.getSchedulingStrategy(), equalTo( outputStrategy ) );
-        assertThat( operatorInstance.getSchedulingStrategy(), equalTo( outputStrategy ) );
+        assertThat( operatorInstance.schedulingStrategy(), equalTo( outputStrategy ) );
     }
 
     @Test
@@ -170,7 +172,7 @@ public class OperatorInstanceTest
         verify( kvStoreProvider, never() ).getKVStore( key );
         verify( operator, never() ).process( anyObject() );
         assertNull( result );
-        assertThat( operatorInstance.getSchedulingStrategy(), equalTo( strategy ) );
+        assertThat( operatorInstance.schedulingStrategy(), equalTo( strategy ) );
     }
 
     @Test
@@ -178,9 +180,37 @@ public class OperatorInstanceTest
     {
         initOperatorInstance( ScheduleNever.INSTANCE );
 
-        operatorInstance.forceInvoke( null, InvocationReason.INPUT_PORT_CLOSED );
+        operatorInstance.forceInvoke( null, INPUT_PORT_CLOSED );
 
         verify( queue, never() ).add( anyObject() );
+    }
+
+    @Test
+    public void shouldReturnScheduleNeverIfOperatorInvocationFailsWithException ()
+    {
+        initOperatorInstance( scheduleWhenTuplesAvailableOnDefaultPort( 1 ) );
+
+        when( operatorInstance.invoke( any() ) ).thenThrow( new RuntimeException() );
+
+        final InvocationResult result = operatorInstance.invoke( null );
+
+        assertNotNull( result );
+        assertNull( result.getOutputTuples() );
+        assertTrue( result.getSchedulingStrategy() instanceof ScheduleNever );
+        assertTrue( operatorInstance.schedulingStrategy() instanceof ScheduleNever );
+    }
+
+    @Test
+    public void shouldSuppressExceptionThrownDuringForceInvoke ()
+    {
+        initOperatorInstance( scheduleWhenTuplesAvailableOnDefaultPort( 1 ) );
+
+        when( operatorInstance.invoke( any() ) ).thenThrow( new RuntimeException() );
+
+        final PortsToTuples result = operatorInstance.forceInvoke( null, INPUT_PORT_CLOSED );
+
+        assertNull( result );
+        assertTrue( operatorInstance.schedulingStrategy() instanceof ScheduleNever );
     }
 
     @Test
@@ -208,7 +238,7 @@ public class OperatorInstanceTest
         final PortsToTuples output = new PortsToTuples( new Tuple( "f1", "val" ) );
         when( operator.process( anyObject() ) ).thenReturn( new InvocationResult( outputStrategy, output ) );
 
-        final PortsToTuples result = operatorInstance.forceInvoke( upstreamInput, InvocationReason.INPUT_PORT_CLOSED );
+        final PortsToTuples result = operatorInstance.forceInvoke( upstreamInput, INPUT_PORT_CLOSED );
 
         verify( queue ).add( upstreamInput );
         verify( queue ).drain( drainerCaptor.capture() );
@@ -218,12 +248,12 @@ public class OperatorInstanceTest
         verify( operator ).process( invocationContextCaptor.capture() );
 
         final InvocationContext context = invocationContextCaptor.getValue();
-        assertThat( context.getReason(), equalTo( InvocationReason.INPUT_PORT_CLOSED ) );
+        assertThat( context.getReason(), equalTo( INPUT_PORT_CLOSED ) );
         assertThat( context.getKVStore(), equalTo( kvStore ) );
         assertThat( context.getInputTuples(), equalTo( upstreamInput ) );
 
         assertThat( result, equalTo( output ) );
-        assertThat( operatorInstance.getSchedulingStrategy(), equalTo( ScheduleNever.INSTANCE ) );
+        assertThat( operatorInstance.schedulingStrategy(), equalTo( ScheduleNever.INSTANCE ) );
     }
 
     private void initOperatorInstance ( final SchedulingStrategy strategy )

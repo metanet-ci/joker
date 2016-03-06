@@ -1,16 +1,27 @@
 package cs.bilkent.zanza.engine.pipeline;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.zanza.engine.exception.InitializationException;
+import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.INITIAL;
+import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.INITIALIZATION_FAILED;
+import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.RUNNING;
+import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.SHUT_DOWN;
+import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.INPUT_PORT_CLOSED;
 import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.scheduling.ScheduleNever;
 
+/**
+ *
+ */
+@NotThreadSafe
 public class PipelineInstance
 {
 
@@ -18,79 +29,113 @@ public class PipelineInstance
 
     public static final int NO_INVOKABLE_INDEX = -1;
 
-    public final PipelineInstanceId id;
+    private final PipelineInstanceId id;
 
-    private final OperatorInstance[] operatorInstances;
+    private final OperatorInstance[] operators;
 
     private final int highestInvokableIndex;
 
-    private OperatorInstanceStatus status = OperatorInstanceStatus.NON_INITIALIZED;
+    private OperatorInstanceStatus status = INITIAL;
 
     private int currentHighestInvokableIndex;
 
-    public PipelineInstance ( final PipelineInstanceId id, final OperatorInstance[] operatorInstances )
+    public PipelineInstance ( final PipelineInstanceId id, final OperatorInstance[] operators )
     {
         this.id = id;
-        this.operatorInstances = operatorInstances;
-        this.highestInvokableIndex = operatorInstances.length - 1;
+        this.operators = operators;
+        this.highestInvokableIndex = operators.length - 1;
     }
 
     public void init ()
     {
-        checkState( status == OperatorInstanceStatus.NON_INITIALIZED );
-        for ( int i = 0; i < operatorInstances.length; i++ )
+        checkState( status == INITIAL );
+        for ( int i = 0; i < operators.length; i++ )
         {
             try
             {
-                operatorInstances[ i ].init();
+                operators[ i ].init();
             }
             catch ( InitializationException e )
             {
                 shutdownOperators( 0, i );
-                status = OperatorInstanceStatus.INITIALIZATION_FAILED;
+                status = INITIALIZATION_FAILED;
                 throw e;
             }
         }
 
-        status = OperatorInstanceStatus.RUNNING;
-        this.currentHighestInvokableIndex = operatorInstances.length - 1;
+        status = RUNNING;
+        this.currentHighestInvokableIndex = operators.length - 1;
     }
 
     public PortsToTuples invoke ()
     {
-        checkState( status == OperatorInstanceStatus.RUNNING );
-        PortsToTuples curr = null;
+        checkState( status == RUNNING );
 
+        PortsToTuples tuples = null;
         for ( int i = 0; i <= currentHighestInvokableIndex; i++ )
         {
-            final InvocationResult result = operatorInstances[ i ].invoke( curr );
-            curr = result.getOutputTuples();
+            final InvocationResult result = operators[ i ].invoke( tuples );
+            tuples = result.getOutputTuples();
             if ( result.getSchedulingStrategy() instanceof ScheduleNever )
             {
                 LOGGER.info( "{}: operator {} completes its execution.", id, currentHighestInvokableIndex );
                 final int j = currentHighestInvokableIndex;
                 currentHighestInvokableIndex = i - 1;
-                return forceInvoke( i + 1, j, curr );
+                tuples = forceInvoke( i + 1, j, tuples, INPUT_PORT_CLOSED );
+                return j == highestInvokableIndex ? tuples : null;
             }
         }
 
-        return currentHighestInvokableIndex == highestInvokableIndex ? curr : null;
+        return currentHighestInvokableIndex == highestInvokableIndex ? tuples : null;
     }
 
-    private PortsToTuples forceInvoke ( final int startIndexInclusive, final int endIndexInclusive, final PortsToTuples input )
+    public PortsToTuples forceInvoke ( final InvocationReason reason )
     {
-        PortsToTuples curr = input;
+        if ( currentHighestInvokableIndex != NO_INVOKABLE_INDEX )
+        {
+            final int i = currentHighestInvokableIndex;
+            currentHighestInvokableIndex = NO_INVOKABLE_INDEX;
+            final PortsToTuples output = forceInvoke( 0, i, null, reason );
+            return i == highestInvokableIndex ? output : null;
+        }
+
+        return null;
+    }
+
+    private PortsToTuples forceInvoke ( final int startIndexInclusive,
+                                        final int endIndexInclusive,
+                                        final PortsToTuples input,
+                                        final InvocationReason reason )
+    {
+        PortsToTuples tuples = input;
         for ( int i = startIndexInclusive; i <= endIndexInclusive; i++ )
         {
-            final OperatorInstance operator = operatorInstances[ i ];
-            curr = operator.forceInvoke( curr, INPUT_PORT_CLOSED );
+            final OperatorInstance operator = operators[ i ];
+            tuples = operator.forceInvoke( tuples, reason );
             operator.shutdown();
         }
 
-        return curr;
+        return tuples;
     }
 
-    public int getCurrentHighestInvokableIndex ()
+    public void shutdown ()
+    {
+        if ( status == SHUT_DOWN )
+        {
+            return;
+        }
+
+        checkState( status == RUNNING || status == INITIALIZATION_FAILED );
+        shutdownOperators( 0, currentHighestInvokableIndex );
+        status = SHUT_DOWN;
+    }
+
+    public PipelineInstanceId id ()
+    {
+        return id;
+    }
+
+    public int currentHighestInvokableIndex ()
     {
         return currentHighestInvokableIndex;
     }
@@ -100,26 +145,19 @@ public class PipelineInstance
         return currentHighestInvokableIndex != NO_INVOKABLE_INDEX;
     }
 
-    public void shutdown ()
+    public int operatorCount ()
     {
-        if ( status == OperatorInstanceStatus.SHUT_DOWN )
-        {
-            return;
-        }
-
-        checkState( status == OperatorInstanceStatus.RUNNING || status == OperatorInstanceStatus.INITIALIZATION_FAILED );
-        shutdownOperators( 0, currentHighestInvokableIndex );
-        status = OperatorInstanceStatus.SHUT_DOWN;
+        return operators.length;
     }
 
     private void shutdownOperators ( final int startIndexInclusive, final int endIndexInclusive )
     {
         checkArgument( startIndexInclusive >= 0 );
-        checkArgument( endIndexInclusive < operatorInstances.length );
+        checkArgument( endIndexInclusive < operators.length );
 
         for ( int i = startIndexInclusive; i <= endIndexInclusive; i++ )
         {
-            operatorInstances[ i ].shutdown();
+            operators[ i ].shutdown();
         }
     }
 

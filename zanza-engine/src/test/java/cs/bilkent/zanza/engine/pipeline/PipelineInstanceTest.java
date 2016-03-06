@@ -17,6 +17,7 @@ import cs.bilkent.zanza.scheduling.SchedulingStrategy;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -55,7 +56,7 @@ public class PipelineInstanceTest
     @Before
     public void before ()
     {
-        pipeline = new PipelineInstance( PipelineInstanceId.of( 0, 0, 0 ), new OperatorInstance[] { operator0, operator1, operator2 } );
+        pipeline = new PipelineInstance( new PipelineInstanceId( 0, 0, 0 ), new OperatorInstance[] { operator0, operator1, operator2 } );
 
         upstreamInput1.add( new Tuple( "k1", "v1" ) );
         upstreamInput2.add( new Tuple( "k2", "v2" ) );
@@ -133,7 +134,7 @@ public class PipelineInstanceTest
         verify( operator2 ).invoke( upstreamInput2 );
 
         assertTrue( result == output );
-        assertThat( pipeline.getCurrentHighestInvokableIndex(), equalTo( 2 ) );
+        assertThat( pipeline.currentHighestInvokableIndex(), equalTo( 2 ) );
         assertTrue( pipeline.isInvokable() );
     }
 
@@ -153,7 +154,7 @@ public class PipelineInstanceTest
         verify( operator2 ).invoke( upstreamInput2 );
 
         assertTrue( result == output );
-        assertThat( pipeline.getCurrentHighestInvokableIndex(), equalTo( 1 ) );
+        assertThat( pipeline.currentHighestInvokableIndex(), equalTo( 1 ) );
         assertTrue( pipeline.isInvokable() );
     }
 
@@ -174,7 +175,7 @@ public class PipelineInstanceTest
         verify( operator2 ).shutdown();
 
         assertTrue( result == output );
-        assertThat( pipeline.getCurrentHighestInvokableIndex(), equalTo( 0 ) );
+        assertThat( pipeline.currentHighestInvokableIndex(), equalTo( 0 ) );
         assertTrue( pipeline.isInvokable() );
     }
 
@@ -196,7 +197,7 @@ public class PipelineInstanceTest
         verify( operator2 ).shutdown();
 
         assertTrue( result == output );
-        assertThat( pipeline.getCurrentHighestInvokableIndex(), equalTo( PipelineInstance.NO_INVOKABLE_INDEX ) );
+        assertThat( pipeline.currentHighestInvokableIndex(), equalTo( PipelineInstance.NO_INVOKABLE_INDEX ) );
         assertFalse( pipeline.isInvokable() );
     }
 
@@ -220,9 +221,40 @@ public class PipelineInstanceTest
         verify( operator2 ).shutdown();
 
         assertTrue( result1 == output );
-        assertThat( pipeline.getCurrentHighestInvokableIndex(), equalTo( 0 ) );
+        assertThat( pipeline.currentHighestInvokableIndex(), equalTo( 0 ) );
         assertNull( result2 );
         assertTrue( pipeline.isInvokable() );
+    }
+
+    @Test
+    public void shouldForceInvokeNotReturnOutputTuplesAfterDownstreamOperatorsAfterAlreadyShutdown ()
+    {
+        pipeline.init();
+
+        when( operator0.invoke( null ) ).thenReturn( continuingResult( upstreamInput1 ), terminatingResult( upstreamInput1 ) );
+        when( operator1.invoke( upstreamInput1 ) ).thenReturn( continuingResult( upstreamInput2 ) );
+        when( operator2.invoke( upstreamInput2 ) ).thenReturn( terminatingResult( output ) );
+
+        when( operator1.forceInvoke( upstreamInput1, InvocationReason.INPUT_PORT_CLOSED ) ).thenReturn( upstreamInput2 );
+
+        assertNotNull( pipeline.invoke() );
+
+        assertNull( pipeline.invoke() );
+    }
+
+    @Test
+    public void shouldForceInvokeReturnOutputTuplesOnLastOperator ()
+    {
+        pipeline.init();
+
+        when( operator0.invoke( null ) ).thenReturn( continuingResult( upstreamInput1 ), terminatingResult( upstreamInput1 ) );
+        when( operator1.invoke( upstreamInput1 ) ).thenReturn( terminatingResult( upstreamInput2 ) );
+
+        when( operator2.forceInvoke( upstreamInput2, InvocationReason.INPUT_PORT_CLOSED ) ).thenReturn( output );
+
+        final PortsToTuples result = pipeline.invoke();
+
+        assertTrue( result == output );
     }
 
     private InvocationResult continuingResult ( final PortsToTuples output )

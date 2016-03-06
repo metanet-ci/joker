@@ -1,9 +1,9 @@
 package cs.bilkent.zanza.engine.pipeline;
 
-enum OperatorInstanceStatus
+public enum PipelineInstanceRunnerStatus
 {
     INITIAL,
     RUNNING,
-    INITIALIZATION_FAILED,
-    SHUT_DOWN
+    PAUSED,
+    COMPLETED
 }

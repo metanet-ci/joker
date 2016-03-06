@@ -89,18 +89,6 @@ public interface InvocationContext
                     {
                         return false;
                     }
-                },
-
-        /**
-         * Indicates that the invocation is done because some of the output ports have been closed. Because of this, new tuples produced
-         * by the operator will not be fed into the next operator in the flow.
-         */
-        OUTPUT_PORT_CLOSED
-                {
-                    public boolean isSuccessful ()
-                    {
-                        return false;
-                    }
                 };
 
         /**
