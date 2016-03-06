@@ -12,14 +12,15 @@ import cs.bilkent.zanza.operator.PortsToTuples.PortToTuples;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.PortToTupleCount;
 
-public class PartitionerTupleQueueContext implements TupleQueueContext
+public class TuplePartitionerTupleQueueContext implements TupleQueueContext
 {
 
     private final PartitionedTupleQueueContext internal;
 
     private final Function<Tuple, Object> partitionKeyExtractor;
 
-    public PartitionerTupleQueueContext ( final PartitionedTupleQueueContext internal, final Function<Tuple, Object> partitionKeyExtractor )
+    public TuplePartitionerTupleQueueContext ( final PartitionedTupleQueueContext internal,
+                                               final Function<Tuple, Object> partitionKeyExtractor )
     {
         this.internal = internal;
         this.partitionKeyExtractor = partitionKeyExtractor;
@@ -40,7 +41,7 @@ public class PartitionerTupleQueueContext implements TupleQueueContext
         {
             for ( Tuple tuple : port.getTuples() )
             {
-                Object key = partitionKeyExtractor.apply( tuple );
+                final Object key = partitionKeyExtractor.apply( tuple );
                 final PortsToTuples tuples = tuplesByKey.computeIfAbsent( key, k -> new PortsToTuples() );
                 tuples.add( port.getPortIndex(), tuple );
             }
