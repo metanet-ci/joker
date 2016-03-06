@@ -1,4 +1,4 @@
-package cs.bilkent.zanza.kvstore;
+package cs.bilkent.zanza.operator.kvstore.impl;
 
 
 import java.util.HashMap;
@@ -6,6 +6,7 @@ import java.util.Map;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import cs.bilkent.zanza.operator.kvstore.KVStore;
 
 @NotThreadSafe
 public class InMemoryKVStore implements KVStore

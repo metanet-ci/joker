@@ -1,4 +1,4 @@
-package cs.bilkent.zanza.utils;
+package cs.bilkent.zanza.operator.impl;
 
 import java.util.List;
 
@@ -8,7 +8,7 @@ import cs.bilkent.zanza.operator.schema.runtime.OperatorRuntimeSchema;
 import static java.util.Collections.emptyList;
 
 
-public class SimpleInitializationContext implements InitializationContext
+public class InitializationContextImpl implements InitializationContext
 {
     private String name;
 

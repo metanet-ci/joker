@@ -18,16 +18,16 @@ import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainerFactory;
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.GreedyDrainer;
 import cs.bilkent.zanza.flow.FlowDefinition;
 import cs.bilkent.zanza.flow.OperatorDefinition;
-import cs.bilkent.zanza.kvstore.KVStore;
 import cs.bilkent.zanza.operator.InitializationContext;
 import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.SUCCESS;
 import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.PortsToTuples;
-import cs.bilkent.zanza.scheduling.ScheduleNever;
-import cs.bilkent.zanza.scheduling.SchedulingStrategy;
-import cs.bilkent.zanza.utils.SimpleInvocationContext;
+import cs.bilkent.zanza.operator.impl.InvocationContextImpl;
+import cs.bilkent.zanza.operator.kvstore.KVStore;
+import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
+import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 /**
  * Manages runtime state of an {@link Operator} defined in a {@link FlowDefinition} and provides methods for operator invocation.
@@ -133,7 +133,7 @@ public class OperatorInstance
             {
                 final KVStore kvStore = kvStoreProvider.getKVStore( drainer.getKey() );
                 // TODO reuse invocation context
-                final InvocationResult result = operator.invoke( new SimpleInvocationContext( SUCCESS, input, kvStore ) );
+                final InvocationResult result = operator.invoke( new InvocationContextImpl( SUCCESS, input, kvStore ) );
                 schedulingStrategy = result.getSchedulingStrategy();
                 return result;
             }
@@ -177,7 +177,7 @@ public class OperatorInstance
             queue.drain( drainer );
             final PortsToTuples input = drainer.getResult();
             final KVStore kvStore = kvStoreProvider.getKVStore( drainer.getKey() );
-            final InvocationResult result = operator.invoke( new SimpleInvocationContext( reason, input, kvStore ) );
+            final InvocationResult result = operator.invoke( new InvocationContextImpl( reason, input, kvStore ) );
             if ( result.getSchedulingStrategy() instanceof ScheduleNever )
             {
                 LOGGER.info( "{}:{} force invoked and completed its execution.", pipelineInstanceId, operatorName );

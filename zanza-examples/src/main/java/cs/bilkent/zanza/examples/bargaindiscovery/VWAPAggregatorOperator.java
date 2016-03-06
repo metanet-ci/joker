@@ -1,12 +1,15 @@
 package cs.bilkent.zanza.examples.bargaindiscovery;
 
-import cs.bilkent.zanza.kvstore.KVStore;
 import cs.bilkent.zanza.operator.InitializationContext;
 import cs.bilkent.zanza.operator.InvocationContext;
 import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
+import cs.bilkent.zanza.operator.kvstore.KVStore;
+import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
+import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
+import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.zanza.operator.schema.annotation.OperatorSchema;
 import cs.bilkent.zanza.operator.schema.annotation.PortSchema;
 import static cs.bilkent.zanza.operator.schema.annotation.PortSchemaScope.BASE_FIELD_SET;
@@ -14,9 +17,6 @@ import static cs.bilkent.zanza.operator.schema.annotation.PortSchemaScope.EXACT_
 import cs.bilkent.zanza.operator.schema.annotation.SchemaField;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
 import cs.bilkent.zanza.operator.spec.OperatorType;
-import cs.bilkent.zanza.scheduling.ScheduleNever;
-import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
-import cs.bilkent.zanza.scheduling.SchedulingStrategy;
 
 @OperatorSpec( type = OperatorType.PARTITIONED_STATEFUL, inputPortCount = 1, outputPortCount = 1 )
 @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = BASE_FIELD_SET,

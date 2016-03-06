@@ -19,7 +19,7 @@ import cs.bilkent.zanza.engine.tuplequeue.impl.queue.BoundedTupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.impl.queue.UnboundedTupleQueue;
 import cs.bilkent.zanza.flow.OperatorDefinition;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
-import cs.bilkent.zanza.util.Pair;
+import cs.bilkent.zanza.utils.Pair;
 
 
 class TupleQueueManagerImpl implements TupleQueueManager

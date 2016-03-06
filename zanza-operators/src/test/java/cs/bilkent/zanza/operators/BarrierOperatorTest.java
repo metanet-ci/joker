@@ -10,14 +10,14 @@ import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
 import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
+import cs.bilkent.zanza.operator.impl.InitializationContextImpl;
+import cs.bilkent.zanza.operator.impl.InvocationContextImpl;
+import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
+import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
+import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.zanza.operators.BarrierOperator.TupleValueMergePolicy;
 import static cs.bilkent.zanza.operators.BarrierOperator.TupleValueMergePolicy.KEEP_EXISTING_VALUE;
 import static cs.bilkent.zanza.operators.BarrierOperator.TupleValueMergePolicy.OVERWRITE_WITH_NEW_VALUE;
-import cs.bilkent.zanza.scheduling.ScheduleNever;
-import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable;
-import cs.bilkent.zanza.scheduling.SchedulingStrategy;
-import cs.bilkent.zanza.utils.SimpleInitializationContext;
-import cs.bilkent.zanza.utils.SimpleInvocationContext;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -29,7 +29,7 @@ public class BarrierOperatorTest
 
     private final BarrierOperator operator = new BarrierOperator();
 
-    private final SimpleInitializationContext initContext = new SimpleInitializationContext();
+    private final InitializationContextImpl initContext = new InitializationContextImpl();
 
     private final int[] inputPorts = new int[] { 0, 1, 2 };
 
@@ -42,7 +42,7 @@ public class BarrierOperatorTest
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithNoMergePolicy ()
     {
-        operator.init( new SimpleInitializationContext() );
+        operator.init( new InitializationContextImpl() );
     }
 
     @Test
@@ -71,7 +71,7 @@ public class BarrierOperatorTest
     {
         initContext.getConfig().set( BarrierOperator.MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
         operator.init( initContext );
-        operator.invoke( new SimpleInvocationContext( InvocationReason.SUCCESS, new PortsToTuples() ) );
+        operator.invoke( new InvocationContextImpl( InvocationReason.SUCCESS, new PortsToTuples() ) );
     }
 
     @Test( expected = IllegalArgumentException.class )
@@ -79,7 +79,7 @@ public class BarrierOperatorTest
     {
         initContext.getConfig().set( BarrierOperator.MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
         operator.init( initContext );
-        final InvocationResult result = operator.invoke( new SimpleInvocationContext( InvocationReason.SHUTDOWN, new PortsToTuples() ) );
+        final InvocationResult result = operator.invoke( new InvocationContextImpl( InvocationReason.SHUTDOWN, new PortsToTuples() ) );
         assertTrue( result.getSchedulingStrategy() instanceof ScheduleNever );
         assertThat( result.getOutputTuples().getPortCount(), equalTo( 0 ) );
     }
@@ -93,7 +93,7 @@ public class BarrierOperatorTest
         final PortsToTuples input = new PortsToTuples();
         populateTuplesWithUniqueFields( input );
 
-        final InvocationResult result = operator.invoke( new SimpleInvocationContext( InvocationReason.SUCCESS, input ) );
+        final InvocationResult result = operator.invoke( new InvocationContextImpl( InvocationReason.SUCCESS, input ) );
         assertSchedulingStrategy( result.getSchedulingStrategy() );
         final Tuple output = result.getOutputTuples().getTuple( 0, 0 );
         final int matchingFieldCount = getMatchingFieldCount( output );
@@ -123,7 +123,7 @@ public class BarrierOperatorTest
             final Tuple tuple = new Tuple( 1, "count", portIndex );
             input.add( portIndex, tuple );
         } );
-        final InvocationResult result = operator.invoke( new SimpleInvocationContext( InvocationReason.SUCCESS, input ) );
+        final InvocationResult result = operator.invoke( new InvocationContextImpl( InvocationReason.SUCCESS, input ) );
 
         final Tuple output = result.getOutputTuples().getTuple( 0, 0 );
         assertThat( output.getInteger( "count" ), equalTo( expectedValue ) );
@@ -141,7 +141,7 @@ public class BarrierOperatorTest
         } );
         input.add( new Tuple( "count", -1 ) );
 
-        operator.invoke( new SimpleInvocationContext( InvocationReason.SUCCESS, input ) );
+        operator.invoke( new InvocationContextImpl( InvocationReason.SUCCESS, input ) );
     }
 
     @Test
@@ -154,7 +154,7 @@ public class BarrierOperatorTest
         populateTuplesWithUniqueFields( input );
         populateTuplesWithUniqueFields( input );
 
-        final InvocationResult result = operator.invoke( new SimpleInvocationContext( InvocationReason.SUCCESS, input ) );
+        final InvocationResult result = operator.invoke( new InvocationContextImpl( InvocationReason.SUCCESS, input ) );
         assertSchedulingStrategy( result.getSchedulingStrategy() );
 
         final List<Tuple> output = result.getOutputTuples().getTuplesByDefaultPort();

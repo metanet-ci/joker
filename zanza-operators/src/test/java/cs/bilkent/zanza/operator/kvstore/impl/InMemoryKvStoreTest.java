@@ -1,4 +1,4 @@
-package cs.bilkent.zanza.kvstore;
+package cs.bilkent.zanza.operator.kvstore.impl;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -11,6 +11,7 @@ import java.util.Set;
 
 import org.junit.Test;
 
+import cs.bilkent.zanza.operator.kvstore.KVStore;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;

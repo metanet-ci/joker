@@ -1,9 +1,9 @@
 package cs.bilkent.zanza.operator;
 
 
-import cs.bilkent.zanza.kvstore.KVStore;
+import cs.bilkent.zanza.operator.kvstore.KVStore;
+import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.zanza.operator.spec.OperatorType;
-import cs.bilkent.zanza.scheduling.SchedulingStrategy;
 
 
 /**

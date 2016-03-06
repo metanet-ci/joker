@@ -9,8 +9,8 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.zanza.engine.kvstore.KVStoreContext;
 import cs.bilkent.zanza.engine.kvstore.KVStoreManager;
-import cs.bilkent.zanza.kvstore.InMemoryKVStore;
-import cs.bilkent.zanza.kvstore.KVStore;
+import cs.bilkent.zanza.operator.kvstore.KVStore;
+import cs.bilkent.zanza.operator.kvstore.impl.InMemoryKVStore;
 
 public class KVStoreManagerImpl implements KVStoreManager
 {

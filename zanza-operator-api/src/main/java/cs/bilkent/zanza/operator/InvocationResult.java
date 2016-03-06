@@ -2,8 +2,8 @@ package cs.bilkent.zanza.operator;
 
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import cs.bilkent.zanza.scheduling.ScheduleNever;
-import cs.bilkent.zanza.scheduling.SchedulingStrategy;
+import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
+import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 
 /**

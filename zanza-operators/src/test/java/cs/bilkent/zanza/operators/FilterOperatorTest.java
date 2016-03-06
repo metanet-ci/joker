@@ -10,11 +10,11 @@ import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
 import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
+import cs.bilkent.zanza.operator.impl.InitializationContextImpl;
+import cs.bilkent.zanza.operator.impl.InvocationContextImpl;
+import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.ANY_NUMBER_OF_TUPLES;
+import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import static cs.bilkent.zanza.operators.MapperOperatorTest.assertScheduleWhenTuplesAvailableStrategy;
-import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.ANY_NUMBER_OF_TUPLES;
-import cs.bilkent.zanza.scheduling.SchedulingStrategy;
-import cs.bilkent.zanza.utils.SimpleInitializationContext;
-import cs.bilkent.zanza.utils.SimpleInvocationContext;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertTrue;
@@ -25,7 +25,7 @@ public class FilterOperatorTest
 
     private final FilterOperator operator = new FilterOperator();
 
-    private final SimpleInitializationContext initContext = new SimpleInitializationContext();
+    private final InitializationContextImpl initContext = new InitializationContextImpl();
 
     private final Predicate<Tuple> positiveCountsPredicate = tuple -> tuple.getInteger( "count" ) > 0;
 
@@ -73,7 +73,7 @@ public class FilterOperatorTest
         final PortsToTuples input = new PortsToTuples();
         input.add( new Tuple( "count", -1 ) );
         input.add( new Tuple( "count", 1 ) );
-        shouldFilterTuplesWithPositiveCount( new SimpleInvocationContext( InvocationReason.SUCCESS, input ) );
+        shouldFilterTuplesWithPositiveCount( new InvocationContextImpl( InvocationReason.SUCCESS, input ) );
     }
 
     @Test
@@ -82,7 +82,7 @@ public class FilterOperatorTest
         final PortsToTuples input = new PortsToTuples();
         input.add( new Tuple( "count", -1 ) );
         input.add( new Tuple( "count", 1 ) );
-        shouldFilterTuplesWithPositiveCount( new SimpleInvocationContext( InvocationReason.SHUTDOWN, input ) );
+        shouldFilterTuplesWithPositiveCount( new InvocationContextImpl( InvocationReason.SHUTDOWN, input ) );
     }
 
     private void shouldFilterTuplesWithPositiveCount ( final InvocationContext invocationContext )

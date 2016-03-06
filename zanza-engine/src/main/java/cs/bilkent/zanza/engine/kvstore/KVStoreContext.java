@@ -1,6 +1,6 @@
 package cs.bilkent.zanza.engine.kvstore;
 
-import cs.bilkent.zanza.kvstore.KVStore;
+import cs.bilkent.zanza.operator.kvstore.KVStore;
 
 
 public interface KVStoreContext

@@ -1,11 +1,11 @@
-package cs.bilkent.zanza.utils;
+package cs.bilkent.zanza.operator.impl;
 
-import cs.bilkent.zanza.kvstore.KVStore;
 import cs.bilkent.zanza.operator.InvocationContext;
 import cs.bilkent.zanza.operator.PortsToTuples;
+import cs.bilkent.zanza.operator.kvstore.KVStore;
 
 
-public class SimpleInvocationContext implements InvocationContext
+public class InvocationContextImpl implements InvocationContext
 {
 
     private InvocationReason reason;
@@ -14,17 +14,17 @@ public class SimpleInvocationContext implements InvocationContext
 
     private KVStore kvStore;
 
-    public SimpleInvocationContext ()
+    public InvocationContextImpl ()
     {
     }
 
-    public SimpleInvocationContext ( final InvocationReason reason, final PortsToTuples tuples )
+    public InvocationContextImpl ( final InvocationReason reason, final PortsToTuples tuples )
     {
         this.tuples = tuples;
         this.reason = reason;
     }
 
-    public SimpleInvocationContext ( final InvocationReason reason, final PortsToTuples tuples, final KVStore kvStore )
+    public InvocationContextImpl ( final InvocationReason reason, final PortsToTuples tuples, final KVStore kvStore )
     {
         this.tuples = tuples;
         this.reason = reason;

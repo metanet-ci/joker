@@ -11,14 +11,14 @@ import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
 import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
+import cs.bilkent.zanza.operator.impl.InitializationContextImpl;
+import cs.bilkent.zanza.operator.impl.InvocationContextImpl;
+import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
+import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
+import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.ANY_NUMBER_OF_TUPLES;
+import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.PortToTupleCount;
+import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import static cs.bilkent.zanza.operators.MapperOperator.MAPPER_CONFIG_PARAMETER;
-import cs.bilkent.zanza.scheduling.ScheduleNever;
-import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable;
-import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.ANY_NUMBER_OF_TUPLES;
-import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.PortToTupleCount;
-import cs.bilkent.zanza.scheduling.SchedulingStrategy;
-import cs.bilkent.zanza.utils.SimpleInitializationContext;
-import cs.bilkent.zanza.utils.SimpleInvocationContext;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -30,7 +30,7 @@ public class MapperOperatorTest
 
     private final MapperOperator operator = new MapperOperator();
 
-    private final SimpleInitializationContext initContext = new SimpleInitializationContext();
+    private final InitializationContextImpl initContext = new InitializationContextImpl();
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithNoMapper ()
@@ -82,7 +82,7 @@ public class MapperOperatorTest
         initContext.getConfig().set( MapperOperator.TUPLE_COUNT_CONFIG_PARAMETER, tupleCount );
 
         operator.init( initContext );
-        final InvocationResult result = operator.invoke( new SimpleInvocationContext( InvocationReason.SUCCESS, new PortsToTuples() ) );
+        final InvocationResult result = operator.invoke( new InvocationContextImpl( InvocationReason.SUCCESS, new PortsToTuples() ) );
         assertScheduleWhenTuplesAvailableStrategy( result.getSchedulingStrategy(), tupleCount );
     }
 
@@ -90,14 +90,14 @@ public class MapperOperatorTest
     public void shouldMapSingleTupleForSuccessfulInvocation ()
     {
         final PortsToTuples portsToTuples = new PortsToTuples( new Tuple( 1, "count", 5 ) );
-        shouldMultiplyCountValuesBy2( new SimpleInvocationContext( InvocationReason.SUCCESS, portsToTuples ) );
+        shouldMultiplyCountValuesBy2( new InvocationContextImpl( InvocationReason.SUCCESS, portsToTuples ) );
     }
 
     @Test
     public void shouldMapSingleTupleForErroneousInvocation ()
     {
         final PortsToTuples portsToTuples = new PortsToTuples( new Tuple( 1, "count", 5 ) );
-        shouldMultiplyCountValuesBy2( new SimpleInvocationContext( InvocationReason.SHUTDOWN, portsToTuples ) );
+        shouldMultiplyCountValuesBy2( new InvocationContextImpl( InvocationReason.SHUTDOWN, portsToTuples ) );
     }
 
     @Test( expected = ClassCastException.class )
@@ -119,7 +119,7 @@ public class MapperOperatorTest
 
         operator.init( initContext );
         final PortsToTuples portsToTuples = new PortsToTuples( new Tuple( 1, "count", 5 ) );
-        operator.invoke( new SimpleInvocationContext( invocationReason, portsToTuples ) );
+        operator.invoke( new InvocationContextImpl( invocationReason, portsToTuples ) );
     }
 
     @Test
@@ -128,7 +128,7 @@ public class MapperOperatorTest
         final PortsToTuples portsToTuples = new PortsToTuples();
         portsToTuples.add( new Tuple( 1, "count", 5 ) );
         portsToTuples.add( new Tuple( 2, "count", 10 ) );
-        shouldMultiplyCountValuesBy2( new SimpleInvocationContext( InvocationReason.SUCCESS, portsToTuples ) );
+        shouldMultiplyCountValuesBy2( new InvocationContextImpl( InvocationReason.SUCCESS, portsToTuples ) );
     }
 
     @Test
@@ -137,7 +137,7 @@ public class MapperOperatorTest
         final PortsToTuples portsToTuples = new PortsToTuples();
         portsToTuples.add( new Tuple( 1, "count", 5 ) );
         portsToTuples.add( new Tuple( 2, "count", 10 ) );
-        shouldMultiplyCountValuesBy2( new SimpleInvocationContext( InvocationReason.SUCCESS, portsToTuples ) );
+        shouldMultiplyCountValuesBy2( new InvocationContextImpl( InvocationReason.SUCCESS, portsToTuples ) );
     }
 
     private void shouldMultiplyCountValuesBy2 ( final InvocationContext invocationContext )
@@ -162,7 +162,7 @@ public class MapperOperatorTest
     {
         initializeOperatorWithMultipleBy2Mapper();
 
-        final InvocationResult result = operator.invoke( new SimpleInvocationContext( InvocationReason.SUCCESS, new PortsToTuples() ) );
+        final InvocationResult result = operator.invoke( new InvocationContextImpl( InvocationReason.SUCCESS, new PortsToTuples() ) );
 
         assertScheduleWhenTuplesAvailableStrategy( result.getSchedulingStrategy(), ANY_NUMBER_OF_TUPLES );
     }
@@ -172,7 +172,7 @@ public class MapperOperatorTest
     {
         initializeOperatorWithMultipleBy2Mapper();
 
-        final InvocationResult result = operator.invoke( new SimpleInvocationContext( InvocationReason.SHUTDOWN, new PortsToTuples() ) );
+        final InvocationResult result = operator.invoke( new InvocationContextImpl( InvocationReason.SHUTDOWN, new PortsToTuples() ) );
 
         assertThat( result.getSchedulingStrategy(), equalTo( ScheduleNever.INSTANCE ) );
     }

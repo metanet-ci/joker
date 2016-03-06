@@ -9,15 +9,15 @@ import static cs.bilkent.zanza.examples.bargaindiscovery.CVWAPFunction.CVWAP_FIE
 import static cs.bilkent.zanza.examples.bargaindiscovery.VWAPAggregatorOperator.TICKER_SYMBOL_FIELD;
 import static cs.bilkent.zanza.examples.bargaindiscovery.VWAPAggregatorOperator.TIMESTAMP_FIELD;
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
-import cs.bilkent.zanza.kvstore.InMemoryKVStore;
-import cs.bilkent.zanza.kvstore.KVStore;
-import cs.bilkent.zanza.kvstore.KeyDecoratedKVStore;
 import cs.bilkent.zanza.operator.InvocationContext;
 import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
 import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
-import cs.bilkent.zanza.utils.SimpleInvocationContext;
+import cs.bilkent.zanza.operator.impl.InvocationContextImpl;
+import cs.bilkent.zanza.operator.kvstore.KVStore;
+import cs.bilkent.zanza.operator.kvstore.impl.InMemoryKVStore;
+import cs.bilkent.zanza.operator.kvstore.impl.KeyDecoratedKVStore;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -32,7 +32,7 @@ public class BargainIndexOperatorTest
 
     private final KVStore kvStore = new KeyDecoratedKVStore( TUPLE_PARTITION_KEY, new InMemoryKVStore() );
 
-    private final InvocationContext invocationContext = new SimpleInvocationContext( InvocationReason.SUCCESS, input, kvStore );
+    private final InvocationContext invocationContext = new InvocationContextImpl( InvocationReason.SUCCESS, input, kvStore );
 
 
     @Test

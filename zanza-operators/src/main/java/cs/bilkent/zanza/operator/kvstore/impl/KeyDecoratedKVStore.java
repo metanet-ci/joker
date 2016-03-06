@@ -1,7 +1,8 @@
-package cs.bilkent.zanza.kvstore;
+package cs.bilkent.zanza.operator.kvstore.impl;
 
 
-import cs.bilkent.zanza.util.Pair;
+import cs.bilkent.zanza.operator.kvstore.KVStore;
+import cs.bilkent.zanza.utils.Pair;
 
 
 public class KeyDecoratedKVStore implements KVStore

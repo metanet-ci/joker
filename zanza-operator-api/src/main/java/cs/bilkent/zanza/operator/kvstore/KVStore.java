@@ -1,4 +1,4 @@
-package cs.bilkent.zanza.kvstore;
+package cs.bilkent.zanza.operator.kvstore;
 
 
 import java.util.Collection;

@@ -1,4 +1,4 @@
-package cs.bilkent.zanza.scheduling;
+package cs.bilkent.zanza.operator.scheduling;
 
 
 public class ScheduleWhenAvailable implements SchedulingStrategy

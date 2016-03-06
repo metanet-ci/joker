@@ -3,21 +3,21 @@ package cs.bilkent.zanza.operators;
 import org.junit.Test;
 
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
-import cs.bilkent.zanza.kvstore.InMemoryKVStore;
-import cs.bilkent.zanza.kvstore.KVStore;
 import cs.bilkent.zanza.operator.InvocationContext;
 import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
 import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
+import cs.bilkent.zanza.operator.impl.InitializationContextImpl;
+import cs.bilkent.zanza.operator.impl.InvocationContextImpl;
+import cs.bilkent.zanza.operator.kvstore.KVStore;
+import cs.bilkent.zanza.operator.kvstore.impl.InMemoryKVStore;
+import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
+import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
+import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import static cs.bilkent.zanza.operators.ExponentialMovingAverageAggregationOperator.CURRENT_WINDOW_KEY;
 import static cs.bilkent.zanza.operators.ExponentialMovingAverageAggregationOperator.TUPLE_COUNT_FIELD;
 import static cs.bilkent.zanza.operators.ExponentialMovingAverageAggregationOperator.VALUE_FIELD;
-import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable;
-import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
-import cs.bilkent.zanza.scheduling.SchedulingStrategy;
-import cs.bilkent.zanza.utils.SimpleInitializationContext;
-import cs.bilkent.zanza.utils.SimpleInvocationContext;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;
@@ -29,13 +29,13 @@ public class ExponentialMovingAverageAggregationOperatorTest
 
     private final ExponentialMovingAverageAggregationOperator operator = new ExponentialMovingAverageAggregationOperator();
 
-    private final SimpleInitializationContext initContext = new SimpleInitializationContext();
+    private final InitializationContextImpl initContext = new InitializationContextImpl();
 
     private final PortsToTuples input = new PortsToTuples();
 
     private final KVStore kvStore = new InMemoryKVStore();
 
-    private final InvocationContext invocationContext = new SimpleInvocationContext( InvocationReason.SUCCESS, input, kvStore );
+    private final InvocationContext invocationContext = new InvocationContextImpl( InvocationReason.SUCCESS, input, kvStore );
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithNoTupleCount ()

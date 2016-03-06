@@ -10,9 +10,9 @@ import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
 import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
-import cs.bilkent.zanza.scheduling.ScheduleWhenAvailable;
-import cs.bilkent.zanza.utils.SimpleInitializationContext;
-import cs.bilkent.zanza.utils.SimpleInvocationContext;
+import cs.bilkent.zanza.operator.impl.InitializationContextImpl;
+import cs.bilkent.zanza.operator.impl.InvocationContextImpl;
+import cs.bilkent.zanza.operator.scheduling.ScheduleWhenAvailable;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -24,7 +24,7 @@ public class BeaconOperatorTest
 
     private final BeaconOperator operator = new BeaconOperator();
 
-    private final SimpleInitializationContext initContext = new SimpleInitializationContext();
+    private final InitializationContextImpl initContext = new InitializationContextImpl();
 
     @Test
     public void shouldGenerateTuplesWithRandomCountField ()
@@ -36,7 +36,7 @@ public class BeaconOperatorTest
         initContext.getConfig().set( BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER, tupleCount );
         operator.init( initContext );
 
-        final InvocationResult result = operator.invoke( new SimpleInvocationContext( InvocationReason.SUCCESS, null ) );
+        final InvocationResult result = operator.invoke( new InvocationContextImpl( InvocationReason.SUCCESS, null ) );
         assertThat( result.getSchedulingStrategy(), equalTo( ScheduleWhenAvailable.INSTANCE ) );
 
         final PortsToTuples output = result.getOutputTuples();

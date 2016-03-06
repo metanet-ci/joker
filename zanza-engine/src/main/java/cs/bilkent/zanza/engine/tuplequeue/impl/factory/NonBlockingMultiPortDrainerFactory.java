@@ -6,12 +6,12 @@ import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainerFactory;
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.GreedyDrainer;
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.NonBlockingMultiPortConjunctiveDrainer;
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.NonBlockingMultiPortDisjunctiveDrainer;
-import cs.bilkent.zanza.scheduling.ScheduleWhenAvailable;
-import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable;
-import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST_BUT_SAME_ON_ALL_PORTS;
-import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.AVAILABLE_ON_ALL_PORTS;
-import static cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.AVAILABLE_ON_ANY_PORT;
-import cs.bilkent.zanza.scheduling.SchedulingStrategy;
+import cs.bilkent.zanza.operator.scheduling.ScheduleWhenAvailable;
+import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
+import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST_BUT_SAME_ON_ALL_PORTS;
+import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.AVAILABLE_ON_ALL_PORTS;
+import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.AVAILABLE_ON_ANY_PORT;
+import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 public class NonBlockingMultiPortDrainerFactory implements TupleQueueDrainerFactory
 {

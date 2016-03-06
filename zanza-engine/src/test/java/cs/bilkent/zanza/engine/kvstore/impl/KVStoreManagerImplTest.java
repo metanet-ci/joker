@@ -3,7 +3,7 @@ package cs.bilkent.zanza.engine.kvstore.impl;
 import org.junit.Test;
 
 import cs.bilkent.zanza.engine.kvstore.KVStoreContext;
-import cs.bilkent.zanza.kvstore.KVStore;
+import cs.bilkent.zanza.operator.kvstore.KVStore;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;

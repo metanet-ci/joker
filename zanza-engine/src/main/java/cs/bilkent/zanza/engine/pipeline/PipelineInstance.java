@@ -16,7 +16,7 @@ import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.INPUT_PORT_CLOSED;
 import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.PortsToTuples;
-import cs.bilkent.zanza.scheduling.ScheduleNever;
+import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 
 /**
  *

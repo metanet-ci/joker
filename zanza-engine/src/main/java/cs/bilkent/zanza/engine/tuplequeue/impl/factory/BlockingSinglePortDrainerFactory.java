@@ -4,9 +4,9 @@ import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainerFactory;
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.BlockingSinglePortDrainer;
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.GreedyDrainer;
-import cs.bilkent.zanza.scheduling.ScheduleWhenAvailable;
-import cs.bilkent.zanza.scheduling.ScheduleWhenTuplesAvailable;
-import cs.bilkent.zanza.scheduling.SchedulingStrategy;
+import cs.bilkent.zanza.operator.scheduling.ScheduleWhenAvailable;
+import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
+import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 public class BlockingSinglePortDrainerFactory implements TupleQueueDrainerFactory
 {

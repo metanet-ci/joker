@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import cs.bilkent.zanza.engine.kvstore.KVStoreContext;
-import cs.bilkent.zanza.kvstore.KVStore;
+import cs.bilkent.zanza.operator.kvstore.KVStore;
 
 public class KVStoreContextImpl implements KVStoreContext
 {
