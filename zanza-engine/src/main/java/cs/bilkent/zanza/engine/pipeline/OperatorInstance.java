@@ -132,6 +132,7 @@ public class OperatorInstance
             if ( input != null )
             {
                 final KVStore kvStore = kvStoreProvider.getKVStore( drainer.getKey() );
+                // TODO reuse invocation context
                 final InvocationResult result = operator.invoke( new SimpleInvocationContext( SUCCESS, input, kvStore ) );
                 schedulingStrategy = result.getSchedulingStrategy();
                 return result;
