@@ -1,4 +1,4 @@
-package cs.bilkent.zanza.region;
+package cs.bilkent.zanza.engine.region;
 
 import java.util.ArrayList;
 import java.util.List;

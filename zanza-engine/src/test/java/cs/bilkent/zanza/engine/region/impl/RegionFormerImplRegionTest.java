@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import cs.bilkent.zanza.engine.region.RegionDefinition;
 import cs.bilkent.zanza.flow.OperatorDefinition;
 import cs.bilkent.zanza.flow.OperatorDefinitionBuilder;
 import cs.bilkent.zanza.flow.OperatorRuntimeSchemaBuilder;
@@ -17,7 +18,6 @@ import cs.bilkent.zanza.operator.spec.OperatorType;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
-import cs.bilkent.zanza.region.RegionDefinition;
 import cs.bilkent.zanza.scheduling.SchedulingStrategy;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;

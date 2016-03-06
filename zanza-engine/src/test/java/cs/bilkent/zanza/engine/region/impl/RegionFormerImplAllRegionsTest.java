@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import cs.bilkent.zanza.engine.region.RegionDefinition;
 import static cs.bilkent.zanza.engine.region.impl.RegionFormerImplRegionTest.assertRegion;
 import cs.bilkent.zanza.flow.FlowDefinition;
 import cs.bilkent.zanza.flow.FlowDefinitionBuilder;
@@ -12,7 +13,6 @@ import cs.bilkent.zanza.flow.OperatorDefinitionBuilder;
 import cs.bilkent.zanza.operator.spec.OperatorType;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.zanza.operators.MapperOperator;
-import cs.bilkent.zanza.region.RegionDefinition;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
