@@ -19,7 +19,7 @@ import static java.util.stream.Collector.Characteristics.IDENTITY_FINISH;
 
 /**
  * Contains {@link Tuple} instances mapped to some ports specified by indices.
- * Used for providing input tuples and output tuples of the {@link Operator#process(InvocationContext)} method.
+ * Used for providing input tuples and output tuples of the {@link Operator#invoke(InvocationContext)} method.
  */
 public class PortsToTuples
 {

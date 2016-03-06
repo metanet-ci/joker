@@ -7,23 +7,23 @@ import cs.bilkent.zanza.scheduling.SchedulingStrategy;
 
 
 /**
- * Contains necessary objects and information for an invocation of {@link Operator#process(InvocationContext)} method.
+ * Contains necessary objects and information for an invocation of {@link Operator#invoke(InvocationContext)} method.
  */
 public interface InvocationContext
 {
 
     /**
      * Returns the tuples available for being processed by the operator.
-     * Once the invocation of {@link Operator#process(InvocationContext)} method is completed, these tuples will be considered as processed.
+     * Once the invocation of {@link Operator#invoke(InvocationContext)} method is completed, these tuples will be considered as processed.
      *
      * @return the tuples available for being processed by the operator
      */
     PortsToTuples getInputTuples ();
 
     /**
-     * Returns the reason of a particular {@link Operator#process(InvocationContext)} method invocation.
+     * Returns the reason of a particular {@link Operator#invoke(InvocationContext)} method invocation.
      *
-     * @return the reason of a particular {@link Operator#process(InvocationContext)} method invocation.
+     * @return the reason of a particular {@link Operator#invoke(InvocationContext)} method invocation.
      */
     InvocationReason getReason ();
 
@@ -51,7 +51,7 @@ public interface InvocationContext
     }
 
     /**
-     * Indicates the reason for a particular invocation of {@link Operator#process(InvocationContext)} method.
+     * Indicates the reason for a particular invocation of {@link Operator#invoke(InvocationContext)} method.
      */
     enum InvocationReason
     {

@@ -54,7 +54,7 @@ public class ForEachOperator implements Operator
 
 
     @Override
-    public InvocationResult process ( final InvocationContext invocationContext )
+    public InvocationResult invoke ( final InvocationContext invocationContext )
     {
         final SchedulingStrategy nextScheduling = invocationContext.isSuccessfulInvocation()
                                                   ? getTupleCountBasedSchedulingStrategy()

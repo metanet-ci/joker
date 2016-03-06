@@ -57,7 +57,7 @@ public class BargainIndexOperator implements Operator
     }
 
     @Override
-    public InvocationResult process ( final InvocationContext invocationContext )
+    public InvocationResult invoke ( final InvocationContext invocationContext )
     {
         final SchedulingStrategy nextStrategy = invocationContext.isSuccessfulInvocation()
                                                 ? scheduleWhenTuplesAvailableOnAny( 1, 0, 1 )

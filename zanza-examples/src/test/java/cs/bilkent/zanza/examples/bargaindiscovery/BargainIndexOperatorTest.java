@@ -39,7 +39,7 @@ public class BargainIndexOperatorTest
     public void shouldReturnNoOutputWithQuoteButNoVWAP ()
     {
         input.add( 1, newQuoteTuple( 0, 5d, 100 ) );
-        final InvocationResult result = operator.process( invocationContext );
+        final InvocationResult result = operator.invoke( invocationContext );
         assertThat( result.getOutputTuples().getPortCount(), equalTo( 0 ) );
     }
 
@@ -48,7 +48,7 @@ public class BargainIndexOperatorTest
     {
         setCVWAPInKvStore( 50 );
         input.add( 1, newQuoteTuple( 0, 0.6, 1 ) );
-        final InvocationResult result = operator.process( invocationContext );
+        final InvocationResult result = operator.invoke( invocationContext );
         assertThat( result.getOutputTuples().getPortCount(), equalTo( 0 ) );
     }
 
@@ -57,7 +57,7 @@ public class BargainIndexOperatorTest
     {
         setCVWAPInKvStore( 50 );
         input.add( 1, newQuoteTuple( 0, 0.4, 1 ) );
-        final InvocationResult result = operator.process( invocationContext );
+        final InvocationResult result = operator.invoke( invocationContext );
         assertThat( result.getOutputTuples().getPortCount(), equalTo( 1 ) );
 
         final Tuple output = result.getOutputTuples().getTuple( DEFAULT_PORT_INDEX, 0 );
@@ -71,7 +71,7 @@ public class BargainIndexOperatorTest
         input.add( 1, newQuoteTuple( 0, 0.4, 1 ) );
         input.add( 0, newCVWAPTuple( 1, 60 ) );
         input.add( 1, newQuoteTuple( 1, 0.3, 2 ) );
-        final InvocationResult result = operator.process( invocationContext );
+        final InvocationResult result = operator.invoke( invocationContext );
         final PortsToTuples outputTuples = result.getOutputTuples();
         assertThat( outputTuples.getPortCount(), equalTo( 1 ) );
 

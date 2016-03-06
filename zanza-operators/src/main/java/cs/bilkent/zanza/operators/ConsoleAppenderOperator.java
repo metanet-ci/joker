@@ -54,7 +54,7 @@ public class ConsoleAppenderOperator implements Operator
     }
 
     @Override
-    public InvocationResult process ( final InvocationContext invocationContext )
+    public InvocationResult invoke ( final InvocationContext invocationContext )
     {
         final PortsToTuples tuples = invocationContext.getInputTuples();
         tuples.getTuplesByDefaultPort().stream().map( toStringFunction ).forEach( System.out::println );

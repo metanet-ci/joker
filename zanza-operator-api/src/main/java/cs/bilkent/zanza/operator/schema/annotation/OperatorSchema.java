@@ -16,7 +16,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 /**
  * Annotation to define schema of an operator at design time. Schema of an operator is defined separately
  * for each input and output ports separately. For any port, a list of field name and value type pairs are defined. These fields
- * are guaranteed to be included in the {@link Tuple} instances given to the {@link Operator#process(InvocationContext)} in the
+ * are guaranteed to be included in the {@link Tuple} instances given to the {@link Operator#invoke(InvocationContext)} in the
  * runtime. {@link Tuple} instances may have any other field that is not given in the corresponding port schema.
  * <p>
  * Field list for a port can be completely defined, partially defined or not-defined at all at design time.

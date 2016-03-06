@@ -290,7 +290,7 @@ public class FlowDefinitionBuilderTest
         }
 
         @Override
-        public InvocationResult process ( final InvocationContext invocationContext )
+        public InvocationResult invoke ( final InvocationContext invocationContext )
         {
             return null;
         }

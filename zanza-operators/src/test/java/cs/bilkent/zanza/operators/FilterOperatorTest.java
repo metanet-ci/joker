@@ -90,7 +90,7 @@ public class FilterOperatorTest
         initContext.getConfig().set( FilterOperator.PREDICATE_CONFIG_PARAMETER, positiveCountsPredicate );
         operator.init( initContext );
 
-        final InvocationResult result = operator.process( invocationContext );
+        final InvocationResult result = operator.invoke( invocationContext );
         final List<Tuple> outputTuples = result.getOutputTuples().getTuplesByDefaultPort();
 
         final long expectedCount = outputTuples.stream().filter( positiveCountsPredicate ).count();

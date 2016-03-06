@@ -132,7 +132,7 @@ public class OperatorInstance
             if ( input != null )
             {
                 final KVStore kvStore = kvStoreProvider.getKVStore( drainer.getKey() );
-                final InvocationResult result = operator.process( new SimpleInvocationContext( SUCCESS, input, kvStore ) );
+                final InvocationResult result = operator.invoke( new SimpleInvocationContext( SUCCESS, input, kvStore ) );
                 schedulingStrategy = result.getSchedulingStrategy();
                 return result;
             }
@@ -176,7 +176,7 @@ public class OperatorInstance
             queue.drain( drainer );
             final PortsToTuples input = drainer.getResult();
             final KVStore kvStore = kvStoreProvider.getKVStore( drainer.getKey() );
-            final InvocationResult result = operator.process( new SimpleInvocationContext( reason, input, kvStore ) );
+            final InvocationResult result = operator.invoke( new SimpleInvocationContext( reason, input, kvStore ) );
             if ( result.getSchedulingStrategy() instanceof ScheduleNever )
             {
                 LOGGER.info( "{}:{} force invoked and completed its execution.", pipelineInstanceId, operatorName );

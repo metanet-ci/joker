@@ -7,9 +7,9 @@ import cs.bilkent.zanza.scheduling.SchedulingStrategy;
 
 
 /**
- * Used for specifying the output of an {@link Operator#process(InvocationContext)} invocation.
+ * Used for specifying the output of an {@link Operator#invoke(InvocationContext)} invocation.
  * Contains the {@link SchedulingStrategy} that will be used for the next invocation of an operator and the
- * tuples produced by an invocation of {@link Operator#process(InvocationContext)} method.
+ * tuples produced by an invocation of {@link Operator#invoke(InvocationContext)} method.
  */
 public class InvocationResult
 {

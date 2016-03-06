@@ -82,7 +82,7 @@ public class MapperOperatorTest
         initContext.getConfig().set( MapperOperator.TUPLE_COUNT_CONFIG_PARAMETER, tupleCount );
 
         operator.init( initContext );
-        final InvocationResult result = operator.process( new SimpleInvocationContext( InvocationReason.SUCCESS, new PortsToTuples() ) );
+        final InvocationResult result = operator.invoke( new SimpleInvocationContext( InvocationReason.SUCCESS, new PortsToTuples() ) );
         assertScheduleWhenTuplesAvailableStrategy( result.getSchedulingStrategy(), tupleCount );
     }
 
@@ -119,7 +119,7 @@ public class MapperOperatorTest
 
         operator.init( initContext );
         final PortsToTuples portsToTuples = new PortsToTuples( new Tuple( 1, "count", 5 ) );
-        operator.process( new SimpleInvocationContext( invocationReason, portsToTuples ) );
+        operator.invoke( new SimpleInvocationContext( invocationReason, portsToTuples ) );
     }
 
     @Test
@@ -144,7 +144,7 @@ public class MapperOperatorTest
     {
         initializeOperatorWithMultipleBy2Mapper();
 
-        final InvocationResult result = operator.process( invocationContext );
+        final InvocationResult result = operator.invoke( invocationContext );
         final List<Tuple> inputTuples = invocationContext.getInputTuples().getTuplesByDefaultPort();
         final List<Tuple> outputTuples = result.getOutputTuples().getTuplesByDefaultPort();
         assertThat( outputTuples, hasSize( inputTuples.size() ) );
@@ -162,7 +162,7 @@ public class MapperOperatorTest
     {
         initializeOperatorWithMultipleBy2Mapper();
 
-        final InvocationResult result = operator.process( new SimpleInvocationContext( InvocationReason.SUCCESS, new PortsToTuples() ) );
+        final InvocationResult result = operator.invoke( new SimpleInvocationContext( InvocationReason.SUCCESS, new PortsToTuples() ) );
 
         assertScheduleWhenTuplesAvailableStrategy( result.getSchedulingStrategy(), ANY_NUMBER_OF_TUPLES );
     }
@@ -172,7 +172,7 @@ public class MapperOperatorTest
     {
         initializeOperatorWithMultipleBy2Mapper();
 
-        final InvocationResult result = operator.process( new SimpleInvocationContext( InvocationReason.SHUTDOWN, new PortsToTuples() ) );
+        final InvocationResult result = operator.invoke( new SimpleInvocationContext( InvocationReason.SHUTDOWN, new PortsToTuples() ) );
 
         assertThat( result.getSchedulingStrategy(), equalTo( ScheduleNever.INSTANCE ) );
     }

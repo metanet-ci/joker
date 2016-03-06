@@ -66,7 +66,7 @@ public class TupleCountBasedWindowReducerOperator implements Operator
     }
 
     @Override
-    public InvocationResult process ( final InvocationContext invocationContext )
+    public InvocationResult invoke ( final InvocationContext invocationContext )
     {
         final PortsToTuples result = new PortsToTuples();
         final SchedulingStrategy nextStrategy = invocationContext.isSuccessfulInvocation()

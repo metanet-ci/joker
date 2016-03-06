@@ -58,10 +58,10 @@ public interface Operator
      * <p>
      * <p>
      * All the necessary information, such as input tuples, invocation reason, etc., about a particular invocation of the
-     * {@link #process(InvocationContext)} method is given in the {@link InvocationContext} object.
+     * {@link #invoke(InvocationContext)} method is given in the {@link InvocationContext} object.
      * <p>
      * The tuples sent by all incoming ports are contained within the {@link PortsToTuples} object that can be obtained via
-     * {@link InvocationContext#getInputTuples()}. This object is a read-only object such that any modifications within the process
+     * {@link InvocationContext#getInputTuples()}. This object is a read-only object such that any modifications within the invoke
      * method can cause inconsistent behavior in the system. Additionally, the {@link Tuple} objects contained within the
      * {@link PortsToTuples} should not be modified.
      * <p>
@@ -88,7 +88,7 @@ public interface Operator
      * there will be 2 different objects in the {@link KVStore}, of which each one of them are put for a particular partition key.
      * <p>
      * If a {@link OperatorType#STATELESS} operator produces output tuples using the tuples provided for the invocation of
-     * {@link Operator#process(InvocationContext)} method, output tuples must have their sequence numbers assigned based on
+     * {@link Operator#invoke(InvocationContext)} method, output tuples must have their sequence numbers assigned based on
      * sequence numbers of the input tuples.
      * </p>
      *
@@ -101,7 +101,7 @@ public interface Operator
      * @see Tuple
      * @see InvocationContext
      */
-    InvocationResult process ( InvocationContext invocationContext );
+    InvocationResult invoke ( InvocationContext invocationContext );
 
     /**
      * Invoked after the Engine terminates processing of an operator. All the resources allocated within the

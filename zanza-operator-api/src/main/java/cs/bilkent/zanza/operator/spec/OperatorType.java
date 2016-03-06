@@ -19,7 +19,7 @@ public enum OperatorType
      * The engine may create as many instances as it decides of an operator defined as {@code STATELESS}
      * <p>
      * The engine does not provide any state manipulation capabilities to an operator defined as {@code STATELESS}.
-     * No {@link KVStore} implementation is given to the {@link Operator#process(InvocationContext)} for an invocation.
+     * No {@link KVStore} implementation is given to the {@link Operator#invoke(InvocationContext)} for an invocation.
      * <p>
      * A {@code STATELESS} operator can have at most 1 input port.
      */
@@ -35,7 +35,7 @@ public enum OperatorType
      * The engine does not provide any ordering guarantees for the tuples with different partition keys. However,
      * ordering guarantees are given for the tuples of a particular partition key.
      * <p>
-     * For an operator defined as {@code PARTITIONED_STATEFUL}, all {@link Operator#process(InvocationContext)}
+     * For an operator defined as {@code PARTITIONED_STATEFUL}, all {@link Operator#invoke(InvocationContext)}
      * invocations are guaranteed to be done with tuples which have the same partition key.
      * <p>
      * A list of partition field names must be provided during the operator composition.

@@ -82,7 +82,7 @@ public class TupleCountBasedWindowReducerOperatorTest
 
         input.add( new Tuple( 1, "count", 1 ) );
 
-        final InvocationResult result = operator.process( invocationContext );
+        final InvocationResult result = operator.invoke( invocationContext );
         final PortsToTuples output = result.getOutputTuples();
 
         assertStrategy( result.getSchedulingStrategy() );
@@ -101,7 +101,7 @@ public class TupleCountBasedWindowReducerOperatorTest
 
         input.add( new Tuple( 1, "count", 1 ) );
 
-        final InvocationResult result = operator.process( invocationContext );
+        final InvocationResult result = operator.invoke( invocationContext );
         final PortsToTuples output = result.getOutputTuples();
 
         assertStrategy( result.getSchedulingStrategy() );
@@ -119,7 +119,7 @@ public class TupleCountBasedWindowReducerOperatorTest
 
         input.add( new Tuple( "count", 1 ) );
         input.add( new Tuple( "count", 2 ) );
-        final InvocationResult result = operator.process( invocationContext );
+        final InvocationResult result = operator.invoke( invocationContext );
         final PortsToTuples output = result.getOutputTuples();
 
         assertStrategy( result.getSchedulingStrategy() );
@@ -140,7 +140,7 @@ public class TupleCountBasedWindowReducerOperatorTest
         input.add( new Tuple( "count", 1 ) );
         input.add( new Tuple( "count", 2 ) );
         input.add( new Tuple( "count", 3 ) );
-        final InvocationResult result = operator.process( invocationContext );
+        final InvocationResult result = operator.invoke( invocationContext );
         final PortsToTuples output = result.getOutputTuples();
 
         assertStrategy( result.getSchedulingStrategy() );
@@ -160,7 +160,7 @@ public class TupleCountBasedWindowReducerOperatorTest
 
         input.add( new Tuple( "count", 1 ) );
         input.add( new Tuple( "count", 2 ) );
-        final InvocationResult result = operator.process( invocationContext );
+        final InvocationResult result = operator.invoke( invocationContext );
         final PortsToTuples output = result.getOutputTuples();
 
         assertStrategy( result.getSchedulingStrategy() );
@@ -181,7 +181,7 @@ public class TupleCountBasedWindowReducerOperatorTest
         input.add( new Tuple( "count", 1 ) );
         input.add( new Tuple( "count", 2 ) );
         input.add( new Tuple( "count", 3 ) );
-        final InvocationResult result = operator.process( invocationContext );
+        final InvocationResult result = operator.invoke( invocationContext );
         final PortsToTuples output = result.getOutputTuples();
 
         assertStrategy( result.getSchedulingStrategy() );

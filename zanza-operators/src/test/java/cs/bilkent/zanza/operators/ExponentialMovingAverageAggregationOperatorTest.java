@@ -72,7 +72,7 @@ public class ExponentialMovingAverageAggregationOperatorTest
         operator.init( initContext );
         input.add( new Tuple( "val", 10 ) );
 
-        operator.process( invocationContext );
+        operator.invoke( invocationContext );
 
         final Tuple value = kvStore.get( CURRENT_WINDOW_KEY );
         assertNotNull( value );
@@ -89,7 +89,7 @@ public class ExponentialMovingAverageAggregationOperatorTest
         operator.init( initContext );
         input.add( new Tuple( "val", 10 ) );
 
-        operator.process( invocationContext );
+        operator.invoke( invocationContext );
 
         final Tuple value = kvStore.get( CURRENT_WINDOW_KEY );
         assertNotNull( value );
@@ -106,7 +106,7 @@ public class ExponentialMovingAverageAggregationOperatorTest
         operator.init( initContext );
         input.add( new Tuple( "val", 4 ) );
 
-        final InvocationResult result = operator.process( invocationContext );
+        final InvocationResult result = operator.invoke( invocationContext );
         final PortsToTuples output = result.getOutputTuples();
         assertThat( output.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
         final Tuple tuple = output.getTuple( DEFAULT_PORT_INDEX, 0 );
@@ -128,7 +128,7 @@ public class ExponentialMovingAverageAggregationOperatorTest
         operator.init( initContext );
         input.add( new Tuple( "val", 5 ) );
 
-        final InvocationResult result = operator.process( invocationContext );
+        final InvocationResult result = operator.invoke( invocationContext );
         final PortsToTuples output = result.getOutputTuples();
         assertThat( output.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
         final Tuple tuple = output.getTuple( DEFAULT_PORT_INDEX, 0 );
@@ -151,7 +151,7 @@ public class ExponentialMovingAverageAggregationOperatorTest
         input.add( new Tuple( "val", 4 ) );
         input.add( new Tuple( "val", 7 ) );
 
-        final InvocationResult result = operator.process( invocationContext );
+        final InvocationResult result = operator.invoke( invocationContext );
         final PortsToTuples output = result.getOutputTuples();
         assertThat( output.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 2 ) );
 

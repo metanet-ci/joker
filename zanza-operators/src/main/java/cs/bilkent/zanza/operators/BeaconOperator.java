@@ -47,7 +47,7 @@ public class BeaconOperator implements Operator
     }
 
     @Override
-    public InvocationResult process ( final InvocationContext invocationContext )
+    public InvocationResult invoke ( final InvocationContext invocationContext )
     {
         final PortsToTuples output = IntStream.range( 0, tupleCount )
                                               .mapToObj( ( c ) -> tupleGeneratorFunc.apply( random ) )

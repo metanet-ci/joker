@@ -136,7 +136,7 @@ public class OperatorInstanceTest
         when( drainer.getResult() ).thenReturn( operatorInput );
 
         final PortsToTuples output = new PortsToTuples( new Tuple( "f1", "val3" ) );
-        when( operator.process( anyObject() ) ).thenReturn( new InvocationResult( outputStrategy, output ) );
+        when( operator.invoke( anyObject() ) ).thenReturn( new InvocationResult( outputStrategy, output ) );
 
         final PortsToTuples upstreamInput = new PortsToTuples( new Tuple( "f1", "val1" ) );
         final InvocationResult result = operatorInstance.invoke( upstreamInput );
@@ -145,7 +145,7 @@ public class OperatorInstanceTest
         verify( drainerFactory ).create( strategy );
         verify( queue ).drain( drainer );
         verify( kvStoreProvider ).getKVStore( key );
-        verify( operator ).process( invocationContextCaptor.capture() );
+        verify( operator ).invoke( invocationContextCaptor.capture() );
 
         final InvocationContext context = invocationContextCaptor.getValue();
         assertThat( context.getReason(), equalTo( InvocationReason.SUCCESS ) );
@@ -170,7 +170,7 @@ public class OperatorInstanceTest
         verify( drainerFactory ).create( strategy );
         verify( queue ).drain( drainer );
         verify( kvStoreProvider, never() ).getKVStore( key );
-        verify( operator, never() ).process( anyObject() );
+        verify( operator, never() ).invoke( anyObject() );
         assertNull( result );
         assertThat( operatorInstance.schedulingStrategy(), equalTo( strategy ) );
     }
@@ -236,7 +236,7 @@ public class OperatorInstanceTest
         final ArgumentCaptor<InvocationContext> invocationContextCaptor = ArgumentCaptor.forClass( InvocationContext.class );
 
         final PortsToTuples output = new PortsToTuples( new Tuple( "f1", "val" ) );
-        when( operator.process( anyObject() ) ).thenReturn( new InvocationResult( outputStrategy, output ) );
+        when( operator.invoke( anyObject() ) ).thenReturn( new InvocationResult( outputStrategy, output ) );
 
         final PortsToTuples result = operatorInstance.forceInvoke( upstreamInput, INPUT_PORT_CLOSED );
 
@@ -245,7 +245,7 @@ public class OperatorInstanceTest
         verify( kvStoreProvider ).getKVStore( null );
         assertTrue( drainerCaptor.getValue() instanceof GreedyDrainer );
 
-        verify( operator ).process( invocationContextCaptor.capture() );
+        verify( operator ).invoke( invocationContextCaptor.capture() );
 
         final InvocationContext context = invocationContextCaptor.getValue();
         assertThat( context.getReason(), equalTo( INPUT_PORT_CLOSED ) );

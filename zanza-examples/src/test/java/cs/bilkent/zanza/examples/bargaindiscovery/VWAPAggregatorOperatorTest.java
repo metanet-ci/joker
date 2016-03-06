@@ -54,7 +54,7 @@ public class VWAPAggregatorOperatorTest
         addInputTuple( 5, 20, 1 );
         addInputTuple( 10, 25, 2 );
 
-        final InvocationResult result = operator.process( invocationContext );
+        final InvocationResult result = operator.invoke( invocationContext );
 
         assertThat( result.getOutputTuples().getPortCount(), equalTo( 0 ) );
         assertWindow( 2, new double[] { 5, 10, 0 }, new double[] { 20, 25, 0 }, 15, 45 );
@@ -69,7 +69,7 @@ public class VWAPAggregatorOperatorTest
         addInputTuple( 10, 25, 2 );
         addInputTuple( 30, 60, 3 );
 
-        final InvocationResult result = operator.process( invocationContext );
+        final InvocationResult result = operator.invoke( invocationContext );
 
         final PortsToTuples outputTuples = result.getOutputTuples();
         assertThat( outputTuples.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
@@ -88,7 +88,7 @@ public class VWAPAggregatorOperatorTest
         addInputTuple( 30, 60, 3 );
         addInputTuple( 40, 50, 4 );
 
-        final InvocationResult result = operator.process( invocationContext );
+        final InvocationResult result = operator.invoke( invocationContext );
 
         final PortsToTuples outputTuples = result.getOutputTuples();
         assertThat( outputTuples.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
@@ -108,7 +108,7 @@ public class VWAPAggregatorOperatorTest
         addInputTuple( 40, 50, 4 );
         addInputTuple( 50, 40, 5 );
 
-        final InvocationResult result = operator.process( invocationContext );
+        final InvocationResult result = operator.invoke( invocationContext );
 
         final PortsToTuples outputTuples = result.getOutputTuples();
         assertThat( outputTuples.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 2 ) );

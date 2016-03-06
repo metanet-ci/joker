@@ -107,7 +107,7 @@ public class BarrierOperator implements Operator
     }
 
     @Override
-    public InvocationResult process ( final InvocationContext invocationContext )
+    public InvocationResult invoke ( final InvocationContext invocationContext )
     {
         final PortsToTuples output = new PortsToTuples();
         final SchedulingStrategy next = invocationContext.isSuccessfulInvocation()
