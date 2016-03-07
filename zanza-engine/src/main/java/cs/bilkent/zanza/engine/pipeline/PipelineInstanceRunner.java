@@ -365,6 +365,8 @@ public class PipelineInstanceRunner implements Runnable
         LOGGER.info( "{}: notifying coordinator to stop downstream", id );
         coordinator.notifyPipelineStoppedSendingDownstreamTuples( id );
 
+        // TODO DISABLE INPUT TUPLE QUEUE BOUND
+
         downstreamTupleSender = new FailingDownstreamTupleSender();
         LOGGER.info( "{}: downstream tuple sender is stopped", id );
     }

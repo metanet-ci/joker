@@ -135,6 +135,9 @@ public class OperatorInstance
                 // TODO reuse invocation context
                 final InvocationResult result = operator.invoke( new InvocationContextImpl( SUCCESS, input, kvStore ) );
                 schedulingStrategy = result.getSchedulingStrategy();
+
+                // TODO TUPLE QUEUE ENSURE CAPACITY
+
                 return result;
             }
 
