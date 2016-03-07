@@ -220,6 +220,13 @@ public class PipelineInstanceRunner implements Runnable
         return result;
     }
 
+    public CompletableFuture<Void> disableInputTupleQueueBounds ()
+    {
+        // TODO
+        // TODO should we disable per input port or all input ports at once?
+        return null;
+    }
+
     public void run ()
     {
         checkState( status == INITIAL );
@@ -364,8 +371,6 @@ public class PipelineInstanceRunner implements Runnable
 
         LOGGER.info( "{}: notifying coordinator to stop downstream", id );
         coordinator.notifyPipelineStoppedSendingDownstreamTuples( id );
-
-        // TODO DISABLE INPUT TUPLE QUEUE BOUND
 
         downstreamTupleSender = new FailingDownstreamTupleSender();
         LOGGER.info( "{}: downstream tuple sender is stopped", id );
