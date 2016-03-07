@@ -231,8 +231,10 @@ public class PipelineInstanceRunner implements Runnable
             {
                 final int highestInvokableIndex = pipeline.currentHighestInvokableIndex();
                 final PipelineInstanceRunnerStatus status = checkStatus();
-                if ( status == PipelineInstanceRunnerStatus.PAUSED )
+                if ( status == PAUSED )
                 {
+                    awaitDownstreamTuplesFuture();
+
                     synchronized ( monitor )
                     {
                         monitor.wait( 1000 );
