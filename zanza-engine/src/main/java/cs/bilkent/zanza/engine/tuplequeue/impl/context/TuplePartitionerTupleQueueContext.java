@@ -1,57 +1,47 @@
 package cs.bilkent.zanza.engine.tuplequeue.impl.context;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
 
+import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
-import cs.bilkent.zanza.operator.PortsToTuples;
-import cs.bilkent.zanza.operator.PortsToTuples.PortToTuples;
 import cs.bilkent.zanza.operator.Tuple;
-import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.PortToTupleCount;
 
 public class TuplePartitionerTupleQueueContext implements TupleQueueContext
 {
 
     private final PartitionedTupleQueueContext internal;
 
-    private final Function<Tuple, Object> partitionKeyExtractor;
 
-    public TuplePartitionerTupleQueueContext ( final PartitionedTupleQueueContext internal,
-                                               final Function<Tuple, Object> partitionKeyExtractor )
+    public TuplePartitionerTupleQueueContext ( final PartitionedTupleQueueContext internal )
     {
         this.internal = internal;
-        this.partitionKeyExtractor = partitionKeyExtractor;
     }
 
     @Override
     public String getOperatorId ()
     {
-        return null;
+        return internal.getOperatorId();
     }
 
     @Override
-    public void add ( final PortsToTuples input )
+    public void offer ( final int portIndex, final List<Tuple> tuples )
     {
-        final Map<Object, PortsToTuples> tuplesByKey = new HashMap<>();
-
-        for ( PortToTuples port : input.getPortToTuplesList() )
+        for ( Tuple tuple : tuples )
         {
-            for ( Tuple tuple : port.getTuples() )
-            {
-                final Object key = partitionKeyExtractor.apply( tuple );
-                final PortsToTuples tuples = tuplesByKey.computeIfAbsent( key, k -> new PortsToTuples() );
-                tuples.add( port.getPortIndex(), tuple );
-            }
+            final TupleQueue[] tupleQueues = internal.getTupleQueues( tuple );
+            tupleQueues[ portIndex ].offerTuple( tuple );
         }
-
-        tuplesByKey.values().forEach( internal::add );
     }
 
     @Override
-    public List<PortToTupleCount> tryAdd ( final PortsToTuples input, final long timeoutInMillis )
+    public int tryOffer ( final int portIndex, final List<Tuple> tuples, final long timeoutInMillis )
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void forceOffer ( final int portIndex, final List<Tuple> tuples )
     {
         throw new UnsupportedOperationException();
     }
@@ -66,6 +56,30 @@ public class TuplePartitionerTupleQueueContext implements TupleQueueContext
     public void clear ()
     {
         internal.clear();
+    }
+
+    @Override
+    public void enableCapacityCheck ( final int portIndex )
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void disableCapacityCheck ( final int portIndex )
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isCapacityCheckEnabled ( final int portIndex )
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isCapacityCheckDisabled ( final int portIndex )
+    {
+        throw new UnsupportedOperationException();
     }
 
 }

@@ -3,7 +3,7 @@ package cs.bilkent.zanza.engine.tuplequeue.impl.drainer;
 import org.junit.Test;
 
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
-import cs.bilkent.zanza.engine.tuplequeue.impl.queue.UnboundedTupleQueue;
+import cs.bilkent.zanza.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -32,7 +32,7 @@ public class GreedyDrainerTest
     @Test
     public void shouldDrainAllTuplesFromSinglePort ()
     {
-        final TupleQueue tupleQueue = new UnboundedTupleQueue( 1 );
+        final TupleQueue tupleQueue = new SingleThreadedTupleQueue( 1 );
         final Tuple tuple = new Tuple();
         tupleQueue.offerTuple( tuple );
 
@@ -49,10 +49,10 @@ public class GreedyDrainerTest
     @Test
     public void shouldDrainAllTuplesFromMultiplePorts ()
     {
-        final TupleQueue tupleQueue1 = new UnboundedTupleQueue( 1 );
+        final TupleQueue tupleQueue1 = new SingleThreadedTupleQueue( 1 );
         final Tuple tuple1 = new Tuple();
         tupleQueue1.offerTuple( tuple1 );
-        final TupleQueue tupleQueue2 = new UnboundedTupleQueue( 1 );
+        final TupleQueue tupleQueue2 = new SingleThreadedTupleQueue( 1 );
         final Tuple tuple2 = new Tuple();
         tupleQueue2.offerTuple( tuple2 );
 

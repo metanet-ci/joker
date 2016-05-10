@@ -1,103 +1,95 @@
 package cs.bilkent.zanza.engine.tuplequeue.impl.context;
 
 import java.util.List;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 import org.junit.Test;
 
+import cs.bilkent.zanza.engine.config.ThreadingPreference;
+import static cs.bilkent.zanza.engine.config.ThreadingPreference.MULTI_THREADED;
+import static cs.bilkent.zanza.engine.config.ThreadingPreference.SINGLE_THREADED;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.GreedyDrainer;
-import cs.bilkent.zanza.engine.tuplequeue.impl.queue.BoundedTupleQueue;
-import cs.bilkent.zanza.engine.tuplequeue.impl.queue.UnboundedTupleQueue;
+import cs.bilkent.zanza.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
+import cs.bilkent.zanza.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.PortsToTuples.PortToTuples;
 import cs.bilkent.zanza.operator.Tuple;
-import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.PortToTupleCount;
 import static junit.framework.TestCase.assertNotNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 public class DefaultTupleQueueContextTest
 {
 
     private static final int TIMEOUT_IN_MILLIS = 2000;
 
-    private static final int UNBOUNDED_TUPLE_QUEUE_SIZE = 2;
+    private static final int TUPLE_QUEUE_SIZE = 2;
 
     @Test
     public void testAddSinglePortTuplesToUnboundedQueue ()
     {
-        testAddTuples( getUnboundedTupleQueueSupplier(), 1, 2 );
+        testAddTuples( getSingleThreadedTupleQueueConstructor(), 1, SINGLE_THREADED, 2 );
     }
 
     @Test
     public void testAddSinglePortTuplesToBoundedQueue ()
     {
-        testAddTuples( getBoundedTupleQueueSupplier( 2 ), 1, 2 );
+        testAddTuples( getMultiThreadedTupleQueueConstructor( 2 ), 1, MULTI_THREADED, 2 );
     }
 
     @Test
     public void testAddMultiPortTuplesToUnboundedQueue ()
     {
-        testAddTuples( getUnboundedTupleQueueSupplier(), 2, 2 );
+        testAddTuples( getSingleThreadedTupleQueueConstructor(), 2, SINGLE_THREADED, 2 );
     }
 
     @Test
     public void testAddMultiPortTuplesToBoundedQueue ()
     {
-        testAddTuples( getBoundedTupleQueueSupplier( 2 ), 2, 2 );
+        testAddTuples( getMultiThreadedTupleQueueConstructor( 2 ), 2, MULTI_THREADED, 2 );
     }
 
     @Test
     public void testTryAddSinglePortTuplesToUnboundedQueue ()
     {
-        testTryAddTuples( getUnboundedTupleQueueSupplier(), 1, 2 );
+        testTryAddTuples( getSingleThreadedTupleQueueConstructor(), 1, SINGLE_THREADED, 2 );
     }
 
     @Test
     public void testTryAddSinglePortTuplesToBoundedQueue ()
     {
-        testTryAddTuples( getBoundedTupleQueueSupplier( 2 ), 1, 2 );
+        testTryAddTuples( getMultiThreadedTupleQueueConstructor( 2 ), 1, MULTI_THREADED, 2 );
     }
 
     @Test
     public void testTryAddMultiPortTuplesToUnboundedQueue ()
     {
-        testTryAddTuples( getUnboundedTupleQueueSupplier(), 2, 2 );
+        testTryAddTuples( getSingleThreadedTupleQueueConstructor(), 2, SINGLE_THREADED, 2 );
     }
 
     @Test
     public void testTryAddMultiPortTuplesToBoundedQueue ()
     {
-        testTryAddTuples( getBoundedTupleQueueSupplier( 2 ), 2, 2 );
+        testTryAddTuples( getMultiThreadedTupleQueueConstructor( 2 ), 2, MULTI_THREADED, 2 );
     }
 
-    @Test
-    public void testPartialTryAdd ()
+
+    private void testAddTuples ( final Function<Boolean, TupleQueue> tupleQueueConstructor,
+                                 final int inputPortCount,
+                                 final ThreadingPreference threadingPreference,
+                                 final int tupleCount )
     {
-        final TupleQueueContext context = new DefaultTupleQueueContext( "op1", 2, getBoundedTupleQueueSupplier( 2 ) );
-        final PortsToTuples input = addTuples( 2, 2 );
-        input.add( 1, new Tuple() );
-        input.add( 1, new Tuple() );
-
-        final List<PortToTupleCount> counts = context.tryAdd( input, TIMEOUT_IN_MILLIS );
-
-        assertThat( counts.size(), equalTo( 1 ) );
-        final PortToTupleCount portToTupleCount = counts.get( 0 );
-        assertThat( portToTupleCount.portIndex, equalTo( 1 ) );
-        assertThat( portToTupleCount.tupleCount, equalTo( 2 ) );
-
-    }
-
-    private void testAddTuples ( final Supplier<TupleQueue> tupleQueueSupplier, final int inputPortCount, final int tupleCount )
-    {
-        final TupleQueueContext context = new DefaultTupleQueueContext( "op1", inputPortCount, tupleQueueSupplier );
+        final TupleQueueContext context = new DefaultTupleQueueContext( "op1", inputPortCount, threadingPreference, tupleQueueConstructor );
 
         final PortsToTuples input = addTuples( inputPortCount, tupleCount );
 
-        context.add( input );
+        for ( PortToTuples port : input.getPortToTuplesList() )
+        {
+            context.offer( port.getPortIndex(), port.getTuples() );
+        }
 
         final GreedyDrainer drainer = new GreedyDrainer();
         context.drain( drainer );
@@ -105,15 +97,20 @@ public class DefaultTupleQueueContextTest
         assertTuples( inputPortCount, tupleCount, drainer );
     }
 
-    private void testTryAddTuples ( final Supplier<TupleQueue> tupleQueueSupplier, final int inputPortCount, final int tupleCount )
+    private void testTryAddTuples ( final Function<Boolean, TupleQueue> tupleQueueConstructor,
+                                    final int inputPortCount,
+                                    final ThreadingPreference threadingPreference,
+                                    final int tupleCount )
     {
-        final TupleQueueContext context = new DefaultTupleQueueContext( "op1", inputPortCount, tupleQueueSupplier );
+        final TupleQueueContext context = new DefaultTupleQueueContext( "op1", inputPortCount, threadingPreference, tupleQueueConstructor );
 
         final PortsToTuples input = addTuples( inputPortCount, tupleCount );
 
-        final List<PortToTupleCount> counts = context.tryAdd( input, TIMEOUT_IN_MILLIS );
-
-        assertTrue( counts.isEmpty() );
+        for ( PortToTuples tuples : input.getPortToTuplesList() )
+        {
+            final int count = context.tryOffer( tuples.getPortIndex(), tuples.getTuples(), TIMEOUT_IN_MILLIS );
+            assertEquals( count, tuples.getTuples().size() );
+        }
 
         final GreedyDrainer drainer = new GreedyDrainer();
         context.drain( drainer );
@@ -154,14 +151,14 @@ public class DefaultTupleQueueContextTest
         }
     }
 
-    private Supplier<TupleQueue> getUnboundedTupleQueueSupplier ()
+    private Function<Boolean, TupleQueue> getSingleThreadedTupleQueueConstructor ()
     {
-        return () -> new UnboundedTupleQueue( UNBOUNDED_TUPLE_QUEUE_SIZE );
+        return ( capacityCheckEnabled ) -> new SingleThreadedTupleQueue( TUPLE_QUEUE_SIZE );
     }
 
-    private Supplier<TupleQueue> getBoundedTupleQueueSupplier ( final int queueSize )
+    private Function<Boolean, TupleQueue> getMultiThreadedTupleQueueConstructor ( final int queueSize )
     {
-        return () -> new BoundedTupleQueue( queueSize );
+        return ( capacityCheckEnabled ) -> new MultiThreadedTupleQueue( queueSize, capacityCheckEnabled );
     }
 
 }

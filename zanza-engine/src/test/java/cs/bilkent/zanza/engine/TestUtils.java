@@ -24,12 +24,12 @@ public class TestUtils
         return thread;
     }
 
-    public static void assertEventually ( AssertTask task )
+    public static void assertTrueEventually ( AssertTask task )
     {
-        assertEventually( task, DEFAULT_ASSERT_EVENTUALLY_TIMEOUT_SECONDS );
+        assertTrueEventually( task, DEFAULT_ASSERT_EVENTUALLY_TIMEOUT_SECONDS );
     }
 
-    public static void assertEventually ( AssertTask task, long timeoutSeconds )
+    public static void assertTrueEventually ( AssertTask task, long timeoutSeconds )
     {
         AssertionError error = null;
 

@@ -24,6 +24,7 @@ import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.SUCCE
 import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.PortsToTuples;
+import cs.bilkent.zanza.operator.PortsToTuples.PortToTuples;
 import cs.bilkent.zanza.operator.impl.InvocationContextImpl;
 import cs.bilkent.zanza.operator.kvstore.KVStore;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
@@ -124,7 +125,14 @@ public class OperatorInstance
 
         try
         {
-            queue.add( upstreamInput );
+            if ( upstreamInput != null )
+            {
+                for ( PortToTuples port : upstreamInput.getPortToTuplesList() )
+                {
+                    queue.offer( port.getPortIndex(), port.getTuples() );
+                }
+            }
+
             // TODO create a drainer factory per operator instance and re-use drainer objects here to reduce garbage
             final TupleQueueDrainer drainer = drainerFactory.create( schedulingStrategy );
             queue.drain( drainer );
@@ -175,7 +183,14 @@ public class OperatorInstance
 
         try
         {
-            queue.add( upstreamInput );
+            if ( upstreamInput != null )
+            {
+                for ( PortToTuples port : upstreamInput.getPortToTuplesList() )
+                {
+                    queue.offer( port.getPortIndex(), port.getTuples() );
+                }
+            }
+
             final TupleQueueDrainer drainer = new GreedyDrainer();
             queue.drain( drainer );
             final PortsToTuples input = drainer.getResult();

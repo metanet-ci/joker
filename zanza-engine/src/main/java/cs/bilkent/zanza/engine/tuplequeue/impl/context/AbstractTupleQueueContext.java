@@ -1,91 +1,66 @@
 package cs.bilkent.zanza.engine.tuplequeue.impl.context;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
-import cs.bilkent.zanza.operator.PortsToTuples;
-import cs.bilkent.zanza.operator.PortsToTuples.PortToTuples;
 import cs.bilkent.zanza.operator.Tuple;
-import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.PortToTupleCount;
 
 public abstract class AbstractTupleQueueContext implements TupleQueueContext
 {
 
-    protected final String operatorId;
+    final String operatorId;
 
-    protected final int inputPortCount;
+    private final int inputPortCount;
 
-    public AbstractTupleQueueContext ( final String operatorId, final int inputPortCount )
+    AbstractTupleQueueContext ( final String operatorId, final int inputPortCount )
     {
         this.operatorId = operatorId;
         this.inputPortCount = inputPortCount;
     }
 
-    protected abstract TupleQueue[] getTupleQueues ( final PortsToTuples input );
+    protected abstract TupleQueue[] getTupleQueues ( final List<Tuple> tuples );
 
     @Override
-    public void add ( final PortsToTuples input )
+    public void offer ( final int portIndex, final List<Tuple> tuples )
     {
-        if ( input == null )
+        final TupleQueue[] tupleQueues = getTupleQueues( tuples );
+
+        if ( tupleQueues != null )
         {
-            return;
-        }
-
-        final TupleQueue[] tupleQueues = getTupleQueues( input );
-
-        if ( tupleQueues == null )
-        {
-            return;
-        }
-
-        for ( PortToTuples port : input.getPortToTuplesList() )
-        {
-            final int portIndex = port.getPortIndex();
-            checkArgument( portIndex < this.inputPortCount,
-                           "Tuples have invalid input port index for operator: " + operatorId + " input port count: " + inputPortCount
-                           + " input port " + "index: " + portIndex );
-
-            final TupleQueue tupleQueue = tupleQueues[ portIndex ];
-            tupleQueue.offerTuples( port.getTuples() );
+            tupleQueues[ portIndex ].offerTuples( tuples );
         }
     }
 
     @Override
-    public List<PortToTupleCount> tryAdd ( final PortsToTuples input, final long timeoutInMillis )
+    public int tryOffer ( final int portIndex, final List<Tuple> tuples, final long timeoutInMillis )
     {
-        final TupleQueue[] tupleQueues = getTupleQueues( input );
+        if ( tuples == null )
+        {
+            return -1;
+        }
+
+        final TupleQueue[] tupleQueues = getTupleQueues( tuples );
+
+        if ( tupleQueues != null )
+        {
+            return tupleQueues[ portIndex ].tryOfferTuples( tuples, timeoutInMillis );
+        }
+
+        return -1;
+    }
+
+    @Override
+    public void forceOffer ( final int portIndex, final List<Tuple> tuples )
+    {
+        final TupleQueue[] tupleQueues = getTupleQueues( tuples );
 
         if ( tupleQueues == null )
         {
-            return Collections.emptyList();
+            return;
         }
 
-        List<PortToTupleCount> counts = null;
-        for ( PortToTuples eachPort : input.getPortToTuplesList() )
-        {
-            final int portIndex = eachPort.getPortIndex();
-            checkArgument( portIndex < this.inputPortCount,
-                           "Tuples have invalid input port index for operator: " + operatorId + " input port count: " + inputPortCount
-                           + " input port " + "index: " + portIndex );
-
-            final TupleQueue tupleQueue = tupleQueues[ portIndex ];
-            final List<Tuple> tuples = eachPort.getTuples();
-            final int count = tupleQueue.tryOfferTuples( tuples, timeoutInMillis );
-            if ( count < tuples.size() )
-            {
-                if ( counts == null )
-                {
-                    counts = new ArrayList<>( 1 );
-                }
-                counts.add( new PortToTupleCount( portIndex, count ) );
-            }
-        }
-
-        return counts != null ? counts : Collections.emptyList();
+        tupleQueues[ portIndex ].forceOfferTuples( tuples );
     }
 
 }

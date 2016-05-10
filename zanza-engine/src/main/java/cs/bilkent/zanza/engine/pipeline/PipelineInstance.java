@@ -12,6 +12,7 @@ import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.INITIAL;
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.INITIALIZATION_FAILED;
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.RUNNING;
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.SHUT_DOWN;
+import cs.bilkent.zanza.engine.region.RegionDefinition;
 import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.INPUT_PORT_CLOSED;
 import cs.bilkent.zanza.operator.InvocationResult;
@@ -19,7 +20,7 @@ import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 
 /**
- *
+ * Manages runtime state of a pipeline defined by the system for a {@link RegionDefinition} and provides methods for operator invocation.
  */
 @NotThreadSafe
 public class PipelineInstance
@@ -91,6 +92,8 @@ public class PipelineInstance
 
     public PortsToTuples forceInvoke ( final InvocationReason reason )
     {
+        checkState( status == RUNNING );
+
         if ( currentHighestInvokableIndex != NO_INVOKABLE_INDEX )
         {
             final int i = currentHighestInvokableIndex;

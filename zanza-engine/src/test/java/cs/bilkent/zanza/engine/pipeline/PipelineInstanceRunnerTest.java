@@ -11,7 +11,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
-import static cs.bilkent.zanza.engine.TestUtils.assertEventually;
+import static cs.bilkent.zanza.engine.TestUtils.assertTrueEventually;
 import cs.bilkent.zanza.engine.coordinator.CoordinatorHandle;
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstance.NO_INVOKABLE_INDEX;
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.COMPLETED;
@@ -77,7 +77,7 @@ public class PipelineInstanceRunnerTest
 
         runner.pause().get();
 
-        assertEventually( () -> {
+        assertTrueEventually( () -> {
             assertEquals( PAUSED, runner.status() );
         } );
     }
@@ -89,7 +89,7 @@ public class PipelineInstanceRunnerTest
 
         runner.pause().get();
 
-        assertEventually( () -> {
+        assertTrueEventually( () -> {
             assertEquals( PAUSED, runner.status() );
         } );
 
@@ -117,7 +117,7 @@ public class PipelineInstanceRunnerTest
 
         runner.stop().get();
 
-        assertEventually( () -> assertEquals( runner.status(), COMPLETED ) );
+        assertTrueEventually( () -> assertEquals( runner.status(), COMPLETED ) );
 
         runner.pause().get();
     }
@@ -129,7 +129,7 @@ public class PipelineInstanceRunnerTest
 
         runner.stop().get();
 
-        assertEventually( () -> assertEquals( runner.status(), COMPLETED ) );
+        assertTrueEventually( () -> assertEquals( runner.status(), COMPLETED ) );
 
         runner.resume().get();
     }
@@ -151,7 +151,7 @@ public class PipelineInstanceRunnerTest
         latch.countDown();
 
         future.get();
-        assertEventually( () -> assertEquals( runner.status(), COMPLETED ) );
+        assertTrueEventually( () -> assertEquals( runner.status(), COMPLETED ) );
         verify( downstreamTupleSender ).send( null, output );
     }
 
@@ -162,7 +162,7 @@ public class PipelineInstanceRunnerTest
 
         runner.pause().get();
 
-        assertEventually( () -> assertEquals( runner.status(), PAUSED ) );
+        assertTrueEventually( () -> assertEquals( runner.status(), PAUSED ) );
 
         runner.stop().get();
     }
@@ -209,7 +209,7 @@ public class PipelineInstanceRunnerTest
 
         thread.start();
 
-        assertEventually( () -> assertEquals( runner.status(), COMPLETED ), 10 );
+        assertTrueEventually( () -> assertEquals( runner.status(), COMPLETED ), 10 );
         verify( downstreamTupleSender ).send( null, output1 );
         verify( downstreamTupleSender ).send( null, output2 );
     }
@@ -218,7 +218,7 @@ public class PipelineInstanceRunnerTest
     {
         thread.start();
 
-        assertEventually( () -> {
+        assertTrueEventually( () -> {
             assertEquals( RUNNING, runner.status() );
         } );
     }

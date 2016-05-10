@@ -11,12 +11,12 @@ import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.operator.Tuple;
 
 @NotThreadSafe
-public class UnboundedTupleQueue implements TupleQueue
+public class SingleThreadedTupleQueue implements TupleQueue
 {
 
     private final ArrayDeque<Tuple> queue;
 
-    public UnboundedTupleQueue ( final int initialCapacity )
+    public SingleThreadedTupleQueue ( final int initialCapacity )
     {
         this.queue = new ArrayDeque<>( initialCapacity );
     }
@@ -25,6 +25,24 @@ public class UnboundedTupleQueue implements TupleQueue
     public void ensureCapacity ( final int capacity )
     {
 
+    }
+
+    @Override
+    public void enableCapacityCheck ()
+    {
+
+    }
+
+    @Override
+    public void disableCapacityCheck ()
+    {
+
+    }
+
+    @Override
+    public boolean isCapacityCheckEnabled ()
+    {
+        return false;
     }
 
     @Override
@@ -41,12 +59,15 @@ public class UnboundedTupleQueue implements TupleQueue
     }
 
     @Override
+    public void forceOffer ( final Tuple tuple )
+    {
+        offerTuple( tuple );
+    }
+
+    @Override
     public void offerTuples ( final List<Tuple> tuples )
     {
-        for ( Tuple tuple : tuples )
-        {
-            queue.offer( tuple );
-        }
+        queue.addAll( tuples );
     }
 
     @Override
@@ -54,6 +75,12 @@ public class UnboundedTupleQueue implements TupleQueue
     {
         offerTuples( tuples );
         return tuples.size();
+    }
+
+    @Override
+    public void forceOfferTuples ( final List<Tuple> tuples )
+    {
+        offerTuples( tuples );
     }
 
     @Override
@@ -127,12 +154,6 @@ public class UnboundedTupleQueue implements TupleQueue
     public boolean isEmpty ()
     {
         return queue.isEmpty();
-    }
-
-    @Override
-    public boolean isNonEmpty ()
-    {
-        return !queue.isEmpty();
     }
 
     @Override

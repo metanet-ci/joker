@@ -2,9 +2,7 @@ package cs.bilkent.zanza.engine.tuplequeue;
 
 import java.util.List;
 
-import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
-import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.PortToTupleCount;
 
 /**
  * Manages input {@link Tuple} queues for a single operator instance replica
@@ -15,26 +13,39 @@ public interface TupleQueueContext
     String getOperatorId ();
 
     /**
-     * Adds given input tuples to the queues. It may block if the underlying tuple queues are bounded
+     * Offers given tuples to the tuple queue of the given port index.
+     * Blocks until there is available capacity for all tuples and all of them are successfully offered.
      *
-     * @param input
-     *         tuples to add
+     * @param portIndex
+     *         port index to offer the tuples
+     * @param tuples
+     *         tuples to be offered
      */
-    void add ( PortsToTuples input );
+    void offer ( int portIndex, List<Tuple> tuples );
 
     /**
-     * Tries to add given input tuples to the queues. It may block for {@code timeoutInMillis} parameter if the underlying
-     * queue is bounded and does not have enough empty space.
+     * Attempts to offer given tuples to the queue as many as possible
      *
-     * @param input
-     *         tuples to add
+     * @param portIndex
+     *         port index to offer the tuples
+     * @param tuples
+     *         tuples to be offered
      * @param timeoutInMillis
-     *         duration in milliseconds that is allowed for the call to be blocked if the underlying queues have no enough space
+     *         duration in milliseconds in which tuple offering is attempted
      *
-     * @return if tuples are not completely added for some ports in the input, number of tuples successfully added to the queues are
-     * returned. Otherwise, returns an empty list.
+     * @return number of tuples successfully offered
      */
-    List<PortToTupleCount> tryAdd ( PortsToTuples input, long timeoutInMillis );
+    int tryOffer ( int portIndex, List<Tuple> tuples, long timeoutInMillis );
+
+    /**
+     * Offers given tuples into the queue without checking the available queue capacity.
+     *
+     * @param portIndex
+     *         port index to offer the tuples
+     * @param tuples
+     *         tuples to be offered
+     */
+    void forceOffer ( int portIndex, List<Tuple> tuples );
 
     /**
      * Removes tuples from the underlying input queues using the given {@link TupleQueueDrainer}
@@ -43,6 +54,42 @@ public interface TupleQueueContext
      *         to remove tuples from the underlying input queues
      */
     void drain ( TupleQueueDrainer drainer );
+
+    /**
+     * Enables capacity check of the tuple queue for the given port index
+     *
+     * @param portIndex
+     *         of the tuple queue to enable capacity check
+     */
+    void enableCapacityCheck ( int portIndex );
+
+    /**
+     * Disables capacity check of the tuple queue for the given port index
+     *
+     * @param portIndex
+     *         of the tuple queue to disable capacity check
+     */
+    void disableCapacityCheck ( int portIndex );
+
+    /**
+     * Checks if the capacity check is enabled for the tuple queue of the given port index
+     *
+     * @param portIndex
+     *         of the tuple queue to check the capacity check
+     *
+     * @return true if capacity check is enabled for the tuple queue of the given port index
+     */
+    boolean isCapacityCheckEnabled ( int portIndex );
+
+    /**
+     * Checks if the capacity check is disabled for the tuple queue of the given port index
+     *
+     * @param portIndex
+     *         of the tuple queue to check the capacity check
+     *
+     * @return true if capacity check is disabled for the tuple queue of the given port index
+     */
+    boolean isCapacityCheckDisabled ( int portIndex );
 
     void clear ();
 

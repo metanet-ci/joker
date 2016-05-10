@@ -8,8 +8,8 @@ import org.junit.Test;
 import static cs.bilkent.zanza.engine.TestUtils.spawnThread;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
-import cs.bilkent.zanza.engine.tuplequeue.impl.queue.BoundedTupleQueue;
-import static cs.bilkent.zanza.engine.tuplequeue.impl.queue.BoundedTupleQueueTest.offerTuples;
+import cs.bilkent.zanza.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
+import static cs.bilkent.zanza.engine.tuplequeue.impl.queue.MultiThreadedTupleQueueTest.offerTuples;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.PortToTupleCount;
@@ -30,8 +30,8 @@ public class BlockingMultiPortDisjunctiveDrainerTest
         final TupleQueueDrainer drainer = new BlockingMultiPortDisjunctiveDrainer( TupleAvailabilityByCount.AT_LEAST,
                                                                                    getPortToTupleCounts( 2, 2 ),
                                                                                    TIMEOUT_IN_MILLIS );
-        final TupleQueue tupleQueue1 = new BoundedTupleQueue( 2 );
-        final TupleQueue tupleQueue2 = new BoundedTupleQueue( 2 );
+        final TupleQueue tupleQueue1 = new MultiThreadedTupleQueue( 2 );
+        final TupleQueue tupleQueue2 = new MultiThreadedTupleQueue( 2 );
         tupleQueue1.offerTuple( new Tuple() );
         tupleQueue1.offerTuple( new Tuple() );
         tupleQueue2.offerTuple( new Tuple() );
@@ -54,8 +54,8 @@ public class BlockingMultiPortDisjunctiveDrainerTest
         final TupleQueueDrainer drainer = new BlockingMultiPortDisjunctiveDrainer( TupleAvailabilityByCount.AT_LEAST,
                                                                                    getPortToTupleCounts( 2, 2 ),
                                                                                    TIMEOUT_IN_MILLIS );
-        final TupleQueue tupleQueue1 = new BoundedTupleQueue( 2 );
-        final TupleQueue tupleQueue2 = new BoundedTupleQueue( 2 );
+        final TupleQueue tupleQueue1 = new MultiThreadedTupleQueue( 2 );
+        final TupleQueue tupleQueue2 = new MultiThreadedTupleQueue( 2 );
         tupleQueue2.offerTuple( new Tuple() );
         spawnThread( offerTuples( Thread.currentThread(), tupleQueue1, asList( new Tuple(), new Tuple() ) ) );
 
@@ -75,8 +75,8 @@ public class BlockingMultiPortDisjunctiveDrainerTest
         final TupleQueueDrainer drainer = new BlockingMultiPortDisjunctiveDrainer( TupleAvailabilityByCount.EXACT,
                                                                                    getPortToTupleCounts( 2, 2 ),
                                                                                    TIMEOUT_IN_MILLIS );
-        final TupleQueue tupleQueue1 = new BoundedTupleQueue( 3 );
-        final TupleQueue tupleQueue2 = new BoundedTupleQueue( 2 );
+        final TupleQueue tupleQueue1 = new MultiThreadedTupleQueue( 3 );
+        final TupleQueue tupleQueue2 = new MultiThreadedTupleQueue( 2 );
         tupleQueue1.offerTuple( new Tuple() );
         tupleQueue1.offerTuple( new Tuple() );
         tupleQueue1.offerTuple( new Tuple() );
@@ -100,8 +100,8 @@ public class BlockingMultiPortDisjunctiveDrainerTest
         final TupleQueueDrainer drainer = new BlockingMultiPortDisjunctiveDrainer( TupleAvailabilityByCount.EXACT,
                                                                                    getPortToTupleCounts( 2, 2 ),
                                                                                    TIMEOUT_IN_MILLIS );
-        final TupleQueue tupleQueue1 = new BoundedTupleQueue( 3 );
-        final TupleQueue tupleQueue2 = new BoundedTupleQueue( 2 );
+        final TupleQueue tupleQueue1 = new MultiThreadedTupleQueue( 3 );
+        final TupleQueue tupleQueue2 = new MultiThreadedTupleQueue( 2 );
         tupleQueue1.offerTuple( new Tuple() );
         tupleQueue1.offerTuple( new Tuple() );
         tupleQueue1.offerTuple( new Tuple() );

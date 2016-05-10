@@ -1,13 +1,17 @@
 package cs.bilkent.zanza.engine.tuplequeue.impl.context;
 
-import java.util.function.Supplier;
+import java.util.List;
+import java.util.function.Function;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkState;
+import cs.bilkent.zanza.engine.config.ThreadingPreference;
+import static cs.bilkent.zanza.engine.config.ThreadingPreference.MULTI_THREADED;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
-import cs.bilkent.zanza.operator.PortsToTuples;
+import cs.bilkent.zanza.operator.Tuple;
 
 
 public class DefaultTupleQueueContext extends AbstractTupleQueueContext
@@ -18,13 +22,21 @@ public class DefaultTupleQueueContext extends AbstractTupleQueueContext
 
     private final TupleQueue[] tupleQueues;
 
-    public DefaultTupleQueueContext ( final String operatorId, final int inputPortCount, final Supplier<TupleQueue> tupleQueueSupplier )
+    private final ThreadingPreference threadingPreference;
+
+    public DefaultTupleQueueContext ( final String operatorId,
+                                      final int inputPortCount,
+                                      final ThreadingPreference threadingPreference,
+                                      final Function<Boolean, TupleQueue> tupleQueueConstructor
+
+    )
     {
         super( operatorId, inputPortCount );
+        this.threadingPreference = threadingPreference;
         this.tupleQueues = new TupleQueue[ inputPortCount ];
         for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
         {
-            this.tupleQueues[ portIndex ] = tupleQueueSupplier.get();
+            this.tupleQueues[ portIndex ] = tupleQueueConstructor.apply( true );
         }
     }
 
@@ -35,9 +47,9 @@ public class DefaultTupleQueueContext extends AbstractTupleQueueContext
     }
 
     @Override
-    protected TupleQueue[] getTupleQueues ( final PortsToTuples input )
+    protected TupleQueue[] getTupleQueues ( final List<Tuple> tuples )
     {
-        return tupleQueues;
+        return ( tuples == null || tuples.isEmpty() ) ? null : tupleQueues;
     }
 
     @Override
@@ -55,6 +67,34 @@ public class DefaultTupleQueueContext extends AbstractTupleQueueContext
         {
             tupleQueue.clear();
         }
+    }
+
+    @Override
+    public void enableCapacityCheck ( final int portIndex )
+    {
+        checkState( threadingPreference == MULTI_THREADED );
+        tupleQueues[ portIndex ].enableCapacityCheck();
+    }
+
+    @Override
+    public void disableCapacityCheck ( final int portIndex )
+    {
+        checkState( threadingPreference == MULTI_THREADED );
+        tupleQueues[ portIndex ].disableCapacityCheck();
+    }
+
+    @Override
+    public boolean isCapacityCheckEnabled ( final int portIndex )
+    {
+        checkState( threadingPreference == MULTI_THREADED );
+        return tupleQueues[ portIndex ].isCapacityCheckEnabled();
+    }
+
+    @Override
+    public boolean isCapacityCheckDisabled ( final int portIndex )
+    {
+        checkState( threadingPreference == MULTI_THREADED );
+        return !tupleQueues[ portIndex ].isCapacityCheckEnabled();
     }
 
 }

@@ -7,7 +7,7 @@ import org.junit.Test;
 
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
-import cs.bilkent.zanza.engine.tuplequeue.impl.queue.UnboundedTupleQueue;
+import cs.bilkent.zanza.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.PortToTupleCount;
@@ -25,8 +25,8 @@ public class NonBlockingMultiPortDisjunctiveDrainerTest
     {
         final TupleQueueDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( TupleAvailabilityByCount.AT_LEAST,
                                                                                       getPortToTupleCounts( 2, 2 ) );
-        final TupleQueue tupleQueue1 = new UnboundedTupleQueue( 2 );
-        final TupleQueue tupleQueue2 = new UnboundedTupleQueue( 2 );
+        final TupleQueue tupleQueue1 = new SingleThreadedTupleQueue( 2 );
+        final TupleQueue tupleQueue2 = new SingleThreadedTupleQueue( 2 );
         tupleQueue1.offerTuple( new Tuple() );
         tupleQueue1.offerTuple( new Tuple() );
         tupleQueue2.offerTuple( new Tuple() );
@@ -48,8 +48,8 @@ public class NonBlockingMultiPortDisjunctiveDrainerTest
     {
         final TupleQueueDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( TupleAvailabilityByCount.AT_LEAST,
                                                                                       getPortToTupleCounts( 2, 2 ) );
-        final TupleQueue tupleQueue1 = new UnboundedTupleQueue( 2 );
-        final TupleQueue tupleQueue2 = new UnboundedTupleQueue( 2 );
+        final TupleQueue tupleQueue1 = new SingleThreadedTupleQueue( 2 );
+        final TupleQueue tupleQueue2 = new SingleThreadedTupleQueue( 2 );
         tupleQueue1.offerTuple( new Tuple() );
         tupleQueue1.offerTuple( new Tuple() );
         tupleQueue2.offerTuple( new Tuple() );
@@ -69,8 +69,8 @@ public class NonBlockingMultiPortDisjunctiveDrainerTest
     {
         final TupleQueueDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( TupleAvailabilityByCount.EXACT,
                                                                                       getPortToTupleCounts( 2, 2 ) );
-        final TupleQueue tupleQueue1 = new UnboundedTupleQueue( 2 );
-        final TupleQueue tupleQueue2 = new UnboundedTupleQueue( 2 );
+        final TupleQueue tupleQueue1 = new SingleThreadedTupleQueue( 2 );
+        final TupleQueue tupleQueue2 = new SingleThreadedTupleQueue( 2 );
         tupleQueue1.offerTuple( new Tuple() );
         tupleQueue1.offerTuple( new Tuple() );
         tupleQueue1.offerTuple( new Tuple() );
@@ -93,8 +93,8 @@ public class NonBlockingMultiPortDisjunctiveDrainerTest
     {
         final TupleQueueDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( TupleAvailabilityByCount.EXACT,
                                                                                       getPortToTupleCounts( 2, 2 ) );
-        final TupleQueue tupleQueue1 = new UnboundedTupleQueue( 2 );
-        final TupleQueue tupleQueue2 = new UnboundedTupleQueue( 2 );
+        final TupleQueue tupleQueue1 = new SingleThreadedTupleQueue( 2 );
+        final TupleQueue tupleQueue2 = new SingleThreadedTupleQueue( 2 );
         tupleQueue1.offerTuple( new Tuple() );
         tupleQueue1.offerTuple( new Tuple() );
         tupleQueue1.offerTuple( new Tuple() );

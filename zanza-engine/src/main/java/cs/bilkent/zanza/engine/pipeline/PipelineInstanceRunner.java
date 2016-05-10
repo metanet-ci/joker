@@ -26,6 +26,8 @@ public class PipelineInstanceRunner implements Runnable
 
     private static final Logger LOGGER = LoggerFactory.getLogger( PipelineInstanceRunner.class );
 
+    private static final int PAUSED_MONITOR_WAIT_TIMEOUT_IN_MILLIS = 100;
+
 
     private final Object monitor = new Object();
 
@@ -43,7 +45,7 @@ public class PipelineInstanceRunner implements Runnable
 
     private Future<Void> downstreamTuplesFuture;
 
-    private volatile PipelineInstanceRunnerStatus status = INITIAL;
+    private PipelineInstanceRunnerStatus status = INITIAL;
 
     private volatile PipelineInstanceRunnerCommand command;
 
@@ -53,6 +55,10 @@ public class PipelineInstanceRunner implements Runnable
         this.pipeline = pipeline;
         this.id = pipeline.id();
         this.operatorCount = pipeline.operatorCount();
+        synchronized ( monitor )
+        {
+            status = INITIAL;
+        }
     }
 
     public void setCoordinator ( final CoordinatorHandle coordinator )
@@ -67,7 +73,10 @@ public class PipelineInstanceRunner implements Runnable
 
     public PipelineInstanceRunnerStatus status ()
     {
-        return status;
+        synchronized ( monitor )
+        {
+            return status;
+        }
     }
 
     public CompletableFuture<Void> pause ()
@@ -220,17 +229,13 @@ public class PipelineInstanceRunner implements Runnable
         return result;
     }
 
-    public CompletableFuture<Void> disableInputTupleQueueBounds ()
-    {
-        // TODO
-        // TODO should we disable per input port or all input ports at once?
-        return null;
-    }
-
     public void run ()
     {
         checkState( status == INITIAL );
-        status = RUNNING;
+        synchronized ( monitor )
+        {
+            status = RUNNING;
+        }
 
         try
         {
@@ -244,7 +249,7 @@ public class PipelineInstanceRunner implements Runnable
 
                     synchronized ( monitor )
                     {
-                        monitor.wait( 1000 );
+                        monitor.wait( PAUSED_MONITOR_WAIT_TIMEOUT_IN_MILLIS );
                     }
                     continue;
                 }

@@ -26,6 +26,7 @@ import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
+import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;
@@ -33,6 +34,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -120,7 +122,7 @@ public class OperatorInstanceTest
 
         operatorInstance.invoke( null );
 
-        verify( queue, never() ).add( anyObject() );
+        verify( queue, never() ).offer( anyInt(), anyObject() );
     }
 
     @Test
@@ -141,7 +143,7 @@ public class OperatorInstanceTest
         final PortsToTuples upstreamInput = new PortsToTuples( new Tuple( "f1", "val1" ) );
         final InvocationResult result = operatorInstance.invoke( upstreamInput );
 
-        verify( queue ).add( upstreamInput );
+        verify( queue ).offer( 0, singletonList( new Tuple( "f1", "val1" ) ) );
         verify( drainerFactory ).create( strategy );
         verify( queue ).drain( drainer );
         verify( kvStoreProvider ).getKVStore( key );
@@ -166,7 +168,7 @@ public class OperatorInstanceTest
         final PortsToTuples upstreamInput = new PortsToTuples( new Tuple( "f1", "val1" ) );
         final InvocationResult result = operatorInstance.invoke( upstreamInput );
 
-        verify( queue ).add( upstreamInput );
+        verify( queue ).offer( 0, singletonList( new Tuple( "f1", "val1" ) ) );
         verify( drainerFactory ).create( strategy );
         verify( queue ).drain( drainer );
         verify( kvStoreProvider, never() ).getKVStore( key );
@@ -182,7 +184,7 @@ public class OperatorInstanceTest
 
         operatorInstance.forceInvoke( null, INPUT_PORT_CLOSED );
 
-        verify( queue, never() ).add( anyObject() );
+        verify( queue, never() ).offer( anyInt(), anyObject() );
     }
 
     @Test
@@ -190,7 +192,8 @@ public class OperatorInstanceTest
     {
         initOperatorInstance( scheduleWhenTuplesAvailableOnDefaultPort( 1 ) );
 
-        when( operatorInstance.invoke( any() ) ).thenThrow( new RuntimeException() );
+        when( drainer.getResult() ).thenReturn( new PortsToTuples( new Tuple( "f1", "val2" ) ) );
+        when( operator.invoke( anyObject() ) ).thenThrow( new RuntimeException() );
 
         final InvocationResult result = operatorInstance.invoke( null );
 
@@ -205,7 +208,7 @@ public class OperatorInstanceTest
     {
         initOperatorInstance( scheduleWhenTuplesAvailableOnDefaultPort( 1 ) );
 
-        when( operatorInstance.invoke( any() ) ).thenThrow( new RuntimeException() );
+        when( operator.invoke( anyObject() ) ).thenThrow( new RuntimeException() );
 
         final PortsToTuples result = operatorInstance.forceInvoke( null, INPUT_PORT_CLOSED );
 
@@ -240,7 +243,7 @@ public class OperatorInstanceTest
 
         final PortsToTuples result = operatorInstance.forceInvoke( upstreamInput, INPUT_PORT_CLOSED );
 
-        verify( queue ).add( upstreamInput );
+        verify( queue, never() ).offer( anyInt(), anyObject() );
         verify( queue ).drain( drainerCaptor.capture() );
         verify( kvStoreProvider ).getKVStore( null );
         assertTrue( drainerCaptor.getValue() instanceof GreedyDrainer );

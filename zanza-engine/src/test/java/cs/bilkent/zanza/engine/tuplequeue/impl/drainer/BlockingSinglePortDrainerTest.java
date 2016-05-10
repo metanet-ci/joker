@@ -5,8 +5,8 @@ import org.junit.Test;
 import static cs.bilkent.zanza.engine.TestUtils.spawnThread;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
-import cs.bilkent.zanza.engine.tuplequeue.impl.queue.BoundedTupleQueue;
-import static cs.bilkent.zanza.engine.tuplequeue.impl.queue.BoundedTupleQueueTest.offerTuples;
+import cs.bilkent.zanza.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
+import static cs.bilkent.zanza.engine.tuplequeue.impl.queue.MultiThreadedTupleQueueTest.offerTuples;
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
 import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
@@ -44,13 +44,13 @@ public class BlockingSinglePortDrainerTest
     public void shouldFailWithMultipleTupleQueues ()
     {
         final TupleQueueDrainer drainer = new BlockingSinglePortDrainer( 1, AT_LEAST, TIMEOUT_IN_MILLIS );
-        drainer.drain( null, new TupleQueue[] { new BoundedTupleQueue( 1 ), new BoundedTupleQueue( 1 ) } );
+        drainer.drain( null, new TupleQueue[] { new MultiThreadedTupleQueue( 1 ), new MultiThreadedTupleQueue( 1 ) } );
     }
 
     @Test
     public void shouldDrainAllTuplesWithAtLeastTupleAvailabilityByCountSatisfiesAlready ()
     {
-        final TupleQueue tupleQueue = new BoundedTupleQueue( 2 );
+        final TupleQueue tupleQueue = new MultiThreadedTupleQueue( 2 );
         final Tuple tuple1 = new Tuple();
         tupleQueue.offerTuple( tuple1 );
         final Tuple tuple2 = new Tuple();
@@ -71,7 +71,7 @@ public class BlockingSinglePortDrainerTest
     @Test
     public void shouldDrainAllTuplesWithAtLeastTupleAvailabilityByCountSatisfiesAfterwards ()
     {
-        final TupleQueue tupleQueue = new BoundedTupleQueue( 2 );
+        final TupleQueue tupleQueue = new MultiThreadedTupleQueue( 2 );
         final Tuple tuple1 = new Tuple();
         final Tuple tuple2 = new Tuple();
 
@@ -97,7 +97,7 @@ public class BlockingSinglePortDrainerTest
     @Test
     public void shouldDrainTuplesWithExactButSameOnAllPortsTupleAvailabilityByCountSatisfiedAlready ()
     {
-        final TupleQueue tupleQueue = new BoundedTupleQueue( 2 );
+        final TupleQueue tupleQueue = new MultiThreadedTupleQueue( 2 );
         final Tuple tuple1 = new Tuple();
         tupleQueue.offerTuple( tuple1 );
         final Tuple tuple2 = new Tuple();
@@ -118,7 +118,7 @@ public class BlockingSinglePortDrainerTest
     @Test
     public void shouldDrainTuplesWithExactButSameOnAllPortsTupleAvailabilityByCountSatisfiedAfterwards ()
     {
-        final TupleQueue tupleQueue = new BoundedTupleQueue( 2 );
+        final TupleQueue tupleQueue = new MultiThreadedTupleQueue( 2 );
         final Tuple tuple1 = new Tuple();
         final Tuple tuple2 = new Tuple();
 
@@ -144,7 +144,7 @@ public class BlockingSinglePortDrainerTest
     @Test
     public void shouldDrainTuplesWithExactTupleAvailabilityByCountSatisfiedAlready ()
     {
-        final TupleQueue tupleQueue = new BoundedTupleQueue( 2 );
+        final TupleQueue tupleQueue = new MultiThreadedTupleQueue( 2 );
         final Tuple tuple1 = new Tuple();
         tupleQueue.offerTuple( tuple1 );
         tupleQueue.offerTuple( new Tuple() );
@@ -164,7 +164,7 @@ public class BlockingSinglePortDrainerTest
     @Test
     public void shouldDrainTuplesWithExactTupleAvailabilityByCountSatisfiedAfterwards ()
     {
-        final TupleQueue tupleQueue = new BoundedTupleQueue( 2 );
+        final TupleQueue tupleQueue = new MultiThreadedTupleQueue( 2 );
         final Tuple tuple1 = new Tuple();
 
         spawnThread( offerTuples( Thread.currentThread(), tupleQueue, asList( tuple1, new Tuple() ) ) );
@@ -189,7 +189,7 @@ public class BlockingSinglePortDrainerTest
 
     private void testNoDrain ( final TupleAvailabilityByCount tupleAvailabilityByCount )
     {
-        final TupleQueue tupleQueue = new BoundedTupleQueue( 2 );
+        final TupleQueue tupleQueue = new MultiThreadedTupleQueue( 2 );
 
         final TupleQueueDrainer drainer = new BlockingSinglePortDrainer( 1, tupleAvailabilityByCount, TIMEOUT_IN_MILLIS );
         drainer.drain( null, new TupleQueue[] { tupleQueue } );

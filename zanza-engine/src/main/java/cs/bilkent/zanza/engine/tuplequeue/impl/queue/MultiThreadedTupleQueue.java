@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -15,27 +17,40 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.operator.Tuple;
+import static java.lang.Math.max;
+import static java.lang.System.nanoTime;
 
 @ThreadSafe
-public class BoundedTupleQueue implements TupleQueue
+public class MultiThreadedTupleQueue implements TupleQueue
 {
 
-    private static Logger LOGGER = LoggerFactory.getLogger( BoundedTupleQueue.class );
-
-    public static final int DEFAULT_WAIT_TIME_IN_MILLIS = 50;
+    private static Logger LOGGER = LoggerFactory.getLogger( MultiThreadedTupleQueue.class );
 
 
-    private final Object monitor = new Object();
+    private final ReentrantLock lock = new ReentrantLock();
+
+    private final Condition emptyCondition = lock.newCondition();
+
+    private final Condition fullCondition = lock.newCondition();
 
     @GuardedBy( "monitor" )
     private final Queue<Tuple> queue;
 
     private volatile int capacity;
 
-    public BoundedTupleQueue ( final int initialCapacity )
+    private boolean capacityCheckEnabled = true;
+
+    public MultiThreadedTupleQueue ( final int initialCapacity )
     {
         this.queue = new ArrayDeque<>( initialCapacity );
         this.capacity = initialCapacity;
+    }
+
+    public MultiThreadedTupleQueue ( final int initialCapacity, final boolean capacityCheckEnabled )
+    {
+        this.queue = new ArrayDeque<>( initialCapacity );
+        this.capacity = initialCapacity;
+        this.capacityCheckEnabled = capacityCheckEnabled;
     }
 
     @Override
@@ -43,7 +58,59 @@ public class BoundedTupleQueue implements TupleQueue
     {
         if ( newCapacity > capacity )
         {
-            capacity = newCapacity;
+            lock.lock();
+            try
+            {
+                capacity = newCapacity;
+                fullCondition.signalAll();
+            }
+            finally
+            {
+                lock.unlock();
+            }
+        }
+    }
+
+    @Override
+    public void enableCapacityCheck ()
+    {
+        lock.lock();
+        try
+        {
+            capacityCheckEnabled = true;
+        }
+        finally
+        {
+            lock.unlock();
+        }
+    }
+
+    @Override
+    public void disableCapacityCheck ()
+    {
+        lock.lock();
+        try
+        {
+            capacityCheckEnabled = false;
+            fullCondition.signalAll();
+        }
+        finally
+        {
+            lock.unlock();
+        }
+    }
+
+    @Override
+    public boolean isCapacityCheckEnabled ()
+    {
+        lock.lock();
+        try
+        {
+            return capacityCheckEnabled;
+        }
+        finally
+        {
+            lock.unlock();
         }
     }
 
@@ -59,26 +126,47 @@ public class BoundedTupleQueue implements TupleQueue
         return doOfferTuple( tuple, timeoutInMillis * 1_000_000 );
     }
 
+    @Override
+    public void forceOffer ( final Tuple tuple )
+    {
+        lock.lock();
+        try
+        {
+            queue.add( tuple );
+            emptyCondition.signal();
+        }
+        finally
+        {
+            lock.unlock();
+        }
+    }
+
     private boolean doOfferTuple ( final Tuple tuple, final long timeoutInNanos )
     {
         checkArgument( tuple != null, "tuple can't be null" );
 
-        final long startNanos = System.nanoTime();
-        int capacity = this.capacity;
-        synchronized ( monitor )
+        final long startNanos = nanoTime();
+
+        lock.lock();
+        try
         {
-            while ( queue.size() >= capacity )
+            while ( availableCapacity() <= 0 )
             {
-                if ( ( System.nanoTime() - startNanos ) >= timeoutInNanos )
+                final long remainingNanos = timeoutInNanos - ( nanoTime() - startNanos );
+                if ( remainingNanos <= 0 )
                 {
                     return false;
                 }
 
-                monitorWait();
-                capacity = this.capacity;
+                awaitInNanos( fullCondition, remainingNanos );
             }
 
             queue.add( tuple );
+            emptyCondition.signal();
+        }
+        finally
+        {
+            lock.unlock();
         }
 
         return true;
@@ -96,47 +184,76 @@ public class BoundedTupleQueue implements TupleQueue
         return doOfferTuples( tuples, timeoutInMillis * 1_000_000 );
     }
 
+    @Override
+    public void forceOfferTuples ( final List<Tuple> tuples )
+    {
+        lock.lock();
+        try
+        {
+            queue.addAll( tuples );
+            emptyCondition.signal();
+        }
+        finally
+        {
+            lock.unlock();
+        }
+    }
+
     private int doOfferTuples ( final List<Tuple> tuples, final long timeoutInNanos )
     {
         checkArgument( tuples != null, "tuples can't be null" );
 
-        final long startNanos = System.nanoTime();
-        synchronized ( monitor )
+        final long startNanos = nanoTime();
+
+        lock.lock();
+        try
         {
             int i = 0, j = tuples.size();
             while ( true )
             {
-                int capacity = this.capacity;
-
                 int availableCapacity;
-                while ( ( availableCapacity = ( capacity - queue.size() ) ) <= 0 )
+                while ( ( availableCapacity = availableCapacity() ) <= 0 )
                 {
-                    if ( ( System.nanoTime() - startNanos ) >= timeoutInNanos )
+                    final long remainingNanos = timeoutInNanos - ( nanoTime() - startNanos );
+                    if ( remainingNanos <= 0 )
                     {
                         return i;
                     }
 
-                    monitorWait();
-                    capacity = this.capacity;
-
+                    awaitInNanos( fullCondition, remainingNanos );
                 }
 
                 int k = i;
-                i += availableCapacity;
-                if ( i > j )
+                if ( availableCapacity == Integer.MAX_VALUE )
                 {
                     i = j;
                 }
+                else
+                {
+                    i += availableCapacity;
+
+                    if ( i > j )
+                    {
+                        i = j;
+                    }
+                }
+
                 while ( k < i )
                 {
                     queue.add( tuples.get( k++ ) );
                 }
+
+                emptyCondition.signal();
 
                 if ( i == j )
                 {
                     return i;
                 }
             }
+        }
+        finally
+        {
+            lock.unlock();
         }
     }
 
@@ -155,19 +272,25 @@ public class BoundedTupleQueue implements TupleQueue
     private List<Tuple> doPollTuples ( final int count, final long timeoutInNanos )
     {
         checkArgument( count >= 0 );
-        checkArgument( capacity >= count );
+        if ( capacityCheckEnabled )
+        {
+            checkArgument( capacity >= count );
+        }
 
-        final long startNanos = System.nanoTime();
-        synchronized ( monitor )
+        final long startNanos = nanoTime();
+
+        lock.lock();
+        try
         {
             while ( queue.size() < count )
             {
-                final long elapsed = System.nanoTime() - startNanos;
-                if ( elapsed >= timeoutInNanos )
+                final long remainingNanos = timeoutInNanos - ( nanoTime() - startNanos );
+                if ( remainingNanos <= 0 )
                 {
                     return Collections.emptyList();
                 }
-                monitorWait( ( timeoutInNanos - elapsed ) / 1_000_000 );
+
+                awaitInNanos( emptyCondition, remainingNanos );
             }
 
             final List<Tuple> tuples = new ArrayList<>( count );
@@ -176,9 +299,13 @@ public class BoundedTupleQueue implements TupleQueue
                 tuples.add( queue.poll() );
             }
 
-            monitorNotifyAll();
+            fullCondition.signalAll();
 
             return tuples;
+        }
+        finally
+        {
+            lock.unlock();
         }
     }
 
@@ -197,19 +324,25 @@ public class BoundedTupleQueue implements TupleQueue
     private List<Tuple> doPollTuplesAtLeast ( final int count, final long timeoutInNanos )
     {
         checkArgument( count >= 0 );
-        checkArgument( capacity >= count );
+        if ( capacityCheckEnabled )
+        {
+            checkArgument( capacity >= count );
+        }
 
-        final long startNanos = System.nanoTime();
-        synchronized ( monitor )
+        final long startNanos = nanoTime();
+
+        lock.lock();
+        try
         {
             while ( queue.size() < count )
             {
-                final long elapsed = System.nanoTime() - startNanos;
-                if ( elapsed >= timeoutInNanos )
+                final long remainingNanos = timeoutInNanos - ( nanoTime() - startNanos );
+                if ( remainingNanos <= 0 )
                 {
                     return Collections.emptyList();
                 }
-                monitorWait( ( timeoutInNanos - elapsed ) / 1_000_000 );
+
+                awaitInNanos( emptyCondition, remainingNanos );
             }
 
             final List<Tuple> tuples = new ArrayList<>( count );
@@ -220,9 +353,13 @@ public class BoundedTupleQueue implements TupleQueue
                 it.remove();
             }
 
-            monitorNotifyAll();
+            fullCondition.signalAll();
 
             return tuples;
+        }
+        finally
+        {
+            lock.unlock();
         }
     }
 
@@ -240,18 +377,25 @@ public class BoundedTupleQueue implements TupleQueue
 
     private boolean doAwaitMinimumSize ( final int expectedSize, final long timeoutInNanos )
     {
-        final long startNanos = System.nanoTime();
-        synchronized ( monitor )
+        final long startNanos = nanoTime();
+
+        lock.lock();
+        try
         {
             while ( queue.size() < expectedSize )
             {
-                final long elapsed = System.nanoTime() - startNanos;
-                if ( elapsed >= timeoutInNanos )
+                final long remainingNanos = timeoutInNanos - ( nanoTime() - startNanos );
+                if ( remainingNanos <= 0 )
                 {
                     return false;
                 }
-                monitorWait( ( timeoutInNanos - elapsed ) / 1_000_000 );
+
+                awaitInNanos( emptyCondition, remainingNanos );
             }
+        }
+        finally
+        {
+            lock.unlock();
         }
 
         return true;
@@ -260,51 +404,52 @@ public class BoundedTupleQueue implements TupleQueue
     @Override
     public int size ()
     {
-        synchronized ( monitor )
+        lock.lock();
+        try
         {
             return queue.size();
+        }
+        finally
+        {
+            lock.unlock();
         }
     }
 
     @Override
     public boolean isEmpty ()
     {
-        synchronized ( monitor )
+        lock.lock();
+        try
         {
             return queue.isEmpty();
         }
-    }
-
-    @Override
-    public boolean isNonEmpty ()
-    {
-        synchronized ( monitor )
+        finally
         {
-            return !queue.isEmpty();
+            lock.unlock();
         }
     }
 
     @Override
     public void clear ()
     {
-        synchronized ( monitor )
+        lock.lock();
+        try
         {
             queue.clear();
 
-            monitorNotifyAll();
+            fullCondition.signalAll();
+        }
+        finally
+        {
+            lock.unlock();
         }
     }
 
-    private void monitorWait ()
-    {
-        monitorWait( DEFAULT_WAIT_TIME_IN_MILLIS );
-    }
-
-    private void monitorWait ( final long durationInMillis )
+    private void awaitInNanos ( final Condition condition, final long durationInNanos )
     {
         try
         {
-            monitor.wait( durationInMillis > 0 ? durationInMillis : 1 );
+            condition.awaitNanos( durationInNanos );
         }
         catch ( InterruptedException e )
         {
@@ -313,9 +458,15 @@ public class BoundedTupleQueue implements TupleQueue
         }
     }
 
-    private void monitorNotifyAll ()
+    private int availableCapacity ()
     {
-        monitor.notifyAll();
+        if ( capacityCheckEnabled )
+        {
+            final int availableCapacity = capacity - queue.size();
+            return max( availableCapacity, 0 );
+        }
+
+        return Integer.MAX_VALUE;
     }
 
 }

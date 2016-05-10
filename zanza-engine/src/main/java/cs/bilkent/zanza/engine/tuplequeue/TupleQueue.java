@@ -17,7 +17,19 @@ public interface TupleQueue
     void ensureCapacity ( int capacity );
 
     /**
-     * Offers the given tuple blockingly
+     * Enables the capacity check such that the available capacity is considered while offering tuples into the queue
+     */
+    void enableCapacityCheck ();
+
+    /**
+     * Disables the capacity check such that offers calls are handled as an unbounded queue
+     */
+    void disableCapacityCheck ();
+
+    boolean isCapacityCheckEnabled ();
+
+    /**
+     * Offers the given tuple by blocking
      *
      * @param tuple
      *         tuple to be offered to the queue
@@ -25,7 +37,7 @@ public interface TupleQueue
     void offerTuple ( Tuple tuple );
 
     /**
-     * Attempts to offer the given tuple to the queue blockingly with the given timeout value in milliseconds. It may block if the queue
+     * Attempts to offer the given tuple to the queue by blocking with the given timeout value in milliseconds. It may block if the queue
      * has no capacity
      *
      * @param tuple
@@ -38,15 +50,23 @@ public interface TupleQueue
     boolean tryOfferTuple ( Tuple tuple, long timeoutInMillis );
 
     /**
-     * Offers given tuples to the queue blockingly. If the queue has no enough capacity, the call blocks until all tuples are added
+     * Offers the given tuple to the queue immediately with no capacity checking
+     *
+     * @param tuple
+     *         tuple to be offered to the queue
+     */
+    void forceOffer ( Tuple tuple );
+
+    /**
+     * Offers given tuples to the queue by blocking. If the queue has no enough capacity, the call blocks until all tuples are added
      *
      * @param tuples
-     *         tuples to be offered to the queue blockingly
+     *         tuples to be offered to the queue by blocking
      */
     void offerTuples ( List<Tuple> tuples );
 
     /**
-     * Attempts to offer given tuples to the queue blockingly with the given timeout value in milliseconds. If the queue has
+     * Attempts to offer given tuples to the queue by blocking with the given timeout value in milliseconds. If the queue has
      * no enough capacity within the timeout duration, the call returns before offering all tuples and reports number of tuples
      * offered to the queue
      *
@@ -58,6 +78,14 @@ public interface TupleQueue
      * @return number of tuples offered into the queue. Please note that it may be less than number of tuples in the first parameter
      */
     int tryOfferTuples ( List<Tuple> tuples, long timeoutInMillis );
+
+    /**
+     * Offers the given tuples to the queue immediately with no capacity checking
+     *
+     * @param tuples
+     *         tuples to be offered to the queue
+     */
+    void forceOfferTuples ( List<Tuple> tuples );
 
     /**
      * Polls tuples from the queue with the number equal to the given count. It may block or directly return an empty list if the queue has
@@ -133,7 +161,10 @@ public interface TupleQueue
 
     boolean isEmpty ();
 
-    boolean isNonEmpty ();
+    default boolean isNonEmpty ()
+    {
+        return !isEmpty();
+    }
 
     void clear ();
 

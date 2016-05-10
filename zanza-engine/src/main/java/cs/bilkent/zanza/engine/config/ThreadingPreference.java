@@ -1,6 +1,6 @@
 package cs.bilkent.zanza.engine.config;
 
-public enum ThreadingOption
+public enum ThreadingPreference
 {
     SINGLE_THREADED,
     MULTI_THREADED

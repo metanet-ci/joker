@@ -12,10 +12,10 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertTrue;
 
 
-public class UnboundedTupleQueueTest
+public class SingleThreadedTupleQueueTest
 {
 
-    private final TupleQueue queue = new UnboundedTupleQueue( 1 );
+    private final TupleQueue queue = new SingleThreadedTupleQueue( 1 );
 
     @Test
     public void shouldOfferSingleTuple ()

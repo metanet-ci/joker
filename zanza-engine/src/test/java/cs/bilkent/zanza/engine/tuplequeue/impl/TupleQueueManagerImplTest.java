@@ -4,15 +4,14 @@ import java.util.Collections;
 
 import org.junit.Test;
 
-import cs.bilkent.zanza.engine.config.ThreadingOption;
-import static cs.bilkent.zanza.engine.config.ThreadingOption.MULTI_THREADED;
+import cs.bilkent.zanza.engine.config.ThreadingPreference;
+import static cs.bilkent.zanza.engine.config.ThreadingPreference.MULTI_THREADED;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.GreedyDrainer;
 import cs.bilkent.zanza.flow.OperatorDefinition;
 import cs.bilkent.zanza.flow.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
-import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.spec.OperatorType;
 import static org.junit.Assert.assertEquals;
@@ -27,7 +26,7 @@ public class TupleQueueManagerImplTest
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotCreateTupleQueueContexteWithoutOperatorDefinition ()
     {
-        tupleQueueManager.createTupleQueueContext( null, ThreadingOption.SINGLE_THREADED, 1 );
+        tupleQueueManager.createTupleQueueContext( null, ThreadingPreference.SINGLE_THREADED, 1 );
     }
 
     @Test
@@ -60,7 +59,7 @@ public class TupleQueueManagerImplTest
                                                                               new OperatorConfig(),
                                                                               Collections.emptyList() );
         final TupleQueueContext tupleQueueContext = tupleQueueManager.createTupleQueueContext( operatorDefinition, MULTI_THREADED, 0 );
-        tupleQueueContext.add( new PortsToTuples( new Tuple() ) );
+        tupleQueueContext.offer( 0, Collections.singletonList( new Tuple() ) );
         assertTrue( tupleQueueManager.releaseTupleQueueContext( "op1", 0 ) );
         final GreedyDrainer greedyDrainer = new GreedyDrainer();
         tupleQueueContext.drain( greedyDrainer );
