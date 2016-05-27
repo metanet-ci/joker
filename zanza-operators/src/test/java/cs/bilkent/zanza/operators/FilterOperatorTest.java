@@ -5,15 +5,16 @@ import java.util.function.Predicate;
 
 import org.junit.Test;
 
-import cs.bilkent.zanza.operator.InvocationContext;
-import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
-import cs.bilkent.zanza.operator.InvocationResult;
-import cs.bilkent.zanza.operator.PortsToTuples;
+import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.SHUTDOWN;
+import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.SUCCESS;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.impl.InitializationContextImpl;
 import cs.bilkent.zanza.operator.impl.InvocationContextImpl;
+import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.ANY_NUMBER_OF_TUPLES;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
+import static cs.bilkent.zanza.operators.FilterOperator.PREDICATE_CONFIG_PARAMETER;
+import static cs.bilkent.zanza.operators.FilterOperator.TUPLE_COUNT_CONFIG_PARAMETER;
 import static cs.bilkent.zanza.operators.MapperOperatorTest.assertScheduleWhenTuplesAvailableStrategy;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
@@ -29,6 +30,12 @@ public class FilterOperatorTest
 
     private final Predicate<Tuple> positiveCountsPredicate = tuple -> tuple.getInteger( "count" ) > 0;
 
+    private final TuplesImpl input = new TuplesImpl( 1 );
+
+    private final TuplesImpl output = new TuplesImpl( 1 );
+
+    private final InvocationContextImpl invocationContext = new InvocationContextImpl( SUCCESS, input, output );
+
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithNoPredicate ()
     {
@@ -38,7 +45,7 @@ public class FilterOperatorTest
     @Test
     public void shouldInitializeWithPredicate ()
     {
-        initContext.getConfig().set( FilterOperator.PREDICATE_CONFIG_PARAMETER, positiveCountsPredicate );
+        initContext.getConfig().set( PREDICATE_CONFIG_PARAMETER, positiveCountsPredicate );
 
         final SchedulingStrategy strategy = operator.init( initContext );
 
@@ -48,7 +55,7 @@ public class FilterOperatorTest
     @Test
     public void shouldInitializeWithInvalidPredicate ()
     {
-        initContext.getConfig().set( FilterOperator.PREDICATE_CONFIG_PARAMETER, positiveCountsPredicate );
+        initContext.getConfig().set( PREDICATE_CONFIG_PARAMETER, positiveCountsPredicate );
 
         final SchedulingStrategy strategy = operator.init( initContext );
 
@@ -59,8 +66,8 @@ public class FilterOperatorTest
     public void shouldInitializeWithTupleCount ()
     {
         final int tupleCount = 5;
-        initContext.getConfig().set( FilterOperator.PREDICATE_CONFIG_PARAMETER, positiveCountsPredicate );
-        initContext.getConfig().set( FilterOperator.TUPLE_COUNT_CONFIG_PARAMETER, tupleCount );
+        initContext.getConfig().set( PREDICATE_CONFIG_PARAMETER, positiveCountsPredicate );
+        initContext.getConfig().set( TUPLE_COUNT_CONFIG_PARAMETER, tupleCount );
 
         final SchedulingStrategy strategy = operator.init( initContext );
 
@@ -70,33 +77,32 @@ public class FilterOperatorTest
     @Test
     public void shouldFilterMultipleTuplesForSuccessfulInvocation ()
     {
-        final PortsToTuples input = new PortsToTuples();
         input.add( new Tuple( "count", -1 ) );
         input.add( new Tuple( "count", 1 ) );
-        shouldFilterTuplesWithPositiveCount( new InvocationContextImpl( InvocationReason.SUCCESS, input ) );
+        shouldFilterTuplesWithPositiveCount( invocationContext );
     }
 
     @Test
     public void shouldFilterMultipleTuplesForErroneousInvocation ()
     {
-        final PortsToTuples input = new PortsToTuples();
         input.add( new Tuple( "count", -1 ) );
         input.add( new Tuple( "count", 1 ) );
-        shouldFilterTuplesWithPositiveCount( new InvocationContextImpl( InvocationReason.SHUTDOWN, input ) );
+        invocationContext.setReason( SHUTDOWN );
+        shouldFilterTuplesWithPositiveCount( invocationContext );
     }
 
-    private void shouldFilterTuplesWithPositiveCount ( final InvocationContext invocationContext )
+    private void shouldFilterTuplesWithPositiveCount ( final InvocationContextImpl invocationContext )
     {
-        initContext.getConfig().set( FilterOperator.PREDICATE_CONFIG_PARAMETER, positiveCountsPredicate );
+        initContext.getConfig().set( PREDICATE_CONFIG_PARAMETER, positiveCountsPredicate );
         operator.init( initContext );
 
-        final InvocationResult result = operator.invoke( invocationContext );
-        final List<Tuple> outputTuples = result.getOutputTuples().getTuplesByDefaultPort();
+        operator.invoke( invocationContext );
+        final List<Tuple> outputTuples = invocationContext.getOutput().getTuplesByDefaultPort();
 
         final long expectedCount = outputTuples.stream().filter( positiveCountsPredicate ).count();
 
         assertThat( outputTuples, hasSize( (int) expectedCount ) );
-        final List<Tuple> inputTuples = invocationContext.getInputTuples().getTuplesByDefaultPort();
+        final List<Tuple> inputTuples = invocationContext.getInput().getTuplesByDefaultPort();
         for ( Tuple outputTuple : outputTuples )
         {
             assertTrue( positiveCountsPredicate.test( outputTuple ) );

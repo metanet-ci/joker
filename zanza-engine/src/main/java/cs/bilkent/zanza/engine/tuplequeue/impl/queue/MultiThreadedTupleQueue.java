@@ -260,16 +260,28 @@ public class MultiThreadedTupleQueue implements TupleQueue
     @Override
     public List<Tuple> pollTuples ( final int count )
     {
-        return doPollTuples( count, Long.MAX_VALUE );
+        return doPollTuples( count, Long.MAX_VALUE, null );
+    }
+
+    @Override
+    public void pollTuples ( final int count, final List<Tuple> tuples )
+    {
+        doPollTuples( count, Long.MAX_VALUE, tuples );
     }
 
     @Override
     public List<Tuple> pollTuples ( final int count, final long timeoutInMillis )
     {
-        return doPollTuples( count, timeoutInMillis * 1_000_000 );
+        return doPollTuples( count, timeoutInMillis * 1_000_000, null );
     }
 
-    private List<Tuple> doPollTuples ( final int count, final long timeoutInNanos )
+    @Override
+    public void pollTuples ( final int count, final long timeoutInMillis, final List<Tuple> tuples )
+    {
+        doPollTuples( count, timeoutInMillis * 1_000_000, tuples );
+    }
+
+    private List<Tuple> doPollTuples ( final int count, final long timeoutInNanos, List<Tuple> tuples )
     {
         checkArgument( count >= 0 );
         if ( capacityCheckEnabled )
@@ -287,13 +299,17 @@ public class MultiThreadedTupleQueue implements TupleQueue
                 final long remainingNanos = timeoutInNanos - ( nanoTime() - startNanos );
                 if ( remainingNanos <= 0 )
                 {
-                    return Collections.emptyList();
+                    return tuples != null ? tuples : Collections.emptyList();
                 }
 
                 awaitInNanos( emptyCondition, remainingNanos );
             }
 
-            final List<Tuple> tuples = new ArrayList<>( count );
+            if ( tuples == null )
+            {
+                tuples = new ArrayList<>( count );
+            }
+
             for ( int i = 0; i < count; i++ )
             {
                 tuples.add( queue.poll() );
@@ -312,16 +328,28 @@ public class MultiThreadedTupleQueue implements TupleQueue
     @Override
     public List<Tuple> pollTuplesAtLeast ( final int count )
     {
-        return doPollTuplesAtLeast( count, Long.MAX_VALUE );
+        return doPollTuplesAtLeast( count, Long.MAX_VALUE, null );
+    }
+
+    @Override
+    public void pollTuplesAtLeast ( final int count, final List<Tuple> tuples )
+    {
+        doPollTuplesAtLeast( count, Long.MAX_VALUE, tuples );
     }
 
     @Override
     public List<Tuple> pollTuplesAtLeast ( final int count, final long timeoutInMillis )
     {
-        return doPollTuplesAtLeast( count, timeoutInMillis * 1_000_000 );
+        return doPollTuplesAtLeast( count, timeoutInMillis * 1_000_000, null );
     }
 
-    private List<Tuple> doPollTuplesAtLeast ( final int count, final long timeoutInNanos )
+    @Override
+    public void pollTuplesAtLeast ( final int count, final long timeoutInMillis, final List<Tuple> tuples )
+    {
+        doPollTuplesAtLeast( count, timeoutInMillis * 1_000_000, tuples );
+    }
+
+    private List<Tuple> doPollTuplesAtLeast ( final int count, final long timeoutInNanos, List<Tuple> tuples )
     {
         checkArgument( count >= 0 );
         if ( capacityCheckEnabled )
@@ -339,13 +367,17 @@ public class MultiThreadedTupleQueue implements TupleQueue
                 final long remainingNanos = timeoutInNanos - ( nanoTime() - startNanos );
                 if ( remainingNanos <= 0 )
                 {
-                    return Collections.emptyList();
+                    return tuples != null ? tuples : Collections.emptyList();
                 }
 
                 awaitInNanos( emptyCondition, remainingNanos );
             }
 
-            final List<Tuple> tuples = new ArrayList<>( count );
+            if ( tuples == null )
+            {
+                tuples = new ArrayList<>( count );
+            }
+
             final Iterator<Tuple> it = queue.iterator();
             while ( it.hasNext() )
             {

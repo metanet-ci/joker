@@ -4,7 +4,7 @@ package cs.bilkent.zanza.operator.scheduling;
 import java.util.concurrent.TimeUnit;
 
 
-public class ScheduleDelayed implements SchedulingStrategy
+public final class ScheduleDelayed implements SchedulingStrategy
 {
     private final long delayAmount;
 

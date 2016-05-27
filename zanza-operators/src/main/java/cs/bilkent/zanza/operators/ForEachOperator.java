@@ -4,11 +4,10 @@ import java.util.function.Consumer;
 
 import cs.bilkent.zanza.operator.InitializationContext;
 import cs.bilkent.zanza.operator.InvocationContext;
-import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
-import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
+import cs.bilkent.zanza.operator.Tuples;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
@@ -30,9 +29,8 @@ public class ForEachOperator implements Operator
 
     public static final String EXACT_TUPLE_COUNT_CONFIG_PARAMETER = "tupleCount";
 
-    private Consumer<Tuple> consumerFunc;
 
-    private int tupleCount;
+    private Consumer<Tuple> consumerFunc;
 
     @Override
     public SchedulingStrategy init ( final InitializationContext context )
@@ -40,13 +38,8 @@ public class ForEachOperator implements Operator
         final OperatorConfig config = context.getConfig();
 
         this.consumerFunc = config.getOrFail( CONSUMER_FUNCTION_CONFIG_PARAMETER );
-        this.tupleCount = config.getIntegerOrDefault( EXACT_TUPLE_COUNT_CONFIG_PARAMETER, 0 );
+        final int tupleCount = config.getIntegerOrDefault( EXACT_TUPLE_COUNT_CONFIG_PARAMETER, 0 );
 
-        return getTupleCountBasedSchedulingStrategy();
-    }
-
-    private SchedulingStrategy getTupleCountBasedSchedulingStrategy ()
-    {
         return tupleCount > 0
                ? scheduleWhenTuplesAvailableOnDefaultPort( TupleAvailabilityByCount.EXACT, tupleCount )
                : scheduleWhenTuplesAvailableOnDefaultPort( 1 );
@@ -54,14 +47,20 @@ public class ForEachOperator implements Operator
 
 
     @Override
-    public InvocationResult invoke ( final InvocationContext invocationContext )
+    public void invoke ( final InvocationContext invocationContext )
     {
-        final SchedulingStrategy nextScheduling = invocationContext.isSuccessfulInvocation()
-                                                  ? getTupleCountBasedSchedulingStrategy()
-                                                  : ScheduleNever.INSTANCE;
-        final PortsToTuples input = invocationContext.getInputTuples();
-        input.getTuplesByDefaultPort().stream().forEach( consumerFunc );
-        return new InvocationResult( nextScheduling, input );
+        final Tuples input = invocationContext.getInput();
+        final Tuples output = invocationContext.getOutput();
+
+        input.getTuplesByDefaultPort().stream().forEach( tuple -> {
+            consumerFunc.accept( tuple );
+            output.add( tuple );
+        } );
+
+        if ( invocationContext.isErroneousInvocation() )
+        {
+            invocationContext.setNextSchedulingStrategy( ScheduleNever.INSTANCE );
+        }
     }
 
 }

@@ -13,7 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Contains all the configuration information that can be used by an operator. Users can provide operator specific
  * configuration parameters using this class.
  */
-public class OperatorConfig implements Fields<String>
+public final class OperatorConfig implements Fields<String>
 {
     private final Map<String, Object> values = new HashMap<>();
 

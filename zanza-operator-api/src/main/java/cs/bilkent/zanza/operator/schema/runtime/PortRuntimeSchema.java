@@ -11,7 +11,7 @@ import static java.util.Collections.unmodifiableList;
 /**
  * Runtime representation of {@link PortSchema}
  */
-public class PortRuntimeSchema
+public final class PortRuntimeSchema
 {
 
     private final int portIndex;

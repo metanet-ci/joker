@@ -24,8 +24,7 @@ import cs.bilkent.zanza.operator.spec.OperatorType;
  * @see OperatorSchema
  * @see InitializationContext
  * @see InvocationContext
- * @see InvocationResult
- * @see PortsToTuples
+ * @see Tuples
  * @see Tuple
  */
 public interface Operator
@@ -58,25 +57,28 @@ public interface Operator
      * <p>
      * <p>
      * All the necessary information, such as input tuples, invocation reason, etc., about a particular invocation of the
-     * {@link #invoke(InvocationContext)} method is given in the {@link InvocationContext} object.
+     * {@link #invoke(InvocationContext)} method is given in the {@link InvocationContext} object. Additionally, output tuples and
+     * new scheduling strategy is also set via the {@link InvocationContext} object.
      * <p>
-     * The tuples sent by all incoming ports are contained within the {@link PortsToTuples} object that can be obtained via
-     * {@link InvocationContext#getInputTuples()}. This object is a read-only object such that any modifications within the invoke
+     * The tuples sent by all incoming ports are contained within the {@link Tuples} object that can be obtained via
+     * {@link InvocationContext#getInput()}. This object is a read-only object such that any modifications within the invoke
      * method can cause inconsistent behavior in the system. Additionally, the {@link Tuple} objects contained within the
-     * {@link PortsToTuples} should not be modified.
+     * {@link Tuples} should not be modified.
      * <p>
-     * {@link PortsToTuples} object in the {@link InvocationContext} or the {@link Tuple} objects it contains can be returned
-     * within the {@link InvocationResult} object as output.
+     * {@link Tuples} object in the {@link InvocationContext} or the {@link Tuple} objects it contains can be returned
+     * within the {@link Tuples} retrieved via {@link InvocationContext#getOutput()} object as output.
      * <p>
      * Invocation can be done due to the {@link SchedulingStrategy} of the operator or a system event that requires immediate
      * processing of the remaining tuples. Status of the invocation can be queried via {@link InvocationReason#isSuccessful()}.
      * If it is true, it means that invocation is done due to the given {@link SchedulingStrategy} and operator can continue to
      * operate normally by processing tuples, updating its state, producing new tuples etc. If it is false, there will be no more
      * invocations and all of the tuples provided with the {@link InvocationContext} must be processed.
+     * If the current invocation is not a successful invocation (i.e. {@link InvocationReason#isSuccessful()}),
+     * next invocation is not guaranteed.
      * <p>
-     * A {@link SchedulingStrategy} must be returned within the {@link InvocationResult} in order to specify the scheduling
-     * condition of the operator for the next invocation. If the current invocation is not a successful invocation
-     * (i.e. {@link InvocationReason#isSuccessful()}), the next invocation is not guaranteed.
+     * The {@link SchedulingStrategy} object provided via {@link Operator#init(InitializationContext)} is used for further invocations.
+     * If scheduling strategy needs to be changed during execution of the operator, new scheduling strategy can be set via
+     * {@link InvocationContext#setNextSchedulingStrategy(SchedulingStrategy)} method.
      * <p>
      * If type of the operator is {@link OperatorType#PARTITIONED_STATEFUL}, then all invocations are guaranteed to be done with
      * {@link Tuple} objects that have the same partition key.
@@ -95,13 +97,10 @@ public interface Operator
      * @param invocationContext
      *         all the necessary information about a particular invocation of the method, such as input tuples, invocation reason etc.
      *
-     * @return a {@link InvocationResult} object that contains the produced tuples that will be sent to output connections and a new
-     * {@link SchedulingStrategy} that will be used for the next invocation.
-     *
      * @see Tuple
      * @see InvocationContext
      */
-    InvocationResult invoke ( InvocationContext invocationContext );
+    void invoke ( InvocationContext invocationContext );
 
     /**
      * Invoked after the Engine terminates processing of an operator. All the resources allocated within the

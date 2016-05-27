@@ -4,12 +4,11 @@ import java.util.function.Function;
 
 import cs.bilkent.zanza.operator.InitializationContext;
 import cs.bilkent.zanza.operator.InvocationContext;
-import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
-import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
-import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
+import cs.bilkent.zanza.operator.Tuples;
+import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.ANY_NUMBER_OF_TUPLES;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
@@ -28,9 +27,8 @@ public class ConsoleAppenderOperator implements Operator
 
     public static final String TUPLE_COUNT_CONFIG_PARAMETER = "tupleCount";
 
-    private Function<Tuple, String> toStringFunction;
 
-    private int tupleCount;
+    private Function<Tuple, String> toStringFunction;
 
     @Override
     public SchedulingStrategy init ( final InitializationContext context )
@@ -48,19 +46,26 @@ public class ConsoleAppenderOperator implements Operator
             this.toStringFunction = Tuple::toString;
         }
 
-        this.tupleCount = config.getIntegerOrDefault( TUPLE_COUNT_CONFIG_PARAMETER, ANY_NUMBER_OF_TUPLES );
+        final int tupleCount = config.getIntegerOrDefault( TUPLE_COUNT_CONFIG_PARAMETER, ANY_NUMBER_OF_TUPLES );
 
         return scheduleWhenTuplesAvailableOnDefaultPort( tupleCount );
     }
 
     @Override
-    public InvocationResult invoke ( final InvocationContext invocationContext )
+    public void invoke ( final InvocationContext invocationContext )
     {
-        final PortsToTuples tuples = invocationContext.getInputTuples();
-        tuples.getTuplesByDefaultPort().stream().map( toStringFunction ).forEach( System.out::println );
+        final Tuples input = invocationContext.getInput();
+        final Tuples output = invocationContext.getOutput();
+        for ( Tuple tuple : input.getTuplesByDefaultPort() )
+        {
+            System.out.println( toStringFunction.apply( tuple ) );
+            output.add( tuple );
+        }
 
-        final ScheduleWhenTuplesAvailable next = scheduleWhenTuplesAvailableOnDefaultPort( tupleCount );
-        return new InvocationResult( next, tuples );
+        if ( invocationContext.isErroneousInvocation() )
+        {
+            invocationContext.setNextSchedulingStrategy( ScheduleNever.INSTANCE );
+        }
     }
 
 }

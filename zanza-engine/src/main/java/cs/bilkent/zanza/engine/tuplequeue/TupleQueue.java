@@ -26,6 +26,12 @@ public interface TupleQueue
      */
     void disableCapacityCheck ();
 
+
+    /**
+     * Returns true if capacity check is enabled for the queue
+     *
+     * @return true if capacity check is enabled for the queue
+     */
     boolean isCapacityCheckEnabled ();
 
     /**
@@ -99,6 +105,15 @@ public interface TupleQueue
     List<Tuple> pollTuples ( int count );
 
     /**
+     * Polls tuples from the queue with the number equal to the given count into the provided list. It may block or directly return an
+     * empty list if the queue has no enough number of tuples
+     *
+     * @param count
+     *         exact number of tuples to be polled from the queue
+     */
+    void pollTuples ( int count, List<Tuple> tuples );
+
+    /**
      * Polls tuples from the queue with the number equal to the given count. It may block if the queue has no enough number of tuples
      * within the given timeout duration
      *
@@ -113,6 +128,17 @@ public interface TupleQueue
     List<Tuple> pollTuples ( int count, long timeoutInMillis );
 
     /**
+     * Polls tuples from the queue with the number equal to the given count into the provided list. It may block if the queue has no
+     * enough number of tuples within the given timeout duration
+     *
+     * @param count
+     *         exact number of tuples to be polled from the queue
+     * @param timeoutInMillis
+     *         duration in milliseconds that is allowed for the call to be blocked if the queue has no enough number of tuples
+     */
+    void pollTuples ( int count, long timeoutInMillis, List<Tuple> tuples );
+
+    /**
      * Polls tuples from the queue with the number greater than or equal to the given count. It may block or directly return an empty list
      * if the queue has no enough number of tuples
      *
@@ -122,6 +148,16 @@ public interface TupleQueue
      * @return list of tuples polled from the queue. It may be an empty list if the queue has no enough number of tuples to be polled
      */
     List<Tuple> pollTuplesAtLeast ( int count );
+
+    /**
+     * Polls tuples from the queue with the number greater than or equal to the given count into the provided list. It may block or
+     * directly return an empty list
+     * if the queue has no enough number of tuples
+     *
+     * @param count
+     *         minimum number of tuples to be polled from the queue
+     */
+    void pollTuplesAtLeast ( int count, List<Tuple> tuples );
 
     /**
      * Polls tuples from the queue with the number greater than or equal to the given count. It may block if the queue has no
@@ -135,6 +171,17 @@ public interface TupleQueue
      * @return list of tuples polled from the queue. It may be an empty list if the queue has no enough number of tuples to be polled
      */
     List<Tuple> pollTuplesAtLeast ( int count, long timeoutInMillis );
+
+    /**
+     * Polls tuples from the queue with the number greater than or equal to the given count into the provided list. It may block if the
+     * queue has no enough number of tuples within the given timeout duration
+     *
+     * @param count
+     *         exact number of tuples to be polled from the queue
+     * @param timeoutInMillis
+     *         duration in milliseconds that is allowed for the call to be blocked if the queue has no enough number of tuples
+     */
+    void pollTuplesAtLeast ( int count, long timeoutInMillis, List<Tuple> tuples );
 
     /**
      * Returns true if the queue has number of tuples greater than or equal to the expected size. It may block or directly return an

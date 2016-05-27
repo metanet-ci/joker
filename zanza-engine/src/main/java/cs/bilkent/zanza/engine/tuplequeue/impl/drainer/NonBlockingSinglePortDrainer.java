@@ -6,9 +6,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
-import cs.bilkent.zanza.operator.PortsToTuples;
-import cs.bilkent.zanza.operator.PortsToTuplesAccessor;
 import cs.bilkent.zanza.operator.Tuple;
+import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.EXACT;
 
@@ -16,15 +15,24 @@ import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.T
 public class NonBlockingSinglePortDrainer implements TupleQueueDrainer
 {
 
-    private final int tupleCount;
+    private int tupleCount;
 
-    private final TupleAvailabilityByCount tupleAvailabilityByCount;
+    private TupleAvailabilityByCount tupleAvailabilityByCount;
 
-    private PortsToTuples portsToTuples;
+    private final TuplesImpl buffer = new TuplesImpl( 1 );
+
+    private final List<Tuple> tuples = buffer.getTuplesModifiable( DEFAULT_PORT_INDEX );
+
+    private TuplesImpl result;
 
     private Object key;
 
-    public NonBlockingSinglePortDrainer ( final int tupleCount, final TupleAvailabilityByCount tupleAvailabilityByCount )
+    public NonBlockingSinglePortDrainer ()
+    {
+
+    }
+
+    public void setParameters ( final TupleAvailabilityByCount tupleAvailabilityByCount, final int tupleCount )
     {
         checkArgument( tupleCount > 0 );
         checkArgument( tupleAvailabilityByCount != null );
@@ -39,27 +47,41 @@ public class NonBlockingSinglePortDrainer implements TupleQueueDrainer
         checkArgument( tupleQueues.length == 1 );
 
         final TupleQueue tupleQueue = tupleQueues[ 0 ];
-        final List<Tuple> tuples = ( tupleAvailabilityByCount == EXACT )
-                                   ? tupleQueue.pollTuples( tupleCount )
-                                   : tupleQueue.pollTuplesAtLeast( tupleCount );
+
+        if ( tupleAvailabilityByCount == EXACT )
+        {
+            tupleQueue.pollTuples( tupleCount, buffer.getTuplesModifiable( DEFAULT_PORT_INDEX ) );
+        }
+        else
+        {
+            tupleQueue.pollTuplesAtLeast( tupleCount, tuples );
+        }
+
         if ( !tuples.isEmpty() )
         {
-            portsToTuples = new PortsToTuples();
-            PortsToTuplesAccessor.addAll( portsToTuples, DEFAULT_PORT_INDEX, tuples );
+            this.result = buffer;
             this.key = key;
         }
     }
 
     @Override
-    public PortsToTuples getResult ()
+    public TuplesImpl getResult ()
     {
-        return portsToTuples;
+        return result;
     }
 
     @Override
     public Object getKey ()
     {
         return key;
+    }
+
+    @Override
+    public void reset ()
+    {
+        tuples.clear();
+        result = null;
+        key = null;
     }
 
 }

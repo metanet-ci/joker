@@ -155,6 +155,15 @@ public class PartitionedTupleQueueContext extends AbstractTupleQueueContext
     }
 
     @Override
+    public void ensureCapacity ( final int portIndex, final int capacity )
+    {
+        for ( TupleQueue[] tupleQueues : tupleQueuesByPartitionKeys.values() )
+        {
+            tupleQueues[ portIndex ].ensureCapacity( capacity );
+        }
+    }
+
+    @Override
     public void clear ()
     {
         LOGGER.info( "Clearing partitioned tuple queues of operator: {}", operatorId );

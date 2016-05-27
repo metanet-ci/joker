@@ -7,12 +7,10 @@ import java.util.stream.IntStream;
 
 import cs.bilkent.zanza.operator.InitializationContext;
 import cs.bilkent.zanza.operator.InvocationContext;
-import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
-import cs.bilkent.zanza.operator.PortsToTuples;
-import cs.bilkent.zanza.operator.PortsToTuples.PortToTuples;
 import cs.bilkent.zanza.operator.Tuple;
+import cs.bilkent.zanza.operator.Tuples;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST_BUT_SAME_ON_ALL_PORTS;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAll;
@@ -43,7 +41,7 @@ public class BarrierOperator implements Operator
 
         private final TupleValueMergePolicy mergePolicy;
 
-        public TupleMerger ( final TupleValueMergePolicy mergePolicy )
+        TupleMerger ( final TupleValueMergePolicy mergePolicy )
         {
             this.mergePolicy = mergePolicy;
         }
@@ -84,37 +82,30 @@ public class BarrierOperator implements Operator
     }
 
 
-    private BinaryOperator<Tuple> tupleMergeFunc;
+    private int inputPortCount;
 
     private int[] inputPorts;
 
+    private BinaryOperator<Tuple> tupleMergeFunc;
 
     @Override
     public SchedulingStrategy init ( final InitializationContext context )
     {
         final OperatorConfig config = context.getConfig();
 
+        this.inputPortCount = context.getInputPortCount();
+        this.inputPorts = IntStream.range( 0, inputPortCount ).toArray();
         final TupleValueMergePolicy mergePolicy = config.getOrFail( MERGE_POLICY_CONfIG_PARAMETER );
         this.tupleMergeFunc = new TupleMerger( mergePolicy );
-        this.inputPorts = IntStream.range( 0, context.getInputPortCount() ).toArray();
 
-        return getSchedulingStrategyForInputPorts();
-    }
-
-    private SchedulingStrategy getSchedulingStrategyForInputPorts ()
-    {
-        return scheduleWhenTuplesAvailableOnAll( AT_LEAST_BUT_SAME_ON_ALL_PORTS, 1, inputPorts );
+        return scheduleWhenTuplesAvailableOnAll( AT_LEAST_BUT_SAME_ON_ALL_PORTS, context.getInputPortCount(), 1, inputPorts );
     }
 
     @Override
-    public InvocationResult invoke ( final InvocationContext invocationContext )
+    public void invoke ( final InvocationContext invocationContext )
     {
-        final PortsToTuples output = new PortsToTuples();
-        final SchedulingStrategy next = invocationContext.isSuccessfulInvocation()
-                                        ? getSchedulingStrategyForInputPorts()
-                                        : ScheduleNever.INSTANCE;
-
-        final PortsToTuples input = invocationContext.getInputTuples();
+        final Tuples input = invocationContext.getInput();
+        final Tuples output = invocationContext.getOutput();
 
         final Optional<Integer> tupleCountOpt = IntStream.of( inputPorts )
                                                          .mapToObj( portIndex -> input.getTuples( portIndex ).size() )
@@ -128,15 +119,18 @@ public class BarrierOperator implements Operator
         for ( int i = 0; i < tupleCount; i++ )
         {
             Tuple prev = new Tuple();
-            for ( PortToTuples portToTuples : input.getPortToTuplesList() )
+            for ( int j = 0; j < inputPortCount; j++ )
             {
-                final Tuple tuple = portToTuples.getTuples().get( i );
+                final Tuple tuple = input.getTupleOrFail( j, i );
                 prev = tupleMergeFunc.apply( prev, tuple );
             }
 
             output.add( prev );
         }
 
-        return new InvocationResult( next, output );
+        if ( invocationContext.isErroneousInvocation() )
+        {
+            invocationContext.setNextSchedulingStrategy( ScheduleNever.INSTANCE );
+        }
     }
 }

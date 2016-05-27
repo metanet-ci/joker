@@ -5,13 +5,11 @@ import java.util.function.BiFunction;
 import org.junit.Test;
 
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
-import cs.bilkent.zanza.operator.InvocationContext;
-import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
-import cs.bilkent.zanza.operator.InvocationResult;
-import cs.bilkent.zanza.operator.PortsToTuples;
+import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.SUCCESS;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.impl.InitializationContextImpl;
 import cs.bilkent.zanza.operator.impl.InvocationContextImpl;
+import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import cs.bilkent.zanza.operator.kvstore.KVStore;
 import cs.bilkent.zanza.operator.kvstore.impl.InMemoryKVStore;
 import cs.bilkent.zanza.operator.kvstore.impl.KeyDecoratedKVStore;
@@ -27,6 +25,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 
@@ -39,11 +38,13 @@ public class TupleCountBasedWindowReducerOperatorTest
 
     private final InitializationContextImpl initContext = new InitializationContextImpl();
 
-    private final PortsToTuples input = new PortsToTuples();
+    private final TuplesImpl input = new TuplesImpl( 1 );
+
+    private final TuplesImpl output = new TuplesImpl( 1 );
 
     private final KVStore kvStore = new KeyDecoratedKVStore( TUPLE_PARTITION_KEY, new InMemoryKVStore() );
 
-    private final InvocationContext invocationContext = new InvocationContextImpl( InvocationReason.SUCCESS, input, kvStore );
+    private final InvocationContextImpl invocationContext = new InvocationContextImpl( SUCCESS, input, output, kvStore );
 
     private final BiFunction<Tuple, Tuple, Tuple> adder = ( tuple1, tuple2 ) -> new Tuple( "count",
                                                                                            tuple1.getInteger( "count" ) + tuple2.getInteger(
@@ -82,10 +83,9 @@ public class TupleCountBasedWindowReducerOperatorTest
 
         input.add( new Tuple( 1, "count", 1 ) );
 
-        final InvocationResult result = operator.invoke( invocationContext );
-        final PortsToTuples output = result.getOutputTuples();
+        operator.invoke( invocationContext );
 
-        assertStrategy( result.getSchedulingStrategy() );
+        assertNull( invocationContext.getSchedulingStrategy() );
         assertThat( output.getTuplesByDefaultPort(), hasSize( 0 ) );
 
         assertWindow( 0, 1 );
@@ -101,10 +101,9 @@ public class TupleCountBasedWindowReducerOperatorTest
 
         input.add( new Tuple( 1, "count", 1 ) );
 
-        final InvocationResult result = operator.invoke( invocationContext );
-        final PortsToTuples output = result.getOutputTuples();
+        operator.invoke( invocationContext );
 
-        assertStrategy( result.getSchedulingStrategy() );
+        assertNull( invocationContext.getSchedulingStrategy() );
         assertThat( output.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 0 ) );
 
         assertWindow( 0, 1 );
@@ -119,13 +118,13 @@ public class TupleCountBasedWindowReducerOperatorTest
 
         input.add( new Tuple( "count", 1 ) );
         input.add( new Tuple( "count", 2 ) );
-        final InvocationResult result = operator.invoke( invocationContext );
-        final PortsToTuples output = result.getOutputTuples();
 
-        assertStrategy( result.getSchedulingStrategy() );
+        operator.invoke( invocationContext );
+
+        assertNull( invocationContext.getSchedulingStrategy() );
         assertThat( output.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
 
-        final Tuple tuple = output.getTuple( DEFAULT_PORT_INDEX, 0 );
+        final Tuple tuple = output.getTupleOrFail( DEFAULT_PORT_INDEX, 0 );
         assertOutput( tuple, TUPLE_PARTITION_KEY, 0, 3 );
         assertWindow( 1, 0 );
         assertAccumulatorNotExist();
@@ -140,13 +139,13 @@ public class TupleCountBasedWindowReducerOperatorTest
         input.add( new Tuple( "count", 1 ) );
         input.add( new Tuple( "count", 2 ) );
         input.add( new Tuple( "count", 3 ) );
-        final InvocationResult result = operator.invoke( invocationContext );
-        final PortsToTuples output = result.getOutputTuples();
 
-        assertStrategy( result.getSchedulingStrategy() );
+        operator.invoke( invocationContext );
+
+        assertNull( invocationContext.getSchedulingStrategy() );
         assertThat( output.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
 
-        assertOutput( output.getTuple( DEFAULT_PORT_INDEX, 0 ), TUPLE_PARTITION_KEY, 0, 3 );
+        assertOutput( output.getTupleOrFail( DEFAULT_PORT_INDEX, 0 ), TUPLE_PARTITION_KEY, 0, 3 );
         assertWindow( 1, 1 );
         assertAccumulator( 3 );
     }
@@ -160,13 +159,13 @@ public class TupleCountBasedWindowReducerOperatorTest
 
         input.add( new Tuple( "count", 1 ) );
         input.add( new Tuple( "count", 2 ) );
-        final InvocationResult result = operator.invoke( invocationContext );
-        final PortsToTuples output = result.getOutputTuples();
 
-        assertStrategy( result.getSchedulingStrategy() );
+        operator.invoke( invocationContext );
+
+        assertNull( invocationContext.getSchedulingStrategy() );
         assertThat( output.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
 
-        assertOutput( output.getTuple( DEFAULT_PORT_INDEX, 0 ), TUPLE_PARTITION_KEY, 0, 6 );
+        assertOutput( output.getTupleOrFail( DEFAULT_PORT_INDEX, 0 ), TUPLE_PARTITION_KEY, 0, 6 );
         assertWindow( 1, 0 );
         assertAccumulator( 3 );
     }
@@ -181,13 +180,13 @@ public class TupleCountBasedWindowReducerOperatorTest
         input.add( new Tuple( "count", 1 ) );
         input.add( new Tuple( "count", 2 ) );
         input.add( new Tuple( "count", 3 ) );
-        final InvocationResult result = operator.invoke( invocationContext );
-        final PortsToTuples output = result.getOutputTuples();
 
-        assertStrategy( result.getSchedulingStrategy() );
+        operator.invoke( invocationContext );
+
+        assertNull( invocationContext.getSchedulingStrategy() );
         assertThat( output.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
 
-        assertOutput( output.getTuple( DEFAULT_PORT_INDEX, 0 ), TUPLE_PARTITION_KEY, 0, 7 );
+        assertOutput( output.getTupleOrFail( DEFAULT_PORT_INDEX, 0 ), TUPLE_PARTITION_KEY, 0, 7 );
         assertWindow( 1, 1 );
         assertAccumulator( 7 );
     }

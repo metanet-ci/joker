@@ -1,51 +1,46 @@
 package cs.bilkent.zanza.engine.tuplequeue.impl.drainer;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
-import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.PortToTupleCount;
-import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount;
 
 
 public class BlockingMultiPortDisjunctiveDrainer extends MultiPortDrainer
 {
 
-    private int timeoutInMillis;
+    private final long timeoutInMillisPerQueue;
 
-    public BlockingMultiPortDisjunctiveDrainer ( final TupleAvailabilityByCount tupleAvailabilityByCount,
-                                                 final List<PortToTupleCount> tupleCountByPortIndex,
-                                                 final int timeoutInMillis )
+    public BlockingMultiPortDisjunctiveDrainer ( final int inputPortCount, final long timeoutInMillis )
     {
-        super( tupleAvailabilityByCount, tupleCountByPortIndex );
-        this.timeoutInMillis = timeoutInMillis;
+        super( inputPortCount );
+        this.timeoutInMillisPerQueue = (long) Math.ceil( timeoutInMillis / inputPortCount );
     }
 
     @Override
-    protected List<PortToTupleCount> checkQueueSizes ( final TupleQueue[] tupleQueues )
+    protected int[] checkQueueSizes ( final TupleQueue[] tupleQueues )
     {
-        final int timeoutInMillisPerQueue = (int) Math.ceil( timeoutInMillis / tupleQueues.length );
-        List<PortToTupleCount> satisfied = null;
-
-        for ( PortToTupleCount p : tupleCountByPortIndex )
+        int[] tupleCounts = null;
+        for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
         {
-            final TupleQueue tupleQueue = tupleQueues[ p.portIndex ];
-            if ( satisfied == null )
+            final int tupleCount = this.tupleCounts[ portIndex ];
+            final TupleQueue tupleQueue = tupleQueues[ portIndex ];
+            if ( tupleCounts == null )
             {
-                if ( tupleQueue.awaitMinimumSize( p.tupleCount, timeoutInMillisPerQueue ) )
+                if ( tupleQueue.awaitMinimumSize( tupleCount, timeoutInMillisPerQueue ) )
                 {
-                    satisfied = new ArrayList<>( tupleCountByPortIndex.size() );
-                    satisfied.add( p );
+                    tupleCounts = new int[ inputPortCount ];
+                    tupleCounts[ portIndex ] = tupleCount;
                 }
             }
-            else if ( tupleQueue.size() >= p.tupleCount )
+            else if ( tupleQueue.size() >= tupleCount )
             {
-                satisfied.add( p );
+                tupleCounts[ portIndex ] = tupleCount;
+            }
+            else
+            {
+                tupleCounts[ portIndex ] = NO_TUPLES_AVAILABLE;
             }
         }
 
-        return satisfied != null ? satisfied : Collections.emptyList();
+        return tupleCounts;
     }
 
 }

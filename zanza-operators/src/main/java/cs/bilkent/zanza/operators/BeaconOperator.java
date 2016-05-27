@@ -6,11 +6,10 @@ import java.util.stream.IntStream;
 
 import cs.bilkent.zanza.operator.InitializationContext;
 import cs.bilkent.zanza.operator.InvocationContext;
-import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
-import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
+import cs.bilkent.zanza.operator.Tuples;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
@@ -28,6 +27,7 @@ public class BeaconOperator implements Operator
     public static final String TUPLE_GENERATOR_CONFIG_PARAMETER = "tupleGenerator";
 
     public static final String TUPLE_COUNT_CONFIG_PARAMETER = "tupleCount";
+
 
     private Function<Random, Tuple> tupleGeneratorFunc;
 
@@ -47,15 +47,15 @@ public class BeaconOperator implements Operator
     }
 
     @Override
-    public InvocationResult invoke ( final InvocationContext invocationContext )
+    public void invoke ( final InvocationContext invocationContext )
     {
-        final PortsToTuples output = IntStream.range( 0, tupleCount )
-                                              .mapToObj( ( c ) -> tupleGeneratorFunc.apply( random ) )
-                                              .collect( PortsToTuples.COLLECT_TO_DEFAULT_PORT );
-        final SchedulingStrategy next = invocationContext.isSuccessfulInvocation()
-                                        ? ScheduleWhenAvailable.INSTANCE
-                                        : ScheduleNever.INSTANCE;
+        final Tuples output = invocationContext.getOutput();
 
-        return new InvocationResult( next, output );
+        IntStream.range( 0, tupleCount ).mapToObj( ( c ) -> tupleGeneratorFunc.apply( random ) ).forEach( output::add );
+
+        if ( invocationContext.isErroneousInvocation() )
+        {
+            invocationContext.setNextSchedulingStrategy( ScheduleNever.INSTANCE );
+        }
     }
 }

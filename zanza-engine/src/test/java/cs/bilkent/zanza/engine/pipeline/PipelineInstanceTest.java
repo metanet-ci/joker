@@ -6,11 +6,11 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
+import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import cs.bilkent.zanza.engine.exception.InitializationException;
 import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
-import cs.bilkent.zanza.operator.InvocationResult;
-import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
+import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
@@ -41,17 +41,20 @@ public class PipelineInstanceTest
     @Mock
     private OperatorInstance operator2;
 
+    @Mock
+    private ZanzaConfig config;
+
     private PipelineInstance pipeline;
 
     private final SchedulingStrategy continuingSchedulingStrategy = ScheduleWhenAvailable.INSTANCE;
 
     private final SchedulingStrategy terminatingSchedulingStrategy = ScheduleNever.INSTANCE;
 
-    private final PortsToTuples upstreamInput1 = new PortsToTuples();
+    private final TuplesImpl upstreamInput1 = new TuplesImpl( 1 );
 
-    private final PortsToTuples upstreamInput2 = new PortsToTuples();
+    private final TuplesImpl upstreamInput2 = new TuplesImpl( 1 );
 
-    private final PortsToTuples output = new PortsToTuples();
+    private final TuplesImpl output = new TuplesImpl( 1 );
 
     @Before
     public void before ()
@@ -66,21 +69,21 @@ public class PipelineInstanceTest
     @Test
     public void shouldInitOperatorsSuccessfully ()
     {
-        pipeline.init();
+        pipeline.init( config );
 
-        verify( operator0 ).init();
-        verify( operator1 ).init();
-        verify( operator2 ).init();
+        verify( operator0 ).init( config );
+        verify( operator1 ).init( config );
+        verify( operator2 ).init( config );
     }
 
     @Test
     public void shouldShutdownInitializedOperatorsWhenAnOperatorFailsToInit ()
     {
-        doThrow( new InitializationException( "" ) ).when( operator1 ).init();
+        doThrow( new InitializationException( "" ) ).when( operator1 ).init( config );
 
         try
         {
-            pipeline.init();
+            pipeline.init( config );
             fail();
         }
         catch ( InitializationException expected )
@@ -88,17 +91,17 @@ public class PipelineInstanceTest
 
         }
 
-        verify( operator0 ).init();
+        verify( operator0 ).init( config );
         verify( operator0 ).shutdown();
-        verify( operator1 ).init();
+        verify( operator1 ).init( config );
         verify( operator1 ).shutdown();
-        verify( operator2, never() ).init();
+        verify( operator2, never() ).init( config );
     }
 
     @Test
     public void shouldShutdownOperators ()
     {
-        pipeline.init();
+        pipeline.init( config );
         pipeline.shutdown();
 
         verify( operator0 ).shutdown();
@@ -109,7 +112,7 @@ public class PipelineInstanceTest
     @Test
     public void shouldShutdownOperatorsOnlyOnce ()
     {
-        pipeline.init();
+        pipeline.init( config );
         pipeline.shutdown();
         pipeline.shutdown();
 
@@ -121,13 +124,13 @@ public class PipelineInstanceTest
     @Test
     public void shouldInvokeAllOperatorsWithContinuingSchedulingStrategies ()
     {
-        pipeline.init();
+        pipeline.init( config );
 
-        when( operator0.invoke( null ) ).thenReturn( continuingResult( upstreamInput1 ) );
-        when( operator1.invoke( upstreamInput1 ) ).thenReturn( continuingResult( upstreamInput2 ) );
-        when( operator2.invoke( upstreamInput2 ) ).thenReturn( continuingResult( output ) );
+        mockOperator( operator0, null, continuingSchedulingStrategy, upstreamInput1 );
+        mockOperator( operator1, upstreamInput1, continuingSchedulingStrategy, upstreamInput2 );
+        mockOperator( operator2, upstreamInput2, continuingSchedulingStrategy, output );
 
-        final PortsToTuples result = pipeline.invoke();
+        final TuplesImpl result = pipeline.invoke();
 
         verify( operator0 ).invoke( null );
         verify( operator1 ).invoke( upstreamInput1 );
@@ -141,13 +144,13 @@ public class PipelineInstanceTest
     @Test
     public void shouldInvokeAllOperatorsWhenLastOperatorReturnsTerminatingSchedulingStrategy ()
     {
-        pipeline.init();
+        pipeline.init( config );
 
-        when( operator0.invoke( null ) ).thenReturn( continuingResult( upstreamInput1 ) );
-        when( operator1.invoke( upstreamInput1 ) ).thenReturn( continuingResult( upstreamInput2 ) );
-        when( operator2.invoke( upstreamInput2 ) ).thenReturn( terminatingResult( output ) );
+        mockOperator( operator0, null, continuingSchedulingStrategy, upstreamInput1 );
+        mockOperator( operator1, upstreamInput1, continuingSchedulingStrategy, upstreamInput2 );
+        mockOperator( operator2, upstreamInput2, terminatingSchedulingStrategy, output );
 
-        final PortsToTuples result = pipeline.invoke();
+        final TuplesImpl result = pipeline.invoke();
 
         verify( operator0 ).invoke( null );
         verify( operator1 ).invoke( upstreamInput1 );
@@ -161,13 +164,13 @@ public class PipelineInstanceTest
     @Test
     public void shouldForceInvokeOperatorsSubsequentOfTerminatingSchedulingStrategy ()
     {
-        pipeline.init();
+        pipeline.init( config );
 
-        when( operator0.invoke( null ) ).thenReturn( continuingResult( upstreamInput1 ) );
-        when( operator1.invoke( upstreamInput1 ) ).thenReturn( terminatingResult( upstreamInput2 ) );
+        mockOperator( operator0, null, continuingSchedulingStrategy, upstreamInput1 );
+        mockOperator( operator1, upstreamInput1, terminatingSchedulingStrategy, upstreamInput2 );
         when( operator2.forceInvoke( upstreamInput2, InvocationReason.INPUT_PORT_CLOSED ) ).thenReturn( output );
 
-        final PortsToTuples result = pipeline.invoke();
+        final TuplesImpl result = pipeline.invoke();
 
         verify( operator0 ).invoke( null );
         verify( operator1 ).invoke( upstreamInput1 );
@@ -182,13 +185,13 @@ public class PipelineInstanceTest
     @Test
     public void shouldForceInvokeOperatorsSubsequentOfTerminatingSchedulingStrategy2 ()
     {
-        pipeline.init();
+        pipeline.init( config );
 
-        when( operator0.invoke( null ) ).thenReturn( terminatingResult( upstreamInput1 ) );
+        mockOperator( operator0, null, terminatingSchedulingStrategy, upstreamInput1 );
         when( operator1.forceInvoke( upstreamInput1, InvocationReason.INPUT_PORT_CLOSED ) ).thenReturn( upstreamInput2 );
         when( operator2.forceInvoke( upstreamInput2, InvocationReason.INPUT_PORT_CLOSED ) ).thenReturn( output );
 
-        final PortsToTuples result = pipeline.invoke();
+        final TuplesImpl result = pipeline.invoke();
 
         verify( operator0 ).invoke( null );
         verify( operator1 ).forceInvoke( upstreamInput1, InvocationReason.INPUT_PORT_CLOSED );
@@ -204,14 +207,14 @@ public class PipelineInstanceTest
     @Test
     public void shouldForceInvokeOperatorsSubsequentOfTerminatingSchedulingStrategyOnlyOnce ()
     {
-        pipeline.init();
+        pipeline.init( config );
 
-        when( operator0.invoke( null ) ).thenReturn( continuingResult( upstreamInput1 ) );
-        when( operator1.invoke( upstreamInput1 ) ).thenReturn( terminatingResult( upstreamInput2 ) );
+        mockOperator( operator0, null, continuingSchedulingStrategy, upstreamInput1 );
+        mockOperator( operator1, upstreamInput1, terminatingSchedulingStrategy, upstreamInput2 );
         when( operator2.forceInvoke( upstreamInput2, InvocationReason.INPUT_PORT_CLOSED ) ).thenReturn( output );
 
-        final PortsToTuples result1 = pipeline.invoke();
-        final PortsToTuples result2 = pipeline.invoke();
+        final TuplesImpl result1 = pipeline.invoke();
+        final TuplesImpl result2 = pipeline.invoke();
 
         verify( operator0, times( 2 ) ).invoke( null );
         verify( operator1, times( 1 ) ).invoke( upstreamInput1 );
@@ -229,11 +232,12 @@ public class PipelineInstanceTest
     @Test
     public void shouldForceInvokeNotReturnOutputTuplesAfterDownstreamOperatorsAfterAlreadyShutdown ()
     {
-        pipeline.init();
+        pipeline.init( config );
 
-        when( operator0.invoke( null ) ).thenReturn( continuingResult( upstreamInput1 ), terminatingResult( upstreamInput1 ) );
-        when( operator1.invoke( upstreamInput1 ) ).thenReturn( continuingResult( upstreamInput2 ) );
-        when( operator2.invoke( upstreamInput2 ) ).thenReturn( terminatingResult( output ) );
+        when( operator0.invoke( null ) ).thenReturn( upstreamInput1, upstreamInput1 );
+        when( operator0.schedulingStrategy() ).thenReturn( continuingSchedulingStrategy, continuingSchedulingStrategy );
+        mockOperator( operator1, upstreamInput1, continuingSchedulingStrategy, upstreamInput2 );
+        mockOperator( operator2, upstreamInput2, terminatingSchedulingStrategy, output );
 
         when( operator1.forceInvoke( upstreamInput1, InvocationReason.INPUT_PORT_CLOSED ) ).thenReturn( upstreamInput2 );
 
@@ -245,26 +249,26 @@ public class PipelineInstanceTest
     @Test
     public void shouldForceInvokeReturnOutputTuplesOnLastOperator ()
     {
-        pipeline.init();
+        pipeline.init( config );
 
-        when( operator0.invoke( null ) ).thenReturn( continuingResult( upstreamInput1 ), terminatingResult( upstreamInput1 ) );
-        when( operator1.invoke( upstreamInput1 ) ).thenReturn( terminatingResult( upstreamInput2 ) );
+        when( operator0.invoke( null ) ).thenReturn( upstreamInput1, upstreamInput1 );
+        when( operator0.schedulingStrategy() ).thenReturn( continuingSchedulingStrategy, terminatingSchedulingStrategy );
+        mockOperator( operator1, upstreamInput1, terminatingSchedulingStrategy, upstreamInput2 );
 
         when( operator2.forceInvoke( upstreamInput2, InvocationReason.INPUT_PORT_CLOSED ) ).thenReturn( output );
 
-        final PortsToTuples result = pipeline.invoke();
+        final TuplesImpl result = pipeline.invoke();
 
         assertTrue( result == output );
     }
 
-    private InvocationResult continuingResult ( final PortsToTuples output )
+    private void mockOperator ( final OperatorInstance operator,
+                                final TuplesImpl input,
+                                final SchedulingStrategy schedulingStrategy,
+                                final TuplesImpl output )
     {
-        return new InvocationResult( continuingSchedulingStrategy, output );
-    }
-
-    private InvocationResult terminatingResult ( final PortsToTuples output )
-    {
-        return new InvocationResult( terminatingSchedulingStrategy, output );
+        when( operator.invoke( input ) ).thenReturn( output );
+        when( operator.schedulingStrategy() ).thenReturn( schedulingStrategy );
     }
 
 }

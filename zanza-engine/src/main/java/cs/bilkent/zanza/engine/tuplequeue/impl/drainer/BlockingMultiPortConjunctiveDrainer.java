@@ -1,40 +1,32 @@
 package cs.bilkent.zanza.engine.tuplequeue.impl.drainer;
 
-import java.util.Collections;
-import java.util.List;
-
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
-import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.PortToTupleCount;
-import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount;
 
 public class BlockingMultiPortConjunctiveDrainer extends MultiPortDrainer
 {
 
-    private int timeoutInMillis;
+    private final long timeoutInMillisPerQueue;
 
-    public BlockingMultiPortConjunctiveDrainer ( final TupleAvailabilityByCount tupleAvailabilityByCount,
-                                                 final List<PortToTupleCount> tupleCountByPortIndex,
-                                                 final int timeoutInMillis )
+    public BlockingMultiPortConjunctiveDrainer ( final int inputPortCount, final long timeoutInMillis )
     {
-        super( tupleAvailabilityByCount, tupleCountByPortIndex );
-        this.timeoutInMillis = timeoutInMillis;
+        super( inputPortCount );
+        this.timeoutInMillisPerQueue = (long) Math.ceil( timeoutInMillis / inputPortCount );
     }
 
     @Override
-    protected List<PortToTupleCount> checkQueueSizes ( final TupleQueue[] tupleQueues )
+    protected int[] checkQueueSizes ( final TupleQueue[] tupleQueues )
     {
-        final int timeoutInMillisPerQueue = (int) Math.ceil( timeoutInMillis / tupleQueues.length );
-
         int satisfied = 0;
-        for ( PortToTupleCount p : tupleCountByPortIndex )
+        for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
         {
-            if ( tupleQueues[ p.portIndex ].awaitMinimumSize( p.tupleCount, timeoutInMillisPerQueue ) )
+            final int tupleCount = tupleCounts[ portIndex ];
+            if ( tupleCount == 0 || tupleQueues[ portIndex ].awaitMinimumSize( tupleCount, timeoutInMillisPerQueue ) )
             {
                 satisfied++;
             }
         }
 
-        return satisfied == tupleCountByPortIndex.size() ? tupleCountByPortIndex : Collections.emptyList();
+        return satisfied == inputPortCount ? tupleCounts : null;
     }
 
 }

@@ -18,7 +18,7 @@ public class PipelineInstanceId
         this.replicaId = replicaId;
         this.pipelineId = pipelineId;
         this.regionId = regionId;
-        this.str = "PP<" + regionId + "_" + pipelineId + "_" + replicaId + ">";
+        this.str = "PP[" + regionId + "_" + pipelineId + "_" + replicaId + "]";
         ;
         this.hashCode = str.hashCode();
     }

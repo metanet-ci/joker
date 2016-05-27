@@ -11,7 +11,6 @@ import cs.bilkent.zanza.flow.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.zanza.flow.PortRuntimeSchemaBuilder;
 import cs.bilkent.zanza.operator.InitializationContext;
 import cs.bilkent.zanza.operator.InvocationContext;
-import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
@@ -489,9 +488,9 @@ public class RegionFormerImplRegionTest
         }
 
         @Override
-        public InvocationResult invoke ( final InvocationContext invocationContext )
+        public void invoke ( final InvocationContext invocationContext )
         {
-            return null;
+
         }
 
     }
@@ -508,9 +507,9 @@ public class RegionFormerImplRegionTest
         }
 
         @Override
-        public InvocationResult invoke ( final InvocationContext invocationContext )
+        public void invoke ( final InvocationContext invocationContext )
         {
-            return null;
+
         }
 
     }
@@ -527,9 +526,9 @@ public class RegionFormerImplRegionTest
         }
 
         @Override
-        public InvocationResult invoke ( final InvocationContext invocationContext )
+        public void invoke ( final InvocationContext invocationContext )
         {
-            return null;
+
         }
 
     }

@@ -13,9 +13,8 @@ import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.GreedyDrainer;
 import cs.bilkent.zanza.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
-import cs.bilkent.zanza.operator.PortsToTuples;
-import cs.bilkent.zanza.operator.PortsToTuples.PortToTuples;
 import cs.bilkent.zanza.operator.Tuple;
+import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import static junit.framework.TestCase.assertNotNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -84,14 +83,14 @@ public class DefaultTupleQueueContextTest
     {
         final TupleQueueContext context = new DefaultTupleQueueContext( "op1", inputPortCount, threadingPreference, tupleQueueConstructor );
 
-        final PortsToTuples input = addTuples( inputPortCount, tupleCount );
+        final TuplesImpl input = addTuples( inputPortCount, tupleCount );
 
-        for ( PortToTuples port : input.getPortToTuplesList() )
+        for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
         {
-            context.offer( port.getPortIndex(), port.getTuples() );
+            context.offer( portIndex, input.getTuples( portIndex ) );
         }
 
-        final GreedyDrainer drainer = new GreedyDrainer();
+        final GreedyDrainer drainer = new GreedyDrainer( inputPortCount );
         context.drain( drainer );
 
         assertTuples( inputPortCount, tupleCount, drainer );
@@ -104,23 +103,24 @@ public class DefaultTupleQueueContextTest
     {
         final TupleQueueContext context = new DefaultTupleQueueContext( "op1", inputPortCount, threadingPreference, tupleQueueConstructor );
 
-        final PortsToTuples input = addTuples( inputPortCount, tupleCount );
+        final TuplesImpl input = addTuples( inputPortCount, tupleCount );
 
-        for ( PortToTuples tuples : input.getPortToTuplesList() )
+        for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
         {
-            final int count = context.tryOffer( tuples.getPortIndex(), tuples.getTuples(), TIMEOUT_IN_MILLIS );
-            assertEquals( count, tuples.getTuples().size() );
+            final List<Tuple> tuples = input.getTuples( portIndex );
+            final int count = context.tryOffer( portIndex, tuples, TIMEOUT_IN_MILLIS );
+            assertEquals( count, tuples.size() );
         }
 
-        final GreedyDrainer drainer = new GreedyDrainer();
+        final GreedyDrainer drainer = new GreedyDrainer( inputPortCount );
         context.drain( drainer );
 
         assertTuples( inputPortCount, tupleCount, drainer );
     }
 
-    private PortsToTuples addTuples ( final int inputPortCount, final int tupleCount )
+    private TuplesImpl addTuples ( final int inputPortCount, final int tupleCount )
     {
-        final PortsToTuples input = new PortsToTuples();
+        final TuplesImpl input = new TuplesImpl( inputPortCount );
         for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
         {
             for ( int tupleIndex = 1; tupleIndex <= tupleCount; tupleIndex++ )
@@ -134,18 +134,20 @@ public class DefaultTupleQueueContextTest
 
     private void assertTuples ( final int inputPortCount, final int tupleCount, final GreedyDrainer drainer )
     {
-        final PortsToTuples output = drainer.getResult();
-        assertThat( output.getPortCount(), equalTo( inputPortCount ) );
-        for ( PortToTuples eachPort : output.getPortToTuplesList() )
+        final TuplesImpl output = drainer.getResult();
+        assertThat( output.getNonEmptyPortCount(), equalTo( inputPortCount ) );
+
+        for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
         {
-            final List<Tuple> tuples = eachPort.getTuples();
+            List<Tuple> tuples = output.getTuplesModifiable( portIndex );
             assertThat( tuples.size(), equalTo( tupleCount ) );
+
             for ( int tupleIndex = 1; tupleIndex <= tupleCount; tupleIndex++ )
             {
                 final Tuple tuple = tuples.get( tupleIndex - 1 );
                 assertNotNull( tuple );
 
-                final String key = eachPort.getPortIndex() + "-" + tupleIndex;
+                final String key = portIndex + "-" + tupleIndex;
                 assertThat( tuple, equalTo( new Tuple( key, key ) ) );
             }
         }

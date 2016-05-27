@@ -7,7 +7,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 /**
  * Runtime representation of {@link RuntimeSchemaField}
  */
-public class RuntimeSchemaField
+public final class RuntimeSchemaField
 {
 
     public final String name;

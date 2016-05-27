@@ -4,12 +4,11 @@ import org.junit.Test;
 
 import static cs.bilkent.zanza.engine.TestUtils.spawnThread;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
-import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.zanza.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
 import static cs.bilkent.zanza.engine.tuplequeue.impl.queue.MultiThreadedTupleQueueTest.offerTuples;
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
-import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
+import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST_BUT_SAME_ON_ALL_PORTS;
@@ -21,29 +20,32 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+
 public class BlockingSinglePortDrainerTest
 {
 
-    private static final int TIMEOUT_IN_MILLIS = 5000;
+    private static final long TIMEOUT_IN_MILLIS = 5000;
+
+    private final BlockingSinglePortDrainer drainer = new BlockingSinglePortDrainer( TIMEOUT_IN_MILLIS );
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithNullTupleQueues ()
     {
-        final TupleQueueDrainer drainer = new BlockingSinglePortDrainer( 1, AT_LEAST, TIMEOUT_IN_MILLIS );
+        drainer.setParameters( AT_LEAST, 1 );
         drainer.drain( null, null );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithEmptyTupleQueues ()
     {
-        final TupleQueueDrainer drainer = new BlockingSinglePortDrainer( 1, AT_LEAST, TIMEOUT_IN_MILLIS );
+        drainer.setParameters( AT_LEAST, 1 );
         drainer.drain( null, new TupleQueue[] {} );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithMultipleTupleQueues ()
     {
-        final TupleQueueDrainer drainer = new BlockingSinglePortDrainer( 1, AT_LEAST, TIMEOUT_IN_MILLIS );
+        drainer.setParameters( AT_LEAST, 1 );
         drainer.drain( null, new TupleQueue[] { new MultiThreadedTupleQueue( 1 ), new MultiThreadedTupleQueue( 1 ) } );
     }
 
@@ -56,15 +58,15 @@ public class BlockingSinglePortDrainerTest
         final Tuple tuple2 = new Tuple();
         tupleQueue.offerTuple( tuple2 );
 
-        final TupleQueueDrainer drainer = new BlockingSinglePortDrainer( 1, AT_LEAST, TIMEOUT_IN_MILLIS );
+        drainer.setParameters( AT_LEAST, 1 );
         drainer.drain( null, new TupleQueue[] { tupleQueue } );
 
-        final PortsToTuples portsToTuples = drainer.getResult();
-        assertNotNull( portsToTuples );
-        assertThat( portsToTuples.getPortCount(), equalTo( 1 ) );
-        assertThat( portsToTuples.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 2 ) );
-        assertTrue( tuple1 == portsToTuples.getTuple( DEFAULT_PORT_INDEX, 0 ) );
-        assertTrue( tuple2 == portsToTuples.getTuple( DEFAULT_PORT_INDEX, 1 ) );
+        final TuplesImpl tuples = drainer.getResult();
+        assertNotNull( tuples );
+        assertThat( tuples.getNonEmptyPortCount(), equalTo( 1 ) );
+        assertThat( tuples.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 2 ) );
+        assertTrue( tuple1 == tuples.getTupleOrFail( DEFAULT_PORT_INDEX, 0 ) );
+        assertTrue( tuple2 == tuples.getTupleOrFail( DEFAULT_PORT_INDEX, 1 ) );
         assertThat( tupleQueue.size(), equalTo( 0 ) );
     }
 
@@ -76,15 +78,15 @@ public class BlockingSinglePortDrainerTest
         final Tuple tuple2 = new Tuple();
 
         spawnThread( offerTuples( Thread.currentThread(), tupleQueue, asList( tuple1, tuple2 ) ) );
-        final TupleQueueDrainer drainer = new BlockingSinglePortDrainer( 1, AT_LEAST, TIMEOUT_IN_MILLIS );
+        drainer.setParameters( AT_LEAST, 1 );
         drainer.drain( null, new TupleQueue[] { tupleQueue } );
 
-        final PortsToTuples portsToTuples = drainer.getResult();
-        assertNotNull( portsToTuples );
-        assertThat( portsToTuples.getPortCount(), equalTo( 1 ) );
-        assertThat( portsToTuples.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 2 ) );
-        assertTrue( tuple1 == portsToTuples.getTuple( DEFAULT_PORT_INDEX, 0 ) );
-        assertTrue( tuple2 == portsToTuples.getTuple( DEFAULT_PORT_INDEX, 1 ) );
+        final TuplesImpl tuples = drainer.getResult();
+        assertNotNull( tuples );
+        assertThat( tuples.getNonEmptyPortCount(), equalTo( 1 ) );
+        assertThat( tuples.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 2 ) );
+        assertTrue( tuple1 == tuples.getTupleOrFail( DEFAULT_PORT_INDEX, 0 ) );
+        assertTrue( tuple2 == tuples.getTupleOrFail( DEFAULT_PORT_INDEX, 1 ) );
         assertThat( tupleQueue.size(), equalTo( 0 ) );
     }
 
@@ -103,15 +105,15 @@ public class BlockingSinglePortDrainerTest
         final Tuple tuple2 = new Tuple();
         tupleQueue.offerTuple( tuple2 );
 
-        final TupleQueueDrainer drainer = new BlockingSinglePortDrainer( 1, AT_LEAST_BUT_SAME_ON_ALL_PORTS, TIMEOUT_IN_MILLIS );
+        drainer.setParameters( AT_LEAST_BUT_SAME_ON_ALL_PORTS, 1 );
         drainer.drain( null, new TupleQueue[] { tupleQueue } );
 
-        final PortsToTuples portsToTuples = drainer.getResult();
-        assertNotNull( portsToTuples );
-        assertThat( portsToTuples.getPortCount(), equalTo( 1 ) );
-        assertThat( portsToTuples.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 2 ) );
-        assertTrue( tuple1 == portsToTuples.getTuple( DEFAULT_PORT_INDEX, 0 ) );
-        assertTrue( tuple2 == portsToTuples.getTuple( DEFAULT_PORT_INDEX, 1 ) );
+        final TuplesImpl tuples = drainer.getResult();
+        assertNotNull( tuples );
+        assertThat( tuples.getNonEmptyPortCount(), equalTo( 1 ) );
+        assertThat( tuples.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 2 ) );
+        assertTrue( tuple1 == tuples.getTupleOrFail( DEFAULT_PORT_INDEX, 0 ) );
+        assertTrue( tuple2 == tuples.getTupleOrFail( DEFAULT_PORT_INDEX, 1 ) );
         assertThat( tupleQueue.size(), equalTo( 0 ) );
     }
 
@@ -123,15 +125,15 @@ public class BlockingSinglePortDrainerTest
         final Tuple tuple2 = new Tuple();
 
         spawnThread( offerTuples( Thread.currentThread(), tupleQueue, asList( tuple1, tuple2 ) ) );
-        final TupleQueueDrainer drainer = new BlockingSinglePortDrainer( 1, AT_LEAST_BUT_SAME_ON_ALL_PORTS, TIMEOUT_IN_MILLIS );
+        drainer.setParameters( AT_LEAST_BUT_SAME_ON_ALL_PORTS, 1 );
         drainer.drain( null, new TupleQueue[] { tupleQueue } );
 
-        final PortsToTuples portsToTuples = drainer.getResult();
-        assertNotNull( portsToTuples );
-        assertThat( portsToTuples.getPortCount(), equalTo( 1 ) );
-        assertThat( portsToTuples.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 2 ) );
-        assertTrue( tuple1 == portsToTuples.getTuple( DEFAULT_PORT_INDEX, 0 ) );
-        assertTrue( tuple2 == portsToTuples.getTuple( DEFAULT_PORT_INDEX, 1 ) );
+        final TuplesImpl tuples = drainer.getResult();
+        assertNotNull( tuples );
+        assertThat( tuples.getNonEmptyPortCount(), equalTo( 1 ) );
+        assertThat( tuples.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 2 ) );
+        assertTrue( tuple1 == tuples.getTupleOrFail( DEFAULT_PORT_INDEX, 0 ) );
+        assertTrue( tuple2 == tuples.getTupleOrFail( DEFAULT_PORT_INDEX, 1 ) );
         assertThat( tupleQueue.size(), equalTo( 0 ) );
     }
 
@@ -149,14 +151,14 @@ public class BlockingSinglePortDrainerTest
         tupleQueue.offerTuple( tuple1 );
         tupleQueue.offerTuple( new Tuple() );
 
-        final TupleQueueDrainer drainer = new BlockingSinglePortDrainer( 1, EXACT, TIMEOUT_IN_MILLIS );
+        drainer.setParameters( EXACT, 1 );
         drainer.drain( null, new TupleQueue[] { tupleQueue } );
 
-        final PortsToTuples portsToTuples = drainer.getResult();
-        assertNotNull( portsToTuples );
-        assertThat( portsToTuples.getPortCount(), equalTo( 1 ) );
-        assertThat( portsToTuples.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
-        assertTrue( tuple1 == portsToTuples.getTuple( DEFAULT_PORT_INDEX, 0 ) );
+        final TuplesImpl tuples = drainer.getResult();
+        assertNotNull( tuples );
+        assertThat( tuples.getNonEmptyPortCount(), equalTo( 1 ) );
+        assertThat( tuples.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
+        assertTrue( tuple1 == tuples.getTupleOrFail( DEFAULT_PORT_INDEX, 0 ) );
 
         assertThat( tupleQueue.size(), equalTo( 1 ) );
     }
@@ -169,14 +171,14 @@ public class BlockingSinglePortDrainerTest
 
         spawnThread( offerTuples( Thread.currentThread(), tupleQueue, asList( tuple1, new Tuple() ) ) );
 
-        final TupleQueueDrainer drainer = new BlockingSinglePortDrainer( 1, EXACT, TIMEOUT_IN_MILLIS );
+        drainer.setParameters( EXACT, 1 );
         drainer.drain( null, new TupleQueue[] { tupleQueue } );
 
-        final PortsToTuples portsToTuples = drainer.getResult();
-        assertNotNull( portsToTuples );
-        assertThat( portsToTuples.getPortCount(), equalTo( 1 ) );
-        assertThat( portsToTuples.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
-        assertTrue( tuple1 == portsToTuples.getTuple( DEFAULT_PORT_INDEX, 0 ) );
+        final TuplesImpl tuples = drainer.getResult();
+        assertNotNull( tuples );
+        assertThat( tuples.getNonEmptyPortCount(), equalTo( 1 ) );
+        assertThat( tuples.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
+        assertTrue( tuple1 == tuples.getTupleOrFail( DEFAULT_PORT_INDEX, 0 ) );
 
         assertThat( tupleQueue.size(), equalTo( 1 ) );
     }
@@ -191,7 +193,7 @@ public class BlockingSinglePortDrainerTest
     {
         final TupleQueue tupleQueue = new MultiThreadedTupleQueue( 2 );
 
-        final TupleQueueDrainer drainer = new BlockingSinglePortDrainer( 1, tupleAvailabilityByCount, TIMEOUT_IN_MILLIS );
+        drainer.setParameters( tupleAvailabilityByCount, 1 );
         drainer.drain( null, new TupleQueue[] { tupleQueue } );
 
         assertNull( drainer.getResult() );

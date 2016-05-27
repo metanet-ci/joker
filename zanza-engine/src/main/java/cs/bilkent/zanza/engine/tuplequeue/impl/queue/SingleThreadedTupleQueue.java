@@ -86,50 +86,95 @@ public class SingleThreadedTupleQueue implements TupleQueue
     @Override
     public List<Tuple> pollTuples ( final int count )
     {
-        if ( size() >= count )
-        {
-            final List<Tuple> tuples = new ArrayList<>( count );
-            for ( int i = 0; i < count; i++ )
-            {
-                tuples.add( queue.poll() );
-            }
+        return doPollTuples( count, null );
+    }
 
-            return tuples;
-        }
-
-        return Collections.emptyList();
+    @Override
+    public void pollTuples ( final int count, final List<Tuple> tuples )
+    {
+        doPollTuples( count, tuples );
     }
 
     @Override
     public List<Tuple> pollTuples ( final int count, final long timeoutInMillis )
     {
-        return pollTuples( count );
+        return doPollTuples( count, null );
+    }
+
+    @Override
+    public void pollTuples ( final int count, final long timeoutInMillis, final List<Tuple> tuples )
+    {
+        doPollTuples( count, tuples );
+    }
+
+    private List<Tuple> doPollTuples ( final int count, List<Tuple> tuples )
+    {
+        if ( size() >= count )
+        {
+            if ( tuples == null )
+            {
+                tuples = new ArrayList<>( count );
+            }
+
+            for ( int i = 0; i < count; i++ )
+            {
+                tuples.add( queue.poll() );
+            }
+        }
+        else if ( tuples == null )
+        {
+            tuples = Collections.emptyList();
+        }
+
+        return tuples;
     }
 
     @Override
     public List<Tuple> pollTuplesAtLeast ( final int count )
     {
+        return doPollTuplesAtLeast( count, null );
+    }
+
+    @Override
+    public void pollTuplesAtLeast ( final int count, final List<Tuple> tuples )
+    {
+        doPollTuplesAtLeast( count, tuples );
+    }
+
+    @Override
+    public List<Tuple> pollTuplesAtLeast ( final int count, final long timeoutInMillis )
+    {
+        return doPollTuplesAtLeast( count, null );
+    }
+
+    @Override
+    public void pollTuplesAtLeast ( final int count, final long timeoutInMillis, final List<Tuple> tuples )
+    {
+        doPollTuplesAtLeast( count, tuples );
+    }
+
+    private List<Tuple> doPollTuplesAtLeast ( final int count, List<Tuple> tuples )
+    {
         if ( size() >= count )
         {
-            final List<Tuple> tuples = new ArrayList<>( count );
+            if ( tuples == null )
+            {
+                tuples = new ArrayList<>( count );
+            }
+
             final Iterator<Tuple> it = queue.iterator();
             while ( it.hasNext() )
             {
                 tuples.add( it.next() );
                 it.remove();
             }
-            queue.clear();
-
-            return tuples;
+        }
+        else if ( tuples == null )
+        {
+            tuples = Collections.emptyList();
         }
 
-        return Collections.emptyList();
-    }
-
-    @Override
-    public List<Tuple> pollTuplesAtLeast ( final int count, final long timeoutInMillis )
-    {
-        return pollTuplesAtLeast( count );
+        return tuples;
     }
 
     @Override

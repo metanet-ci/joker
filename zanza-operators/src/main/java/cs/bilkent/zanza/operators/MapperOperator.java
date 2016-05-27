@@ -4,13 +4,11 @@ import java.util.function.Function;
 
 import cs.bilkent.zanza.operator.InitializationContext;
 import cs.bilkent.zanza.operator.InvocationContext;
-import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
-import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
+import cs.bilkent.zanza.operator.Tuples;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
-import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.ANY_NUMBER_OF_TUPLES;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
@@ -30,9 +28,8 @@ public class MapperOperator implements Operator
 
     public static final String TUPLE_COUNT_CONFIG_PARAMETER = "tupleCount";
 
-    private Function<Tuple, Tuple> mapper;
 
-    private ScheduleWhenTuplesAvailable schedulingStrategy;
+    private Function<Tuple, Tuple> mapper;
 
     @Override
     public SchedulingStrategy init ( final InitializationContext context )
@@ -46,22 +43,21 @@ public class MapperOperator implements Operator
             return mapped;
         };
         final int tupleCount = config.getIntegerOrDefault( TUPLE_COUNT_CONFIG_PARAMETER, ANY_NUMBER_OF_TUPLES );
-        schedulingStrategy = scheduleWhenTuplesAvailableOnDefaultPort( tupleCount );
-        return schedulingStrategy;
+        return scheduleWhenTuplesAvailableOnDefaultPort( tupleCount );
     }
 
     @Override
-    public InvocationResult invoke ( final InvocationContext invocationContext )
+    public void invoke ( final InvocationContext invocationContext )
     {
-        final PortsToTuples output = invocationContext.getInputTuples()
-                                                      .getTuplesByDefaultPort()
-                                                      .stream()
-                                                      .map( mapper )
-                                                      .collect( PortsToTuples.COLLECT_TO_DEFAULT_PORT );
+        final Tuples input = invocationContext.getInput();
+        final Tuples output = invocationContext.getOutput();
 
-        final SchedulingStrategy nextStrategy = invocationContext.isSuccessfulInvocation() ? schedulingStrategy : ScheduleNever.INSTANCE;
+        input.getTuplesByDefaultPort().stream().map( mapper ).forEach( output::add );
 
-        return new InvocationResult( nextStrategy, output );
+        if ( invocationContext.isErroneousInvocation() )
+        {
+            invocationContext.setNextSchedulingStrategy( ScheduleNever.INSTANCE );
+        }
     }
 
 }

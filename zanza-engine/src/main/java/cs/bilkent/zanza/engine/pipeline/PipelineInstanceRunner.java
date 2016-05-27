@@ -19,7 +19,7 @@ import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.INIT
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.PAUSED;
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.RUNNING;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.INPUT_PORT_CLOSED;
-import cs.bilkent.zanza.operator.PortsToTuples;
+import cs.bilkent.zanza.operator.impl.TuplesImpl;
 
 public class PipelineInstanceRunner implements Runnable
 {
@@ -254,7 +254,7 @@ public class PipelineInstanceRunner implements Runnable
                     continue;
                 }
 
-                final PortsToTuples output = ( status == RUNNING ) ? pipeline.invoke() : pipeline.forceInvoke( INPUT_PORT_CLOSED );
+                final TuplesImpl output = ( status == RUNNING ) ? pipeline.invoke() : pipeline.forceInvoke( INPUT_PORT_CLOSED );
                 if ( output != null )
                 {
                     awaitDownstreamTuplesFuture();
@@ -421,7 +421,7 @@ public class PipelineInstanceRunner implements Runnable
     {
 
         @Override
-        public Future<Void> send ( final PipelineInstanceId id, final PortsToTuples tuples )
+        public Future<Void> send ( final PipelineInstanceId id, final TuplesImpl tuples )
         {
             throw new UnsupportedOperationException( id + " is trying to send output tuples after stopped sending downstream tuples" );
         }

@@ -1,11 +1,14 @@
 package cs.bilkent.zanza.engine.pipeline;
 
+import java.util.List;
+import java.util.function.Supplier;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkState;
+import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import cs.bilkent.zanza.engine.exception.InitializationException;
 import cs.bilkent.zanza.engine.kvstore.KVStoreProvider;
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.INITIAL;
@@ -14,20 +17,19 @@ import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.RUNNING;
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.SHUT_DOWN;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
-import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainerFactory;
-import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.GreedyDrainer;
+import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainerPool;
 import cs.bilkent.zanza.flow.FlowDefinition;
 import cs.bilkent.zanza.flow.OperatorDefinition;
 import cs.bilkent.zanza.operator.InitializationContext;
 import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.SUCCESS;
-import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.Operator;
-import cs.bilkent.zanza.operator.PortsToTuples;
-import cs.bilkent.zanza.operator.PortsToTuples.PortToTuples;
+import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.impl.InvocationContextImpl;
+import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import cs.bilkent.zanza.operator.kvstore.KVStore;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
+import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 /**
@@ -54,7 +56,11 @@ public class OperatorInstance
 
     private final KVStoreProvider kvStoreProvider;
 
-    private final TupleQueueDrainerFactory drainerFactory;
+    private final TupleQueueDrainerPool drainerPool;
+
+    private final InvocationContextImpl invocationContext;
+
+    private final Supplier<TuplesImpl> outputSupplier;
 
     private OperatorInstanceStatus status = INITIAL;
 
@@ -62,19 +68,43 @@ public class OperatorInstance
 
     private SchedulingStrategy schedulingStrategy;
 
+    private TupleQueueDrainer drainer;
+
     public OperatorInstance ( final PipelineInstanceId pipelineInstanceId,
                               final String operatorName,
                               final TupleQueueContext queue,
                               final OperatorDefinition operatorDefinition,
                               final KVStoreProvider kvStoreProvider,
-                              final TupleQueueDrainerFactory drainerFactory )
+                              final TupleQueueDrainerPool drainerPool,
+                              final Supplier<TuplesImpl> outputSupplier )
+    {
+        this( pipelineInstanceId,
+              operatorName,
+              queue,
+              operatorDefinition,
+              kvStoreProvider,
+              drainerPool,
+              outputSupplier,
+              new InvocationContextImpl() );
+    }
+
+    public OperatorInstance ( final PipelineInstanceId pipelineInstanceId,
+                              final String operatorName,
+                              final TupleQueueContext queue,
+                              final OperatorDefinition operatorDefinition,
+                              final KVStoreProvider kvStoreProvider,
+                              final TupleQueueDrainerPool drainerPool,
+                              final Supplier<TuplesImpl> outputSupplier,
+                              final InvocationContextImpl invocationContext )
     {
         this.pipelineInstanceId = pipelineInstanceId;
         this.operatorName = operatorName;
         this.queue = queue;
         this.operatorDefinition = operatorDefinition;
         this.kvStoreProvider = kvStoreProvider;
-        this.drainerFactory = drainerFactory;
+        this.drainerPool = drainerPool;
+        this.invocationContext = invocationContext;
+        this.outputSupplier = outputSupplier;
     }
 
     /**
@@ -83,14 +113,16 @@ public class OperatorInstance
      * it moves the status to {@link OperatorInstanceStatus#INITIALIZATION_FAILED} and propagates the exception to the caller after
      * wrapping it with {@link InitializationException}.
      */
-    public void init ()
+    public void init ( ZanzaConfig config )
     {
         checkState( status == INITIAL );
         try
         {
+            drainerPool.init( config, operatorDefinition );
             operator = operatorDefinition.createOperator();
             final InitializationContext context = new OperatorDefinitionInitializationContextAdaptor( operatorDefinition );
             schedulingStrategy = operator.init( context );
+            drainer = drainerPool.acquire( schedulingStrategy );
             status = RUNNING;
             LOGGER.info( "{}:{} initialized. Initial scheduling strategy: {}", pipelineInstanceId, operatorName, schedulingStrategy );
         }
@@ -113,7 +145,7 @@ public class OperatorInstance
      *
      * @return result of the invocation if the operator is invoked, NULL otherwise
      */
-    public InvocationResult invoke ( final PortsToTuples upstreamInput )
+    public TuplesImpl invoke ( final TuplesImpl upstreamInput )
     {
         checkState( status == RUNNING );
 
@@ -127,26 +159,40 @@ public class OperatorInstance
         {
             if ( upstreamInput != null )
             {
-                for ( PortToTuples port : upstreamInput.getPortToTuplesList() )
+                for ( int portIndex = 0; portIndex < upstreamInput.getPortCount(); portIndex++ )
                 {
-                    queue.offer( port.getPortIndex(), port.getTuples() );
+                    queue.offer( portIndex, upstreamInput.getTuplesModifiable( portIndex ) );
                 }
             }
 
-            // TODO create a drainer factory per operator instance and re-use drainer objects here to reduce garbage
-            final TupleQueueDrainer drainer = drainerFactory.create( schedulingStrategy );
             queue.drain( drainer );
-            final PortsToTuples input = drainer.getResult();
+            final TuplesImpl input = drainer.getResult();
             if ( input != null )
             {
                 final KVStore kvStore = kvStoreProvider.getKVStore( drainer.getKey() );
-                // TODO reuse invocation context
-                final InvocationResult result = operator.invoke( new InvocationContextImpl( SUCCESS, input, kvStore ) );
-                schedulingStrategy = result.getSchedulingStrategy();
+                final TuplesImpl output = outputSupplier.get();
+                invocationContext.setInvocationParameters( SUCCESS, input, output, kvStore );
 
-                // TODO TUPLE QUEUE ENSURE CAPACITY
+                operator.invoke( invocationContext );
 
-                return result;
+                final SchedulingStrategy nextSchedulingStrategy = invocationContext.getSchedulingStrategy();
+                if ( nextSchedulingStrategy != null )
+                {
+                    schedulingStrategy = nextSchedulingStrategy;
+                    invocationContext.setNextSchedulingStrategy( null );
+                    drainerPool.release( drainer );
+                    drainer = drainerPool.acquire( schedulingStrategy );
+                    if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
+                    {
+                        final ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailable = (ScheduleWhenTuplesAvailable) schedulingStrategy;
+                        for ( int portIndex = 0; portIndex < scheduleWhenTuplesAvailable.getPortCount(); portIndex++ )
+                        {
+                            queue.ensureCapacity( portIndex, scheduleWhenTuplesAvailable.getTupleCount( portIndex ) );
+                        }
+                    }
+                }
+
+                return output;
             }
 
             return null;
@@ -155,7 +201,11 @@ public class OperatorInstance
         {
             LOGGER.error( pipelineInstanceId + ":" + operatorName + " failed during invoke!", e );
             schedulingStrategy = ScheduleNever.INSTANCE;
-            return new InvocationResult( ScheduleNever.INSTANCE, null );
+            return null;
+        }
+        finally
+        {
+            drainer.reset();
         }
     }
 
@@ -171,7 +221,7 @@ public class OperatorInstance
      *
      * @return tuples produced by final invocation of the operator
      */
-    public PortsToTuples forceInvoke ( final PortsToTuples upstreamInput, final InvocationReason reason )
+    public TuplesImpl forceInvoke ( final TuplesImpl upstreamInput, final InvocationReason reason )
     {
         checkState( status == RUNNING );
 
@@ -185,18 +235,28 @@ public class OperatorInstance
         {
             if ( upstreamInput != null )
             {
-                for ( PortToTuples port : upstreamInput.getPortToTuplesList() )
+                for ( int portIndex = 0; portIndex < upstreamInput.getPortCount(); portIndex++ )
                 {
-                    queue.offer( port.getPortIndex(), port.getTuples() );
+                    final List<Tuple> tuples = upstreamInput.getTuplesModifiable( portIndex );
+                    if ( !tuples.isEmpty() )
+                    {
+                        queue.offer( portIndex, tuples );
+                    }
                 }
             }
 
-            final TupleQueueDrainer drainer = new GreedyDrainer();
+            drainerPool.release( drainer );
+            drainer = drainerPool.acquire( ScheduleNever.INSTANCE );
+
             queue.drain( drainer );
-            final PortsToTuples input = drainer.getResult();
+            final TuplesImpl input = drainer.getResult();
             final KVStore kvStore = kvStoreProvider.getKVStore( drainer.getKey() );
-            final InvocationResult result = operator.invoke( new InvocationContextImpl( reason, input, kvStore ) );
-            if ( result.getSchedulingStrategy() instanceof ScheduleNever )
+            final TuplesImpl output = outputSupplier.get();
+            invocationContext.setInvocationParameters( reason, input, output, kvStore );
+
+            operator.invoke( invocationContext );
+
+            if ( invocationContext.getSchedulingStrategy() instanceof ScheduleNever )
             {
                 LOGGER.info( "{}:{} force invoked and completed its execution.", pipelineInstanceId, operatorName );
             }
@@ -205,7 +265,7 @@ public class OperatorInstance
                 LOGGER.warn( "{}:{} force invoked and requested new scheduling.", pipelineInstanceId, operatorName );
             }
 
-            return result.getOutputTuples();
+            return output;
         }
         catch ( Exception e )
         {
@@ -216,6 +276,8 @@ public class OperatorInstance
         finally
         {
             schedulingStrategy = ScheduleNever.INSTANCE;
+            drainerPool.release( drainer );
+            drainer = null;
         }
     }
 
@@ -235,8 +297,8 @@ public class OperatorInstance
         checkState( status == RUNNING || status == INITIALIZATION_FAILED );
         try
         {
+            drainerPool.release( drainer );
             operator.shutdown();
-            operator = null;
         }
         catch ( Exception e )
         {
@@ -245,6 +307,8 @@ public class OperatorInstance
         finally
         {
             status = SHUT_DOWN;
+            operator = null;
+            drainer = null;
         }
     }
 

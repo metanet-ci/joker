@@ -1,7 +1,7 @@
 package cs.bilkent.zanza.operator.scheduling;
 
 
-public class ScheduleOnTime implements SchedulingStrategy
+public final class ScheduleOnTime implements SchedulingStrategy
 {
     private final long timestampInMillis;
 

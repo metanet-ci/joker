@@ -10,10 +10,9 @@ import static cs.bilkent.zanza.examples.bargaindiscovery.VWAPAggregatorOperator.
 import static cs.bilkent.zanza.examples.bargaindiscovery.VWAPAggregatorOperator.TIMESTAMP_FIELD;
 import cs.bilkent.zanza.operator.InitializationContext;
 import cs.bilkent.zanza.operator.InvocationContext;
-import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.Operator;
-import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
+import cs.bilkent.zanza.operator.Tuples;
 import cs.bilkent.zanza.operator.kvstore.KVStore;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAny;
@@ -57,16 +56,11 @@ public class BargainIndexOperator implements Operator
     }
 
     @Override
-    public InvocationResult invoke ( final InvocationContext invocationContext )
+    public void invoke ( final InvocationContext invocationContext )
     {
-        final SchedulingStrategy nextStrategy = invocationContext.isSuccessfulInvocation()
-                                                ? scheduleWhenTuplesAvailableOnAny( 1, 0, 1 )
-                                                : ScheduleNever.INSTANCE;
-        final PortsToTuples output = new PortsToTuples();
-
+        final Tuples input = invocationContext.getInput();
+        final Tuples output = invocationContext.getOutput();
         final KVStore kvStore = invocationContext.getKVStore();
-
-        final PortsToTuples input = invocationContext.getInputTuples();
         final Iterator<Tuple> it = new MergedTupleListsIterator( input.getTuples( 0 ),
                                                                  input.getTuples( 1 ),
                                                                  ( left, right ) -> left.getLong( TIMESTAMP_FIELD )
@@ -97,7 +91,10 @@ public class BargainIndexOperator implements Operator
             }
         }
 
-        return new InvocationResult( nextStrategy, output );
+        if ( invocationContext.isErroneousInvocation() )
+        {
+            invocationContext.setNextSchedulingStrategy( ScheduleNever.INSTANCE );
+        }
     }
 
     private Tuple createBargainIndexTuple ( final double cvwap, final Tuple quote )

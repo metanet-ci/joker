@@ -2,10 +2,11 @@ package cs.bilkent.zanza.engine.tuplequeue;
 
 import javax.annotation.Nullable;
 
-import cs.bilkent.zanza.operator.PortsToTuples;
+import cs.bilkent.zanza.operator.impl.TuplesImpl;
 
 /**
- * Drains tuples from given tuple queues and keeps them in internally to be able to return them afterwards
+ * Drains tuples from given tuple queues and keeps them in internally to be able to return them afterwards.
+ * Implementations can be stateful.
  */
 public interface TupleQueueDrainer
 {
@@ -25,7 +26,7 @@ public interface TupleQueueDrainer
      *
      * @return the tuples drained from the tuple queues using {@link TupleQueueDrainer#drain(Object, TupleQueue[])} method
      */
-    PortsToTuples getResult ();
+    TuplesImpl getResult ();
 
     /**
      * Returns partition key of the tuples drained from the tuple queues
@@ -33,5 +34,10 @@ public interface TupleQueueDrainer
      * @return partition key of the tuples drained from the tuple queues
      */
     Object getKey ();
+
+    /**
+     * Resets the internal state of the drainer
+     */
+    void reset ();
 
 }

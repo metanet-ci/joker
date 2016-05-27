@@ -56,6 +56,14 @@ public interface TupleQueueContext
     void drain ( TupleQueueDrainer drainer );
 
     /**
+     * Ensures that the tuple queue instance accepts number of tuples given in the parameter without blocking
+     *
+     * @param capacity
+     *         number of tuples guaranteed to be accepted by the tuple queue without blocking
+     */
+    void ensureCapacity ( int portIndex, int capacity );
+
+    /**
      * Enables capacity check of the tuple queue for the given port index
      *
      * @param portIndex

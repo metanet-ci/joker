@@ -1,8 +1,8 @@
 package cs.bilkent.zanza.operator.impl;
 
 import cs.bilkent.zanza.operator.InvocationContext;
-import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.kvstore.KVStore;
+import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 
 public class InvocationContextImpl implements InvocationContext
@@ -10,23 +10,29 @@ public class InvocationContextImpl implements InvocationContext
 
     private InvocationReason reason;
 
-    private PortsToTuples tuples;
+    private TuplesImpl input;
+
+    private TuplesImpl output;
 
     private KVStore kvStore;
+
+    private SchedulingStrategy schedulingStrategy;
 
     public InvocationContextImpl ()
     {
     }
 
-    public InvocationContextImpl ( final InvocationReason reason, final PortsToTuples tuples )
+    public InvocationContextImpl ( final InvocationReason reason, final TuplesImpl input, final TuplesImpl output )
     {
-        this.tuples = tuples;
         this.reason = reason;
+        this.input = input;
+        this.output = output;
     }
 
-    public InvocationContextImpl ( final InvocationReason reason, final PortsToTuples tuples, final KVStore kvStore )
+    public InvocationContextImpl ( final InvocationReason reason, final TuplesImpl input, final TuplesImpl output, final KVStore kvStore )
     {
-        this.tuples = tuples;
+        this.input = input;
+        this.output = output;
         this.reason = reason;
         this.kvStore = kvStore;
     }
@@ -36,20 +42,21 @@ public class InvocationContextImpl implements InvocationContext
         this.reason = reason;
     }
 
-    public void setTuples ( final PortsToTuples tuples )
+    public void setInvocationParameters ( final InvocationReason reason,
+                                          final TuplesImpl input,
+                                          final TuplesImpl output,
+                                          final KVStore kvStore )
     {
-        this.tuples = tuples;
-    }
-
-    public void setKvStore ( final KVStore kvStore )
-    {
+        this.reason = reason;
+        this.input = input;
+        this.output = output;
         this.kvStore = kvStore;
     }
 
     @Override
-    public PortsToTuples getInputTuples ()
+    public TuplesImpl getInput ()
     {
-        return tuples;
+        return input;
     }
 
     @Override
@@ -63,4 +70,22 @@ public class InvocationContextImpl implements InvocationContext
     {
         return kvStore;
     }
+
+    @Override
+    public TuplesImpl getOutput ()
+    {
+        return output;
+    }
+
+    @Override
+    public void setNextSchedulingStrategy ( final SchedulingStrategy schedulingStrategy )
+    {
+        this.schedulingStrategy = schedulingStrategy;
+    }
+
+    public SchedulingStrategy getSchedulingStrategy ()
+    {
+        return schedulingStrategy;
+    }
+
 }

@@ -9,12 +9,10 @@ import static cs.bilkent.zanza.examples.bargaindiscovery.CVWAPFunction.CVWAP_FIE
 import static cs.bilkent.zanza.examples.bargaindiscovery.VWAPAggregatorOperator.TICKER_SYMBOL_FIELD;
 import static cs.bilkent.zanza.examples.bargaindiscovery.VWAPAggregatorOperator.TIMESTAMP_FIELD;
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
-import cs.bilkent.zanza.operator.InvocationContext;
-import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
-import cs.bilkent.zanza.operator.InvocationResult;
-import cs.bilkent.zanza.operator.PortsToTuples;
+import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.SUCCESS;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.impl.InvocationContextImpl;
+import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import cs.bilkent.zanza.operator.kvstore.KVStore;
 import cs.bilkent.zanza.operator.kvstore.impl.InMemoryKVStore;
 import cs.bilkent.zanza.operator.kvstore.impl.KeyDecoratedKVStore;
@@ -28,19 +26,23 @@ public class BargainIndexOperatorTest
 
     private final BargainIndexOperator operator = new BargainIndexOperator();
 
-    private final PortsToTuples input = new PortsToTuples();
+    private final TuplesImpl input = new TuplesImpl( 2 );
+
+    private final TuplesImpl output = new TuplesImpl( 1 );
 
     private final KVStore kvStore = new KeyDecoratedKVStore( TUPLE_PARTITION_KEY, new InMemoryKVStore() );
 
-    private final InvocationContext invocationContext = new InvocationContextImpl( InvocationReason.SUCCESS, input, kvStore );
+    private final InvocationContextImpl invocationContext = new InvocationContextImpl( SUCCESS, input, output, kvStore );
 
 
     @Test
     public void shouldReturnNoOutputWithQuoteButNoVWAP ()
     {
         input.add( 1, newQuoteTuple( 0, 5d, 100 ) );
-        final InvocationResult result = operator.invoke( invocationContext );
-        assertThat( result.getOutputTuples().getPortCount(), equalTo( 0 ) );
+
+        operator.invoke( invocationContext );
+
+        assertThat( output.getTupleCount( 0 ), equalTo( 0 ) );
     }
 
     @Test
@@ -48,8 +50,10 @@ public class BargainIndexOperatorTest
     {
         setCVWAPInKvStore( 50 );
         input.add( 1, newQuoteTuple( 0, 0.6, 1 ) );
-        final InvocationResult result = operator.invoke( invocationContext );
-        assertThat( result.getOutputTuples().getPortCount(), equalTo( 0 ) );
+
+        operator.invoke( invocationContext );
+
+        assertThat( output.getTupleCount( 0 ), equalTo( 0 ) );
     }
 
     @Test
@@ -57,11 +61,13 @@ public class BargainIndexOperatorTest
     {
         setCVWAPInKvStore( 50 );
         input.add( 1, newQuoteTuple( 0, 0.4, 1 ) );
-        final InvocationResult result = operator.invoke( invocationContext );
-        assertThat( result.getOutputTuples().getPortCount(), equalTo( 1 ) );
 
-        final Tuple output = result.getOutputTuples().getTuple( DEFAULT_PORT_INDEX, 0 );
-        assertThat( output.get( BARGAIN_INDEX_FIELD ), equalTo( Math.exp( 10 ) ) );
+        operator.invoke( invocationContext );
+
+        assertThat( output.getNonEmptyPortCount(), equalTo( 1 ) );
+
+        final Tuple outputTuple = output.getTupleOrFail( DEFAULT_PORT_INDEX, 0 );
+        assertThat( outputTuple.get( BARGAIN_INDEX_FIELD ), equalTo( Math.exp( 10 ) ) );
     }
 
     @Test
@@ -71,14 +77,15 @@ public class BargainIndexOperatorTest
         input.add( 1, newQuoteTuple( 0, 0.4, 1 ) );
         input.add( 0, newCVWAPTuple( 1, 60 ) );
         input.add( 1, newQuoteTuple( 1, 0.3, 2 ) );
-        final InvocationResult result = operator.invoke( invocationContext );
-        final PortsToTuples outputTuples = result.getOutputTuples();
-        assertThat( outputTuples.getPortCount(), equalTo( 1 ) );
 
-        final Tuple output1 = outputTuples.getTuple( DEFAULT_PORT_INDEX, 0 );
-        assertThat( output1.get( BARGAIN_INDEX_FIELD ), equalTo( Math.exp( 10 ) ) );
-        final Tuple output2 = outputTuples.getTuple( DEFAULT_PORT_INDEX, 1 );
-        assertThat( output2.get( BARGAIN_INDEX_FIELD ), equalTo( Math.exp( 30 ) * 2 ) );
+        operator.invoke( invocationContext );
+
+        assertThat( output.getNonEmptyPortCount(), equalTo( 1 ) );
+
+        final Tuple outputTuple1 = output.getTupleOrFail( DEFAULT_PORT_INDEX, 0 );
+        assertThat( outputTuple1.get( BARGAIN_INDEX_FIELD ), equalTo( Math.exp( 10 ) ) );
+        final Tuple outputTuple2 = output.getTupleOrFail( DEFAULT_PORT_INDEX, 1 );
+        assertThat( outputTuple2.get( BARGAIN_INDEX_FIELD ), equalTo( Math.exp( 30 ) * 2 ) );
 
         assertThat( kvStore.get( TUPLE_PARTITION_KEY ), equalTo( 60d ) );
     }

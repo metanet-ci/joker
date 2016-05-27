@@ -5,11 +5,10 @@ import java.util.function.BiFunction;
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
 import cs.bilkent.zanza.operator.InitializationContext;
 import cs.bilkent.zanza.operator.InvocationContext;
-import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
-import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
+import cs.bilkent.zanza.operator.Tuples;
 import cs.bilkent.zanza.operator.kvstore.KVStore;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
@@ -66,12 +65,10 @@ public class TupleCountBasedWindowReducerOperator implements Operator
     }
 
     @Override
-    public InvocationResult invoke ( final InvocationContext invocationContext )
+    public void invoke ( final InvocationContext invocationContext )
     {
-        final PortsToTuples result = new PortsToTuples();
-        final SchedulingStrategy nextStrategy = invocationContext.isSuccessfulInvocation()
-                                                ? scheduleWhenTuplesAvailableOnDefaultPort( 1 )
-                                                : ScheduleNever.INSTANCE;
+        final Tuples input = invocationContext.getInput();
+        final Tuples output = invocationContext.getOutput();
 
         final KVStore kvStore = invocationContext.getKVStore();
 
@@ -79,8 +76,6 @@ public class TupleCountBasedWindowReducerOperator implements Operator
         int currentTupleCount = window.getIntegerOrDefault( TUPLE_COUNT_FIELD, 0 );
         int windowCount = window.getIntegerOrDefault( WINDOW_FIELD, 0 );
         Tuple accumulator = kvStore.getOrDefault( ACCUMULATOR_TUPLE_KEY, initialValue );
-
-        final PortsToTuples input = invocationContext.getInputTuples();
 
         for ( Tuple tuple : input.getTuplesByDefaultPort() )
         {
@@ -91,7 +86,7 @@ public class TupleCountBasedWindowReducerOperator implements Operator
                 currentTupleCount = 0;
                 accumulator.set( WINDOW_FIELD, windowCount++ );
 
-                result.add( accumulator );
+                output.add( accumulator );
                 accumulator = initialValue;
             }
         }
@@ -109,7 +104,10 @@ public class TupleCountBasedWindowReducerOperator implements Operator
             kvStore.remove( ACCUMULATOR_TUPLE_KEY );
         }
 
-        return new InvocationResult( nextStrategy, result );
+        if ( invocationContext.isErroneousInvocation() )
+        {
+            invocationContext.setNextSchedulingStrategy( ScheduleNever.INSTANCE );
+        }
     }
 
 }

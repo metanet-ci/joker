@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import cs.bilkent.zanza.engine.exception.InitializationException;
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.INITIAL;
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.INITIALIZATION_FAILED;
@@ -15,8 +16,7 @@ import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.SHUT_DOWN;
 import cs.bilkent.zanza.engine.region.RegionDefinition;
 import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.INPUT_PORT_CLOSED;
-import cs.bilkent.zanza.operator.InvocationResult;
-import cs.bilkent.zanza.operator.PortsToTuples;
+import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 
 /**
@@ -28,7 +28,8 @@ public class PipelineInstance
 
     private static Logger LOGGER = LoggerFactory.getLogger( PipelineInstance.class );
 
-    public static final int NO_INVOKABLE_INDEX = -1;
+    static final int NO_INVOKABLE_INDEX = -1;
+
 
     private final PipelineInstanceId id;
 
@@ -47,14 +48,14 @@ public class PipelineInstance
         this.highestInvokableIndex = operators.length - 1;
     }
 
-    public void init ()
+    public void init ( ZanzaConfig config )
     {
         checkState( status == INITIAL );
         for ( int i = 0; i < operators.length; i++ )
         {
             try
             {
-                operators[ i ].init();
+                operators[ i ].init( config );
             }
             catch ( InitializationException e )
             {
@@ -68,16 +69,15 @@ public class PipelineInstance
         this.currentHighestInvokableIndex = operators.length - 1;
     }
 
-    public PortsToTuples invoke ()
+    public TuplesImpl invoke ()
     {
         checkState( status == RUNNING );
 
-        PortsToTuples tuples = null;
+        TuplesImpl tuples = null;
         for ( int i = 0; i <= currentHighestInvokableIndex; i++ )
         {
-            final InvocationResult result = operators[ i ].invoke( tuples );
-            tuples = result.getOutputTuples();
-            if ( result.getSchedulingStrategy() instanceof ScheduleNever )
+            tuples = operators[ i ].invoke( tuples );
+            if ( operators[ i ].schedulingStrategy() instanceof ScheduleNever )
             {
                 LOGGER.info( "{}: operator {} completes its execution.", id, currentHighestInvokableIndex );
                 final int j = currentHighestInvokableIndex;
@@ -90,7 +90,7 @@ public class PipelineInstance
         return currentHighestInvokableIndex == highestInvokableIndex ? tuples : null;
     }
 
-    public PortsToTuples forceInvoke ( final InvocationReason reason )
+    public TuplesImpl forceInvoke ( final InvocationReason reason )
     {
         checkState( status == RUNNING );
 
@@ -98,19 +98,19 @@ public class PipelineInstance
         {
             final int i = currentHighestInvokableIndex;
             currentHighestInvokableIndex = NO_INVOKABLE_INDEX;
-            final PortsToTuples output = forceInvoke( 0, i, null, reason );
+            final TuplesImpl output = forceInvoke( 0, i, null, reason );
             return i == highestInvokableIndex ? output : null;
         }
 
         return null;
     }
 
-    private PortsToTuples forceInvoke ( final int startIndexInclusive,
-                                        final int endIndexInclusive,
-                                        final PortsToTuples input,
-                                        final InvocationReason reason )
+    private TuplesImpl forceInvoke ( final int startIndexInclusive,
+                                     final int endIndexInclusive,
+                                     final TuplesImpl input,
+                                     final InvocationReason reason )
     {
-        PortsToTuples tuples = input;
+        TuplesImpl tuples = input;
         for ( int i = startIndexInclusive; i <= endIndexInclusive; i++ )
         {
             final OperatorInstance operator = operators[ i ];

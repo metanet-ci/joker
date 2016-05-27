@@ -1,26 +1,26 @@
 package cs.bilkent.zanza.engine.pipeline;
 
+import java.util.function.Supplier;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
+import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import cs.bilkent.zanza.engine.exception.InitializationException;
 import cs.bilkent.zanza.engine.kvstore.KVStoreProvider;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
-import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainerFactory;
-import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.GreedyDrainer;
+import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainerPool;
 import cs.bilkent.zanza.flow.OperatorDefinition;
-import cs.bilkent.zanza.operator.InvocationContext;
 import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.INPUT_PORT_CLOSED;
-import cs.bilkent.zanza.operator.InvocationResult;
 import cs.bilkent.zanza.operator.Operator;
-import cs.bilkent.zanza.operator.PortsToTuples;
 import cs.bilkent.zanza.operator.Tuple;
+import cs.bilkent.zanza.operator.impl.InvocationContextImpl;
+import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import cs.bilkent.zanza.operator.kvstore.KVStore;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
@@ -29,14 +29,17 @@ import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyObject;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -63,9 +66,17 @@ public class OperatorInstanceTest
     private TupleQueueDrainer drainer;
 
     @Mock
-    private TupleQueueDrainerFactory drainerFactory;
+    private TupleQueueDrainerPool drainerPool;
+
+    @Mock
+    private Supplier<TuplesImpl> outputSupplier;
+
+    @Mock
+    private ZanzaConfig config;
 
     private final Object key = new Object();
+
+    private final InvocationContextImpl invocationContext = new InvocationContextImpl();
 
     private OperatorInstance operatorInstance;
 
@@ -76,10 +87,9 @@ public class OperatorInstanceTest
                                                  "op1",
                                                  queue,
                                                  operatorDefinition,
-                                                 kvStoreProvider,
-                                                 drainerFactory );
+                                                 kvStoreProvider, drainerPool, outputSupplier, invocationContext );
 
-        when( drainerFactory.create( any( SchedulingStrategy.class ) ) ).thenReturn( drainer );
+        when( drainerPool.acquire( any( SchedulingStrategy.class ) ) ).thenReturn( drainer );
         when( drainer.getKey() ).thenReturn( key );
         when( kvStoreProvider.getKVStore( key ) ).thenReturn( kvStore );
     }
@@ -100,7 +110,7 @@ public class OperatorInstanceTest
 
         try
         {
-            operatorInstance.init();
+            operatorInstance.init( config );
             fail();
         }
         catch ( InitializationException expected )
@@ -129,34 +139,36 @@ public class OperatorInstanceTest
     public void shouldInvokeOperatorWhenSchedulingStrategySatisfied ()
     {
         final ScheduleWhenTuplesAvailable strategy = scheduleWhenTuplesAvailableOnDefaultPort( 1 );
-        final ScheduleWhenTuplesAvailable outputStrategy = scheduleWhenTuplesAvailableOnDefaultPort( 2 );
+        final ScheduleWhenTuplesAvailable expectedOutputStrategy = scheduleWhenTuplesAvailableOnDefaultPort( 2 );
         initOperatorInstance( strategy );
 
-        final ArgumentCaptor<InvocationContext> invocationContextCaptor = ArgumentCaptor.forClass( InvocationContext.class );
-
-        final PortsToTuples operatorInput = new PortsToTuples( new Tuple( "f1", "val2" ) );
+        when( drainerPool.acquire( expectedOutputStrategy ) ).thenReturn( drainer );
+        final TuplesImpl operatorInput = TuplesImpl.newInstance( 1, new Tuple( "f1", "val2" ) );
         when( drainer.getResult() ).thenReturn( operatorInput );
 
-        final PortsToTuples output = new PortsToTuples( new Tuple( "f1", "val3" ) );
-        when( operator.invoke( anyObject() ) ).thenReturn( new InvocationResult( outputStrategy, output ) );
+        final TuplesImpl expectedOutput = TuplesImpl.newInstance( 1, new Tuple( "f1", "val3" ) );
+        when( outputSupplier.get() ).thenReturn( expectedOutput );
 
-        final PortsToTuples upstreamInput = new PortsToTuples( new Tuple( "f1", "val1" ) );
-        final InvocationResult result = operatorInstance.invoke( upstreamInput );
+        invocationContext.setNextSchedulingStrategy( expectedOutputStrategy );
+
+        final TuplesImpl upstreamInput = TuplesImpl.newInstance( 1, new Tuple( "f1", "val1" ) );
+        final TuplesImpl output = operatorInstance.invoke( upstreamInput );
 
         verify( queue ).offer( 0, singletonList( new Tuple( "f1", "val1" ) ) );
-        verify( drainerFactory ).create( strategy );
+        verify( drainerPool ).acquire( strategy );
         verify( queue ).drain( drainer );
         verify( kvStoreProvider ).getKVStore( key );
-        verify( operator ).invoke( invocationContextCaptor.capture() );
+        verify( operator ).invoke( invocationContext );
+        verify( drainerPool ).release( drainer );
+        verify( drainerPool ).acquire( expectedOutputStrategy );
+        verify( drainer ).reset();
 
-        final InvocationContext context = invocationContextCaptor.getValue();
-        assertThat( context.getReason(), equalTo( InvocationReason.SUCCESS ) );
-        assertThat( context.getKVStore(), equalTo( kvStore ) );
-        assertThat( context.getInputTuples(), equalTo( operatorInput ) );
+        assertThat( invocationContext.getReason(), equalTo( InvocationReason.SUCCESS ) );
+        assertThat( invocationContext.getKVStore(), equalTo( kvStore ) );
+        assertThat( invocationContext.getInput(), equalTo( operatorInput ) );
 
-        assertThat( result.getOutputTuples(), equalTo( output ) );
-        assertThat( result.getSchedulingStrategy(), equalTo( outputStrategy ) );
-        assertThat( operatorInstance.schedulingStrategy(), equalTo( outputStrategy ) );
+        assertThat( output, equalTo( expectedOutput ) );
+        assertThat( operatorInstance.schedulingStrategy(), equalTo( expectedOutputStrategy ) );
     }
 
     @Test
@@ -165,15 +177,15 @@ public class OperatorInstanceTest
         final ScheduleWhenTuplesAvailable strategy = scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         initOperatorInstance( strategy );
 
-        final PortsToTuples upstreamInput = new PortsToTuples( new Tuple( "f1", "val1" ) );
-        final InvocationResult result = operatorInstance.invoke( upstreamInput );
+        final TuplesImpl upstreamInput = TuplesImpl.newInstance( 1, new Tuple( "f1", "val1" ) );
+        final TuplesImpl output = operatorInstance.invoke( upstreamInput );
 
         verify( queue ).offer( 0, singletonList( new Tuple( "f1", "val1" ) ) );
-        verify( drainerFactory ).create( strategy );
+        verify( drainerPool ).acquire( strategy );
         verify( queue ).drain( drainer );
         verify( kvStoreProvider, never() ).getKVStore( key );
-        verify( operator, never() ).invoke( anyObject() );
-        assertNull( result );
+        verify( operator, never() ).invoke( invocationContext );
+        assertNull( output );
         assertThat( operatorInstance.schedulingStrategy(), equalTo( strategy ) );
     }
 
@@ -192,14 +204,12 @@ public class OperatorInstanceTest
     {
         initOperatorInstance( scheduleWhenTuplesAvailableOnDefaultPort( 1 ) );
 
-        when( drainer.getResult() ).thenReturn( new PortsToTuples( new Tuple( "f1", "val2" ) ) );
-        when( operator.invoke( anyObject() ) ).thenThrow( new RuntimeException() );
+        when( drainer.getResult() ).thenReturn( TuplesImpl.newInstance( 1, new Tuple( "f1", "val2" ) ) );
+        doThrow( new RuntimeException() ).when( operator ).invoke( invocationContext );
 
-        final InvocationResult result = operatorInstance.invoke( null );
+        final TuplesImpl output = operatorInstance.invoke( null );
 
-        assertNotNull( result );
-        assertNull( result.getOutputTuples() );
-        assertTrue( result.getSchedulingStrategy() instanceof ScheduleNever );
+        assertNull( output );
         assertTrue( operatorInstance.schedulingStrategy() instanceof ScheduleNever );
     }
 
@@ -208,16 +218,16 @@ public class OperatorInstanceTest
     {
         initOperatorInstance( scheduleWhenTuplesAvailableOnDefaultPort( 1 ) );
 
-        when( operator.invoke( anyObject() ) ).thenThrow( new RuntimeException() );
+        doThrow( new RuntimeException() ).when( operator ).invoke( invocationContext );
 
-        final PortsToTuples result = operatorInstance.forceInvoke( null, INPUT_PORT_CLOSED );
+        final TuplesImpl result = operatorInstance.forceInvoke( null, INPUT_PORT_CLOSED );
 
         assertNull( result );
         assertTrue( operatorInstance.schedulingStrategy() instanceof ScheduleNever );
     }
 
     @Test
-    public void shouldForceInvokeRegardlessOfSchedulingStrategy ()
+    public void shouldForceInvokeRegardlessOfCurrentSchedulingStrategy ()
     {
         testForceInvoke( ScheduleNever.INSTANCE );
     }
@@ -230,30 +240,31 @@ public class OperatorInstanceTest
 
     private void testForceInvoke ( final SchedulingStrategy outputStrategy )
     {
-        final ScheduleWhenTuplesAvailable strategy = scheduleWhenTuplesAvailableOnDefaultPort( 1 );
+        initOperatorInstance( scheduleWhenTuplesAvailableOnDefaultPort( 1 ) );
+
         when( kvStoreProvider.getKVStore( null ) ).thenReturn( kvStore );
-        initOperatorInstance( strategy );
+        final TuplesImpl upstreamInput = new TuplesImpl( 1 );
+        final TuplesImpl operatorInput = TuplesImpl.newInstance( 1, new Tuple( "f1", "val" ) );
+        when( drainer.getResult() ).thenReturn( operatorInput );
 
-        final PortsToTuples upstreamInput = new PortsToTuples();
-        final ArgumentCaptor<TupleQueueDrainer> drainerCaptor = ArgumentCaptor.forClass( TupleQueueDrainer.class );
-        final ArgumentCaptor<InvocationContext> invocationContextCaptor = ArgumentCaptor.forClass( InvocationContext.class );
+        final TuplesImpl output = TuplesImpl.newInstance( 1, new Tuple( "f1", "val1" ) );
+        when( outputSupplier.get() ).thenReturn( output );
 
-        final PortsToTuples output = new PortsToTuples( new Tuple( "f1", "val" ) );
-        when( operator.invoke( anyObject() ) ).thenReturn( new InvocationResult( outputStrategy, output ) );
+        invocationContext.setNextSchedulingStrategy( outputStrategy );
 
-        final PortsToTuples result = operatorInstance.forceInvoke( upstreamInput, INPUT_PORT_CLOSED );
+        final TuplesImpl result = operatorInstance.forceInvoke( upstreamInput, INPUT_PORT_CLOSED );
 
-        verify( queue, never() ).offer( anyInt(), anyObject() );
-        verify( queue ).drain( drainerCaptor.capture() );
-        verify( kvStoreProvider ).getKVStore( null );
-        assertTrue( drainerCaptor.getValue() instanceof GreedyDrainer );
+        verify( drainerPool ).acquire( ScheduleNever.INSTANCE );
+        verify( drainerPool, times( 2 ) ).release( drainer );
+        verify( queue, never() ).offer( anyInt(), anyList() );
+        verify( queue ).drain( drainer );
+        verify( kvStoreProvider ).getKVStore( key );
 
-        verify( operator ).invoke( invocationContextCaptor.capture() );
+        verify( operator ).invoke( invocationContext );
 
-        final InvocationContext context = invocationContextCaptor.getValue();
-        assertThat( context.getReason(), equalTo( INPUT_PORT_CLOSED ) );
-        assertThat( context.getKVStore(), equalTo( kvStore ) );
-        assertThat( context.getInputTuples(), equalTo( upstreamInput ) );
+        assertThat( invocationContext.getReason(), equalTo( INPUT_PORT_CLOSED ) );
+        assertThat( invocationContext.getKVStore(), equalTo( kvStore ) );
+        assertThat( invocationContext.getInput(), equalTo( operatorInput ) );
 
         assertThat( result, equalTo( output ) );
         assertThat( operatorInstance.schedulingStrategy(), equalTo( ScheduleNever.INSTANCE ) );
@@ -263,7 +274,8 @@ public class OperatorInstanceTest
     {
         createOperatorInstance();
         when( operator.init( anyObject() ) ).thenReturn( strategy );
-        operatorInstance.init();
+        operatorInstance.init( mock( ZanzaConfig.class ) );
+        when( drainerPool.acquire( strategy ) ).thenReturn( drainer );
     }
 
     private void createOperatorInstance ()

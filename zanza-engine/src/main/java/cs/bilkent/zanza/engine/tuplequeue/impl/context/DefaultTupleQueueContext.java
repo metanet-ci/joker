@@ -59,6 +59,12 @@ public class DefaultTupleQueueContext extends AbstractTupleQueueContext
     }
 
     @Override
+    public void ensureCapacity ( final int portIndex, final int capacity )
+    {
+        tupleQueues[ portIndex ].ensureCapacity( capacity );
+    }
+
+    @Override
     public void clear ()
     {
         LOGGER.info( "Clearing tuple queues of operator: {}", operatorId );

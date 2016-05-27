@@ -1,24 +1,19 @@
 package cs.bilkent.zanza.engine.tuplequeue.impl.drainer;
 
-import java.util.List;
-
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
-import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.PortToTupleCount;
-import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount;
 
 
 public class NonBlockingMultiPortDisjunctiveDrainer extends MultiPortDrainer
 {
 
-    public NonBlockingMultiPortDisjunctiveDrainer ( final TupleAvailabilityByCount tupleAvailabilityByCount,
-                                                    final List<PortToTupleCount> tupleCountByPortIndex )
+    public NonBlockingMultiPortDisjunctiveDrainer ( final int inputPortCount )
     {
-        super( tupleAvailabilityByCount, tupleCountByPortIndex );
+        super( inputPortCount );
     }
 
-    protected List<PortToTupleCount> checkQueueSizes ( final TupleQueue[] tupleQueues )
+    protected int[] checkQueueSizes ( final TupleQueue[] tupleQueues )
     {
-        return tupleCountByPortIndex;
+        return tupleCounts;
     }
 
 }

@@ -53,6 +53,12 @@ public class TuplePartitionerTupleQueueContext implements TupleQueueContext
     }
 
     @Override
+    public void ensureCapacity ( final int portIndex, final int capacity )
+    {
+        internal.ensureCapacity( portIndex, capacity );
+    }
+
+    @Override
     public void clear ()
     {
         internal.clear();

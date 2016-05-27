@@ -2,7 +2,7 @@ package cs.bilkent.zanza.engine.pipeline;
 
 import java.util.concurrent.Future;
 
-import cs.bilkent.zanza.operator.PortsToTuples;
+import cs.bilkent.zanza.operator.impl.TuplesImpl;
 
 /**
  * Sends a pipeline instance's output tuples to its downstream.
@@ -10,6 +10,6 @@ import cs.bilkent.zanza.operator.PortsToTuples;
 public interface DownstreamTupleSender
 {
 
-    Future<Void> send ( PipelineInstanceId id, PortsToTuples tuples );
+    Future<Void> send ( PipelineInstanceId id, TuplesImpl tuples );
 
 }

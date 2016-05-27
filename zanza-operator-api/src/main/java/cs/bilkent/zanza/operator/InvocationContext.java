@@ -18,7 +18,14 @@ public interface InvocationContext
      *
      * @return the tuples available for being processed by the operator
      */
-    PortsToTuples getInputTuples ();
+    Tuples getInput ();
+
+    /**
+     * Returns the {@link Tuples} object into which the tuples produced by the invocation will be added
+     *
+     * @return the {@link Tuples} object into which the tuples produced by the invocation will be added
+     */
+    Tuples getOutput ();
 
     /**
      * Returns the reason of a particular {@link Operator#invoke(InvocationContext)} method invocation.
@@ -26,6 +33,22 @@ public interface InvocationContext
      * @return the reason of a particular {@link Operator#invoke(InvocationContext)} method invocation.
      */
     InvocationReason getReason ();
+
+    /**
+     * Indicates that the invocation is done with respect to the last provided {@link SchedulingStrategy}.
+     * If it is false, it means that the invocation is done without the provided {@link SchedulingStrategy} has met
+     *
+     * @return true if the invocation is done with respect to the last provided {@link SchedulingStrategy}, false otherwise
+     */
+    default boolean isSuccessfulInvocation ()
+    {
+        return getReason().isSuccessful();
+    }
+
+    default boolean isErroneousInvocation ()
+    {
+        return getReason().isFailure();
+    }
 
     /**
      * Returns the {@link KVStore} that can be used within only the particular invocation for only {@link OperatorType#PARTITIONED_STATEFUL}
@@ -40,15 +63,12 @@ public interface InvocationContext
     KVStore getKVStore ();
 
     /**
-     * Indicates that the invocation is done with respect to the last provided {@link SchedulingStrategy}.
-     * If it is false, it means that the invocation is done without the provided {@link SchedulingStrategy} has met
+     * Sets a new {@link SchedulingStrategy} that will be used for next invocation of the operator
      *
-     * @return true if the invocation is done with respect to the last provided {@link SchedulingStrategy}, false otherwise
+     * @param schedulingStrategy
+     *         a new {@link SchedulingStrategy} that will be used for next invocation of the operator
      */
-    default boolean isSuccessfulInvocation ()
-    {
-        return getReason().isSuccessful();
-    }
+    void setNextSchedulingStrategy ( SchedulingStrategy schedulingStrategy );
 
     /**
      * Indicates the reason for a particular invocation of {@link Operator#invoke(InvocationContext)} method.
@@ -98,6 +118,12 @@ public interface InvocationContext
          * @return true if the invocation is done with respect to the last provided {@link SchedulingStrategy}, false otherwise
          */
         abstract boolean isSuccessful ();
+
+        boolean isFailure ()
+        {
+            return !isSuccessful();
+        }
+
     }
 
 }
