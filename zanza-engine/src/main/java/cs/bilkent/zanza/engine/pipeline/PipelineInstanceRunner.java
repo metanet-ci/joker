@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
-import cs.bilkent.zanza.engine.config.ZanzaConfig.PipelineInstanceRunnerConfig;
 import cs.bilkent.zanza.engine.coordinator.CoordinatorHandle;
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstance.NO_INVOKABLE_INDEX;
 import cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerCommand.PipelineInstanceRunnerCommandType;
@@ -65,7 +64,7 @@ public class PipelineInstanceRunner implements Runnable
 
     public void init ( ZanzaConfig config )
     {
-        waitTimeoutInMillis = config.getLong( PipelineInstanceRunnerConfig.RUNNER_WAIT_TIME_IN_MILLIS_FULL_PATH );
+        waitTimeoutInMillis = config.getPipelineInstanceRunnerConfig().waitTimeoutInMillis;
         pipeline.init( config );
     }
 

@@ -9,7 +9,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.zanza.engine.config.ThreadingPreference;
 import static cs.bilkent.zanza.engine.config.ThreadingPreference.SINGLE_THREADED;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
-import cs.bilkent.zanza.engine.config.ZanzaConfig.TupleQueueManagerConfig;
 import cs.bilkent.zanza.engine.partition.PartitionKeyFunction;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
@@ -37,7 +36,7 @@ class TupleQueueManagerImpl implements TupleQueueManager
     @Override
     public void init ( final ZanzaConfig config )
     {
-        initialTupleQueueCapacity = config.getInt( TupleQueueManagerConfig.TUPLE_QUEUE_INITIAL_SIZE_FULL_PATH );
+        initialTupleQueueCapacity = config.getTupleQueueManagerConfig().getTupleQueueInitialSize();
     }
 
     @Override

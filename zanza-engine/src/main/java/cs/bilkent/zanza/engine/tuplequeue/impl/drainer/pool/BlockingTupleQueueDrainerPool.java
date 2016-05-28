@@ -5,7 +5,6 @@ import javax.annotation.concurrent.NotThreadSafe;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
-import cs.bilkent.zanza.engine.config.ZanzaConfig.TupleQueueDrainerConfig;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainerPool;
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.BlockingMultiPortConjunctiveDrainer;
@@ -47,7 +46,7 @@ public class BlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
     @Override
     public void init ( final ZanzaConfig config )
     {
-        timeoutInMillis = config.getLong( TupleQueueDrainerConfig.DRAIN_TIMEOUT_IN_MILLIS_FULL_PATH );
+        timeoutInMillis = config.getTupleQueueDrainerConfig().getDrainTimeoutInMillis();
 
         singlePortDrainer = new BlockingSinglePortDrainer( timeoutInMillis );
         multiPortConjunctiveDrainer = new BlockingMultiPortConjunctiveDrainer( inputPortCount, timeoutInMillis );

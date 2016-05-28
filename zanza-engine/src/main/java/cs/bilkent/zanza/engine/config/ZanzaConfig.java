@@ -6,67 +6,15 @@ import com.typesafe.config.ConfigFactory;
 public class ZanzaConfig
 {
 
-    public static final String ROOT_PATH_NAME = "zanza.engine";
-
-
-    public static final class PipelineInstanceRunnerConfig
-    {
-
-        public static final String CONFIG_FIELD_NAME = "pipelineInstanceRunner";
-
-        public static final String CONFIG_FIELD_NAME_FULL_PATH = ROOT_PATH_NAME + "." + CONFIG_FIELD_NAME;
-
-        public static final String RUNNER_WAIT_TIME_IN_MILLIS = "runnerWaitTimeInMillis";
-
-        public static final String RUNNER_WAIT_TIME_IN_MILLIS_FULL_PATH =
-                ROOT_PATH_NAME + "." + CONFIG_FIELD_NAME + "." + RUNNER_WAIT_TIME_IN_MILLIS;
-
-        private PipelineInstanceRunnerConfig ()
-        {
-        }
-
-    }
-
-
-    public static final class TupleQueueManagerConfig
-    {
-
-        public static final String CONFIG_FIELD_NAME = "tupleQueueManager";
-
-        public static final String CONFIG_FIELD_NAME_FULL_PATH = ROOT_PATH_NAME + "." + CONFIG_FIELD_NAME;
-
-        public static final String TUPLE_QUEUE_INITIAL_SIZE = "tupleQueueInitialSize";
-
-        public static final String TUPLE_QUEUE_INITIAL_SIZE_FULL_PATH =
-                ROOT_PATH_NAME + "." + CONFIG_FIELD_NAME + "." + TUPLE_QUEUE_INITIAL_SIZE;
-
-        private TupleQueueManagerConfig ()
-        {
-        }
-
-    }
-
-
-    public static final class TupleQueueDrainerConfig
-    {
-
-        public static final String CONFIG_FIELD_NAME = "tupleQueueDrainer";
-
-        public static final String CONFIG_FIELD_NAME_FULL_PATH = ROOT_PATH_NAME + "." + CONFIG_FIELD_NAME;
-
-        public static final String DRAIN_TIMEOUT_IN_MILLIS = "drainTimeoutInMillis";
-
-        public static final String DRAIN_TIMEOUT_IN_MILLIS_FULL_PATH =
-                ROOT_PATH_NAME + "." + CONFIG_FIELD_NAME + "." + DRAIN_TIMEOUT_IN_MILLIS;
-
-        private TupleQueueDrainerConfig ()
-        {
-        }
-
-    }
-
+    public static final String ENGINE_CONFIG_NAME = "zanza.engine";
 
     private final Config config;
+
+    private final TupleQueueManagerConfig tupleQueueManagerConfig;
+
+    private final TupleQueueDrainerConfig tupleQueueDrainerConfig;
+
+    private final PipelineInstanceRunnerConfig pipelineInstanceRunnerConfig;
 
     public ZanzaConfig ()
     {
@@ -76,36 +24,30 @@ public class ZanzaConfig
     public ZanzaConfig ( final Config config )
     {
         this.config = config;
+        final Config engineConfig = config.getConfig( ENGINE_CONFIG_NAME );
+        this.tupleQueueManagerConfig = new TupleQueueManagerConfig( engineConfig );
+        this.tupleQueueDrainerConfig = new TupleQueueDrainerConfig( engineConfig );
+        this.pipelineInstanceRunnerConfig = new PipelineInstanceRunnerConfig( engineConfig );
     }
 
-    public Config getConfig ()
+    public Config getRootConfig ()
     {
         return config;
     }
 
-    public Config getPipelineInstanceRunnerConfig ()
+    public TupleQueueManagerConfig getTupleQueueManagerConfig ()
     {
-        return config.getConfig( PipelineInstanceRunnerConfig.CONFIG_FIELD_NAME_FULL_PATH );
+        return tupleQueueManagerConfig;
     }
 
-    public Config getTupleQueueManagerConfig ()
+    public TupleQueueDrainerConfig getTupleQueueDrainerConfig ()
     {
-        return config.getConfig( TupleQueueManagerConfig.CONFIG_FIELD_NAME_FULL_PATH );
+        return tupleQueueDrainerConfig;
     }
 
-    public Config getTupleQueueDrainerConfig ()
+    public PipelineInstanceRunnerConfig getPipelineInstanceRunnerConfig ()
     {
-        return config.getConfig( TupleQueueDrainerConfig.CONFIG_FIELD_NAME_FULL_PATH );
-    }
-
-    public int getInt ( final String fullPath )
-    {
-        return config.getInt( fullPath );
-    }
-
-    public long getLong ( final String fullPath )
-    {
-        return config.getLong( fullPath );
+        return pipelineInstanceRunnerConfig;
     }
 
 }
