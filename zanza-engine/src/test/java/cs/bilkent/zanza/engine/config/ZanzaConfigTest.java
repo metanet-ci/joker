@@ -22,7 +22,7 @@ public class ZanzaConfigTest
     }
 
     @Test
-    public void shouldOverwriteDefaultConfigWithConfFile ()
+    public void shouldOverwriteDefaultConfigWithCustomConfigValue ()
     {
         final String configPath = ZanzaConfig.ENGINE_CONFIG_NAME + "." + TupleQueueManagerConfig.CONFIG_NAME + "."
                                   + TupleQueueManagerConfig.TUPLE_QUEUE_INITIAL_SIZE;
