@@ -8,6 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkState;
+import cs.bilkent.zanza.engine.config.ZanzaConfig;
+import cs.bilkent.zanza.engine.config.ZanzaConfig.PipelineInstanceRunnerConfig;
 import cs.bilkent.zanza.engine.coordinator.CoordinatorHandle;
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstance.NO_INVOKABLE_INDEX;
 import cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerCommand.PipelineInstanceRunnerCommandType;
@@ -26,8 +28,6 @@ public class PipelineInstanceRunner implements Runnable
 
     private static final Logger LOGGER = LoggerFactory.getLogger( PipelineInstanceRunner.class );
 
-    private static final int PAUSED_MONITOR_WAIT_TIMEOUT_IN_MILLIS = 100;
-
 
     private final Object monitor = new Object();
 
@@ -36,6 +36,8 @@ public class PipelineInstanceRunner implements Runnable
     private final PipelineInstanceId id;
 
     private final int operatorCount;
+
+    private long waitTimeoutInMillis;
 
 
     private CoordinatorHandle coordinator;
@@ -59,6 +61,12 @@ public class PipelineInstanceRunner implements Runnable
         {
             status = INITIAL;
         }
+    }
+
+    public void init ( ZanzaConfig config )
+    {
+        waitTimeoutInMillis = config.getLong( PipelineInstanceRunnerConfig.RUNNER_WAIT_TIME_IN_MILLIS_FULL_PATH );
+        pipeline.init( config );
     }
 
     public void setCoordinator ( final CoordinatorHandle coordinator )
@@ -249,7 +257,7 @@ public class PipelineInstanceRunner implements Runnable
 
                     synchronized ( monitor )
                     {
-                        monitor.wait( PAUSED_MONITOR_WAIT_TIMEOUT_IN_MILLIS );
+                        monitor.wait( waitTimeoutInMillis );
                     }
                     continue;
                 }

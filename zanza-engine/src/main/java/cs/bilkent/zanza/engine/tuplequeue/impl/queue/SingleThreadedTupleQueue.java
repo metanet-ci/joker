@@ -7,6 +7,8 @@ import java.util.Iterator;
 import java.util.List;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import com.google.common.base.Preconditions;
+
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.operator.Tuple;
 
@@ -18,6 +20,7 @@ public class SingleThreadedTupleQueue implements TupleQueue
 
     public SingleThreadedTupleQueue ( final int initialCapacity )
     {
+        Preconditions.checkArgument( initialCapacity > 0 );
         this.queue = new ArrayDeque<>( initialCapacity );
     }
 

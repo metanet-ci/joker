@@ -24,27 +24,30 @@ import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 public class NonBlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
 {
 
-    private int inputPortCount;
+    private final int inputPortCount;
 
-    private NonBlockingSinglePortDrainer singlePortDrainer;
+    private final NonBlockingSinglePortDrainer singlePortDrainer;
 
-    private NonBlockingMultiPortConjunctiveDrainer multiPortConjunctiveDrainer;
+    private final NonBlockingMultiPortConjunctiveDrainer multiPortConjunctiveDrainer;
 
-    private NonBlockingMultiPortDisjunctiveDrainer multiPortDisjunctiveDrainer;
+    private final NonBlockingMultiPortDisjunctiveDrainer multiPortDisjunctiveDrainer;
 
-    private GreedyDrainer greedyDrainer;
+    private final GreedyDrainer greedyDrainer;
 
     private TupleQueueDrainer active;
 
-
-    @Override
-    public void init ( final ZanzaConfig config, final OperatorDefinition operatorDefinition )
+    public NonBlockingTupleQueueDrainerPool ( final OperatorDefinition operatorDefinition )
     {
         inputPortCount = operatorDefinition.inputPortCount();
         singlePortDrainer = new NonBlockingSinglePortDrainer();
         multiPortConjunctiveDrainer = new NonBlockingMultiPortConjunctiveDrainer( inputPortCount );
         multiPortDisjunctiveDrainer = new NonBlockingMultiPortDisjunctiveDrainer( inputPortCount );
         greedyDrainer = new GreedyDrainer( inputPortCount, 0 );
+    }
+
+    @Override
+    public void init ( final ZanzaConfig config )
+    {
     }
 
     @Override

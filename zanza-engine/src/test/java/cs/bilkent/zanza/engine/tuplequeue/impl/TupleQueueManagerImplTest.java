@@ -2,10 +2,12 @@ package cs.bilkent.zanza.engine.tuplequeue.impl;
 
 import java.util.Collections;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import cs.bilkent.zanza.engine.config.ThreadingPreference;
 import static cs.bilkent.zanza.engine.config.ThreadingPreference.MULTI_THREADED;
+import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.flow.OperatorDefinition;
 import cs.bilkent.zanza.flow.OperatorRuntimeSchemaBuilder;
@@ -20,6 +22,12 @@ public class TupleQueueManagerImplTest
 {
 
     private final TupleQueueManagerImpl tupleQueueManager = new TupleQueueManagerImpl();
+
+    @Before
+    public void init ()
+    {
+        tupleQueueManager.init( new ZanzaConfig() );
+    }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotCreateTupleQueueContexteWithoutOperatorDefinition ()

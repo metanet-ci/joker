@@ -23,7 +23,27 @@ import static java.util.Collections.unmodifiableList;
 public final class TuplesImpl implements Tuples
 {
 
-    private static final int INITIAL_CAPACITY = 2;
+    private static final String INITIAL_CAPACITY_SYS_PARAM = "cs.bilkent.zanza.TuplesImpl.INITIAL_CAPACITY";
+
+    private static final int DEFAULT_INITIAL_CAPACITY = 16;
+
+    static
+    {
+        int sysArg = -1;
+        try
+        {
+            sysArg = Integer.parseInt( System.getProperty( INITIAL_CAPACITY_SYS_PARAM ) );
+            System.out.println( "Static initialization: " + TuplesImpl.class.getSimpleName() + " initial capacity is set to " + sysArg );
+        }
+        catch ( Exception expected )
+        {
+        }
+
+        INITIAL_CAPACITY = sysArg != -1 ? sysArg : DEFAULT_INITIAL_CAPACITY;
+    }
+
+
+    private static final int INITIAL_CAPACITY;
 
     /**
      * Initializes a new object and adds the provided tuples into the default port.

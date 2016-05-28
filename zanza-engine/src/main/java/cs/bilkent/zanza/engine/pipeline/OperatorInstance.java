@@ -118,7 +118,7 @@ public class OperatorInstance
         checkState( status == INITIAL );
         try
         {
-            drainerPool.init( config, operatorDefinition );
+            drainerPool.init( config );
             operator = operatorDefinition.createOperator();
             final InitializationContext context = new OperatorDefinitionInitializationContextAdaptor( operatorDefinition );
             schedulingStrategy = operator.init( context );

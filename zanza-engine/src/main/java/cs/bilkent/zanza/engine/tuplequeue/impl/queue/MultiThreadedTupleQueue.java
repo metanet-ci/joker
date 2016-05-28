@@ -38,16 +38,16 @@ public class MultiThreadedTupleQueue implements TupleQueue
 
     private volatile int capacity;
 
-    private boolean capacityCheckEnabled = true;
+    private boolean capacityCheckEnabled;
 
     public MultiThreadedTupleQueue ( final int initialCapacity )
     {
-        this.queue = new ArrayDeque<>( initialCapacity );
-        this.capacity = initialCapacity;
+        this( initialCapacity, true );
     }
 
     public MultiThreadedTupleQueue ( final int initialCapacity, final boolean capacityCheckEnabled )
     {
+        checkArgument( initialCapacity > 0 );
         this.queue = new ArrayDeque<>( initialCapacity );
         this.capacity = initialCapacity;
         this.capacityCheckEnabled = capacityCheckEnabled;

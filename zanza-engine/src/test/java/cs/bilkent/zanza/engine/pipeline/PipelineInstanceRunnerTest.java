@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import static cs.bilkent.zanza.engine.TestUtils.assertTrueEventually;
+import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import cs.bilkent.zanza.engine.coordinator.CoordinatorHandle;
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstance.NO_INVOKABLE_INDEX;
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.COMPLETED;
@@ -46,6 +47,7 @@ public class PipelineInstanceRunnerTest
     public void init () throws Exception
     {
         runner = new PipelineInstanceRunner( pipeline );
+        runner.init( new ZanzaConfig() );
         runner.setCoordinator( coordinator );
         runner.setDownstreamTupleSender( downstreamTupleSender );
         thread = new Thread( runner );

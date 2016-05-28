@@ -5,6 +5,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
+import cs.bilkent.zanza.engine.config.ZanzaConfig.TupleQueueDrainerConfig;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainerPool;
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.BlockingMultiPortConjunctiveDrainer;
@@ -24,9 +25,9 @@ import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 public class BlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
 {
 
-    private long timeoutInMillis;
+    private final int inputPortCount;
 
-    private int inputPortCount;
+    private long timeoutInMillis;
 
     private BlockingSinglePortDrainer singlePortDrainer;
 
@@ -38,12 +39,16 @@ public class BlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
 
     private TupleQueueDrainer active;
 
-
-    @Override
-    public void init ( final ZanzaConfig config, final OperatorDefinition operatorDefinition )
+    public BlockingTupleQueueDrainerPool ( final OperatorDefinition operatorDefinition )
     {
         inputPortCount = operatorDefinition.inputPortCount();
-        // TODO READ TIMEOUT VALUE FROM CONFIG
+    }
+
+    @Override
+    public void init ( final ZanzaConfig config )
+    {
+        timeoutInMillis = config.getLong( TupleQueueDrainerConfig.DRAIN_TIMEOUT_IN_MILLIS_FULL_PATH );
+
         singlePortDrainer = new BlockingSinglePortDrainer( timeoutInMillis );
         multiPortConjunctiveDrainer = new BlockingMultiPortConjunctiveDrainer( inputPortCount, timeoutInMillis );
         multiPortDisjunctiveDrainer = new BlockingMultiPortDisjunctiveDrainer( inputPortCount, timeoutInMillis );

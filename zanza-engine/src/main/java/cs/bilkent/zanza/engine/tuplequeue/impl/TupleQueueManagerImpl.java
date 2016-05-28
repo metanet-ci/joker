@@ -8,6 +8,8 @@ import java.util.function.Function;
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.zanza.engine.config.ThreadingPreference;
 import static cs.bilkent.zanza.engine.config.ThreadingPreference.SINGLE_THREADED;
+import cs.bilkent.zanza.engine.config.ZanzaConfig;
+import cs.bilkent.zanza.engine.config.ZanzaConfig.TupleQueueManagerConfig;
 import cs.bilkent.zanza.engine.partition.PartitionKeyFunction;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
@@ -26,10 +28,16 @@ class TupleQueueManagerImpl implements TupleQueueManager
 
     private final ConcurrentMap<Pair<String, Integer>, TupleQueueContext> tupleQueueContexts = new ConcurrentHashMap<>();
 
-    private int initialQueueCapacity = 10;
+    private int initialTupleQueueCapacity;
 
     public TupleQueueManagerImpl ()
     {
+    }
+
+    @Override
+    public void init ( final ZanzaConfig config )
+    {
+        initialTupleQueueCapacity = config.getInt( TupleQueueManagerConfig.TUPLE_QUEUE_INITIAL_SIZE_FULL_PATH );
     }
 
     @Override
@@ -41,7 +49,8 @@ class TupleQueueManagerImpl implements TupleQueueManager
         checkArgument( threadingPreference != null );
         checkArgument( replicaIndex >= 0 );
 
-        final Function<Boolean, TupleQueue> tupleQueueConstructor = getTupleQueueConstructor( threadingPreference, initialQueueCapacity );
+        final Function<Boolean, TupleQueue> tupleQueueConstructor = getTupleQueueConstructor( threadingPreference,
+                                                                                              initialTupleQueueCapacity );
         final Function<Pair<String, Integer>, TupleQueueContext> constructor = getTupleQueueContextConstructor( operatorDefinition,
                                                                                                                 threadingPreference,
                                                                                                                 tupleQueueConstructor );
