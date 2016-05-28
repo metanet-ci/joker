@@ -9,7 +9,6 @@ import cs.bilkent.zanza.operator.OperatorConfig;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.Tuples;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
-import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.ANY_NUMBER_OF_TUPLES;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
@@ -42,7 +41,7 @@ public class MapperOperator implements Operator
             mapped.setSequenceNumber( tuple.getSequenceNumber() );
             return mapped;
         };
-        final int tupleCount = config.getIntegerOrDefault( TUPLE_COUNT_CONFIG_PARAMETER, ANY_NUMBER_OF_TUPLES );
+        final int tupleCount = config.getIntegerOrDefault( TUPLE_COUNT_CONFIG_PARAMETER, 1 );
         return scheduleWhenTuplesAvailableOnDefaultPort( tupleCount );
     }
 

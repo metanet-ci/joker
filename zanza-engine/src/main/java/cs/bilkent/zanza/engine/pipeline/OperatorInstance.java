@@ -29,6 +29,7 @@ import cs.bilkent.zanza.operator.impl.InvocationContextImpl;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import cs.bilkent.zanza.operator.kvstore.KVStore;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
+import cs.bilkent.zanza.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
@@ -46,13 +47,11 @@ public class OperatorInstance
     private static Logger LOGGER = LoggerFactory.getLogger( OperatorInstance.class );
 
 
-    private final PipelineInstanceId pipelineInstanceId;
-
     private final String operatorName;
 
-    private final TupleQueueContext queue;
-
     private final OperatorDefinition operatorDefinition;
+
+    private final TupleQueueContext queue;
 
     private final KVStoreProvider kvStoreProvider;
 
@@ -71,34 +70,22 @@ public class OperatorInstance
     private TupleQueueDrainer drainer;
 
     public OperatorInstance ( final PipelineInstanceId pipelineInstanceId,
-                              final String operatorName,
-                              final TupleQueueContext queue,
-                              final OperatorDefinition operatorDefinition,
+                              final OperatorDefinition operatorDefinition, final TupleQueueContext queue,
                               final KVStoreProvider kvStoreProvider,
                               final TupleQueueDrainerPool drainerPool,
                               final Supplier<TuplesImpl> outputSupplier )
     {
-        this( pipelineInstanceId,
-              operatorName,
-              queue,
-              operatorDefinition,
-              kvStoreProvider,
-              drainerPool,
-              outputSupplier,
-              new InvocationContextImpl() );
+        this( pipelineInstanceId, operatorDefinition, queue, kvStoreProvider, drainerPool, outputSupplier, new InvocationContextImpl() );
     }
 
     public OperatorInstance ( final PipelineInstanceId pipelineInstanceId,
-                              final String operatorName,
-                              final TupleQueueContext queue,
-                              final OperatorDefinition operatorDefinition,
+                              final OperatorDefinition operatorDefinition, final TupleQueueContext queue,
                               final KVStoreProvider kvStoreProvider,
                               final TupleQueueDrainerPool drainerPool,
                               final Supplier<TuplesImpl> outputSupplier,
                               final InvocationContextImpl invocationContext )
     {
-        this.pipelineInstanceId = pipelineInstanceId;
-        this.operatorName = operatorName;
+        this.operatorName = pipelineInstanceId.toString() + ".Operator<" + operatorDefinition.id() + ">";
         this.queue = queue;
         this.operatorDefinition = operatorDefinition;
         this.kvStoreProvider = kvStoreProvider;
@@ -124,7 +111,7 @@ public class OperatorInstance
             schedulingStrategy = operator.init( context );
             drainer = drainerPool.acquire( schedulingStrategy );
             status = RUNNING;
-            LOGGER.info( "{}:{} initialized. Initial scheduling strategy: {}", pipelineInstanceId, operatorName, schedulingStrategy );
+            LOGGER.info( "{} initialized. Initial scheduling strategy: {}", operatorName, schedulingStrategy );
         }
         catch ( Exception e )
         {
@@ -151,7 +138,7 @@ public class OperatorInstance
 
         if ( schedulingStrategy instanceof ScheduleNever )
         {
-            LOGGER.warn( "{}:{} completed its execution but invoked again. Input: {}", pipelineInstanceId, operatorName, upstreamInput );
+            LOGGER.warn( "{} completed its execution but invoked again. Input: {}", operatorName, upstreamInput );
             return null;
         }
 
@@ -199,7 +186,7 @@ public class OperatorInstance
         }
         catch ( Exception e )
         {
-            LOGGER.error( pipelineInstanceId + ":" + operatorName + " failed during invoke!", e );
+            LOGGER.error( operatorName + " failed during invoke!", e );
             schedulingStrategy = ScheduleNever.INSTANCE;
             return null;
         }
@@ -227,7 +214,7 @@ public class OperatorInstance
 
         if ( schedulingStrategy instanceof ScheduleNever )
         {
-            LOGGER.warn( "{}:{} ignoring force invoke", pipelineInstanceId, operatorName );
+            LOGGER.warn( "{} ignoring force invoke", operatorName );
             return null;
         }
 
@@ -246,38 +233,50 @@ public class OperatorInstance
             }
 
             drainerPool.release( drainer );
-            drainer = drainerPool.acquire( ScheduleNever.INSTANCE );
+            drainer = drainerPool.acquire( ScheduleWhenAvailable.INSTANCE );
 
             queue.drain( drainer );
             final TuplesImpl input = drainer.getResult();
-            final KVStore kvStore = kvStoreProvider.getKVStore( drainer.getKey() );
-            final TuplesImpl output = outputSupplier.get();
-            invocationContext.setInvocationParameters( reason, input, output, kvStore );
-
-            operator.invoke( invocationContext );
-
-            if ( invocationContext.getSchedulingStrategy() instanceof ScheduleNever )
+            if ( input != null )
             {
-                LOGGER.info( "{}:{} force invoked and completed its execution.", pipelineInstanceId, operatorName );
-            }
-            else
-            {
-                LOGGER.warn( "{}:{} force invoked and requested new scheduling.", pipelineInstanceId, operatorName );
+                final KVStore kvStore = kvStoreProvider.getKVStore( drainer.getKey() );
+                final TuplesImpl output = outputSupplier.get();
+                invocationContext.setInvocationParameters( reason, input, output, kvStore );
+
+                operator.invoke( invocationContext );
+
+                if ( invocationContext.getSchedulingStrategy() instanceof ScheduleNever )
+                {
+                    LOGGER.info( "{} force invoked and completed its execution.", operatorName );
+                }
+                else
+                {
+                    LOGGER.warn( "{} force invoked and requested new scheduling.", operatorName );
+                }
+
+                return output;
             }
 
-            return output;
+            return null;
         }
         catch ( Exception e )
         {
-            LOGGER.error( pipelineInstanceId + ":" + operatorName + " failed during force invoke!", e );
+            LOGGER.error( operatorName + " failed during force invoke!", e );
 
             return null;
         }
         finally
         {
-            schedulingStrategy = ScheduleNever.INSTANCE;
-            drainerPool.release( drainer );
-            drainer = null;
+            try
+            {
+                schedulingStrategy = ScheduleNever.INSTANCE;
+                drainerPool.release( drainer );
+                drainer = null;
+            }
+            catch ( Exception e )
+            {
+                LOGGER.error( operatorName + " failed during releasing drainer after force invoke", e );
+            }
         }
     }
 
@@ -290,19 +289,18 @@ public class OperatorInstance
 
         if ( status == SHUT_DOWN )
         {
-            LOGGER.info( "{}:{} ignoring shutdown request since already shut down", pipelineInstanceId, operatorName );
+            LOGGER.info( "{} ignoring shutdown request since already shut down", operatorName );
             return;
         }
 
         checkState( status == RUNNING || status == INITIALIZATION_FAILED );
         try
         {
-            drainerPool.release( drainer );
             operator.shutdown();
         }
         catch ( Exception e )
         {
-            LOGGER.error( pipelineInstanceId + ":" + operatorName + " failed to shut down", e );
+            LOGGER.error( operatorName + " failed to shut down", e );
         }
         finally
         {

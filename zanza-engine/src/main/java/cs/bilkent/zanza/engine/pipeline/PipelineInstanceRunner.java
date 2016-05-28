@@ -276,7 +276,7 @@ public class PipelineInstanceRunner implements Runnable
                 }
                 else if ( highestInvokableIndex == operatorCount && newHighestInvokableIndex < highestInvokableIndex )
                 {
-                    stopDownstream();
+                    notifyDownstream();
                 }
             }
         }
@@ -376,7 +376,7 @@ public class PipelineInstanceRunner implements Runnable
         }
     }
 
-    private void stopDownstream () throws InterruptedException
+    private void notifyDownstream () throws InterruptedException
     {
         LOGGER.info( "{}: stopping downstream tuple sender", id );
         awaitDownstreamTuplesFuture();
@@ -390,7 +390,7 @@ public class PipelineInstanceRunner implements Runnable
 
     private void completeRun () throws InterruptedException
     {
-        LOGGER.info( "{}: completing the running", id );
+        LOGGER.info( "{}: completing the run", id );
         awaitDownstreamTuplesFuture();
 
         LOGGER.info( "{}: all downstream tuples are sent", id );

@@ -23,6 +23,7 @@ import cs.bilkent.zanza.operator.impl.InvocationContextImpl;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import cs.bilkent.zanza.operator.kvstore.KVStore;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
+import cs.bilkent.zanza.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
@@ -84,11 +85,9 @@ public class OperatorInstanceTest
     public void before ()
     {
         operatorInstance = new OperatorInstance( new PipelineInstanceId( 0, 0, 0 ),
-                                                 "op1",
-                                                 queue,
-                                                 operatorDefinition,
+                                                 operatorDefinition, queue,
                                                  kvStoreProvider, drainerPool, outputSupplier, invocationContext );
-
+        when( operatorDefinition.id() ).thenReturn( "op1" );
         when( drainerPool.acquire( any( SchedulingStrategy.class ) ) ).thenReturn( drainer );
         when( drainer.getKey() ).thenReturn( key );
         when( kvStoreProvider.getKVStore( key ) ).thenReturn( kvStore );
@@ -254,7 +253,7 @@ public class OperatorInstanceTest
 
         final TuplesImpl result = operatorInstance.forceInvoke( upstreamInput, INPUT_PORT_CLOSED );
 
-        verify( drainerPool ).acquire( ScheduleNever.INSTANCE );
+        verify( drainerPool ).acquire( ScheduleWhenAvailable.INSTANCE );
         verify( drainerPool, times( 2 ) ).release( drainer );
         verify( queue, never() ).offer( anyInt(), anyList() );
         verify( queue ).drain( drainer );

@@ -22,7 +22,7 @@ import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import cs.bilkent.zanza.utils.Pair;
 
 
-class TupleQueueManagerImpl implements TupleQueueManager
+public class TupleQueueManagerImpl implements TupleQueueManager
 {
 
     private final ConcurrentMap<Pair<String, Integer>, TupleQueueContext> tupleQueueContexts = new ConcurrentHashMap<>();

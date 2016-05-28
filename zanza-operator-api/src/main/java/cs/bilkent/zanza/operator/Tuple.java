@@ -184,6 +184,10 @@ public final class Tuple implements Fields<String>
 
         final Tuple tuple = (Tuple) o;
 
+        if ( sequenceNumber != tuple.sequenceNumber )
+        {
+            return false;
+        }
         return values.equals( tuple.values );
 
     }
@@ -191,7 +195,9 @@ public final class Tuple implements Fields<String>
     @Override
     public int hashCode ()
     {
-        return values.hashCode();
+        int result = sequenceNumber;
+        result = 31 * result + values.hashCode();
+        return result;
     }
 
     @Override

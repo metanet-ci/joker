@@ -30,8 +30,6 @@ public final class ScheduleWhenTuplesAvailable implements SchedulingStrategy
     }
 
 
-    public static final int ANY_NUMBER_OF_TUPLES = 0;
-
     public static ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailableOnAll ( final int portCount,
                                                                                  final int tupleCount,
                                                                                  final int... ports )

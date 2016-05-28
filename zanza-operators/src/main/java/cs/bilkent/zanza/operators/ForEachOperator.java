@@ -38,7 +38,7 @@ public class ForEachOperator implements Operator
         final OperatorConfig config = context.getConfig();
 
         this.consumerFunc = config.getOrFail( CONSUMER_FUNCTION_CONFIG_PARAMETER );
-        final int tupleCount = config.getIntegerOrDefault( EXACT_TUPLE_COUNT_CONFIG_PARAMETER, 0 );
+        final int tupleCount = config.getIntegerOrDefault( EXACT_TUPLE_COUNT_CONFIG_PARAMETER, 1 );
 
         return tupleCount > 0
                ? scheduleWhenTuplesAvailableOnDefaultPort( TupleAvailabilityByCount.EXACT, tupleCount )

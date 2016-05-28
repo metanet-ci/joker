@@ -70,7 +70,15 @@ public class FlowDefinition
                                                                                      entry.getValue().operatorId ) )
                                                        .distinct()
                                                        .count();
-        checkState( operators.size() == connectedOperatorCount, "Invalid flow definition!" );
+
+        if ( operators.size() == 1 )
+        {
+            checkState( connectedOperatorCount == 0, "Invalid flow definition!" );
+        }
+        else
+        {
+            checkState( operators.size() == connectedOperatorCount, "Invalid flow definition!" );
+        }
     }
 
     public Collection<Entry<Port, Port>> getAllConnections ()

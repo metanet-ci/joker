@@ -59,7 +59,7 @@ public class NonBlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
         {
             active = greedyDrainer;
         }
-        if ( input instanceof ScheduleWhenTuplesAvailable )
+        else if ( input instanceof ScheduleWhenTuplesAvailable )
         {
             final ScheduleWhenTuplesAvailable strategy = (ScheduleWhenTuplesAvailable) input;
 
@@ -95,7 +95,7 @@ public class NonBlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
     @Override
     public void release ( final TupleQueueDrainer drainer )
     {
-        checkArgument( active == drainer );
+        checkArgument( active == drainer, "active: " + active + " drainer: " + drainer );
         active.reset();
         active = null;
     }

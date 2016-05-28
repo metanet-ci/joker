@@ -11,7 +11,6 @@ import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.impl.InitializationContextImpl;
 import cs.bilkent.zanza.operator.impl.InvocationContextImpl;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
-import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.ANY_NUMBER_OF_TUPLES;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import static cs.bilkent.zanza.operators.FilterOperator.PREDICATE_CONFIG_PARAMETER;
 import static cs.bilkent.zanza.operators.FilterOperator.TUPLE_COUNT_CONFIG_PARAMETER;
@@ -49,7 +48,7 @@ public class FilterOperatorTest
 
         final SchedulingStrategy strategy = operator.init( initContext );
 
-        assertScheduleWhenTuplesAvailableStrategy( strategy, ANY_NUMBER_OF_TUPLES );
+        assertScheduleWhenTuplesAvailableStrategy( strategy, 1 );
     }
 
     @Test
@@ -59,7 +58,7 @@ public class FilterOperatorTest
 
         final SchedulingStrategy strategy = operator.init( initContext );
 
-        assertScheduleWhenTuplesAvailableStrategy( strategy, ANY_NUMBER_OF_TUPLES );
+        assertScheduleWhenTuplesAvailableStrategy( strategy, 1 );
     }
 
     @Test

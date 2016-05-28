@@ -4,14 +4,14 @@ import java.util.function.Supplier;
 
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 
-public class CachedTuplesSupplier implements Supplier<TuplesImpl>
+public class CachedTuplesImplSupplier implements Supplier<TuplesImpl>
 {
 
     private final TuplesImpl tuples;
 
-    public CachedTuplesSupplier ( final TuplesImpl tuples )
+    public CachedTuplesImplSupplier ( final int portCount )
     {
-        this.tuples = tuples;
+        this.tuples = new TuplesImpl( portCount );
     }
 
     @Override
