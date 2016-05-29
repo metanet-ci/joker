@@ -149,6 +149,8 @@ public interface TupleQueue
      */
     List<Tuple> pollTuplesAtLeast ( int count );
 
+    List<Tuple> pollTuplesAtLeast ( int count, int limit );
+
     /**
      * Polls tuples from the queue with the number greater than or equal to the given count into the provided list. It may block or
      * directly return an empty list
@@ -158,6 +160,8 @@ public interface TupleQueue
      *         minimum number of tuples to be polled from the queue
      */
     void pollTuplesAtLeast ( int count, List<Tuple> tuples );
+
+    void pollTuplesAtLeast ( int count, int limit, List<Tuple> tuples );
 
     /**
      * Polls tuples from the queue with the number greater than or equal to the given count. It may block if the queue has no
@@ -172,6 +176,8 @@ public interface TupleQueue
      */
     List<Tuple> pollTuplesAtLeast ( int count, long timeoutInMillis );
 
+    List<Tuple> pollTuplesAtLeast ( int count, int limit, long timeoutInMillis );
+
     /**
      * Polls tuples from the queue with the number greater than or equal to the given count into the provided list. It may block if the
      * queue has no enough number of tuples within the given timeout duration
@@ -182,6 +188,8 @@ public interface TupleQueue
      *         duration in milliseconds that is allowed for the call to be blocked if the queue has no enough number of tuples
      */
     void pollTuplesAtLeast ( int count, long timeoutInMillis, List<Tuple> tuples );
+
+    void pollTuplesAtLeast ( int count, int limit, long timeoutInMillis, List<Tuple> tuples );
 
     /**
      * Returns true if the queue has number of tuples greater than or equal to the expected size. It may block or directly return an

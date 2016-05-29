@@ -26,8 +26,6 @@ public class BlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
 
     private final int inputPortCount;
 
-    private long timeoutInMillis;
-
     private BlockingSinglePortDrainer singlePortDrainer;
 
     private BlockingMultiPortConjunctiveDrainer multiPortConjunctiveDrainer;
@@ -46,11 +44,12 @@ public class BlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
     @Override
     public void init ( final ZanzaConfig config )
     {
-        timeoutInMillis = config.getTupleQueueDrainerConfig().getDrainTimeoutInMillis();
+        final int maxBatchSize = config.getTupleQueueDrainerConfig().getMaxBatchSize();
+        final long timeoutInMillis = config.getTupleQueueDrainerConfig().getDrainTimeoutInMillis();
 
-        singlePortDrainer = new BlockingSinglePortDrainer( timeoutInMillis );
-        multiPortConjunctiveDrainer = new BlockingMultiPortConjunctiveDrainer( inputPortCount, timeoutInMillis );
-        multiPortDisjunctiveDrainer = new BlockingMultiPortDisjunctiveDrainer( inputPortCount, timeoutInMillis );
+        singlePortDrainer = new BlockingSinglePortDrainer( maxBatchSize, timeoutInMillis );
+        multiPortConjunctiveDrainer = new BlockingMultiPortConjunctiveDrainer( inputPortCount, maxBatchSize, timeoutInMillis );
+        multiPortDisjunctiveDrainer = new BlockingMultiPortDisjunctiveDrainer( inputPortCount, maxBatchSize, timeoutInMillis );
         greedyDrainer = new GreedyDrainer( inputPortCount );
     }
 

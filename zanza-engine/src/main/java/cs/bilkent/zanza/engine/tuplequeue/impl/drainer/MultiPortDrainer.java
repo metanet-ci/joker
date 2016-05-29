@@ -10,6 +10,7 @@ import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST_BUT_SAME_ON_ALL_PORTS;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.EXACT;
+import static java.lang.Math.max;
 
 abstract class MultiPortDrainer implements TupleQueueDrainer
 {
@@ -20,6 +21,8 @@ abstract class MultiPortDrainer implements TupleQueueDrainer
 
     protected final int inputPortCount;
 
+    private final int maxBatchSize;
+
     private TupleAvailabilityByCount tupleAvailabilityByCount;
 
     private final TuplesImpl buffer;
@@ -28,9 +31,10 @@ abstract class MultiPortDrainer implements TupleQueueDrainer
 
     private Object key;
 
-    MultiPortDrainer ( final int inputPortCount )
+    MultiPortDrainer ( final int inputPortCount, final int maxBatchSize )
     {
         this.inputPortCount = inputPortCount;
+        this.maxBatchSize = maxBatchSize;
         this.buffer = new TuplesImpl( inputPortCount );
     }
 
@@ -70,7 +74,7 @@ abstract class MultiPortDrainer implements TupleQueueDrainer
                 }
                 else
                 {
-                    tupleQueue.pollTuplesAtLeast( tupleCount, tuples );
+                    tupleQueue.pollTuplesAtLeast( tupleCount, max( tupleCount, maxBatchSize ), tuples );
                 }
 
                 success |= !tuples.isEmpty();

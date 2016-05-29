@@ -10,10 +10,13 @@ import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.EXACT;
+import static java.lang.Math.max;
 
 
 public class NonBlockingSinglePortDrainer implements TupleQueueDrainer
 {
+
+    private final int maxBatchSize;
 
     private int tupleCount;
 
@@ -27,9 +30,9 @@ public class NonBlockingSinglePortDrainer implements TupleQueueDrainer
 
     private Object key;
 
-    public NonBlockingSinglePortDrainer ()
+    public NonBlockingSinglePortDrainer ( final int maxBatchSize )
     {
-
+        this.maxBatchSize = maxBatchSize;
     }
 
     public void setParameters ( final TupleAvailabilityByCount tupleAvailabilityByCount, final int tupleCount )
@@ -54,7 +57,7 @@ public class NonBlockingSinglePortDrainer implements TupleQueueDrainer
         }
         else
         {
-            tupleQueue.pollTuplesAtLeast( tupleCount, tuples );
+            tupleQueue.pollTuplesAtLeast( tupleCount, max( tupleCount, maxBatchSize ), tuples );
         }
 
         if ( !tuples.isEmpty() )

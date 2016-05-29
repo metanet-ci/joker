@@ -7,9 +7,9 @@ public class BlockingMultiPortConjunctiveDrainer extends MultiPortDrainer
 
     private final long timeoutInMillisPerQueue;
 
-    public BlockingMultiPortConjunctiveDrainer ( final int inputPortCount, final long timeoutInMillis )
+    public BlockingMultiPortConjunctiveDrainer ( final int inputPortCount, final int maxBatchSize, final long timeoutInMillis )
     {
-        super( inputPortCount );
+        super( inputPortCount, maxBatchSize );
         this.timeoutInMillisPerQueue = (long) Math.ceil( timeoutInMillis / inputPortCount );
     }
 

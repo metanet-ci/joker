@@ -178,6 +178,53 @@ public class MultiThreadedTupleQueueTest
         assertFalse( queue.tryOfferTuple( newTuple( 5 ), 1000 ) );
     }
 
+    @Test
+    public void shouldPollExactNumberOfTuples ()
+    {
+        queue.disableCapacityCheck();
+        spawnThread( offerTuples( Thread.currentThread(), queue, asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ), newTuple( 4 ) ) ) );
+        final List<Tuple> tuples = queue.pollTuples( 2 );
+        assertEquals( 2, tuples.size() );
+    }
+
+    @Test
+    public void shouldPollAllTuples ()
+    {
+        queue.disableCapacityCheck();
+        spawnThread( offerTuples( Thread.currentThread(), queue, asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ), newTuple( 4 ) ) ) );
+        final List<Tuple> tuples = queue.pollTuplesAtLeast( 2 );
+        assertEquals( 4, tuples.size() );
+    }
+
+    @Test
+    public void shouldPollAllTuples2 ()
+    {
+        queue.disableCapacityCheck();
+        spawnThread( offerTuples( Thread.currentThread(), queue, asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ), newTuple( 4 ) ) ) );
+        final List<Tuple> tuples = new ArrayList<>();
+        queue.pollTuplesAtLeast( 2, tuples );
+        assertEquals( 4, tuples.size() );
+    }
+
+    @Test
+    public void shouldPollTuplesWithLimit ()
+    {
+        queue.disableCapacityCheck();
+        spawnThread( offerTuples( Thread.currentThread(), queue, asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ), newTuple( 4 ) ) ) );
+        final List<Tuple> tuples = queue.pollTuplesAtLeast( 2, 3 );
+        assertEquals( 3, tuples.size() );
+    }
+
+    @Test
+    public void shouldPollTuplesWithLimit2 ()
+    {
+        queue.disableCapacityCheck();
+        spawnThread( offerTuples( Thread.currentThread(), queue, asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ), newTuple( 4 ) ) ) );
+        final List<Tuple> tuples = new ArrayList<>();
+        queue.pollTuplesAtLeast( 2, 3, tuples );
+        assertEquals( 3, tuples.size() );
+    }
+
     private Tuple newTuple ( final int val )
     {
         return new Tuple( "k", val );

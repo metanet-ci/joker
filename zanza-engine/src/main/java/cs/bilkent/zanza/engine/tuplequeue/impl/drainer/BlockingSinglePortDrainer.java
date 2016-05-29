@@ -10,9 +10,12 @@ import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.EXACT;
+import static java.lang.Math.max;
 
 public class BlockingSinglePortDrainer implements TupleQueueDrainer
 {
+
+    private final int maxBatchSize;
 
     private final long timeoutInMillis;
 
@@ -28,8 +31,9 @@ public class BlockingSinglePortDrainer implements TupleQueueDrainer
 
     private Object key;
 
-    public BlockingSinglePortDrainer ( final long timeoutInMillis )
+    public BlockingSinglePortDrainer ( final int maxBatchSize, final long timeoutInMillis )
     {
+        this.maxBatchSize = maxBatchSize;
         this.timeoutInMillis = timeoutInMillis;
         this.tuples = buffer.getTuplesModifiable( DEFAULT_PORT_INDEX );
     }
@@ -55,7 +59,7 @@ public class BlockingSinglePortDrainer implements TupleQueueDrainer
         }
         else
         {
-            tupleQueue.pollTuplesAtLeast( tupleCount, timeoutInMillis, tuples );
+            tupleQueue.pollTuplesAtLeast( tupleCount, max( tupleCount, maxBatchSize ), timeoutInMillis, tuples );
         }
 
         if ( !tuples.isEmpty() )

@@ -26,28 +26,29 @@ public class NonBlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
 
     private final int inputPortCount;
 
-    private final NonBlockingSinglePortDrainer singlePortDrainer;
+    private NonBlockingSinglePortDrainer singlePortDrainer;
 
-    private final NonBlockingMultiPortConjunctiveDrainer multiPortConjunctiveDrainer;
+    private NonBlockingMultiPortConjunctiveDrainer multiPortConjunctiveDrainer;
 
-    private final NonBlockingMultiPortDisjunctiveDrainer multiPortDisjunctiveDrainer;
+    private NonBlockingMultiPortDisjunctiveDrainer multiPortDisjunctiveDrainer;
 
-    private final GreedyDrainer greedyDrainer;
+    private GreedyDrainer greedyDrainer;
 
     private TupleQueueDrainer active;
 
     public NonBlockingTupleQueueDrainerPool ( final OperatorDefinition operatorDefinition )
     {
         inputPortCount = operatorDefinition.inputPortCount();
-        singlePortDrainer = new NonBlockingSinglePortDrainer();
-        multiPortConjunctiveDrainer = new NonBlockingMultiPortConjunctiveDrainer( inputPortCount );
-        multiPortDisjunctiveDrainer = new NonBlockingMultiPortDisjunctiveDrainer( inputPortCount );
-        greedyDrainer = new GreedyDrainer( inputPortCount );
     }
 
     @Override
     public void init ( final ZanzaConfig config )
     {
+        final int maxBatchSize = config.getTupleQueueDrainerConfig().getMaxBatchSize();
+        singlePortDrainer = new NonBlockingSinglePortDrainer( maxBatchSize );
+        multiPortConjunctiveDrainer = new NonBlockingMultiPortConjunctiveDrainer( inputPortCount, maxBatchSize );
+        multiPortDisjunctiveDrainer = new NonBlockingMultiPortDisjunctiveDrainer( inputPortCount, maxBatchSize );
+        greedyDrainer = new GreedyDrainer( inputPortCount );
     }
 
     @Override

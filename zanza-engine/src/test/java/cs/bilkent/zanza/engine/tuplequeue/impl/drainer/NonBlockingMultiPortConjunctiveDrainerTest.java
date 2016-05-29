@@ -20,21 +20,21 @@ public class NonBlockingMultiPortConjunctiveDrainerTest
     @Test( expected = IllegalArgumentException.class )
     public void test_input_nullTupleQueues ()
     {
-        final NonBlockingMultiPortConjunctiveDrainer drainer = new NonBlockingMultiPortConjunctiveDrainer( 1 );
+        final NonBlockingMultiPortConjunctiveDrainer drainer = new NonBlockingMultiPortConjunctiveDrainer( 1, Integer.MAX_VALUE );
         drainer.drain( null, null );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void test_input_emptyTupleQueues ()
     {
-        final NonBlockingMultiPortConjunctiveDrainer drainer = new NonBlockingMultiPortConjunctiveDrainer( 1 );
+        final NonBlockingMultiPortConjunctiveDrainer drainer = new NonBlockingMultiPortConjunctiveDrainer( 1, Integer.MAX_VALUE );
         drainer.drain( null, new TupleQueue[] {} );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void test_input_singleTupleQueue ()
     {
-        final NonBlockingMultiPortConjunctiveDrainer drainer = new NonBlockingMultiPortConjunctiveDrainer( 2 );
+        final NonBlockingMultiPortConjunctiveDrainer drainer = new NonBlockingMultiPortConjunctiveDrainer( 2, Integer.MAX_VALUE );
         drainer.setParameters( AT_LEAST, new int[] { 1, 1 } );
 
         drainer.drain( null, new TupleQueue[] { new SingleThreadedTupleQueue( 1 ) } );
@@ -43,7 +43,7 @@ public class NonBlockingMultiPortConjunctiveDrainerTest
     @Test
     public void test_TupleAvailabilityByCount_AT_LEAST_allQueuesSatisfy ()
     {
-        final NonBlockingMultiPortConjunctiveDrainer drainer = new NonBlockingMultiPortConjunctiveDrainer( 2 );
+        final NonBlockingMultiPortConjunctiveDrainer drainer = new NonBlockingMultiPortConjunctiveDrainer( 2, Integer.MAX_VALUE );
         drainer.setParameters( AT_LEAST, new int[] { 1, 1 } );
         final TupleQueue tupleQueue1 = new SingleThreadedTupleQueue( 1 );
         final TupleQueue tupleQueue2 = new SingleThreadedTupleQueue( 2 );
@@ -64,7 +64,7 @@ public class NonBlockingMultiPortConjunctiveDrainerTest
     @Test
     public void test_TupleAvailabilityByCount_AT_LEAST_allQueuesDoNotSatisfy ()
     {
-        final NonBlockingMultiPortConjunctiveDrainer drainer = new NonBlockingMultiPortConjunctiveDrainer( 2 );
+        final NonBlockingMultiPortConjunctiveDrainer drainer = new NonBlockingMultiPortConjunctiveDrainer( 2, Integer.MAX_VALUE );
         drainer.setParameters( AT_LEAST, new int[] { 2, 2 } );
         final TupleQueue tupleQueue1 = new SingleThreadedTupleQueue( 1 );
         final TupleQueue tupleQueue2 = new SingleThreadedTupleQueue( 2 );
@@ -82,7 +82,7 @@ public class NonBlockingMultiPortConjunctiveDrainerTest
     @Test
     public void test_TupleAvailabilityByCount_EXACT_allQueuesSatisfy ()
     {
-        final NonBlockingMultiPortConjunctiveDrainer drainer = new NonBlockingMultiPortConjunctiveDrainer( 2 );
+        final NonBlockingMultiPortConjunctiveDrainer drainer = new NonBlockingMultiPortConjunctiveDrainer( 2, Integer.MAX_VALUE );
         drainer.setParameters( EXACT, new int[] { 2, 2 } );
         final TupleQueue tupleQueue1 = new SingleThreadedTupleQueue( 2 );
         final TupleQueue tupleQueue2 = new SingleThreadedTupleQueue( 2 );
@@ -105,7 +105,7 @@ public class NonBlockingMultiPortConjunctiveDrainerTest
     @Test
     public void test_TupleAvailabilityByCount_EXACT_allQueuesDoNotSatisfy ()
     {
-        final NonBlockingMultiPortConjunctiveDrainer drainer = new NonBlockingMultiPortConjunctiveDrainer( 2 );
+        final NonBlockingMultiPortConjunctiveDrainer drainer = new NonBlockingMultiPortConjunctiveDrainer( 2, Integer.MAX_VALUE );
         drainer.setParameters( EXACT, new int[] { 2, 2 } );
         final TupleQueue tupleQueue1 = new SingleThreadedTupleQueue( 2 );
         final TupleQueue tupleQueue2 = new SingleThreadedTupleQueue( 2 );
@@ -123,7 +123,7 @@ public class NonBlockingMultiPortConjunctiveDrainerTest
     @Test
     public void test_TupleAvailabilityByCount_AT_LEAST_BUT_SAME_ON_ALL_PORTS_allQueuesSatisfy ()
     {
-        final NonBlockingMultiPortConjunctiveDrainer drainer = new NonBlockingMultiPortConjunctiveDrainer( 2 );
+        final NonBlockingMultiPortConjunctiveDrainer drainer = new NonBlockingMultiPortConjunctiveDrainer( 2, Integer.MAX_VALUE );
         drainer.setParameters( AT_LEAST_BUT_SAME_ON_ALL_PORTS, new int[] { 2, 2 } );
         final TupleQueue tupleQueue1 = new SingleThreadedTupleQueue( 2 );
         final TupleQueue tupleQueue2 = new SingleThreadedTupleQueue( 2 );
@@ -147,7 +147,7 @@ public class NonBlockingMultiPortConjunctiveDrainerTest
     @Test
     public void test_TupleAvailabilityByCount_AT_LEAST_BUT_SAME_ON_ALL_PORTS_allQueuesDoNotSatisfy ()
     {
-        final NonBlockingMultiPortConjunctiveDrainer drainer = new NonBlockingMultiPortConjunctiveDrainer( 2 );
+        final NonBlockingMultiPortConjunctiveDrainer drainer = new NonBlockingMultiPortConjunctiveDrainer( 2, Integer.MAX_VALUE );
         drainer.setParameters( AT_LEAST_BUT_SAME_ON_ALL_PORTS, new int[] { 2, 2 } );
         final TupleQueue tupleQueue1 = new SingleThreadedTupleQueue( 2 );
         final TupleQueue tupleQueue2 = new SingleThreadedTupleQueue( 2 );

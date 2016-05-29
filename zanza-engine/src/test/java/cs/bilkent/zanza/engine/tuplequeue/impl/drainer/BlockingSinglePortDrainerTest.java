@@ -26,7 +26,7 @@ public class BlockingSinglePortDrainerTest
 
     private static final long TIMEOUT_IN_MILLIS = 5000;
 
-    private final BlockingSinglePortDrainer drainer = new BlockingSinglePortDrainer( TIMEOUT_IN_MILLIS );
+    private final BlockingSinglePortDrainer drainer = new BlockingSinglePortDrainer( Integer.MAX_VALUE, TIMEOUT_IN_MILLIS );
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithNullTupleQueues ()

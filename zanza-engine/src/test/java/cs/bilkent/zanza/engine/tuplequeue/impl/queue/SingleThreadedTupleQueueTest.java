@@ -1,5 +1,6 @@
 package cs.bilkent.zanza.engine.tuplequeue.impl.queue;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Test;
@@ -92,6 +93,80 @@ public class SingleThreadedTupleQueueTest
         assertTrue( tuple1 == tuples.get( 0 ) );
         assertTrue( tuple2 == tuples.get( 1 ) );
         assertThat( queue.size(), equalTo( 0 ) );
+    }
+
+    @Test
+    public void shouldPollAllTuples2 ()
+    {
+        final Tuple tuple1 = new Tuple();
+        final Tuple tuple2 = new Tuple();
+        queue.offerTuple( tuple1 );
+        queue.offerTuple( tuple2 );
+
+        assertThat( queue.size(), equalTo( 2 ) );
+
+        final List<Tuple> tuples = new ArrayList<>();
+        queue.pollTuplesAtLeast( 1, tuples );
+
+        assertThat( tuples, hasSize( 2 ) );
+        assertTrue( tuple1 == tuples.get( 0 ) );
+        assertTrue( tuple2 == tuples.get( 1 ) );
+        assertThat( queue.size(), equalTo( 0 ) );
+    }
+
+    @Test
+    public void shouldPollTuplesWithLimit ()
+    {
+        final Tuple tuple1 = new Tuple();
+        final Tuple tuple2 = new Tuple();
+        final Tuple tuple3 = new Tuple();
+        final Tuple tuple4 = new Tuple();
+        final Tuple tuple5 = new Tuple();
+        final Tuple tuple6 = new Tuple();
+        queue.offerTuple( tuple1 );
+        queue.offerTuple( tuple2 );
+        queue.offerTuple( tuple3 );
+        queue.offerTuple( tuple4 );
+        queue.offerTuple( tuple5 );
+        queue.offerTuple( tuple6 );
+
+        assertThat( queue.size(), equalTo( 6 ) );
+
+        final List<Tuple> tuples = queue.pollTuplesAtLeast( 1, 3 );
+
+        assertThat( tuples, hasSize( 3 ) );
+        assertTrue( tuple1 == tuples.get( 0 ) );
+        assertTrue( tuple2 == tuples.get( 1 ) );
+        assertTrue( tuple3 == tuples.get( 2 ) );
+        assertThat( queue.size(), equalTo( 3 ) );
+    }
+
+    @Test
+    public void shouldPollTuplesWithLimit2 ()
+    {
+        final Tuple tuple1 = new Tuple();
+        final Tuple tuple2 = new Tuple();
+        final Tuple tuple3 = new Tuple();
+        final Tuple tuple4 = new Tuple();
+        final Tuple tuple5 = new Tuple();
+        final Tuple tuple6 = new Tuple();
+        queue.offerTuple( tuple1 );
+        queue.offerTuple( tuple2 );
+        queue.offerTuple( tuple3 );
+        queue.offerTuple( tuple4 );
+        queue.offerTuple( tuple5 );
+        queue.offerTuple( tuple6 );
+
+        assertThat( queue.size(), equalTo( 6 ) );
+
+        final List<Tuple> tuples = new ArrayList<>();
+        queue.pollTuplesAtLeast( 1, 3, tuples );
+
+        assertThat( tuples, hasSize( 3 ) );
+        assertTrue( tuple1 == tuples.get( 0 ) );
+        assertTrue( tuple2 == tuples.get( 1 ) );
+        assertTrue( tuple3 == tuples.get( 2 ) );
+        assertThat( queue.size(), equalTo( 3 ) );
     }
 
     @Test

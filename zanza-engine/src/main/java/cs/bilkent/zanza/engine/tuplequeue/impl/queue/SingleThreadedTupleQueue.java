@@ -7,8 +7,7 @@ import java.util.Iterator;
 import java.util.List;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import com.google.common.base.Preconditions;
-
+import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.operator.Tuple;
 
@@ -20,7 +19,7 @@ public class SingleThreadedTupleQueue implements TupleQueue
 
     public SingleThreadedTupleQueue ( final int initialCapacity )
     {
-        Preconditions.checkArgument( initialCapacity > 0 );
+        checkArgument( initialCapacity > 0 );
         this.queue = new ArrayDeque<>( initialCapacity );
     }
 
@@ -135,28 +134,54 @@ public class SingleThreadedTupleQueue implements TupleQueue
     @Override
     public List<Tuple> pollTuplesAtLeast ( final int count )
     {
-        return doPollTuplesAtLeast( count, null );
+        return doPollTuplesAtLeast( count, Integer.MAX_VALUE, null );
+    }
+
+    @Override
+    public List<Tuple> pollTuplesAtLeast ( final int count, final int limit )
+    {
+        return doPollTuplesAtLeast( count, limit, null );
     }
 
     @Override
     public void pollTuplesAtLeast ( final int count, final List<Tuple> tuples )
     {
-        doPollTuplesAtLeast( count, tuples );
+        doPollTuplesAtLeast( count, Integer.MAX_VALUE, tuples );
+    }
+
+    @Override
+    public void pollTuplesAtLeast ( final int count, final int limit, final List<Tuple> tuples )
+    {
+        doPollTuplesAtLeast( count, limit, tuples );
     }
 
     @Override
     public List<Tuple> pollTuplesAtLeast ( final int count, final long timeoutInMillis )
     {
-        return doPollTuplesAtLeast( count, null );
+        return doPollTuplesAtLeast( count, Integer.MAX_VALUE, null );
+    }
+
+    @Override
+    public List<Tuple> pollTuplesAtLeast ( final int count, final int limit, final long timeoutInMillis )
+    {
+        checkArgument( limit >= count );
+        return doPollTuplesAtLeast( count, limit, null );
     }
 
     @Override
     public void pollTuplesAtLeast ( final int count, final long timeoutInMillis, final List<Tuple> tuples )
     {
-        doPollTuplesAtLeast( count, tuples );
+        doPollTuplesAtLeast( count, Integer.MAX_VALUE, tuples );
     }
 
-    private List<Tuple> doPollTuplesAtLeast ( final int count, List<Tuple> tuples )
+    @Override
+    public void pollTuplesAtLeast ( final int count, final int limit, final long timeoutInMillis, final List<Tuple> tuples )
+    {
+        checkArgument( limit >= count );
+        doPollTuplesAtLeast( count, limit, tuples );
+    }
+
+    private List<Tuple> doPollTuplesAtLeast ( final int count, int limit, List<Tuple> tuples )
     {
         if ( size() >= count )
         {
@@ -166,7 +191,7 @@ public class SingleThreadedTupleQueue implements TupleQueue
             }
 
             final Iterator<Tuple> it = queue.iterator();
-            while ( it.hasNext() )
+            while ( it.hasNext() && limit-- > 0 )
             {
                 tuples.add( it.next() );
                 it.remove();

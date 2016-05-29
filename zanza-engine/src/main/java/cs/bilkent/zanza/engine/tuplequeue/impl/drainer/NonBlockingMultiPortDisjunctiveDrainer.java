@@ -6,9 +6,9 @@ import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 public class NonBlockingMultiPortDisjunctiveDrainer extends MultiPortDrainer
 {
 
-    public NonBlockingMultiPortDisjunctiveDrainer ( final int inputPortCount )
+    public NonBlockingMultiPortDisjunctiveDrainer ( final int inputPortCount, final int maxBatchSize )
     {
-        super( inputPortCount );
+        super( inputPortCount, maxBatchSize );
     }
 
     protected int[] checkQueueSizes ( final TupleQueue[] tupleQueues )

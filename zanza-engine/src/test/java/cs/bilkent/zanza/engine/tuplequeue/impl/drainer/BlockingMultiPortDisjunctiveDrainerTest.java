@@ -19,7 +19,9 @@ public class BlockingMultiPortDisjunctiveDrainerTest
 
     private static final long TIMEOUT_IN_MILLIS = 5000;
 
-    private final BlockingMultiPortDisjunctiveDrainer drainer = new BlockingMultiPortDisjunctiveDrainer( 2, TIMEOUT_IN_MILLIS );
+    private final BlockingMultiPortDisjunctiveDrainer drainer = new BlockingMultiPortDisjunctiveDrainer( 2,
+                                                                                                         Integer.MAX_VALUE,
+                                                                                                         TIMEOUT_IN_MILLIS );
 
     @Test
     public void test_TupleAvailabilityByCount_AT_LEAST_allQueuesSatisfiesAlready ()

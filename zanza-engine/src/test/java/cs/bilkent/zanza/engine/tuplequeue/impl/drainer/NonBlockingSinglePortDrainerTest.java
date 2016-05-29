@@ -23,7 +23,7 @@ public class NonBlockingSinglePortDrainerTest
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithNullTupleQueues ()
     {
-        final NonBlockingSinglePortDrainer drainer = new NonBlockingSinglePortDrainer();
+        final NonBlockingSinglePortDrainer drainer = new NonBlockingSinglePortDrainer( Integer.MAX_VALUE );
         drainer.setParameters( AT_LEAST, 1 );
         drainer.drain( null, null );
     }
@@ -31,7 +31,7 @@ public class NonBlockingSinglePortDrainerTest
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithEmptyTupleQueues ()
     {
-        final NonBlockingSinglePortDrainer drainer = new NonBlockingSinglePortDrainer();
+        final NonBlockingSinglePortDrainer drainer = new NonBlockingSinglePortDrainer( Integer.MAX_VALUE );
         drainer.setParameters( AT_LEAST, 1 );
         drainer.drain( null, new TupleQueue[] {} );
     }
@@ -39,7 +39,7 @@ public class NonBlockingSinglePortDrainerTest
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithMultipleTupleQueues ()
     {
-        final NonBlockingSinglePortDrainer drainer = new NonBlockingSinglePortDrainer();
+        final NonBlockingSinglePortDrainer drainer = new NonBlockingSinglePortDrainer( Integer.MAX_VALUE );
         drainer.setParameters( AT_LEAST, 1 );
         drainer.drain( null, new TupleQueue[] { new SingleThreadedTupleQueue( 1 ), new SingleThreadedTupleQueue( 1 ) } );
     }
@@ -53,7 +53,7 @@ public class NonBlockingSinglePortDrainerTest
         final Tuple tuple2 = new Tuple();
         tupleQueue.offerTuple( tuple2 );
 
-        final NonBlockingSinglePortDrainer drainer = new NonBlockingSinglePortDrainer();
+        final NonBlockingSinglePortDrainer drainer = new NonBlockingSinglePortDrainer( Integer.MAX_VALUE );
         drainer.setParameters( AT_LEAST, 1 );
         drainer.drain( null, new TupleQueue[] { tupleQueue } );
 
@@ -71,7 +71,7 @@ public class NonBlockingSinglePortDrainerTest
     {
         final TupleQueue tupleQueue = new SingleThreadedTupleQueue( 2 );
 
-        final NonBlockingSinglePortDrainer drainer = new NonBlockingSinglePortDrainer();
+        final NonBlockingSinglePortDrainer drainer = new NonBlockingSinglePortDrainer( Integer.MAX_VALUE );
         drainer.setParameters( AT_LEAST, 1 );
         drainer.drain( null, new TupleQueue[] { tupleQueue } );
 
@@ -88,7 +88,7 @@ public class NonBlockingSinglePortDrainerTest
         final Tuple tuple2 = new Tuple();
         tupleQueue.offerTuple( tuple2 );
 
-        final NonBlockingSinglePortDrainer drainer = new NonBlockingSinglePortDrainer();
+        final NonBlockingSinglePortDrainer drainer = new NonBlockingSinglePortDrainer( Integer.MAX_VALUE );
         drainer.setParameters( AT_LEAST_BUT_SAME_ON_ALL_PORTS, 1 );
         drainer.drain( null, new TupleQueue[] { tupleQueue } );
 
@@ -106,7 +106,7 @@ public class NonBlockingSinglePortDrainerTest
     {
         final TupleQueue tupleQueue = new SingleThreadedTupleQueue( 2 );
 
-        final NonBlockingSinglePortDrainer drainer = new NonBlockingSinglePortDrainer();
+        final NonBlockingSinglePortDrainer drainer = new NonBlockingSinglePortDrainer( Integer.MAX_VALUE );
         drainer.setParameters( AT_LEAST_BUT_SAME_ON_ALL_PORTS, 1 );
         drainer.drain( null, new TupleQueue[] { tupleQueue } );
 
@@ -122,7 +122,7 @@ public class NonBlockingSinglePortDrainerTest
         tupleQueue.offerTuple( tuple1 );
         tupleQueue.offerTuple( new Tuple() );
 
-        final NonBlockingSinglePortDrainer drainer = new NonBlockingSinglePortDrainer();
+        final NonBlockingSinglePortDrainer drainer = new NonBlockingSinglePortDrainer( Integer.MAX_VALUE );
         drainer.setParameters( EXACT, 1 );
         drainer.drain( null, new TupleQueue[] { tupleQueue } );
 
@@ -140,7 +140,7 @@ public class NonBlockingSinglePortDrainerTest
     {
         final TupleQueue tupleQueue = new SingleThreadedTupleQueue( 2 );
 
-        final NonBlockingSinglePortDrainer drainer = new NonBlockingSinglePortDrainer();
+        final NonBlockingSinglePortDrainer drainer = new NonBlockingSinglePortDrainer( Integer.MAX_VALUE );
         drainer.setParameters( EXACT, 1 );
         drainer.drain( null, new TupleQueue[] { tupleQueue } );
 
