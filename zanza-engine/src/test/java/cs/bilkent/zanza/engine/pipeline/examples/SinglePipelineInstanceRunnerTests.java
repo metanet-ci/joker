@@ -331,9 +331,7 @@ public class SinglePipelineInstanceRunnerTests
 
         generatorOp.stop = true;
 
-        assertTrueEventually( () -> {
-            assertTrue( pipelineCompleted.get() );
-        } );
+        assertTrueEventually( () -> assertTrue( pipelineCompleted.get() ) );
 
         runnerThread.join();
 
