@@ -51,7 +51,7 @@ public class BlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
         singlePortDrainer = new BlockingSinglePortDrainer( timeoutInMillis );
         multiPortConjunctiveDrainer = new BlockingMultiPortConjunctiveDrainer( inputPortCount, timeoutInMillis );
         multiPortDisjunctiveDrainer = new BlockingMultiPortDisjunctiveDrainer( inputPortCount, timeoutInMillis );
-        greedyDrainer = new GreedyDrainer( inputPortCount, timeoutInMillis );
+        greedyDrainer = new GreedyDrainer( inputPortCount );
     }
 
     @Override

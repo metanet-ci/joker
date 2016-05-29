@@ -1,91 +1,96 @@
 package cs.bilkent.zanza.engine.tuplequeue.impl.context;
 
 import java.util.List;
+import java.util.function.Function;
 
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.zanza.operator.Tuple;
 
-public class TuplePartitionerTupleQueueContext implements TupleQueueContext
+public class EmptyTupleQueueContext implements TupleQueueContext
 {
 
-    private final PartitionedTupleQueueContext internal;
+    private final String operatorId;
 
+    private final TupleQueue[] tupleQueues;
 
-    public TuplePartitionerTupleQueueContext ( final PartitionedTupleQueueContext internal )
+    public EmptyTupleQueueContext ( final String operatorId,
+                                    final int inputPortCount,
+                                    final Function<Boolean, TupleQueue> tupleQueueConstructor )
     {
-        this.internal = internal;
+        this.operatorId = operatorId;
+        this.tupleQueues = new TupleQueue[ inputPortCount ];
+        for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
+        {
+            this.tupleQueues[ portIndex ] = tupleQueueConstructor.apply( false );
+        }
     }
 
     @Override
     public String getOperatorId ()
     {
-        return internal.getOperatorId();
+        return operatorId;
     }
 
     @Override
     public void offer ( final int portIndex, final List<Tuple> tuples )
     {
-        for ( Tuple tuple : tuples )
-        {
-            final TupleQueue[] tupleQueues = internal.getTupleQueues( tuple );
-            tupleQueues[ portIndex ].offerTuple( tuple );
-        }
+        throw new UnsupportedOperationException( operatorId );
     }
 
     @Override
     public int tryOffer ( final int portIndex, final List<Tuple> tuples, final long timeoutInMillis )
     {
-        throw new UnsupportedOperationException( getOperatorId() + " partitioner" );
+        throw new UnsupportedOperationException( operatorId );
     }
 
     @Override
     public void forceOffer ( final int portIndex, final List<Tuple> tuples )
     {
-        throw new UnsupportedOperationException( getOperatorId() + " partitioner" );
+        throw new UnsupportedOperationException( operatorId );
     }
 
     @Override
     public void drain ( final TupleQueueDrainer drainer )
     {
-        internal.drain( drainer );
+        drainer.drain( null, tupleQueues );
     }
 
     @Override
     public void ensureCapacity ( final int portIndex, final int capacity )
     {
-        internal.ensureCapacity( portIndex, capacity );
-    }
 
-    @Override
-    public void clear ()
-    {
-        internal.clear();
     }
 
     @Override
     public void enableCapacityCheck ( final int portIndex )
     {
-        throw new UnsupportedOperationException( getOperatorId() + " partitioner" );
+
     }
 
     @Override
     public void disableCapacityCheck ( final int portIndex )
     {
-        throw new UnsupportedOperationException( getOperatorId() + " partitioner" );
+
     }
 
     @Override
     public boolean isCapacityCheckEnabled ( final int portIndex )
     {
-        throw new UnsupportedOperationException( getOperatorId() + " partitioner" );
+        return false;
     }
 
     @Override
     public boolean isCapacityCheckDisabled ( final int portIndex )
     {
-        throw new UnsupportedOperationException( getOperatorId() + " partitioner" );
+        return true;
+    }
+
+    @Override
+    public void clear ()
+    {
+
     }
 
 }

@@ -54,7 +54,7 @@ public class ConsoleAppenderOperatorTest
 
         final Tuple tuple1 = new Tuple( "k1", "v1" );
         final Tuple tuple2 = new Tuple( "k2", "v2" );
-        final TuplesImpl input = TuplesImpl.newInstance( 1, tuple1, tuple2 );
+        final TuplesImpl input = TuplesImpl.newInstanceWithSinglePort( tuple1, tuple2 );
         final TuplesImpl output = new TuplesImpl( 1 );
         operator.invoke( new InvocationContextImpl( SUCCESS, input, output ) );
 
@@ -72,7 +72,7 @@ public class ConsoleAppenderOperatorTest
 
         final Tuple tuple1 = new Tuple( "k1", "v1" );
         final Tuple tuple2 = new Tuple( "k2", "v2" );
-        final TuplesImpl input = TuplesImpl.newInstance( 1, tuple1, tuple2 );
+        final TuplesImpl input = TuplesImpl.newInstanceWithSinglePort( tuple1, tuple2 );
         final TuplesImpl output = new TuplesImpl( 1 );
         operator.invoke( new InvocationContextImpl( SUCCESS, input, output ) );
 

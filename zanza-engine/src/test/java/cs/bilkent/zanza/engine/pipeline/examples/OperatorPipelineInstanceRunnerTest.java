@@ -185,8 +185,6 @@ public class OperatorPipelineInstanceRunnerTest
         final int evenValCount = tupleCount / 2;
         assertTrueEventually( () -> assertEquals( evenValCount, tupleCollector.tupleQueues[ 0 ].size() ) );
         final List<Tuple> tuples = tupleCollector.tupleQueues[ 0 ].pollTuplesAtLeast( 1 );
-        System.out.println( "---" );
-        tuples.stream().forEach( System.out::println );
         for ( int i = 0; i < evenValCount; i++ )
         {
             final Tuple expected = add1.apply( new Tuple( "val", initialVal + ( i * 2 ) ) );

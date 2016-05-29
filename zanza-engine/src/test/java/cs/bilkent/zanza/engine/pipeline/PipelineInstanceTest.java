@@ -9,19 +9,15 @@ import org.mockito.runners.MockitoJUnitRunner;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import cs.bilkent.zanza.engine.exception.InitializationException;
 import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
+import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.INPUT_PORT_CLOSED;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -126,9 +122,9 @@ public class PipelineInstanceTest
     {
         pipeline.init( config );
 
-        mockOperator( operator0, null, continuingSchedulingStrategy, upstreamInput1 );
-        mockOperator( operator1, upstreamInput1, continuingSchedulingStrategy, upstreamInput2 );
-        mockOperator( operator2, upstreamInput2, continuingSchedulingStrategy, output );
+        mockOperatorInvoke( operator0, null, continuingSchedulingStrategy, upstreamInput1 );
+        mockOperatorInvoke( operator1, upstreamInput1, continuingSchedulingStrategy, upstreamInput2 );
+        mockOperatorInvoke( operator2, upstreamInput2, continuingSchedulingStrategy, output );
 
         final TuplesImpl result = pipeline.invoke();
 
@@ -137,18 +133,18 @@ public class PipelineInstanceTest
         verify( operator2 ).invoke( upstreamInput2 );
 
         assertTrue( result == output );
-        assertThat( pipeline.currentHighestInvokableIndex(), equalTo( 2 ) );
-        assertTrue( pipeline.isInvokable() );
+        assertTrue( pipeline.isProducingDownstreamTuples() );
+        assertTrue( pipeline.isInvokableOperatorAvailable() );
     }
 
     @Test
-    public void shouldInvokeAllOperatorsWhenLastOperatorReturnsTerminatingSchedulingStrategy ()
+    public void shouldNotProduceDownstreamTuplesWhenLastOperatorBecomesNonInvokable ()
     {
         pipeline.init( config );
 
-        mockOperator( operator0, null, continuingSchedulingStrategy, upstreamInput1 );
-        mockOperator( operator1, upstreamInput1, continuingSchedulingStrategy, upstreamInput2 );
-        mockOperator( operator2, upstreamInput2, terminatingSchedulingStrategy, output );
+        mockOperatorInvoke( operator0, null, continuingSchedulingStrategy, upstreamInput1 );
+        mockOperatorInvoke( operator1, upstreamInput1, continuingSchedulingStrategy, upstreamInput2 );
+        mockOperatorInvoke( operator2, upstreamInput2, terminatingSchedulingStrategy, output );
 
         final TuplesImpl result = pipeline.invoke();
 
@@ -157,118 +153,99 @@ public class PipelineInstanceTest
         verify( operator2 ).invoke( upstreamInput2 );
 
         assertTrue( result == output );
-        assertThat( pipeline.currentHighestInvokableIndex(), equalTo( 1 ) );
-        assertTrue( pipeline.isInvokable() );
+        assertFalse( pipeline.isProducingDownstreamTuples() );
+        assertTrue( pipeline.isInvokableOperatorAvailable() );
     }
 
     @Test
-    public void shouldForceInvokeOperatorsSubsequentOfTerminatingSchedulingStrategy ()
+    public void shouldForceInvokeAllOperatorsAfterFirstScheduleNeverOperator ()
     {
         pipeline.init( config );
 
-        mockOperator( operator0, null, continuingSchedulingStrategy, upstreamInput1 );
-        mockOperator( operator1, upstreamInput1, terminatingSchedulingStrategy, upstreamInput2 );
-        when( operator2.forceInvoke( upstreamInput2, InvocationReason.INPUT_PORT_CLOSED ) ).thenReturn( output );
+        mockOperatorInvoke( operator0, null, terminatingSchedulingStrategy, null );
+        mockOperatorForceInvoke( operator1, INPUT_PORT_CLOSED, null, true, continuingSchedulingStrategy, upstreamInput2 );
+        mockOperatorForceInvoke( operator2, INPUT_PORT_CLOSED, upstreamInput2, false, continuingSchedulingStrategy, output );
 
         final TuplesImpl result = pipeline.invoke();
 
         verify( operator0 ).invoke( null );
-        verify( operator1 ).invoke( upstreamInput1 );
-        verify( operator2 ).forceInvoke( upstreamInput2, InvocationReason.INPUT_PORT_CLOSED );
-        verify( operator2 ).shutdown();
+        verify( operator1 ).forceInvoke( INPUT_PORT_CLOSED, null, true );
+        verify( operator2 ).forceInvoke( INPUT_PORT_CLOSED, upstreamInput2, false );
 
         assertTrue( result == output );
-        assertThat( pipeline.currentHighestInvokableIndex(), equalTo( 0 ) );
-        assertTrue( pipeline.isInvokable() );
+        assertTrue( pipeline.isProducingDownstreamTuples() );
+        assertTrue( pipeline.isInvokableOperatorAvailable() );
     }
 
     @Test
-    public void shouldForceInvokeOperatorsSubsequentOfTerminatingSchedulingStrategy2 ()
+    public void shouldForceInvokeOperators ()
     {
         pipeline.init( config );
 
-        mockOperator( operator0, null, terminatingSchedulingStrategy, upstreamInput1 );
-        when( operator1.forceInvoke( upstreamInput1, InvocationReason.INPUT_PORT_CLOSED ) ).thenReturn( upstreamInput2 );
-        when( operator2.forceInvoke( upstreamInput2, InvocationReason.INPUT_PORT_CLOSED ) ).thenReturn( output );
+        mockOperatorForceInvoke( operator0, INPUT_PORT_CLOSED, null, true, terminatingSchedulingStrategy, null );
+        mockOperatorForceInvoke( operator1, INPUT_PORT_CLOSED, null, true, terminatingSchedulingStrategy, upstreamInput2 );
+        mockOperatorForceInvoke( operator2, INPUT_PORT_CLOSED, upstreamInput2, true, continuingSchedulingStrategy, output );
 
-        final TuplesImpl result = pipeline.invoke();
+        final TuplesImpl result = pipeline.forceInvoke( INPUT_PORT_CLOSED );
 
-        verify( operator0 ).invoke( null );
-        verify( operator1 ).forceInvoke( upstreamInput1, InvocationReason.INPUT_PORT_CLOSED );
-        verify( operator1 ).shutdown();
-        verify( operator2 ).forceInvoke( upstreamInput2, InvocationReason.INPUT_PORT_CLOSED );
-        verify( operator2 ).shutdown();
+        verify( operator0 ).forceInvoke( INPUT_PORT_CLOSED, null, true );
+        verify( operator1 ).forceInvoke( INPUT_PORT_CLOSED, null, true );
+        verify( operator2 ).forceInvoke( INPUT_PORT_CLOSED, upstreamInput2, true );
 
         assertTrue( result == output );
-        assertThat( pipeline.currentHighestInvokableIndex(), equalTo( PipelineInstance.NO_INVOKABLE_INDEX ) );
-        assertFalse( pipeline.isInvokable() );
+        assertTrue( pipeline.isProducingDownstreamTuples() );
+        assertTrue( pipeline.isInvokableOperatorAvailable() );
     }
 
     @Test
-    public void shouldForceInvokeOperatorsSubsequentOfTerminatingSchedulingStrategyOnlyOnce ()
+    public void shouldBeNoInvokableOperatorsAfterAllOperatorsSetScheduleNever ()
     {
         pipeline.init( config );
 
-        mockOperator( operator0, null, continuingSchedulingStrategy, upstreamInput1 );
-        mockOperator( operator1, upstreamInput1, terminatingSchedulingStrategy, upstreamInput2 );
-        when( operator2.forceInvoke( upstreamInput2, InvocationReason.INPUT_PORT_CLOSED ) ).thenReturn( output );
+        mockOperatorForceInvoke( operator0, INPUT_PORT_CLOSED, null, true, terminatingSchedulingStrategy, null );
+        mockOperatorForceInvoke( operator1, INPUT_PORT_CLOSED, null, true, terminatingSchedulingStrategy, upstreamInput2 );
 
-        final TuplesImpl result1 = pipeline.invoke();
-        final TuplesImpl result2 = pipeline.invoke();
+        when( operator2.isInvokable() ).thenReturn( true );
+        when( operator2.forceInvoke( INPUT_PORT_CLOSED, upstreamInput2, true ) ).thenReturn( output );
+        when( operator2.getSchedulingStrategy() ).thenReturn( terminatingSchedulingStrategy );
+        when( operator2.isNonInvokable() ).thenReturn( false, true );
+        when( operator2.isInvokable() ).thenReturn( true, false );
 
-        verify( operator0, times( 2 ) ).invoke( null );
-        verify( operator1, times( 1 ) ).invoke( upstreamInput1 );
-        verify( operator1, times( 1 ) ).invoke( any() );
-        verify( operator2, times( 1 ) ).forceInvoke( upstreamInput2, InvocationReason.INPUT_PORT_CLOSED );
-        verify( operator2, times( 1 ) ).forceInvoke( any(), any() );
-        verify( operator2 ).shutdown();
+        final TuplesImpl result = pipeline.forceInvoke( INPUT_PORT_CLOSED );
 
-        assertTrue( result1 == output );
-        assertThat( pipeline.currentHighestInvokableIndex(), equalTo( 0 ) );
-        assertNull( result2 );
-        assertTrue( pipeline.isInvokable() );
-    }
-
-    @Test
-    public void shouldForceInvokeNotReturnOutputTuplesAfterDownstreamOperatorsAfterAlreadyShutdown ()
-    {
-        pipeline.init( config );
-
-        when( operator0.invoke( null ) ).thenReturn( upstreamInput1, upstreamInput1 );
-        when( operator0.schedulingStrategy() ).thenReturn( continuingSchedulingStrategy, continuingSchedulingStrategy );
-        mockOperator( operator1, upstreamInput1, continuingSchedulingStrategy, upstreamInput2 );
-        mockOperator( operator2, upstreamInput2, terminatingSchedulingStrategy, output );
-
-        when( operator1.forceInvoke( upstreamInput1, InvocationReason.INPUT_PORT_CLOSED ) ).thenReturn( upstreamInput2 );
-
-        assertNotNull( pipeline.invoke() );
-
-        assertNull( pipeline.invoke() );
-    }
-
-    @Test
-    public void shouldForceInvokeReturnOutputTuplesOnLastOperator ()
-    {
-        pipeline.init( config );
-
-        when( operator0.invoke( null ) ).thenReturn( upstreamInput1, upstreamInput1 );
-        when( operator0.schedulingStrategy() ).thenReturn( continuingSchedulingStrategy, terminatingSchedulingStrategy );
-        mockOperator( operator1, upstreamInput1, terminatingSchedulingStrategy, upstreamInput2 );
-
-        when( operator2.forceInvoke( upstreamInput2, InvocationReason.INPUT_PORT_CLOSED ) ).thenReturn( output );
-
-        final TuplesImpl result = pipeline.invoke();
+        verify( operator0 ).forceInvoke( INPUT_PORT_CLOSED, null, true );
+        verify( operator1 ).forceInvoke( INPUT_PORT_CLOSED, null, true );
+        verify( operator2 ).forceInvoke( INPUT_PORT_CLOSED, upstreamInput2, true );
 
         assertTrue( result == output );
+        assertFalse( pipeline.isProducingDownstreamTuples() );
+        assertFalse( pipeline.isInvokableOperatorAvailable() );
     }
 
-    private void mockOperator ( final OperatorInstance operator,
-                                final TuplesImpl input,
-                                final SchedulingStrategy schedulingStrategy,
-                                final TuplesImpl output )
+    private void mockOperatorInvoke ( final OperatorInstance operator,
+                                      final TuplesImpl input,
+                                      final SchedulingStrategy schedulingStrategy,
+                                      final TuplesImpl output )
     {
         when( operator.invoke( input ) ).thenReturn( output );
-        when( operator.schedulingStrategy() ).thenReturn( schedulingStrategy );
+        when( operator.getSchedulingStrategy() ).thenReturn( schedulingStrategy );
+        final boolean nonInvokable = schedulingStrategy instanceof ScheduleNever;
+        when( operator.isNonInvokable() ).thenReturn( nonInvokable );
+        when( operator.isInvokable() ).thenReturn( !nonInvokable );
+    }
+
+    private void mockOperatorForceInvoke ( final OperatorInstance operator,
+                                           final InvocationReason reason,
+                                           final TuplesImpl input,
+                                           final boolean upstreamClosed,
+                                           final SchedulingStrategy schedulingStrategy,
+                                           final TuplesImpl output )
+    {
+        when( operator.forceInvoke( reason, input, upstreamClosed ) ).thenReturn( output );
+        when( operator.getSchedulingStrategy() ).thenReturn( schedulingStrategy );
+        final boolean nonInvokable = schedulingStrategy instanceof ScheduleNever;
+        when( operator.isNonInvokable() ).thenReturn( nonInvokable );
+        when( operator.isInvokable() ).thenReturn( !nonInvokable );
     }
 
 }

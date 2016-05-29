@@ -42,7 +42,7 @@ public class NonBlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
         singlePortDrainer = new NonBlockingSinglePortDrainer();
         multiPortConjunctiveDrainer = new NonBlockingMultiPortConjunctiveDrainer( inputPortCount );
         multiPortDisjunctiveDrainer = new NonBlockingMultiPortDisjunctiveDrainer( inputPortCount );
-        greedyDrainer = new GreedyDrainer( inputPortCount, 0 );
+        greedyDrainer = new GreedyDrainer( inputPortCount );
     }
 
     @Override

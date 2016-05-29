@@ -8,13 +8,11 @@ import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 
-// TODO We can make this smarter. It can directly poll non-empty queues if there is any
 public class GreedyDrainer implements TupleQueueDrainer
 {
 
     private final int inputPortCount;
 
-    private final long timeoutInMillis;
 
     private final TuplesImpl buffer;
 
@@ -24,13 +22,7 @@ public class GreedyDrainer implements TupleQueueDrainer
 
     public GreedyDrainer ( final int inputPortCount )
     {
-        this( inputPortCount, Long.MAX_VALUE );
-    }
-
-    public GreedyDrainer ( final int inputPortCount, final long timeoutInMillis )
-    {
         this.inputPortCount = inputPortCount;
-        this.timeoutInMillis = timeoutInMillis;
         this.buffer = new TuplesImpl( inputPortCount );
     }
 
@@ -40,20 +32,14 @@ public class GreedyDrainer implements TupleQueueDrainer
         checkArgument( tupleQueues != null );
         checkArgument( tupleQueues.length == inputPortCount );
 
-        boolean satisfied = false;
-
         for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
         {
             final List<Tuple> tuples = buffer.getTuplesModifiable( portIndex );
-            tupleQueues[ portIndex ].pollTuplesAtLeast( 1, timeoutInMillis, tuples );
-            satisfied |= !tuples.isEmpty();
+            tupleQueues[ portIndex ].pollTuplesAtLeast( 0, tuples );
         }
 
-        if ( satisfied )
-        {
-            this.result = buffer;
-            this.key = key;
-        }
+        this.result = buffer;
+        this.key = key;
     }
 
     @Override

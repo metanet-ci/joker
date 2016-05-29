@@ -4,6 +4,7 @@ package cs.bilkent.zanza.engine.tuplequeue.impl;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
+import javax.annotation.concurrent.NotThreadSafe;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.zanza.engine.config.ThreadingPreference;
@@ -14,6 +15,7 @@ import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueManager;
 import cs.bilkent.zanza.engine.tuplequeue.impl.context.DefaultTupleQueueContext;
+import cs.bilkent.zanza.engine.tuplequeue.impl.context.EmptyTupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.impl.context.PartitionedTupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
@@ -21,7 +23,7 @@ import cs.bilkent.zanza.flow.OperatorDefinition;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import cs.bilkent.zanza.utils.Pair;
 
-
+@NotThreadSafe
 public class TupleQueueManagerImpl implements TupleQueueManager
 {
 
@@ -37,6 +39,20 @@ public class TupleQueueManagerImpl implements TupleQueueManager
     public void init ( final ZanzaConfig config )
     {
         initialTupleQueueCapacity = config.getTupleQueueManagerConfig().getTupleQueueInitialSize();
+    }
+
+    @Override
+    public TupleQueueContext createEmptyTupleQueueContext ( final OperatorDefinition operatorDefinition, final int replicaIndex )
+    {
+        checkArgument( operatorDefinition != null );
+        checkArgument( replicaIndex >= 0 );
+
+        final String operatorId = operatorDefinition.id();
+        final int inputPortCount = operatorDefinition.inputPortCount();
+
+        final Function<Boolean, TupleQueue> tupleQueueConstructor = getTupleQueueConstructor( SINGLE_THREADED, initialTupleQueueCapacity );
+        return tupleQueueContexts.computeIfAbsent( Pair.of( operatorId, replicaIndex ),
+                                                   p -> new EmptyTupleQueueContext( operatorId, inputPortCount, tupleQueueConstructor ) );
     }
 
     @Override
@@ -73,12 +89,12 @@ public class TupleQueueManagerImpl implements TupleQueueManager
                                                                                                          tupleQueueConstructor )
     {
         return operatorDefinition.operatorType() == PARTITIONED_STATEFUL
-               ? s -> new PartitionedTupleQueueContext( operatorDefinition.id(),
+               ? p -> new PartitionedTupleQueueContext( operatorDefinition.id(),
                                                         operatorDefinition.inputPortCount(),
                                                         threadingPreference,
                                                         new PartitionKeyFunction( operatorDefinition.partitionFieldNames() ),
                                                         tupleQueueConstructor )
-               : s -> new DefaultTupleQueueContext( operatorDefinition.id(),
+               : p -> new DefaultTupleQueueContext( operatorDefinition.id(),
                                                     operatorDefinition.inputPortCount(),
                                                     threadingPreference,
                                                     tupleQueueConstructor );

@@ -7,7 +7,6 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import cs.bilkent.zanza.flow.Port;
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
 import cs.bilkent.zanza.operator.InvocationContext;
 import cs.bilkent.zanza.operator.Operator;
@@ -42,22 +41,11 @@ public final class TuplesImpl implements Tuples
         INITIAL_CAPACITY = sysArg != -1 ? sysArg : DEFAULT_INITIAL_CAPACITY;
     }
 
-
     private static final int INITIAL_CAPACITY;
 
-    /**
-     * Initializes a new object and adds the provided tuples into the default port.
-     *
-     * @param tuple
-     *         tuple to add to the default port
-     * @param tuples
-     *         tuples to add to the default port
-     *
-     * @see Port#DEFAULT_PORT_INDEX
-     */
-    public static TuplesImpl newInstance ( final int portCount, final Tuple tuple, final Tuple... tuples )
+    public static TuplesImpl newInstanceWithSinglePort ( final Tuple tuple, final Tuple... tuples )
     {
-        TuplesImpl tuplesImpl = new TuplesImpl( portCount );
+        TuplesImpl tuplesImpl = new TuplesImpl( 1 );
 
         checkNotNull( tuple, "tuple can't be null" );
         tuplesImpl.add( tuple );
@@ -70,14 +58,14 @@ public final class TuplesImpl implements Tuples
     }
 
 
-    private final List<Tuple>[] tuplesByPort;
+    private final List<Tuple>[] ports;
 
     public TuplesImpl ( final int portCount )
     {
-        tuplesByPort = new List[ portCount ];
+        ports = new List[ portCount ];
         for ( int i = 0; i < portCount; i++ )
         {
-            tuplesByPort[ i ] = new ArrayList<>( INITIAL_CAPACITY );
+            ports[ i ] = new ArrayList<>( INITIAL_CAPACITY );
         }
     }
 
@@ -101,7 +89,7 @@ public final class TuplesImpl implements Tuples
         checkArgument( portIndex >= 0, "port must be non-negative" );
         checkNotNull( tuple, "tuple can't be null" );
 
-        tuplesByPort[ portIndex ].add( tuple );
+        ports[ portIndex ].add( tuple );
     }
 
     @Override
@@ -110,24 +98,24 @@ public final class TuplesImpl implements Tuples
         checkArgument( portIndex >= 0, "port must be non-negative" );
         checkNotNull( tuplesToAdd, "tuples can't be null" );
 
-        tuplesByPort[ portIndex ].addAll( tuplesToAdd );
+        ports[ portIndex ].addAll( tuplesToAdd );
     }
 
     @Override
     public List<Tuple> getTuples ( final int portIndex )
     {
-        return unmodifiableList( tuplesByPort[ portIndex ] );
+        return unmodifiableList( ports[ portIndex ] );
     }
 
     public List<Tuple> getTuplesModifiable ( final int portIndex )
     {
-        return tuplesByPort[ portIndex ];
+        return ports[ portIndex ];
     }
 
     @Override
     public Tuple getTupleOrNull ( final int portIndex, final int tupleIndex )
     {
-        final List<Tuple> tuples = tuplesByPort[ portIndex ];
+        final List<Tuple> tuples = ports[ portIndex ];
         if ( tuples != null && tuples.size() > tupleIndex )
         {
             return tuples.get( tupleIndex );
@@ -139,19 +127,19 @@ public final class TuplesImpl implements Tuples
     @Override
     public int getPortCount ()
     {
-        return tuplesByPort.length;
+        return ports.length;
     }
 
     @Override
     public int getTupleCount ( final int portIndex )
     {
-        return tuplesByPort[ portIndex ].size();
+        return ports[ portIndex ].size();
     }
 
     @Override
     public void clear ()
     {
-        for ( List<Tuple> tuples : tuplesByPort )
+        for ( List<Tuple> tuples : ports )
         {
             tuples.clear();
         }
@@ -171,20 +159,20 @@ public final class TuplesImpl implements Tuples
 
         final TuplesImpl that = (TuplesImpl) o;
 
-        return Arrays.equals( tuplesByPort, that.tuplesByPort );
+        return Arrays.equals( ports, that.ports );
 
     }
 
     @Override
     public int hashCode ()
     {
-        return Arrays.hashCode( tuplesByPort );
+        return Arrays.hashCode( ports );
     }
 
     @Override
     public String toString ()
     {
-        return Arrays.toString( tuplesByPort );
+        return Arrays.toString( ports );
     }
 
 }

@@ -86,57 +86,58 @@ public class FlowDefinition
         return connections.entries();
     }
 
-    public Collection<Port> getUpstreamPorts ( final String operatorId )
+    public Collection<Port> getUpstreamConnections ( final String operatorId )
     {
-        return getUpstreamPortsStream( operatorId ).collect( Collectors.toList() );
+        return getUpstreamConnectionsStream( operatorId ).collect( Collectors.toList() );
     }
 
-    public Collection<Port> getDownstreamPorts ( final String operatorId )
+    public Collection<Port> getDownstreamConnections ( final String operatorId )
     {
-        return getDownstreamPortsStream( operatorId ).collect( Collectors.toList() );
+        return getDownstreamConnectionsStream( operatorId ).collect( Collectors.toList() );
     }
 
-    public Collection<Port> getUpstreamPorts ( final Port port )
+    public Collection<Port> getUpstreamConnections ( final Port port )
     {
-        return getUpstreamPortsStream( port ).collect( Collectors.toList() );
+        return getUpstreamConnectionsStream( port ).collect( Collectors.toList() );
     }
 
-    public Collection<Port> getDownstreamPorts ( final Port port )
+    public Collection<Port> getDownstreamConnections ( final Port port )
     {
-        return getDownstreamPortsStream( port ).collect( Collectors.toList() );
+        return getDownstreamConnectionsStream( port ).collect( Collectors.toList() );
     }
 
     public Collection<OperatorDefinition> getUpstreamOperators ( final String operatorId )
     {
-        return getUpstreamPortsStream( operatorId ).map( port -> getOperator( port.operatorId ) ).collect( Collectors.toList() );
+        return getUpstreamConnectionsStream( operatorId ).map( port -> getOperator( port.operatorId ) ).collect( Collectors.toList() );
     }
 
     public Collection<OperatorDefinition> getDownstreamOperators ( final String operatorId )
     {
-        return getDownstreamPortsStream( operatorId ).map( port -> getOperator( port.operatorId ) ).collect( Collectors.toList() );
+        return getDownstreamConnectionsStream( operatorId ).map( port -> getOperator( port.operatorId ) ).collect( Collectors.toList() );
     }
 
-    private Stream<Port> getUpstreamPortsStream ( final String operatorId )
+    private Stream<Port> getUpstreamConnectionsStream ( final String operatorId )
     {
-        return getPortStream( entry -> entry.getValue().operatorId.equals( operatorId ), Entry::getKey );
+        return getConnectionsStream( entry -> entry.getValue().operatorId.equals( operatorId ), Entry::getKey );
     }
 
-    private Stream<Port> getUpstreamPortsStream ( final Port port )
+    private Stream<Port> getUpstreamConnectionsStream ( final Port port )
     {
-        return getPortStream( entry -> entry.getValue().equals( port ), Entry::getKey );
+        return getConnectionsStream( entry -> entry.getValue().equals( port ), Entry::getKey );
     }
 
-    private Stream<Port> getDownstreamPortsStream ( final String operatorId )
+    private Stream<Port> getDownstreamConnectionsStream ( final String operatorId )
     {
-        return getPortStream( entry -> entry.getKey().operatorId.equals( operatorId ), Entry::getValue );
+        return getConnectionsStream( entry -> entry.getKey().operatorId.equals( operatorId ), Entry::getValue );
     }
 
-    private Stream<Port> getDownstreamPortsStream ( final Port port )
+    private Stream<Port> getDownstreamConnectionsStream ( final Port port )
     {
         return connections.get( port ).stream();
     }
 
-    private Stream<Port> getPortStream ( final Predicate<Entry<Port, Port>> predicate, final Function<Entry<Port, Port>, Port> mapper )
+    private Stream<Port> getConnectionsStream ( final Predicate<Entry<Port, Port>> predicate,
+                                                final Function<Entry<Port, Port>, Port> mapper )
     {
         return connections.entries().stream().filter( predicate ).map( mapper );
     }

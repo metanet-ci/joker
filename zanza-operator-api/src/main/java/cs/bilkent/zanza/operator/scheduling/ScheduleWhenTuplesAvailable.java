@@ -124,7 +124,8 @@ public final class ScheduleWhenTuplesAvailable implements SchedulingStrategy
     }
 
     public ScheduleWhenTuplesAvailable ( final TupleAvailabilityByCount tupleAvailabilityByCount,
-                                         final TupleAvailabilityByPort tupleAvailabilityByPort, final int[] tupleCounts )
+                                         final TupleAvailabilityByPort tupleAvailabilityByPort,
+                                         final int[] tupleCounts )
     {
         checkNotNull( tupleAvailabilityByCount );
         checkNotNull( tupleAvailabilityByPort );
@@ -136,7 +137,8 @@ public final class ScheduleWhenTuplesAvailable implements SchedulingStrategy
     }
 
     public ScheduleWhenTuplesAvailable ( final TupleAvailabilityByCount tupleAvailabilityByCount,
-                                         final TupleAvailabilityByPort tupleAvailabilityByPort, final int portCount,
+                                         final TupleAvailabilityByPort tupleAvailabilityByPort,
+                                         final int portCount,
                                          final int tupleCount,
                                          final int... ports )
     {
@@ -155,7 +157,8 @@ public final class ScheduleWhenTuplesAvailable implements SchedulingStrategy
     }
 
     public ScheduleWhenTuplesAvailable ( final TupleAvailabilityByCount tupleAvailabilityByCount,
-                                         final TupleAvailabilityByPort tupleAvailabilityByPort, final int portCount,
+                                         final TupleAvailabilityByPort tupleAvailabilityByPort,
+                                         final int portCount,
                                          final int tupleCount,
                                          final List<Integer> ports )
     {

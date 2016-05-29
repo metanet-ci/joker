@@ -70,7 +70,8 @@ public class OperatorInstance
     private TupleQueueDrainer drainer;
 
     public OperatorInstance ( final PipelineInstanceId pipelineInstanceId,
-                              final OperatorDefinition operatorDefinition, final TupleQueueContext queue,
+                              final OperatorDefinition operatorDefinition,
+                              final TupleQueueContext queue,
                               final KVStoreProvider kvStoreProvider,
                               final TupleQueueDrainerPool drainerPool,
                               final Supplier<TuplesImpl> outputSupplier )
@@ -79,7 +80,8 @@ public class OperatorInstance
     }
 
     public OperatorInstance ( final PipelineInstanceId pipelineInstanceId,
-                              final OperatorDefinition operatorDefinition, final TupleQueueContext queue,
+                              final OperatorDefinition operatorDefinition,
+                              final TupleQueueContext queue,
                               final KVStoreProvider kvStoreProvider,
                               final TupleQueueDrainerPool drainerPool,
                               final Supplier<TuplesImpl> outputSupplier,
@@ -120,25 +122,13 @@ public class OperatorInstance
         }
     }
 
-    /**
-     * Delivers the tuples sent by an upstream operator and tries to invoke the operator. If the operator's recent
-     * {@link SchedulingStrategy} is satisfied by the input tuples, the operator is invoked.
-     * <p>
-     * If the operator invocation throws an exception, {@link SchedulingStrategy} is set to {@link ScheduleNever} and no more invocations
-     * are allowed.
-     *
-     * @param upstreamInput
-     *         tuples sent by upstream operators
-     *
-     * @return result of the invocation if the operator is invoked, NULL otherwise
-     */
     public TuplesImpl invoke ( final TuplesImpl upstreamInput )
     {
         checkState( status == RUNNING );
 
-        if ( schedulingStrategy instanceof ScheduleNever )
+        if ( isNonInvokable() )
         {
-            LOGGER.warn( "{} completed its execution but invoked again. Input: {}", operatorName, upstreamInput );
+            LOGGER.debug( "Skipping invocation of {} since it is done. Input: {}", operatorName, upstreamInput );
             return null;
         }
 
@@ -156,59 +146,21 @@ public class OperatorInstance
             final TuplesImpl input = drainer.getResult();
             if ( input != null )
             {
-                final KVStore kvStore = kvStoreProvider.getKVStore( drainer.getKey() );
-                final TuplesImpl output = outputSupplier.get();
-                invocationContext.setInvocationParameters( SUCCESS, input, output, kvStore );
-
-                operator.invoke( invocationContext );
-
-                final SchedulingStrategy nextSchedulingStrategy = invocationContext.getSchedulingStrategy();
-                if ( nextSchedulingStrategy != null )
-                {
-                    schedulingStrategy = nextSchedulingStrategy;
-                    invocationContext.setNextSchedulingStrategy( null );
-                    drainerPool.release( drainer );
-                    drainer = drainerPool.acquire( schedulingStrategy );
-                    if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
-                    {
-                        final ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailable = (ScheduleWhenTuplesAvailable) schedulingStrategy;
-                        for ( int portIndex = 0; portIndex < scheduleWhenTuplesAvailable.getPortCount(); portIndex++ )
-                        {
-                            queue.ensureCapacity( portIndex, scheduleWhenTuplesAvailable.getTupleCount( portIndex ) );
-                        }
-                    }
-                }
-
-                return output;
+                return invokeInternal( SUCCESS, input, true );
             }
 
+            drainer.reset();
             return null;
         }
         catch ( Exception e )
         {
             LOGGER.error( operatorName + " failed during invoke!", e );
-            schedulingStrategy = ScheduleNever.INSTANCE;
+            setNoMoreInvocations();
             return null;
-        }
-        finally
-        {
-            drainer.reset();
         }
     }
 
-    /**
-     * Performs the final invocation of the operator with the provided {@link InvocationReason}. It performs the final invocation
-     * of the operator with all pending input tuples, even if recent {@link SchedulingStrategy} of the operator is not satisfied.
-     * After operator invocation is completed, {@link SchedulingStrategy} field is set to {@link ScheduleNever}.
-     *
-     * @param upstreamInput
-     *         tuples sent by upstream operators
-     * @param reason
-     *         reason of the final invocation
-     *
-     * @return tuples produced by final invocation of the operator
-     */
-    public TuplesImpl forceInvoke ( final TuplesImpl upstreamInput, final InvocationReason reason )
+    public TuplesImpl forceInvoke ( final InvocationReason reason, final TuplesImpl upstreamInput, final boolean upstreamCompleted )
     {
         checkState( status == RUNNING );
 
@@ -232,51 +184,84 @@ public class OperatorInstance
                 }
             }
 
-            drainerPool.release( drainer );
-            drainer = drainerPool.acquire( ScheduleWhenAvailable.INSTANCE );
+            if ( schedulingStrategy instanceof ScheduleWhenAvailable && upstreamCompleted )
+            {
+                return forceInvokeInternal( reason );
+            }
 
             queue.drain( drainer );
             final TuplesImpl input = drainer.getResult();
             if ( input != null )
             {
-                final KVStore kvStore = kvStoreProvider.getKVStore( drainer.getKey() );
-                final TuplesImpl output = outputSupplier.get();
-                invocationContext.setInvocationParameters( reason, input, output, kvStore );
-
-                operator.invoke( invocationContext );
-
-                if ( invocationContext.getSchedulingStrategy() instanceof ScheduleNever )
-                {
-                    LOGGER.info( "{} force invoked and completed its execution.", operatorName );
-                }
-                else
-                {
-                    LOGGER.warn( "{} force invoked and requested new scheduling.", operatorName );
-                }
-
-                return output;
+                return invokeInternal( SUCCESS, input, true );
+            }
+            else if ( upstreamCompleted )
+            {
+                return forceInvokeInternal( reason );
             }
 
+            drainer.reset();
             return null;
         }
         catch ( Exception e )
         {
             LOGGER.error( operatorName + " failed during force invoke!", e );
-
+            setNoMoreInvocations();
             return null;
         }
-        finally
+    }
+
+    private TuplesImpl invokeInternal ( final InvocationReason reason, final TuplesImpl input, final boolean handleNewSchedulingStrategy )
+    {
+        final KVStore kvStore = kvStoreProvider.getKVStore( drainer.getKey() );
+        final TuplesImpl output = outputSupplier.get();
+        invocationContext.setInvocationParameters( reason, input, output, kvStore );
+        operator.invoke( invocationContext );
+        drainer.reset();
+
+        final SchedulingStrategy newSchedulingStrategy = invocationContext.getSchedulingStrategy();
+        invocationContext.setNextSchedulingStrategy( null );
+        if ( newSchedulingStrategy != null )
         {
-            try
+            if ( handleNewSchedulingStrategy )
             {
-                schedulingStrategy = ScheduleNever.INSTANCE;
+                LOGGER.info( "{} setting new scheduling strategy: {}", operatorName, newSchedulingStrategy );
+                schedulingStrategy = newSchedulingStrategy;
                 drainerPool.release( drainer );
-                drainer = null;
+                drainer = drainerPool.acquire( schedulingStrategy );
+                if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
+                {
+                    final ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailable = (ScheduleWhenTuplesAvailable) schedulingStrategy;
+                    for ( int portIndex = 0; portIndex < scheduleWhenTuplesAvailable.getPortCount(); portIndex++ )
+                    {
+                        queue.ensureCapacity( portIndex, scheduleWhenTuplesAvailable.getTupleCount( portIndex ) );
+                    }
+                }
             }
-            catch ( Exception e )
-            {
-                LOGGER.error( operatorName + " failed during releasing drainer after force invoke", e );
-            }
+        }
+
+        return output;
+    }
+
+    private TuplesImpl forceInvokeInternal ( final InvocationReason reason )
+    {
+
+        drainerPool.release( drainer );
+        drainer = drainerPool.acquire( ScheduleWhenAvailable.INSTANCE );
+        queue.drain( drainer );
+        final TuplesImpl input = drainer.getResult();
+        final TuplesImpl output = input != null ? invokeInternal( reason, input, false ) : null;
+        setNoMoreInvocations();
+        return output;
+    }
+
+    private void setNoMoreInvocations ()
+    {
+        schedulingStrategy = ScheduleNever.INSTANCE;
+        if ( drainer != null )
+        {
+            drainerPool.release( drainer );
+            drainer = null;
         }
     }
 
@@ -287,7 +272,12 @@ public class OperatorInstance
     {
         // TODO should we clear internal queues and kv store here?
 
-        if ( status == SHUT_DOWN )
+        if ( status == INITIAL )
+        {
+            LOGGER.info( "{} ignoring shutdown request since not initialized", operatorName );
+            return;
+        }
+        else if ( status == SHUT_DOWN )
         {
             LOGGER.info( "{} ignoring shutdown request since already shut down", operatorName );
             return;
@@ -315,14 +305,29 @@ public class OperatorInstance
      *
      * @return the last scheduling strategy returned by operator invocation
      */
-    public SchedulingStrategy schedulingStrategy ()
+    public SchedulingStrategy getSchedulingStrategy ()
     {
         return schedulingStrategy;
     }
 
-    public OperatorInstanceStatus status ()
+    public OperatorInstanceStatus getStatus ()
     {
         return status;
+    }
+
+    public String getOperatorName ()
+    {
+        return operatorName;
+    }
+
+    public boolean isInvokable ()
+    {
+        return !isNonInvokable();
+    }
+
+    public boolean isNonInvokable ()
+    {
+        return schedulingStrategy instanceof ScheduleNever || schedulingStrategy == null;
     }
 
 }

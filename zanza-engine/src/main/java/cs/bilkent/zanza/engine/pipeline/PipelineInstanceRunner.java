@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import cs.bilkent.zanza.engine.coordinator.CoordinatorHandle;
-import static cs.bilkent.zanza.engine.pipeline.PipelineInstance.NO_INVOKABLE_INDEX;
 import cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerCommand.PipelineInstanceRunnerCommandType;
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerCommand.PipelineInstanceRunnerCommandType.PAUSE;
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerCommand.PipelineInstanceRunnerCommandType.RESUME;
@@ -21,7 +20,12 @@ import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.PAUS
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.RUNNING;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.INPUT_PORT_CLOSED;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
+import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 
+/**
+ * Execution model of the operators is such that it invokes all of the invokable operators until they set their scheduling strategy to
+ * {@link ScheduleNever}. Therefore, some of the operators may be invokable while others complete their execution.
+ */
 public class PipelineInstanceRunner implements Runnable
 {
 
@@ -33,8 +37,6 @@ public class PipelineInstanceRunner implements Runnable
     private final PipelineInstance pipeline;
 
     private final PipelineInstanceId id;
-
-    private final int operatorCount;
 
     private long waitTimeoutInMillis;
 
@@ -55,7 +57,6 @@ public class PipelineInstanceRunner implements Runnable
     {
         this.pipeline = pipeline;
         this.id = pipeline.id();
-        this.operatorCount = pipeline.operatorCount();
         synchronized ( monitor )
         {
             status = INITIAL;
@@ -78,7 +79,7 @@ public class PipelineInstanceRunner implements Runnable
         this.downstreamTupleSender = downstreamTupleSender;
     }
 
-    public PipelineInstanceRunnerStatus status ()
+    public PipelineInstanceRunnerStatus getStatus ()
     {
         synchronized ( monitor )
         {
@@ -248,12 +249,11 @@ public class PipelineInstanceRunner implements Runnable
         {
             while ( true )
             {
-                final int highestInvokableIndex = pipeline.currentHighestInvokableIndex();
+                final boolean hasBeenProducingDownstreamTuples = pipeline.isProducingDownstreamTuples();
                 final PipelineInstanceRunnerStatus status = checkStatus();
                 if ( status == PAUSED )
                 {
                     awaitDownstreamTuplesFuture();
-
                     synchronized ( monitor )
                     {
                         monitor.wait( waitTimeoutInMillis );
@@ -268,15 +268,18 @@ public class PipelineInstanceRunner implements Runnable
                     downstreamTuplesFuture = downstreamTupleSender.send( id, output );
                 }
 
-                final int newHighestInvokableIndex = pipeline.currentHighestInvokableIndex();
-                if ( newHighestInvokableIndex == NO_INVOKABLE_INDEX || status == COMPLETED )
+                if ( !pipeline.isInvokableOperatorAvailable() )
                 {
                     completeRun();
                     break;
                 }
-                else if ( highestInvokableIndex == operatorCount && newHighestInvokableIndex < highestInvokableIndex )
+                else
                 {
-                    notifyDownstream();
+                    final boolean stoppedProducingDownstreamTuples = !pipeline.isProducingDownstreamTuples();
+                    if ( hasBeenProducingDownstreamTuples && stoppedProducingDownstreamTuples )
+                    {
+                        notifyDownstream();
+                    }
                 }
             }
         }

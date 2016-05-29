@@ -220,7 +220,7 @@ public class RegionFormerImpl implements RegionFormer
         if ( downstreamOperators.size() == 1 )
         {
             final OperatorDefinition next = downstreamOperators.iterator().next();
-            final Collection<Port> upstreamPorts = flow.getUpstreamPorts( next.id() );
+            final Collection<Port> upstreamPorts = flow.getUpstreamConnections( next.id() );
             return upstreamPorts.size() == 1 ? next : null;
         }
         else

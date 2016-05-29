@@ -20,14 +20,14 @@ public class GreedyDrainerTest
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithNullTupleQueues ()
     {
-        final GreedyDrainer greedyDrainer = new GreedyDrainer( 1, TIMEOUT_IN_MILLIS );
+        final GreedyDrainer greedyDrainer = new GreedyDrainer( 1 );
         greedyDrainer.drain( null, null );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithEmptyTupleQueues ()
     {
-        final GreedyDrainer greedyDrainer = new GreedyDrainer( 1, Long.MAX_VALUE );
+        final GreedyDrainer greedyDrainer = new GreedyDrainer( 1 );
         greedyDrainer.drain( null, new TupleQueue[] {} );
     }
 
@@ -38,7 +38,7 @@ public class GreedyDrainerTest
         final Tuple tuple = new Tuple();
         tupleQueue.offerTuple( tuple );
 
-        final GreedyDrainer greedyDrainer = new GreedyDrainer( 1, Long.MAX_VALUE );
+        final GreedyDrainer greedyDrainer = new GreedyDrainer( 1 );
 
         greedyDrainer.drain( null, new TupleQueue[] { tupleQueue } );
 
@@ -60,7 +60,7 @@ public class GreedyDrainerTest
         final Tuple tuple2 = new Tuple();
         tupleQueue2.offerTuple( tuple2 );
 
-        final GreedyDrainer greedyDrainer = new GreedyDrainer( 2, Long.MAX_VALUE );
+        final GreedyDrainer greedyDrainer = new GreedyDrainer( 2 );
 
         greedyDrainer.drain( null, new TupleQueue[] { tupleQueue1, tupleQueue2 } );
 

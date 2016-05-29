@@ -10,6 +10,8 @@ public interface TupleQueueManager
 
     void init ( ZanzaConfig config );
 
+    TupleQueueContext createEmptyTupleQueueContext ( OperatorDefinition operatorDefinition, int replicaIndex );
+
     TupleQueueContext createTupleQueueContext ( OperatorDefinition operatorDefinition,
                                                 ThreadingPreference threadingPreference,
                                                 int replicaIndex );
