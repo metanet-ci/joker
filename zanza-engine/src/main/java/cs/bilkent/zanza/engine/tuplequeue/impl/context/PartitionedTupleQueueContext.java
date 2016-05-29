@@ -54,19 +54,37 @@ public class PartitionedTupleQueueContext extends AbstractTupleQueueContext
         this.capacityCheckFlags = new AtomicIntegerArray( inputPortCount );
         this.tupleQueuesByPartitionKeys = threadingPreference == MULTI_THREADED ? new ConcurrentHashMap<>() : new HashMap<>();
 
-        this.tupleQueuesConstructor = ( partitionKey ) -> {
-            final TupleQueue[] tupleQueues = new TupleQueue[ inputPortCount ];
-            for ( int i = 0; i < inputPortCount; i++ )
-            {
-                final TupleQueue queue = tupleQueueConstructor.apply( isCapacityCheckEnabled( i ) );
-                tupleQueues[ i ] = queue;
-            }
-            return tupleQueues;
-        };
+        Function<Object, TupleQueue[]> tupleQueuesConstructor;
+        if ( threadingPreference == MULTI_THREADED )
+        {
+            tupleQueuesConstructor = ( partitionKey ) -> {
+                final TupleQueue[] tupleQueues = new TupleQueue[ inputPortCount ];
+                for ( int i = 0; i < inputPortCount; i++ )
+                {
+                    final TupleQueue queue = tupleQueueConstructor.apply( isCapacityCheckEnabled( i ) );
+                    tupleQueues[ i ] = queue;
+                }
+                return tupleQueues;
+            };
+        }
+        else
+        {
+            tupleQueuesConstructor = ( partitionKey ) -> {
+                final TupleQueue[] tupleQueues = new TupleQueue[ inputPortCount ];
+                for ( int i = 0; i < inputPortCount; i++ )
+                {
+                    final TupleQueue queue = tupleQueueConstructor.apply( false );
+                    tupleQueues[ i ] = queue;
+                }
+                return tupleQueues;
+            };
+        }
+
+        this.tupleQueuesConstructor = tupleQueuesConstructor;
 
         if ( threadingPreference == SINGLE_THREADED )
         {
-            tupleQueuesAccessor = partitionKey -> tupleQueuesByPartitionKeys.computeIfAbsent( partitionKey, tupleQueuesConstructor );
+            tupleQueuesAccessor = partitionKey -> tupleQueuesByPartitionKeys.computeIfAbsent( partitionKey, this.tupleQueuesConstructor );
         }
         else if ( threadingPreference == MULTI_THREADED )
         {
@@ -76,7 +94,7 @@ public class PartitionedTupleQueueContext extends AbstractTupleQueueContext
                 if ( tupleQueues == null )
                 {
                     long stamp = lock.tryOptimisticRead();
-                    tupleQueues = tupleQueuesByPartitionKeys.computeIfAbsent( partitionKey, tupleQueuesConstructor );
+                    tupleQueues = tupleQueuesByPartitionKeys.computeIfAbsent( partitionKey, this.tupleQueuesConstructor );
                     if ( !lock.validate( stamp ) )
                     {
                         stamp = lock.readLock();

@@ -128,7 +128,7 @@ public class OperatorInstance
 
         if ( isNonInvokable() )
         {
-            LOGGER.debug( "Skipping invocation of {} since it is done. Input: {}", operatorName, upstreamInput );
+            LOGGER.debug( "{} ignoring invoke", operatorName );
             return null;
         }
 
@@ -166,7 +166,7 @@ public class OperatorInstance
 
         if ( schedulingStrategy instanceof ScheduleNever )
         {
-            LOGGER.warn( "{} ignoring force invoke", operatorName );
+            LOGGER.debug( "{} ignoring force invoke", operatorName );
             return null;
         }
 
@@ -228,14 +228,21 @@ public class OperatorInstance
                 LOGGER.info( "{} setting new scheduling strategy: {}", operatorName, newSchedulingStrategy );
                 schedulingStrategy = newSchedulingStrategy;
                 drainerPool.release( drainer );
-                drainer = drainerPool.acquire( schedulingStrategy );
-                if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
+                if ( !( newSchedulingStrategy instanceof ScheduleNever ) )
                 {
-                    final ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailable = (ScheduleWhenTuplesAvailable) schedulingStrategy;
-                    for ( int portIndex = 0; portIndex < scheduleWhenTuplesAvailable.getPortCount(); portIndex++ )
+                    drainer = drainerPool.acquire( schedulingStrategy );
+                    if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
                     {
-                        queue.ensureCapacity( portIndex, scheduleWhenTuplesAvailable.getTupleCount( portIndex ) );
+                        final ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailable = (ScheduleWhenTuplesAvailable) schedulingStrategy;
+                        for ( int portIndex = 0; portIndex < scheduleWhenTuplesAvailable.getPortCount(); portIndex++ )
+                        {
+                            queue.ensureCapacity( portIndex, scheduleWhenTuplesAvailable.getTupleCount( portIndex ) );
+                        }
                     }
+                }
+                else
+                {
+                    drainer = null;
                 }
             }
         }
@@ -286,7 +293,10 @@ public class OperatorInstance
         checkState( status == RUNNING || status == INITIALIZATION_FAILED );
         try
         {
-            operator.shutdown();
+            if ( operator != null )
+            {
+                operator.shutdown();
+            }
         }
         catch ( Exception e )
         {
@@ -318,6 +328,11 @@ public class OperatorInstance
     public String getOperatorName ()
     {
         return operatorName;
+    }
+
+    public Operator getOperator ()
+    {
+        return operator;
     }
 
     public boolean isInvokable ()
