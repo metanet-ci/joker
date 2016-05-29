@@ -224,12 +224,6 @@ public class SingleThreadedTupleQueue implements TupleQueue
     }
 
     @Override
-    public boolean isEmpty ()
-    {
-        return queue.isEmpty();
-    }
-
-    @Override
     public void clear ()
     {
         queue.clear();

@@ -474,20 +474,6 @@ public class MultiThreadedTupleQueue implements TupleQueue
     }
 
     @Override
-    public boolean isEmpty ()
-    {
-        lock.lock();
-        try
-        {
-            return queue.isEmpty();
-        }
-        finally
-        {
-            lock.unlock();
-        }
-    }
-
-    @Override
     public void clear ()
     {
         lock.lock();
