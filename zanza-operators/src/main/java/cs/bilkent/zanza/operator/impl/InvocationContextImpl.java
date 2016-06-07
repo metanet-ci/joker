@@ -18,6 +18,8 @@ public class InvocationContextImpl implements InvocationContext
 
     private SchedulingStrategy schedulingStrategy;
 
+    private boolean[] upstreamConnectionStatuses;
+
     public InvocationContextImpl ()
     {
     }
@@ -53,6 +55,16 @@ public class InvocationContextImpl implements InvocationContext
         this.kvStore = kvStore;
     }
 
+    public void setUpstreamConnectionStatuses ( final boolean[] upstreamConnectionStatuses )
+    {
+        this.upstreamConnectionStatuses = upstreamConnectionStatuses;
+    }
+
+    public SchedulingStrategy getSchedulingStrategy ()
+    {
+        return schedulingStrategy;
+    }
+
     @Override
     public TuplesImpl getInput ()
     {
@@ -63,6 +75,18 @@ public class InvocationContextImpl implements InvocationContext
     public InvocationReason getReason ()
     {
         return reason;
+    }
+
+    @Override
+    public boolean isInputPortOpen ( final int portIndex )
+    {
+        return upstreamConnectionStatuses[ portIndex ];
+    }
+
+    @Override
+    public boolean isInputPortClosed ( final int portIndex )
+    {
+        return !upstreamConnectionStatuses[ portIndex ];
     }
 
     @Override
@@ -81,11 +105,6 @@ public class InvocationContextImpl implements InvocationContext
     public void setNextSchedulingStrategy ( final SchedulingStrategy schedulingStrategy )
     {
         this.schedulingStrategy = schedulingStrategy;
-    }
-
-    public SchedulingStrategy getSchedulingStrategy ()
-    {
-        return schedulingStrategy;
     }
 
 }

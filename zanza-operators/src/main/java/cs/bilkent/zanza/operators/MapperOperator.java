@@ -8,18 +8,17 @@ import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.Tuples;
-import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
-import cs.bilkent.zanza.operator.spec.OperatorType;
+import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
 
 
 /**
  * Maps the input tuples into new output tuples with the provided mapper function.
  * Output tuples have same sequence number with their corresponding input tuples.
  */
-@OperatorSpec( type = OperatorType.STATELESS, inputPortCount = 1, outputPortCount = 1 )
+@OperatorSpec( type = STATELESS, inputPortCount = 1, outputPortCount = 1 )
 public class MapperOperator implements Operator
 {
 
@@ -52,11 +51,6 @@ public class MapperOperator implements Operator
         final Tuples output = invocationContext.getOutput();
 
         input.getTuplesByDefaultPort().stream().map( mapper ).forEach( output::add );
-
-        if ( invocationContext.isErroneousInvocation() )
-        {
-            invocationContext.setNextSchedulingStrategy( ScheduleNever.INSTANCE );
-        }
     }
 
 }

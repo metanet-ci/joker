@@ -7,34 +7,47 @@ import java.util.concurrent.ExecutionException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static cs.bilkent.zanza.engine.TestUtils.assertTrueEventually;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
-import cs.bilkent.zanza.engine.coordinator.CoordinatorHandle;
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.COMPLETED;
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.PAUSED;
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.RUNNING;
+import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
+import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.CLOSED;
+import cs.bilkent.zanza.engine.supervisor.Supervisor;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@RunWith( MockitoJUnitRunner.class )
 public class PipelineInstanceRunnerTest
 {
 
-    private PipelineInstance pipeline;
+    @Mock
+    private OperatorInstance operator;
 
-    private CoordinatorHandle coordinator;
+    @Mock
+    private Supervisor supervisor;
 
+    @Mock
     private DownstreamTupleSender downstreamTupleSender;
+
+    private PipelineInstance pipeline;
 
     private PipelineInstanceRunner runner;
 
@@ -43,14 +56,19 @@ public class PipelineInstanceRunnerTest
     @Before
     public void init () throws Exception
     {
-        pipeline = mock( PipelineInstance.class );
-        coordinator = mock( CoordinatorHandle.class );
-        downstreamTupleSender = mock( DownstreamTupleSender.class );
+        final PipelineInstanceId id = new PipelineInstanceId( 0, 0, 0 );
+        pipeline = new PipelineInstance( id, new OperatorInstance[] { operator } );
         runner = new PipelineInstanceRunner( pipeline );
-        runner.init( new ZanzaConfig() );
-        runner.setCoordinator( coordinator );
+        runner.setSupervisor( supervisor );
         runner.setDownstreamTupleSender( downstreamTupleSender );
+
+        when( supervisor.getUpstreamContext( id ) ).thenReturn( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ) );
+        runner.init( new ZanzaConfig() );
+
         thread = new Thread( runner );
+
+        when( pipeline.isProducingDownstreamTuples() ).thenReturn( true );
+        when( operator.isInvokable() ).thenReturn( true );
     }
 
     @After
@@ -58,7 +76,7 @@ public class PipelineInstanceRunnerTest
     {
         try
         {
-            stopAndGetFuture().get();
+            updatePipelineUpstreamContextForCompletion().get();
         }
         catch ( InterruptedException e )
         {
@@ -72,21 +90,21 @@ public class PipelineInstanceRunnerTest
         thread.join();
     }
 
-    private CompletableFuture<Void> stopAndGetFuture ()
+    private CompletableFuture<Void> updatePipelineUpstreamContextForCompletion ()
     {
-        final CompletableFuture<Void> future = runner.stop();
-        reset( pipeline );
+        final CompletableFuture<Void> future = runner.updatePipelineUpstreamContext();
+        reset( operator );
         return future;
     }
 
     @Test
-    public void shouldSetStatusWhenStartedRunning () throws ExecutionException, InterruptedException
+    public void shouldStartRunning () throws ExecutionException, InterruptedException
     {
         startRunner();
     }
 
     @Test
-    public void shouldSetStatusWhenPaused () throws ExecutionException, InterruptedException
+    public void shouldPauseWhileRunning () throws ExecutionException, InterruptedException
     {
         startRunner();
 
@@ -126,11 +144,11 @@ public class PipelineInstanceRunnerTest
     }
 
     @Test( expected = ExecutionException.class )
-    public void shouldNotPauseAfterStopped () throws ExecutionException, InterruptedException
+    public void shouldNotPauseAfterCompleted () throws ExecutionException, InterruptedException
     {
         startRunner();
 
-        stopAndGetFuture().get();
+        updatePipelineUpstreamContextForCompletion();
 
         assertTrueEventually( () -> assertEquals( runner.getStatus(), COMPLETED ) );
 
@@ -138,11 +156,11 @@ public class PipelineInstanceRunnerTest
     }
 
     @Test( expected = ExecutionException.class )
-    public void shouldNotResumeAfterStopped () throws ExecutionException, InterruptedException
+    public void shouldNotResumeAfterCompleted () throws ExecutionException, InterruptedException
     {
         startRunner();
 
-        stopAndGetFuture().get();
+        updatePipelineUpstreamContextForCompletion();
 
         assertTrueEventually( () -> assertEquals( runner.getStatus(), COMPLETED ) );
 
@@ -150,14 +168,13 @@ public class PipelineInstanceRunnerTest
     }
 
     @Test
-    public void shouldStopWhileRunning () throws ExecutionException, InterruptedException
+    public void shouldCompleteWhileRunning () throws ExecutionException, InterruptedException
     {
         final CountDownLatch invocationStartLatch = new CountDownLatch( 1 );
         final CountDownLatch invocationDoneLatch = new CountDownLatch( 1 );
         final TuplesImpl output = new TuplesImpl( 1 );
 
-
-        when( pipeline.invoke() ).thenAnswer( invocation -> {
+        when( operator.invoke( anyObject(), anyObject() ) ).thenAnswer( invocation -> {
             invocationStartLatch.countDown();
             invocationDoneLatch.await();
             return output;
@@ -165,16 +182,16 @@ public class PipelineInstanceRunnerTest
 
         startRunner();
 
-        final CompletableFuture<Void> future = stopAndGetFuture();
+        final CompletableFuture<Void> future = updatePipelineUpstreamContextForCompletion();
         invocationStartLatch.await();
         invocationDoneLatch.countDown();
         future.get();
         assertTrueEventually( () -> assertEquals( runner.getStatus(), COMPLETED ) );
-        verify( downstreamTupleSender ).send( null, output );
+        verify( downstreamTupleSender ).send( pipeline.id(), output );
     }
 
     @Test
-    public void shouldStopWhenPaused () throws ExecutionException, InterruptedException
+    public void shouldUpdateUpstreamContextWhenPaused () throws ExecutionException, InterruptedException
     {
         startRunner();
 
@@ -182,16 +199,11 @@ public class PipelineInstanceRunnerTest
 
         assertTrueEventually( () -> assertEquals( runner.getStatus(), PAUSED ) );
 
-        stopAndGetFuture().get();
-    }
+        final UpstreamContext upstreamContext = new UpstreamContext( 1, new UpstreamConnectionStatus[] { CLOSED } );
+        when( supervisor.getUpstreamContext( pipeline.id() ) ).thenReturn( upstreamContext );
 
-    @Test
-    public void shouldInvokeStopMultipleTimes () throws ExecutionException, InterruptedException
-    {
-        startRunner();
-
-        stopAndGetFuture().get();
-        runner.stop().get();
+        updatePipelineUpstreamContextForCompletion().get();
+        assertThat( pipeline.getPipelineUpstreamContext(), equalTo( upstreamContext ) );
     }
 
     @Test
@@ -222,21 +234,21 @@ public class PipelineInstanceRunnerTest
         final TuplesImpl output1 = TuplesImpl.newInstanceWithSinglePort( new Tuple( "k1", "v1" ) );
         final TuplesImpl output2 = TuplesImpl.newInstanceWithSinglePort( new Tuple( "k2", "v2" ) );
 
-        when( pipeline.invoke() ).thenReturn( output1, output2 );
+        when( operator.invoke( anyObject(), anyObject() ) ).thenReturn( output1, output2 );
 
         startRunner();
 
         sleepUninterruptibly( 1, SECONDS );
-        reset( pipeline );
+        reset( operator );
 
         assertTrueEventually( () -> assertEquals( runner.getStatus(), COMPLETED ), 10 );
-        verify( downstreamTupleSender, atLeastOnce() ).send( null, output1 );
-        verify( downstreamTupleSender, atLeastOnce() ).send( null, output2 );
+        verify( downstreamTupleSender, atLeastOnce() ).send( pipeline.id(), output1 );
+        verify( downstreamTupleSender, atLeastOnce() ).send( pipeline.id(), output2 );
     }
 
     private void startRunner ()
     {
-        when( pipeline.isInvokableOperatorAvailable() ).thenReturn( true );
+        when( pipeline.isInvokableOperatorPresent() ).thenReturn( true );
 
         thread.start();
 

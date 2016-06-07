@@ -3,9 +3,9 @@ package cs.bilkent.zanza.engine.pipeline;
 public class PipelineInstanceId
 {
 
-    private final int regionId;
-
     private final int pipelineId;
+
+    private final int regionId;
 
     private final int replicaId;
 
@@ -13,10 +13,10 @@ public class PipelineInstanceId
 
     private final int hashCode;
 
-    public PipelineInstanceId ( final int replicaId, final int pipelineId, final int regionId )
+    public PipelineInstanceId ( final int regionId, final int pipelineId, final int replicaId )
     {
-        this.replicaId = replicaId;
         this.pipelineId = pipelineId;
+        this.replicaId = replicaId;
         this.regionId = regionId;
         this.str = "PP[" + regionId + "_" + pipelineId + "_" + replicaId + "]";
         ;

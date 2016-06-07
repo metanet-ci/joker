@@ -36,6 +36,29 @@ public interface InitializationContext
     int getOutputPortCount ();
 
     /**
+     * Returns true if the input port specified with the port index is connected to an upstream operator
+     *
+     * @param portIndex
+     *         to check the input port
+     *
+     * @return true if the input port specified with the port index is connected to an upstream operator
+     */
+    boolean isInputPortOpen ( int portIndex );
+
+    /**
+     * Returns true if the input port specified with the port index is not connected to an upstream operator
+     *
+     * @param portIndex
+     *         to check the input port
+     *
+     * @return true if the input port specified with the port index is not connected to an upstream operator
+     */
+    default boolean isInputPortClosed ( int portIndex )
+    {
+        return !isInputPortClosed( portIndex );
+    }
+
+    /**
      * Schema of the operator that has been built in the run time. It is the combination of the schema given in {@link OperatorSchema}
      * with the {@link Operator} class and given in {@link OperatorRuntimeSchema} during the {@link FlowDefinition} composition
      *

@@ -8,17 +8,16 @@ import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.Tuples;
-import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
-import cs.bilkent.zanza.operator.spec.OperatorType;
+import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
 
 
 /**
  * Applies the given predicate function to each input tuple and only returns the ones that satisfy the predicate
  */
-@OperatorSpec( type = OperatorType.STATELESS, inputPortCount = 1, outputPortCount = 1 )
+@OperatorSpec( type = STATELESS, inputPortCount = 1, outputPortCount = 1 )
 public class FilterOperator implements Operator
 {
 
@@ -46,11 +45,6 @@ public class FilterOperator implements Operator
         final Tuples output = invocationContext.getOutput();
 
         input.getTuplesByDefaultPort().stream().filter( predicate ).forEach( output::add );
-
-        if ( invocationContext.isErroneousInvocation() )
-        {
-            invocationContext.setNextSchedulingStrategy( ScheduleNever.INSTANCE );
-        }
     }
 
 }

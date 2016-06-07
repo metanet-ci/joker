@@ -10,7 +10,7 @@ import static java.util.Collections.emptyList;
 
 public class InitializationContextImpl implements InitializationContext
 {
-    private String name;
+    private String id;
 
     private int inputPortCount;
 
@@ -22,15 +22,38 @@ public class InitializationContextImpl implements InitializationContext
 
     private OperatorConfig config = new OperatorConfig();
 
-    public void setName ( final String name )
+    private boolean[] upstreamConnectionStatuses;
+
+    public InitializationContextImpl ()
     {
-        this.name = name;
+    }
+
+    public InitializationContextImpl ( final String id,
+                                       final int inputPortCount,
+                                       final int outputPortCount,
+                                       final List<String> partitionFieldNames,
+                                       final OperatorRuntimeSchema runtimeSchema,
+                                       final OperatorConfig config,
+                                       final boolean[] upstreamConnectionStatuses )
+    {
+        this.id = id;
+        this.inputPortCount = inputPortCount;
+        this.outputPortCount = outputPortCount;
+        this.partitionFieldNames = partitionFieldNames;
+        this.runtimeSchema = runtimeSchema;
+        this.config = config;
+        this.upstreamConnectionStatuses = upstreamConnectionStatuses;
+    }
+
+    public void setId ( final String id )
+    {
+        this.id = id;
     }
 
     @Override
     public String getId ()
     {
-        return name;
+        return id;
     }
 
     @Override
@@ -45,6 +68,30 @@ public class InitializationContextImpl implements InitializationContext
         return outputPortCount;
     }
 
+    @Override
+    public boolean isInputPortOpen ( final int portIndex )
+    {
+        return upstreamConnectionStatuses[ portIndex ];
+    }
+
+    @Override
+    public OperatorRuntimeSchema getRuntimeSchema ()
+    {
+        return runtimeSchema;
+    }
+
+    @Override
+    public List<String> getPartitionFieldNames ()
+    {
+        return partitionFieldNames;
+    }
+
+    @Override
+    public OperatorConfig getConfig ()
+    {
+        return config;
+    }
+
     public void setInputPortCount ( final int inputPortCount )
     {
         this.inputPortCount = inputPortCount;
@@ -55,21 +102,9 @@ public class InitializationContextImpl implements InitializationContext
         this.outputPortCount = outputPortCount;
     }
 
-    @Override
-    public OperatorRuntimeSchema getRuntimeSchema ()
-    {
-        return runtimeSchema;
-    }
-
     public void setRuntimeSchema ( final OperatorRuntimeSchema runtimeSchema )
     {
         this.runtimeSchema = runtimeSchema;
-    }
-
-    @Override
-    public List<String> getPartitionFieldNames ()
-    {
-        return partitionFieldNames;
     }
 
     public void setPartitionFieldNames ( final List<String> partitionFieldNames )
@@ -82,10 +117,8 @@ public class InitializationContextImpl implements InitializationContext
         this.config = config;
     }
 
-    @Override
-    public OperatorConfig getConfig ()
+    public void setUpstreamConnectionStatuses ( final boolean[] upstreamConnectionStatuses )
     {
-        return config;
+        this.upstreamConnectionStatuses = upstreamConnectionStatuses;
     }
-
 }

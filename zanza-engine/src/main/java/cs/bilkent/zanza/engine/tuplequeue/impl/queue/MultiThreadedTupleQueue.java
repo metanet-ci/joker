@@ -36,7 +36,8 @@ public class MultiThreadedTupleQueue implements TupleQueue
     @GuardedBy( "monitor" )
     private final Queue<Tuple> queue;
 
-    private volatile int capacity;
+    // TODO volatile keyword is removed. check this
+    private int capacity;
 
     private boolean capacityCheckEnabled;
 
@@ -284,16 +285,16 @@ public class MultiThreadedTupleQueue implements TupleQueue
     private List<Tuple> doPollTuples ( final int count, final long timeoutInNanos, List<Tuple> tuples )
     {
         checkArgument( count >= 0 );
-        if ( capacityCheckEnabled )
-        {
-            checkArgument( capacity >= count );
-        }
-
         final long startNanos = nanoTime();
 
         lock.lock();
         try
         {
+            if ( capacityCheckEnabled )
+            {
+                checkArgument( capacity >= count );
+            }
+
             while ( queue.size() < count )
             {
                 final long remainingNanos = timeoutInNanos - ( nanoTime() - startNanos );
@@ -378,16 +379,16 @@ public class MultiThreadedTupleQueue implements TupleQueue
     private List<Tuple> doPollTuplesAtLeast ( final int count, int limit, final long timeoutInNanos, List<Tuple> tuples )
     {
         checkArgument( count >= 0 );
-        if ( capacityCheckEnabled )
-        {
-            checkArgument( capacity >= count );
-        }
 
         final long startNanos = nanoTime();
-
         lock.lock();
         try
         {
+            if ( capacityCheckEnabled )
+            {
+                checkArgument( capacity >= count );
+            }
+
             while ( queue.size() < count )
             {
                 final long remainingNanos = timeoutInNanos - ( nanoTime() - startNanos );

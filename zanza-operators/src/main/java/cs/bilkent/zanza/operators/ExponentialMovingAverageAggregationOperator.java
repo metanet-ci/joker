@@ -16,7 +16,7 @@ import cs.bilkent.zanza.operator.schema.annotation.PortSchema;
 import static cs.bilkent.zanza.operator.schema.annotation.PortSchemaScope.EXACT_FIELD_SET;
 import cs.bilkent.zanza.operator.schema.annotation.SchemaField;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
-import cs.bilkent.zanza.operator.spec.OperatorType;
+import static cs.bilkent.zanza.operator.spec.OperatorType.STATEFUL;
 
 
 /**
@@ -25,7 +25,7 @@ import cs.bilkent.zanza.operator.spec.OperatorType;
  * @see <a href="https://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average">Exponential Moving Average Wikipedia</a>
  */
 
-@OperatorSpec( type = OperatorType.STATEFUL, inputPortCount = 1, outputPortCount = 1 )
+@OperatorSpec( type = STATEFUL, inputPortCount = 1, outputPortCount = 1 )
 @OperatorSchema( inputs = {}, outputs = { @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = EXACT_FIELD_SET,
         fields = { @SchemaField(
                 name = ExponentialMovingAverageAggregationOperator.VALUE_FIELD,

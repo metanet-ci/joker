@@ -9,16 +9,16 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
-import cs.bilkent.zanza.engine.coordinator.CoordinatorHandle;
 import cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerCommand.PipelineInstanceRunnerCommandType;
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerCommand.PipelineInstanceRunnerCommandType.PAUSE;
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerCommand.PipelineInstanceRunnerCommandType.RESUME;
-import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerCommand.PipelineInstanceRunnerCommandType.STOP;
+import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerCommand.PipelineInstanceRunnerCommandType
+                      .UPDATE_PIPELINE_UPSTREAM_CONTEXT;
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.COMPLETED;
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.INITIAL;
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.PAUSED;
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.RUNNING;
-import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.INPUT_PORT_CLOSED;
+import cs.bilkent.zanza.engine.supervisor.Supervisor;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 
@@ -41,7 +41,7 @@ public class PipelineInstanceRunner implements Runnable
     private long waitTimeoutInMillis;
 
 
-    private CoordinatorHandle coordinator;
+    private Supervisor supervisor;
 
     private DownstreamTupleSender downstreamTupleSender;
 
@@ -63,15 +63,16 @@ public class PipelineInstanceRunner implements Runnable
         }
     }
 
-    public void init ( ZanzaConfig config )
+    public void init ( final ZanzaConfig config )
     {
         waitTimeoutInMillis = config.getPipelineInstanceRunnerConfig().waitTimeoutInMillis;
-        pipeline.init( config );
+        final UpstreamContext upstreamContext = supervisor.getUpstreamContext( id );
+        pipeline.init( config, upstreamContext );
     }
 
-    public void setCoordinator ( final CoordinatorHandle coordinator )
+    public void setSupervisor ( final Supervisor supervisor )
     {
-        this.coordinator = coordinator;
+        this.supervisor = supervisor;
     }
 
     public void setDownstreamTupleSender ( final DownstreamTupleSender downstreamTupleSender )
@@ -112,7 +113,16 @@ public class PipelineInstanceRunner implements Runnable
                 {
                     if ( command.getType() == PAUSE )
                     {
-                        LOGGER.info( "{}: shortcutting with already existing pause command", id );
+                        LOGGER.info( "{}: pause command is already set", id );
+                        result = command.getFuture();
+                    }
+                    else if ( command.getType() == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
+                    {
+                        LOGGER.info( "{}: handling update pipeline upstream context during pause request", id );
+                        updatePipelineUpstreamContextInternal();
+                        command.complete();
+                        command = PipelineInstanceRunnerCommand.pause();
+                        this.command = command;
                         result = command.getFuture();
                     }
                     else
@@ -166,6 +176,16 @@ public class PipelineInstanceRunner implements Runnable
                         monitor.notify();
                         result = command.getFuture();
                     }
+                    else if ( command.getType() == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
+                    {
+                        LOGGER.info( "{}: handling update pipeline upstream context during resume request", id );
+                        updatePipelineUpstreamContextInternal();
+                        command.complete();
+                        command = PipelineInstanceRunnerCommand.resume();
+                        this.command = command;
+                        monitor.notify();
+                        result = command.getFuture();
+                    }
                     else
                     {
                         LOGGER.error( "{}: resume failed since there is another pending command with type: {}", id, command.getType() );
@@ -188,7 +208,7 @@ public class PipelineInstanceRunner implements Runnable
         return result;
     }
 
-    public CompletableFuture<Void> stop ()
+    public CompletableFuture<Void> updatePipelineUpstreamContext ()
     {
         final CompletableFuture<Void> result;
         synchronized ( monitor )
@@ -199,38 +219,44 @@ public class PipelineInstanceRunner implements Runnable
                 PipelineInstanceRunnerCommand command = this.command;
                 if ( command == null )
                 {
-                    LOGGER.info( "{}: stop command is set", id );
-                    command = PipelineInstanceRunnerCommand.stop();
+                    LOGGER.info( "{}: update pipeline upstream context command is set", id );
+                    command = PipelineInstanceRunnerCommand.updatePipelineUpstreamContext();
                     this.command = command;
                     result = command.getFuture();
                     monitor.notify();
                 }
-                else if ( command.getType() == PipelineInstanceRunnerCommandType.PAUSE || command.getType() == RESUME )
+                else if ( command.getType() == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
                 {
-                    LOGGER.info( "{}: overwriting command with type: {} to stop", id, command.getType() );
-                    command.setType( STOP );
+                    LOGGER.info( "{}: update pipeline upstream context command is already set", id );
                     result = command.getFuture();
+                }
+                else if ( command.hasType( PAUSE ) || command.hasType( RESUME ) )
+                {
+                    LOGGER.info( "{}: updating pipeline upstream context immediately since there is pending command: {}",
+                                 id,
+                                 command.getType() );
+                    updatePipelineUpstreamContextInternal();
+                    result = new CompletableFuture<>();
+                    result.complete( null );
                 }
                 else
                 {
-                    LOGGER.error( "{}: stop failed since there is another pending command with type: {}", id, command.getType() );
+                    LOGGER.error( "{}: update pipeline upstream context failed since there is another pending command with type: {}",
+                                  id,
+                                  command.getType() );
                     result = new CompletableFuture<>();
-                    result.completeExceptionally( new IllegalStateException( id
-                                                                             + ": stop tail sender failed since there is another pending "
+                    result.completeExceptionally( new IllegalStateException( id + ": update pipeline upstream context tail sender failed "
+                                                                             + "since " + "there is another pending "
                                                                              + "command with type: " + command.getType() ) );
                 }
             }
-            else if ( status == COMPLETED )
-            {
-                result = new CompletableFuture<>();
-                result.complete( null );
-            }
             else
             {
-                LOGGER.error( "{}: stop failed since not running or paused. status: {}", id, status );
+                LOGGER.error( "{}: update pipeline upstream context failed since not running or paused. status: {}", id, status );
                 result = new CompletableFuture<>();
-                result.completeExceptionally( new IllegalStateException( id + ": stop failed since not running or paused. status: "
-                                                                         + status ) );
+                result.completeExceptionally( new IllegalStateException( id
+                                                                         + ": update pipeline upstream context failed since not running or "
+                                                                         + "paused. status: " + status ) );
             }
         }
 
@@ -249,7 +275,6 @@ public class PipelineInstanceRunner implements Runnable
         {
             while ( true )
             {
-                final boolean hasBeenProducingDownstreamTuples = pipeline.isProducingDownstreamTuples();
                 final PipelineInstanceRunnerStatus status = checkStatus();
                 if ( status == PAUSED )
                 {
@@ -261,14 +286,15 @@ public class PipelineInstanceRunner implements Runnable
                     continue;
                 }
 
-                final TuplesImpl output = ( status == RUNNING ) ? pipeline.invoke() : pipeline.forceInvoke( INPUT_PORT_CLOSED );
+                final boolean hasBeenProducingDownstreamTuples = pipeline.isProducingDownstreamTuples();
+                final TuplesImpl output = pipeline.invoke();
                 if ( output != null )
                 {
                     awaitDownstreamTuplesFuture();
                     downstreamTuplesFuture = downstreamTupleSender.send( id, output );
                 }
 
-                if ( !pipeline.isInvokableOperatorAvailable() )
+                if ( pipeline.isInvokableOperatorAbsent() )
                 {
                     completeRun();
                     break;
@@ -296,7 +322,7 @@ public class PipelineInstanceRunner implements Runnable
         }
         else
         {
-            LOGGER.warn( "{}: completed the run with status: ", id, status );
+            LOGGER.error( "{}: completed the run with status: ", id, status );
         }
     }
 
@@ -310,18 +336,19 @@ public class PipelineInstanceRunner implements Runnable
             final PipelineInstanceRunnerCommandType commandType = command.getType();
             synchronized ( monitor )
             {
-                if ( commandType == STOP )
+                if ( commandType == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
                 {
-                    LOGGER.info( "{}: stop command is noticed", id );
-                    result = COMPLETED;
-                    // command is not nulled. it will be nulled while actually stopping
+                    LOGGER.info( "{}: updatePipelineUpstreamContext command is noticed", id );
+                    this.command = null;
+                    this.status = RUNNING;
+                    command.complete();
+                    updatePipelineUpstreamContextInternal();
                 }
                 else if ( status == RUNNING )
                 {
                     if ( commandType == PAUSE )
                     {
                         LOGGER.info( "{}: pausing", id );
-                        // command must be set before status
                         command.complete();
                         this.command = null;
                         this.status = PAUSED;
@@ -340,7 +367,6 @@ public class PipelineInstanceRunner implements Runnable
                     if ( commandType == RESUME )
                     {
                         LOGGER.info( "{}: resuming", id );
-                        // command must be set before status
                         command.complete();
                         this.command = null;
                         this.status = RUNNING;
@@ -361,6 +387,14 @@ public class PipelineInstanceRunner implements Runnable
         }
 
         return result;
+    }
+
+    // this method is invoked within a lock. normally, it is a bad practice since we are calling an alien object inside the method.
+    // we are still doing it anyway since it simplifies the logic a lot and the alien method is a very simple query method.
+    private void updatePipelineUpstreamContextInternal ()
+    {
+        final UpstreamContext pipelineUpstreamContext = supervisor.getUpstreamContext( id );
+        pipeline.setPipelineUpstreamContext( pipelineUpstreamContext );
     }
 
     private void awaitDownstreamTuplesFuture () throws InterruptedException
@@ -384,8 +418,8 @@ public class PipelineInstanceRunner implements Runnable
         LOGGER.info( "{}: stopping downstream tuple sender", id );
         awaitDownstreamTuplesFuture();
 
-        LOGGER.info( "{}: notifying coordinator to stop downstream", id );
-        coordinator.notifyPipelineStoppedSendingDownstreamTuples( id );
+        LOGGER.info( "{}: notifying supervisor to stop downstream", id );
+        supervisor.notifyPipelineStoppedSendingDownstreamTuples( id );
 
         downstreamTupleSender = new FailingDownstreamTupleSender();
         LOGGER.info( "{}: downstream tuple sender is stopped", id );
@@ -398,11 +432,10 @@ public class PipelineInstanceRunner implements Runnable
 
         LOGGER.info( "{}: all downstream tuples are sent", id );
 
-        final boolean notifyCoordinator = status == RUNNING;
-        if ( notifyCoordinator )
+        if ( status == RUNNING )
         {
-            LOGGER.info( "{}: notifying coordinator", id );
-            coordinator.notifyPipelineCompletedRunning( id );
+            LOGGER.info( "{}: notifying supervisor", id );
+            supervisor.notifyPipelineCompletedRunning( id );
         }
 
         synchronized ( monitor )
@@ -419,7 +452,7 @@ public class PipelineInstanceRunner implements Runnable
                 }
                 else
                 {
-                    LOGGER.info( "{}: completing command with type: {}", id, STOP );
+                    LOGGER.info( "{}: completing command with type: {}", id, UPDATE_PIPELINE_UPSTREAM_CONTEXT );
                     command.complete();
                 }
                 this.command = null;

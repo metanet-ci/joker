@@ -45,9 +45,38 @@ public interface InvocationContext
         return getReason().isSuccessful();
     }
 
+    /**
+     * Indicates that the invocation is done due to a special action in the system. Possible reasons are such that
+     * shutdown request may be received by the system or an upstream operator may be completed its run.
+     *
+     * @return true if the invocation is done due to a special action in the system.
+     */
     default boolean isErroneousInvocation ()
     {
         return getReason().isFailure();
+    }
+
+    /**
+     * Returns true if the input port specified with the port index is connected to an upstream operator
+     *
+     * @param portIndex
+     *         to check the input port
+     *
+     * @return true if the input port specified with the port index is connected to an upstream operator
+     */
+    boolean isInputPortOpen ( int portIndex );
+
+    /**
+     * Returns true if the input port specified with the port index is not connected to an upstream operator
+     *
+     * @param portIndex
+     *         to check the input port
+     *
+     * @return true if the input port specified with the port index is not connected to an upstream operator
+     */
+    default boolean isInputPortClosed ( int portIndex )
+    {
+        return !isInputPortClosed( portIndex );
     }
 
     /**
@@ -106,6 +135,15 @@ public interface InvocationContext
         INPUT_PORT_CLOSED
                 {
                     public boolean isSuccessful ()
+                    {
+                        return false;
+                    }
+                },
+
+        OPERATOR_REQUESTED_SHUTDOWN
+                {
+                    @Override
+                    boolean isSuccessful ()
                     {
                         return false;
                     }

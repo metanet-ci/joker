@@ -10,4 +10,11 @@ public final class ScheduleNever implements SchedulingStrategy
     {
 
     }
+
+    @Override
+    public String toString ()
+    {
+        return "ScheduleNever{}";
+    }
+
 }

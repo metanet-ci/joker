@@ -14,7 +14,6 @@ import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.impl.InitializationContextImpl;
 import cs.bilkent.zanza.operator.impl.InvocationContextImpl;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
-import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import static cs.bilkent.zanza.operators.MapperOperator.MAPPER_CONFIG_PARAMETER;
@@ -149,17 +148,6 @@ public class MapperOperatorTest
             assertThat( outputTuple.getInteger( "count" ), equalTo( 2 * inputTuple.getInteger( "count" ) ) );
             assertThat( outputTuple.getSequenceNumber(), equalTo( inputTuple.getSequenceNumber() ) );
         }
-    }
-
-    @Test
-    public void shouldReturnScheduleNeverSchedulingStrategyForErroneousInvocation ()
-    {
-        initializeOperatorWithMultipleBy2Mapper();
-        invocationContext.setReason( SHUTDOWN );
-
-        operator.invoke( invocationContext );
-
-        assertThat( invocationContext.getSchedulingStrategy(), equalTo( ScheduleNever.INSTANCE ) );
     }
 
     private void initializeOperatorWithMultipleBy2Mapper ()

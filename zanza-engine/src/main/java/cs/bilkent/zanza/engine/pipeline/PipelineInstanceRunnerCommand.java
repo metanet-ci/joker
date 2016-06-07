@@ -11,7 +11,7 @@ class PipelineInstanceRunnerCommand
     {
         PAUSE,
         RESUME,
-        STOP
+        UPDATE_PIPELINE_UPSTREAM_CONTEXT
     }
 
     public static PipelineInstanceRunnerCommand pause ()
@@ -24,13 +24,13 @@ class PipelineInstanceRunnerCommand
         return new PipelineInstanceRunnerCommand( PipelineInstanceRunnerCommandType.RESUME );
     }
 
-    public static PipelineInstanceRunnerCommand stop ()
+    public static PipelineInstanceRunnerCommand updatePipelineUpstreamContext ()
     {
-        return new PipelineInstanceRunnerCommand( PipelineInstanceRunnerCommandType.STOP );
+        return new PipelineInstanceRunnerCommand( PipelineInstanceRunnerCommandType.UPDATE_PIPELINE_UPSTREAM_CONTEXT );
     }
 
 
-    private PipelineInstanceRunnerCommandType type;
+    private final PipelineInstanceRunnerCommandType type;
 
     private final CompletableFuture<Void> future = new CompletableFuture<>();
 
@@ -44,15 +44,14 @@ class PipelineInstanceRunnerCommand
         return type;
     }
 
+    public boolean hasType ( final PipelineInstanceRunnerCommandType type )
+    {
+        return this.type == type;
+    }
+
     public CompletableFuture<Void> getFuture ()
     {
         return future;
-    }
-
-    public void setType ( final PipelineInstanceRunnerCommandType type )
-    {
-        checkNotNull( type );
-        this.type = type;
     }
 
     public void complete ()

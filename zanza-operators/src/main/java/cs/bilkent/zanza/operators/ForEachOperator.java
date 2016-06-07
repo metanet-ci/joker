@@ -8,12 +8,11 @@ import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.Tuples;
-import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
-import cs.bilkent.zanza.operator.spec.OperatorType;
+import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
 
 
 /**
@@ -21,7 +20,7 @@ import cs.bilkent.zanza.operator.spec.OperatorType;
  * Forwards all input tuples to default output port directly.
  * {@link Consumer} function is assumed not to mutate input tuples.
  */
-@OperatorSpec( type = OperatorType.STATELESS, inputPortCount = 1, outputPortCount = 1 )
+@OperatorSpec( type = STATELESS, inputPortCount = 1, outputPortCount = 1 )
 public class ForEachOperator implements Operator
 {
 
@@ -56,11 +55,6 @@ public class ForEachOperator implements Operator
             consumerFunc.accept( tuple );
             output.add( tuple );
         } );
-
-        if ( invocationContext.isErroneousInvocation() )
-        {
-            invocationContext.setNextSchedulingStrategy( ScheduleNever.INSTANCE );
-        }
     }
 
 }

@@ -9,4 +9,11 @@ public final class ScheduleWhenAvailable implements SchedulingStrategy
     {
 
     }
+
+    @Override
+    public String toString ()
+    {
+        return "ScheduleWhenAvailable{}";
+    }
+
 }

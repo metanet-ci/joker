@@ -16,13 +16,13 @@ import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.T
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAll;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
-import cs.bilkent.zanza.operator.spec.OperatorType;
+import static cs.bilkent.zanza.operator.spec.OperatorType.STATEFUL;
 
 
 /**
  * Produces an single output tuple with the given merge function using a single tuple from each one of the input ports.
  */
-@OperatorSpec( type = OperatorType.STATELESS, outputPortCount = 1 )
+@OperatorSpec( type = STATEFUL, outputPortCount = 1 )
 public class BarrierOperator implements Operator
 {
 

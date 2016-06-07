@@ -141,6 +141,24 @@ public interface Tuples
         return count;
     }
 
+    default boolean isEmpty ()
+    {
+        for ( int i = 0, j = getPortCount(); i < j; i++ )
+        {
+            if ( getTupleCount( i ) > 0 )
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    default boolean isNonEmpty ()
+    {
+        return !isEmpty();
+    }
+
     void clear ();
 
 }

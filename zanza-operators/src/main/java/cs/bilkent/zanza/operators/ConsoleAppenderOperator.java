@@ -8,17 +8,16 @@ import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.Tuples;
-import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
-import cs.bilkent.zanza.operator.spec.OperatorType;
+import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
 
 
 /**
  * Prints all input tuples to {@link System#out} and forwards them to the default output port
  */
-@OperatorSpec( type = OperatorType.STATELESS, inputPortCount = 1, outputPortCount = 1 )
+@OperatorSpec( type = STATELESS, inputPortCount = 1, outputPortCount = 1 )
 public class ConsoleAppenderOperator implements Operator
 {
 
@@ -59,11 +58,6 @@ public class ConsoleAppenderOperator implements Operator
         {
             System.out.println( toStringFunction.apply( tuple ) );
             output.add( tuple );
-        }
-
-        if ( invocationContext.isErroneousInvocation() )
-        {
-            invocationContext.setNextSchedulingStrategy( ScheduleNever.INSTANCE );
         }
     }
 

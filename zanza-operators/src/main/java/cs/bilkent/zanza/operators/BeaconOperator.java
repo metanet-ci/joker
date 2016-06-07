@@ -10,17 +10,16 @@ import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.Tuples;
-import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
-import cs.bilkent.zanza.operator.spec.OperatorType;
+import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
 
 
 /**
  * Produces output tuples on each invocation using the provided tuple generator function
  */
-@OperatorSpec( type = OperatorType.STATELESS, inputPortCount = 0, outputPortCount = 1 )
+@OperatorSpec( type = STATELESS, inputPortCount = 0, outputPortCount = 1 )
 public class BeaconOperator implements Operator
 {
 
@@ -52,10 +51,5 @@ public class BeaconOperator implements Operator
         final Tuples output = invocationContext.getOutput();
 
         IntStream.range( 0, tupleCount ).mapToObj( ( c ) -> tupleGeneratorFunc.apply( random ) ).forEach( output::add );
-
-        if ( invocationContext.isErroneousInvocation() )
-        {
-            invocationContext.setNextSchedulingStrategy( ScheduleNever.INSTANCE );
-        }
     }
 }
