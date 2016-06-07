@@ -7,13 +7,12 @@ import java.util.concurrent.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
-import cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerCommand.PipelineInstanceRunnerCommandType;
-import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerCommand.PipelineInstanceRunnerCommandType.PAUSE;
-import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerCommand.PipelineInstanceRunnerCommandType.RESUME;
-import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerCommand.PipelineInstanceRunnerCommandType
-                      .UPDATE_PIPELINE_UPSTREAM_CONTEXT;
+import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunner.PipelineInstanceRunnerCommandType.PAUSE;
+import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunner.PipelineInstanceRunnerCommandType.RESUME;
+import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunner.PipelineInstanceRunnerCommandType.UPDATE_PIPELINE_UPSTREAM_CONTEXT;
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.COMPLETED;
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.INITIAL;
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.PAUSED;
@@ -471,4 +470,68 @@ public class PipelineInstanceRunner implements Runnable
 
     }
 
+
+    enum PipelineInstanceRunnerCommandType
+    {
+        PAUSE,
+        RESUME,
+        UPDATE_PIPELINE_UPSTREAM_CONTEXT
+    }
+
+
+    private static class PipelineInstanceRunnerCommand
+    {
+
+        public static PipelineInstanceRunnerCommand pause ()
+        {
+            return new PipelineInstanceRunnerCommand( PAUSE );
+        }
+
+        public static PipelineInstanceRunnerCommand resume ()
+        {
+            return new PipelineInstanceRunnerCommand( RESUME );
+        }
+
+        public static PipelineInstanceRunnerCommand updatePipelineUpstreamContext ()
+        {
+            return new PipelineInstanceRunnerCommand( UPDATE_PIPELINE_UPSTREAM_CONTEXT );
+        }
+
+
+        private final PipelineInstanceRunnerCommandType type;
+
+        private final CompletableFuture<Void> future = new CompletableFuture<>();
+
+        private PipelineInstanceRunnerCommand ( final PipelineInstanceRunnerCommandType type )
+        {
+            this.type = type;
+        }
+
+        public PipelineInstanceRunnerCommandType getType ()
+        {
+            return type;
+        }
+
+        public boolean hasType ( final PipelineInstanceRunnerCommandType type )
+        {
+            return this.type == type;
+        }
+
+        public CompletableFuture<Void> getFuture ()
+        {
+            return future;
+        }
+
+        public void complete ()
+        {
+            future.complete( null );
+        }
+
+        public void completeExceptionally ( final Throwable throwable )
+        {
+            checkNotNull( throwable );
+            future.completeExceptionally( throwable );
+        }
+
+    }
 }
