@@ -46,8 +46,6 @@ public class TupleCountBasedWindowReducerOperator implements Operator
 
     private BiFunction<Tuple, Tuple, Tuple> reducerFunc;
 
-    // TODO finalizer function that can be applied after all reduces are done for a window ???
-
     private int tupleCount;
 
     private Tuple initialValue;

@@ -3,9 +3,6 @@ package cs.bilkent.zanza.engine.util.concurrent;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
-// TODO CHECK java.util.concurrent.locks.StampedLock
-
-
 /**
  * A NON RE-ENTRANT spin lock implementation for read-write scenarios.
  * Both read lock and write lock attempts apply back off if they fail to acquire the lock repeatedly.

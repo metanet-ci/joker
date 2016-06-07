@@ -36,7 +36,6 @@ public class MultiThreadedTupleQueue implements TupleQueue
     @GuardedBy( "monitor" )
     private final Queue<Tuple> queue;
 
-    // TODO volatile keyword is removed. check this
     private int capacity;
 
     private boolean capacityCheckEnabled;
