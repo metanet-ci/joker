@@ -117,7 +117,7 @@ public class VWAPAggregatorOperator implements Operator
 
         if ( invocationContext.isErroneousInvocation() )
         {
-            invocationContext.setNextSchedulingStrategy( ScheduleNever.INSTANCE );
+            invocationContext.setNewSchedulingStrategy( ScheduleNever.INSTANCE );
         }
     }
 

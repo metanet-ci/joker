@@ -319,10 +319,10 @@ public class OperatorInstance
         operator.invoke( invocationContext );
         drainer.reset();
 
-        final SchedulingStrategy newSchedulingStrategy = invocationContext.getSchedulingStrategy();
+        final SchedulingStrategy newSchedulingStrategy = invocationContext.getNewSchedulingStrategy();
         if ( newSchedulingStrategy != null )
         {
-            invocationContext.setNextSchedulingStrategy( null );
+            invocationContext.setNewSchedulingStrategy( null );
             if ( handleNewSchedulingStrategy )
             {
                 handleNewSchedulingStrategy( newSchedulingStrategy );

@@ -97,7 +97,7 @@ public interface InvocationContext
      * @param schedulingStrategy
      *         a new {@link SchedulingStrategy} that will be used for next invocation of the operator
      */
-    void setNextSchedulingStrategy ( SchedulingStrategy schedulingStrategy );
+    void setNewSchedulingStrategy ( SchedulingStrategy schedulingStrategy );
 
     /**
      * Indicates the reason for a particular invocation of {@link Operator#invoke(InvocationContext)} method.

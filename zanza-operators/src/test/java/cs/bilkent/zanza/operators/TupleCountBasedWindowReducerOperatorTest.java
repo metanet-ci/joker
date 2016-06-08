@@ -85,7 +85,7 @@ public class TupleCountBasedWindowReducerOperatorTest
 
         operator.invoke( invocationContext );
 
-        assertNull( invocationContext.getSchedulingStrategy() );
+        assertNull( invocationContext.getNewSchedulingStrategy() );
         assertThat( output.getTuplesByDefaultPort(), hasSize( 0 ) );
 
         assertWindow( 0, 1 );
@@ -103,7 +103,7 @@ public class TupleCountBasedWindowReducerOperatorTest
 
         operator.invoke( invocationContext );
 
-        assertNull( invocationContext.getSchedulingStrategy() );
+        assertNull( invocationContext.getNewSchedulingStrategy() );
         assertThat( output.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 0 ) );
 
         assertWindow( 0, 1 );
@@ -121,7 +121,7 @@ public class TupleCountBasedWindowReducerOperatorTest
 
         operator.invoke( invocationContext );
 
-        assertNull( invocationContext.getSchedulingStrategy() );
+        assertNull( invocationContext.getNewSchedulingStrategy() );
         assertThat( output.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
 
         final Tuple tuple = output.getTupleOrFail( DEFAULT_PORT_INDEX, 0 );
@@ -142,7 +142,7 @@ public class TupleCountBasedWindowReducerOperatorTest
 
         operator.invoke( invocationContext );
 
-        assertNull( invocationContext.getSchedulingStrategy() );
+        assertNull( invocationContext.getNewSchedulingStrategy() );
         assertThat( output.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
 
         assertOutput( output.getTupleOrFail( DEFAULT_PORT_INDEX, 0 ), TUPLE_PARTITION_KEY, 0, 3 );
@@ -162,7 +162,7 @@ public class TupleCountBasedWindowReducerOperatorTest
 
         operator.invoke( invocationContext );
 
-        assertNull( invocationContext.getSchedulingStrategy() );
+        assertNull( invocationContext.getNewSchedulingStrategy() );
         assertThat( output.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
 
         assertOutput( output.getTupleOrFail( DEFAULT_PORT_INDEX, 0 ), TUPLE_PARTITION_KEY, 0, 6 );
@@ -183,7 +183,7 @@ public class TupleCountBasedWindowReducerOperatorTest
 
         operator.invoke( invocationContext );
 
-        assertNull( invocationContext.getSchedulingStrategy() );
+        assertNull( invocationContext.getNewSchedulingStrategy() );
         assertThat( output.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
 
         assertOutput( output.getTupleOrFail( DEFAULT_PORT_INDEX, 0 ), TUPLE_PARTITION_KEY, 0, 7 );

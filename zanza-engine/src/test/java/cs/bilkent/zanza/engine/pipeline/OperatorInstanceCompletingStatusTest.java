@@ -105,7 +105,7 @@ public class OperatorInstanceCompletingStatusTest extends AbstractOperatorInstan
         final TuplesImpl expectedOutput = TuplesImpl.newInstanceWithSinglePort( new Tuple( "f1", "val3" ) );
         when( outputSupplier.get() ).thenReturn( expectedOutput );
 
-        invocationContext.setNextSchedulingStrategy( newSchedulingStrategy );
+        invocationContext.setNewSchedulingStrategy( newSchedulingStrategy );
 
         final TuplesImpl upstreamInput = TuplesImpl.newInstanceWithSinglePort( new Tuple( "f1", "val1" ) );
         final TuplesImpl output = operatorInstance.invoke( upstreamInput, upstreamContext );

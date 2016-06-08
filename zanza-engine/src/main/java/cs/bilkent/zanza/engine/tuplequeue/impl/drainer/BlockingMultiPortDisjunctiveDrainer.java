@@ -32,6 +32,10 @@ public class BlockingMultiPortDisjunctiveDrainer extends MultiPortDrainer
                     tupleCountsBuffer[ portIndex ] = tupleCount;
                     notFound = false;
                 }
+                else
+                {
+                    tupleCountsBuffer[ portIndex ] = NO_TUPLES_AVAILABLE;
+                }
             }
             else if ( tupleQueue.size() >= tupleCount )
             {

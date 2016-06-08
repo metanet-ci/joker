@@ -78,7 +78,7 @@ public interface Operator
      * <p>
      * The {@link SchedulingStrategy} object provided via {@link Operator#init(InitializationContext)} is used for further invocations.
      * If scheduling strategy needs to be changed during execution of the operator, new scheduling strategy can be set via
-     * {@link InvocationContext#setNextSchedulingStrategy(SchedulingStrategy)} method.
+     * {@link InvocationContext#setNewSchedulingStrategy(SchedulingStrategy)} method.
      * <p>
      * If type of the operator is {@link OperatorType#PARTITIONED_STATEFUL}, then all invocations are guaranteed to be done with
      * {@link Tuple} objects that have the same partition key.

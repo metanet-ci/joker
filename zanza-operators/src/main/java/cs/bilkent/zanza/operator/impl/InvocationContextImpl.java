@@ -16,7 +16,7 @@ public class InvocationContextImpl implements InvocationContext
 
     private KVStore kvStore;
 
-    private SchedulingStrategy schedulingStrategy;
+    private SchedulingStrategy newSchedulingStrategy;
 
     private boolean[] upstreamConnectionStatuses;
 
@@ -60,9 +60,9 @@ public class InvocationContextImpl implements InvocationContext
         this.upstreamConnectionStatuses = upstreamConnectionStatuses;
     }
 
-    public SchedulingStrategy getSchedulingStrategy ()
+    public SchedulingStrategy getNewSchedulingStrategy ()
     {
-        return schedulingStrategy;
+        return newSchedulingStrategy;
     }
 
     @Override
@@ -102,9 +102,9 @@ public class InvocationContextImpl implements InvocationContext
     }
 
     @Override
-    public void setNextSchedulingStrategy ( final SchedulingStrategy schedulingStrategy )
+    public void setNewSchedulingStrategy ( final SchedulingStrategy schedulingStrategy )
     {
-        this.schedulingStrategy = schedulingStrategy;
+        this.newSchedulingStrategy = schedulingStrategy;
     }
 
 }

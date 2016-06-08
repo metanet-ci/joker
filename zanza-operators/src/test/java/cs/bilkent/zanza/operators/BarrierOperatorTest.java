@@ -77,7 +77,7 @@ public class BarrierOperatorTest
         invocationContext.setReason( SHUTDOWN );
 
         operator.invoke( invocationContext );
-        assertTrue( invocationContext.getSchedulingStrategy() instanceof ScheduleNever );
+        assertTrue( invocationContext.getNewSchedulingStrategy() instanceof ScheduleNever );
         assertThat( invocationContext.getOutput().getNonEmptyPortCount(), equalTo( 0 ) );
     }
 
@@ -90,7 +90,7 @@ public class BarrierOperatorTest
         populateTuplesWithUniqueFields( input );
 
         operator.invoke( invocationContext );
-        assertNull( invocationContext.getSchedulingStrategy() );
+        assertNull( invocationContext.getNewSchedulingStrategy() );
         final Tuple outputTuple = output.getTupleOrFail( 0, 0 );
         final int matchingFieldCount = getMatchingFieldCount( outputTuple );
 
@@ -150,7 +150,7 @@ public class BarrierOperatorTest
         populateTuplesWithUniqueFields( input );
 
         operator.invoke( invocationContext );
-        assertNull( invocationContext.getSchedulingStrategy() );
+        assertNull( invocationContext.getNewSchedulingStrategy() );
 
         final List<Tuple> outputTuples = output.getTuplesByDefaultPort();
         assertThat( outputTuples, hasSize( 2 ) );

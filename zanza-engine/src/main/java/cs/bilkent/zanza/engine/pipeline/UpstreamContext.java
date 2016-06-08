@@ -70,6 +70,13 @@ public class UpstreamContext
         return count;
     }
 
+    public UpstreamContext withUpstreamConnectionStatus ( final int portIndex, final UpstreamConnectionStatus newStatus )
+    {
+        final UpstreamConnectionStatus[] statuses = Arrays.copyOf( this.statuses, this.statuses.length );
+        statuses[ portIndex ] = newStatus;
+        return new UpstreamContext( this.version + 1, statuses );
+    }
+
     @Override
     public boolean equals ( final Object o )
     {
@@ -108,4 +115,5 @@ public class UpstreamContext
                ", statuses=" + Arrays.toString( statuses ) +
                '}';
     }
+
 }

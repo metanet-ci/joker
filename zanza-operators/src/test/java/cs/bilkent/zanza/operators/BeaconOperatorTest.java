@@ -42,7 +42,7 @@ public class BeaconOperatorTest
 
         operator.invoke( invocationContext );
 
-        assertNull( invocationContext.getSchedulingStrategy() );
+        assertNull( invocationContext.getNewSchedulingStrategy() );
         assertThat( output.getNonEmptyPortCount(), equalTo( 1 ) );
 
         final List<Tuple> tuples = output.getTuplesByDefaultPort();

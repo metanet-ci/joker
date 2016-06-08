@@ -87,7 +87,7 @@ public class ExponentialMovingAverageAggregationOperator implements Operator
 
         if ( invocationContext.isErroneousInvocation() )
         {
-            invocationContext.setNextSchedulingStrategy( ScheduleNever.INSTANCE );
+            invocationContext.setNewSchedulingStrategy( ScheduleNever.INSTANCE );
         }
     }
 

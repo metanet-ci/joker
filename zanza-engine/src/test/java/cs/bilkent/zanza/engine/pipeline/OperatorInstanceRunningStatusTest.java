@@ -61,7 +61,7 @@ public class OperatorInstanceRunningStatusTest extends AbstractOperatorInstanceI
         final TuplesImpl expectedOutput = TuplesImpl.newInstanceWithSinglePort( new Tuple( "f1", "val3" ) );
         when( outputSupplier.get() ).thenReturn( expectedOutput );
 
-        invocationContext.setNextSchedulingStrategy( invalidNewSchedulingStrategy );
+        invocationContext.setNewSchedulingStrategy( invalidNewSchedulingStrategy );
 
         final TuplesImpl upstreamInput = TuplesImpl.newInstanceWithSinglePort( new Tuple( "f1", "val1" ) );
         final TuplesImpl output = operatorInstance.invoke( upstreamInput, upstreamContext );
@@ -122,7 +122,7 @@ public class OperatorInstanceRunningStatusTest extends AbstractOperatorInstanceI
         final TuplesImpl expectedOutput = TuplesImpl.newInstanceWithSinglePort( new Tuple( "f1", "val3" ) );
         when( outputSupplier.get() ).thenReturn( expectedOutput );
 
-        invocationContext.setNextSchedulingStrategy( invalidOutputStrategy );
+        invocationContext.setNewSchedulingStrategy( invalidOutputStrategy );
 
         final TuplesImpl upstreamInput = TuplesImpl.newInstanceWithSinglePort( new Tuple( "f1", "val1" ) );
         final TuplesImpl output = operatorInstance.invoke( upstreamInput, initializationUpstreamContext );
@@ -157,7 +157,7 @@ public class OperatorInstanceRunningStatusTest extends AbstractOperatorInstanceI
         final TuplesImpl expectedOutput = TuplesImpl.newInstanceWithSinglePort( new Tuple( "f1", "val3" ) );
         when( outputSupplier.get() ).thenReturn( expectedOutput );
 
-        invocationContext.setNextSchedulingStrategy( expectedOutputStrategy );
+        invocationContext.setNewSchedulingStrategy( expectedOutputStrategy );
 
         final TuplesImpl upstreamInput = TuplesImpl.newInstanceWithSinglePort( new Tuple( "f1", "val1" ) );
         final TuplesImpl output = operatorInstance.invoke( upstreamInput, upstreamContext );
@@ -195,7 +195,7 @@ public class OperatorInstanceRunningStatusTest extends AbstractOperatorInstanceI
         final TuplesImpl expectedOutput = TuplesImpl.newInstanceWithSinglePort( new Tuple( "f1", "val3" ) );
         when( outputSupplier.get() ).thenReturn( expectedOutput );
 
-        invocationContext.setNextSchedulingStrategy( expectedOutputStrategy );
+        invocationContext.setNewSchedulingStrategy( expectedOutputStrategy );
 
         final TuplesImpl upstreamInput = TuplesImpl.newInstanceWithSinglePort( new Tuple( "f1", "val1" ) );
         final TuplesImpl output = operatorInstance.invoke( upstreamInput, newUpstreamContext );
@@ -325,7 +325,7 @@ public class OperatorInstanceRunningStatusTest extends AbstractOperatorInstanceI
         final TuplesImpl expectedOutput = TuplesImpl.newInstanceWithSinglePort( new Tuple( "f1", "val3" ) );
         when( outputSupplier.get() ).thenReturn( expectedOutput );
 
-        invocationContext.setNextSchedulingStrategy( initializationStrategy );
+        invocationContext.setNewSchedulingStrategy( initializationStrategy );
 
         final TuplesImpl upstreamInput = TuplesImpl.newInstanceWithSinglePort( new Tuple( "f1", "val1" ) );
         final TuplesImpl output = operatorInstance.invoke( upstreamInput, newUpstreamContext );
@@ -382,7 +382,7 @@ public class OperatorInstanceRunningStatusTest extends AbstractOperatorInstanceI
         final TuplesImpl expectedOutput = TuplesImpl.newInstanceWithSinglePort( new Tuple( "f1", "val3" ) );
         when( outputSupplier.get() ).thenReturn( expectedOutput );
 
-        invocationContext.setNextSchedulingStrategy( expectedOutputStrategy );
+        invocationContext.setNewSchedulingStrategy( expectedOutputStrategy );
 
         final TuplesImpl upstreamInput = TuplesImpl.newInstanceWithSinglePort( new Tuple( "f1", "val1" ) );
         final TuplesImpl output = operatorInstance.invoke( upstreamInput, newUpstreamContext );
@@ -417,7 +417,7 @@ public class OperatorInstanceRunningStatusTest extends AbstractOperatorInstanceI
         final TuplesImpl expectedOutput = TuplesImpl.newInstanceWithSinglePort( new Tuple( "f1", "val3" ) );
         when( outputSupplier.get() ).thenReturn( expectedOutput );
 
-        invocationContext.setNextSchedulingStrategy( initializationStrategy );
+        invocationContext.setNewSchedulingStrategy( initializationStrategy );
 
         final TuplesImpl upstreamInput = TuplesImpl.newInstanceWithSinglePort( new Tuple( "f1", "val1" ) );
         final TuplesImpl output = operatorInstance.invoke( upstreamInput, newUpstreamContext );

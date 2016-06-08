@@ -161,7 +161,7 @@ public class PartitionedTupleQueueContext extends AbstractTupleQueueContext
     @Override
     public void drain ( TupleQueueDrainer drainer )
     {
-        // TODO RANDOMIZATION IS NEEDED HERE !!!
+        // TODO RANDOMIZATION AND PRUNING IS NEEDED HERE !!!
         for ( Map.Entry<Object, TupleQueue[]> entry : tupleQueuesByPartitionKeys.entrySet() )
         {
             drainer.drain( entry.getKey(), entry.getValue() );
