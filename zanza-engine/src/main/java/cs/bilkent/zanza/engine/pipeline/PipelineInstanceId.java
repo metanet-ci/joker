@@ -3,22 +3,22 @@ package cs.bilkent.zanza.engine.pipeline;
 public class PipelineInstanceId
 {
 
-    private final int pipelineId;
-
     private final int regionId;
 
-    private final int replicaId;
+    private final int replicaIndex;
+
+    private final int pipelineId;
 
     private final String str;
 
     private final int hashCode;
 
-    public PipelineInstanceId ( final int regionId, final int pipelineId, final int replicaId )
+    public PipelineInstanceId ( final int regionId, final int replicaIndex, final int pipelineId )
     {
-        this.pipelineId = pipelineId;
-        this.replicaId = replicaId;
         this.regionId = regionId;
-        this.str = "PP[" + regionId + "_" + pipelineId + "_" + replicaId + "]";
+        this.replicaIndex = replicaIndex;
+        this.pipelineId = pipelineId;
+        this.str = "PP[" + regionId + "_" + replicaIndex + "_" + pipelineId + "]";
         ;
         this.hashCode = str.hashCode();
     }
@@ -28,14 +28,14 @@ public class PipelineInstanceId
         return regionId;
     }
 
+    public int getReplicaIndex ()
+    {
+        return replicaIndex;
+    }
+
     public int pipelineId ()
     {
         return pipelineId;
-    }
-
-    public int replicaId ()
-    {
-        return replicaId;
     }
 
     @Override

@@ -20,6 +20,7 @@ import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.RUNN
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import cs.bilkent.zanza.engine.supervisor.Supervisor;
+import cs.bilkent.zanza.flow.OperatorDefinition;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -30,7 +31,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -38,11 +38,19 @@ import static org.mockito.Mockito.when;
 public class PipelineInstanceRunnerTest
 {
 
+    private String operatorId = "op1";
+
+    @Mock
+    private OperatorDefinition operatorDefinition;
+
     @Mock
     private OperatorInstance operator;
 
     @Mock
     private Supervisor supervisor;
+
+    @Mock
+    private SupervisorNotifier supervisorNotifier;
 
     @Mock
     private DownstreamTupleSender downstreamTupleSender;
@@ -62,12 +70,14 @@ public class PipelineInstanceRunnerTest
         runner.setSupervisor( supervisor );
         runner.setDownstreamTupleSender( downstreamTupleSender );
 
+        when( operator.getOperatorDefinition() ).thenReturn( operatorDefinition );
+        when( operatorDefinition.id() ).thenReturn( operatorId );
+
         when( supervisor.getUpstreamContext( id ) ).thenReturn( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ) );
-        runner.init( new ZanzaConfig() );
+        runner.init( new ZanzaConfig(), supervisorNotifier );
 
         thread = new Thread( runner );
 
-        when( pipeline.isProducingDownstreamTuples() ).thenReturn( true );
         when( operator.isInvokable() ).thenReturn( true );
     }
 
@@ -92,8 +102,8 @@ public class PipelineInstanceRunnerTest
 
     private CompletableFuture<Void> updatePipelineUpstreamContextForCompletion ()
     {
+        when( supervisorNotifier.isPipelineCompleted() ).thenReturn( true );
         final CompletableFuture<Void> future = runner.updatePipelineUpstreamContext();
-        reset( operator );
         return future;
     }
 
@@ -187,7 +197,7 @@ public class PipelineInstanceRunnerTest
         invocationDoneLatch.countDown();
         future.get();
         assertTrueEventually( () -> assertEquals( runner.getStatus(), COMPLETED ) );
-        verify( downstreamTupleSender ).send( pipeline.id(), output );
+        verify( downstreamTupleSender ).send( output );
     }
 
     @Test
@@ -203,7 +213,7 @@ public class PipelineInstanceRunnerTest
         when( supervisor.getUpstreamContext( pipeline.id() ) ).thenReturn( upstreamContext );
 
         updatePipelineUpstreamContextForCompletion().get();
-        assertThat( pipeline.getPipelineUpstreamContext(), equalTo( upstreamContext ) );
+        assertThat( runner.getPipelineUpstreamContext(), equalTo( upstreamContext ) );
     }
 
     @Test
@@ -239,17 +249,15 @@ public class PipelineInstanceRunnerTest
         startRunner();
 
         sleepUninterruptibly( 1, SECONDS );
-        reset( operator );
+        when( supervisorNotifier.isPipelineCompleted() ).thenReturn( true );
 
         assertTrueEventually( () -> assertEquals( runner.getStatus(), COMPLETED ), 10 );
-        verify( downstreamTupleSender, atLeastOnce() ).send( pipeline.id(), output1 );
-        verify( downstreamTupleSender, atLeastOnce() ).send( pipeline.id(), output2 );
+        verify( downstreamTupleSender, atLeastOnce() ).send( output1 );
+        verify( downstreamTupleSender, atLeastOnce() ).send( output2 );
     }
 
     private void startRunner ()
     {
-        when( pipeline.isInvokableOperatorPresent() ).thenReturn( true );
-
         thread.start();
 
         assertTrueEventually( () -> {

@@ -84,6 +84,8 @@ public class OperatorInstance
 
     private TupleQueueDrainer drainer;
 
+    private OperatorInstanceLifecycleListener lifecycleListener;
+
     public OperatorInstance ( final PipelineInstanceId pipelineInstanceId,
                               final OperatorDefinition operatorDefinition,
                               final TupleQueueContext queue,
@@ -117,25 +119,44 @@ public class OperatorInstance
      * it moves the status to {@link OperatorInstanceStatus#INITIALIZATION_FAILED} and propagates the exception to the caller after
      * wrapping it with {@link InitializationException}.
      */
-    public void init ( final ZanzaConfig config, final UpstreamContext upstreamContext )
+    public void init ( final ZanzaConfig config,
+                       final UpstreamContext upstreamContext,
+                       final OperatorInstanceLifecycleListener lifecycleListener )
     {
         checkState( status == INITIAL );
         try
         {
+            this.lifecycleListener = lifecycleListener != null ? lifecycleListener : ( operatorName, status1 ) -> {
+            };
+
             drainerPool.init( config );
             operator = operatorDefinition.createOperator();
             checkState( operator != null, "operator implementation can not be null" );
             setUpstreamContext( upstreamContext );
             initializeOperator( upstreamContext );
             setSelfUpstreamContext( ACTIVE );
-            status = RUNNING;
+
+            setStatus( RUNNING );
             LOGGER.info( "{} initialized. Initial scheduling strategy: {}", operatorName, schedulingStrategy );
         }
         catch ( Exception e )
         {
             setSelfUpstreamContext( CLOSED );
-            status = INITIALIZATION_FAILED;
+            setStatus( INITIALIZATION_FAILED );
             throw new InitializationException( "Operator " + operatorName + " initialization failed!", e );
+        }
+    }
+
+    private void setStatus ( final OperatorInstanceStatus status )
+    {
+        try
+        {
+            this.status = status;
+            lifecycleListener.onChange( operatorDefinition.id(), status );
+        }
+        catch ( Exception e )
+        {
+            LOGGER.error( operatorName + " lifecycle listener failed for status change to " + status, e );
         }
     }
 
@@ -234,7 +255,7 @@ public class OperatorInstance
                                                        : upstreamContext.getVersion() > 0;
                 if ( activeConnectionAbsent )
                 {
-                    status = COMPLETING;
+                    setStatus( COMPLETING );
                     completionReason = operatorDefinition.inputPortCount() > 0 ? INPUT_PORT_CLOSED : SHUTDOWN;
                     reason = completionReason;
                 }
@@ -352,7 +373,7 @@ public class OperatorInstance
         {
             LOGGER.info( "Moving to {} status since {} requested to shutdown", COMPLETING, operatorName );
             completionReason = OPERATOR_REQUESTED_SHUTDOWN;
-            status = COMPLETING;
+            setStatus( COMPLETING );
         }
     }
 
@@ -498,7 +519,7 @@ public class OperatorInstance
             drainer = null;
         }
         schedulingStrategy = ScheduleNever.INSTANCE;
-        status = COMPLETED;
+        setStatus( COMPLETED );
         setSelfUpstreamContext( CLOSED );
     }
 
@@ -534,10 +555,15 @@ public class OperatorInstance
         }
         finally
         {
-            status = SHUT_DOWN;
+            setStatus( SHUT_DOWN );
             operator = null;
             drainer = null;
         }
+    }
+
+    public OperatorDefinition getOperatorDefinition ()
+    {
+        return operatorDefinition;
     }
 
     /**

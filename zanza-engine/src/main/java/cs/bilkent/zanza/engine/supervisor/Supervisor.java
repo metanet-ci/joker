@@ -25,6 +25,14 @@ public interface Supervisor
     void notifyPipelineStoppedSendingDownstreamTuples ( PipelineInstanceId id );
 
     /**
+     * Notifies that pipeline instance has completed running of its first operator but still has running operators.
+     *
+     * @param id
+     *         id of the pipeline instance
+     */
+    void notifyPipelineStoppedReceivingUpstreamTuples ( PipelineInstanceId id );
+
+    /**
      * Notifies that pipeline instance has completed running all of its operators.
      *
      * @param id

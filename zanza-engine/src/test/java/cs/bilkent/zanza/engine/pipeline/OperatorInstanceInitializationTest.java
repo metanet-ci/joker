@@ -78,7 +78,7 @@ public class OperatorInstanceInitializationTest
     {
         when( operator.init( any( InitializationContext.class ) ) ).thenReturn( ScheduleWhenAvailable.INSTANCE );
 
-        operatorInstance.init( new ZanzaConfig(), validUpstreamContext );
+        operatorInstance.init( new ZanzaConfig(), validUpstreamContext, null );
 
         assertThat( operatorInstance.getStatus(), equalTo( RUNNING ) );
         assertThat( operatorInstance.getSchedulingStrategy(), equalTo( ScheduleWhenAvailable.INSTANCE ) );
@@ -99,7 +99,7 @@ public class OperatorInstanceInitializationTest
 
         try
         {
-            operatorInstance.init( new ZanzaConfig(), validUpstreamContext );
+            operatorInstance.init( new ZanzaConfig(), validUpstreamContext, null );
             fail();
         }
         catch ( InitializationException expected )
@@ -117,7 +117,7 @@ public class OperatorInstanceInitializationTest
 
         try
         {
-            operatorInstance.init( new ZanzaConfig(), validUpstreamContext );
+            operatorInstance.init( new ZanzaConfig(), validUpstreamContext, null );
             fail();
         }
         catch ( InitializationException expected )
@@ -135,7 +135,7 @@ public class OperatorInstanceInitializationTest
 
         try
         {
-            operatorInstance.init( new ZanzaConfig(), validUpstreamContext );
+            operatorInstance.init( new ZanzaConfig(), validUpstreamContext, null );
             fail();
         }
         catch ( InitializationException expected )

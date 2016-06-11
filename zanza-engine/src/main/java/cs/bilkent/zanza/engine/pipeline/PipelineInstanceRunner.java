@@ -42,6 +42,8 @@ public class PipelineInstanceRunner implements Runnable
 
     private Supervisor supervisor;
 
+    private SupervisorNotifier supervisorNotifier;
+
     private DownstreamTupleSender downstreamTupleSender;
 
 
@@ -64,9 +66,22 @@ public class PipelineInstanceRunner implements Runnable
 
     public void init ( final ZanzaConfig config )
     {
+        final int operatorCount = pipeline.getOperatorCount();
+        final SupervisorNotifier supervisorNotifier = new SupervisorNotifier( supervisor,
+                                                                              pipeline.id(),
+                                                                              operatorCount,
+                                                                              pipeline.getOperatorDefinition( 0 ).id(),
+                                                                              pipeline.getOperatorDefinition( operatorCount - 1 ).id() );
+
+        init( config, supervisorNotifier );
+    }
+
+    void init ( final ZanzaConfig config, final SupervisorNotifier supervisorNotifier )
+    {
+        this.supervisorNotifier = supervisorNotifier;
         waitTimeoutInMillis = config.getPipelineInstanceRunnerConfig().waitTimeoutInMillis;
         final UpstreamContext upstreamContext = supervisor.getUpstreamContext( id );
-        pipeline.init( config, upstreamContext );
+        pipeline.init( config, upstreamContext, supervisorNotifier );
     }
 
     public void setSupervisor ( final Supervisor supervisor )
@@ -262,6 +277,14 @@ public class PipelineInstanceRunner implements Runnable
         return result;
     }
 
+    public UpstreamContext getPipelineUpstreamContext ()
+    {
+        synchronized ( monitor )
+        {
+            return pipeline.getPipelineUpstreamContext();
+        }
+    }
+
     public void run ()
     {
         checkState( status == INITIAL );
@@ -285,26 +308,17 @@ public class PipelineInstanceRunner implements Runnable
                     continue;
                 }
 
-                final boolean hasBeenProducingDownstreamTuples = pipeline.isProducingDownstreamTuples();
                 final TuplesImpl output = pipeline.invoke();
                 if ( output != null )
                 {
                     awaitDownstreamTuplesFuture();
-                    downstreamTuplesFuture = downstreamTupleSender.send( id, output );
+                    downstreamTuplesFuture = downstreamTupleSender.send( output );
                 }
 
-                if ( pipeline.isInvokableOperatorAbsent() )
+                if ( supervisorNotifier.isPipelineCompleted() )
                 {
                     completeRun();
                     break;
-                }
-                else
-                {
-                    final boolean stoppedProducingDownstreamTuples = !pipeline.isProducingDownstreamTuples();
-                    if ( hasBeenProducingDownstreamTuples && stoppedProducingDownstreamTuples )
-                    {
-                        notifyDownstream();
-                    }
                 }
             }
         }
@@ -412,30 +426,11 @@ public class PipelineInstanceRunner implements Runnable
         }
     }
 
-    private void notifyDownstream () throws InterruptedException
-    {
-        LOGGER.info( "{}: stopping downstream tuple sender", id );
-        awaitDownstreamTuplesFuture();
-
-        LOGGER.info( "{}: notifying supervisor to stop downstream", id );
-        supervisor.notifyPipelineStoppedSendingDownstreamTuples( id );
-
-        downstreamTupleSender = new FailingDownstreamTupleSender();
-        LOGGER.info( "{}: downstream tuple sender is stopped", id );
-    }
-
     private void completeRun () throws InterruptedException
     {
         LOGGER.info( "{}: completing the run", id );
         awaitDownstreamTuplesFuture();
-
         LOGGER.info( "{}: all downstream tuples are sent", id );
-
-        if ( status == RUNNING )
-        {
-            LOGGER.info( "{}: notifying supervisor", id );
-            supervisor.notifyPipelineCompletedRunning( id );
-        }
 
         synchronized ( monitor )
         {
@@ -459,17 +454,6 @@ public class PipelineInstanceRunner implements Runnable
         }
     }
 
-    private static class FailingDownstreamTupleSender implements DownstreamTupleSender
-    {
-
-        @Override
-        public Future<Void> send ( final PipelineInstanceId id, final TuplesImpl tuples )
-        {
-            throw new UnsupportedOperationException( id + " is trying to send output tuples after stopped sending downstream tuples" );
-        }
-
-    }
-
 
     enum PipelineInstanceRunnerCommandType
     {
@@ -482,17 +466,17 @@ public class PipelineInstanceRunner implements Runnable
     private static class PipelineInstanceRunnerCommand
     {
 
-        public static PipelineInstanceRunnerCommand pause ()
+        static PipelineInstanceRunnerCommand pause ()
         {
             return new PipelineInstanceRunnerCommand( PAUSE );
         }
 
-        public static PipelineInstanceRunnerCommand resume ()
+        static PipelineInstanceRunnerCommand resume ()
         {
             return new PipelineInstanceRunnerCommand( RESUME );
         }
 
-        public static PipelineInstanceRunnerCommand updatePipelineUpstreamContext ()
+        static PipelineInstanceRunnerCommand updatePipelineUpstreamContext ()
         {
             return new PipelineInstanceRunnerCommand( UPDATE_PIPELINE_UPSTREAM_CONTEXT );
         }
@@ -507,12 +491,12 @@ public class PipelineInstanceRunner implements Runnable
             this.type = type;
         }
 
-        public PipelineInstanceRunnerCommandType getType ()
+        PipelineInstanceRunnerCommandType getType ()
         {
             return type;
         }
 
-        public boolean hasType ( final PipelineInstanceRunnerCommandType type )
+        boolean hasType ( final PipelineInstanceRunnerCommandType type )
         {
             return this.type == type;
         }
@@ -522,12 +506,12 @@ public class PipelineInstanceRunner implements Runnable
             return future;
         }
 
-        public void complete ()
+        void complete ()
         {
             future.complete( null );
         }
 
-        public void completeExceptionally ( final Throwable throwable )
+        void completeExceptionally ( final Throwable throwable )
         {
             checkNotNull( throwable );
             future.completeExceptionally( throwable );

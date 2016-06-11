@@ -10,6 +10,6 @@ import cs.bilkent.zanza.operator.impl.TuplesImpl;
 public interface DownstreamTupleSender
 {
 
-    Future<Void> send ( PipelineInstanceId id, TuplesImpl tuples );
+    Future<Void> send ( TuplesImpl tuples );
 
 }

@@ -28,6 +28,8 @@ import cs.bilkent.zanza.engine.kvstore.KVStoreProvider;
 import cs.bilkent.zanza.engine.kvstore.impl.KVStoreManagerImpl;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.CLOSED;
+import cs.bilkent.zanza.engine.pipeline.impl.CachedTuplesImplSupplier;
+import cs.bilkent.zanza.engine.pipeline.impl.NonCachedTuplesImplSupplier;
 import cs.bilkent.zanza.engine.supervisor.Supervisor;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
@@ -88,9 +90,9 @@ public class PipelineIntegrationTest
 
     private final PipelineInstanceId pipelineInstanceId1 = new PipelineInstanceId( 0, 0, 0 );
 
-    private final PipelineInstanceId pipelineInstanceId2 = new PipelineInstanceId( 0, 1, 0 );
+    private final PipelineInstanceId pipelineInstanceId2 = new PipelineInstanceId( 0, 0, 1 );
 
-    private final PipelineInstanceId pipelineInstanceId3 = new PipelineInstanceId( 0, 2, 0 );
+    private final PipelineInstanceId pipelineInstanceId3 = new PipelineInstanceId( 0, 0, 2 );
 
     @Before
     public void init ()
@@ -649,7 +651,7 @@ public class PipelineIntegrationTest
         }
 
         @Override
-        public Future<Void> send ( final PipelineInstanceId id, final TuplesImpl tuples )
+        public Future<Void> send ( final TuplesImpl tuples )
         {
             for ( int i = 0; i < tuples.getPortCount(); i++ )
             {
@@ -839,7 +841,7 @@ public class PipelineIntegrationTest
         }
 
         @Override
-        public Future<Void> send ( final PipelineInstanceId id, final TuplesImpl tuples )
+        public Future<Void> send ( final TuplesImpl tuples )
         {
             for ( Pair<Integer, Integer> p : ports )
             {
@@ -880,6 +882,11 @@ public class PipelineIntegrationTest
         public void notifyPipelineStoppedSendingDownstreamTuples ( final PipelineInstanceId id )
         {
             fail( id.toString() );
+        }
+
+        @Override
+        public void notifyPipelineStoppedReceivingUpstreamTuples ( final PipelineInstanceId id )
+        {
         }
 
         @Override

@@ -1,4 +1,4 @@
-package cs.bilkent.zanza.engine.pipeline;
+package cs.bilkent.zanza.engine.pipeline.impl;
 
 import java.util.function.Supplier;
 

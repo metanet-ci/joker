@@ -14,6 +14,7 @@ import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.INITIALIZA
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.RUNNING;
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.SHUT_DOWN;
 import cs.bilkent.zanza.engine.region.RegionDefinition;
+import cs.bilkent.zanza.flow.OperatorDefinition;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 
 /**
@@ -30,7 +31,7 @@ public class PipelineInstance
 
     private final OperatorInstance[] operators;
 
-    private final int highestInvokableIndex;
+    private final int operatorCount;
 
     private OperatorInstanceStatus status = INITIAL;
 
@@ -40,10 +41,12 @@ public class PipelineInstance
     {
         this.id = id;
         this.operators = operators;
-        this.highestInvokableIndex = operators.length - 1;
+        this.operatorCount = operators.length;
     }
 
-    public void init ( final ZanzaConfig config, UpstreamContext upstreamContext )
+    public void init ( final ZanzaConfig config,
+                       UpstreamContext upstreamContext,
+                       final OperatorInstanceLifecycleListener operatorInstanceLifecycleListener )
     {
         checkState( status == INITIAL );
         checkNotNull( config );
@@ -54,7 +57,7 @@ public class PipelineInstance
         {
             try
             {
-                operator.init( config, upstreamContext );
+                operator.init( config, upstreamContext, operatorInstanceLifecycleListener );
                 upstreamContext = operator.getSelfUpstreamContext();
             }
             catch ( InitializationException e )
@@ -67,6 +70,7 @@ public class PipelineInstance
 
         status = RUNNING;
     }
+
 
     public void setPipelineUpstreamContext ( final UpstreamContext pipelineUpstreamContext )
     {
@@ -84,7 +88,7 @@ public class PipelineInstance
         TuplesImpl tuples = null;
         UpstreamContext upstreamContext = this.pipelineUpstreamContext;
 
-        for ( int i = 0; i <= highestInvokableIndex; i++ )
+        for ( int i = 0; i < operatorCount; i++ )
         {
             operator = operators[ i ];
             tuples = operator.invoke( tuples, upstreamContext );
@@ -92,29 +96,6 @@ public class PipelineInstance
         }
 
         return tuples;
-    }
-
-    public boolean isProducingDownstreamTuples ()
-    {
-        return operators[ highestInvokableIndex ].isInvokable();
-    }
-
-    public boolean isInvokableOperatorPresent ()
-    {
-        for ( int i = 0; i <= highestInvokableIndex; i++ )
-        {
-            if ( operators[ i ].isInvokable() )
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    public boolean isInvokableOperatorAbsent ()
-    {
-        return !isInvokableOperatorPresent();
     }
 
     public void shutdown ()
@@ -131,7 +112,7 @@ public class PipelineInstance
 
     private void shutdownOperators ()
     {
-        for ( int i = 0; i <= highestInvokableIndex; i++ )
+        for ( int i = 0; i < operatorCount; i++ )
         {
             final OperatorInstance operator = operators[ i ];
             try
@@ -148,6 +129,16 @@ public class PipelineInstance
     public PipelineInstanceId id ()
     {
         return id;
+    }
+
+    public int getOperatorCount ()
+    {
+        return operatorCount;
+    }
+
+    public OperatorDefinition getOperatorDefinition ( final int index )
+    {
+        return operators[ index ].getOperatorDefinition();
     }
 
 }

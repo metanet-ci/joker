@@ -85,7 +85,7 @@ public class AbstractOperatorInstanceInvocationTest
         mockOperatorInitializationSchedulingStrategy( schedulingStrategy );
 
         initializationUpstreamContext = newUpstreamContextInstance( 0, inputPortCount, ACTIVE );
-        operatorInstance.init( new ZanzaConfig(), initializationUpstreamContext );
+        operatorInstance.init( new ZanzaConfig(), initializationUpstreamContext, null );
     }
 
     protected void mockOperatorDefinition ( final int inputPortCount, final int outputPortCount )
