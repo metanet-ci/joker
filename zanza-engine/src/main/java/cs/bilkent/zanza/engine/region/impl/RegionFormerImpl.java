@@ -90,13 +90,9 @@ public class RegionFormerImpl implements RegionFormer
                 }
                 else if ( regionType == PARTITIONED_STATEFUL )
                 {
-                    if ( !currentOperator.partitionFieldNames().containsAll( regionPartitionFieldNames ) )
-                    {
-                        regions.add( new RegionDefinition( PARTITIONED_STATEFUL, regionPartitionFieldNames, regionOperators ) );
-                        regionPartitionFieldNames = new ArrayList<>( currentOperator.partitionFieldNames() );
-                        regionOperators = new ArrayList<>();
-                    }
-
+                    regions.add( new RegionDefinition( PARTITIONED_STATEFUL, regionPartitionFieldNames, regionOperators ) );
+                    regionPartitionFieldNames = new ArrayList<>( currentOperator.partitionFieldNames() );
+                    regionOperators = new ArrayList<>();
                     regionOperators.add( currentOperator );
                 }
                 else

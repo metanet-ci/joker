@@ -359,8 +359,9 @@ public class RegionFormerImplRegionTest
 
         final List<RegionDefinition> regions = regionFormer.createRegions( asList( operator1, operator2 ) );
 
-        assertThat( regions, hasSize( 1 ) );
-        assertPartitionedStatefulRegion( regions.get( 0 ), asList( "A", "B", "C" ), asList( operator1, operator2 ) );
+        assertThat( regions, hasSize( 2 ) );
+        assertPartitionedStatefulRegion( regions.get( 0 ), asList( "A", "B", "C" ), singletonList( operator1 ) );
+        assertPartitionedStatefulRegion( regions.get( 1 ), asList( "A", "B", "C" ), singletonList( operator2 ) );
     }
 
     @Test
@@ -397,8 +398,9 @@ public class RegionFormerImplRegionTest
 
         final List<RegionDefinition> regions = regionFormer.createRegions( asList( operator1, operator2 ) );
 
-        assertThat( regions, hasSize( 1 ) );
-        assertPartitionedStatefulRegion( regions.get( 0 ), asList( "A", "B" ), asList( operator1, operator2 ) );
+        assertThat( regions, hasSize( 2 ) );
+        assertPartitionedStatefulRegion( regions.get( 0 ), asList( "A", "B" ), singletonList( operator1 ) );
+        assertPartitionedStatefulRegion( regions.get( 1 ), asList( "A", "B", "C" ), singletonList( operator2 ) );
     }
 
     @Test
