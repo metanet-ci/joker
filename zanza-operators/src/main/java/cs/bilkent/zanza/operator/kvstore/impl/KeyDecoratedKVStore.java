@@ -54,4 +54,9 @@ public class KeyDecoratedKVStore implements KVStore
         return kvStore.delete( Pair.of( prefix, key ) );
     }
 
+    public KVStore getKvStore ()
+    {
+        return kvStore;
+    }
+
 }

@@ -12,7 +12,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import cs.bilkent.zanza.engine.exception.InitializationException;
-import cs.bilkent.zanza.engine.kvstore.KVStoreProvider;
+import cs.bilkent.zanza.engine.kvstore.KVStoreContext;
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.INITIALIZATION_FAILED;
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.RUNNING;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
@@ -59,8 +59,7 @@ public class OperatorInstanceInitializationTest
     {
         operatorInstance = new OperatorInstance( new PipelineInstanceId( 0, 0, 0 ),
                                                  operatorDefinition,
-                                                 mock( TupleQueueContext.class ),
-                                                 mock( KVStoreProvider.class ),
+                                                 mock( TupleQueueContext.class ), mock( KVStoreContext.class ),
                                                  drainerPool,
                                                  mock( Supplier.class ),
                                                  new InvocationContextImpl() );
@@ -140,7 +139,7 @@ public class OperatorInstanceInitializationTest
         }
         catch ( InitializationException expected )
         {
-            System.out.println( expected );
+            expected.printStackTrace();
             assertFailedInitialization();
         }
     }

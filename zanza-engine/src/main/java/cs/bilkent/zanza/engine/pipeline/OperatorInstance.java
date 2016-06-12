@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import cs.bilkent.zanza.engine.exception.InitializationException;
-import cs.bilkent.zanza.engine.kvstore.KVStoreProvider;
+import cs.bilkent.zanza.engine.kvstore.KVStoreContext;
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.COMPLETED;
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.COMPLETING;
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.INITIAL;
@@ -62,7 +62,7 @@ public class OperatorInstance
 
     private final TupleQueueContext queue;
 
-    private final KVStoreProvider kvStoreProvider;
+    private final KVStoreContext kvStoreContext;
 
     private final TupleQueueDrainerPool drainerPool;
 
@@ -88,18 +88,16 @@ public class OperatorInstance
 
     public OperatorInstance ( final PipelineInstanceId pipelineInstanceId,
                               final OperatorDefinition operatorDefinition,
-                              final TupleQueueContext queue,
-                              final KVStoreProvider kvStoreProvider,
+                              final TupleQueueContext queue, final KVStoreContext kvStoreContext,
                               final TupleQueueDrainerPool drainerPool,
                               final Supplier<TuplesImpl> outputSupplier )
     {
-        this( pipelineInstanceId, operatorDefinition, queue, kvStoreProvider, drainerPool, outputSupplier, new InvocationContextImpl() );
+        this( pipelineInstanceId, operatorDefinition, queue, kvStoreContext, drainerPool, outputSupplier, new InvocationContextImpl() );
     }
 
     public OperatorInstance ( final PipelineInstanceId pipelineInstanceId,
                               final OperatorDefinition operatorDefinition,
-                              final TupleQueueContext queue,
-                              final KVStoreProvider kvStoreProvider,
+                              final TupleQueueContext queue, final KVStoreContext kvStoreContext,
                               final TupleQueueDrainerPool drainerPool,
                               final Supplier<TuplesImpl> outputSupplier,
                               final InvocationContextImpl invocationContext )
@@ -107,7 +105,7 @@ public class OperatorInstance
         this.operatorName = pipelineInstanceId.toString() + ".Operator<" + operatorDefinition.id() + ">";
         this.queue = queue;
         this.operatorDefinition = operatorDefinition;
-        this.kvStoreProvider = kvStoreProvider;
+        this.kvStoreContext = kvStoreContext;
         this.drainerPool = drainerPool;
         this.invocationContext = invocationContext;
         this.outputSupplier = outputSupplier;
@@ -334,7 +332,7 @@ public class OperatorInstance
                                         final Object key,
                                         final boolean handleNewSchedulingStrategy )
     {
-        final KVStore kvStore = kvStoreProvider.getKVStore( key );
+        final KVStore kvStore = kvStoreContext.getKVStore( key );
         final TuplesImpl output = outputSupplier.get();
         invocationContext.setInvocationParameters( reason, input, output, kvStore );
         operator.invoke( invocationContext );

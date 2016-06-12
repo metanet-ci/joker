@@ -7,7 +7,7 @@ import org.junit.Before;
 import org.mockito.Mock;
 
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
-import cs.bilkent.zanza.engine.kvstore.KVStoreProvider;
+import cs.bilkent.zanza.engine.kvstore.KVStoreContext;
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceInitializationTest.newUpstreamContextInstance;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
@@ -38,7 +38,7 @@ public class AbstractOperatorInstanceInvocationTest
     protected OperatorDefinition operatorDefinition;
 
     @Mock
-    protected KVStoreProvider kvStoreProvider;
+    protected KVStoreContext kvStoreContext;
 
     @Mock
     protected KVStore kvStore;
@@ -65,8 +65,7 @@ public class AbstractOperatorInstanceInvocationTest
     {
         operatorInstance = new OperatorInstance( new PipelineInstanceId( 0, 0, 0 ),
                                                  operatorDefinition,
-                                                 queue,
-                                                 kvStoreProvider,
+                                                 queue, kvStoreContext,
                                                  drainerPool,
                                                  outputSupplier,
                                                  invocationContext );
@@ -74,7 +73,7 @@ public class AbstractOperatorInstanceInvocationTest
         when( operatorDefinition.id() ).thenReturn( "op1" );
         when( drainerPool.acquire( any( SchedulingStrategy.class ) ) ).thenReturn( drainer );
         when( drainer.getKey() ).thenReturn( key );
-        when( kvStoreProvider.getKVStore( key ) ).thenReturn( kvStore );
+        when( kvStoreContext.getKVStore( key ) ).thenReturn( kvStore );
     }
 
     protected void initializeOperatorInstance ( final int inputPortCount,
@@ -109,14 +108,14 @@ public class AbstractOperatorInstanceInvocationTest
 
     protected void assertOperatorInvocation ()
     {
-        verify( kvStoreProvider ).getKVStore( key );
+        verify( kvStoreContext ).getKVStore( key );
         verify( operator ).invoke( invocationContext );
         verify( drainer ).reset();
     }
 
     protected void assertNoOperatorInvocation ()
     {
-        verify( kvStoreProvider, never() ).getKVStore( key );
+        verify( kvStoreContext, never() ).getKVStore( key );
         verify( operator, never() ).invoke( invocationContext );
     }
 

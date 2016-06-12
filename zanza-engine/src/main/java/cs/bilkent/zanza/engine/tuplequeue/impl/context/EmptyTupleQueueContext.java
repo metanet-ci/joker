@@ -1,11 +1,11 @@
 package cs.bilkent.zanza.engine.tuplequeue.impl.context;
 
 import java.util.List;
-import java.util.function.Function;
 
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
+import cs.bilkent.zanza.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import cs.bilkent.zanza.operator.Tuple;
 
 public class EmptyTupleQueueContext implements TupleQueueContext
@@ -15,15 +15,13 @@ public class EmptyTupleQueueContext implements TupleQueueContext
 
     private final TupleQueue[] tupleQueues;
 
-    public EmptyTupleQueueContext ( final String operatorId,
-                                    final int inputPortCount,
-                                    final Function<Boolean, TupleQueue> tupleQueueConstructor )
+    public EmptyTupleQueueContext ( final String operatorId, final int inputPortCount )
     {
         this.operatorId = operatorId;
         this.tupleQueues = new TupleQueue[ inputPortCount ];
         for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
         {
-            this.tupleQueues[ portIndex ] = tupleQueueConstructor.apply( false );
+            this.tupleQueues[ portIndex ] = new SingleThreadedTupleQueue( 1 );
         }
     }
 

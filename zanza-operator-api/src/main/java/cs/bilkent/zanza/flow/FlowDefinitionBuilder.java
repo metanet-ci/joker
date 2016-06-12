@@ -44,42 +44,40 @@ public class FlowDefinitionBuilder
         return this;
     }
 
-    public FlowDefinitionBuilder connect ( final String sourceOperatorId, final String targetOperatorId )
+    public FlowDefinitionBuilder connect ( final String sourceOperatorId, final String destinationOperatorId )
     {
-        return connect( sourceOperatorId, DEFAULT_PORT_INDEX, targetOperatorId, DEFAULT_PORT_INDEX );
+        return connect( sourceOperatorId, DEFAULT_PORT_INDEX, destinationOperatorId, DEFAULT_PORT_INDEX );
     }
 
-    public FlowDefinitionBuilder connect ( final String sourceOperatorId, int sourcePort, final String targetOperatorId )
+    public FlowDefinitionBuilder connect ( final String sourceOperatorId, int sourcePort, final String destinationOperatorId )
     {
-        return connect( sourceOperatorId, sourcePort, targetOperatorId, DEFAULT_PORT_INDEX );
+        return connect( sourceOperatorId, sourcePort, destinationOperatorId, DEFAULT_PORT_INDEX );
     }
 
-    public FlowDefinitionBuilder connect ( final String sourceOperatorId, final String targetOperatorId, final int targetPort )
+    public FlowDefinitionBuilder connect ( final String sourceOperatorId, final String destinationOperatorId, final int destinationPort )
     {
-        return connect( sourceOperatorId, DEFAULT_PORT_INDEX, targetOperatorId, targetPort );
+        return connect( sourceOperatorId, DEFAULT_PORT_INDEX, destinationOperatorId, destinationPort );
     }
 
     public FlowDefinitionBuilder connect ( final String sourceOperatorId,
-                                           final int sourcePort,
-                                           final String targetOperatorId,
-                                           final int targetPort )
+                                           final int sourcePort, final String destinationOperatorId, final int destinationPort )
     {
         failIfAlreadyBuilt();
         failIfEmptyOperatorId( sourceOperatorId );
         failIfNonExistingOperatorId( sourceOperatorId );
         failIfInvalidPort( operators.get( sourceOperatorId ).outputPortCount(), sourcePort );
-        failIfEmptyOperatorId( targetOperatorId );
-        failIfNonExistingOperatorId( targetOperatorId );
-        failIfInvalidPort( operators.get( targetOperatorId ).inputPortCount(), targetPort );
-        checkArgument( !sourceOperatorId.equals( targetOperatorId ), "operator ids must be different!" );
+        failIfEmptyOperatorId( destinationOperatorId );
+        failIfNonExistingOperatorId( destinationOperatorId );
+        failIfInvalidPort( operators.get( destinationOperatorId ).inputPortCount(), destinationPort );
+        checkArgument( !sourceOperatorId.equals( destinationOperatorId ), "operator ids must be different!" );
 
         final OperatorRuntimeSchema sourceOperatorSchema = operators.get( sourceOperatorId ).schema();
-        final OperatorRuntimeSchema targetOperatorSchema = operators.get( targetOperatorId ).schema();
+        final OperatorRuntimeSchema targetOperatorSchema = operators.get( destinationOperatorId ).schema();
         checkState( sourceOperatorSchema.getOutputSchema( sourcePort )
-                                        .isCompatibleWith( targetOperatorSchema.getInputSchema( targetPort ) ) );
+                                        .isCompatibleWith( targetOperatorSchema.getInputSchema( destinationPort ) ) );
 
         final Port source = new Port( sourceOperatorId, sourcePort );
-        final Port target = new Port( targetOperatorId, targetPort );
+        final Port target = new Port( destinationOperatorId, destinationPort );
         connections.put( source, target );
         return this;
     }
