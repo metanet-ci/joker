@@ -20,6 +20,7 @@ import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.RUNN
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import cs.bilkent.zanza.engine.supervisor.Supervisor;
+import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.flow.OperatorDefinition;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
@@ -31,14 +32,13 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith( MockitoJUnitRunner.class )
 public class PipelineInstanceRunnerTest
 {
-
-    private String operatorId = "op1";
 
     @Mock
     private OperatorDefinition operatorDefinition;
@@ -65,13 +65,13 @@ public class PipelineInstanceRunnerTest
     public void init () throws Exception
     {
         final PipelineInstanceId id = new PipelineInstanceId( 0, 0, 0 );
-        pipeline = new PipelineInstance( id, new OperatorInstance[] { operator } );
+        when( operator.getOperatorDefinition() ).thenReturn( operatorDefinition );
+        when( operatorDefinition.id() ).thenReturn( "op1" );
+        when( operatorDefinition.inputPortCount() ).thenReturn( 1 );
+        pipeline = new PipelineInstance( id, new OperatorInstance[] { operator }, mock( TupleQueueContext.class ) );
         runner = new PipelineInstanceRunner( pipeline );
         runner.setSupervisor( supervisor );
         runner.setDownstreamTupleSender( downstreamTupleSender );
-
-        when( operator.getOperatorDefinition() ).thenReturn( operatorDefinition );
-        when( operatorDefinition.id() ).thenReturn( operatorId );
 
         when( supervisor.getUpstreamContext( id ) ).thenReturn( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ) );
         runner.init( new ZanzaConfig(), supervisorNotifier );
@@ -183,6 +183,7 @@ public class PipelineInstanceRunnerTest
         final CountDownLatch invocationStartLatch = new CountDownLatch( 1 );
         final CountDownLatch invocationDoneLatch = new CountDownLatch( 1 );
         final TuplesImpl output = new TuplesImpl( 1 );
+        output.add( new Tuple() );
 
         when( operator.invoke( anyObject(), anyObject() ) ).thenAnswer( invocation -> {
             invocationStartLatch.countDown();

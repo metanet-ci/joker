@@ -84,11 +84,14 @@ public class OperatorInstance
 
     private TupleQueueDrainer drainer;
 
-    private OperatorInstanceLifecycleListener lifecycleListener;
+    private OperatorInstanceListener listener;
+
+    private boolean invokedOnLastAttempt;
 
     public OperatorInstance ( final PipelineInstanceId pipelineInstanceId,
                               final OperatorDefinition operatorDefinition,
-                              final TupleQueueContext queue, final KVStoreContext kvStoreContext,
+                              final TupleQueueContext queue,
+                              final KVStoreContext kvStoreContext,
                               final TupleQueueDrainerPool drainerPool,
                               final Supplier<TuplesImpl> outputSupplier )
     {
@@ -97,7 +100,8 @@ public class OperatorInstance
 
     public OperatorInstance ( final PipelineInstanceId pipelineInstanceId,
                               final OperatorDefinition operatorDefinition,
-                              final TupleQueueContext queue, final KVStoreContext kvStoreContext,
+                              final TupleQueueContext queue,
+                              final KVStoreContext kvStoreContext,
                               final TupleQueueDrainerPool drainerPool,
                               final Supplier<TuplesImpl> outputSupplier,
                               final InvocationContextImpl invocationContext )
@@ -117,14 +121,24 @@ public class OperatorInstance
      * it moves the status to {@link OperatorInstanceStatus#INITIALIZATION_FAILED} and propagates the exception to the caller after
      * wrapping it with {@link InitializationException}.
      */
-    public void init ( final ZanzaConfig config,
-                       final UpstreamContext upstreamContext,
-                       final OperatorInstanceLifecycleListener lifecycleListener )
+    public void init ( final ZanzaConfig config, final UpstreamContext upstreamContext, final OperatorInstanceListener listener )
     {
         checkState( status == INITIAL );
         try
         {
-            this.lifecycleListener = lifecycleListener != null ? lifecycleListener : ( operatorName, status1 ) -> {
+            this.listener = listener != null ? listener : new OperatorInstanceListener()
+            {
+                @Override
+                public void onStatusChange ( final String operatorId, final OperatorInstanceStatus status )
+                {
+
+                }
+
+                @Override
+                public void onSchedulingStrategyChange ( final String operatorId, final SchedulingStrategy newSchedulingStrategy )
+                {
+
+                }
             };
 
             drainerPool.init( config );
@@ -150,7 +164,7 @@ public class OperatorInstance
         try
         {
             this.status = status;
-            lifecycleListener.onChange( operatorDefinition.id(), status );
+            listener.onStatusChange( operatorDefinition.id(), status );
         }
         catch ( Exception e )
         {
@@ -227,6 +241,7 @@ public class OperatorInstance
      */
     public TuplesImpl invoke ( final TuplesImpl upstreamInput, final UpstreamContext upstreamContext )
     {
+        invokedOnLastAttempt = false;
         if ( status == COMPLETED )
         {
             return null;
@@ -352,6 +367,8 @@ public class OperatorInstance
             }
         }
 
+        invokedOnLastAttempt = true;
+
         return output;
     }
 
@@ -365,7 +382,7 @@ public class OperatorInstance
         if ( validateSchedulingStrategy( newSchedulingStrategy ) )
         {
             setNewSchedulingStrategy( newSchedulingStrategy );
-            ensureQueueCapacity();
+            listener.onSchedulingStrategyChange( operatorDefinition.id(), newSchedulingStrategy );
         }
         else
         {
@@ -462,22 +479,6 @@ public class OperatorInstance
         }
         schedulingStrategy = newSchedulingStrategy;
         drainer = drainerPool.acquire( schedulingStrategy );
-    }
-
-    /**
-     * If scheduling strategy of the operator is set to {@link ScheduleWhenTuplesAvailable}, it makes sure that tuple queues have enough
-     * internal capacity to satisfy the requested tuple counts.
-     */
-    private void ensureQueueCapacity ()
-    {
-        if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
-        {
-            final ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailable = (ScheduleWhenTuplesAvailable) schedulingStrategy;
-            for ( int portIndex = 0; portIndex < scheduleWhenTuplesAvailable.getPortCount(); portIndex++ )
-            {
-                queue.ensureCapacity( portIndex, scheduleWhenTuplesAvailable.getTupleCount( portIndex ) );
-            }
-        }
     }
 
     /**
@@ -612,6 +613,11 @@ public class OperatorInstance
     public UpstreamContext getSelfUpstreamContext ()
     {
         return selfUpstreamContext;
+    }
+
+    public boolean isInvokedOnLastAttempt ()
+    {
+        return invokedOnLastAttempt;
     }
 
 }

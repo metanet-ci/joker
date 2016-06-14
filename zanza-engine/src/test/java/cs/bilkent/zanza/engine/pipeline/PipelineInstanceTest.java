@@ -10,6 +10,8 @@ import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import cs.bilkent.zanza.engine.exception.InitializationException;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.CLOSED;
+import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
+import cs.bilkent.zanza.flow.OperatorDefinition;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -17,6 +19,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -27,6 +30,9 @@ public class PipelineInstanceTest
 {
 
     @Mock
+    private TupleQueueContext upstreamTupleQueueContext;
+
+    @Mock
     private OperatorInstance operator0;
 
     @Mock
@@ -35,10 +41,9 @@ public class PipelineInstanceTest
     @Mock
     private OperatorInstance operator2;
 
-    @Mock
-    private ZanzaConfig config;
-
     private PipelineInstance pipeline;
+
+    private final ZanzaConfig config = new ZanzaConfig();
 
     private final TuplesImpl upstreamInput1 = new TuplesImpl( 1 );
 
@@ -55,7 +60,12 @@ public class PipelineInstanceTest
     @Before
     public void before ()
     {
-        pipeline = new PipelineInstance( new PipelineInstanceId( 0, 0, 0 ), new OperatorInstance[] { operator0, operator1, operator2 } );
+        final OperatorDefinition operatorDefinition0 = mock( OperatorDefinition.class );
+        when( operator0.getOperatorDefinition() ).thenReturn( operatorDefinition0 );
+        when( operatorDefinition0.inputPortCount() ).thenReturn( 1 );
+        pipeline = new PipelineInstance( new PipelineInstanceId( 0, 0, 0 ),
+                                         new OperatorInstance[] { operator0, operator1, operator2 },
+                                         upstreamTupleQueueContext );
 
         upstreamInput1.add( new Tuple( "k1", "v1" ) );
         upstreamInput2.add( new Tuple( "k2", "v2" ) );

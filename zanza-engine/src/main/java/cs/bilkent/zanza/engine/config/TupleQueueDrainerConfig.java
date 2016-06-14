@@ -4,17 +4,18 @@ import com.typesafe.config.Config;
 
 public class TupleQueueDrainerConfig
 {
-    public static final String CONFIG_NAME = "tupleQueueDrainer";
+    static final String CONFIG_NAME = "tupleQueueDrainer";
 
-    public static final String MAX_BATCH_SIZE = "maxBatchSize";
+    static final String MAX_BATCH_SIZE = "maxBatchSize";
 
-    public static final String DRAIN_TIMEOUT_IN_MILLIS = "drainTimeoutInMillis";
+    static final String DRAIN_TIMEOUT_IN_MILLIS = "drainTimeoutInMillis";
+
 
     private final int maxBatchSize;
 
     private final long drainTimeoutInMillis;
 
-    public TupleQueueDrainerConfig ( final Config parentConfig )
+    TupleQueueDrainerConfig ( final Config parentConfig )
     {
         final Config config = parentConfig.getConfig( CONFIG_NAME );
         this.maxBatchSize = config.getInt( MAX_BATCH_SIZE );

@@ -17,11 +17,9 @@ public interface TupleQueueContextManager
                                                        ThreadingPreference threadingPreference );
 
     PartitionedTupleQueueContext[] createPartitionedTupleQueueContext ( int regionId,
-                                                                        int replicaCount,
-                                                                        OperatorDefinition operatorDefinition,
-                                                                        ThreadingPreference threadingPreference );
+                                                                        int replicaCount, OperatorDefinition operatorDefinition );
 
-    boolean releaseTupleQueueContext ( int regionId, int replicaIndex, String operatorId );
+    boolean releaseDefaultTupleQueueContext ( int regionId, int replicaIndex, String operatorId );
 
     boolean releasePartitionedTupleQueueContexts ( int regionId, String operatorId );
 

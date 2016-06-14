@@ -12,7 +12,7 @@ import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.T
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.EXACT;
 import static java.lang.Math.max;
 
-abstract class MultiPortDrainer implements TupleQueueDrainer
+public abstract class MultiPortDrainer implements TupleQueueDrainer
 {
 
     static final int NO_TUPLES_AVAILABLE = -1;

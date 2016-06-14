@@ -133,7 +133,7 @@
                     <configuration>
                         <forkCount>2</forkCount>
                         <reuseForks>true</reuseForks>
-                        <argLine>-Xms512m -Xmx4G</argLine>
+                        <argLine>-Xms1G -Xmx4G</argLine>
                     </configuration>
                 </plugin>
             </plugins>

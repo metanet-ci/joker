@@ -13,7 +13,7 @@ public class BlockingMultiPortDisjunctiveDrainer extends MultiPortDrainer
     public BlockingMultiPortDisjunctiveDrainer ( final int inputPortCount, final int maxBatchSize, final long timeoutInMillis )
     {
         super( inputPortCount, maxBatchSize );
-        this.timeoutInMillisPerQueue = (long) Math.ceil( timeoutInMillis / inputPortCount );
+        this.timeoutInMillisPerQueue = inputPortCount > 0 ? (long) Math.ceil( timeoutInMillis / inputPortCount ) : 0;
         this.tupleCountsBuffer = new int[ inputPortCount ];
     }
 

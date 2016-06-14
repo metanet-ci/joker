@@ -8,12 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
-import cs.bilkent.zanza.engine.config.ThreadingPreference;
-import static cs.bilkent.zanza.engine.config.ThreadingPreference.MULTI_THREADED;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
-import cs.bilkent.zanza.engine.tuplequeue.impl.TupleQueueCapacityState;
 import cs.bilkent.zanza.engine.tuplequeue.impl.TupleQueueContainer;
 import cs.bilkent.zanza.operator.Tuple;
 
@@ -26,25 +22,17 @@ public class PartitionedTupleQueueContext extends AbstractTupleQueueContext
 
     private final int partitionCount;
 
-    private final ThreadingPreference threadingPreference;
-
     private final Function<Tuple, Object> partitionKeyExtractor;
-
-    private final TupleQueueCapacityState tupleQueueCapacityState;
 
     private final TupleQueueContainer[] tupleQueueContainers;
 
     private final int[] ownedPartitions;
 
-    private final Object monitor = new Object();
-
     public PartitionedTupleQueueContext ( final String operatorId,
                                           final int inputPortCount,
                                           final int partitionCount,
                                           final int replicaIndex,
-                                          final ThreadingPreference threadingPreference,
                                           final Function<Tuple, Object> partitionKeyExtractor,
-                                          final TupleQueueCapacityState tupleQueueCapacityState,
                                           final TupleQueueContainer[] tupleQueueContainers,
                                           final int[] partitions )
     {
@@ -52,9 +40,7 @@ public class PartitionedTupleQueueContext extends AbstractTupleQueueContext
         checkArgument( partitionCount == tupleQueueContainers.length );
         checkArgument( partitionCount == partitions.length );
         this.partitionCount = partitionCount;
-        this.threadingPreference = threadingPreference;
         this.partitionKeyExtractor = partitionKeyExtractor;
-        this.tupleQueueCapacityState = tupleQueueCapacityState;
         this.tupleQueueContainers = Arrays.copyOf( tupleQueueContainers, partitionCount );
         int ownedPartitionCount = 0;
         for ( int i = 0; i < partitionCount; i++ )
@@ -131,10 +117,7 @@ public class PartitionedTupleQueueContext extends AbstractTupleQueueContext
     @Override
     public void ensureCapacity ( final int portIndex, final int capacity )
     {
-        for ( int i = 0; i < ownedPartitions.length; i++ )
-        {
-            tupleQueueContainers[ ownedPartitions[ i ] ].ensureCapacity( portIndex, capacity );
-        }
+        throw new UnsupportedOperationException( getOperatorId() );
     }
 
     @Override
@@ -149,56 +132,6 @@ public class PartitionedTupleQueueContext extends AbstractTupleQueueContext
                 container.clear();
             }
         }
-    }
-
-    @Override
-    public void enableCapacityCheck ( final int portIndex )
-    {
-        checkState( threadingPreference == MULTI_THREADED );
-
-        synchronized ( monitor )
-        {
-            tupleQueueCapacityState.enableCapacityCheck( portIndex );
-            for ( TupleQueueContainer container : tupleQueueContainers )
-            {
-                if ( container != null )
-                {
-                    container.disableCapacityCheck( portIndex );
-                }
-            }
-        }
-    }
-
-    @Override
-    public void disableCapacityCheck ( final int portIndex )
-    {
-        checkState( threadingPreference == MULTI_THREADED );
-
-        synchronized ( monitor )
-        {
-            tupleQueueCapacityState.disableCapacityCheck( portIndex );
-            for ( TupleQueueContainer container : tupleQueueContainers )
-            {
-                if ( container != null )
-                {
-                    container.disableCapacityCheck( portIndex );
-                }
-            }
-        }
-    }
-
-    @Override
-    public boolean isCapacityCheckEnabled ( final int portIndex )
-    {
-        checkState( threadingPreference == MULTI_THREADED );
-        return tupleQueueCapacityState.isCapacityCheckEnabled( portIndex );
-    }
-
-    @Override
-    public boolean isCapacityCheckDisabled ( final int portIndex )
-    {
-        checkState( threadingPreference == MULTI_THREADED );
-        return tupleQueueCapacityState.isCapacityCheckDisabled( portIndex );
     }
 
 }

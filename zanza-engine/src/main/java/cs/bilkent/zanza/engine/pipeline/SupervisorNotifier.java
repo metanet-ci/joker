@@ -5,8 +5,11 @@ import org.slf4j.LoggerFactory;
 
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.COMPLETED;
 import cs.bilkent.zanza.engine.supervisor.Supervisor;
+import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
+import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
+import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
-public class SupervisorNotifier implements OperatorInstanceLifecycleListener
+public class SupervisorNotifier implements OperatorInstanceListener
 {
 
     private final static Logger LOGGER = LoggerFactory.getLogger( SupervisorNotifier.class );
@@ -22,6 +25,8 @@ public class SupervisorNotifier implements OperatorInstanceLifecycleListener
 
     private final String lastOperatorId;
 
+    private final TupleQueueContext upstreamTupleQueueContext;
+
     private int completedOperatorCount;
 
     private boolean firstOperatorCompleted;
@@ -32,17 +37,19 @@ public class SupervisorNotifier implements OperatorInstanceLifecycleListener
                                 final PipelineInstanceId pipelineInstanceId,
                                 final int operatorCount,
                                 final String firstOperatorId,
-                                final String lastOperatorId )
+                                final String lastOperatorId,
+                                final TupleQueueContext upstreamTupleQueueContext )
     {
         this.supervisor = supervisor;
         this.pipelineInstanceId = pipelineInstanceId;
         this.operatorCount = operatorCount;
         this.firstOperatorId = firstOperatorId;
         this.lastOperatorId = lastOperatorId;
+        this.upstreamTupleQueueContext = upstreamTupleQueueContext;
     }
 
     @Override
-    public void onChange ( final String operatorId, final OperatorInstanceStatus status )
+    public void onStatusChange ( final String operatorId, final OperatorInstanceStatus status )
     {
         if ( status != COMPLETED )
         {
@@ -99,6 +106,19 @@ public class SupervisorNotifier implements OperatorInstanceLifecycleListener
         else
         {
             LOGGER.info( "{}:{} is completed", pipelineInstanceId, operatorId );
+        }
+    }
+
+    @Override
+    public void onSchedulingStrategyChange ( final String operatorId, final SchedulingStrategy newSchedulingStrategy )
+    {
+        if ( firstOperatorId.equals( operatorId ) && newSchedulingStrategy instanceof ScheduleWhenTuplesAvailable )
+        {
+            final ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailable = (ScheduleWhenTuplesAvailable) newSchedulingStrategy;
+            for ( int portIndex = 0; portIndex < scheduleWhenTuplesAvailable.getPortCount(); portIndex++ )
+            {
+                upstreamTupleQueueContext.ensureCapacity( portIndex, scheduleWhenTuplesAvailable.getTupleCount( portIndex ) );
+            }
         }
     }
 

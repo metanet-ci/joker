@@ -61,43 +61,7 @@ public interface TupleQueueContext
      * @param capacity
      *         number of tuples guaranteed to be accepted by the tuple queue without blocking
      */
-    void ensureCapacity ( int portIndex, int capacity );
-
-    /**
-     * Enables capacity check of the tuple queue for the given port index
-     *
-     * @param portIndex
-     *         of the tuple queue to enable capacity check
-     */
-    void enableCapacityCheck ( int portIndex );
-
-    /**
-     * Disables capacity check of the tuple queue for the given port index
-     *
-     * @param portIndex
-     *         of the tuple queue to disable capacity check
-     */
-    void disableCapacityCheck ( int portIndex );
-
-    /**
-     * Checks if the capacity check is enabled for the tuple queue of the given port index
-     *
-     * @param portIndex
-     *         of the tuple queue to check the capacity check
-     *
-     * @return true if capacity check is enabled for the tuple queue of the given port index
-     */
-    boolean isCapacityCheckEnabled ( int portIndex );
-
-    /**
-     * Checks if the capacity check is disabled for the tuple queue of the given port index
-     *
-     * @param portIndex
-     *         of the tuple queue to check the capacity check
-     *
-     * @return true if capacity check is disabled for the tuple queue of the given port index
-     */
-    boolean isCapacityCheckDisabled ( int portIndex );
+    void ensureCapacity ( final int portIndex, final int capacity );
 
     void clear ();
 

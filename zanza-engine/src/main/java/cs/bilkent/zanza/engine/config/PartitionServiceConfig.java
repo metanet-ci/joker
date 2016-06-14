@@ -10,12 +10,17 @@ public class PartitionServiceConfig
     public static final String PARTITION_COUNT = "partitionCount";
 
 
-    public final int partitionCount;
+    private final int partitionCount;
 
-    public PartitionServiceConfig ( Config parentConfig )
+    PartitionServiceConfig ( Config parentConfig )
     {
         final Config config = parentConfig.getConfig( CONFIG_NAME );
         partitionCount = config.getInt( PARTITION_COUNT );
+    }
+
+    public int getPartitionCount ()
+    {
+        return partitionCount;
     }
 
 }

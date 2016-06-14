@@ -71,7 +71,8 @@ public class PipelineInstanceRunner implements Runnable
                                                                               pipeline.id(),
                                                                               operatorCount,
                                                                               pipeline.getOperatorDefinition( 0 ).id(),
-                                                                              pipeline.getOperatorDefinition( operatorCount - 1 ).id() );
+                                                                              pipeline.getOperatorDefinition( operatorCount - 1 ).id(),
+                                                                              pipeline.getUpstreamTupleQueueContext() );
 
         init( config, supervisorNotifier );
     }
@@ -309,7 +310,7 @@ public class PipelineInstanceRunner implements Runnable
                 }
 
                 final TuplesImpl output = pipeline.invoke();
-                if ( output != null )
+                if ( output != null && output.isNonEmpty() )
                 {
                     awaitDownstreamTuplesFuture();
                     downstreamTuplesFuture = downstreamTupleSender.send( output );
@@ -351,7 +352,7 @@ public class PipelineInstanceRunner implements Runnable
             {
                 if ( commandType == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
                 {
-                    LOGGER.info( "{}: updatePipelineUpstreamContext command is noticed", id );
+                    LOGGER.info( "{}: update pipeline upstream context command is noticed", id );
                     this.command = null;
                     this.status = RUNNING;
                     command.complete();

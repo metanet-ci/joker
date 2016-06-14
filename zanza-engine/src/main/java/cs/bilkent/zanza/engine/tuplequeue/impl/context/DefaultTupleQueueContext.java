@@ -58,7 +58,6 @@ public class DefaultTupleQueueContext extends AbstractTupleQueueContext
         drainer.drain( null, tupleQueues );
     }
 
-    @Override
     public void ensureCapacity ( final int portIndex, final int capacity )
     {
         tupleQueues[ portIndex ].ensureCapacity( capacity );
@@ -75,28 +74,24 @@ public class DefaultTupleQueueContext extends AbstractTupleQueueContext
         }
     }
 
-    @Override
     public void enableCapacityCheck ( final int portIndex )
     {
         checkState( threadingPreference == MULTI_THREADED );
         tupleQueues[ portIndex ].enableCapacityCheck();
     }
 
-    @Override
     public void disableCapacityCheck ( final int portIndex )
     {
         checkState( threadingPreference == MULTI_THREADED );
         tupleQueues[ portIndex ].disableCapacityCheck();
     }
 
-    @Override
     public boolean isCapacityCheckEnabled ( final int portIndex )
     {
         checkState( threadingPreference == MULTI_THREADED );
         return tupleQueues[ portIndex ].isCapacityCheckEnabled();
     }
 
-    @Override
     public boolean isCapacityCheckDisabled ( final int portIndex )
     {
         checkState( threadingPreference == MULTI_THREADED );

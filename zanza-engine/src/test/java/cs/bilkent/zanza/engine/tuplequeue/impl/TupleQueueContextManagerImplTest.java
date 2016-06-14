@@ -75,7 +75,7 @@ public class TupleQueueContextManagerImplTest
                                                                                                       operatorDefinition,
                                                                                                       MULTI_THREADED );
         tupleQueueContext.offer( 0, Collections.singletonList( new Tuple() ) );
-        assertTrue( tupleQueueManager.releaseTupleQueueContext( 1, 1, "op1" ) );
+        assertTrue( tupleQueueManager.releaseDefaultTupleQueueContext( 1, 1, "op1" ) );
     }
 
 }

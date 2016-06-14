@@ -1,5 +1,6 @@
 package cs.bilkent.zanza.engine.pipeline;
 
+import java.util.Arrays;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.slf4j.Logger;
@@ -14,8 +15,12 @@ import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.INITIALIZA
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.RUNNING;
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.SHUT_DOWN;
 import cs.bilkent.zanza.engine.region.RegionDefinition;
+import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
+import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.BlockingMultiPortDisjunctiveDrainer;
+import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.MultiPortDrainer;
 import cs.bilkent.zanza.flow.OperatorDefinition;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
+import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
 
 /**
  * Manages runtime state of a pipeline defined by the system for a {@link RegionDefinition} and provides methods for operator invocation.
@@ -31,22 +36,35 @@ public class PipelineInstance
 
     private final OperatorInstance[] operators;
 
+    private final TupleQueueContext upstreamTupleQueueContext;
+
     private final int operatorCount;
+
+    private final int[] blockingUpstreamTupleCounts;
+
+    private final int[] nonBlockingUpstreamTupleCounts;
 
     private OperatorInstanceStatus status = INITIAL;
 
+    private MultiPortDrainer upstreamDrainer;
+
     private UpstreamContext pipelineUpstreamContext;
 
-    public PipelineInstance ( final PipelineInstanceId id, final OperatorInstance[] operators )
+    private boolean noBlockOnUpstreamTupleQueueContext;
+
+    public PipelineInstance ( final PipelineInstanceId id,
+                              final OperatorInstance[] operators,
+                              final TupleQueueContext upstreamTupleQueueContext )
     {
         this.id = id;
         this.operators = operators;
         this.operatorCount = operators.length;
+        this.upstreamTupleQueueContext = upstreamTupleQueueContext;
+        this.blockingUpstreamTupleCounts = new int[ operators[ 0 ].getOperatorDefinition().inputPortCount() ];
+        this.nonBlockingUpstreamTupleCounts = new int[ operators[ 0 ].getOperatorDefinition().inputPortCount() ];
     }
 
-    public void init ( final ZanzaConfig config,
-                       UpstreamContext upstreamContext,
-                       final OperatorInstanceLifecycleListener operatorInstanceLifecycleListener )
+    public void init ( final ZanzaConfig config, UpstreamContext upstreamContext, final OperatorInstanceListener operatorInstanceListener )
     {
         checkState( status == INITIAL );
         checkNotNull( config );
@@ -57,7 +75,7 @@ public class PipelineInstance
         {
             try
             {
-                operator.init( config, upstreamContext, operatorInstanceLifecycleListener );
+                operator.init( config, upstreamContext, operatorInstanceListener );
                 upstreamContext = operator.getSelfUpstreamContext();
             }
             catch ( InitializationException e )
@@ -68,7 +86,22 @@ public class PipelineInstance
             }
         }
 
+        upstreamDrainer = createUpstreamDrainer( config );
+
         status = RUNNING;
+    }
+
+    private MultiPortDrainer createUpstreamDrainer ( final ZanzaConfig config )
+    {
+        final int upstreamInputPortCount = operators[ 0 ].getOperatorDefinition().inputPortCount();
+        final MultiPortDrainer drainer = new BlockingMultiPortDisjunctiveDrainer( upstreamInputPortCount,
+                                                                                  config.getTupleQueueDrainerConfig().getMaxBatchSize(),
+                                                                                  config.getTupleQueueDrainerConfig()
+                                                                                        .getDrainTimeoutInMillis() );
+        Arrays.fill( blockingUpstreamTupleCounts, 1 );
+        Arrays.fill( nonBlockingUpstreamTupleCounts, 0 );
+        drainer.setParameters( AT_LEAST, nonBlockingUpstreamTupleCounts );
+        return drainer;
     }
 
 
@@ -82,20 +115,44 @@ public class PipelineInstance
         return pipelineUpstreamContext;
     }
 
+    public TupleQueueContext getUpstreamTupleQueueContext ()
+    {
+        return upstreamTupleQueueContext;
+    }
+
     public TuplesImpl invoke ()
     {
         OperatorInstance operator;
-        TuplesImpl tuples = null;
+        drainUpstreamTupleQueueContext();
+        TuplesImpl tuples = upstreamDrainer.getResult();
         UpstreamContext upstreamContext = this.pipelineUpstreamContext;
 
+        this.noBlockOnUpstreamTupleQueueContext = false;
         for ( int i = 0; i < operatorCount; i++ )
         {
             operator = operators[ i ];
             tuples = operator.invoke( tuples, upstreamContext );
+            noBlockOnUpstreamTupleQueueContext |= operator.isInvokedOnLastAttempt();
             upstreamContext = operator.getSelfUpstreamContext();
         }
 
+        upstreamDrainer.reset();
+
         return tuples;
+    }
+
+    private void drainUpstreamTupleQueueContext ()
+    {
+        if ( noBlockOnUpstreamTupleQueueContext )
+        {
+            upstreamDrainer.setParameters( AT_LEAST, nonBlockingUpstreamTupleCounts );
+        }
+        else
+        {
+            upstreamDrainer.setParameters( AT_LEAST, blockingUpstreamTupleCounts );
+        }
+
+        upstreamTupleQueueContext.drain( upstreamDrainer );
     }
 
     public void shutdown ()

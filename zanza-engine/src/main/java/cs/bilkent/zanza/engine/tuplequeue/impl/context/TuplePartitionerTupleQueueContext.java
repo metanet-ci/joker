@@ -55,37 +55,13 @@ public class TuplePartitionerTupleQueueContext implements TupleQueueContext
     @Override
     public void ensureCapacity ( final int portIndex, final int capacity )
     {
-        internal.ensureCapacity( portIndex, capacity );
+        throw new UnsupportedOperationException( getOperatorId() + " partitioner" );
     }
 
     @Override
     public void clear ()
     {
         internal.clear();
-    }
-
-    @Override
-    public void enableCapacityCheck ( final int portIndex )
-    {
-        throw new UnsupportedOperationException( getOperatorId() + " partitioner" );
-    }
-
-    @Override
-    public void disableCapacityCheck ( final int portIndex )
-    {
-        throw new UnsupportedOperationException( getOperatorId() + " partitioner" );
-    }
-
-    @Override
-    public boolean isCapacityCheckEnabled ( final int portIndex )
-    {
-        throw new UnsupportedOperationException( getOperatorId() + " partitioner" );
-    }
-
-    @Override
-    public boolean isCapacityCheckDisabled ( final int portIndex )
-    {
-        throw new UnsupportedOperationException( getOperatorId() + " partitioner" );
     }
 
 }

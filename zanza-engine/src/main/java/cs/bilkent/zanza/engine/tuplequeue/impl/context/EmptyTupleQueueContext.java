@@ -62,30 +62,6 @@ public class EmptyTupleQueueContext implements TupleQueueContext
     }
 
     @Override
-    public void enableCapacityCheck ( final int portIndex )
-    {
-
-    }
-
-    @Override
-    public void disableCapacityCheck ( final int portIndex )
-    {
-
-    }
-
-    @Override
-    public boolean isCapacityCheckEnabled ( final int portIndex )
-    {
-        return false;
-    }
-
-    @Override
-    public boolean isCapacityCheckDisabled ( final int portIndex )
-    {
-        return true;
-    }
-
-    @Override
     public void clear ()
     {
 

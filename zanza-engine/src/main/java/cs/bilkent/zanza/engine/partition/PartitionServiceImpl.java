@@ -18,14 +18,14 @@ public class PartitionServiceImpl implements PartitionService
     private static final Logger LOGGER = LoggerFactory.getLogger( PartitionServiceImpl.class );
 
 
-    private int partitionCount;
+    private final Map<Integer, int[]> regionReplicaDistributions = new HashMap<>();
 
-    private Map<Integer, int[]> regionReplicaDistributions = new HashMap<>();
+    private int partitionCount;
 
     @Override
     public void init ( final ZanzaConfig config )
     {
-        this.partitionCount = config.getPartitionServiceConfig().partitionCount;
+        this.partitionCount = config.getPartitionServiceConfig().getPartitionCount();
     }
 
     @Override

@@ -131,11 +131,12 @@ public class PipelineIntegrationTest
         final Supplier<TuplesImpl> tuplesImplSupplier = new NonCachedTuplesImplSupplier( mapperOperatorDef.outputPortCount() );
 
         final OperatorInstance operator = new OperatorInstance( pipelineInstanceId1,
-                                                                mapperOperatorDef,
-                                                                tupleQueueContext, nopKvStoreContext,
+                                                                mapperOperatorDef, tupleQueueContext, nopKvStoreContext,
                                                                 drainerPool,
                                                                 tuplesImplSupplier );
-        final PipelineInstance pipeline = new PipelineInstance( pipelineInstanceId1, new OperatorInstance[] { operator } );
+        final PipelineInstance pipeline = new PipelineInstance( pipelineInstanceId1,
+                                                                new OperatorInstance[] { operator },
+                                                                new EmptyTupleQueueContext( "map", mapperOperatorDef.inputPortCount() ) );
         final PipelineInstanceRunner runner = new PipelineInstanceRunner( pipeline );
 
         final Supervisor supervisor = mock( Supervisor.class );
@@ -193,8 +194,7 @@ public class PipelineIntegrationTest
         final Supplier<TuplesImpl> mapperTuplesImplSupplier = new CachedTuplesImplSupplier( mapperOperatorDef.outputPortCount() );
 
         final OperatorInstance mapperOperator = new OperatorInstance( pipelineInstanceId1,
-                                                                      mapperOperatorDef,
-                                                                      mapperTupleQueueContext, nopKvStoreContext,
+                                                                      mapperOperatorDef, mapperTupleQueueContext, nopKvStoreContext,
                                                                       mapperDrainerPool,
                                                                       mapperTuplesImplSupplier );
 
@@ -214,13 +214,13 @@ public class PipelineIntegrationTest
         final Supplier<TuplesImpl> filterTuplesImplSupplier = new NonCachedTuplesImplSupplier( filterOperatorDef.inputPortCount() );
 
         final OperatorInstance filterOperator = new OperatorInstance( pipelineInstanceId1,
-                                                                      filterOperatorDef,
-                                                                      filterTupleQueueContext, nopKvStoreContext,
+                                                                      filterOperatorDef, filterTupleQueueContext, nopKvStoreContext,
                                                                       filterDrainerPool,
                                                                       filterTuplesImplSupplier );
 
         final PipelineInstance pipeline = new PipelineInstance( pipelineInstanceId1,
-                                                                new OperatorInstance[] { mapperOperator, filterOperator } );
+                                                                new OperatorInstance[] { mapperOperator, filterOperator },
+                                                                new EmptyTupleQueueContext( "map", mapperOperatorDef.inputPortCount() ) );
         final PipelineInstanceRunner runner = new PipelineInstanceRunner( pipeline );
 
         final Supervisor supervisor = mock( Supervisor.class );
@@ -286,7 +286,8 @@ public class PipelineIntegrationTest
 
         final OperatorInstance generatorOperator = new OperatorInstance( pipelineInstanceId1,
                                                                          generatorOperatorDef,
-                                                                         generatorTupleQueueContext, nopKvStoreContext,
+                                                                         generatorTupleQueueContext,
+                                                                         nopKvStoreContext,
                                                                          generatorDrainerPool,
                                                                          generatorTuplesImplSupplier );
 
@@ -306,8 +307,7 @@ public class PipelineIntegrationTest
         final Supplier<TuplesImpl> passerTuplesImplSupplier = new CachedTuplesImplSupplier( passerOperatorDef.outputPortCount() );
 
         final OperatorInstance passerOperator = new OperatorInstance( pipelineInstanceId1,
-                                                                      passerOperatorDef,
-                                                                      passerTupleQueueContext, nopKvStoreContext,
+                                                                      passerOperatorDef, passerTupleQueueContext, nopKvStoreContext,
                                                                       passerDrainerPool,
                                                                       passerTuplesImplSupplier );
 
@@ -319,9 +319,7 @@ public class PipelineIntegrationTest
 
         final PartitionedTupleQueueContext[] stateTupleQueueContexts = tupleQueueContextManager.createPartitionedTupleQueueContext(
                 REGION_ID,
-                1,
-                stateOperatorDef,
-                SINGLE_THREADED );
+                1, stateOperatorDef );
         final PartitionedTupleQueueContext stateTupleQueueContext = stateTupleQueueContexts[ 0 ];
         final TupleQueueContext partitionerTupleQueueContext = new TuplePartitionerTupleQueueContext( stateTupleQueueContext );
 
@@ -329,15 +327,14 @@ public class PipelineIntegrationTest
         final Supplier<TuplesImpl> stateTuplesImplSupplier = new CachedTuplesImplSupplier( stateOperatorDef.outputPortCount() );
 
         final OperatorInstance stateOperator = new OperatorInstance( pipelineInstanceId1,
-                                                                     stateOperatorDef,
-                                                                     partitionerTupleQueueContext, kvStoreContexts[ 0 ],
+                                                                     stateOperatorDef, partitionerTupleQueueContext, kvStoreContexts[ 0 ],
                                                                      stateDrainerPool,
                                                                      stateTuplesImplSupplier );
 
         final PipelineInstance pipeline = new PipelineInstance( pipelineInstanceId1,
-                                                                new OperatorInstance[] { generatorOperator,
-                                                                                         passerOperator,
-                                                                                         stateOperator } );
+                                                                new OperatorInstance[] { generatorOperator, passerOperator, stateOperator },
+                                                                new EmptyTupleQueueContext( "generator",
+                                                                                            generatorOperatorDef.inputPortCount() ) );
         final PipelineInstanceRunner runner = new PipelineInstanceRunner( pipeline );
 
         final Supervisor supervisor = mock( Supervisor.class );
@@ -389,12 +386,13 @@ public class PipelineIntegrationTest
         final Supplier<TuplesImpl> mapperTuplesImplSupplier = new NonCachedTuplesImplSupplier( mapperOperatorDef.outputPortCount() );
 
         final OperatorInstance mapperOperator = new OperatorInstance( pipelineInstanceId1,
-                                                                      mapperOperatorDef,
-                                                                      mapperTupleQueueContext, nopKvStoreContext,
+                                                                      mapperOperatorDef, mapperTupleQueueContext, nopKvStoreContext,
                                                                       mapperDrainerPool,
                                                                       mapperTuplesImplSupplier );
 
-        final PipelineInstance pipeline1 = new PipelineInstance( pipelineInstanceId1, new OperatorInstance[] { mapperOperator } );
+        final PipelineInstance pipeline1 = new PipelineInstance( pipelineInstanceId1,
+                                                                 new OperatorInstance[] { mapperOperator },
+                                                                 new EmptyTupleQueueContext( "map", mapperOperatorDef.inputPortCount() ) );
         final PipelineInstanceRunner runner1 = new PipelineInstanceRunner( pipeline1 );
 
         final OperatorConfig filterOperatorConfig = new OperatorConfig();
@@ -413,12 +411,14 @@ public class PipelineIntegrationTest
         final Supplier<TuplesImpl> filterTuplesImplSupplier = new NonCachedTuplesImplSupplier( filterOperatorDef.inputPortCount() );
 
         final OperatorInstance filterOperator = new OperatorInstance( pipelineInstanceId1,
-                                                                      filterOperatorDef,
-                                                                      filterTupleQueueContext, nopKvStoreContext,
+                                                                      filterOperatorDef, filterTupleQueueContext, nopKvStoreContext,
                                                                       filterDrainerPool,
                                                                       filterTuplesImplSupplier );
 
-        final PipelineInstance pipeline2 = new PipelineInstance( pipelineInstanceId2, new OperatorInstance[] { filterOperator } );
+        final PipelineInstance pipeline2 = new PipelineInstance( pipelineInstanceId2,
+                                                                 new OperatorInstance[] { filterOperator },
+                                                                 new EmptyTupleQueueContext( "filter",
+                                                                                             filterOperatorDef.inputPortCount() ) );
         final PipelineInstanceRunner runner2 = new PipelineInstanceRunner( pipeline2 );
 
         final SupervisorImpl supervisor = new SupervisorImpl();
@@ -499,11 +499,15 @@ public class PipelineIntegrationTest
 
         final OperatorInstance generatorOperator1 = new OperatorInstance( pipelineInstanceId1,
                                                                           generatorOperatorDef1,
-                                                                          generatorTupleQueueContext1, nopKvStoreContext,
+                                                                          generatorTupleQueueContext1,
+                                                                          nopKvStoreContext,
                                                                           generatorDrainerPool1,
                                                                           generatorTuplesImplSupplier1 );
 
-        final PipelineInstance pipeline1 = new PipelineInstance( pipelineInstanceId1, new OperatorInstance[] { generatorOperator1 } );
+        final PipelineInstance pipeline1 = new PipelineInstance( pipelineInstanceId1,
+                                                                 new OperatorInstance[] { generatorOperator1 },
+                                                                 new EmptyTupleQueueContext( "generator1",
+                                                                                             generatorOperatorDef1.inputPortCount() ) );
         final PipelineInstanceRunner runner1 = new PipelineInstanceRunner( pipeline1 );
 
         final OperatorConfig generatorOperatorConfig2 = new OperatorConfig();
@@ -523,11 +527,15 @@ public class PipelineIntegrationTest
 
         final OperatorInstance generatorOperator2 = new OperatorInstance( pipelineInstanceId2,
                                                                           generatorOperatorDef2,
-                                                                          generatorTupleQueueContext2, nopKvStoreContext,
+                                                                          generatorTupleQueueContext2,
+                                                                          nopKvStoreContext,
                                                                           generatorDrainerPool2,
                                                                           generatorTuplesImplSupplier2 );
 
-        final PipelineInstance pipeline2 = new PipelineInstance( pipelineInstanceId2, new OperatorInstance[] { generatorOperator2 } );
+        final PipelineInstance pipeline2 = new PipelineInstance( pipelineInstanceId2,
+                                                                 new OperatorInstance[] { generatorOperator2 },
+                                                                 new EmptyTupleQueueContext( "generator2",
+                                                                                             generatorOperatorDef2.inputPortCount() ) );
         final PipelineInstanceRunner runner2 = new PipelineInstanceRunner( pipeline2 );
 
         final OperatorConfig sinkOperatorConfig = new OperatorConfig();
@@ -546,8 +554,7 @@ public class PipelineIntegrationTest
         final KVStoreContext sinkKVStoreContext = kvStoreContextManager.createDefaultKVStoreContext( REGION_ID, "sink" );
 
         final OperatorInstance sinkOperator = new OperatorInstance( pipelineInstanceId3,
-                                                                    sinkOperatorDef,
-                                                                    sinkTupleQueueContext, sinkKVStoreContext,
+                                                                    sinkOperatorDef, sinkTupleQueueContext, sinkKVStoreContext,
                                                                     sinkDrainerPool,
                                                                     sinkTuplesImplSupplier );
 
@@ -567,8 +574,7 @@ public class PipelineIntegrationTest
         final Supplier<TuplesImpl> passerTuplesImplSupplier = new CachedTuplesImplSupplier( passerOperatorDef.outputPortCount() );
 
         final OperatorInstance passerOperator = new OperatorInstance( pipelineInstanceId3,
-                                                                      passerOperatorDef,
-                                                                      passerTupleQueueContext, nopKvStoreContext,
+                                                                      passerOperatorDef, passerTupleQueueContext, nopKvStoreContext,
                                                                       passerDrainerPool,
                                                                       passerTuplesImplSupplier );
 
@@ -580,9 +586,7 @@ public class PipelineIntegrationTest
 
         final PartitionedTupleQueueContext[] stateTupleQueueContexts = tupleQueueContextManager.createPartitionedTupleQueueContext(
                 REGION_ID,
-                1,
-                stateOperatorDef,
-                SINGLE_THREADED );
+                1, stateOperatorDef );
         final PartitionedTupleQueueContext stateTupleQueueContext = stateTupleQueueContexts[ 0 ];
         final TupleQueueContext partitionerTupleQueueContext = new TuplePartitionerTupleQueueContext( stateTupleQueueContext );
 
@@ -590,13 +594,13 @@ public class PipelineIntegrationTest
         final Supplier<TuplesImpl> stateTuplesImplSupplier = new CachedTuplesImplSupplier( stateOperatorDef.outputPortCount() );
 
         final OperatorInstance stateOperator = new OperatorInstance( pipelineInstanceId3,
-                                                                     stateOperatorDef,
-                                                                     partitionerTupleQueueContext, kvStoreContexts[ 0 ],
+                                                                     stateOperatorDef, partitionerTupleQueueContext, kvStoreContexts[ 0 ],
                                                                      stateDrainerPool,
                                                                      stateTuplesImplSupplier );
 
         final PipelineInstance pipeline3 = new PipelineInstance( pipelineInstanceId3,
-                                                                 new OperatorInstance[] { sinkOperator, passerOperator, stateOperator } );
+                                                                 new OperatorInstance[] { sinkOperator, passerOperator, stateOperator },
+                                                                 new EmptyTupleQueueContext( "sink", sinkOperatorDef.inputPortCount() ) );
         final PipelineInstanceRunner runner3 = new PipelineInstanceRunner( pipeline3 );
 
         final SupervisorImpl supervisor = new SupervisorImpl();
@@ -651,6 +655,133 @@ public class PipelineIntegrationTest
         assertEquals( totalCount, passerOp.count );
         assertEquals( totalCount, stateOp.count );
         assertEquals( totalCount, getKVStoreTotalItemCount( REGION_ID, "state" ) );
+    }
+
+    @Test
+    public void testMultiplePipelines_partitionedStatefulDownstreamPipeline () throws ExecutionException, InterruptedException
+    {
+        final int batchCount = 4;
+
+        final OperatorConfig generatorOperatorConfig = new OperatorConfig();
+        generatorOperatorConfig.set( "batchCount", batchCount );
+
+        final OperatorDefinition generatorOperatorDef = OperatorDefinitionBuilder.newInstance( "generator", ValueGeneratorOperator.class )
+                                                                                 .setConfig( generatorOperatorConfig )
+                                                                                 .build();
+
+        final TupleQueueContext generatorTupleQueueContext = new EmptyTupleQueueContext( generatorOperatorDef.id(),
+                                                                                         generatorOperatorDef.inputPortCount() );
+
+        final TupleQueueDrainerPool generatorDrainerPool = new NonBlockingTupleQueueDrainerPool( generatorOperatorDef );
+        final Supplier<TuplesImpl> generatorTuplesImplSupplier = new NonCachedTuplesImplSupplier( generatorOperatorDef.outputPortCount() );
+
+        final OperatorInstance generatorOperator = new OperatorInstance( pipelineInstanceId1,
+                                                                         generatorOperatorDef,
+                                                                         generatorTupleQueueContext,
+                                                                         nopKvStoreContext,
+                                                                         generatorDrainerPool,
+                                                                         generatorTuplesImplSupplier );
+
+        final OperatorConfig passerOperatorConfig = new OperatorConfig();
+        passerOperatorConfig.set( "batchCount", batchCount / 2 );
+
+        final OperatorDefinition passerOperatorDef = OperatorDefinitionBuilder.newInstance( "passer", ValuePasserOperator.class )
+                                                                              .setConfig( passerOperatorConfig )
+                                                                              .build();
+
+        final TupleQueueContext passerTupleQueueContext = tupleQueueContextManager.createDefaultTupleQueueContext( REGION_ID,
+                                                                                                                   REPLICA_INDEX,
+                                                                                                                   passerOperatorDef,
+                                                                                                                   SINGLE_THREADED );
+
+        final TupleQueueDrainerPool passerDrainerPool = new NonBlockingTupleQueueDrainerPool( passerOperatorDef );
+        final Supplier<TuplesImpl> passerTuplesImplSupplier = new CachedTuplesImplSupplier( passerOperatorDef.outputPortCount() );
+
+        final OperatorInstance passerOperator = new OperatorInstance( pipelineInstanceId1,
+                                                                      passerOperatorDef,
+                                                                      passerTupleQueueContext,
+                                                                      nopKvStoreContext,
+                                                                      passerDrainerPool,
+                                                                      passerTuplesImplSupplier );
+
+        final KVStoreContext[] kvStoreContexts = kvStoreContextManager.createPartitionedKVStoreContexts( REGION_ID, 1, "state" );
+
+        final OperatorDefinition stateOperatorDef = OperatorDefinitionBuilder.newInstance( "state", ValueStateOperator.class )
+                                                                             .setPartitionFieldNames( singletonList( "val" ) )
+                                                                             .build();
+
+        final PartitionedTupleQueueContext[] stateTupleQueueContexts = tupleQueueContextManager.createPartitionedTupleQueueContext(
+                REGION_ID,
+                1,
+                stateOperatorDef );
+        final PartitionedTupleQueueContext stateTupleQueueContext = stateTupleQueueContexts[ 0 ];
+        final TupleQueueContext partitionerTupleQueueContext = new TuplePartitionerTupleQueueContext( stateTupleQueueContext );
+
+        final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( stateOperatorDef );
+        final Supplier<TuplesImpl> stateTuplesImplSupplier = new CachedTuplesImplSupplier( stateOperatorDef.outputPortCount() );
+
+        final OperatorInstance stateOperator = new OperatorInstance( pipelineInstanceId1,
+                                                                     stateOperatorDef,
+                                                                     partitionerTupleQueueContext,
+                                                                     kvStoreContexts[ 0 ],
+                                                                     stateDrainerPool,
+                                                                     stateTuplesImplSupplier );
+
+        final PipelineInstance pipeline1 = new PipelineInstance( pipelineInstanceId1,
+                                                                 new OperatorInstance[] { generatorOperator, passerOperator },
+                                                                 new EmptyTupleQueueContext( "generator",
+                                                                                             generatorOperatorDef.inputPortCount() ) );
+        final PipelineInstanceRunner runner1 = new PipelineInstanceRunner( pipeline1 );
+
+        final PipelineInstance pipeline2 = new PipelineInstance( pipelineInstanceId2,
+                                                                 new OperatorInstance[] { stateOperator },
+                                                                 tupleQueueContextManager.createDefaultTupleQueueContext( REGION_ID,
+                                                                                                                          REPLICA_INDEX,
+                                                                                                                          stateOperatorDef,
+                                                                                                                          MULTI_THREADED
+                                                                 ) );
+        final PipelineInstanceRunner runner2 = new PipelineInstanceRunner( pipeline2 );
+
+        final SupervisorImpl supervisor = new SupervisorImpl();
+        supervisor.upstreamContexts.put( pipelineInstanceId1, new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ) );
+        supervisor.upstreamContexts.put( pipelineInstanceId2, new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ) );
+        supervisor.inputPortIndices.put( pipelineInstanceId1, 0 );
+        supervisor.inputPortIndices.put( pipelineInstanceId2, 0 );
+        supervisor.targetPipelineInstanceId = pipelineInstanceId2;
+        supervisor.runner = runner2;
+
+        runner1.setSupervisor( supervisor );
+        runner2.setSupervisor( supervisor );
+
+        runner1.setDownstreamTupleSender( new DownstreamTupleSenderImpl( pipeline2.getUpstreamTupleQueueContext(),
+                                                                         new Pair[] { Pair.of( 0, 0 ) } ) );
+        runner2.setDownstreamTupleSender( mock( DownstreamTupleSender.class ) );
+
+        runner1.init( zanzaConfig );
+        runner2.init( zanzaConfig );
+
+        final Thread runnerThread1 = spawnThread( runner1 );
+        final Thread runnerThread2 = spawnThread( runner2 );
+
+        final ValueGeneratorOperator generatorOp = (ValueGeneratorOperator) generatorOperator.getOperator();
+        generatorOp.start = true;
+
+        assertTrueEventually( () -> assertTrue( generatorOp.count > 1000 ) );
+
+        generatorOp.stop = true;
+
+        assertTrueEventually( () -> supervisor.completedPipelines.contains( pipelineInstanceId1 ) );
+        assertTrueEventually( () -> supervisor.completedPipelines.contains( pipelineInstanceId2 ) );
+
+        runnerThread1.join();
+        runnerThread2.join();
+
+        final ValuePasserOperator passerOp = (ValuePasserOperator) passerOperator.getOperator();
+        final ValueStateOperator stateOp = (ValueStateOperator) stateOperator.getOperator();
+
+        assertEquals( generatorOp.count, passerOp.count );
+        assertEquals( generatorOp.count, stateOp.count );
+        assertEquals( generatorOp.count, getKVStoreTotalItemCount( REGION_ID, "state" ) );
     }
 
     private int getKVStoreTotalItemCount ( final int regionId, final String operatorId )
