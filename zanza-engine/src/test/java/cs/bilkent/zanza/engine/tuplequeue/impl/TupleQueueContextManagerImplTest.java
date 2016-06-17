@@ -8,6 +8,8 @@ import org.junit.Test;
 import cs.bilkent.zanza.engine.config.ThreadingPreference;
 import static cs.bilkent.zanza.engine.config.ThreadingPreference.MULTI_THREADED;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
+import cs.bilkent.zanza.engine.partition.PartitionService;
+import cs.bilkent.zanza.engine.partition.PartitionServiceImpl;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.flow.OperatorDefinition;
 import cs.bilkent.zanza.flow.OperatorRuntimeSchemaBuilder;
@@ -21,12 +23,14 @@ import static org.junit.Assert.assertTrue;
 public class TupleQueueContextManagerImplTest
 {
 
-    private final TupleQueueContextManagerImpl tupleQueueManager = new TupleQueueContextManagerImpl();
+    private TupleQueueContextManagerImpl tupleQueueManager;
 
     @Before
     public void init ()
     {
-        tupleQueueManager.init( new ZanzaConfig() );
+        final ZanzaConfig zanzaConfig = new ZanzaConfig();
+        final PartitionService partitionService = new PartitionServiceImpl( zanzaConfig );
+        tupleQueueManager = new TupleQueueContextManagerImpl( partitionService, zanzaConfig );
     }
 
     @Test( expected = IllegalArgumentException.class )

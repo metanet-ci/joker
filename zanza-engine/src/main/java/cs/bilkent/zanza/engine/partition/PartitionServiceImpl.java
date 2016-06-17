@@ -6,12 +6,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.concurrent.NotThreadSafe;
+import javax.inject.Inject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.google.inject.Singleton;
 
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
 
+@Singleton
+@NotThreadSafe
 public class PartitionServiceImpl implements PartitionService
 {
 
@@ -20,12 +25,12 @@ public class PartitionServiceImpl implements PartitionService
 
     private final Map<Integer, int[]> regionReplicaDistributions = new HashMap<>();
 
-    private int partitionCount;
+    private final int partitionCount;
 
-    @Override
-    public void init ( final ZanzaConfig config )
+    @Inject
+    public PartitionServiceImpl ( final ZanzaConfig zanzaConfig )
     {
-        this.partitionCount = config.getPartitionServiceConfig().getPartitionCount();
+        this.partitionCount = zanzaConfig.getPartitionServiceConfig().getPartitionCount();
     }
 
     @Override

@@ -22,6 +22,7 @@ import cs.bilkent.zanza.engine.pipeline.PipelineInstanceId;
 import cs.bilkent.zanza.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
 import cs.bilkent.zanza.engine.pipeline.impl.tuplesupplier.NonCachedTuplesImplSupplier;
 import cs.bilkent.zanza.engine.region.impl.RegionFormerImpl;
+import cs.bilkent.zanza.engine.region.impl.RegionManagerImpl;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.impl.TupleQueueContextManagerImpl;
 import cs.bilkent.zanza.engine.tuplequeue.impl.context.DefaultTupleQueueContext;
@@ -46,27 +47,19 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-public class RegionManagerTest
+public class RegionManagerImplTest
 {
 
-    private final PartitionService partitionService = new PartitionServiceImpl();
-
-    private final KVStoreContextManagerImpl kvStoreContextManager = new KVStoreContextManagerImpl();
-
-    private final TupleQueueContextManagerImpl tupleQueueContextManager = new TupleQueueContextManagerImpl();
-
-    private final RegionManager regionManager = new RegionManager();
+    private RegionManagerImpl regionManagerImpl;
 
     @Before
     public void init ()
     {
         final ZanzaConfig config = new ZanzaConfig();
-        partitionService.init( config );
-        kvStoreContextManager.setPartitionService( partitionService );
-        tupleQueueContextManager.setPartitionService( partitionService );
-        tupleQueueContextManager.init( config );
-        regionManager.setKvStoreContextManager( kvStoreContextManager );
-        regionManager.setTupleQueueContextManager( tupleQueueContextManager );
+        final PartitionService partitionService = new PartitionServiceImpl( config );
+        final KVStoreContextManagerImpl kvStoreContextManager = new KVStoreContextManagerImpl( partitionService );
+        final TupleQueueContextManagerImpl tupleQueueContextManager = new TupleQueueContextManagerImpl( partitionService, config );
+        regionManagerImpl = new RegionManagerImpl( kvStoreContextManager, tupleQueueContextManager );
     }
 
     @Test
@@ -86,7 +79,7 @@ public class RegionManagerTest
         final RegionDefinition region = regions.get( 0 );
         final RegionRuntimeConfig regionConfig = new RegionRuntimeConfig( 1, region, 1, singletonList( 0 ) );
 
-        final RegionInstance regionInstance = regionManager.createRegion( flow, regionConfig );
+        final RegionInstance regionInstance = regionManagerImpl.createRegion( flow, regionConfig );
         assertNotNull( regionInstance );
         final PipelineInstance[] pipelines = regionInstance.getPipelines( 0 );
         assertEquals( 1, pipelines.length );
@@ -113,7 +106,7 @@ public class RegionManagerTest
         final RegionDefinition region = regions.get( 0 );
         final RegionRuntimeConfig regionConfig = new RegionRuntimeConfig( 1, region, 2, singletonList( 0 ) );
 
-        final RegionInstance regionInstance = regionManager.createRegion( flow, regionConfig );
+        final RegionInstance regionInstance = regionManagerImpl.createRegion( flow, regionConfig );
         assertNotNull( regionInstance );
         final PipelineInstance[] pipelines0 = regionInstance.getPipelines( 0 );
         final PipelineInstance[] pipelines1 = regionInstance.getPipelines( 1 );
@@ -144,7 +137,7 @@ public class RegionManagerTest
         final RegionDefinition region = regions.get( 0 );
         final RegionRuntimeConfig regionConfig = new RegionRuntimeConfig( 1, region, 1, asList( 0, 1 ) );
 
-        final RegionInstance regionInstance = regionManager.createRegion( flow, regionConfig );
+        final RegionInstance regionInstance = regionManagerImpl.createRegion( flow, regionConfig );
         assertNotNull( regionInstance );
         final PipelineInstance[] pipelines = regionInstance.getPipelines( 0 );
         assertEquals( 2, pipelines.length );
@@ -216,7 +209,7 @@ public class RegionManagerTest
         final RegionDefinition region = regions.get( 1 );
         final RegionRuntimeConfig regionConfig = new RegionRuntimeConfig( 1, region, 1, singletonList( 0 ) );
 
-        final RegionInstance regionInstance = regionManager.createRegion( flow, regionConfig );
+        final RegionInstance regionInstance = regionManagerImpl.createRegion( flow, regionConfig );
         assertNotNull( regionInstance );
         final PipelineInstance[] pipelines = regionInstance.getPipelines( 0 );
         assertEquals( 1, pipelines.length );
@@ -258,7 +251,7 @@ public class RegionManagerTest
         final RegionDefinition region = regions.get( 1 );
         final RegionRuntimeConfig regionConfig = new RegionRuntimeConfig( 1, region, 1, singletonList( 0 ) );
 
-        final RegionInstance regionInstance = regionManager.createRegion( flow, regionConfig );
+        final RegionInstance regionInstance = regionManagerImpl.createRegion( flow, regionConfig );
         assertNotNull( regionInstance );
         final PipelineInstance[] pipelines = regionInstance.getPipelines( 0 );
         assertEquals( 1, pipelines.length );
@@ -305,7 +298,7 @@ public class RegionManagerTest
         final RegionDefinition region = regions.get( 1 );
         final RegionRuntimeConfig regionConfig = new RegionRuntimeConfig( 1, region, 1, singletonList( 0 ) );
 
-        final RegionInstance regionInstance = regionManager.createRegion( flow, regionConfig );
+        final RegionInstance regionInstance = regionManagerImpl.createRegion( flow, regionConfig );
         assertNotNull( regionInstance );
         final PipelineInstance[] pipelines = regionInstance.getPipelines( 0 );
         assertEquals( 1, pipelines.length );
@@ -352,7 +345,7 @@ public class RegionManagerTest
         final RegionDefinition region = regions.get( 1 );
         final RegionRuntimeConfig regionConfig = new RegionRuntimeConfig( 1, region, 2, singletonList( 0 ) );
 
-        final RegionInstance regionInstance = regionManager.createRegion( flow, regionConfig );
+        final RegionInstance regionInstance = regionManagerImpl.createRegion( flow, regionConfig );
         assertNotNull( regionInstance );
         final PipelineInstance[] pipelines0 = regionInstance.getPipelines( 0 );
         final PipelineInstance[] pipelines1 = regionInstance.getPipelines( 1 );
@@ -420,7 +413,7 @@ public class RegionManagerTest
         final RegionDefinition region = regions.get( 1 );
         final RegionRuntimeConfig regionConfig = new RegionRuntimeConfig( 1, region, 1, singletonList( 0 ) );
 
-        final RegionInstance regionInstance = regionManager.createRegion( flow, regionConfig );
+        final RegionInstance regionInstance = regionManagerImpl.createRegion( flow, regionConfig );
         assertNotNull( regionInstance );
         final PipelineInstance[] pipelines = regionInstance.getPipelines( 0 );
         assertEquals( 1, pipelines.length );
@@ -483,7 +476,7 @@ public class RegionManagerTest
         final RegionDefinition region = regions.get( 1 );
         final RegionRuntimeConfig regionConfig = new RegionRuntimeConfig( 1, region, 2, singletonList( 0 ) );
 
-        final RegionInstance regionInstance = regionManager.createRegion( flow, regionConfig );
+        final RegionInstance regionInstance = regionManagerImpl.createRegion( flow, regionConfig );
         assertNotNull( regionInstance );
         final PipelineInstance[] pipelinesReplica0 = regionInstance.getPipelines( 0 );
         final PipelineInstance[] pipelinesReplica1 = regionInstance.getPipelines( 1 );
@@ -575,7 +568,7 @@ public class RegionManagerTest
         final RegionDefinition region = regions.get( 1 );
         final RegionRuntimeConfig regionConfig = new RegionRuntimeConfig( 1, region, 1, asList( 0, 1 ) );
 
-        final RegionInstance regionInstance = regionManager.createRegion( flow, regionConfig );
+        final RegionInstance regionInstance = regionManagerImpl.createRegion( flow, regionConfig );
         assertNotNull( regionInstance );
         final PipelineInstance[] pipelines = regionInstance.getPipelines( 0 );
         assertEquals( 2, pipelines.length );

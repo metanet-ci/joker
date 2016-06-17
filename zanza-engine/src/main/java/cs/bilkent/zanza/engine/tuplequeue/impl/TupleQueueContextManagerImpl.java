@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 import javax.annotation.concurrent.NotThreadSafe;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +30,7 @@ import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import cs.bilkent.zanza.utils.Pair;
 import cs.bilkent.zanza.utils.Triple;
 
+@Singleton
 @NotThreadSafe
 public class TupleQueueContextManagerImpl implements TupleQueueContextManager
 {
@@ -35,7 +38,9 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
     private static final Logger LOGGER = LoggerFactory.getLogger( TupleQueueContextManagerImpl.class );
 
 
-    private PartitionService partitionService;
+    private final PartitionService partitionService;
+
+    private final int initialTupleQueueCapacity;
 
     private final Map<Triple<Integer, Integer, String>, TupleQueueContext> singleTupleQueueContexts = new HashMap<>();
 
@@ -43,24 +48,11 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
 
     private final Map<String, TupleQueueContainer[]> tupleQueueContainersByOperatorId = new HashMap<>();
 
-    private int initialTupleQueueCapacity;
-
-    private int partitionCount;
-
-    public TupleQueueContextManagerImpl ()
-    {
-    }
-
-    public void setPartitionService ( final PartitionService partitionService )
+    @Inject
+    public TupleQueueContextManagerImpl ( final PartitionService partitionService, final ZanzaConfig zanzaConfig )
     {
         this.partitionService = partitionService;
-    }
-
-    @Override
-    public void init ( final ZanzaConfig config )
-    {
-        initialTupleQueueCapacity = config.getTupleQueueManagerConfig().getTupleQueueInitialSize();
-        partitionCount = config.getPartitionServiceConfig().getPartitionCount();
+        this.initialTupleQueueCapacity = zanzaConfig.getTupleQueueManagerConfig().getTupleQueueInitialSize();
     }
 
     @Override
@@ -109,13 +101,12 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
             {
                 final TupleQueueContainer[] containers = getOrCreateTupleQueueContainers( operatorId,
                                                                                           inputPortCount,
-                                                                                          partitionCount,
+                                                                                          partitionService.getPartitionCount(),
                                                                                           tupleQueueConstructor );
                 final int[] partitions = partitionService.getOrCreatePartitionDistribution( regionId, replicaCount );
                 final PartitionKeyFunction partitionKeyExtractor = new PartitionKeyFunction( operatorDefinition.partitionFieldNames() );
                 tupleQueueContexts[ replicaIndex ] = new PartitionedTupleQueueContext( operatorId,
-                                                                                       inputPortCount,
-                                                                                       partitionCount,
+                                                                                       inputPortCount, partitionService.getPartitionCount(),
                                                                                        replicaIndex,
                                                                                        partitionKeyExtractor,
                                                                                        containers,

@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 import java.util.stream.Stream;
+import javax.annotation.concurrent.NotThreadSafe;
+import javax.inject.Singleton;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,11 +28,17 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.reverse;
 import static java.util.Collections.singletonList;
 
+@Singleton
+@NotThreadSafe
 public class RegionFormerImpl implements RegionFormer
 {
 
     private static final Logger LOGGER = LoggerFactory.getLogger( RegionFormerImpl.class );
 
+
+    public RegionFormerImpl ()
+    {
+    }
 
     @Override
     public List<RegionDefinition> createRegions ( final FlowDefinition flow )

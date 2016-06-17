@@ -2,6 +2,9 @@ package cs.bilkent.zanza.engine.kvstore.impl;
 
 import java.util.HashMap;
 import java.util.Map;
+import javax.annotation.concurrent.NotThreadSafe;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,13 +18,15 @@ import cs.bilkent.zanza.operator.kvstore.KVStore;
 import cs.bilkent.zanza.operator.kvstore.impl.InMemoryKVStore;
 import cs.bilkent.zanza.utils.Pair;
 
+@Singleton
+@NotThreadSafe
 public class KVStoreContextManagerImpl implements KVStoreContextManager
 {
 
     private static final Logger LOGGER = LoggerFactory.getLogger( KVStoreContextManagerImpl.class );
 
 
-    private PartitionService partitionService;
+    private final PartitionService partitionService;
 
     private final Map<Pair<Integer, String>, DefaultKVStoreContext> defaultKVStoreContexts = new HashMap<>();
 
@@ -29,8 +34,8 @@ public class KVStoreContextManagerImpl implements KVStoreContextManager
 
     private final Map<Pair<Integer, String>, KVStore[]> kvStores = new HashMap<>();
 
-
-    public void setPartitionService ( final PartitionService partitionService )
+    @Inject
+    public KVStoreContextManagerImpl ( final PartitionService partitionService )
     {
         this.partitionService = partitionService;
     }

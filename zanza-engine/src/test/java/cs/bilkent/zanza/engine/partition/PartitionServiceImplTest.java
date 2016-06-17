@@ -18,7 +18,7 @@ public class PartitionServiceImplTest
 
     private final static int PARTITION_COUNT = 15;
 
-    private final PartitionServiceImpl partitionService = new PartitionServiceImpl();
+    private PartitionServiceImpl partitionService;
 
     @Before
     public void before ()
@@ -29,7 +29,8 @@ public class PartitionServiceImplTest
                                            .withoutPath( configPath )
                                            .withValue( configPath, ConfigValueFactory.fromAnyRef( PARTITION_COUNT ) );
 
-        partitionService.init( new ZanzaConfig( config ) );
+        final ZanzaConfig zanzaConfig = new ZanzaConfig( config );
+        partitionService = new PartitionServiceImpl( zanzaConfig );
     }
 
     @Test

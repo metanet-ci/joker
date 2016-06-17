@@ -22,15 +22,15 @@ public class KVStoreContextManagerImplTest
     private static final int REGION_ID = 1;
 
 
-    private final KVStoreContextManagerImpl kvStoreManager = new KVStoreContextManagerImpl();
+    private PartitionService partitionService;
 
-    private final PartitionService partitionService = new PartitionServiceImpl();
+    private KVStoreContextManagerImpl kvStoreManager;
 
     @Before
     public void init ()
     {
-        partitionService.init( new ZanzaConfig() );
-        kvStoreManager.setPartitionService( partitionService );
+        partitionService = new PartitionServiceImpl( new ZanzaConfig() );
+        kvStoreManager = new KVStoreContextManagerImpl( partitionService );
     }
 
     @Test
