@@ -4,6 +4,7 @@ import java.util.Arrays;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import cs.bilkent.zanza.engine.kvstore.KVStoreContext;
+import static cs.bilkent.zanza.engine.partition.PartitionUtil.getPartitionId;
 import cs.bilkent.zanza.operator.kvstore.KVStore;
 import cs.bilkent.zanza.operator.kvstore.impl.KeyDecoratedKVStore;
 
@@ -42,11 +43,7 @@ public class PartitionedKVStoreContext implements KVStoreContext
     @Override
     public KVStore getKVStore ( final Object key )
     {
-        int partitionId = key.hashCode() % partitionCount;
-        if ( partitionId < 0 )
-        {
-            partitionId += partitionCount;
-        }
+        final int partitionId = getPartitionId( key, partitionCount );
         final KVStore kvStore = kvStores[ partitionId ];
         checkNotNull( kvStore, "partitionId=% is not in replicaIndex=%", partitionId, replicaIndex );
         return new KeyDecoratedKVStore( key, kvStore );

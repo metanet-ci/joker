@@ -126,4 +126,19 @@ public class OperatorDefinition
         return id.hashCode();
     }
 
+    @Override
+    public String toString ()
+    {
+        return "OperatorDefinition{" +
+               "id='" + id + '\'' +
+               ", clazz=" + clazz +
+               ", type=" + type +
+               ", inputPortCount=" + inputPortCount +
+               ", outputPortCount=" + outputPortCount +
+               ", schema=" + schema +
+               ", config=" + config +
+               ", partitionFieldNames=" + partitionFieldNames +
+               '}';
+    }
+
 }

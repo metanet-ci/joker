@@ -8,17 +8,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static cs.bilkent.zanza.engine.partition.PartitionUtil.getPartitionId;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
+import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.zanza.engine.tuplequeue.impl.TupleQueueContainer;
 import cs.bilkent.zanza.operator.Tuple;
 
 
-public class PartitionedTupleQueueContext extends AbstractTupleQueueContext
+public class PartitionedTupleQueueContext implements TupleQueueContext
 {
 
     private static final Logger LOGGER = LoggerFactory.getLogger( PartitionedTupleQueueContext.class );
 
+    private final String operatorId;
 
     private final int partitionCount;
 
@@ -36,9 +39,9 @@ public class PartitionedTupleQueueContext extends AbstractTupleQueueContext
                                           final TupleQueueContainer[] tupleQueueContainers,
                                           final int[] partitions )
     {
-        super( operatorId, inputPortCount );
         checkArgument( partitionCount == tupleQueueContainers.length );
         checkArgument( partitionCount == partitions.length );
+        this.operatorId = operatorId;
         this.partitionCount = partitionCount;
         this.partitionKeyExtractor = partitionKeyExtractor;
         this.tupleQueueContainers = Arrays.copyOf( tupleQueueContainers, partitionCount );
@@ -71,15 +74,37 @@ public class PartitionedTupleQueueContext extends AbstractTupleQueueContext
     }
 
     @Override
-    protected TupleQueue[] getTupleQueues ( final List<Tuple> tuples )
+    public void offer ( final int portIndex, final List<Tuple> tuples )
     {
-        if ( tuples == null || tuples.isEmpty() )
+        for ( Tuple tuple : tuples )
         {
-            return null;
+            final TupleQueue[] tupleQueues = getTupleQueues( tuple );
+            tupleQueues[ portIndex ].offerTuple( tuple );
+        }
+    }
+
+    @Override
+    public int tryOffer ( final int portIndex, final List<Tuple> tuples, final long timeoutInMillis )
+    {
+        if ( tuples == null )
+        {
+            return -1;
         }
 
-        return getTupleQueues( tuples.get( 0 ) );
+        offer( portIndex, tuples );
+        return tuples.size();
     }
+
+    @Override
+    public void forceOffer ( final int portIndex, final List<Tuple> tuples )
+    {
+        for ( Tuple tuple : tuples )
+        {
+            final TupleQueue[] tupleQueues = getTupleQueues( tuple );
+            tupleQueues[ portIndex ].forceOffer( tuple );
+        }
+    }
+
 
     TupleQueue[] getTupleQueues ( final Tuple tuple )
     {
@@ -90,11 +115,7 @@ public class PartitionedTupleQueueContext extends AbstractTupleQueueContext
             return null;
         }
 
-        int partitionId = partitionKey.hashCode() % partitionCount;
-        if ( partitionId < 0 )
-        {
-            partitionId += partitionCount;
-        }
+        final int partitionId = getPartitionId( partitionKey, partitionCount );
 
         return tupleQueueContainers[ partitionId ].getTupleQueues( partitionKey );
     }

@@ -1,5 +1,7 @@
 package cs.bilkent.zanza.engine.tuplequeue.impl.drainer;
 
+import java.util.Arrays;
+
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 
 
@@ -15,6 +17,7 @@ public class BlockingMultiPortDisjunctiveDrainer extends MultiPortDrainer
         super( inputPortCount, maxBatchSize );
         this.timeoutInMillisPerQueue = inputPortCount > 0 ? (long) Math.ceil( timeoutInMillis / inputPortCount ) : 0;
         this.tupleCountsBuffer = new int[ inputPortCount ];
+        Arrays.fill( tupleCountsBuffer, NO_TUPLES_AVAILABLE );
     }
 
     @Override

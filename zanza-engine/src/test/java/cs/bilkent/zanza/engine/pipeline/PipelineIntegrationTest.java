@@ -28,8 +28,8 @@ import cs.bilkent.zanza.engine.partition.PartitionService;
 import cs.bilkent.zanza.engine.partition.PartitionServiceImpl;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.CLOSED;
-import cs.bilkent.zanza.engine.pipeline.impl.CachedTuplesImplSupplier;
-import cs.bilkent.zanza.engine.pipeline.impl.NonCachedTuplesImplSupplier;
+import cs.bilkent.zanza.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
+import cs.bilkent.zanza.engine.pipeline.impl.tuplesupplier.NonCachedTuplesImplSupplier;
 import cs.bilkent.zanza.engine.supervisor.Supervisor;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
@@ -37,7 +37,6 @@ import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainerPool;
 import cs.bilkent.zanza.engine.tuplequeue.impl.TupleQueueContextManagerImpl;
 import cs.bilkent.zanza.engine.tuplequeue.impl.context.EmptyTupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.impl.context.PartitionedTupleQueueContext;
-import cs.bilkent.zanza.engine.tuplequeue.impl.context.TuplePartitionerTupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.pool.BlockingTupleQueueDrainerPool;
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.pool.NonBlockingTupleQueueDrainerPool;
 import cs.bilkent.zanza.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
@@ -321,13 +320,14 @@ public class PipelineIntegrationTest
                 REGION_ID,
                 1, stateOperatorDef );
         final PartitionedTupleQueueContext stateTupleQueueContext = stateTupleQueueContexts[ 0 ];
-        final TupleQueueContext partitionerTupleQueueContext = new TuplePartitionerTupleQueueContext( stateTupleQueueContext );
 
         final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( stateOperatorDef );
         final Supplier<TuplesImpl> stateTuplesImplSupplier = new CachedTuplesImplSupplier( stateOperatorDef.outputPortCount() );
 
         final OperatorInstance stateOperator = new OperatorInstance( pipelineInstanceId1,
-                                                                     stateOperatorDef, partitionerTupleQueueContext, kvStoreContexts[ 0 ],
+                                                                     stateOperatorDef,
+                                                                     stateTupleQueueContext,
+                                                                     kvStoreContexts[ 0 ],
                                                                      stateDrainerPool,
                                                                      stateTuplesImplSupplier );
 
@@ -588,13 +588,14 @@ public class PipelineIntegrationTest
                 REGION_ID,
                 1, stateOperatorDef );
         final PartitionedTupleQueueContext stateTupleQueueContext = stateTupleQueueContexts[ 0 ];
-        final TupleQueueContext partitionerTupleQueueContext = new TuplePartitionerTupleQueueContext( stateTupleQueueContext );
 
         final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( stateOperatorDef );
         final Supplier<TuplesImpl> stateTuplesImplSupplier = new CachedTuplesImplSupplier( stateOperatorDef.outputPortCount() );
 
         final OperatorInstance stateOperator = new OperatorInstance( pipelineInstanceId3,
-                                                                     stateOperatorDef, partitionerTupleQueueContext, kvStoreContexts[ 0 ],
+                                                                     stateOperatorDef,
+                                                                     stateTupleQueueContext,
+                                                                     kvStoreContexts[ 0 ],
                                                                      stateDrainerPool,
                                                                      stateTuplesImplSupplier );
 
@@ -715,14 +716,12 @@ public class PipelineIntegrationTest
                 1,
                 stateOperatorDef );
         final PartitionedTupleQueueContext stateTupleQueueContext = stateTupleQueueContexts[ 0 ];
-        final TupleQueueContext partitionerTupleQueueContext = new TuplePartitionerTupleQueueContext( stateTupleQueueContext );
 
         final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( stateOperatorDef );
         final Supplier<TuplesImpl> stateTuplesImplSupplier = new CachedTuplesImplSupplier( stateOperatorDef.outputPortCount() );
 
         final OperatorInstance stateOperator = new OperatorInstance( pipelineInstanceId1,
-                                                                     stateOperatorDef,
-                                                                     partitionerTupleQueueContext,
+                                                                     stateOperatorDef, stateTupleQueueContext,
                                                                      kvStoreContexts[ 0 ],
                                                                      stateDrainerPool,
                                                                      stateTuplesImplSupplier );

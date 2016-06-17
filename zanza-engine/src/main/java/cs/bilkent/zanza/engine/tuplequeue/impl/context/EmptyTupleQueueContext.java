@@ -67,4 +67,9 @@ public class EmptyTupleQueueContext implements TupleQueueContext
 
     }
 
+    public int getInputPortCount ()
+    {
+        return tupleQueues.length;
+    }
+
 }

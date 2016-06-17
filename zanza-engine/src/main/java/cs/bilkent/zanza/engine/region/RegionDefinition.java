@@ -40,4 +40,14 @@ public class RegionDefinition
         return operators;
     }
 
+    @Override
+    public String toString ()
+    {
+        return "RegionDefinition{" +
+               "regionType=" + regionType +
+               ", partitionFieldNames=" + partitionFieldNames +
+               ", operators=" + operators +
+               '}';
+    }
+
 }

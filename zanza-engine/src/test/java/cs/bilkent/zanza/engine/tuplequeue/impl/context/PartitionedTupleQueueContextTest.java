@@ -49,7 +49,7 @@ public class PartitionedTupleQueueContextTest
         final List<Tuple> tuples = singletonList( new Tuple( PARTITION_KEY_FIELD, "key1" ) );
         tupleQueueContext.offer( 0, tuples );
 
-        final TupleQueue[] tupleQueues = tupleQueueContext.getTupleQueues( tuples );
+        final TupleQueue[] tupleQueues = tupleQueueContext.getTupleQueues( tuples.get( 0 ) );
         assertEquals( tuples, tupleQueues[ 0 ].pollTuples( 1, TIMEOUT_IN_MILLIS ) );
     }
 

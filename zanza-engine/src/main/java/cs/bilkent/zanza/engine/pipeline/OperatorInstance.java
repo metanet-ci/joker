@@ -590,6 +590,26 @@ public class OperatorInstance
         return operator;
     }
 
+    public KVStoreContext getKvStoreContext ()
+    {
+        return kvStoreContext;
+    }
+
+    public TupleQueueContext getQueue ()
+    {
+        return queue;
+    }
+
+    public TupleQueueDrainerPool getDrainerPool ()
+    {
+        return drainerPool;
+    }
+
+    public Supplier<TuplesImpl> getOutputSupplier ()
+    {
+        return outputSupplier;
+    }
+
     public boolean isInvokable ()
     {
         return status == RUNNING || status == COMPLETING;

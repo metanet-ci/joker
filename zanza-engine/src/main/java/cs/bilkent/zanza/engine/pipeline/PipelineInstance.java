@@ -198,4 +198,9 @@ public class PipelineInstance
         return operators[ index ].getOperatorDefinition();
     }
 
+    public OperatorInstance getOperatorInstance ( final int index )
+    {
+        return operators[ index ];
+    }
+
 }
