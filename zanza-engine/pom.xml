@@ -13,6 +13,8 @@
 
     <properties>
         <typesafe.config.version>1.3.0</typesafe.config.version>
+        <guice.version>4.0</guice.version>
+        <pcj.version>4.1.0</pcj.version>
     </properties>
 
     <artifactId>zanza-engine</artifactId>
@@ -26,15 +28,31 @@
             <artifactId>zanza-operator-api</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
+
         <dependency>
             <groupId>cs.bilkent</groupId>
             <artifactId>zanza-operators</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
+
         <dependency>
             <groupId>com.typesafe</groupId>
             <artifactId>config</artifactId>
             <version>${typesafe.config.version}</version>
+        </dependency>
+
+        <!-- DI dependencies -->
+
+        <dependency>
+            <groupId>com.google.inject</groupId>
+            <artifactId>guice</artifactId>
+            <version>${guice.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>icm.edu.pl</groupId>
+            <artifactId>pcj</artifactId>
+            <version>${pcj.version}</version>
         </dependency>
     </dependencies>
 
