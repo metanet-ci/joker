@@ -25,7 +25,10 @@ import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.impl.InvocationContextImpl;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenAvailable;
+import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
+import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAll;
+import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAny;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -48,7 +51,7 @@ public class OperatorInstanceInitializationTest
     @Mock
     private TupleQueueDrainerPool drainerPool;
 
-    private final int inputOutputPortCount = 1;
+    private final int outputPortCount = 1;
 
     private OperatorInstance operatorInstance;
 
@@ -59,34 +62,165 @@ public class OperatorInstanceInitializationTest
     {
         operatorInstance = new OperatorInstance( new PipelineInstanceId( 0, 0, 0 ),
                                                  operatorDefinition,
-                                                 mock( TupleQueueContext.class ), mock( KVStoreContext.class ),
+                                                 mock( TupleQueueContext.class ),
+                                                 mock( KVStoreContext.class ),
                                                  drainerPool,
                                                  mock( Supplier.class ),
                                                  new InvocationContextImpl() );
 
         when( operatorDefinition.id() ).thenReturn( "op1" );
-        when( operatorDefinition.inputPortCount() ).thenReturn( inputOutputPortCount );
-        when( operatorDefinition.outputPortCount() ).thenReturn( inputOutputPortCount );
+        when( operatorDefinition.outputPortCount() ).thenReturn( outputPortCount );
         when( operatorDefinition.createOperator() ).thenReturn( operator );
-
-        validUpstreamContext = newUpstreamContextInstance( 0, inputOutputPortCount, ACTIVE );
     }
 
     @Test
-    public void shouldInitializeOperatorInstanceWhenOperatorInitializationSucceeds ()
+    public void shouldInitializeOperatorInstanceWhenOperatorInitializationSucceeds_ScheduleWhenTuplesAvailable_ANY_PORT_SINGLE ()
     {
-        when( operator.init( any( InitializationContext.class ) ) ).thenReturn( ScheduleWhenAvailable.INSTANCE );
+        final int inputPortCount = 1;
+        final ScheduleWhenTuplesAvailable schedulingStrategy = scheduleWhenTuplesAvailableOnAny( inputPortCount, 1, 0 );
+        shouldInitializeOperatorSuccessfully( inputPortCount, schedulingStrategy, newUpstreamContextInstance( 0, inputPortCount, ACTIVE ) );
+    }
 
-        operatorInstance.init( new ZanzaConfig(), validUpstreamContext, null );
+    @Test
+    public void shouldInitializeOperatorInstanceWhenOperatorInitializationSucceeds_ScheduleWhenTuplesAvailable_ANY_PORT_MULTI ()
+    {
+        final int inputPortCount = 2;
+        final ScheduleWhenTuplesAvailable schedulingStrategy = scheduleWhenTuplesAvailableOnAny( inputPortCount, 1, 1 );
+        shouldInitializeOperatorSuccessfully( inputPortCount, schedulingStrategy, newUpstreamContextInstance( 0, inputPortCount, ACTIVE ) );
+    }
+
+    @Test
+    public void shouldInitializeOperatorInstanceWhenOperatorInitializationSucceeds_ScheduleWhenTuplesAvailable_ANY_PORT_MULTI_portClosed ()
+    {
+        final int inputPortCount = 2;
+        final ScheduleWhenTuplesAvailable schedulingStrategy = scheduleWhenTuplesAvailableOnAny( inputPortCount, 1, 0, 1 );
+        shouldInitializeOperatorSuccessfully( inputPortCount,
+                                              schedulingStrategy,
+                                              new UpstreamContext( 0, new UpstreamConnectionStatus[] { CLOSED, ACTIVE } ) );
+    }
+
+    @Test
+    public void shouldInitializeOperatorInstanceWhenOperatorInitializationSucceeds_ScheduleWhenTuplesAvailable_ALL_PORTS ()
+    {
+        final int inputPortCount = 2;
+        final ScheduleWhenTuplesAvailable schedulingStrategy = scheduleWhenTuplesAvailableOnAll( AT_LEAST, inputPortCount, 1, 0, 1 );
+        shouldInitializeOperatorSuccessfully( inputPortCount, schedulingStrategy, newUpstreamContextInstance( 0, inputPortCount, ACTIVE ) );
+    }
+
+    @Test
+    public void shouldInitializeOperatorInstanceWhenOperatorInitializationSucceeds_ScheduleWhenAvailable ()
+    {
+        final int inputPortCount = 0;
+        shouldInitializeOperatorSuccessfully( inputPortCount,
+                                              ScheduleWhenAvailable.INSTANCE,
+                                              newUpstreamContextInstance( 0, inputPortCount, ACTIVE ) );
+    }
+
+    public void shouldInitializeOperatorSuccessfully ( final int inputPortCount,
+                                                       final SchedulingStrategy schedulingStrategy,
+                                                       final UpstreamContext upstreamContext )
+    {
+        when( operatorDefinition.inputPortCount() ).thenReturn( inputPortCount );
+        validUpstreamContext = newUpstreamContextInstance( 0, inputPortCount, ACTIVE );
+
+        when( operator.init( any( InitializationContext.class ) ) ).thenReturn( schedulingStrategy );
+
+        operatorInstance.init( new ZanzaConfig(), upstreamContext, null );
 
         assertThat( operatorInstance.getStatus(), equalTo( RUNNING ) );
-        assertThat( operatorInstance.getSchedulingStrategy(), equalTo( ScheduleWhenAvailable.INSTANCE ) );
-        assertThat( operatorInstance.getUpstreamContext(), equalTo( validUpstreamContext ) );
+        assertThat( operatorInstance.getInitialSchedulingStrategy(), equalTo( schedulingStrategy ) );
+        assertThat( operatorInstance.getSchedulingStrategy(), equalTo( schedulingStrategy ) );
+        assertThat( operatorInstance.getUpstreamContext(), equalTo( upstreamContext ) );
+        assertThat( operatorInstance.getSelfUpstreamContext(), equalTo( newUpstreamContextInstance( 0, outputPortCount, ACTIVE ) ) );
 
         final UpstreamContext selfUpstreamContext = operatorInstance.getSelfUpstreamContext();
-        assertThat( selfUpstreamContext, equalTo( validUpstreamContext ) );
+        assertThat( selfUpstreamContext, equalTo( newUpstreamContextInstance( 0, outputPortCount, ACTIVE ) ) );
 
-        verify( drainerPool ).acquire( ScheduleWhenAvailable.INSTANCE );
+        verify( drainerPool ).acquire( schedulingStrategy );
+    }
+
+    @Test
+    public void shouldFailWhenOperatorInitializationReturnsInvalidSchedulingStrategy ()
+    {
+        when( operator.init( any( InitializationContext.class ) ) ).thenReturn( ScheduleNever.INSTANCE );
+
+        try
+        {
+            operatorInstance.init( new ZanzaConfig(), newUpstreamContextInstance( 0, 1, ACTIVE ), null );
+            fail();
+        }
+        catch ( InitializationException expected )
+        {
+            System.out.println( expected );
+            assertFailedInitialization();
+        }
+    }
+
+    @Test
+    public void shouldFailWhenOperatorInitializationReturnsInvalidSchedulingStrategy_ScheduleWhenAvailable_nonZeroInputPorts ()
+    {
+        shouldFailToInitializeOperator( 1, ScheduleWhenAvailable.INSTANCE, newUpstreamContextInstance( 0, 1, ACTIVE ) );
+    }
+
+    @Test
+    public void shouldFailWhenOperatorInitializationReturnsInvalidSchedulingStrategy_ScheduleWhenAvailable_UpstreamContextShutdown ()
+    {
+        shouldFailToInitializeOperator( 0, ScheduleWhenAvailable.INSTANCE, newUpstreamContextInstance( 1, 0, ACTIVE ) );
+    }
+
+    @Test
+    public void shouldFailWhenOperatorInitializationReturnsInvalidSchedulingStrategy_ScheduleWhenTuplesAvailable_UpstreamContextShutdown ()
+    {
+        final int inputPortCount = 1;
+        shouldFailToInitializeOperator( inputPortCount,
+                                        scheduleWhenTuplesAvailableOnAny( inputPortCount, 1, 0 ),
+                                        newUpstreamContextInstance( 1, 1, CLOSED ) );
+    }
+
+    @Test
+    public void shouldFailWhenOperatorInitializationReturnsInvalidSchedulingStrategy_ScheduleWhenTuplesAvailable_ALL_PORTS_Shutdown ()
+    {
+        final int inputPortCount = 2;
+        shouldFailToInitializeOperator( inputPortCount,
+                                        scheduleWhenTuplesAvailableOnAll( AT_LEAST, inputPortCount, 1, 0, 1 ),
+                                        new UpstreamContext( 1, new UpstreamConnectionStatus[] { ACTIVE, CLOSED } ) );
+    }
+
+    @Test
+    public void shouldFailWhenOperatorInitializationReturnsInvalidSchedulingStrategy_incompatibleUpstreamContext ()
+    {
+        final int inputPortCount = 1;
+        shouldFailToInitializeOperator( inputPortCount,
+                                        scheduleWhenTuplesAvailableOnAny( inputPortCount, 2, 0 ),
+                                        newUpstreamContextInstance( 1, 2, ACTIVE ) );
+    }
+
+    @Test
+    public void shouldFailWhenOperatorInitializationReturnsInvalidSchedulingStrategy_incompatibleSchedulingStrategy ()
+    {
+        final int inputPortCount = 1;
+        shouldFailToInitializeOperator( inputPortCount,
+                                        scheduleWhenTuplesAvailableOnAny( inputPortCount + 1, 2, 0 ),
+                                        newUpstreamContextInstance( 1, 1, ACTIVE ) );
+    }
+
+    private void shouldFailToInitializeOperator ( final int inputPortCount,
+                                                  final SchedulingStrategy schedulingStrategy,
+                                                  final UpstreamContext upstreamContext )
+    {
+        when( operatorDefinition.inputPortCount() ).thenReturn( inputPortCount );
+        when( operator.init( any( InitializationContext.class ) ) ).thenReturn( schedulingStrategy );
+
+        try
+        {
+            operatorInstance.init( new ZanzaConfig(), upstreamContext, null );
+            fail();
+        }
+        catch ( InitializationException expected )
+        {
+            System.out.println( expected );
+            assertFailedInitialization();
+        }
     }
 
     @Test
@@ -107,41 +241,6 @@ public class OperatorInstanceInitializationTest
             assertFailedInitialization();
         }
 
-    }
-
-    @Test
-    public void shouldFailWhenOperatorInitializationReturnsInvalidSchedulingStrategy ()
-    {
-        when( operator.init( any( InitializationContext.class ) ) ).thenReturn( ScheduleNever.INSTANCE );
-
-        try
-        {
-            operatorInstance.init( new ZanzaConfig(), validUpstreamContext, null );
-            fail();
-        }
-        catch ( InitializationException expected )
-        {
-            System.out.println( expected );
-            assertFailedInitialization();
-        }
-    }
-
-    @Test
-    public void shouldFailWhenOperatorInitializationReturnedSchedulingStrategyDoesntMatchUpstreamContext ()
-    {
-        final SchedulingStrategy schedulingStrategy = scheduleWhenTuplesAvailableOnAll( 2, 1, 0, 1 );
-        when( operator.init( any( InitializationContext.class ) ) ).thenReturn( schedulingStrategy );
-
-        try
-        {
-            operatorInstance.init( new ZanzaConfig(), validUpstreamContext, null );
-            fail();
-        }
-        catch ( InitializationException expected )
-        {
-            expected.printStackTrace();
-            assertFailedInitialization();
-        }
     }
 
     private void assertFailedInitialization ()

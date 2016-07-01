@@ -2,7 +2,6 @@ package cs.bilkent.zanza.operator.impl;
 
 import cs.bilkent.zanza.operator.InvocationContext;
 import cs.bilkent.zanza.operator.kvstore.KVStore;
-import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 
 public class InvocationContextImpl implements InvocationContext
@@ -15,8 +14,6 @@ public class InvocationContextImpl implements InvocationContext
     private TuplesImpl output;
 
     private KVStore kvStore;
-
-    private SchedulingStrategy newSchedulingStrategy;
 
     private boolean[] upstreamConnectionStatuses;
 
@@ -60,11 +57,6 @@ public class InvocationContextImpl implements InvocationContext
         this.upstreamConnectionStatuses = upstreamConnectionStatuses;
     }
 
-    public SchedulingStrategy getNewSchedulingStrategy ()
-    {
-        return newSchedulingStrategy;
-    }
-
     @Override
     public TuplesImpl getInput ()
     {
@@ -99,12 +91,6 @@ public class InvocationContextImpl implements InvocationContext
     public TuplesImpl getOutput ()
     {
         return output;
-    }
-
-    @Override
-    public void setNewSchedulingStrategy ( final SchedulingStrategy schedulingStrategy )
-    {
-        this.newSchedulingStrategy = schedulingStrategy;
     }
 
 }

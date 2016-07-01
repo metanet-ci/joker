@@ -17,7 +17,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertNull;
 
 
 public class BeaconOperatorTest
@@ -42,7 +41,6 @@ public class BeaconOperatorTest
 
         operator.invoke( invocationContext );
 
-        assertNull( invocationContext.getNewSchedulingStrategy() );
         assertThat( output.getNonEmptyPortCount(), equalTo( 1 ) );
 
         final List<Tuple> tuples = output.getTuplesByDefaultPort();

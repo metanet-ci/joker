@@ -70,8 +70,6 @@ public class PipelineInstanceRunner implements Runnable
         final SupervisorNotifier supervisorNotifier = new SupervisorNotifier( supervisor,
                                                                               pipeline.id(),
                                                                               operatorCount,
-                                                                              pipeline.getOperatorDefinition( 0 ).id(),
-                                                                              pipeline.getOperatorDefinition( operatorCount - 1 ).id(),
                                                                               pipeline.getUpstreamTupleQueueContext() );
 
         init( config, supervisorNotifier );

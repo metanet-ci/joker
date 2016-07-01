@@ -70,6 +70,11 @@ public class AbstractOperatorInstanceInvocationTest
                                                  outputSupplier,
                                                  invocationContext );
 
+        applyDefaultMocks();
+    }
+
+    protected void applyDefaultMocks ()
+    {
         when( operatorDefinition.id() ).thenReturn( "op1" );
         when( drainerPool.acquire( any( SchedulingStrategy.class ) ) ).thenReturn( drainer );
         when( drainer.getKey() ).thenReturn( key );

@@ -7,6 +7,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import cs.bilkent.zanza.engine.exception.InitializationException;
@@ -27,7 +28,6 @@ import cs.bilkent.zanza.flow.OperatorDefinition;
 import cs.bilkent.zanza.operator.InitializationContext;
 import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.INPUT_PORT_CLOSED;
-import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.OPERATOR_REQUESTED_SHUTDOWN;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.SHUTDOWN;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.SUCCESS;
 import cs.bilkent.zanza.operator.Operator;
@@ -38,8 +38,8 @@ import cs.bilkent.zanza.operator.kvstore.KVStore;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
-import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.AVAILABLE_ON_ALL_PORTS;
-import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.AVAILABLE_ON_ANY_PORT;
+import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ALL_PORTS;
+import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ANY_PORT;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 /**
@@ -79,6 +79,8 @@ public class OperatorInstance
     private InvocationReason completionReason;
 
     private Operator operator;
+
+    private SchedulingStrategy initialSchedulingStrategy;
 
     private SchedulingStrategy schedulingStrategy;
 
@@ -121,24 +123,14 @@ public class OperatorInstance
      * it moves the status to {@link OperatorInstanceStatus#INITIALIZATION_FAILED} and propagates the exception to the caller after
      * wrapping it with {@link InitializationException}.
      */
-    public void init ( final ZanzaConfig config, final UpstreamContext upstreamContext, final OperatorInstanceListener listener )
+    public SchedulingStrategy init ( final ZanzaConfig config,
+                                     final UpstreamContext upstreamContext,
+                                     final OperatorInstanceListener listener )
     {
         checkState( status == INITIAL );
         try
         {
-            this.listener = listener != null ? listener : new OperatorInstanceListener()
-            {
-                @Override
-                public void onStatusChange ( final String operatorId, final OperatorInstanceStatus status )
-                {
-
-                }
-
-                @Override
-                public void onSchedulingStrategyChange ( final String operatorId, final SchedulingStrategy newSchedulingStrategy )
-                {
-
-                }
+            this.listener = listener != null ? listener : ( operatorId, status1 ) -> {
             };
 
             drainerPool.init( config );
@@ -150,6 +142,7 @@ public class OperatorInstance
 
             setStatus( RUNNING );
             LOGGER.info( "{} initialized. Initial scheduling strategy: {}", operatorName, schedulingStrategy );
+            return initialSchedulingStrategy;
         }
         catch ( Exception e )
         {
@@ -186,14 +179,82 @@ public class OperatorInstance
                                                                                  operatorDefinition.schema(),
                                                                                  operatorDefinition.config(),
                                                                                  upstreamConnectionStatuses );
-        schedulingStrategy = operator.init( initContext );
-        if ( validateSchedulingStrategy( schedulingStrategy ) )
+        final SchedulingStrategy schedulingStrategy = operator.init( initContext );
+        verifySchedulingStrategy( schedulingStrategy, upstreamContext );
+        this.schedulingStrategy = schedulingStrategy;
+        initialSchedulingStrategy = this.schedulingStrategy;
+        verifySchedulingStrategy( this.schedulingStrategy, upstreamContext );
+        drainer = drainerPool.acquire( this.schedulingStrategy );
+    }
+
+    public boolean isInvokable ( final UpstreamContext upstreamContext )
+    {
+        try
         {
-            drainer = drainerPool.acquire( schedulingStrategy );
+            verifySchedulingStrategy( initialSchedulingStrategy, upstreamContext );
+            return true;
+        }
+        catch ( IllegalStateException e )
+        {
+            LOGGER.info( "{} not invokable anymore. scheduling strategy: {} upstream context: {} error: {}",
+                         operatorName,
+                         schedulingStrategy,
+                         upstreamContext,
+                         e.getMessage() );
+            return false;
+        }
+    }
+
+    private void verifySchedulingStrategy ( final SchedulingStrategy schedulingStrategy, final UpstreamContext upstreamContext )
+    {
+        checkArgument( operatorDefinition.inputPortCount() == upstreamContext.getPortCount() );
+
+        if ( schedulingStrategy instanceof ScheduleWhenAvailable )
+        {
+            checkState( operatorDefinition.inputPortCount() == 0,
+                        "%s cannot be used by operator: %s with input port count: %s",
+                        ScheduleWhenAvailable.class.getSimpleName(),
+                        operatorName,
+                        operatorDefinition.inputPortCount() );
+            checkState( upstreamContext.getVersion() == 0, "upstream context is closed for 0 input port operator: %s", operatorName );
+        }
+        else if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
+        {
+            checkState( operatorDefinition.inputPortCount() > 0,
+                        "0 input port operator: %s cannot use %s",
+                        operatorName,
+                        ScheduleWhenTuplesAvailable.class.getSimpleName() );
+            final ScheduleWhenTuplesAvailable s = (ScheduleWhenTuplesAvailable) schedulingStrategy;
+            checkState( operatorDefinition.inputPortCount() == s.getPortCount(), "" );
+            if ( s.getTupleAvailabilityByPort() == ANY_PORT )
+            {
+                boolean valid = false;
+                for ( int i = 0; i < operatorDefinition.inputPortCount(); i++ )
+                {
+                    if ( s.getTupleCount( i ) > 0 && upstreamContext.getUpstreamConnectionStatus( i ) == ACTIVE )
+                    {
+                        valid = true;
+                        break;
+                    }
+                }
+
+                checkState( valid );
+            }
+            else if ( s.getTupleAvailabilityByPort() == ALL_PORTS )
+            {
+                for ( int i = 0; i < operatorDefinition.inputPortCount(); i++ )
+                {
+                    checkState( upstreamContext.getUpstreamConnectionStatus( i ) == ACTIVE );
+                }
+            }
+            else
+            {
+                throw new IllegalStateException( s.toString() );
+            }
         }
         else
         {
-            throw new IllegalStateException( "Operator " + operatorName + " returned invalid scheduling strategy " + schedulingStrategy );
+            throw new IllegalStateException( operatorName + " returns invalid initial scheduling strategy: " + schedulingStrategy );
         }
     }
 
@@ -217,20 +278,17 @@ public class OperatorInstance
      * - the operator has a non-empty input for its {@link ScheduleWhenTuplesAvailable} scheduling strategy,
      * - scheduling strategy is {@link ScheduleWhenAvailable} and there is no change upstream context.
      * Otherwise, it checks if there is a change in the upstream context. If it is the case,
-     * - it sets the scheduling strategy to {@link ScheduleWhenAvailable}, drains the queue and invokes the operator. If all input ports
-     * are closed, it moves the status into {@link OperatorInstanceStatus#COMPLETING} and does not allow the operator to provide a new
-     * scheduling strategy.
+     * - it makes the final invocation and moves the operator into {@link OperatorInstanceStatus#COMPLETED},
+     * if the scheduling strategy is {@link ScheduleWhenAvailable}.
+     * - if the scheduling strategy is {@link ScheduleWhenTuplesAvailable} and operator is still invokable with the new upstream context,
+     * it skips the invocation.
+     * - if the scheduling strategy is {@link ScheduleWhenTuplesAvailable} and operator is not invokable with the new upstream context
+     * anymore, it invokes the operator with {@link InvocationReason#INPUT_PORT_CLOSED},
      * <p>
      * When the operator is in {@link OperatorInstanceStatus#COMPLETING} status:
      * It invokes the operator successfully if it can drain a non-empty input from the tuple queues. If there is no non-empty input:
-     * - for {@link ScheduleWhenAvailable} scheduling strategy, it means that the operator consumed all of the input and completed the run.
-     * Then, it is finalized.
-     * - for {@link ScheduleWhenTuplesAvailable} scheduling strategy, it sets the scheduling strategy to {@link ScheduleWhenAvailable} and
-     * tries to drain a non-empty input from the tuple queues to invoke the operator. If there is no non-empty input again, it means that
-     * the operator consumed all of the input and completed the run, so the operator is finalized.
-     * <p>
-     * An operator may move to {@link OperatorInstanceStatus#COMPLETING} status when it returns {@link ScheduleNever} as new scheduling
-     * strategy or all of its input ports are closed.
+     * - it performs the final invocation and moves the operator to {@link OperatorInstanceStatus#COMPLETED} status
+     * if all input ports are closed.
      *
      * @param upstreamInput
      *         input of the operator which is sent by the upstream operator
@@ -250,72 +308,58 @@ public class OperatorInstance
         checkState( status == RUNNING || status == COMPLETING );
 
         offer( upstreamInput );
-        TuplesImpl output = null;
+
+        TuplesImpl input = drainQueueAndGetResult(), output = null;
 
         if ( status == RUNNING )
         {
-            TuplesImpl input = drainQueueAndGetResult();
-            if ( input != null && ( !( schedulingStrategy instanceof ScheduleWhenAvailable )
-                                    || this.upstreamContext.getVersion() == upstreamContext.getVersion() ) )
+            if ( schedulingStrategy instanceof ScheduleWhenAvailable )
             {
-                output = invokeOperator( SUCCESS, input, drainer.getKey(), true );
-            }
-            else if ( handleNewUpstreamContext( upstreamContext ) )
-            {
-                InvocationReason reason;
-                final boolean activeConnectionAbsent = operatorDefinition.inputPortCount() > 0
-                                                       ? upstreamContext.isActiveConnectionAbsent()
-                                                       : upstreamContext.getVersion() > 0;
-                if ( activeConnectionAbsent )
+                if ( handleNewUpstreamContext( upstreamContext ) )
                 {
-                    setStatus( COMPLETING );
-                    completionReason = operatorDefinition.inputPortCount() > 0 ? INPUT_PORT_CLOSED : SHUTDOWN;
-                    reason = completionReason;
+                    output = invokeOperator( SHUTDOWN, input, drainer.getKey() );
+                    completeRun();
+                    completionReason = SHUTDOWN;
                 }
                 else
                 {
-                    reason = INPUT_PORT_CLOSED;
+                    output = invokeOperator( SUCCESS, input, drainer.getKey() );
                 }
-
-                if ( !( schedulingStrategy instanceof ScheduleWhenAvailable ) )
-                {
-                    setNewSchedulingStrategy( ScheduleWhenAvailable.INSTANCE );
-                    input = drainQueueAndGetResult();
-                }
-
-                output = invokeOperator( reason, input, drainer.getKey(), !activeConnectionAbsent );
+            }
+            else if ( input != null )
+            {
+                output = invokeOperator( SUCCESS, input, drainer.getKey() );
+            }
+            else if ( handleNewUpstreamContext( upstreamContext ) && !isInvokable( upstreamContext ) )
+            {
+                setStatus( COMPLETING );
+                completionReason = INPUT_PORT_CLOSED;
+                setNewSchedulingStrategy( ScheduleWhenAvailable.INSTANCE );
+                input = drainQueueAndGetResult();
+                output = invokeOperator( INPUT_PORT_CLOSED, input, drainer.getKey() );
             }
             else
             {
                 drainer.reset();
             }
         }
+        else if ( input.isNonEmpty() )
+        {
+            // status = COMPLETING
+            output = invokeOperator( INPUT_PORT_CLOSED, input, drainer.getKey() );
+        }
         else
         {
             // status = COMPLETING
             handleNewUpstreamContext( upstreamContext );
-
-            TuplesImpl input = drainQueueAndGetResult();
-            if ( input != null && input.isNonEmpty() )
+            if ( upstreamContext.isActiveConnectionAbsent() )
             {
-                output = invokeOperator( SUCCESS, input, drainer.getKey(), false );
-            }
-            else if ( schedulingStrategy instanceof ScheduleWhenAvailable )
-            {
-                finalizeRun();
+                output = invokeOperator( INPUT_PORT_CLOSED, input, drainer.getKey() );
+                completeRun();
             }
             else
             {
-                setNewSchedulingStrategy( ScheduleWhenAvailable.INSTANCE );
-                input = drainQueueAndGetResult();
-                if ( input != null && input.isNonEmpty() )
-                {
-                    output = invokeOperator( completionReason, input, drainer.getKey(), false );
-                }
-                else
-                {
-                    finalizeRun();
-                }
+                drainer.reset();
             }
         }
 
@@ -342,121 +386,16 @@ public class OperatorInstance
     /**
      * Invokes the operator, resets the drainer and handles the new scheduling strategy if allowed.
      */
-    private TuplesImpl invokeOperator ( final InvocationReason reason,
-                                        final TuplesImpl input,
-                                        final Object key,
-                                        final boolean handleNewSchedulingStrategy )
+    private TuplesImpl invokeOperator ( final InvocationReason reason, final TuplesImpl input, final Object key )
     {
         final KVStore kvStore = kvStoreContext.getKVStore( key );
         final TuplesImpl output = outputSupplier.get();
         invocationContext.setInvocationParameters( reason, input, output, kvStore );
         operator.invoke( invocationContext );
         drainer.reset();
-
-        final SchedulingStrategy newSchedulingStrategy = invocationContext.getNewSchedulingStrategy();
-        if ( newSchedulingStrategy != null )
-        {
-            invocationContext.setNewSchedulingStrategy( null );
-            if ( handleNewSchedulingStrategy )
-            {
-                handleNewSchedulingStrategy( newSchedulingStrategy );
-            }
-            else
-            {
-                LOGGER.warn( "{} not handling new {} with {}", operatorName, newSchedulingStrategy, upstreamContext );
-            }
-        }
-
         invokedOnLastAttempt = true;
 
         return output;
-    }
-
-    /**
-     * Handles the new scheduling strategy returned by operator invocation. If it is a valid scheduling strategy, updates the scheduling
-     * strategy of the operator. Otherwise, it moves the operator status into {@link OperatorInstanceStatus#COMPLETING} and sets the
-     * completion reason as {@link InvocationReason#OPERATOR_REQUESTED_SHUTDOWN}.
-     */
-    private void handleNewSchedulingStrategy ( final SchedulingStrategy newSchedulingStrategy )
-    {
-        if ( validateSchedulingStrategy( newSchedulingStrategy ) )
-        {
-            setNewSchedulingStrategy( newSchedulingStrategy );
-            listener.onSchedulingStrategyChange( operatorDefinition.id(), newSchedulingStrategy );
-        }
-        else
-        {
-            LOGGER.info( "Moving to {} status since {} requested to shutdown", COMPLETING, operatorName );
-            completionReason = OPERATOR_REQUESTED_SHUTDOWN;
-            setStatus( COMPLETING );
-        }
-    }
-
-    /**
-     * Validates the scheduling strategy given by the operator. Returns true if it is valid and assignable for the operator
-     * A scheduling strategy is valid if it is {@link ScheduleWhenAvailable} or {@link ScheduleWhenTuplesAvailable} with tuple requirements
-     * that match to the operator's upstream connection statuses
-     */
-    private boolean validateSchedulingStrategy ( final SchedulingStrategy schedulingStrategy )
-    {
-        if ( schedulingStrategy == null )
-        {
-            LOGGER.error( "{} returns null scheduling strategy", operatorName );
-            return false;
-        }
-        else if ( schedulingStrategy instanceof ScheduleNever )
-        {
-            LOGGER.info( "{} returns new scheduling strategy as {}", operatorName, ScheduleNever.class.getSimpleName() );
-            return false;
-        }
-        else if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
-        {
-            final int inputPortCount = operatorDefinition.inputPortCount();
-            if ( inputPortCount == 0 )
-            {
-                LOGGER.error( "{} has no input port but requested {}", operatorName, schedulingStrategy );
-                return false;
-            }
-
-            // TODO THIS PART IS BROKEN. WE SHOULD HANDLE ScheduleWhenTuplesAvailable CORRECTLY
-            final ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailable = (ScheduleWhenTuplesAvailable) schedulingStrategy;
-
-            if ( scheduleWhenTuplesAvailable.getPortCount() != inputPortCount )
-            {
-                LOGGER.error( " {} cannot satisfy {} since input port count is different than operator's input port count: {}",
-                              operatorName,
-                              scheduleWhenTuplesAvailable,
-                              inputPortCount );
-                return false;
-            }
-
-            if ( scheduleWhenTuplesAvailable.getTupleAvailabilityByPort() == AVAILABLE_ON_ANY_PORT )
-            {
-                if ( upstreamContext.isActiveConnectionAbsent() )
-                {
-                    LOGGER.error( "Cannot satisfy {} since there is no active upstream connection of {}",
-                                  scheduleWhenTuplesAvailable,
-                                  operatorName );
-                    return false;
-                }
-            }
-            else if ( scheduleWhenTuplesAvailable.getTupleAvailabilityByPort() == AVAILABLE_ON_ALL_PORTS )
-            {
-                if ( upstreamContext.getActiveConnectionCount() != inputPortCount )
-                {
-                    LOGGER.error( "Cannot satisfy {} since all upstream connections of {} are not active",
-                                  scheduleWhenTuplesAvailable,
-                                  operatorName );
-                    return false;
-                }
-            }
-            else
-            {
-                throw new IllegalArgumentException( schedulingStrategy.toString() );
-            }
-        }
-
-        return true;
     }
 
     /**
@@ -502,6 +441,7 @@ public class OperatorInstance
      */
     private void setUpstreamContext ( final UpstreamContext upstreamContext )
     {
+        checkArgument( upstreamContext != null );
         this.upstreamContext = upstreamContext;
         invocationContext.setUpstreamConnectionStatuses( upstreamContext.getUpstreamConnectionStatuses() );
     }
@@ -510,7 +450,7 @@ public class OperatorInstance
      * Finalizes the running schedule of the operator. It releases the drainer, sets the scheduling strategy to {@link ScheduleNever},
      * sets status to {@link OperatorInstanceStatus#COMPLETED} and updates the upstream context that will be passed to the next operator.
      */
-    private void finalizeRun ()
+    private void completeRun ()
     {
         if ( drainer != null )
         {
@@ -565,11 +505,11 @@ public class OperatorInstance
         return operatorDefinition;
     }
 
-    /**
-     * Returns the last scheduling strategy returned by operator invocation
-     *
-     * @return the last scheduling strategy returned by operator invocation
-     */
+    public SchedulingStrategy getInitialSchedulingStrategy ()
+    {
+        return initialSchedulingStrategy;
+    }
+
     public SchedulingStrategy getSchedulingStrategy ()
     {
         return schedulingStrategy;

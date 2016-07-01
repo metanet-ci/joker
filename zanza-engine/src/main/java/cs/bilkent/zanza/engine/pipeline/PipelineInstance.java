@@ -21,6 +21,7 @@ import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.MultiPortDrainer;
 import cs.bilkent.zanza.flow.OperatorDefinition;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
+import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 /**
  * Manages runtime state of a pipeline defined by the system for a {@link RegionDefinition} and provides methods for operator invocation.
@@ -64,18 +65,22 @@ public class PipelineInstance
         this.nonBlockingUpstreamTupleCounts = new int[ operators[ 0 ].getOperatorDefinition().inputPortCount() ];
     }
 
-    public void init ( final ZanzaConfig config, UpstreamContext upstreamContext, final OperatorInstanceListener operatorInstanceListener )
+    public SchedulingStrategy[] init ( final ZanzaConfig config,
+                                       UpstreamContext upstreamContext,
+                                       final OperatorInstanceListener operatorInstanceListener )
     {
         checkState( status == INITIAL );
         checkNotNull( config );
         checkNotNull( upstreamContext );
 
+        SchedulingStrategy[] schedulingStrategies = new SchedulingStrategy[ operatorCount ];
         this.pipelineUpstreamContext = upstreamContext;
-        for ( OperatorInstance operator : operators )
+        for ( int i = 0; i < operatorCount; i++ )
         {
             try
             {
-                operator.init( config, upstreamContext, operatorInstanceListener );
+                final OperatorInstance operator = operators[ i ];
+                schedulingStrategies[ i ] = operator.init( config, upstreamContext, operatorInstanceListener );
                 upstreamContext = operator.getSelfUpstreamContext();
             }
             catch ( InitializationException e )
@@ -87,8 +92,9 @@ public class PipelineInstance
         }
 
         upstreamDrainer = createUpstreamDrainer( config );
-
         status = RUNNING;
+
+        return schedulingStrategies;
     }
 
     private MultiPortDrainer createUpstreamDrainer ( final ZanzaConfig config )

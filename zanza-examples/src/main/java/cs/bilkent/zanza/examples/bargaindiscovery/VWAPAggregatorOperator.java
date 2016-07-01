@@ -6,7 +6,6 @@ import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.Tuples;
 import cs.bilkent.zanza.operator.kvstore.KVStore;
-import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.zanza.operator.schema.annotation.OperatorSchema;
@@ -114,11 +113,6 @@ public class VWAPAggregatorOperator implements Operator
         currentWindow.set( SINGLE_VOLUME_FIELD, volumeSum );
         currentWindow.set( TUPLE_COUNT_FIELD, tupleCount );
         kvStore.set( WINDOW_KEY, currentWindow );
-
-        if ( invocationContext.isErroneousInvocation() )
-        {
-            invocationContext.setNewSchedulingStrategy( ScheduleNever.INSTANCE );
-        }
     }
 
     private Tuple createWindowTuple ()

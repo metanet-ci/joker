@@ -43,20 +43,6 @@ public final class TuplesImpl implements Tuples
 
     private static final int INITIAL_CAPACITY;
 
-    public static TuplesImpl newInstanceWithSinglePort ( final Tuple tuple, final Tuple... tuples )
-    {
-        TuplesImpl tuplesImpl = new TuplesImpl( 1 );
-
-        checkNotNull( tuple, "tuple can't be null" );
-        tuplesImpl.add( tuple );
-        for ( Tuple t : tuples )
-        {
-            tuplesImpl.add( t );
-        }
-
-        return tuplesImpl;
-    }
-
 
     private final List<Tuple>[] ports;
 

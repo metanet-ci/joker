@@ -6,11 +6,12 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST_BUT_SAME_ON_ALL_PORTS;
-import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.AVAILABLE_ON_ALL_PORTS;
-import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.AVAILABLE_ON_ANY_PORT;
+import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ALL_PORTS;
+import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ANY_PORT;
 
 
 public final class ScheduleWhenTuplesAvailable implements SchedulingStrategy
@@ -18,7 +19,7 @@ public final class ScheduleWhenTuplesAvailable implements SchedulingStrategy
 
     public enum TupleAvailabilityByPort
     {
-        AVAILABLE_ON_ALL_PORTS, AVAILABLE_ON_ANY_PORT
+        ALL_PORTS, ANY_PORT
     }
 
 
@@ -29,27 +30,19 @@ public final class ScheduleWhenTuplesAvailable implements SchedulingStrategy
         AT_LEAST_BUT_SAME_ON_ALL_PORTS
     }
 
-
-    public static ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailableOnAll ( final int portCount,
-                                                                                 final int tupleCount,
-                                                                                 final int... ports )
-    {
-        return new ScheduleWhenTuplesAvailable( AT_LEAST, AVAILABLE_ON_ALL_PORTS, portCount, tupleCount, ports );
-    }
-
     public static ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailableOnAll ( final TupleAvailabilityByCount tupleAvailabilityByCount,
                                                                                  final int portCount,
                                                                                  final int tupleCount,
                                                                                  final int... ports )
     {
-        return new ScheduleWhenTuplesAvailable( tupleAvailabilityByCount, AVAILABLE_ON_ALL_PORTS, portCount, tupleCount, ports );
+        return new ScheduleWhenTuplesAvailable( tupleAvailabilityByCount, ALL_PORTS, portCount, tupleCount, ports );
     }
 
     public static ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailableOnAll ( final int portCount,
                                                                                  final int tupleCount,
                                                                                  final List<Integer> ports )
     {
-        return new ScheduleWhenTuplesAvailable( AT_LEAST, AVAILABLE_ON_ALL_PORTS, portCount, tupleCount, ports );
+        return new ScheduleWhenTuplesAvailable( AT_LEAST, ALL_PORTS, portCount, tupleCount, ports );
     }
 
     public static ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailableOnAll ( final TupleAvailabilityByCount tupleAvailabilityByCount,
@@ -57,14 +50,14 @@ public final class ScheduleWhenTuplesAvailable implements SchedulingStrategy
                                                                                  final int tupleCount,
                                                                                  final List<Integer> ports )
     {
-        return new ScheduleWhenTuplesAvailable( tupleAvailabilityByCount, AVAILABLE_ON_ALL_PORTS, portCount, tupleCount, ports );
+        return new ScheduleWhenTuplesAvailable( tupleAvailabilityByCount, ALL_PORTS, portCount, tupleCount, ports );
     }
 
     public static ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailableOnAny ( final int portCount,
                                                                                  final int tupleCount,
                                                                                  final int... ports )
     {
-        return new ScheduleWhenTuplesAvailable( AT_LEAST, AVAILABLE_ON_ANY_PORT, portCount, tupleCount, ports );
+        return new ScheduleWhenTuplesAvailable( AT_LEAST, ANY_PORT, portCount, tupleCount, ports );
     }
 
     public static ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailableOnAny ( final TupleAvailabilityByCount tupleAvailabilityByCount,
@@ -73,14 +66,14 @@ public final class ScheduleWhenTuplesAvailable implements SchedulingStrategy
                                                                                  final int... ports )
     {
         checkArgument( tupleAvailabilityByCount != AT_LEAST_BUT_SAME_ON_ALL_PORTS );
-        return new ScheduleWhenTuplesAvailable( tupleAvailabilityByCount, AVAILABLE_ON_ANY_PORT, portCount, tupleCount, ports );
+        return new ScheduleWhenTuplesAvailable( tupleAvailabilityByCount, ANY_PORT, portCount, tupleCount, ports );
     }
 
     public static ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailableOnAny ( final int portCount,
                                                                                  final int tupleCount,
                                                                                  final List<Integer> ports )
     {
-        return new ScheduleWhenTuplesAvailable( AT_LEAST, AVAILABLE_ON_ANY_PORT, portCount, tupleCount, ports );
+        return new ScheduleWhenTuplesAvailable( AT_LEAST, ANY_PORT, portCount, tupleCount, ports );
     }
 
     public static ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailableOnAny ( final TupleAvailabilityByCount tupleAvailabilityByCount,
@@ -89,7 +82,7 @@ public final class ScheduleWhenTuplesAvailable implements SchedulingStrategy
                                                                                  final List<Integer> ports )
     {
         checkArgument( tupleAvailabilityByCount != AT_LEAST_BUT_SAME_ON_ALL_PORTS );
-        return new ScheduleWhenTuplesAvailable( tupleAvailabilityByCount, AVAILABLE_ON_ANY_PORT, portCount, tupleCount, ports );
+        return new ScheduleWhenTuplesAvailable( tupleAvailabilityByCount, ANY_PORT, portCount, tupleCount, ports );
     }
 
     public static ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailableOnDefaultPort ( final int tupleCount )
@@ -113,14 +106,14 @@ public final class ScheduleWhenTuplesAvailable implements SchedulingStrategy
 
     public ScheduleWhenTuplesAvailable ( final int portCount, final int portIndex, final int tupleCount )
     {
-        this( AT_LEAST, AVAILABLE_ON_ANY_PORT, portCount, tupleCount, portIndex );
+        this( AT_LEAST, ANY_PORT, portCount, tupleCount, portIndex );
     }
 
     public ScheduleWhenTuplesAvailable ( final TupleAvailabilityByCount tupleAvailabilityByCount, final int portCount,
                                          final int portIndex,
                                          final int tupleCount )
     {
-        this( tupleAvailabilityByCount, AVAILABLE_ON_ANY_PORT, portCount, tupleCount, portIndex );
+        this( tupleAvailabilityByCount, ANY_PORT, portCount, tupleCount, portIndex );
     }
 
     public ScheduleWhenTuplesAvailable ( final TupleAvailabilityByCount tupleAvailabilityByCount,
@@ -130,10 +123,11 @@ public final class ScheduleWhenTuplesAvailable implements SchedulingStrategy
         checkNotNull( tupleAvailabilityByCount );
         checkNotNull( tupleAvailabilityByPort );
         checkArgument( tupleCounts.length == 1 || !( tupleAvailabilityByCount == AT_LEAST_BUT_SAME_ON_ALL_PORTS
-                                                     && tupleAvailabilityByPort == AVAILABLE_ON_ANY_PORT ) );
+                                                     && tupleAvailabilityByPort == ANY_PORT ) );
         this.tupleAvailabilityByCount = tupleAvailabilityByCount;
         this.tupleAvailabilityByPort = tupleAvailabilityByPort;
         this.tupleCounts = tupleCounts;
+        validateTupleCounts();
     }
 
     public ScheduleWhenTuplesAvailable ( final TupleAvailabilityByCount tupleAvailabilityByCount,
@@ -154,6 +148,7 @@ public final class ScheduleWhenTuplesAvailable implements SchedulingStrategy
         {
             tupleCounts[ portIndex ] = tupleCount;
         }
+        validateTupleCounts();
     }
 
     public ScheduleWhenTuplesAvailable ( final TupleAvailabilityByCount tupleAvailabilityByCount,
@@ -173,6 +168,36 @@ public final class ScheduleWhenTuplesAvailable implements SchedulingStrategy
         for ( final int portIndex : ports )
         {
             tupleCounts[ portIndex ] = tupleCount;
+        }
+        validateTupleCounts();
+    }
+
+    private void validateTupleCounts ()
+    {
+        if ( tupleAvailabilityByPort == ALL_PORTS )
+        {
+            for ( int tupleCount : tupleCounts )
+            {
+                checkArgument( tupleCount > 0 );
+            }
+        }
+        else if ( tupleAvailabilityByPort == ANY_PORT )
+        {
+            boolean valid = false;
+            for ( int tupleCount : tupleCounts )
+            {
+                if ( tupleCount > 0 )
+                {
+                    valid = true;
+                    break;
+                }
+            }
+
+            checkState( valid );
+        }
+        else
+        {
+            throw new IllegalStateException();
         }
     }
 

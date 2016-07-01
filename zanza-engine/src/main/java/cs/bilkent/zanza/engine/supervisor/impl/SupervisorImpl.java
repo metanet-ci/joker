@@ -30,18 +30,6 @@ public class SupervisorImpl implements Supervisor
     }
 
     @Override
-    public void notifyPipelineStoppedSendingDownstreamTuples ( final PipelineInstanceId id )
-    {
-
-    }
-
-    @Override
-    public void notifyPipelineStoppedReceivingUpstreamTuples ( final PipelineInstanceId id )
-    {
-
-    }
-
-    @Override
     public void notifyPipelineCompletedRunning ( final PipelineInstanceId id )
     {
 

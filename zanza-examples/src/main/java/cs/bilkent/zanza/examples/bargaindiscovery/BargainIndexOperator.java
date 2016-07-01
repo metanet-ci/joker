@@ -14,7 +14,6 @@ import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.Tuples;
 import cs.bilkent.zanza.operator.kvstore.KVStore;
-import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAny;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.zanza.operator.schema.annotation.OperatorSchema;
@@ -89,11 +88,6 @@ public class BargainIndexOperator implements Operator
                     LOGGER.warn( "Join missed for quote: " + tuple );
                 }
             }
-        }
-
-        if ( invocationContext.isErroneousInvocation() )
-        {
-            invocationContext.setNewSchedulingStrategy( ScheduleNever.INSTANCE );
         }
     }
 

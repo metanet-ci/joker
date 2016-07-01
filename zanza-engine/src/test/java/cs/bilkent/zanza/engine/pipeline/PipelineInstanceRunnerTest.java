@@ -61,13 +61,16 @@ public class PipelineInstanceRunnerTest
 
     private Thread thread;
 
+    private final int inputOutputPortCount = 1;
+
     @Before
     public void init () throws Exception
     {
         final PipelineInstanceId id = new PipelineInstanceId( 0, 0, 0 );
         when( operator.getOperatorDefinition() ).thenReturn( operatorDefinition );
         when( operatorDefinition.id() ).thenReturn( "op1" );
-        when( operatorDefinition.inputPortCount() ).thenReturn( 1 );
+        when( operatorDefinition.inputPortCount() ).thenReturn( inputOutputPortCount );
+        when( operatorDefinition.outputPortCount() ).thenReturn( inputOutputPortCount );
         pipeline = new PipelineInstance( id, new OperatorInstance[] { operator }, mock( TupleQueueContext.class ) );
         runner = new PipelineInstanceRunner( pipeline );
         runner.setSupervisor( supervisor );
@@ -242,8 +245,10 @@ public class PipelineInstanceRunnerTest
     @Test
     public void shouldCompleteRunningAfterPipelineCompletesItself ()
     {
-        final TuplesImpl output1 = TuplesImpl.newInstanceWithSinglePort( new Tuple( "k1", "v1" ) );
-        final TuplesImpl output2 = TuplesImpl.newInstanceWithSinglePort( new Tuple( "k2", "v2" ) );
+        final TuplesImpl output1 = new TuplesImpl( inputOutputPortCount );
+        output1.add( new Tuple( "k1", "v1" ) );
+        final TuplesImpl output2 = new TuplesImpl( inputOutputPortCount );
+        output2.add( new Tuple( "k2", "v2" ) );
 
         when( operator.invoke( anyObject(), anyObject() ) ).thenReturn( output1, output2 );
 

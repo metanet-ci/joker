@@ -92,14 +92,6 @@ public interface InvocationContext
     KVStore getKVStore ();
 
     /**
-     * Sets a new {@link SchedulingStrategy} that will be used for next invocation of the operator
-     *
-     * @param schedulingStrategy
-     *         a new {@link SchedulingStrategy} that will be used for next invocation of the operator
-     */
-    void setNewSchedulingStrategy ( SchedulingStrategy schedulingStrategy );
-
-    /**
      * Indicates the reason for a particular invocation of {@link Operator#invoke(InvocationContext)} method.
      */
     enum InvocationReason

@@ -10,7 +10,6 @@ import cs.bilkent.zanza.operator.OperatorConfig;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.Tuples;
 import cs.bilkent.zanza.operator.kvstore.KVStore;
-import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.zanza.operator.schema.annotation.OperatorSchema;
@@ -100,11 +99,6 @@ public class TupleCountBasedWindowReducerOperator implements Operator
         else
         {
             kvStore.remove( ACCUMULATOR_TUPLE_KEY );
-        }
-
-        if ( invocationContext.isErroneousInvocation() )
-        {
-            invocationContext.setNewSchedulingStrategy( ScheduleNever.INSTANCE );
         }
     }
 

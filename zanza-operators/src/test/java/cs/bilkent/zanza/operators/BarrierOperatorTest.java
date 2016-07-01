@@ -12,7 +12,6 @@ import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.impl.InitializationContextImpl;
 import cs.bilkent.zanza.operator.impl.InvocationContextImpl;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
-import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import static cs.bilkent.zanza.operators.BarrierOperator.MERGE_POLICY_CONfIG_PARAMETER;
@@ -22,7 +21,6 @@ import static cs.bilkent.zanza.operators.BarrierOperator.TupleValueMergePolicy.O
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 
@@ -69,16 +67,21 @@ public class BarrierOperatorTest
         operator.invoke( invocationContext );
     }
 
-    @Test( expected = IllegalArgumentException.class )
-    public void shouldFailWithMissingTuplesOnErroneousInvocation ()
+    @Test
+    public void shouldNotFailWithMissingTuplesOnErroneousInvocation ()
     {
         initContext.getConfig().set( MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
         operator.init( initContext );
         invocationContext.setReason( SHUTDOWN );
 
+        populateTuplesWithUniqueFields( input );
+        input.add( new Tuple( "field0", 0 ) );
+
         operator.invoke( invocationContext );
-        assertTrue( invocationContext.getNewSchedulingStrategy() instanceof ScheduleNever );
-        assertThat( invocationContext.getOutput().getNonEmptyPortCount(), equalTo( 0 ) );
+        final Tuple outputTuple = output.getTupleOrFail( 0, 0 );
+        final int matchingFieldCount = getMatchingFieldCount( outputTuple );
+
+        assertThat( matchingFieldCount, equalTo( inputPorts.length ) );
     }
 
     @Test
@@ -90,7 +93,6 @@ public class BarrierOperatorTest
         populateTuplesWithUniqueFields( input );
 
         operator.invoke( invocationContext );
-        assertNull( invocationContext.getNewSchedulingStrategy() );
         final Tuple outputTuple = output.getTupleOrFail( 0, 0 );
         final int matchingFieldCount = getMatchingFieldCount( outputTuple );
 
@@ -150,7 +152,6 @@ public class BarrierOperatorTest
         populateTuplesWithUniqueFields( input );
 
         operator.invoke( invocationContext );
-        assertNull( invocationContext.getNewSchedulingStrategy() );
 
         final List<Tuple> outputTuples = output.getTuplesByDefaultPort();
         assertThat( outputTuples, hasSize( 2 ) );

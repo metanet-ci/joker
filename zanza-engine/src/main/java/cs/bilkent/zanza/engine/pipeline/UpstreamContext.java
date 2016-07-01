@@ -22,6 +22,11 @@ public class UpstreamContext
         return version;
     }
 
+    public int getPortCount ()
+    {
+        return statuses.length;
+    }
+
     public UpstreamConnectionStatus getUpstreamConnectionStatus ( int index )
     {
         return statuses[ index ];

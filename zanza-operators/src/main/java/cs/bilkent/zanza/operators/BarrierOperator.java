@@ -1,7 +1,6 @@
 package cs.bilkent.zanza.operators;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.BinaryOperator;
 import java.util.stream.IntStream;
 
@@ -11,7 +10,6 @@ import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.Tuples;
-import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST_BUT_SAME_ON_ALL_PORTS;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAll;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
@@ -84,20 +82,18 @@ public class BarrierOperator implements Operator
 
     private int inputPortCount;
 
-    private int[] inputPorts;
-
     private BinaryOperator<Tuple> tupleMergeFunc;
 
     @Override
     public SchedulingStrategy init ( final InitializationContext context )
     {
         final OperatorConfig config = context.getConfig();
-
         this.inputPortCount = context.getInputPortCount();
-        this.inputPorts = IntStream.range( 0, inputPortCount ).toArray();
+
         final TupleValueMergePolicy mergePolicy = config.getOrFail( MERGE_POLICY_CONfIG_PARAMETER );
         this.tupleMergeFunc = new TupleMerger( mergePolicy );
 
+        final int[] inputPorts = IntStream.range( 0, inputPortCount ).toArray();
         return scheduleWhenTuplesAvailableOnAll( AT_LEAST_BUT_SAME_ON_ALL_PORTS, context.getInputPortCount(), 1, inputPorts );
     }
 
@@ -107,13 +103,17 @@ public class BarrierOperator implements Operator
         final Tuples input = invocationContext.getInput();
         final Tuples output = invocationContext.getOutput();
 
-        final Optional<Integer> tupleCountOpt = IntStream.of( inputPorts )
-                                                         .mapToObj( portIndex -> input.getTuples( portIndex ).size() )
-                                                         .reduce( ( count1, count2 ) -> count1.equals( count2 ) ? count1 : 0 );
-        final int tupleCount = tupleCountOpt.orElse( 0 );
+        int tupleCount = getTupleCountIfSameOnAllPorts( input );
         if ( tupleCount == 0 )
         {
-            throw new IllegalArgumentException( "number of tuples are not equal for all ports!" );
+            if ( invocationContext.isSuccessfulInvocation() )
+            {
+                throw new IllegalArgumentException( "number of tuples are not equal for all ports!" );
+            }
+            else
+            {
+                tupleCount = getMinTupleCountOfAllPorts( input );
+            }
         }
 
         for ( int i = 0; i < tupleCount; i++ )
@@ -127,10 +127,35 @@ public class BarrierOperator implements Operator
 
             output.add( prev );
         }
-
-        if ( invocationContext.isErroneousInvocation() )
-        {
-            invocationContext.setNewSchedulingStrategy( ScheduleNever.INSTANCE );
-        }
     }
+
+    private int getTupleCountIfSameOnAllPorts ( final Tuples input )
+    {
+        int tupleCount = input.getTupleCount( 0 );
+        for ( int i = 1; i < inputPortCount; i++ )
+        {
+            if ( input.getTupleCount( i ) != tupleCount )
+            {
+                return 0;
+            }
+        }
+
+        return tupleCount;
+    }
+
+    private int getMinTupleCountOfAllPorts ( final Tuples input )
+    {
+        int tupleCount = Integer.MAX_VALUE;
+        for ( int i = 0; i < inputPortCount; i++ )
+        {
+            final int t = input.getTupleCount( i );
+            if ( t < tupleCount )
+            {
+                tupleCount = t;
+            }
+        }
+
+        return tupleCount;
+    }
+
 }
