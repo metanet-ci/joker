@@ -90,11 +90,11 @@ public class PipelineIntegrationTest
 
     private final KVStoreContext nopKvStoreContext = mock( KVStoreContext.class );
 
-    private final PipelineInstanceId pipelineInstanceId1 = new PipelineInstanceId( 0, 0, 0 );
+    private final PipelineInstanceId pipelineInstanceId1 = new PipelineInstanceId( new PipelineId( 0, 0 ), 0 );
 
-    private final PipelineInstanceId pipelineInstanceId2 = new PipelineInstanceId( 0, 0, 1 );
+    private final PipelineInstanceId pipelineInstanceId2 = new PipelineInstanceId( new PipelineId( 0, 1 ), 0 );
 
-    private final PipelineInstanceId pipelineInstanceId3 = new PipelineInstanceId( 0, 0, 2 );
+    private final PipelineInstanceId pipelineInstanceId3 = new PipelineInstanceId( new PipelineId( 0, 2 ), 0 );
 
     @Before
     public void init ()

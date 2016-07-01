@@ -60,7 +60,7 @@ public class OperatorInstanceInitializationTest
     @Before
     public void before () throws InstantiationException, IllegalAccessException
     {
-        operatorInstance = new OperatorInstance( new PipelineInstanceId( 0, 0, 0 ),
+        operatorInstance = new OperatorInstance( new PipelineInstanceId( new PipelineId( 0, 0 ), 0 ),
                                                  operatorDefinition,
                                                  mock( TupleQueueContext.class ),
                                                  mock( KVStoreContext.class ),

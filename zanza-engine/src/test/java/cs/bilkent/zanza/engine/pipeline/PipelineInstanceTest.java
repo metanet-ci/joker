@@ -63,7 +63,7 @@ public class PipelineInstanceTest
         final OperatorDefinition operatorDefinition0 = mock( OperatorDefinition.class );
         when( operator0.getOperatorDefinition() ).thenReturn( operatorDefinition0 );
         when( operatorDefinition0.inputPortCount() ).thenReturn( 1 );
-        pipeline = new PipelineInstance( new PipelineInstanceId( 0, 0, 0 ),
+        pipeline = new PipelineInstance( new PipelineInstanceId( new PipelineId( 0, 0 ), 0 ),
                                          new OperatorInstance[] { operator0, operator1, operator2 },
                                          upstreamTupleQueueContext );
 

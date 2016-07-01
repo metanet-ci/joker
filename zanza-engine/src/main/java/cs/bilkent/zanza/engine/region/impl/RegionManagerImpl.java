@@ -23,6 +23,7 @@ import cs.bilkent.zanza.engine.kvstore.impl.DefaultKVStoreContext;
 import cs.bilkent.zanza.engine.kvstore.impl.EmptyKVStoreContext;
 import cs.bilkent.zanza.engine.kvstore.impl.PartitionedKVStoreContext;
 import cs.bilkent.zanza.engine.pipeline.OperatorInstance;
+import cs.bilkent.zanza.engine.pipeline.PipelineId;
 import cs.bilkent.zanza.engine.pipeline.PipelineInstance;
 import cs.bilkent.zanza.engine.pipeline.PipelineInstanceId;
 import cs.bilkent.zanza.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
@@ -179,7 +180,7 @@ public class RegionManagerImpl implements RegionManager
         final PipelineInstanceId[] pipelineInstanceIds = new PipelineInstanceId[ replicaCount ];
         for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
         {
-            pipelineInstanceIds[ replicaIndex ] = new PipelineInstanceId( regionId, replicaIndex, pipelineId );
+            pipelineInstanceIds[ replicaIndex ] = new PipelineInstanceId( new PipelineId( regionId, pipelineId ), replicaIndex );
         }
         return pipelineInstanceIds;
     }

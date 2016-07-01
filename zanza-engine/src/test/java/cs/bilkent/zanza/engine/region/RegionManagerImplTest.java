@@ -17,6 +17,7 @@ import cs.bilkent.zanza.engine.kvstore.impl.PartitionedKVStoreContext;
 import cs.bilkent.zanza.engine.partition.PartitionService;
 import cs.bilkent.zanza.engine.partition.PartitionServiceImpl;
 import cs.bilkent.zanza.engine.pipeline.OperatorInstance;
+import cs.bilkent.zanza.engine.pipeline.PipelineId;
 import cs.bilkent.zanza.engine.pipeline.PipelineInstance;
 import cs.bilkent.zanza.engine.pipeline.PipelineInstanceId;
 import cs.bilkent.zanza.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
@@ -146,8 +147,8 @@ public class RegionManagerImplTest
         assertEmptyTupleQueueContext( pipeline0, operatorDefinition0.inputPortCount() );
         assertEmptyTupleQueueContext( pipeline1, operatorDefinition1.inputPortCount() );
 
-        assertEquals( new PipelineInstanceId( 1, 0, 0 ), pipeline0.id() );
-        assertEquals( new PipelineInstanceId( 1, 0, 1 ), pipeline1.id() );
+        assertEquals( new PipelineInstanceId( new PipelineId( 1, 0 ), 0 ), pipeline0.id() );
+        assertEquals( new PipelineInstanceId( new PipelineId( 1, 1 ), 0 ), pipeline1.id() );
         assertEquals( 1, pipeline0.getOperatorCount() );
         assertEquals( 1, pipeline1.getOperatorCount() );
         final OperatorInstance operatorInstance0 = pipeline0.getOperatorInstance( 0 );
@@ -171,7 +172,7 @@ public class RegionManagerImplTest
                                                       final OperatorDefinition operatorDefinition1,
                                                       final PipelineInstance pipelineReplica0 )
     {
-        assertEquals( new PipelineInstanceId( regionId, replicaIndex, pipelineId ), pipelineReplica0.id() );
+        assertEquals( new PipelineInstanceId( new PipelineId( regionId, pipelineId ), replicaIndex ), pipelineReplica0.id() );
         assertEquals( 2, pipelineReplica0.getOperatorCount() );
         final OperatorInstance operatorInstance0 = pipelineReplica0.getOperatorInstance( 0 );
         final OperatorInstance operatorInstance1 = pipelineReplica0.getOperatorInstance( 1 );
@@ -216,7 +217,7 @@ public class RegionManagerImplTest
         final PipelineInstance pipeline = pipelines[ 0 ];
         assertEmptyTupleQueueContext( pipeline, operatorDefinition1.inputPortCount() );
 
-        assertEquals( new PipelineInstanceId( 1, 0, 0 ), pipeline.id() );
+        assertEquals( new PipelineInstanceId( new PipelineId( 1, 0 ), 0 ), pipeline.id() );
         assertEquals( 2, pipeline.getOperatorCount() );
         final OperatorInstance operatorInstance1 = pipeline.getOperatorInstance( 0 );
         final OperatorInstance operatorInstance2 = pipeline.getOperatorInstance( 1 );
@@ -258,7 +259,7 @@ public class RegionManagerImplTest
         final PipelineInstance pipeline = pipelines[ 0 ];
         assertEmptyTupleQueueContext( pipeline, operatorDefinition1.inputPortCount() );
 
-        assertEquals( new PipelineInstanceId( 1, 0, 0 ), pipeline.id() );
+        assertEquals( new PipelineInstanceId( new PipelineId( 1, 0 ), 0 ), pipeline.id() );
         assertEquals( 1, pipeline.getOperatorCount() );
 
         final OperatorInstance operatorInstance1 = pipeline.getOperatorInstance( 0 );
@@ -305,7 +306,7 @@ public class RegionManagerImplTest
         final PipelineInstance pipeline = pipelines[ 0 ];
         assertDefaultTupleQueueContext( pipeline, operatorDefinition1.inputPortCount() );
 
-        assertEquals( new PipelineInstanceId( 1, 0, 0 ), pipeline.id() );
+        assertEquals( new PipelineInstanceId( new PipelineId( 1, 0 ), 0 ), pipeline.id() );
         assertEquals( 1, pipeline.getOperatorCount() );
 
         final OperatorInstance operatorInstance1 = pipeline.getOperatorInstance( 0 );
@@ -356,8 +357,8 @@ public class RegionManagerImplTest
         assertDefaultTupleQueueContext( pipelineReplica0, operatorDefinition1.inputPortCount() );
         assertDefaultTupleQueueContext( pipelineReplica1, operatorDefinition1.inputPortCount() );
 
-        assertEquals( new PipelineInstanceId( 1, 0, 0 ), pipelineReplica0.id() );
-        assertEquals( new PipelineInstanceId( 1, 1, 0 ), pipelineReplica1.id() );
+        assertEquals( new PipelineInstanceId( new PipelineId( 1, 0 ), 0 ), pipelineReplica0.id() );
+        assertEquals( new PipelineInstanceId( new PipelineId( 1, 0 ), 1 ), pipelineReplica1.id() );
         assertEquals( 1, pipelineReplica0.getOperatorCount() );
         assertEquals( 1, pipelineReplica1.getOperatorCount() );
 
@@ -420,7 +421,7 @@ public class RegionManagerImplTest
         final PipelineInstance pipeline = pipelines[ 0 ];
         assertEmptyTupleQueueContext( pipeline, operatorDefinition1.inputPortCount() );
 
-        assertEquals( new PipelineInstanceId( 1, 0, 0 ), pipeline.id() );
+        assertEquals( new PipelineInstanceId( new PipelineId( 1, 0 ), 0 ), pipeline.id() );
         assertEquals( 2, pipeline.getOperatorCount() );
 
         final OperatorInstance operatorInstance1 = pipeline.getOperatorInstance( 0 );
@@ -487,8 +488,8 @@ public class RegionManagerImplTest
         assertEmptyTupleQueueContext( pipelineReplica0, operatorDefinition1.inputPortCount() );
         assertEmptyTupleQueueContext( pipelineReplica1, operatorDefinition1.inputPortCount() );
 
-        assertEquals( new PipelineInstanceId( 1, 0, 0 ), pipelineReplica0.id() );
-        assertEquals( new PipelineInstanceId( 1, 1, 0 ), pipelineReplica1.id() );
+        assertEquals( new PipelineInstanceId( new PipelineId( 1, 0 ), 0 ), pipelineReplica0.id() );
+        assertEquals( new PipelineInstanceId( new PipelineId( 1, 0 ), 1 ), pipelineReplica1.id() );
         assertEquals( 2, pipelineReplica0.getOperatorCount() );
         assertEquals( 2, pipelineReplica1.getOperatorCount() );
 
@@ -577,8 +578,8 @@ public class RegionManagerImplTest
         assertEmptyTupleQueueContext( pipeline0, operatorDefinition1.inputPortCount() );
         assertDefaultTupleQueueContext( pipeline1, operatorDefinition2.inputPortCount() );
 
-        assertEquals( new PipelineInstanceId( 1, 0, 0 ), pipeline0.id() );
-        assertEquals( new PipelineInstanceId( 1, 0, 1 ), pipeline1.id() );
+        assertEquals( new PipelineInstanceId( new PipelineId( 1, 0 ), 0 ), pipeline0.id() );
+        assertEquals( new PipelineInstanceId( new PipelineId( 1, 1 ), 0 ), pipeline1.id() );
         assertEquals( 1, pipeline0.getOperatorCount() );
         assertEquals( 2, pipeline1.getOperatorCount() );
 

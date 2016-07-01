@@ -1,22 +1,21 @@
 package cs.bilkent.zanza.engine.pipeline;
 
-public class PipelineInstanceId
+public class PipelineId
 {
 
-    public final PipelineId pipelineId;
+    public final int regionId;
 
-    public final int replicaIndex;
+    public final int pipelineId;
 
     private final String str;
 
     private final int hashCode;
 
-    public PipelineInstanceId ( PipelineId pipelineId, final int replicaIndex )
+    public PipelineId ( final int regionId, final int pipelineId )
     {
+        this.regionId = regionId;
         this.pipelineId = pipelineId;
-        this.replicaIndex = replicaIndex;
-        this.str = pipelineId.toString() + "(" + replicaIndex + ")";
-        ;
+        this.str = "P[" + regionId + "_" + pipelineId + "]";
         this.hashCode = str.hashCode();
     }
 
@@ -32,21 +31,16 @@ public class PipelineInstanceId
             return false;
         }
 
-        final PipelineInstanceId that = (PipelineInstanceId) o;
+        final PipelineId that = (PipelineId) o;
 
         return str.equals( that.str );
+
     }
 
     @Override
     public int hashCode ()
     {
         return hashCode;
-    }
-
-    @Override
-    public String toString ()
-    {
-        return str;
     }
 
 }

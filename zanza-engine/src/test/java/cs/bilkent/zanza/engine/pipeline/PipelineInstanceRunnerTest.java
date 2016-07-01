@@ -66,7 +66,7 @@ public class PipelineInstanceRunnerTest
     @Before
     public void init () throws Exception
     {
-        final PipelineInstanceId id = new PipelineInstanceId( 0, 0, 0 );
+        final PipelineInstanceId id = new PipelineInstanceId( new PipelineId( 0, 0 ), 0 );
         when( operator.getOperatorDefinition() ).thenReturn( operatorDefinition );
         when( operatorDefinition.id() ).thenReturn( "op1" );
         when( operatorDefinition.inputPortCount() ).thenReturn( inputOutputPortCount );

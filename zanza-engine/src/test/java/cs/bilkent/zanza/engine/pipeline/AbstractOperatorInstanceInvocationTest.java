@@ -63,7 +63,7 @@ public class AbstractOperatorInstanceInvocationTest
     @Before
     public void before ()
     {
-        operatorInstance = new OperatorInstance( new PipelineInstanceId( 0, 0, 0 ),
+        operatorInstance = new OperatorInstance( new PipelineInstanceId( new PipelineId( 0, 0 ), 0 ),
                                                  operatorDefinition,
                                                  queue, kvStoreContext,
                                                  drainerPool,
