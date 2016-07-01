@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
-import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import cs.bilkent.zanza.engine.exception.InitializationException;
 import cs.bilkent.zanza.engine.kvstore.KVStoreContext;
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.COMPLETED;
@@ -123,8 +122,7 @@ public class OperatorInstance
      * it moves the status to {@link OperatorInstanceStatus#INITIALIZATION_FAILED} and propagates the exception to the caller after
      * wrapping it with {@link InitializationException}.
      */
-    public SchedulingStrategy init ( final ZanzaConfig config,
-                                     final UpstreamContext upstreamContext,
+    public SchedulingStrategy init ( final UpstreamContext upstreamContext,
                                      final OperatorInstanceListener listener )
     {
         checkState( status == INITIAL );
@@ -133,7 +131,6 @@ public class OperatorInstance
             this.listener = listener != null ? listener : ( operatorId, status1 ) -> {
             };
 
-            drainerPool.init( config );
             operator = operatorDefinition.createOperator();
             checkState( operator != null, "operator implementation can not be null" );
             setUpstreamContext( upstreamContext );

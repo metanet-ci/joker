@@ -33,6 +33,8 @@ public class PipelineInstance
     private static Logger LOGGER = LoggerFactory.getLogger( PipelineInstance.class );
 
 
+    private final ZanzaConfig config;
+
     private final PipelineInstanceId id;
 
     private final OperatorInstance[] operators;
@@ -45,59 +47,29 @@ public class PipelineInstance
 
     private final int[] nonBlockingUpstreamTupleCounts;
 
-    private OperatorInstanceStatus status = INITIAL;
+    private final MultiPortDrainer upstreamDrainer;
 
-    private MultiPortDrainer upstreamDrainer;
+    private OperatorInstanceStatus status = INITIAL;
 
     private UpstreamContext pipelineUpstreamContext;
 
     private boolean noBlockOnUpstreamTupleQueueContext;
 
-    public PipelineInstance ( final PipelineInstanceId id,
+    public PipelineInstance ( final ZanzaConfig config, final PipelineInstanceId id,
                               final OperatorInstance[] operators,
                               final TupleQueueContext upstreamTupleQueueContext )
     {
+        this.config = config;
         this.id = id;
         this.operators = operators;
         this.operatorCount = operators.length;
         this.upstreamTupleQueueContext = upstreamTupleQueueContext;
         this.blockingUpstreamTupleCounts = new int[ operators[ 0 ].getOperatorDefinition().inputPortCount() ];
         this.nonBlockingUpstreamTupleCounts = new int[ operators[ 0 ].getOperatorDefinition().inputPortCount() ];
+        this.upstreamDrainer = createUpstreamDrainer();
     }
 
-    public SchedulingStrategy[] init ( final ZanzaConfig config,
-                                       UpstreamContext upstreamContext,
-                                       final OperatorInstanceListener operatorInstanceListener )
-    {
-        checkState( status == INITIAL );
-        checkNotNull( config );
-        checkNotNull( upstreamContext );
-
-        SchedulingStrategy[] schedulingStrategies = new SchedulingStrategy[ operatorCount ];
-        this.pipelineUpstreamContext = upstreamContext;
-        for ( int i = 0; i < operatorCount; i++ )
-        {
-            try
-            {
-                final OperatorInstance operator = operators[ i ];
-                schedulingStrategies[ i ] = operator.init( config, upstreamContext, operatorInstanceListener );
-                upstreamContext = operator.getSelfUpstreamContext();
-            }
-            catch ( InitializationException e )
-            {
-                shutdownOperators();
-                status = INITIALIZATION_FAILED;
-                throw e;
-            }
-        }
-
-        upstreamDrainer = createUpstreamDrainer( config );
-        status = RUNNING;
-
-        return schedulingStrategies;
-    }
-
-    private MultiPortDrainer createUpstreamDrainer ( final ZanzaConfig config )
+    private MultiPortDrainer createUpstreamDrainer ()
     {
         final int upstreamInputPortCount = operators[ 0 ].getOperatorDefinition().inputPortCount();
         final MultiPortDrainer drainer = new BlockingMultiPortDisjunctiveDrainer( upstreamInputPortCount,
@@ -108,6 +80,34 @@ public class PipelineInstance
         Arrays.fill( nonBlockingUpstreamTupleCounts, 0 );
         drainer.setParameters( AT_LEAST, nonBlockingUpstreamTupleCounts );
         return drainer;
+    }
+
+    public SchedulingStrategy[] init ( UpstreamContext upstreamContext, final OperatorInstanceListener operatorInstanceListener )
+    {
+        checkState( status == INITIAL );
+        checkNotNull( upstreamContext );
+
+        SchedulingStrategy[] schedulingStrategies = new SchedulingStrategy[ operatorCount ];
+        this.pipelineUpstreamContext = upstreamContext;
+        for ( int i = 0; i < operatorCount; i++ )
+        {
+            try
+            {
+                final OperatorInstance operator = operators[ i ];
+                schedulingStrategies[ i ] = operator.init( upstreamContext, operatorInstanceListener );
+                upstreamContext = operator.getSelfUpstreamContext();
+            }
+            catch ( InitializationException e )
+            {
+                shutdownOperators();
+                status = INITIALIZATION_FAILED;
+                throw e;
+            }
+        }
+
+        status = RUNNING;
+
+        return schedulingStrategies;
     }
 
 

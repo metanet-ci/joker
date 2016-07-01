@@ -118,7 +118,7 @@ public class PipelineIntegrationTest
                                                                                                              REPLICA_INDEX,
                                                                                                              mapperOperatorDef,
                                                                                                              MULTI_THREADED );
-        final TupleQueueDrainerPool drainerPool = new BlockingTupleQueueDrainerPool( mapperOperatorDef );
+        final TupleQueueDrainerPool drainerPool = new BlockingTupleQueueDrainerPool( zanzaConfig, mapperOperatorDef );
         final Supplier<TuplesImpl> tuplesImplSupplier = new NonCachedTuplesImplSupplier( mapperOperatorDef.outputPortCount() );
 
         final OperatorInstance operator = new OperatorInstance( pipelineInstanceId1,
@@ -127,10 +127,10 @@ public class PipelineIntegrationTest
                                                                 nopKvStoreContext,
                                                                 drainerPool,
                                                                 tuplesImplSupplier );
-        final PipelineInstance pipeline = new PipelineInstance( pipelineInstanceId1,
+        final PipelineInstance pipeline = new PipelineInstance( zanzaConfig, pipelineInstanceId1,
                                                                 new OperatorInstance[] { operator },
                                                                 new EmptyTupleQueueContext( "map", mapperOperatorDef.inputPortCount() ) );
-        final PipelineInstanceRunner runner = new PipelineInstanceRunner( pipeline );
+        final PipelineInstanceRunner runner = new PipelineInstanceRunner( zanzaConfig, pipeline );
 
         final Supervisor supervisor = mock( Supervisor.class );
         final UpstreamContext initialUpstreamContext = new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } );
@@ -141,7 +141,7 @@ public class PipelineIntegrationTest
                                                                                                                     .outputPortCount() );
         runner.setDownstreamTupleSender( tupleCollector );
 
-        runner.init( zanzaConfig );
+        runner.init();
 
         final Thread runnerThread = spawnThread( runner );
 
@@ -183,7 +183,7 @@ public class PipelineIntegrationTest
                                                                                                                    mapperOperatorDef,
                                                                                                                    MULTI_THREADED );
 
-        final TupleQueueDrainerPool mapperDrainerPool = new BlockingTupleQueueDrainerPool( mapperOperatorDef );
+        final TupleQueueDrainerPool mapperDrainerPool = new BlockingTupleQueueDrainerPool( zanzaConfig, mapperOperatorDef );
         final Supplier<TuplesImpl> mapperTuplesImplSupplier = new CachedTuplesImplSupplier( mapperOperatorDef.outputPortCount() );
 
         final OperatorInstance mapperOperator = new OperatorInstance( pipelineInstanceId1,
@@ -205,7 +205,7 @@ public class PipelineIntegrationTest
                                                                                                                    filterOperatorDef,
                                                                                                                    SINGLE_THREADED );
 
-        final TupleQueueDrainerPool filterDrainerPool = new NonBlockingTupleQueueDrainerPool( filterOperatorDef );
+        final TupleQueueDrainerPool filterDrainerPool = new NonBlockingTupleQueueDrainerPool( zanzaConfig, filterOperatorDef );
         final Supplier<TuplesImpl> filterTuplesImplSupplier = new NonCachedTuplesImplSupplier( filterOperatorDef.inputPortCount() );
 
         final OperatorInstance filterOperator = new OperatorInstance( pipelineInstanceId1,
@@ -215,10 +215,10 @@ public class PipelineIntegrationTest
                                                                       filterDrainerPool,
                                                                       filterTuplesImplSupplier );
 
-        final PipelineInstance pipeline = new PipelineInstance( pipelineInstanceId1,
+        final PipelineInstance pipeline = new PipelineInstance( zanzaConfig, pipelineInstanceId1,
                                                                 new OperatorInstance[] { mapperOperator, filterOperator },
                                                                 new EmptyTupleQueueContext( "map", mapperOperatorDef.inputPortCount() ) );
-        final PipelineInstanceRunner runner = new PipelineInstanceRunner( pipeline );
+        final PipelineInstanceRunner runner = new PipelineInstanceRunner( zanzaConfig, pipeline );
 
         final Supervisor supervisor = mock( Supervisor.class );
         final UpstreamContext initialUpstreamContext = new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } );
@@ -229,7 +229,7 @@ public class PipelineIntegrationTest
                                                                                                                     .outputPortCount() );
         runner.setDownstreamTupleSender( tupleCollector );
 
-        runner.init( zanzaConfig );
+        runner.init();
 
         final Thread runnerThread = spawnThread( runner );
 
@@ -278,7 +278,7 @@ public class PipelineIntegrationTest
         final TupleQueueContext generatorTupleQueueContext = new EmptyTupleQueueContext( generatorOperatorDef.id(),
                                                                                          generatorOperatorDef.inputPortCount() );
 
-        final TupleQueueDrainerPool generatorDrainerPool = new NonBlockingTupleQueueDrainerPool( generatorOperatorDef );
+        final TupleQueueDrainerPool generatorDrainerPool = new NonBlockingTupleQueueDrainerPool( zanzaConfig, generatorOperatorDef );
         final Supplier<TuplesImpl> generatorTuplesImplSupplier = new CachedTuplesImplSupplier( generatorOperatorDef.outputPortCount() );
 
         final OperatorInstance generatorOperator = new OperatorInstance( pipelineInstanceId1,
@@ -300,7 +300,7 @@ public class PipelineIntegrationTest
                                                                                                                    passerOperatorDef,
                                                                                                                    SINGLE_THREADED );
 
-        final TupleQueueDrainerPool passerDrainerPool = new NonBlockingTupleQueueDrainerPool( passerOperatorDef );
+        final TupleQueueDrainerPool passerDrainerPool = new NonBlockingTupleQueueDrainerPool( zanzaConfig, passerOperatorDef );
         final Supplier<TuplesImpl> passerTuplesImplSupplier = new CachedTuplesImplSupplier( passerOperatorDef.outputPortCount() );
 
         final OperatorInstance passerOperator = new OperatorInstance( pipelineInstanceId1,
@@ -322,7 +322,7 @@ public class PipelineIntegrationTest
                 stateOperatorDef );
         final PartitionedTupleQueueContext stateTupleQueueContext = stateTupleQueueContexts[ 0 ];
 
-        final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( stateOperatorDef );
+        final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( zanzaConfig, stateOperatorDef );
         final Supplier<TuplesImpl> stateTuplesImplSupplier = new CachedTuplesImplSupplier( stateOperatorDef.outputPortCount() );
 
         final OperatorInstance stateOperator = new OperatorInstance( pipelineInstanceId1,
@@ -332,11 +332,11 @@ public class PipelineIntegrationTest
                                                                      stateDrainerPool,
                                                                      stateTuplesImplSupplier );
 
-        final PipelineInstance pipeline = new PipelineInstance( pipelineInstanceId1,
+        final PipelineInstance pipeline = new PipelineInstance( zanzaConfig, pipelineInstanceId1,
                                                                 new OperatorInstance[] { generatorOperator, passerOperator, stateOperator },
                                                                 new EmptyTupleQueueContext( "generator",
                                                                                             generatorOperatorDef.inputPortCount() ) );
-        final PipelineInstanceRunner runner = new PipelineInstanceRunner( pipeline );
+        final PipelineInstanceRunner runner = new PipelineInstanceRunner( zanzaConfig, pipeline );
 
         final Supervisor supervisor = mock( Supervisor.class );
         final UpstreamContext initialUpstreamContext = new UpstreamContext( 0, new UpstreamConnectionStatus[] {} );
@@ -345,7 +345,7 @@ public class PipelineIntegrationTest
 
         runner.setDownstreamTupleSender( mock( DownstreamTupleSender.class ) );
 
-        runner.init( zanzaConfig );
+        runner.init();
 
         final Thread runnerThread = spawnThread( runner );
 
@@ -386,7 +386,7 @@ public class PipelineIntegrationTest
                                                                                                                    mapperOperatorDef,
                                                                                                                    MULTI_THREADED );
 
-        final TupleQueueDrainerPool mapperDrainerPool = new BlockingTupleQueueDrainerPool( mapperOperatorDef );
+        final TupleQueueDrainerPool mapperDrainerPool = new BlockingTupleQueueDrainerPool( zanzaConfig, mapperOperatorDef );
         final Supplier<TuplesImpl> mapperTuplesImplSupplier = new NonCachedTuplesImplSupplier( mapperOperatorDef.outputPortCount() );
 
         final OperatorInstance mapperOperator = new OperatorInstance( pipelineInstanceId1,
@@ -396,10 +396,10 @@ public class PipelineIntegrationTest
                                                                       mapperDrainerPool,
                                                                       mapperTuplesImplSupplier );
 
-        final PipelineInstance pipeline1 = new PipelineInstance( pipelineInstanceId1,
+        final PipelineInstance pipeline1 = new PipelineInstance( zanzaConfig, pipelineInstanceId1,
                                                                  new OperatorInstance[] { mapperOperator },
                                                                  new EmptyTupleQueueContext( "map", mapperOperatorDef.inputPortCount() ) );
-        final PipelineInstanceRunner runner1 = new PipelineInstanceRunner( pipeline1 );
+        final PipelineInstanceRunner runner1 = new PipelineInstanceRunner( zanzaConfig, pipeline1 );
 
         final OperatorConfig filterOperatorConfig = new OperatorConfig();
         final Predicate<Tuple> filterEvenVals = tuple -> tuple.getInteger( "val" ) % 2 == 0;
@@ -413,7 +413,7 @@ public class PipelineIntegrationTest
                                                                                                                    filterOperatorDef,
                                                                                                                    MULTI_THREADED );
 
-        final TupleQueueDrainerPool filterDrainerPool = new BlockingTupleQueueDrainerPool( filterOperatorDef );
+        final TupleQueueDrainerPool filterDrainerPool = new BlockingTupleQueueDrainerPool( zanzaConfig, filterOperatorDef );
         final Supplier<TuplesImpl> filterTuplesImplSupplier = new NonCachedTuplesImplSupplier( filterOperatorDef.inputPortCount() );
 
         final OperatorInstance filterOperator = new OperatorInstance( pipelineInstanceId2,
@@ -423,11 +423,11 @@ public class PipelineIntegrationTest
                                                                       filterDrainerPool,
                                                                       filterTuplesImplSupplier );
 
-        final PipelineInstance pipeline2 = new PipelineInstance( pipelineInstanceId2,
+        final PipelineInstance pipeline2 = new PipelineInstance( zanzaConfig, pipelineInstanceId2,
                                                                  new OperatorInstance[] { filterOperator },
                                                                  new EmptyTupleQueueContext( "filter",
                                                                                              filterOperatorDef.inputPortCount() ) );
-        final PipelineInstanceRunner runner2 = new PipelineInstanceRunner( pipeline2 );
+        final PipelineInstanceRunner runner2 = new PipelineInstanceRunner( zanzaConfig, pipeline2 );
 
         final SupervisorImpl supervisor = new SupervisorImpl();
         supervisor.upstreamContexts.put( pipelineInstanceId1, new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ) );
@@ -449,8 +449,8 @@ public class PipelineIntegrationTest
                                                                                                                      .outputPortCount() );
         runner2.setDownstreamTupleSender( tupleCollector2 );
 
-        runner1.init( zanzaConfig );
-        runner2.init( zanzaConfig );
+        runner1.init();
+        runner2.init();
 
         final Thread runnerThread1 = spawnThread( runner1 );
         final Thread runnerThread2 = spawnThread( runner2 );
@@ -501,7 +501,7 @@ public class PipelineIntegrationTest
         final TupleQueueContext generatorTupleQueueContext1 = new EmptyTupleQueueContext( generatorOperatorDef1.id(),
                                                                                           generatorOperatorDef1.inputPortCount() );
 
-        final TupleQueueDrainerPool generatorDrainerPool1 = new NonBlockingTupleQueueDrainerPool( generatorOperatorDef1 );
+        final TupleQueueDrainerPool generatorDrainerPool1 = new NonBlockingTupleQueueDrainerPool( zanzaConfig, generatorOperatorDef1 );
         final Supplier<TuplesImpl> generatorTuplesImplSupplier1 = new NonCachedTuplesImplSupplier( generatorOperatorDef1.outputPortCount
                                                                                                                                  () );
 
@@ -512,11 +512,11 @@ public class PipelineIntegrationTest
                                                                           generatorDrainerPool1,
                                                                           generatorTuplesImplSupplier1 );
 
-        final PipelineInstance pipeline1 = new PipelineInstance( pipelineInstanceId1,
+        final PipelineInstance pipeline1 = new PipelineInstance( zanzaConfig, pipelineInstanceId1,
                                                                  new OperatorInstance[] { generatorOperator1 },
                                                                  new EmptyTupleQueueContext( "generator1",
                                                                                              generatorOperatorDef1.inputPortCount() ) );
-        final PipelineInstanceRunner runner1 = new PipelineInstanceRunner( pipeline1 );
+        final PipelineInstanceRunner runner1 = new PipelineInstanceRunner( zanzaConfig, pipeline1 );
 
         final OperatorConfig generatorOperatorConfig2 = new OperatorConfig();
         generatorOperatorConfig2.set( "batchCount", batchCount );
@@ -529,7 +529,7 @@ public class PipelineIntegrationTest
         final TupleQueueContext generatorTupleQueueContext2 = new EmptyTupleQueueContext( generatorOperatorDef2.id(),
                                                                                           generatorOperatorDef2.inputPortCount() );
 
-        final TupleQueueDrainerPool generatorDrainerPool2 = new NonBlockingTupleQueueDrainerPool( generatorOperatorDef2 );
+        final TupleQueueDrainerPool generatorDrainerPool2 = new NonBlockingTupleQueueDrainerPool( zanzaConfig, generatorOperatorDef2 );
         final Supplier<TuplesImpl> generatorTuplesImplSupplier2 = new NonCachedTuplesImplSupplier( generatorOperatorDef2.outputPortCount
                                                                                                                                  () );
 
@@ -540,11 +540,11 @@ public class PipelineIntegrationTest
                                                                           generatorDrainerPool2,
                                                                           generatorTuplesImplSupplier2 );
 
-        final PipelineInstance pipeline2 = new PipelineInstance( pipelineInstanceId2,
+        final PipelineInstance pipeline2 = new PipelineInstance( zanzaConfig, pipelineInstanceId2,
                                                                  new OperatorInstance[] { generatorOperator2 },
                                                                  new EmptyTupleQueueContext( "generator2",
                                                                                              generatorOperatorDef2.inputPortCount() ) );
-        final PipelineInstanceRunner runner2 = new PipelineInstanceRunner( pipeline2 );
+        final PipelineInstanceRunner runner2 = new PipelineInstanceRunner( zanzaConfig, pipeline2 );
 
         final OperatorConfig sinkOperatorConfig = new OperatorConfig();
         final OperatorDefinition sinkOperatorDef = OperatorDefinitionBuilder.newInstance( "sink", ValueSinkOperator.class )
@@ -556,7 +556,7 @@ public class PipelineIntegrationTest
                                                                                                                  sinkOperatorDef,
                                                                                                                  MULTI_THREADED );
 
-        final TupleQueueDrainerPool sinkDrainerPool = new BlockingTupleQueueDrainerPool( sinkOperatorDef );
+        final TupleQueueDrainerPool sinkDrainerPool = new BlockingTupleQueueDrainerPool( zanzaConfig, sinkOperatorDef );
         final Supplier<TuplesImpl> sinkTuplesImplSupplier = new CachedTuplesImplSupplier( sinkOperatorDef.outputPortCount() );
 
         final KVStoreContext sinkKVStoreContext = kvStoreContextManager.createDefaultKVStoreContext( REGION_ID, "sink" );
@@ -580,7 +580,7 @@ public class PipelineIntegrationTest
                                                                                                                    passerOperatorDef,
                                                                                                                    SINGLE_THREADED );
 
-        final TupleQueueDrainerPool passerDrainerPool = new NonBlockingTupleQueueDrainerPool( passerOperatorDef );
+        final TupleQueueDrainerPool passerDrainerPool = new NonBlockingTupleQueueDrainerPool( zanzaConfig, passerOperatorDef );
         final Supplier<TuplesImpl> passerTuplesImplSupplier = new CachedTuplesImplSupplier( passerOperatorDef.outputPortCount() );
 
         final OperatorInstance passerOperator = new OperatorInstance( pipelineInstanceId3,
@@ -602,7 +602,7 @@ public class PipelineIntegrationTest
                 stateOperatorDef );
         final PartitionedTupleQueueContext stateTupleQueueContext = stateTupleQueueContexts[ 0 ];
 
-        final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( stateOperatorDef );
+        final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( zanzaConfig, stateOperatorDef );
         final Supplier<TuplesImpl> stateTuplesImplSupplier = new CachedTuplesImplSupplier( stateOperatorDef.outputPortCount() );
 
         final OperatorInstance stateOperator = new OperatorInstance( pipelineInstanceId3,
@@ -612,10 +612,10 @@ public class PipelineIntegrationTest
                                                                      stateDrainerPool,
                                                                      stateTuplesImplSupplier );
 
-        final PipelineInstance pipeline3 = new PipelineInstance( pipelineInstanceId3,
+        final PipelineInstance pipeline3 = new PipelineInstance( zanzaConfig, pipelineInstanceId3,
                                                                  new OperatorInstance[] { sinkOperator, passerOperator, stateOperator },
                                                                  new EmptyTupleQueueContext( "sink", sinkOperatorDef.inputPortCount() ) );
-        final PipelineInstanceRunner runner3 = new PipelineInstanceRunner( pipeline3 );
+        final PipelineInstanceRunner runner3 = new PipelineInstanceRunner( zanzaConfig, pipeline3 );
 
         final SupervisorImpl supervisor = new SupervisorImpl();
         supervisor.upstreamContexts.put( pipelineInstanceId1, new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ) );
@@ -634,9 +634,9 @@ public class PipelineIntegrationTest
         runner2.setDownstreamTupleSender( new DownstreamTupleSenderImpl( sinkTupleQueueContext, new Pair[] { Pair.of( 0, 1 ) } ) );
         runner3.setDownstreamTupleSender( new DownstreamTupleSenderImpl( null, new Pair[] {} ) );
 
-        runner1.init( zanzaConfig );
-        runner2.init( zanzaConfig );
-        runner3.init( zanzaConfig );
+        runner1.init();
+        runner2.init();
+        runner3.init();
 
         final Thread runnerThread1 = spawnThread( runner1 );
         final Thread runnerThread2 = spawnThread( runner2 );
@@ -688,7 +688,7 @@ public class PipelineIntegrationTest
         final TupleQueueContext generatorTupleQueueContext = new EmptyTupleQueueContext( generatorOperatorDef.id(),
                                                                                          generatorOperatorDef.inputPortCount() );
 
-        final TupleQueueDrainerPool generatorDrainerPool = new NonBlockingTupleQueueDrainerPool( generatorOperatorDef );
+        final TupleQueueDrainerPool generatorDrainerPool = new NonBlockingTupleQueueDrainerPool( zanzaConfig, generatorOperatorDef );
         final Supplier<TuplesImpl> generatorTuplesImplSupplier = new NonCachedTuplesImplSupplier( generatorOperatorDef.outputPortCount() );
 
         final OperatorInstance generatorOperator = new OperatorInstance( pipelineInstanceId1,
@@ -710,7 +710,7 @@ public class PipelineIntegrationTest
                                                                                                                    passerOperatorDef,
                                                                                                                    SINGLE_THREADED );
 
-        final TupleQueueDrainerPool passerDrainerPool = new NonBlockingTupleQueueDrainerPool( passerOperatorDef );
+        final TupleQueueDrainerPool passerDrainerPool = new NonBlockingTupleQueueDrainerPool( zanzaConfig, passerOperatorDef );
         final Supplier<TuplesImpl> passerTuplesImplSupplier = new CachedTuplesImplSupplier( passerOperatorDef.outputPortCount() );
 
         final OperatorInstance passerOperator = new OperatorInstance( pipelineInstanceId1,
@@ -732,7 +732,7 @@ public class PipelineIntegrationTest
                 stateOperatorDef );
         final PartitionedTupleQueueContext stateTupleQueueContext = stateTupleQueueContexts[ 0 ];
 
-        final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( stateOperatorDef );
+        final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( zanzaConfig, stateOperatorDef );
         final Supplier<TuplesImpl> stateTuplesImplSupplier = new CachedTuplesImplSupplier( stateOperatorDef.outputPortCount() );
 
         final OperatorInstance stateOperator = new OperatorInstance( pipelineInstanceId2, stateOperatorDef, stateTupleQueueContext,
@@ -740,20 +740,20 @@ public class PipelineIntegrationTest
                                                                      stateDrainerPool,
                                                                      stateTuplesImplSupplier );
 
-        final PipelineInstance pipeline1 = new PipelineInstance( pipelineInstanceId1,
+        final PipelineInstance pipeline1 = new PipelineInstance( zanzaConfig, pipelineInstanceId1,
                                                                  new OperatorInstance[] { generatorOperator, passerOperator },
                                                                  new EmptyTupleQueueContext( "generator",
                                                                                              generatorOperatorDef.inputPortCount() ) );
-        final PipelineInstanceRunner runner1 = new PipelineInstanceRunner( pipeline1 );
+        final PipelineInstanceRunner runner1 = new PipelineInstanceRunner( zanzaConfig, pipeline1 );
 
-        final PipelineInstance pipeline2 = new PipelineInstance( pipelineInstanceId2,
+        final PipelineInstance pipeline2 = new PipelineInstance( zanzaConfig, pipelineInstanceId2,
                                                                  new OperatorInstance[] { stateOperator },
                                                                  tupleQueueContextManager.createDefaultTupleQueueContext( REGION_ID,
                                                                                                                           REPLICA_INDEX,
                                                                                                                           stateOperatorDef,
                                                                                                                           MULTI_THREADED
                                                                  ) );
-        final PipelineInstanceRunner runner2 = new PipelineInstanceRunner( pipeline2 );
+        final PipelineInstanceRunner runner2 = new PipelineInstanceRunner( zanzaConfig, pipeline2 );
 
         final SupervisorImpl supervisor = new SupervisorImpl();
         supervisor.upstreamContexts.put( pipelineInstanceId1, new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ) );
@@ -770,8 +770,8 @@ public class PipelineIntegrationTest
                                                                          new Pair[] { Pair.of( 0, 0 ) } ) );
         runner2.setDownstreamTupleSender( mock( DownstreamTupleSender.class ) );
 
-        runner1.init( zanzaConfig );
-        runner2.init( zanzaConfig );
+        runner1.init();
+        runner2.init();
 
         final Thread runnerThread1 = spawnThread( runner1 );
         final Thread runnerThread2 = spawnThread( runner2 );

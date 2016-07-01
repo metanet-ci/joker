@@ -60,7 +60,7 @@ public class RegionManagerImplTest
         final PartitionService partitionService = new PartitionServiceImpl( config );
         final KVStoreContextManagerImpl kvStoreContextManager = new KVStoreContextManagerImpl( partitionService );
         final TupleQueueContextManagerImpl tupleQueueContextManager = new TupleQueueContextManagerImpl( partitionService, config );
-        regionManagerImpl = new RegionManagerImpl( kvStoreContextManager, tupleQueueContextManager );
+        regionManagerImpl = new RegionManagerImpl( config, kvStoreContextManager, tupleQueueContextManager );
     }
 
     @Test

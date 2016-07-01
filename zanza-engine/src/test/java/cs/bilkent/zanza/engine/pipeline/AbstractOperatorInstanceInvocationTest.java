@@ -6,7 +6,6 @@ import java.util.function.Supplier;
 import org.junit.Before;
 import org.mockito.Mock;
 
-import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import cs.bilkent.zanza.engine.kvstore.KVStoreContext;
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceInitializationTest.newUpstreamContextInstance;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
@@ -89,7 +88,7 @@ public class AbstractOperatorInstanceInvocationTest
         mockOperatorInitializationSchedulingStrategy( schedulingStrategy );
 
         initializationUpstreamContext = newUpstreamContextInstance( 0, inputPortCount, ACTIVE );
-        operatorInstance.init( new ZanzaConfig(), initializationUpstreamContext, null );
+        operatorInstance.init( initializationUpstreamContext, null );
     }
 
     protected void mockOperatorDefinition ( final int inputPortCount, final int outputPortCount )

@@ -63,7 +63,7 @@ public class PipelineInstanceTest
         final OperatorDefinition operatorDefinition0 = mock( OperatorDefinition.class );
         when( operator0.getOperatorDefinition() ).thenReturn( operatorDefinition0 );
         when( operatorDefinition0.inputPortCount() ).thenReturn( 1 );
-        pipeline = new PipelineInstance( new PipelineInstanceId( new PipelineId( 0, 0 ), 0 ),
+        pipeline = new PipelineInstance( config, new PipelineInstanceId( new PipelineId( 0, 0 ), 0 ),
                                          new OperatorInstance[] { operator0, operator1, operator2 },
                                          upstreamTupleQueueContext );
 
@@ -78,22 +78,22 @@ public class PipelineInstanceTest
         when( operator0.getSelfUpstreamContext() ).thenReturn( upstreamContext1 );
         when( operator1.getSelfUpstreamContext() ).thenReturn( upstreamContext2 );
 
-        pipeline.init( config, upstreamContext0, null );
+        pipeline.init( upstreamContext0, null );
 
-        verify( operator0 ).init( config, upstreamContext0, null );
-        verify( operator1 ).init( config, upstreamContext1, null );
-        verify( operator2 ).init( config, upstreamContext2, null );
+        verify( operator0 ).init( upstreamContext0, null );
+        verify( operator1 ).init( upstreamContext1, null );
+        verify( operator2 ).init( upstreamContext2, null );
     }
 
     @Test
     public void shouldShutdownInitializedOperatorsWhenAnOperatorFailsToInit ()
     {
         when( operator0.getSelfUpstreamContext() ).thenReturn( upstreamContext1 );
-        doThrow( new InitializationException( "" ) ).when( operator1 ).init( config, upstreamContext1, null );
+        doThrow( new InitializationException( "" ) ).when( operator1 ).init( upstreamContext1, null );
 
         try
         {
-            pipeline.init( config, upstreamContext0, null );
+            pipeline.init( upstreamContext0, null );
             fail();
         }
         catch ( InitializationException expected )
@@ -101,11 +101,11 @@ public class PipelineInstanceTest
 
         }
 
-        verify( operator0 ).init( config, upstreamContext0, null );
+        verify( operator0 ).init( upstreamContext0, null );
         verify( operator0 ).shutdown();
-        verify( operator1 ).init( config, upstreamContext1, null );
+        verify( operator1 ).init( upstreamContext1, null );
         verify( operator1 ).shutdown();
-        verify( operator2, never() ).init( anyObject(), anyObject(), anyObject() );
+        verify( operator2, never() ).init( anyObject(), anyObject() );
     }
 
     @Test
@@ -113,7 +113,7 @@ public class PipelineInstanceTest
     {
         when( operator0.getSelfUpstreamContext() ).thenReturn( upstreamContext1 );
         when( operator1.getSelfUpstreamContext() ).thenReturn( upstreamContext2 );
-        pipeline.init( config, upstreamContext0, null );
+        pipeline.init( upstreamContext0, null );
         pipeline.shutdown();
 
         verify( operator0 ).shutdown();
@@ -126,7 +126,7 @@ public class PipelineInstanceTest
     {
         when( operator0.getSelfUpstreamContext() ).thenReturn( upstreamContext1 );
         when( operator1.getSelfUpstreamContext() ).thenReturn( upstreamContext2 );
-        pipeline.init( config, upstreamContext0, null );
+        pipeline.init( upstreamContext0, null );
         pipeline.shutdown();
         pipeline.shutdown();
 
@@ -140,7 +140,7 @@ public class PipelineInstanceTest
     {
         when( operator0.getSelfUpstreamContext() ).thenReturn( upstreamContext1 );
         when( operator1.getSelfUpstreamContext() ).thenReturn( upstreamContext2 );
-        pipeline.init( config, upstreamContext0, null );
+        pipeline.init( upstreamContext0, null );
 
         final UpstreamContext upstreamContext0New = new UpstreamContext( 1, new UpstreamConnectionStatus[] { CLOSED } );
         pipeline.setPipelineUpstreamContext( upstreamContext0New );
@@ -154,7 +154,7 @@ public class PipelineInstanceTest
     {
         when( operator0.getSelfUpstreamContext() ).thenReturn( upstreamContext1 );
         when( operator1.getSelfUpstreamContext() ).thenReturn( upstreamContext2 );
-        pipeline.init( config, upstreamContext0, null );
+        pipeline.init( upstreamContext0, null );
 
         when( operator0.invoke( null, upstreamContext0 ) ).thenReturn( upstreamInput1 );
         when( operator1.invoke( upstreamInput1, upstreamContext1 ) ).thenReturn( upstreamInput2 );

@@ -10,7 +10,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
-import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import cs.bilkent.zanza.engine.exception.InitializationException;
 import cs.bilkent.zanza.engine.kvstore.KVStoreContext;
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.INITIALIZATION_FAILED;
@@ -125,7 +124,7 @@ public class OperatorInstanceInitializationTest
 
         when( operator.init( any( InitializationContext.class ) ) ).thenReturn( schedulingStrategy );
 
-        operatorInstance.init( new ZanzaConfig(), upstreamContext, null );
+        operatorInstance.init( upstreamContext, null );
 
         assertThat( operatorInstance.getStatus(), equalTo( RUNNING ) );
         assertThat( operatorInstance.getInitialSchedulingStrategy(), equalTo( schedulingStrategy ) );
@@ -146,7 +145,7 @@ public class OperatorInstanceInitializationTest
 
         try
         {
-            operatorInstance.init( new ZanzaConfig(), newUpstreamContextInstance( 0, 1, ACTIVE ), null );
+            operatorInstance.init( newUpstreamContextInstance( 0, 1, ACTIVE ), null );
             fail();
         }
         catch ( InitializationException expected )
@@ -213,7 +212,7 @@ public class OperatorInstanceInitializationTest
 
         try
         {
-            operatorInstance.init( new ZanzaConfig(), upstreamContext, null );
+            operatorInstance.init( upstreamContext, null );
             fail();
         }
         catch ( InitializationException expected )
@@ -232,7 +231,7 @@ public class OperatorInstanceInitializationTest
 
         try
         {
-            operatorInstance.init( new ZanzaConfig(), validUpstreamContext, null );
+            operatorInstance.init( validUpstreamContext, null );
             fail();
         }
         catch ( InitializationException expected )

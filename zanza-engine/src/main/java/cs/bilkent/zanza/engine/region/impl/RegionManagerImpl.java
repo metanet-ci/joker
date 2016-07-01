@@ -17,6 +17,7 @@ import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.zanza.engine.config.ThreadingPreference;
 import static cs.bilkent.zanza.engine.config.ThreadingPreference.MULTI_THREADED;
 import static cs.bilkent.zanza.engine.config.ThreadingPreference.SINGLE_THREADED;
+import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import cs.bilkent.zanza.engine.kvstore.KVStoreContext;
 import cs.bilkent.zanza.engine.kvstore.KVStoreContextManager;
 import cs.bilkent.zanza.engine.kvstore.impl.DefaultKVStoreContext;
@@ -52,6 +53,7 @@ public class RegionManagerImpl implements RegionManager
 
     private static final Logger LOGGER = LoggerFactory.getLogger( RegionManagerImpl.class );
 
+    private final ZanzaConfig config;
 
     private final KVStoreContextManager kvStoreContextManager;
 
@@ -60,8 +62,11 @@ public class RegionManagerImpl implements RegionManager
     private final Map<Integer, RegionInstance> regions = new HashMap<>();
 
     @Inject
-    public RegionManagerImpl ( final KVStoreContextManager kvStoreContextManager, final TupleQueueContextManager tupleQueueContextManager )
+    public RegionManagerImpl ( final ZanzaConfig config,
+                               final KVStoreContextManager kvStoreContextManager,
+                               final TupleQueueContextManager tupleQueueContextManager )
     {
+        this.config = config;
         this.kvStoreContextManager = kvStoreContextManager;
         this.tupleQueueContextManager = tupleQueueContextManager;
     }
@@ -143,7 +148,7 @@ public class RegionManagerImpl implements RegionManager
                                                                                                      regionConfig,
                                                                                                      pipelineOperatorInstances );
 
-                pipelineInstances[ replicaIndex ][ pipelineId ] = new PipelineInstance( pipelineInstanceIds[ replicaIndex ],
+                pipelineInstances[ replicaIndex ][ pipelineId ] = new PipelineInstance( config, pipelineInstanceIds[ replicaIndex ],
                                                                                         pipelineOperatorInstances,
                                                                                         pipelineTupleQueueContext );
             }
@@ -247,7 +252,7 @@ public class RegionManagerImpl implements RegionManager
                          operatorId );
             for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
             {
-                drainerPools[ replicaIndex ] = new BlockingTupleQueueDrainerPool( operatorDefinition );
+                drainerPools[ replicaIndex ] = new BlockingTupleQueueDrainerPool( config, operatorDefinition );
             }
         }
         else
@@ -258,7 +263,7 @@ public class RegionManagerImpl implements RegionManager
                          operatorId );
             for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
             {
-                drainerPools[ replicaIndex ] = new NonBlockingTupleQueueDrainerPool( operatorDefinition );
+                drainerPools[ replicaIndex ] = new NonBlockingTupleQueueDrainerPool( config, operatorDefinition );
             }
         }
         return drainerPools;

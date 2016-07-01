@@ -71,13 +71,14 @@ public class PipelineInstanceRunnerTest
         when( operatorDefinition.id() ).thenReturn( "op1" );
         when( operatorDefinition.inputPortCount() ).thenReturn( inputOutputPortCount );
         when( operatorDefinition.outputPortCount() ).thenReturn( inputOutputPortCount );
-        pipeline = new PipelineInstance( id, new OperatorInstance[] { operator }, mock( TupleQueueContext.class ) );
-        runner = new PipelineInstanceRunner( pipeline );
+        final ZanzaConfig config = new ZanzaConfig();
+        pipeline = new PipelineInstance( config, id, new OperatorInstance[] { operator }, mock( TupleQueueContext.class ) );
+        runner = new PipelineInstanceRunner( config, pipeline );
         runner.setSupervisor( supervisor );
         runner.setDownstreamTupleSender( downstreamTupleSender );
 
         when( supervisor.getUpstreamContext( id ) ).thenReturn( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ) );
-        runner.init( new ZanzaConfig(), supervisorNotifier );
+        runner.init( supervisorNotifier );
 
         thread = new Thread( runner );
 

@@ -15,7 +15,7 @@ public class PipelineInstanceId
     {
         this.pipelineId = pipelineId;
         this.replicaIndex = replicaIndex;
-        this.str = pipelineId.toString() + "(" + replicaIndex + ")";
+        this.str = pipelineId.toString() + "[" + replicaIndex + "]";
         ;
         this.hashCode = str.hashCode();
     }

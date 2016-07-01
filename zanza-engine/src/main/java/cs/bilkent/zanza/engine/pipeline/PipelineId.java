@@ -15,7 +15,7 @@ public class PipelineId
     {
         this.regionId = regionId;
         this.pipelineId = pipelineId;
-        this.str = "P[" + regionId + "_" + pipelineId + "]";
+        this.str = "P[" + regionId + "][" + pipelineId + "]";
         this.hashCode = str.hashCode();
     }
 
@@ -43,4 +43,9 @@ public class PipelineId
         return hashCode;
     }
 
+    @Override
+    public String toString ()
+    {
+        return str;
+    }
 }

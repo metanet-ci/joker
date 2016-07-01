@@ -33,11 +33,13 @@ public class PipelineInstanceRunner implements Runnable
 
     private final Object monitor = new Object();
 
+    private final ZanzaConfig config;
+
     private final PipelineInstance pipeline;
 
     private final PipelineInstanceId id;
 
-    private long waitTimeoutInMillis;
+    private final long waitTimeoutInMillis;
 
 
     private Supervisor supervisor;
@@ -54,17 +56,19 @@ public class PipelineInstanceRunner implements Runnable
     private volatile PipelineInstanceRunnerCommand command;
 
 
-    public PipelineInstanceRunner ( final PipelineInstance pipeline )
+    public PipelineInstanceRunner ( final ZanzaConfig config, final PipelineInstance pipeline )
     {
+        this.config = config;
         this.pipeline = pipeline;
         this.id = pipeline.id();
+        this.waitTimeoutInMillis = config.getPipelineInstanceRunnerConfig().waitTimeoutInMillis;
         synchronized ( monitor )
         {
             status = INITIAL;
         }
     }
 
-    public void init ( final ZanzaConfig config )
+    public void init ()
     {
         final int operatorCount = pipeline.getOperatorCount();
         final SupervisorNotifier supervisorNotifier = new SupervisorNotifier( supervisor,
@@ -72,15 +76,15 @@ public class PipelineInstanceRunner implements Runnable
                                                                               operatorCount,
                                                                               pipeline.getUpstreamTupleQueueContext() );
 
-        init( config, supervisorNotifier );
+        init( supervisorNotifier );
     }
 
-    void init ( final ZanzaConfig config, final SupervisorNotifier supervisorNotifier )
+    void init ( final SupervisorNotifier supervisorNotifier )
     {
         this.supervisorNotifier = supervisorNotifier;
-        waitTimeoutInMillis = config.getPipelineInstanceRunnerConfig().waitTimeoutInMillis;
+
         final UpstreamContext upstreamContext = supervisor.getUpstreamContext( id );
-        pipeline.init( config, upstreamContext, supervisorNotifier );
+        pipeline.init( upstreamContext, supervisorNotifier );
     }
 
     public void setSupervisor ( final Supervisor supervisor )
