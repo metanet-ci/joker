@@ -7,7 +7,7 @@ import java.util.List;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.zanza.operator.schema.annotation.PortSchemaScope;
-import static cs.bilkent.zanza.operator.schema.annotation.PortSchemaScope.BASE_FIELD_SET;
+import static cs.bilkent.zanza.operator.schema.annotation.PortSchemaScope.EXTENDABLE_FIELD_SET;
 import cs.bilkent.zanza.operator.schema.runtime.PortRuntimeSchema;
 import cs.bilkent.zanza.operator.schema.runtime.RuntimeSchemaField;
 
@@ -25,7 +25,7 @@ public class PortRuntimeSchemaBuilder
     {
         checkArgument( portIndex >= 0, "port index must be non negative" );
         this.portIndex = portIndex;
-        this.scope = BASE_FIELD_SET;
+        this.scope = EXTENDABLE_FIELD_SET;
         this.fields = new ArrayList<>();
     }
 
@@ -52,8 +52,8 @@ public class PortRuntimeSchemaBuilder
     public PortRuntimeSchemaBuilder addField ( final RuntimeSchemaField field )
     {
         checkArgument( field != null, "field must be provided" );
-        checkState( scope == BASE_FIELD_SET,
-                    "port schema of port index: " + portIndex + "  with " + BASE_FIELD_SET + " can't be modified" );
+        checkState( scope == EXTENDABLE_FIELD_SET,
+                    "port schema of port index: " + portIndex + "  with " + EXTENDABLE_FIELD_SET + " can't be modified" );
         checkState( fields.stream().noneMatch( f -> f.name.equals( field.name ) ),
                     field.name + " already exists in port schema of port index: " + portIndex );
         fields.add( field );

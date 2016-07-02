@@ -1,7 +1,9 @@
 package cs.bilkent.zanza.flow;
 
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -86,14 +88,18 @@ public class FlowDefinition
         return connections.entries();
     }
 
-    public Collection<Port> getUpstreamConnections ( final String operatorId )
+    public Map<Port, Collection<Port>> getUpstreamConnections ( final String operatorId )
     {
-        return getUpstreamConnectionsStream( operatorId ).collect( Collectors.toList() );
-    }
+        final Map<Port, Collection<Port>> upstream = new HashMap<>();
+        for ( Entry<Port, Port> e : connections.entries() )
+        {
+            if ( e.getValue().operatorId.equals( operatorId ) )
+            {
+                upstream.computeIfAbsent( e.getValue(), port -> new ArrayList<>() ).add( e.getKey() );
+            }
+        }
 
-    public Collection<Port> getDownstreamConnections ( final String operatorId )
-    {
-        return getDownstreamConnectionsStream( operatorId ).collect( Collectors.toList() );
+        return upstream;
     }
 
     public Collection<Port> getUpstreamConnections ( final Port port )
@@ -101,34 +107,29 @@ public class FlowDefinition
         return getUpstreamConnectionsStream( port ).collect( Collectors.toList() );
     }
 
+    public Map<Port, Collection<Port>> getDownstreamConnections ( final String operatorId )
+    {
+        final Map<Port, Collection<Port>> downstream = new HashMap<>();
+
+        for ( Port upstream : connections.keySet() )
+        {
+            if ( upstream.operatorId.equals( operatorId ) )
+            {
+                downstream.put( upstream, new ArrayList<>( connections.get( upstream ) ) );
+            }
+        }
+
+        return downstream;
+    }
+
     public Collection<Port> getDownstreamConnections ( final Port port )
     {
         return getDownstreamConnectionsStream( port ).collect( Collectors.toList() );
     }
 
-    public Collection<OperatorDefinition> getUpstreamOperators ( final String operatorId )
-    {
-        return getUpstreamConnectionsStream( operatorId ).map( port -> getOperator( port.operatorId ) ).collect( Collectors.toList() );
-    }
-
-    public Collection<OperatorDefinition> getDownstreamOperators ( final String operatorId )
-    {
-        return getDownstreamConnectionsStream( operatorId ).map( port -> getOperator( port.operatorId ) ).collect( Collectors.toList() );
-    }
-
-    private Stream<Port> getUpstreamConnectionsStream ( final String operatorId )
-    {
-        return getConnectionsStream( entry -> entry.getValue().operatorId.equals( operatorId ), Entry::getKey );
-    }
-
     private Stream<Port> getUpstreamConnectionsStream ( final Port port )
     {
         return getConnectionsStream( entry -> entry.getValue().equals( port ), Entry::getKey );
-    }
-
-    private Stream<Port> getDownstreamConnectionsStream ( final String operatorId )
-    {
-        return getConnectionsStream( entry -> entry.getKey().operatorId.equals( operatorId ), Entry::getValue );
     }
 
     private Stream<Port> getDownstreamConnectionsStream ( final Port port )

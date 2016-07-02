@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -172,8 +173,9 @@ public class RegionFormerImpl implements RegionFormer
                 currentOperatorSequence.add( operator );
                 LOGGER.debug( "Adding oid={} to current sequence", operator.id() );
 
-                final Collection<OperatorDefinition> downstreamOperators = flow.getDownstreamOperators( operator.id() );
-                final OperatorDefinition downstreamOperator = getDownstreamOperatorIfSingle( flow, downstreamOperators );
+                final Collection<OperatorDefinition> downstreamOperators = getDownstreamOperators( flow, operator );
+                final OperatorDefinition downstreamOperator = getSingleDownstreamOperatorWithSingleUpstreamOperator( flow,
+                                                                                                                     downstreamOperators );
                 if ( downstreamOperator != null )
                 {
                     operator = downstreamOperator;
@@ -194,6 +196,20 @@ public class RegionFormerImpl implements RegionFormer
         }
 
         return sequences;
+    }
+
+    private Collection<OperatorDefinition> getDownstreamOperators ( final FlowDefinition flow, final OperatorDefinition operator )
+    {
+        final Set<OperatorDefinition> downstream = new HashSet<>();
+        for ( Collection<Port> v : flow.getDownstreamConnections( operator.id() ).values() )
+        {
+            for ( Port p : v )
+            {
+                downstream.add( flow.getOperator( p.operatorId ) );
+            }
+        }
+
+        return downstream;
     }
 
     private boolean containsAllFieldNamesOnInputPort ( final OperatorDefinition operator, final List<String> fieldNames )
@@ -222,14 +238,23 @@ public class RegionFormerImpl implements RegionFormer
         return operator;
     }
 
-    private OperatorDefinition getDownstreamOperatorIfSingle ( final FlowDefinition flow,
-                                                               final Collection<OperatorDefinition> downstreamOperators )
+    private OperatorDefinition getSingleDownstreamOperatorWithSingleUpstreamOperator ( final FlowDefinition flow,
+                                                                                       final Collection<OperatorDefinition>
+                                                                                               downstreamOperators )
     {
         if ( downstreamOperators.size() == 1 )
         {
-            final OperatorDefinition next = downstreamOperators.iterator().next();
-            final Collection<Port> upstreamPorts = flow.getUpstreamConnections( next.id() );
-            return upstreamPorts.size() == 1 ? next : null;
+            final OperatorDefinition downstream = downstreamOperators.iterator().next();
+            final Map<Port, Collection<Port>> upstream = flow.getUpstreamConnections( downstream.id() );
+            final Set<String> upstreamOperatorIds = new HashSet<>();
+            for ( Collection<Port> u : upstream.values() )
+            {
+                for ( Port p : u )
+                {
+                    upstreamOperatorIds.add( p.operatorId );
+                }
+            }
+            return upstreamOperatorIds.size() == 1 ? downstream : null;
         }
         else
         {

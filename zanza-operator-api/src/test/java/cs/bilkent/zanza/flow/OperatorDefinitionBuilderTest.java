@@ -13,8 +13,8 @@ import cs.bilkent.zanza.flow.FlowDefinitionBuilderTest.StatelessOperatorWithDyna
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
 import cs.bilkent.zanza.operator.schema.annotation.OperatorSchema;
 import cs.bilkent.zanza.operator.schema.annotation.PortSchema;
-import static cs.bilkent.zanza.operator.schema.annotation.PortSchemaScope.BASE_FIELD_SET;
 import static cs.bilkent.zanza.operator.schema.annotation.PortSchemaScope.EXACT_FIELD_SET;
+import static cs.bilkent.zanza.operator.schema.annotation.PortSchemaScope.EXTENDABLE_FIELD_SET;
 import cs.bilkent.zanza.operator.schema.annotation.SchemaField;
 import cs.bilkent.zanza.operator.schema.runtime.OperatorRuntimeSchema;
 import cs.bilkent.zanza.operator.schema.runtime.PortRuntimeSchema;
@@ -397,7 +397,7 @@ public class OperatorDefinitionBuilderTest
 
     @OperatorSpec( type = PARTITIONED_STATEFUL, inputPortCount = 1, outputPortCount = 1 )
     @OperatorSchema( inputs = { @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = int.class ) } ) },
-            outputs = { @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = BASE_FIELD_SET, fields = { @SchemaField( name = "field2",
+            outputs = { @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = EXTENDABLE_FIELD_SET, fields = { @SchemaField( name = "field2",
                     type = long.class ) } ) } )
     public static class PartitionedStatefulOperatorWithExactInputPortSchema extends NopOperator
     {
@@ -405,7 +405,7 @@ public class OperatorDefinitionBuilderTest
 
 
     @OperatorSpec( type = PARTITIONED_STATEFUL, inputPortCount = 2, outputPortCount = 1 )
-    @OperatorSchema( inputs = { @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = BASE_FIELD_SET, fields = { @SchemaField( name = "field1", type = int.class ) } ) },
+    @OperatorSchema( inputs = { @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = EXTENDABLE_FIELD_SET, fields = { @SchemaField( name = "field1", type = int.class ) } ) },
             outputs = {} )
     public static class PartitionedStatefulOperatorWithBaseInputPortSchema extends NopOperator
     {

@@ -179,15 +179,15 @@ public class FlowDefinitionBuilderTest
         assertNotNull( flowDefinition.getOperator( "op3" ) );
         assertNotNull( flowDefinition.getOperator( "op4" ) );
 
-        final Collection<Port> op1Connections = flowDefinition.getDownstreamConnections( "op1" );
+        final Collection<Port> op1Connections = flowDefinition.getDownstreamConnections( new Port( "op1", 0 ) );
         assertThat( op1Connections, hasSize( 1 ) );
         assertThat( op1Connections.iterator().next(), equalTo( new Port( "op2", 0 ) ) );
 
-        final Collection<Port> op2Connections = flowDefinition.getDownstreamConnections( "op2" );
+        final Collection<Port> op2Connections = flowDefinition.getDownstreamConnections( new Port( "op2", 0 ) );
         assertThat( op2Connections, hasSize( 1 ) );
         assertThat( op2Connections.iterator().next(), equalTo( new Port( "op4", 0 ) ) );
 
-        final Collection<Port> op3Connections = flowDefinition.getDownstreamConnections( "op3" );
+        final Collection<Port> op3Connections = flowDefinition.getDownstreamConnections( new Port( "op3", 0 ) );
         assertThat( op3Connections, hasSize( 1 ) );
         assertThat( op3Connections.iterator().next(), equalTo( new Port( "op4", 1 ) ) );
     }

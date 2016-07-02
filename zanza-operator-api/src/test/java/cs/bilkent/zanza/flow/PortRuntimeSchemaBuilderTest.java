@@ -4,8 +4,8 @@ import java.util.List;
 
 import org.junit.Test;
 
-import static cs.bilkent.zanza.operator.schema.annotation.PortSchemaScope.BASE_FIELD_SET;
 import static cs.bilkent.zanza.operator.schema.annotation.PortSchemaScope.EXACT_FIELD_SET;
+import static cs.bilkent.zanza.operator.schema.annotation.PortSchemaScope.EXTENDABLE_FIELD_SET;
 import cs.bilkent.zanza.operator.schema.runtime.PortRuntimeSchema;
 import cs.bilkent.zanza.operator.schema.runtime.RuntimeSchemaField;
 import static java.util.Collections.emptyList;
@@ -66,14 +66,14 @@ public class PortRuntimeSchemaBuilderTest
     @Test
     public void shouldAddFieldToBaseFieldsSetScope ()
     {
-        final PortRuntimeSchemaBuilder builder = new PortRuntimeSchemaBuilder( 0, BASE_FIELD_SET, emptyList() );
+        final PortRuntimeSchemaBuilder builder = new PortRuntimeSchemaBuilder( 0, EXTENDABLE_FIELD_SET, emptyList() );
         builder.addField( "field1", int.class );
     }
 
     @Test( expected = IllegalStateException.class )
     public void shouldNotAddFieldWithSameNameMultipleTimes ()
     {
-        final PortRuntimeSchemaBuilder builder = new PortRuntimeSchemaBuilder( 0, BASE_FIELD_SET, emptyList() );
+        final PortRuntimeSchemaBuilder builder = new PortRuntimeSchemaBuilder( 0, EXTENDABLE_FIELD_SET, emptyList() );
         builder.addField( "field1", int.class );
         builder.addField( "field1", int.class );
     }
@@ -82,7 +82,7 @@ public class PortRuntimeSchemaBuilderTest
     public void shouldBuildPortRuntimeSchema ()
     {
         final RuntimeSchemaField field1 = new RuntimeSchemaField( "field1", int.class );
-        final PortRuntimeSchemaBuilder builder = new PortRuntimeSchemaBuilder( 0, BASE_FIELD_SET, singletonList( field1 ) );
+        final PortRuntimeSchemaBuilder builder = new PortRuntimeSchemaBuilder( 0, EXTENDABLE_FIELD_SET, singletonList( field1 ) );
         final RuntimeSchemaField field2 = new RuntimeSchemaField( "field2", long.class );
         builder.addField( field2 );
 

@@ -4,8 +4,8 @@ import org.junit.Test;
 
 import cs.bilkent.zanza.operator.schema.annotation.OperatorSchema;
 import cs.bilkent.zanza.operator.schema.annotation.PortSchema;
-import static cs.bilkent.zanza.operator.schema.annotation.PortSchemaScope.BASE_FIELD_SET;
 import static cs.bilkent.zanza.operator.schema.annotation.PortSchemaScope.EXACT_FIELD_SET;
+import static cs.bilkent.zanza.operator.schema.annotation.PortSchemaScope.EXTENDABLE_FIELD_SET;
 import cs.bilkent.zanza.operator.schema.annotation.SchemaField;
 import cs.bilkent.zanza.operator.schema.runtime.OperatorRuntimeSchema;
 import cs.bilkent.zanza.operator.schema.runtime.PortRuntimeSchema;
@@ -119,7 +119,7 @@ public class OperatorRuntimeSchemaBuilderTest
 
     @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET,
             fields = { @SchemaField( name = "field1", type = int.class ) } ) },
-            outputs = { @PortSchema( portIndex = 0, scope = BASE_FIELD_SET,
+            outputs = { @PortSchema( portIndex = 0, scope = EXTENDABLE_FIELD_SET,
                     fields = { @SchemaField( name = "field2", type = long.class ) } ) } )
     private static class AnnotatedClass
     {

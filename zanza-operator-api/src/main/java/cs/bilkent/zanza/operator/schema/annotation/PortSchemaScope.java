@@ -20,6 +20,6 @@ public enum PortSchemaScope
      * There might be some fields defined in design time for the port schema. Additionally, there might be
      * some additional fields that can be added to the port schema while composing the {@link FlowDefinition}.
      */
-    BASE_FIELD_SET
+    EXTENDABLE_FIELD_SET
 
 }
