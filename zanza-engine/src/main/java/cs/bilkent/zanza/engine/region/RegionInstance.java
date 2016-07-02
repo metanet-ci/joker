@@ -7,7 +7,7 @@ public class RegionInstance
 
     private final RegionRuntimeConfig config;
 
-    // [replicaIndex, pipelineIndex]
+    // [pipelineIndex, replicaIndex]
     private final PipelineInstance[][] pipelines;
 
     public RegionInstance ( final RegionRuntimeConfig config, final PipelineInstance[][] pipelines )
@@ -21,9 +21,19 @@ public class RegionInstance
         return config;
     }
 
-    public PipelineInstance[] getPipelines ( final int replicaIndex )
+    public PipelineInstance[] getReplicaPipelines ( final int replicaIndex )
     {
-        return pipelines[ replicaIndex ];
+        final PipelineInstance[] p = new PipelineInstance[ config.getPipelineCount() ];
+        for ( int i = 0; i < config.getPipelineCount(); i++ )
+        {
+            p[ i ] = pipelines[ i ][ replicaIndex ];
+        }
+        return p;
+    }
+
+    public PipelineInstance[] getPipelineReplicas ( final int pipelineId )
+    {
+        return pipelines[ pipelineId ];
     }
 
 }

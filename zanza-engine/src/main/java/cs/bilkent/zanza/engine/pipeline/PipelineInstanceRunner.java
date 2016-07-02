@@ -41,13 +41,12 @@ public class PipelineInstanceRunner implements Runnable
 
     private final long waitTimeoutInMillis;
 
+    private final Supervisor supervisor;
 
-    private Supervisor supervisor;
+    private final SupervisorNotifier supervisorNotifier;
 
-    private SupervisorNotifier supervisorNotifier;
 
     private DownstreamTupleSender downstreamTupleSender;
-
 
     private Future<Void> downstreamTuplesFuture;
 
@@ -56,7 +55,10 @@ public class PipelineInstanceRunner implements Runnable
     private volatile PipelineInstanceRunnerCommand command;
 
 
-    public PipelineInstanceRunner ( final ZanzaConfig config, final PipelineInstance pipeline )
+    public PipelineInstanceRunner ( final ZanzaConfig config,
+                                    final PipelineInstance pipeline,
+                                    final Supervisor supervisor,
+                                    final SupervisorNotifier supervisorNotifier )
     {
         this.config = config;
         this.pipeline = pipeline;
@@ -66,30 +68,8 @@ public class PipelineInstanceRunner implements Runnable
         {
             status = INITIAL;
         }
-    }
-
-    public void init ()
-    {
-        final int operatorCount = pipeline.getOperatorCount();
-        final SupervisorNotifier supervisorNotifier = new SupervisorNotifier( supervisor,
-                                                                              pipeline.id(),
-                                                                              operatorCount,
-                                                                              pipeline.getUpstreamTupleQueueContext() );
-
-        init( supervisorNotifier );
-    }
-
-    void init ( final SupervisorNotifier supervisorNotifier )
-    {
-        this.supervisorNotifier = supervisorNotifier;
-
-        final UpstreamContext upstreamContext = supervisor.getUpstreamContext( id );
-        pipeline.init( upstreamContext, supervisorNotifier );
-    }
-
-    public void setSupervisor ( final Supervisor supervisor )
-    {
         this.supervisor = supervisor;
+        this.supervisorNotifier = supervisorNotifier;
     }
 
     public void setDownstreamTupleSender ( final DownstreamTupleSender downstreamTupleSender )

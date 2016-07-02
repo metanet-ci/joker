@@ -5,7 +5,6 @@ import org.slf4j.LoggerFactory;
 
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.COMPLETED;
 import cs.bilkent.zanza.engine.supervisor.Supervisor;
-import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 
 public class SupervisorNotifier implements OperatorInstanceListener
 {
@@ -19,19 +18,13 @@ public class SupervisorNotifier implements OperatorInstanceListener
 
     private final int operatorCount;
 
-    private final TupleQueueContext upstreamTupleQueueContext;
-
     private int completedOperatorCount;
 
-    public SupervisorNotifier ( final Supervisor supervisor,
-                                final PipelineInstanceId pipelineInstanceId,
-                                final int operatorCount,
-                                final TupleQueueContext upstreamTupleQueueContext )
+    public SupervisorNotifier ( final Supervisor supervisor, final PipelineInstance pipelineInstance )
     {
         this.supervisor = supervisor;
-        this.pipelineInstanceId = pipelineInstanceId;
-        this.operatorCount = operatorCount;
-        this.upstreamTupleQueueContext = upstreamTupleQueueContext;
+        this.pipelineInstanceId = pipelineInstance.id();
+        this.operatorCount = pipelineInstance.getOperatorCount();
     }
 
     @Override

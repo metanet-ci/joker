@@ -17,7 +17,6 @@ import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.COMPLETED;
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.PAUSED;
 import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.RUNNING;
-import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import cs.bilkent.zanza.engine.supervisor.Supervisor;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
@@ -73,13 +72,9 @@ public class PipelineInstanceRunnerTest
         when( operatorDefinition.outputPortCount() ).thenReturn( inputOutputPortCount );
         final ZanzaConfig config = new ZanzaConfig();
         pipeline = new PipelineInstance( config, id, new OperatorInstance[] { operator }, mock( TupleQueueContext.class ) );
-        runner = new PipelineInstanceRunner( config, pipeline );
-        runner.setSupervisor( supervisor );
+        runner = new PipelineInstanceRunner( config, pipeline, supervisor, supervisorNotifier );
+
         runner.setDownstreamTupleSender( downstreamTupleSender );
-
-        when( supervisor.getUpstreamContext( id ) ).thenReturn( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ) );
-        runner.init( supervisorNotifier );
-
         thread = new Thread( runner );
 
         when( operator.isInvokable() ).thenReturn( true );

@@ -29,6 +29,7 @@ import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import cs.bilkent.zanza.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
 import cs.bilkent.zanza.engine.pipeline.impl.tuplesupplier.NonCachedTuplesImplSupplier;
+import cs.bilkent.zanza.engine.region.RegionRuntimeConfig;
 import cs.bilkent.zanza.engine.supervisor.Supervisor;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
@@ -39,6 +40,7 @@ import cs.bilkent.zanza.engine.tuplequeue.impl.context.PartitionedTupleQueueCont
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.pool.BlockingTupleQueueDrainerPool;
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.pool.NonBlockingTupleQueueDrainerPool;
 import cs.bilkent.zanza.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
+import cs.bilkent.zanza.flow.FlowDefinition;
 import cs.bilkent.zanza.flow.OperatorDefinition;
 import cs.bilkent.zanza.flow.OperatorDefinitionBuilder;
 import cs.bilkent.zanza.operator.InitializationContext;
@@ -69,7 +71,6 @@ import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -130,18 +131,15 @@ public class PipelineIntegrationTest
         final PipelineInstance pipeline = new PipelineInstance( zanzaConfig, pipelineInstanceId1,
                                                                 new OperatorInstance[] { operator },
                                                                 new EmptyTupleQueueContext( "map", mapperOperatorDef.inputPortCount() ) );
-        final PipelineInstanceRunner runner = new PipelineInstanceRunner( zanzaConfig, pipeline );
-
         final Supervisor supervisor = mock( Supervisor.class );
-        final UpstreamContext initialUpstreamContext = new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } );
-        when( supervisor.getUpstreamContext( pipelineInstanceId1 ) ).thenReturn( initialUpstreamContext );
-        runner.setSupervisor( supervisor );
+        final SupervisorNotifier supervisorNotifier = new SupervisorNotifier( supervisor, pipeline );
 
+        pipeline.init( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ), supervisorNotifier );
+
+        final PipelineInstanceRunner runner = new PipelineInstanceRunner( zanzaConfig, pipeline, supervisor, supervisorNotifier );
         final TupleCollectorDownstreamTupleSender tupleCollector = new TupleCollectorDownstreamTupleSender( mapperOperatorDef
                                                                                                                     .outputPortCount() );
         runner.setDownstreamTupleSender( tupleCollector );
-
-        runner.init();
 
         final Thread runnerThread = spawnThread( runner );
 
@@ -162,7 +160,6 @@ public class PipelineIntegrationTest
         }
 
         final UpstreamContext updatedUpstreamContext = new UpstreamContext( 1, new UpstreamConnectionStatus[] { CLOSED } );
-        reset( supervisor );
         when( supervisor.getUpstreamContext( pipelineInstanceId1 ) ).thenReturn( updatedUpstreamContext );
         runner.updatePipelineUpstreamContext();
         runnerThread.join();
@@ -218,18 +215,17 @@ public class PipelineIntegrationTest
         final PipelineInstance pipeline = new PipelineInstance( zanzaConfig, pipelineInstanceId1,
                                                                 new OperatorInstance[] { mapperOperator, filterOperator },
                                                                 new EmptyTupleQueueContext( "map", mapperOperatorDef.inputPortCount() ) );
-        final PipelineInstanceRunner runner = new PipelineInstanceRunner( zanzaConfig, pipeline );
 
         final Supervisor supervisor = mock( Supervisor.class );
-        final UpstreamContext initialUpstreamContext = new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } );
-        when( supervisor.getUpstreamContext( pipelineInstanceId1 ) ).thenReturn( initialUpstreamContext );
-        runner.setSupervisor( supervisor );
+        final SupervisorNotifier supervisorNotifier = new SupervisorNotifier( supervisor, pipeline );
+
+        pipeline.init( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ), supervisorNotifier );
+
+        final PipelineInstanceRunner runner = new PipelineInstanceRunner( zanzaConfig, pipeline, supervisor, supervisorNotifier );
 
         final TupleCollectorDownstreamTupleSender tupleCollector = new TupleCollectorDownstreamTupleSender( filterOperatorDef
                                                                                                                     .outputPortCount() );
         runner.setDownstreamTupleSender( tupleCollector );
-
-        runner.init();
 
         final Thread runnerThread = spawnThread( runner );
 
@@ -257,7 +253,6 @@ public class PipelineIntegrationTest
         }
 
         final UpstreamContext updatedUpstreamContext = new UpstreamContext( 1, new UpstreamConnectionStatus[] { CLOSED } );
-        reset( supervisor );
         when( supervisor.getUpstreamContext( pipelineInstanceId1 ) ).thenReturn( updatedUpstreamContext );
         runner.updatePipelineUpstreamContext();
         runnerThread.join();
@@ -336,16 +331,15 @@ public class PipelineIntegrationTest
                                                                 new OperatorInstance[] { generatorOperator, passerOperator, stateOperator },
                                                                 new EmptyTupleQueueContext( "generator",
                                                                                             generatorOperatorDef.inputPortCount() ) );
-        final PipelineInstanceRunner runner = new PipelineInstanceRunner( zanzaConfig, pipeline );
 
         final Supervisor supervisor = mock( Supervisor.class );
-        final UpstreamContext initialUpstreamContext = new UpstreamContext( 0, new UpstreamConnectionStatus[] {} );
-        when( supervisor.getUpstreamContext( pipelineInstanceId1 ) ).thenReturn( initialUpstreamContext );
-        runner.setSupervisor( supervisor );
+        final SupervisorNotifier supervisorNotifier = new SupervisorNotifier( supervisor, pipeline );
+
+        pipeline.init( new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ), supervisorNotifier );
+
+        final PipelineInstanceRunner runner = new PipelineInstanceRunner( zanzaConfig, pipeline, supervisor, supervisorNotifier );
 
         runner.setDownstreamTupleSender( mock( DownstreamTupleSender.class ) );
-
-        runner.init();
 
         final Thread runnerThread = spawnThread( runner );
 
@@ -355,7 +349,6 @@ public class PipelineIntegrationTest
         assertTrueEventually( () -> assertTrue( generatorOp.count > 1000 ) );
 
         final UpstreamContext updatedUpstreamContext = new UpstreamContext( 1, new UpstreamConnectionStatus[] {} );
-        reset( supervisor );
         when( supervisor.getUpstreamContext( pipelineInstanceId1 ) ).thenReturn( updatedUpstreamContext );
         runner.updatePipelineUpstreamContext();
 
@@ -374,6 +367,12 @@ public class PipelineIntegrationTest
     @Test
     public void testMultiplePipelines_singleInputPort () throws ExecutionException, InterruptedException
     {
+        final SupervisorImpl supervisor = new SupervisorImpl();
+        supervisor.upstreamContexts.put( pipelineInstanceId1, new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ) );
+        supervisor.upstreamContexts.put( pipelineInstanceId2, new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ) );
+        supervisor.inputPortIndices.put( pipelineInstanceId1, 0 );
+        supervisor.inputPortIndices.put( pipelineInstanceId2, 0 );
+
         final OperatorConfig mapperOperatorConfig = new OperatorConfig();
         final Function<Tuple, Tuple> add1 = tuple -> new Tuple( "val", 1 + tuple.getIntegerValueOrDefault( "val", -1 ) );
         mapperOperatorConfig.set( MapperOperator.MAPPER_CONFIG_PARAMETER, add1 );
@@ -399,7 +398,11 @@ public class PipelineIntegrationTest
         final PipelineInstance pipeline1 = new PipelineInstance( zanzaConfig, pipelineInstanceId1,
                                                                  new OperatorInstance[] { mapperOperator },
                                                                  new EmptyTupleQueueContext( "map", mapperOperatorDef.inputPortCount() ) );
-        final PipelineInstanceRunner runner1 = new PipelineInstanceRunner( zanzaConfig, pipeline1 );
+        final SupervisorNotifier supervisorNotifier1 = new SupervisorNotifier( supervisor, pipeline1 );
+
+        pipeline1.init( supervisor.upstreamContexts.get( pipelineInstanceId1 ), supervisorNotifier1 );
+
+        final PipelineInstanceRunner runner1 = new PipelineInstanceRunner( zanzaConfig, pipeline1, supervisor, supervisorNotifier1 );
 
         final OperatorConfig filterOperatorConfig = new OperatorConfig();
         final Predicate<Tuple> filterEvenVals = tuple -> tuple.getInteger( "val" ) % 2 == 0;
@@ -427,16 +430,11 @@ public class PipelineIntegrationTest
                                                                  new OperatorInstance[] { filterOperator },
                                                                  new EmptyTupleQueueContext( "filter",
                                                                                              filterOperatorDef.inputPortCount() ) );
-        final PipelineInstanceRunner runner2 = new PipelineInstanceRunner( zanzaConfig, pipeline2 );
+        final SupervisorNotifier supervisorNotifier2 = new SupervisorNotifier( supervisor, pipeline2 );
 
-        final SupervisorImpl supervisor = new SupervisorImpl();
-        supervisor.upstreamContexts.put( pipelineInstanceId1, new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ) );
-        supervisor.upstreamContexts.put( pipelineInstanceId2, new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ) );
-        supervisor.inputPortIndices.put( pipelineInstanceId1, 0 );
-        supervisor.inputPortIndices.put( pipelineInstanceId2, 0 );
+        pipeline2.init( supervisor.upstreamContexts.get( pipelineInstanceId2 ), supervisorNotifier2 );
 
-        runner1.setSupervisor( supervisor );
-        runner2.setSupervisor( supervisor );
+        final PipelineInstanceRunner runner2 = new PipelineInstanceRunner( zanzaConfig, pipeline2, supervisor, supervisorNotifier2 );
 
         supervisor.targetPipelineInstanceId = pipelineInstanceId2;
         supervisor.runner = runner2;
@@ -448,9 +446,6 @@ public class PipelineIntegrationTest
         final TupleCollectorDownstreamTupleSender tupleCollector2 = new TupleCollectorDownstreamTupleSender( filterOperatorDef
                                                                                                                      .outputPortCount() );
         runner2.setDownstreamTupleSender( tupleCollector2 );
-
-        runner1.init();
-        runner2.init();
 
         final Thread runnerThread1 = spawnThread( runner1 );
         final Thread runnerThread2 = spawnThread( runner2 );
@@ -489,6 +484,14 @@ public class PipelineIntegrationTest
     @Test
     public void testMultiplePipelines_multipleInputPorts () throws InterruptedException
     {
+        final SupervisorImpl supervisor = new SupervisorImpl();
+        supervisor.upstreamContexts.put( pipelineInstanceId1, new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ) );
+        supervisor.upstreamContexts.put( pipelineInstanceId2, new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ) );
+        supervisor.upstreamContexts.put( pipelineInstanceId3, new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE, ACTIVE } ) );
+        supervisor.inputPortIndices.put( pipelineInstanceId1, 0 );
+        supervisor.inputPortIndices.put( pipelineInstanceId2, 1 );
+        supervisor.inputPortIndices.put( pipelineInstanceId3, 2 );
+
         final int batchCount = 4;
 
         final OperatorConfig generatorOperatorConfig1 = new OperatorConfig();
@@ -516,7 +519,11 @@ public class PipelineIntegrationTest
                                                                  new OperatorInstance[] { generatorOperator1 },
                                                                  new EmptyTupleQueueContext( "generator1",
                                                                                              generatorOperatorDef1.inputPortCount() ) );
-        final PipelineInstanceRunner runner1 = new PipelineInstanceRunner( zanzaConfig, pipeline1 );
+
+        final SupervisorNotifier supervisorNotifier1 = new SupervisorNotifier( supervisor, pipeline1 );
+        pipeline1.init( supervisor.upstreamContexts.get( pipelineInstanceId1 ), supervisorNotifier1 );
+
+        final PipelineInstanceRunner runner1 = new PipelineInstanceRunner( zanzaConfig, pipeline1, supervisor, supervisorNotifier1 );
 
         final OperatorConfig generatorOperatorConfig2 = new OperatorConfig();
         generatorOperatorConfig2.set( "batchCount", batchCount );
@@ -544,7 +551,11 @@ public class PipelineIntegrationTest
                                                                  new OperatorInstance[] { generatorOperator2 },
                                                                  new EmptyTupleQueueContext( "generator2",
                                                                                              generatorOperatorDef2.inputPortCount() ) );
-        final PipelineInstanceRunner runner2 = new PipelineInstanceRunner( zanzaConfig, pipeline2 );
+        final SupervisorNotifier supervisorNotifier2 = new SupervisorNotifier( supervisor, pipeline2 );
+
+        pipeline2.init( supervisor.upstreamContexts.get( pipelineInstanceId2 ), supervisorNotifier2 );
+
+        final PipelineInstanceRunner runner2 = new PipelineInstanceRunner( zanzaConfig, pipeline2, supervisor, supervisorNotifier2 );
 
         final OperatorConfig sinkOperatorConfig = new OperatorConfig();
         final OperatorDefinition sinkOperatorDef = OperatorDefinitionBuilder.newInstance( "sink", ValueSinkOperator.class )
@@ -615,28 +626,18 @@ public class PipelineIntegrationTest
         final PipelineInstance pipeline3 = new PipelineInstance( zanzaConfig, pipelineInstanceId3,
                                                                  new OperatorInstance[] { sinkOperator, passerOperator, stateOperator },
                                                                  new EmptyTupleQueueContext( "sink", sinkOperatorDef.inputPortCount() ) );
-        final PipelineInstanceRunner runner3 = new PipelineInstanceRunner( zanzaConfig, pipeline3 );
+        final SupervisorNotifier supervisorNotifier3 = new SupervisorNotifier( supervisor, pipeline3 );
 
-        final SupervisorImpl supervisor = new SupervisorImpl();
-        supervisor.upstreamContexts.put( pipelineInstanceId1, new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ) );
-        supervisor.upstreamContexts.put( pipelineInstanceId2, new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ) );
-        supervisor.upstreamContexts.put( pipelineInstanceId3, new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE, ACTIVE } ) );
-        supervisor.inputPortIndices.put( pipelineInstanceId1, 0 );
-        supervisor.inputPortIndices.put( pipelineInstanceId2, 1 );
+        pipeline3.init( supervisor.upstreamContexts.get( pipelineInstanceId3 ), supervisorNotifier3 );
+
+        final PipelineInstanceRunner runner3 = new PipelineInstanceRunner( zanzaConfig, pipeline3, supervisor, supervisorNotifier3 );
+
         supervisor.targetPipelineInstanceId = pipelineInstanceId3;
         supervisor.runner = runner3;
-
-        runner1.setSupervisor( supervisor );
-        runner2.setSupervisor( supervisor );
-        runner3.setSupervisor( supervisor );
 
         runner1.setDownstreamTupleSender( new DownstreamTupleSenderImpl( sinkTupleQueueContext, new Pair[] { Pair.of( 0, 0 ) } ) );
         runner2.setDownstreamTupleSender( new DownstreamTupleSenderImpl( sinkTupleQueueContext, new Pair[] { Pair.of( 0, 1 ) } ) );
         runner3.setDownstreamTupleSender( new DownstreamTupleSenderImpl( null, new Pair[] {} ) );
-
-        runner1.init();
-        runner2.init();
-        runner3.init();
 
         final Thread runnerThread1 = spawnThread( runner1 );
         final Thread runnerThread2 = spawnThread( runner2 );
@@ -676,6 +677,12 @@ public class PipelineIntegrationTest
     @Test
     public void testMultiplePipelines_partitionedStatefulDownstreamPipeline () throws ExecutionException, InterruptedException
     {
+        final SupervisorImpl supervisor = new SupervisorImpl();
+        supervisor.upstreamContexts.put( pipelineInstanceId1, new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ) );
+        supervisor.upstreamContexts.put( pipelineInstanceId2, new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ) );
+        supervisor.inputPortIndices.put( pipelineInstanceId1, 0 );
+        supervisor.inputPortIndices.put( pipelineInstanceId2, 0 );
+
         final int batchCount = 4;
 
         final OperatorConfig generatorOperatorConfig = new OperatorConfig();
@@ -744,7 +751,11 @@ public class PipelineIntegrationTest
                                                                  new OperatorInstance[] { generatorOperator, passerOperator },
                                                                  new EmptyTupleQueueContext( "generator",
                                                                                              generatorOperatorDef.inputPortCount() ) );
-        final PipelineInstanceRunner runner1 = new PipelineInstanceRunner( zanzaConfig, pipeline1 );
+        final SupervisorNotifier supervisorNotifier1 = new SupervisorNotifier( supervisor, pipeline1 );
+
+        pipeline1.init( supervisor.upstreamContexts.get( pipelineInstanceId1 ), supervisorNotifier1 );
+
+        final PipelineInstanceRunner runner1 = new PipelineInstanceRunner( zanzaConfig, pipeline1, supervisor, supervisorNotifier1 );
 
         final PipelineInstance pipeline2 = new PipelineInstance( zanzaConfig, pipelineInstanceId2,
                                                                  new OperatorInstance[] { stateOperator },
@@ -753,25 +764,19 @@ public class PipelineIntegrationTest
                                                                                                                           stateOperatorDef,
                                                                                                                           MULTI_THREADED
                                                                  ) );
-        final PipelineInstanceRunner runner2 = new PipelineInstanceRunner( zanzaConfig, pipeline2 );
 
-        final SupervisorImpl supervisor = new SupervisorImpl();
-        supervisor.upstreamContexts.put( pipelineInstanceId1, new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ) );
-        supervisor.upstreamContexts.put( pipelineInstanceId2, new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ) );
-        supervisor.inputPortIndices.put( pipelineInstanceId1, 0 );
-        supervisor.inputPortIndices.put( pipelineInstanceId2, 0 );
+        final SupervisorNotifier supervisorNotifier2 = new SupervisorNotifier( supervisor, pipeline2 );
+
+        pipeline2.init( supervisor.upstreamContexts.get( pipelineInstanceId2 ), supervisorNotifier2 );
+
+        final PipelineInstanceRunner runner2 = new PipelineInstanceRunner( zanzaConfig, pipeline2, supervisor, supervisorNotifier2 );
+
         supervisor.targetPipelineInstanceId = pipelineInstanceId2;
         supervisor.runner = runner2;
-
-        runner1.setSupervisor( supervisor );
-        runner2.setSupervisor( supervisor );
 
         runner1.setDownstreamTupleSender( new DownstreamTupleSenderImpl( pipeline2.getUpstreamTupleQueueContext(),
                                                                          new Pair[] { Pair.of( 0, 0 ) } ) );
         runner2.setDownstreamTupleSender( mock( DownstreamTupleSender.class ) );
-
-        runner1.init();
-        runner2.init();
 
         final Thread runnerThread1 = spawnThread( runner1 );
         final Thread runnerThread2 = spawnThread( runner2 );
@@ -1016,6 +1021,12 @@ public class PipelineIntegrationTest
         private PipelineInstanceId targetPipelineInstanceId;
 
         private PipelineInstanceRunner runner;
+
+        @Override
+        public void deploy ( final FlowDefinition flow, final List<RegionRuntimeConfig> regionRuntimeConfigs )
+        {
+
+        }
 
         @Override
         public UpstreamContext getUpstreamContext ( final PipelineInstanceId id )

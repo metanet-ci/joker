@@ -3,6 +3,7 @@ package cs.bilkent.zanza.engine.region;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import cs.bilkent.zanza.flow.OperatorDefinition;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATEFUL;
 
 public class RegionRuntimeConfig
@@ -43,9 +44,25 @@ public class RegionRuntimeConfig
         return replicaCount;
     }
 
+    public int getPipelineCount ()
+    {
+        return pipelineStartIndices.size();
+    }
+
     public List<Integer> getPipelineStartIndices ()
     {
         return pipelineStartIndices;
+    }
+
+    public OperatorDefinition[] getOperatorDefinitions ( final int pipelineId )
+    {
+        final List<OperatorDefinition> operators = region.getOperators();
+        final int startIndex = pipelineStartIndices.get( pipelineId );
+        final int endIndex = startIndex + 1 < pipelineStartIndices.size() ? pipelineStartIndices.get( startIndex + 1 ) : operators.size();
+        final List<OperatorDefinition> operatorDefinitions = operators.subList( startIndex, endIndex );
+        final OperatorDefinition[] operatorDefinitionsArr = new OperatorDefinition[ operatorDefinitions.size() ];
+        operatorDefinitions.toArray( operatorDefinitionsArr );
+        return operatorDefinitionsArr;
     }
 
     @Override

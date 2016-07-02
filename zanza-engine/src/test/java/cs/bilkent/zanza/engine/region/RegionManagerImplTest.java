@@ -82,7 +82,7 @@ public class RegionManagerImplTest
 
         final RegionInstance regionInstance = regionManagerImpl.createRegion( flow, regionConfig );
         assertNotNull( regionInstance );
-        final PipelineInstance[] pipelines = regionInstance.getPipelines( 0 );
+        final PipelineInstance[] pipelines = regionInstance.getReplicaPipelines( 0 );
         assertEquals( 1, pipelines.length );
         final PipelineInstance pipeline = pipelines[ 0 ];
         assertEmptyTupleQueueContext( pipeline, operatorDefinition0.inputPortCount() );
@@ -109,8 +109,8 @@ public class RegionManagerImplTest
 
         final RegionInstance regionInstance = regionManagerImpl.createRegion( flow, regionConfig );
         assertNotNull( regionInstance );
-        final PipelineInstance[] pipelines0 = regionInstance.getPipelines( 0 );
-        final PipelineInstance[] pipelines1 = regionInstance.getPipelines( 1 );
+        final PipelineInstance[] pipelines0 = regionInstance.getReplicaPipelines( 0 );
+        final PipelineInstance[] pipelines1 = regionInstance.getReplicaPipelines( 1 );
         assertEquals( 1, pipelines0.length );
         final PipelineInstance pipelineReplica0 = pipelines0[ 0 ];
         final PipelineInstance pipelineReplica1 = pipelines1[ 0 ];
@@ -140,7 +140,7 @@ public class RegionManagerImplTest
 
         final RegionInstance regionInstance = regionManagerImpl.createRegion( flow, regionConfig );
         assertNotNull( regionInstance );
-        final PipelineInstance[] pipelines = regionInstance.getPipelines( 0 );
+        final PipelineInstance[] pipelines = regionInstance.getReplicaPipelines( 0 );
         assertEquals( 2, pipelines.length );
         final PipelineInstance pipeline0 = pipelines[ 0 ];
         final PipelineInstance pipeline1 = pipelines[ 1 ];
@@ -212,7 +212,7 @@ public class RegionManagerImplTest
 
         final RegionInstance regionInstance = regionManagerImpl.createRegion( flow, regionConfig );
         assertNotNull( regionInstance );
-        final PipelineInstance[] pipelines = regionInstance.getPipelines( 0 );
+        final PipelineInstance[] pipelines = regionInstance.getReplicaPipelines( 0 );
         assertEquals( 1, pipelines.length );
         final PipelineInstance pipeline = pipelines[ 0 ];
         assertEmptyTupleQueueContext( pipeline, operatorDefinition1.inputPortCount() );
@@ -254,7 +254,7 @@ public class RegionManagerImplTest
 
         final RegionInstance regionInstance = regionManagerImpl.createRegion( flow, regionConfig );
         assertNotNull( regionInstance );
-        final PipelineInstance[] pipelines = regionInstance.getPipelines( 0 );
+        final PipelineInstance[] pipelines = regionInstance.getReplicaPipelines( 0 );
         assertEquals( 1, pipelines.length );
         final PipelineInstance pipeline = pipelines[ 0 ];
         assertEmptyTupleQueueContext( pipeline, operatorDefinition1.inputPortCount() );
@@ -301,7 +301,7 @@ public class RegionManagerImplTest
 
         final RegionInstance regionInstance = regionManagerImpl.createRegion( flow, regionConfig );
         assertNotNull( regionInstance );
-        final PipelineInstance[] pipelines = regionInstance.getPipelines( 0 );
+        final PipelineInstance[] pipelines = regionInstance.getReplicaPipelines( 0 );
         assertEquals( 1, pipelines.length );
         final PipelineInstance pipeline = pipelines[ 0 ];
         assertDefaultTupleQueueContext( pipeline, operatorDefinition1.inputPortCount() );
@@ -348,8 +348,8 @@ public class RegionManagerImplTest
 
         final RegionInstance regionInstance = regionManagerImpl.createRegion( flow, regionConfig );
         assertNotNull( regionInstance );
-        final PipelineInstance[] pipelines0 = regionInstance.getPipelines( 0 );
-        final PipelineInstance[] pipelines1 = regionInstance.getPipelines( 1 );
+        final PipelineInstance[] pipelines0 = regionInstance.getReplicaPipelines( 0 );
+        final PipelineInstance[] pipelines1 = regionInstance.getReplicaPipelines( 1 );
         assertEquals( 1, pipelines0.length );
         assertEquals( 1, pipelines1.length );
         final PipelineInstance pipelineReplica0 = pipelines0[ 0 ];
@@ -416,7 +416,7 @@ public class RegionManagerImplTest
 
         final RegionInstance regionInstance = regionManagerImpl.createRegion( flow, regionConfig );
         assertNotNull( regionInstance );
-        final PipelineInstance[] pipelines = regionInstance.getPipelines( 0 );
+        final PipelineInstance[] pipelines = regionInstance.getReplicaPipelines( 0 );
         assertEquals( 1, pipelines.length );
         final PipelineInstance pipeline = pipelines[ 0 ];
         assertEmptyTupleQueueContext( pipeline, operatorDefinition1.inputPortCount() );
@@ -479,8 +479,8 @@ public class RegionManagerImplTest
 
         final RegionInstance regionInstance = regionManagerImpl.createRegion( flow, regionConfig );
         assertNotNull( regionInstance );
-        final PipelineInstance[] pipelinesReplica0 = regionInstance.getPipelines( 0 );
-        final PipelineInstance[] pipelinesReplica1 = regionInstance.getPipelines( 1 );
+        final PipelineInstance[] pipelinesReplica0 = regionInstance.getReplicaPipelines( 0 );
+        final PipelineInstance[] pipelinesReplica1 = regionInstance.getReplicaPipelines( 1 );
         assertEquals( 1, pipelinesReplica0.length );
         assertEquals( 1, pipelinesReplica1.length );
         final PipelineInstance pipelineReplica0 = pipelinesReplica0[ 0 ];
@@ -571,7 +571,7 @@ public class RegionManagerImplTest
 
         final RegionInstance regionInstance = regionManagerImpl.createRegion( flow, regionConfig );
         assertNotNull( regionInstance );
-        final PipelineInstance[] pipelines = regionInstance.getPipelines( 0 );
+        final PipelineInstance[] pipelines = regionInstance.getReplicaPipelines( 0 );
         assertEquals( 2, pipelines.length );
         final PipelineInstance pipeline0 = pipelines[ 0 ];
         final PipelineInstance pipeline1 = pipelines[ 1 ];
