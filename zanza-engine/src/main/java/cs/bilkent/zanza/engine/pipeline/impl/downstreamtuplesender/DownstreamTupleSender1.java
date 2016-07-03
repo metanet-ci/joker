@@ -1,4 +1,4 @@
-package cs.bilkent.zanza.engine.pipeline.impl;
+package cs.bilkent.zanza.engine.pipeline.impl.downstreamtuplesender;
 
 import java.util.concurrent.Future;
 
@@ -6,7 +6,7 @@ import cs.bilkent.zanza.engine.pipeline.DownstreamTupleSender;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 
-public class DefaultDownstreamTupleSender implements DownstreamTupleSender
+public class DownstreamTupleSender1 implements DownstreamTupleSender
 {
 
     private final int sourcePortIndex;
@@ -15,9 +15,7 @@ public class DefaultDownstreamTupleSender implements DownstreamTupleSender
 
     private final TupleQueueContext tupleQueueContext;
 
-    public DefaultDownstreamTupleSender ( final int sourcePortIndex,
-                                          final int destinationPortIndex,
-                                          final TupleQueueContext tupleQueueContext )
+    public DownstreamTupleSender1 ( final int sourcePortIndex, final int destinationPortIndex, final TupleQueueContext tupleQueueContext )
     {
         this.sourcePortIndex = sourcePortIndex;
         this.destinationPortIndex = destinationPortIndex;

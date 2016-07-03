@@ -1,10 +1,6 @@
-package cs.bilkent.zanza.engine.partition;
+package cs.bilkent.zanza.engine.partition.impl;
 
-import java.util.List;
-
-import cs.bilkent.zanza.operator.Tuple;
-
-public class PartitionKey8
+public class PartitionKey9
 {
 
     private final Object val1;
@@ -23,28 +19,19 @@ public class PartitionKey8
 
     private final Object val8;
 
+    private final Object val9;
+
     private final int hashCode;
 
-    public PartitionKey8 ( final Tuple tuple, final List<String> partitionFieldNames )
-    {
-        this( tuple.getObject( partitionFieldNames.get( 0 ) ),
-              tuple.getObject( partitionFieldNames.get( 1 ) ),
-              tuple.getObject( partitionFieldNames.get( 2 ) ),
-              tuple.getObject( partitionFieldNames.get( 3 ) ),
-              tuple.getObject( partitionFieldNames.get( 4 ) ),
-              tuple.getObject( partitionFieldNames.get( 5 ) ),
-              tuple.getObject( partitionFieldNames.get( 6 ) ),
-              tuple.getObject( partitionFieldNames.get( 7 ) ) );
-    }
-
-    public PartitionKey8 ( final Object val1,
+    public PartitionKey9 ( final Object val1,
                            final Object val2,
                            final Object val3,
                            final Object val4,
                            final Object val5,
                            final Object val6,
                            final Object val7,
-                           final Object val8 )
+                           final Object val8,
+                           final Object val9 )
     {
         this.val1 = val1;
         this.val2 = val2;
@@ -54,7 +41,8 @@ public class PartitionKey8
         this.val6 = val6;
         this.val7 = val7;
         this.val8 = val8;
-        this.hashCode = computeHashCode();
+        this.val9 = val9;
+        this.hashCode = computeHashCode( val1, val2, val3, val4, val5, val6, val7, val8, val9 );
     }
 
     @Override
@@ -69,7 +57,7 @@ public class PartitionKey8
             return false;
         }
 
-        final PartitionKey8 that = (PartitionKey8) o;
+        final PartitionKey9 that = (PartitionKey9) o;
 
         if ( !val1.equals( that.val1 ) )
         {
@@ -99,8 +87,12 @@ public class PartitionKey8
         {
             return false;
         }
-        return val8.equals( that.val8 );
+        if ( !val8.equals( that.val8 ) )
+        {
+            return false;
+        }
 
+        return val9.equals( that.val9 );
     }
 
     @Override
@@ -112,7 +104,7 @@ public class PartitionKey8
     @Override
     public String toString ()
     {
-        return "PartitionKey8{" +
+        return "PartitionKey9{" +
                "val1=" + val1 +
                ", val2=" + val2 +
                ", val3=" + val3 +
@@ -121,10 +113,19 @@ public class PartitionKey8
                ", val6=" + val6 +
                ", val7=" + val7 +
                ", val8=" + val8 +
+               ", val9=" + val9 +
                '}';
     }
 
-    private int computeHashCode ()
+    public static int computeHashCode ( final Object val1,
+                                        final Object val2,
+                                        final Object val3,
+                                        final Object val4,
+                                        final Object val5,
+                                        final Object val6,
+                                        final Object val7,
+                                        final Object val8,
+                                        final Object val9 )
     {
         int result = val1.hashCode();
         result = 31 * result + val2.hashCode();
@@ -133,7 +134,8 @@ public class PartitionKey8
         result = 31 * result + val5.hashCode();
         result = 31 * result + val6.hashCode();
         result = 31 * result + val7.hashCode();
-        return 31 * result + val8.hashCode();
+        result = 31 * result + val8.hashCode();
+        return 31 * result + val9.hashCode();
     }
 
 }

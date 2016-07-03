@@ -1,8 +1,4 @@
-package cs.bilkent.zanza.engine.partition;
-
-import java.util.List;
-
-import cs.bilkent.zanza.operator.Tuple;
+package cs.bilkent.zanza.engine.partition.impl;
 
 public class PartitionKey4
 {
@@ -17,21 +13,13 @@ public class PartitionKey4
 
     private final int hashCode;
 
-    public PartitionKey4 ( final Tuple tuple, final List<String> partitionFieldNames )
-    {
-        this( tuple.getObject( partitionFieldNames.get( 0 ) ),
-              tuple.getObject( partitionFieldNames.get( 1 ) ),
-              tuple.getObject( partitionFieldNames.get( 2 ) ),
-              tuple.getObject( partitionFieldNames.get( 3 ) ) );
-    }
-
     public PartitionKey4 ( final Object val1, final Object val2, final Object val3, final Object val4 )
     {
         this.val1 = val1;
         this.val2 = val2;
         this.val3 = val3;
         this.val4 = val4;
-        this.hashCode = computeHashCode();
+        this.hashCode = computeHashCode( val1, val2, val3, val4 );
     }
 
     @Override
@@ -81,7 +69,7 @@ public class PartitionKey4
                '}';
     }
 
-    private int computeHashCode ()
+    public static int computeHashCode ( final Object val1, final Object val2, final Object val3, final Object val4 )
     {
         int result = val1.hashCode();
         result = 31 * result + val2.hashCode();

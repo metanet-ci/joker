@@ -6,6 +6,7 @@ import java.util.function.Function;
 import org.junit.Before;
 import org.junit.Test;
 
+import cs.bilkent.zanza.engine.partition.impl.PartitionKeyFunction1;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.impl.TupleQueueContainer;
 import cs.bilkent.zanza.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
@@ -31,14 +32,10 @@ public class PartitionedTupleQueueContextTest
         final Function<Boolean, TupleQueue> tupleQueueConstructor = capacityCheckEnabled -> new MultiThreadedTupleQueue( TUPLE_QUEUE_SIZE,
                                                                                                                          capacityCheckEnabled );
 
-        final TupleQueueContainer container = new TupleQueueContainer( "op1",
-                                                                       2,
-                                                                       tupleQueueConstructor );
+        final TupleQueueContainer container = new TupleQueueContainer( "op1", 2, tupleQueueConstructor );
         tupleQueueContext = new PartitionedTupleQueueContext( "op1",
-                                                              2,
                                                               1,
-                                                              1,
-                                                              tuple -> tuple.get( PARTITION_KEY_FIELD ),
+                                                              1, new PartitionKeyFunction1( singletonList( PARTITION_KEY_FIELD ) ),
                                                               new TupleQueueContainer[] { container },
                                                               new int[] { 0 } );
     }

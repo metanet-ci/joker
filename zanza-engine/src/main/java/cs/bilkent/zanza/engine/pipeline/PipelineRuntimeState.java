@@ -26,6 +26,8 @@ public class PipelineRuntimeState
 
     private UpstreamContext upstreamContext;
 
+    private DownstreamTupleSender downstreamTupleSender;
+
     public PipelineRuntimeState ( final PipelineId id,
                                   final RegionDefinition regionDefinition,
                                   final OperatorDefinition[] operatorDefinitions,
@@ -77,6 +79,16 @@ public class PipelineRuntimeState
     public void setUpstreamContext ( final UpstreamContext upstreamContext )
     {
         this.upstreamContext = upstreamContext;
+    }
+
+    public DownstreamTupleSender getDownstreamTupleSender ()
+    {
+        return downstreamTupleSender;
+    }
+
+    public void setDownstreamTupleSender ( final DownstreamTupleSender downstreamTupleSender )
+    {
+        this.downstreamTupleSender = downstreamTupleSender;
     }
 
 }

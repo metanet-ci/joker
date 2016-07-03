@@ -1,10 +1,6 @@
-package cs.bilkent.zanza.engine.partition;
+package cs.bilkent.zanza.engine.partition.impl;
 
-import java.util.List;
-
-import cs.bilkent.zanza.operator.Tuple;
-
-public class PartitionKey6
+public class PartitionKey8
 {
 
     private final Object val1;
@@ -19,24 +15,20 @@ public class PartitionKey6
 
     private final Object val6;
 
+    private final Object val7;
+
+    private final Object val8;
+
     private final int hashCode;
 
-    public PartitionKey6 ( final Tuple tuple, final List<String> partitionFieldNames )
-    {
-        this( tuple.getObject( partitionFieldNames.get( 0 ) ),
-              tuple.getObject( partitionFieldNames.get( 1 ) ),
-              tuple.getObject( partitionFieldNames.get( 2 ) ),
-              tuple.getObject( partitionFieldNames.get( 3 ) ),
-              tuple.getObject( partitionFieldNames.get( 4 ) ),
-              tuple.getObject( partitionFieldNames.get( 5 ) ) );
-    }
-
-    public PartitionKey6 ( final Object val1,
+    public PartitionKey8 ( final Object val1,
                            final Object val2,
                            final Object val3,
                            final Object val4,
                            final Object val5,
-                           final Object val6 )
+                           final Object val6,
+                           final Object val7,
+                           final Object val8 )
     {
         this.val1 = val1;
         this.val2 = val2;
@@ -44,7 +36,9 @@ public class PartitionKey6
         this.val4 = val4;
         this.val5 = val5;
         this.val6 = val6;
-        this.hashCode = computeHashCode();
+        this.val7 = val7;
+        this.val8 = val8;
+        this.hashCode = computeHashCode( val1, val2, val3, val4, val5, val6, val7, val8 );
     }
 
     @Override
@@ -59,7 +53,7 @@ public class PartitionKey6
             return false;
         }
 
-        final PartitionKey6 that = (PartitionKey6) o;
+        final PartitionKey8 that = (PartitionKey8) o;
 
         if ( !val1.equals( that.val1 ) )
         {
@@ -81,8 +75,16 @@ public class PartitionKey6
         {
             return false;
         }
+        if ( !val6.equals( that.val6 ) )
+        {
+            return false;
+        }
+        if ( !val7.equals( that.val7 ) )
+        {
+            return false;
+        }
+        return val8.equals( that.val8 );
 
-        return val6.equals( that.val6 );
     }
 
     @Override
@@ -94,24 +96,35 @@ public class PartitionKey6
     @Override
     public String toString ()
     {
-        return "PartitionKey6{" +
+        return "PartitionKey8{" +
                "val1=" + val1 +
                ", val2=" + val2 +
                ", val3=" + val3 +
                ", val4=" + val4 +
                ", val5=" + val5 +
                ", val6=" + val6 +
+               ", val7=" + val7 +
+               ", val8=" + val8 +
                '}';
     }
 
-    private int computeHashCode ()
+    public static int computeHashCode ( final Object val1,
+                                        final Object val2,
+                                        final Object val3,
+                                        final Object val4,
+                                        final Object val5,
+                                        final Object val6,
+                                        final Object val7,
+                                        final Object val8 )
     {
         int result = val1.hashCode();
         result = 31 * result + val2.hashCode();
         result = 31 * result + val3.hashCode();
         result = 31 * result + val4.hashCode();
         result = 31 * result + val5.hashCode();
-        return 31 * result + val6.hashCode();
+        result = 31 * result + val6.hashCode();
+        result = 31 * result + val7.hashCode();
+        return 31 * result + val8.hashCode();
     }
 
 }

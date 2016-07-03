@@ -1,10 +1,6 @@
-package cs.bilkent.zanza.engine.partition;
+package cs.bilkent.zanza.engine.partition.impl;
 
-import java.util.List;
-
-import cs.bilkent.zanza.operator.Tuple;
-
-public class PartitionKey9
+public class PartitionKey7
 {
 
     private final Object val1;
@@ -21,34 +17,15 @@ public class PartitionKey9
 
     private final Object val7;
 
-    private final Object val8;
-
-    private final Object val9;
-
     private final int hashCode;
 
-    public PartitionKey9 ( final Tuple tuple, final List<String> partitionFieldNames )
-    {
-        this( tuple.getObject( partitionFieldNames.get( 0 ) ),
-              tuple.getObject( partitionFieldNames.get( 1 ) ),
-              tuple.getObject( partitionFieldNames.get( 2 ) ),
-              tuple.getObject( partitionFieldNames.get( 3 ) ),
-              tuple.getObject( partitionFieldNames.get( 4 ) ),
-              tuple.getObject( partitionFieldNames.get( 5 ) ),
-              tuple.getObject( partitionFieldNames.get( 6 ) ),
-              tuple.getObject( partitionFieldNames.get( 7 ) ),
-              tuple.getObject( partitionFieldNames.get( 8 ) ) );
-    }
-
-    public PartitionKey9 ( final Object val1,
+    public PartitionKey7 ( final Object val1,
                            final Object val2,
                            final Object val3,
                            final Object val4,
                            final Object val5,
                            final Object val6,
-                           final Object val7,
-                           final Object val8,
-                           final Object val9 )
+                           final Object val7 )
     {
         this.val1 = val1;
         this.val2 = val2;
@@ -57,9 +34,7 @@ public class PartitionKey9
         this.val5 = val5;
         this.val6 = val6;
         this.val7 = val7;
-        this.val8 = val8;
-        this.val9 = val9;
-        this.hashCode = computeHashCode();
+        this.hashCode = computeHashCode( val1, val2, val3, val4, val5, val6, val7 );
     }
 
     @Override
@@ -74,7 +49,7 @@ public class PartitionKey9
             return false;
         }
 
-        final PartitionKey9 that = (PartitionKey9) o;
+        final PartitionKey7 that = (PartitionKey7) o;
 
         if ( !val1.equals( that.val1 ) )
         {
@@ -100,16 +75,8 @@ public class PartitionKey9
         {
             return false;
         }
-        if ( !val7.equals( that.val7 ) )
-        {
-            return false;
-        }
-        if ( !val8.equals( that.val8 ) )
-        {
-            return false;
-        }
+        return val7.equals( that.val7 );
 
-        return val9.equals( that.val9 );
     }
 
     @Override
@@ -121,7 +88,7 @@ public class PartitionKey9
     @Override
     public String toString ()
     {
-        return "PartitionKey9{" +
+        return "PartitionKey7{" +
                "val1=" + val1 +
                ", val2=" + val2 +
                ", val3=" + val3 +
@@ -129,12 +96,16 @@ public class PartitionKey9
                ", val5=" + val5 +
                ", val6=" + val6 +
                ", val7=" + val7 +
-               ", val8=" + val8 +
-               ", val9=" + val9 +
                '}';
     }
 
-    private int computeHashCode ()
+    public static int computeHashCode ( final Object val1,
+                                        final Object val2,
+                                        final Object val3,
+                                        final Object val4,
+                                        final Object val5,
+                                        final Object val6,
+                                        final Object val7 )
     {
         int result = val1.hashCode();
         result = 31 * result + val2.hashCode();
@@ -142,9 +113,7 @@ public class PartitionKey9
         result = 31 * result + val4.hashCode();
         result = 31 * result + val5.hashCode();
         result = 31 * result + val6.hashCode();
-        result = 31 * result + val7.hashCode();
-        result = 31 * result + val8.hashCode();
-        return 31 * result + val9.hashCode();
+        return 31 * result + val7.hashCode();
     }
 
 }

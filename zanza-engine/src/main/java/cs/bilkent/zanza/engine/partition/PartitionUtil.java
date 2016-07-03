@@ -5,7 +5,12 @@ public final class PartitionUtil
 
     public static int getPartitionId ( final Object key, final int partitionCount )
     {
-        final int partitionId = key.hashCode() % partitionCount;
+        return getPartitionId( key.hashCode(), partitionCount );
+    }
+
+    public static int getPartitionId ( final int hashCode, final int partitionCount )
+    {
+        final int partitionId = hashCode % partitionCount;
         return partitionId >= 0 ? partitionId : ( partitionId + partitionCount );
     }
 

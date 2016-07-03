@@ -1,8 +1,4 @@
-package cs.bilkent.zanza.engine.partition;
-
-import java.util.List;
-
-import cs.bilkent.zanza.operator.Tuple;
+package cs.bilkent.zanza.engine.partition.impl;
 
 public class PartitionKey10
 {
@@ -29,20 +25,6 @@ public class PartitionKey10
 
     private final int hashCode;
 
-    public PartitionKey10 ( final Tuple tuple, final List<String> partitionFieldNames )
-    {
-        this( tuple.getObject( partitionFieldNames.get( 0 ) ),
-              tuple.getObject( partitionFieldNames.get( 1 ) ),
-              tuple.getObject( partitionFieldNames.get( 2 ) ),
-              tuple.getObject( partitionFieldNames.get( 3 ) ),
-              tuple.getObject( partitionFieldNames.get( 4 ) ),
-              tuple.getObject( partitionFieldNames.get( 5 ) ),
-              tuple.getObject( partitionFieldNames.get( 6 ) ),
-              tuple.getObject( partitionFieldNames.get( 7 ) ),
-              tuple.getObject( partitionFieldNames.get( 8 ) ),
-              tuple.getObject( partitionFieldNames.get( 9 ) ) );
-    }
-
     public PartitionKey10 ( final Object val1,
                             final Object val2,
                             final Object val3,
@@ -64,7 +46,7 @@ public class PartitionKey10
         this.val8 = val8;
         this.val9 = val9;
         this.val10 = val10;
-        this.hashCode = computeHashCode();
+        this.hashCode = computeHashCode( val1, val2, val3, val4, val5, val6, val7, val8, val9, val10 );
     }
 
     @Override
@@ -144,7 +126,16 @@ public class PartitionKey10
                '}';
     }
 
-    private int computeHashCode ()
+    public static int computeHashCode ( final Object val1,
+                                        final Object val2,
+                                        final Object val3,
+                                        final Object val4,
+                                        final Object val5,
+                                        final Object val6,
+                                        final Object val7,
+                                        final Object val8,
+                                        final Object val9,
+                                        final Object val10 )
     {
         int result = val1.hashCode();
         result = 31 * result + val2.hashCode();

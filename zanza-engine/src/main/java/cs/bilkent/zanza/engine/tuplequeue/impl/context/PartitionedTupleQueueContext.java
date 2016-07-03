@@ -2,12 +2,12 @@ package cs.bilkent.zanza.engine.tuplequeue.impl.context;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Function;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import cs.bilkent.zanza.engine.partition.PartitionKeyFunction;
 import static cs.bilkent.zanza.engine.partition.PartitionUtil.getPartitionId;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
@@ -25,17 +25,15 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
 
     private final int partitionCount;
 
-    private final Function<Tuple, Object> partitionKeyExtractor;
+    private final PartitionKeyFunction partitionKeyFunction;
 
     private final TupleQueueContainer[] tupleQueueContainers;
 
     private final int[] ownedPartitions;
 
     public PartitionedTupleQueueContext ( final String operatorId,
-                                          final int inputPortCount,
                                           final int partitionCount,
-                                          final int replicaIndex,
-                                          final Function<Tuple, Object> partitionKeyExtractor,
+                                          final int replicaIndex, final PartitionKeyFunction partitionKeyFunction,
                                           final TupleQueueContainer[] tupleQueueContainers,
                                           final int[] partitions )
     {
@@ -43,7 +41,7 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
         checkArgument( partitionCount == partitions.length );
         this.operatorId = operatorId;
         this.partitionCount = partitionCount;
-        this.partitionKeyExtractor = partitionKeyExtractor;
+        this.partitionKeyFunction = partitionKeyFunction;
         this.tupleQueueContainers = Arrays.copyOf( tupleQueueContainers, partitionCount );
         int ownedPartitionCount = 0;
         for ( int i = 0; i < partitionCount; i++ )
@@ -108,7 +106,7 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
 
     TupleQueue[] getTupleQueues ( final Tuple tuple )
     {
-        final Object partitionKey = partitionKeyExtractor.apply( tuple );
+        final Object partitionKey = partitionKeyFunction.getPartitionKey( tuple );
 
         if ( partitionKey == null )
         {
