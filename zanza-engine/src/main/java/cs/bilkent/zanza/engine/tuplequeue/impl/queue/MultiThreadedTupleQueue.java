@@ -127,7 +127,7 @@ public class MultiThreadedTupleQueue implements TupleQueue
     }
 
     @Override
-    public void forceOffer ( final Tuple tuple )
+    public void forceOfferTuple ( final Tuple tuple )
     {
         lock.lock();
         try

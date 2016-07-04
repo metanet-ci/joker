@@ -43,6 +43,11 @@ public class PartitionedKVStoreContext implements KVStoreContext
     @Override
     public KVStore getKVStore ( final Object key )
     {
+        if ( key == null )
+        {
+            return null;
+        }
+
         final int partitionId = getPartitionId( key, partitionCount );
         final KVStore kvStore = kvStores[ partitionId ];
         checkNotNull( kvStore, "partitionId=% is not in replicaIndex=%", partitionId, replicaIndex );

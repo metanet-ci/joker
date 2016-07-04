@@ -13,6 +13,7 @@ import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.zanza.operator.Tuple;
+import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort;
 
 
 public class DefaultTupleQueueContext implements TupleQueueContext
@@ -46,6 +47,12 @@ public class DefaultTupleQueueContext implements TupleQueueContext
     public String getOperatorId ()
     {
         return operatorId;
+    }
+
+    @Override
+    public int getInputPortCount ()
+    {
+        return tupleQueues.length;
     }
 
     @Override
@@ -117,6 +124,18 @@ public class DefaultTupleQueueContext implements TupleQueueContext
         }
     }
 
+    @Override
+    public void setTupleCounts ( final int[] tupleCounts, final TupleAvailabilityByPort tupleAvailabilityByPort )
+    {
+
+    }
+
+    @Override
+    public void prepareGreedyDraining ()
+    {
+
+    }
+
     public void enableCapacityCheck ( final int portIndex )
     {
         checkState( threadingPreference == MULTI_THREADED );
@@ -139,11 +158,6 @@ public class DefaultTupleQueueContext implements TupleQueueContext
     {
         checkState( threadingPreference == MULTI_THREADED );
         return !tupleQueues[ portIndex ].isCapacityCheckEnabled();
-    }
-
-    public int getInputPortCount ()
-    {
-        return tupleQueues.length;
     }
 
     public ThreadingPreference getThreadingPreference ()

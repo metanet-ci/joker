@@ -1,8 +1,6 @@
 package cs.bilkent.zanza.engine.region.impl;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -81,10 +79,7 @@ public class RegionManagerImpl implements RegionManager
         final int replicaCount = regionConfig.getReplicaCount();
         final int pipelineCount = regionConfig.getPipelineStartIndices().size();
 
-        LOGGER.info( "Creating components for regionId={} replicaCount={} pipelineCount={}", regionId, replicaCount, pipelineCount );
-
-        final List<Integer> pipelineIndices = new ArrayList<>( regionConfig.getPipelineStartIndices() );
-        pipelineIndices.add( regionConfig.getRegion().getOperators().size() );
+        LOGGER.info( "Creating components for regionId={} pipelineCount={} replicaCount={}", regionId, pipelineCount, replicaCount );
 
         final PipelineInstance[][] pipelineInstances = new PipelineInstance[ pipelineCount ][ replicaCount ];
 

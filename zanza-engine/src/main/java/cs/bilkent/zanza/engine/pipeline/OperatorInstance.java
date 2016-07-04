@@ -122,8 +122,7 @@ public class OperatorInstance
      * it moves the status to {@link OperatorInstanceStatus#INITIALIZATION_FAILED} and propagates the exception to the caller after
      * wrapping it with {@link InitializationException}.
      */
-    public SchedulingStrategy init ( final UpstreamContext upstreamContext,
-                                     final OperatorInstanceListener listener )
+    public SchedulingStrategy init ( final UpstreamContext upstreamContext, final OperatorInstanceListener listener )
     {
         checkState( status == INITIAL );
         try
@@ -182,6 +181,11 @@ public class OperatorInstance
         initialSchedulingStrategy = this.schedulingStrategy;
         verifySchedulingStrategy( this.schedulingStrategy, upstreamContext );
         drainer = drainerPool.acquire( this.schedulingStrategy );
+        if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
+        {
+            final ScheduleWhenTuplesAvailable ss = (ScheduleWhenTuplesAvailable) schedulingStrategy;
+            queue.setTupleCounts( ss.getTupleCounts(), ss.getTupleAvailabilityByPort() );
+        }
     }
 
     public boolean isInvokable ( final UpstreamContext upstreamContext )
@@ -332,15 +336,19 @@ public class OperatorInstance
                 setStatus( COMPLETING );
                 completionReason = INPUT_PORT_CLOSED;
                 setNewSchedulingStrategy( ScheduleWhenAvailable.INSTANCE );
+                queue.prepareGreedyDraining();
                 input = drainQueueAndGetResult();
-                output = invokeOperator( INPUT_PORT_CLOSED, input, drainer.getKey() );
+                if ( input != null && input.isNonEmpty() )
+                {
+                    output = invokeOperator( INPUT_PORT_CLOSED, input, drainer.getKey() );
+                }
             }
             else
             {
                 drainer.reset();
             }
         }
-        else if ( input.isNonEmpty() )
+        else if ( input != null && input.isNonEmpty() )
         {
             // status = COMPLETING
             output = invokeOperator( INPUT_PORT_CLOSED, input, drainer.getKey() );
@@ -348,15 +356,18 @@ public class OperatorInstance
         else
         {
             // status = COMPLETING
-            handleNewUpstreamContext( upstreamContext );
-            if ( upstreamContext.isActiveConnectionAbsent() )
+            if ( handleNewUpstreamContext( upstreamContext ) )
             {
-                output = invokeOperator( INPUT_PORT_CLOSED, input, drainer.getKey() );
-                completeRun();
+                output = invokeOperator( INPUT_PORT_CLOSED, new TuplesImpl( operatorDefinition.inputPortCount() ), null );
             }
             else
             {
                 drainer.reset();
+            }
+
+            if ( upstreamContext.isActiveConnectionAbsent() )
+            {
+                completeRun();
             }
         }
 
@@ -540,6 +551,11 @@ public class OperatorInstance
     public TupleQueueDrainerPool getDrainerPool ()
     {
         return drainerPool;
+    }
+
+    public TupleQueueDrainer getDrainer ()
+    {
+        return drainer;
     }
 
     public Supplier<TuplesImpl> getOutputSupplier ()

@@ -9,11 +9,13 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.zanza.engine.partition.PartitionKeyFunction;
 import static cs.bilkent.zanza.engine.partition.PartitionUtil.getPartitionId;
-import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.zanza.engine.tuplequeue.impl.TupleQueueContainer;
 import cs.bilkent.zanza.operator.Tuple;
+import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort;
+import gnu.trove.iterator.TIntIterator;
+import gnu.trove.set.hash.TIntHashSet;
 
 
 public class PartitionedTupleQueueContext implements TupleQueueContext
@@ -23,6 +25,8 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
 
     private final String operatorId;
 
+    private final int inputPortCount;
+
     private final int partitionCount;
 
     private final PartitionKeyFunction partitionKeyFunction;
@@ -31,15 +35,21 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
 
     private final int[] ownedPartitions;
 
+    private final TIntHashSet drainablePartitions = new TIntHashSet();
+
     public PartitionedTupleQueueContext ( final String operatorId,
+                                          final int inputPortCount,
                                           final int partitionCount,
-                                          final int replicaIndex, final PartitionKeyFunction partitionKeyFunction,
+                                          final int replicaIndex,
+                                          final PartitionKeyFunction partitionKeyFunction,
                                           final TupleQueueContainer[] tupleQueueContainers,
                                           final int[] partitions )
     {
         checkArgument( partitionCount == tupleQueueContainers.length );
         checkArgument( partitionCount == partitions.length );
+        checkArgument( inputPortCount >= 0 );
         this.operatorId = operatorId;
+        this.inputPortCount = inputPortCount;
         this.partitionCount = partitionCount;
         this.partitionKeyFunction = partitionKeyFunction;
         this.tupleQueueContainers = Arrays.copyOf( tupleQueueContainers, partitionCount );
@@ -72,12 +82,23 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
     }
 
     @Override
+    public int getInputPortCount ()
+    {
+        return inputPortCount;
+    }
+
+    @Override
     public void offer ( final int portIndex, final List<Tuple> tuples )
     {
         for ( Tuple tuple : tuples )
         {
-            final TupleQueue[] tupleQueues = getTupleQueues( tuple );
-            tupleQueues[ portIndex ].offerTuple( tuple );
+            final Object partitionKey = partitionKeyFunction.getPartitionKey( tuple );
+            final int partitionId = getPartitionId( partitionKey, partitionCount );
+            final boolean drainable = tupleQueueContainers[ partitionId ].offer( portIndex, tuple, partitionKey );
+            if ( drainable )
+            {
+                drainablePartitions.add( partitionId );
+            }
         }
     }
 
@@ -98,37 +119,32 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
     {
         for ( Tuple tuple : tuples )
         {
-            final TupleQueue[] tupleQueues = getTupleQueues( tuple );
-            tupleQueues[ portIndex ].forceOffer( tuple );
+            final Object partitionKey = partitionKeyFunction.getPartitionKey( tuple );
+            final int partitionId = getPartitionId( partitionKey, partitionCount );
+            final boolean drainable = tupleQueueContainers[ partitionId ].forceOffer( portIndex, tuple, partitionKey );
+            if ( drainable )
+            {
+                drainablePartitions.add( partitionId );
+            }
         }
-    }
-
-
-    TupleQueue[] getTupleQueues ( final Tuple tuple )
-    {
-        final Object partitionKey = partitionKeyFunction.getPartitionKey( tuple );
-
-        if ( partitionKey == null )
-        {
-            return null;
-        }
-
-        final int partitionId = getPartitionId( partitionKey, partitionCount );
-
-        return tupleQueueContainers[ partitionId ].getTupleQueues( partitionKey );
     }
 
     @Override
-    public void drain ( TupleQueueDrainer drainer )
+    public void drain ( final TupleQueueDrainer drainer )
     {
-        // TODO RANDOMIZATION AND PRUNING IS NEEDED HERE !!!
-
-        for ( int i = 0; i < ownedPartitions.length; i++ )
+        final TIntIterator it = drainablePartitions.iterator();
+        while ( it.hasNext() )
         {
-            tupleQueueContainers[ ownedPartitions[ i ] ].drain( drainer );
+            final int partitionId = it.next();
+            tupleQueueContainers[ partitionId ].drain( drainer );
+
             if ( drainer.getResult() != null )
             {
                 return;
+            }
+            else
+            {
+                it.remove();
             }
         }
     }
@@ -150,6 +166,34 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
             {
                 container.clear();
             }
+        }
+    }
+
+    @Override
+    public void setTupleCounts ( final int[] tupleCounts, final TupleAvailabilityByPort tupleAvailabilityByPort )
+    {
+        LOGGER.info( "Setting tuple requirements {} , {} for partitioned tuple queues of operator: {}",
+                     tupleCounts,
+                     tupleAvailabilityByPort,
+                     operatorId );
+
+        for ( TupleQueueContainer container : tupleQueueContainers )
+        {
+            if ( container != null )
+            {
+                container.setTupleCounts( tupleCounts, tupleAvailabilityByPort );
+            }
+        }
+    }
+
+    @Override
+    public void prepareGreedyDraining ()
+    {
+        LOGGER.info( "Operator:{} prepares greedy draining for partitions: {}", operatorId, ownedPartitions );
+
+        for ( final int partitionId : ownedPartitions )
+        {
+            drainablePartitions.add( partitionId );
         }
     }
 

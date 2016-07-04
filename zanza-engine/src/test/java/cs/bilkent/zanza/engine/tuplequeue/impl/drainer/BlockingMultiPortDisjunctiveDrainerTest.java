@@ -26,7 +26,7 @@ public class BlockingMultiPortDisjunctiveDrainerTest
     @Test
     public void test_TupleAvailabilityByCount_AT_LEAST_allQueuesSatisfiesAlready ()
     {
-        drainer.setParameters( TupleAvailabilityByCount.AT_LEAST, new int[] { 2, 2 } );
+        drainer.setParameters( TupleAvailabilityByCount.AT_LEAST, new int[] { 0, 1 }, new int[] { 2, 2 } );
         final TupleQueue tupleQueue1 = new MultiThreadedTupleQueue( 2 );
         final TupleQueue tupleQueue2 = new MultiThreadedTupleQueue( 2 );
         tupleQueue1.offerTuple( new Tuple() );
@@ -48,7 +48,7 @@ public class BlockingMultiPortDisjunctiveDrainerTest
     @Test
     public void test_TupleAvailabilityByCount_AT_LEAST_singleQueueSatisfiesAfterwards ()
     {
-        drainer.setParameters( TupleAvailabilityByCount.AT_LEAST, new int[] { 2, 2 } );
+        drainer.setParameters( TupleAvailabilityByCount.AT_LEAST, new int[] { 0, 1 }, new int[] { 2, 2 } );
         final TupleQueue tupleQueue1 = new MultiThreadedTupleQueue( 2 );
         final TupleQueue tupleQueue2 = new MultiThreadedTupleQueue( 2 );
         tupleQueue2.offerTuple( new Tuple() );
@@ -67,7 +67,7 @@ public class BlockingMultiPortDisjunctiveDrainerTest
     @Test
     public void test_TupleAvailabilityByCount_EXACT_allQueuesSatisfy ()
     {
-        drainer.setParameters( TupleAvailabilityByCount.EXACT, new int[] { 2, 2 } );
+        drainer.setParameters( TupleAvailabilityByCount.EXACT, new int[] { 0, 1 }, new int[] { 2, 2 } );
         final TupleQueue tupleQueue1 = new MultiThreadedTupleQueue( 3 );
         final TupleQueue tupleQueue2 = new MultiThreadedTupleQueue( 2 );
         tupleQueue1.offerTuple( new Tuple() );
@@ -90,7 +90,7 @@ public class BlockingMultiPortDisjunctiveDrainerTest
     @Test
     public void test_TupleAvailabilityByCount_EXACT_allQueuesDoNotSatisfy ()
     {
-        drainer.setParameters( TupleAvailabilityByCount.EXACT, new int[] { 2, 2 } );
+        drainer.setParameters( TupleAvailabilityByCount.EXACT, new int[] { 0, 1 }, new int[] { 2, 2 } );
         final TupleQueue tupleQueue1 = new MultiThreadedTupleQueue( 3 );
         final TupleQueue tupleQueue2 = new MultiThreadedTupleQueue( 2 );
         tupleQueue1.offerTuple( new Tuple() );

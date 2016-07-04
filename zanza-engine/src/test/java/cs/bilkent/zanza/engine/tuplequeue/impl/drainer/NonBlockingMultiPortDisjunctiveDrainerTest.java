@@ -20,7 +20,7 @@ public class NonBlockingMultiPortDisjunctiveDrainerTest
     public void test_TupleAvailabilityByCount_AT_LEAST_allQueuesSatisfy ()
     {
         final NonBlockingMultiPortDisjunctiveDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( 2, Integer.MAX_VALUE );
-        drainer.setParameters( AT_LEAST, new int[] { 2, 2 } );
+        drainer.setParameters( AT_LEAST, new int[] { 0, 1 }, new int[] { 2, 2 } );
         final TupleQueue tupleQueue1 = new SingleThreadedTupleQueue( 2 );
         final TupleQueue tupleQueue2 = new SingleThreadedTupleQueue( 2 );
         tupleQueue1.offerTuple( new Tuple() );
@@ -43,7 +43,7 @@ public class NonBlockingMultiPortDisjunctiveDrainerTest
     public void test_TupleAvailabilityByCount_AT_LEAST_allQueuesDoNotSatisfy ()
     {
         final NonBlockingMultiPortDisjunctiveDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( 2, Integer.MAX_VALUE );
-        drainer.setParameters( AT_LEAST, new int[] { 2, 2 } );
+        drainer.setParameters( AT_LEAST, new int[] { 0, 1 }, new int[] { 2, 2 } );
         final TupleQueue tupleQueue1 = new SingleThreadedTupleQueue( 2 );
         final TupleQueue tupleQueue2 = new SingleThreadedTupleQueue( 2 );
         tupleQueue1.offerTuple( new Tuple() );
@@ -65,7 +65,7 @@ public class NonBlockingMultiPortDisjunctiveDrainerTest
     public void test_TupleAvailabilityByCount_EXACT_allQueuesSatisfy ()
     {
         final NonBlockingMultiPortDisjunctiveDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( 2, Integer.MAX_VALUE );
-        drainer.setParameters( EXACT, new int[] { 2, 2 } );
+        drainer.setParameters( EXACT, new int[] { 0, 1 }, new int[] { 2, 2 } );
         final TupleQueue tupleQueue1 = new SingleThreadedTupleQueue( 2 );
         final TupleQueue tupleQueue2 = new SingleThreadedTupleQueue( 2 );
         tupleQueue1.offerTuple( new Tuple() );
@@ -89,7 +89,7 @@ public class NonBlockingMultiPortDisjunctiveDrainerTest
     public void test_TupleAvailabilityByCount_EXACT_allQueuesDoNotSatisfy ()
     {
         final NonBlockingMultiPortDisjunctiveDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( 2, Integer.MAX_VALUE );
-        drainer.setParameters( EXACT, new int[] { 2, 2 } );
+        drainer.setParameters( EXACT, new int[] { 0, 1 }, new int[] { 2, 2 } );
         final TupleQueue tupleQueue1 = new SingleThreadedTupleQueue( 2 );
         final TupleQueue tupleQueue2 = new SingleThreadedTupleQueue( 2 );
         tupleQueue1.offerTuple( new Tuple() );

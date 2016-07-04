@@ -120,9 +120,14 @@ public class OperatorInstanceCompletingStatusTest extends AbstractOperatorInstan
 
         verify( queue ).offer( 0, singletonList( new Tuple( "f1", "val1" ) ) );
         verify( queue ).drain( drainer );
-        assertNoOperatorInvocation();
-        verify( drainerPool, never() ).release( drainer );
+        verify( kvStoreContext ).getKVStore( null );
+        verify( operator ).invoke( invocationContext );
         verify( drainer ).reset();
+        verify( drainerPool, never() ).release( drainer );
+
+        assertThat( invocationContext.getReason(), equalTo( INPUT_PORT_CLOSED ) );
+        assertThat( invocationContext.getKVStore(), equalTo( null ) );
+        assertThat( invocationContext.getInput(), equalTo( new TuplesImpl( inputPortCount ) ) );
 
         assertNull( output );
         assertThat( operatorInstance.getSchedulingStrategy(), equalTo( ScheduleWhenAvailable.INSTANCE ) );
@@ -152,12 +157,14 @@ public class OperatorInstanceCompletingStatusTest extends AbstractOperatorInstan
 
         verify( queue ).offer( 0, singletonList( new Tuple( "f1", "val1" ) ) );
         verify( queue ).drain( drainer );
-        assertOperatorInvocation();
+        verify( kvStoreContext ).getKVStore( null );
+        verify( operator ).invoke( invocationContext );
+        verify( drainer ).reset();
         verify( drainerPool ).release( drainer );
 
         assertThat( invocationContext.getReason(), equalTo( INPUT_PORT_CLOSED ) );
-        assertThat( invocationContext.getKVStore(), equalTo( kvStore ) );
-        assertThat( invocationContext.getInput(), equalTo( input ) );
+        assertThat( invocationContext.getKVStore(), equalTo( null ) );
+        assertThat( invocationContext.getInput(), equalTo( new TuplesImpl( inputPortCount ) ) );
 
         assertThat( output, equalTo( expectedOutput ) );
         assertThat( operatorInstance.getSchedulingStrategy(), equalTo( ScheduleNever.INSTANCE ) );

@@ -61,7 +61,7 @@ public class SingleThreadedTupleQueue implements TupleQueue
     }
 
     @Override
-    public void forceOffer ( final Tuple tuple )
+    public void forceOfferTuple ( final Tuple tuple )
     {
         offerTuple( tuple );
     }

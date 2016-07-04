@@ -17,9 +17,10 @@ public class BlockingMultiPortConjunctiveDrainer extends MultiPortDrainer
     protected int[] checkQueueSizes ( final TupleQueue[] tupleQueues )
     {
         int satisfied = 0;
-        for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
+        for ( int i = 0; i < limit; i += 2 )
         {
-            final int tupleCount = tupleCounts[ portIndex ];
+            final int portIndex = tupleCounts[ i ];
+            final int tupleCount = tupleCounts[ i + 1 ];
             if ( tupleCount == 0 || tupleQueues[ portIndex ].awaitMinimumSize( tupleCount, timeoutInMillisPerQueue ) )
             {
                 satisfied++;

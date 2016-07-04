@@ -28,6 +28,7 @@
         <hamcrest.version>1.3</hamcrest.version>
         <mockito.version>1.10.19</mockito.version>
         <jsr305.version>3.0.1</jsr305.version>
+        <trove4j.version>3.0.3</trove4j.version>
     </properties>
 
     <dependencies>
@@ -47,6 +48,12 @@
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>
             <version>${jsr305.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.sf.trove4j</groupId>
+            <artifactId>trove4j</artifactId>
+            <version>${trove4j.version}</version>
         </dependency>
 
         <!-- logging dependencies -->

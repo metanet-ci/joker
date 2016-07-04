@@ -1,6 +1,7 @@
 package cs.bilkent.zanza.engine.pipeline;
 
 import java.util.Arrays;
+import java.util.function.Consumer;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.slf4j.Logger;
@@ -8,20 +9,28 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import cs.bilkent.zanza.engine.config.TupleQueueDrainerConfig;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import cs.bilkent.zanza.engine.exception.InitializationException;
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.INITIAL;
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.INITIALIZATION_FAILED;
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.RUNNING;
 import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.SHUT_DOWN;
+import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import cs.bilkent.zanza.engine.region.RegionDefinition;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
+import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
+import cs.bilkent.zanza.engine.tuplequeue.impl.context.EmptyTupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.BlockingMultiPortDisjunctiveDrainer;
+import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.BlockingSinglePortDrainer;
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.MultiPortDrainer;
-import cs.bilkent.zanza.flow.OperatorDefinition;
+import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.NopDrainer;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
+import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
+import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
+import cs.bilkent.zanza.utils.Pair;
 
 /**
  * Manages runtime state of a pipeline defined by the system for a {@link RegionDefinition} and provides methods for operator invocation.
@@ -43,11 +52,17 @@ public class PipelineInstance
 
     private final int operatorCount;
 
+    private final int upstreamInputPortCount;
+
+    private final int[] upstreamInputPorts;
+
     private final int[] blockingUpstreamTupleCounts;
 
     private final int[] nonBlockingUpstreamTupleCounts;
 
-    private final MultiPortDrainer upstreamDrainer;
+    private final TupleQueueDrainer upstreamDrainer;
+
+    private final Consumer<TupleQueueDrainer> upstreamDrainerParameterSetter;
 
     private OperatorInstanceStatus status = INITIAL;
 
@@ -64,38 +79,81 @@ public class PipelineInstance
         this.operators = operators;
         this.operatorCount = operators.length;
         this.upstreamTupleQueueContext = upstreamTupleQueueContext;
-        this.blockingUpstreamTupleCounts = new int[ operators[ 0 ].getOperatorDefinition().inputPortCount() ];
-        this.nonBlockingUpstreamTupleCounts = new int[ operators[ 0 ].getOperatorDefinition().inputPortCount() ];
+        this.upstreamInputPortCount = operators[ 0 ].getOperatorDefinition().inputPortCount();
+        this.upstreamInputPorts = new int[ upstreamInputPortCount ];
+        this.blockingUpstreamTupleCounts = new int[ upstreamInputPortCount ];
+        this.nonBlockingUpstreamTupleCounts = new int[ upstreamInputPortCount ];
         this.upstreamDrainer = createUpstreamDrainer();
+        this.upstreamDrainerParameterSetter = createUpstreamDrainerParameterSetter();
     }
 
-    private MultiPortDrainer createUpstreamDrainer ()
+    private TupleQueueDrainer createUpstreamDrainer ()
     {
-        final int upstreamInputPortCount = operators[ 0 ].getOperatorDefinition().inputPortCount();
+        if ( upstreamTupleQueueContext instanceof EmptyTupleQueueContext )
+        {
+            return new NopDrainer();
+        }
+
+        final TupleQueueDrainerConfig tupleQueueDrainerConfig = config.getTupleQueueDrainerConfig();
+        if ( upstreamInputPortCount == 1 )
+        {
+            final BlockingSinglePortDrainer drainer = new BlockingSinglePortDrainer( tupleQueueDrainerConfig.getMaxBatchSize(),
+                                                                                     tupleQueueDrainerConfig.getDrainTimeoutInMillis() );
+            drainer.setParameters( AT_LEAST, 0 );
+            return drainer;
+        }
+
         final MultiPortDrainer drainer = new BlockingMultiPortDisjunctiveDrainer( upstreamInputPortCount,
-                                                                                  config.getTupleQueueDrainerConfig().getMaxBatchSize(),
-                                                                                  config.getTupleQueueDrainerConfig()
-                                                                                        .getDrainTimeoutInMillis() );
+                                                                                  tupleQueueDrainerConfig.getMaxBatchSize(),
+                                                                                  tupleQueueDrainerConfig.getDrainTimeoutInMillis() );
+        for ( int i = 0; i < upstreamInputPortCount; i++ )
+        {
+            upstreamInputPorts[ i ] = i;
+        }
         Arrays.fill( blockingUpstreamTupleCounts, 1 );
         Arrays.fill( nonBlockingUpstreamTupleCounts, 0 );
-        drainer.setParameters( AT_LEAST, nonBlockingUpstreamTupleCounts );
+        drainer.setParameters( AT_LEAST, upstreamInputPorts, nonBlockingUpstreamTupleCounts );
         return drainer;
     }
 
-    public SchedulingStrategy[] init ( UpstreamContext upstreamContext, final OperatorInstanceListener operatorInstanceListener )
+    private Consumer<TupleQueueDrainer> createUpstreamDrainerParameterSetter ()
+    {
+        if ( upstreamTupleQueueContext instanceof EmptyTupleQueueContext )
+        {
+            return drainer -> {
+            };
+        }
+
+        if ( upstreamInputPortCount == 1 )
+        {
+            return drainer -> {
+                final BlockingSinglePortDrainer b = (BlockingSinglePortDrainer) drainer;
+                final int count = noBlockOnUpstreamTupleQueueContext ? 0 : 1;
+                b.setParameters( AT_LEAST, count );
+            };
+        }
+
+        return drainer -> {
+            final MultiPortDrainer multiPortDrainer = (MultiPortDrainer) upstreamDrainer;
+            final int[] tupleCounts = noBlockOnUpstreamTupleQueueContext ? nonBlockingUpstreamTupleCounts : blockingUpstreamTupleCounts;
+            multiPortDrainer.setParameters( AT_LEAST, upstreamInputPorts, tupleCounts );
+        };
+    }
+
+    public SchedulingStrategy[] init ( final UpstreamContext upstreamContext, final OperatorInstanceListener operatorInstanceListener )
     {
         checkState( status == INITIAL );
         checkNotNull( upstreamContext );
 
         SchedulingStrategy[] schedulingStrategies = new SchedulingStrategy[ operatorCount ];
-        this.pipelineUpstreamContext = upstreamContext;
+        UpstreamContext uc = upstreamContext;
         for ( int i = 0; i < operatorCount; i++ )
         {
             try
             {
                 final OperatorInstance operator = operators[ i ];
-                schedulingStrategies[ i ] = operator.init( upstreamContext, operatorInstanceListener );
-                upstreamContext = operator.getSelfUpstreamContext();
+                schedulingStrategies[ i ] = operator.init( uc, operatorInstanceListener );
+                uc = operator.getSelfUpstreamContext();
             }
             catch ( InitializationException e )
             {
@@ -105,15 +163,79 @@ public class PipelineInstance
             }
         }
 
+        setPipelineUpstreamContext( upstreamContext );
+
         status = RUNNING;
 
         return schedulingStrategies;
     }
 
-
     public void setPipelineUpstreamContext ( final UpstreamContext pipelineUpstreamContext )
     {
         this.pipelineUpstreamContext = pipelineUpstreamContext;
+        if ( upstreamInputPortCount > 1 )
+        {
+            final OperatorInstance operator = operators[ 0 ];
+            final SchedulingStrategy schedulingStrategy = operator.getSchedulingStrategy();
+            if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
+            {
+                updateUpstreamInputPortDrainOrder( operator, (ScheduleWhenTuplesAvailable) schedulingStrategy );
+            }
+            else
+            {
+                LOGGER.info( "{} is not updating drainer parameters because {}", id, schedulingStrategy );
+            }
+        }
+    }
+
+    // updates the upstream input port check order such that open ports are checked first
+    private void updateUpstreamInputPortDrainOrder ( final OperatorInstance operator, final ScheduleWhenTuplesAvailable schedulingStrategy )
+    {
+        if ( operator.getStatus() != RUNNING )
+        {
+            LOGGER.error( "{} can not update drainer parameters as {} is in {} status",
+                          id,
+                          operator.getOperatorName(),
+                          operator.getStatus() );
+            return;
+        }
+
+        final Pair<Integer, UpstreamConnectionStatus>[] s = getUpstreamConnectionStatusesSortedByActiveness();
+        final int[] tupleCounts = new int[ upstreamInputPortCount ];
+        for ( int i = 0; i < upstreamInputPortCount; i++ )
+        {
+            final int portIndex = s[ i ]._1;
+            upstreamInputPorts[ i ] = portIndex;
+            tupleCounts[ i ] = schedulingStrategy.getTupleCount( portIndex );
+        }
+
+        final MultiPortDrainer drainer = operator.getOperatorDefinition().operatorType() == PARTITIONED_STATEFUL
+                                         ? (MultiPortDrainer) upstreamDrainer
+                                         : (MultiPortDrainer) operator.getDrainer();
+        LOGGER.info( "{} is updating drainer parameters: {}, input ports: {}, tuple counts: {}",
+                     id,
+                     schedulingStrategy.getTupleAvailabilityByCount(),
+                     upstreamInputPorts,
+                     tupleCounts );
+        drainer.setParameters( schedulingStrategy.getTupleAvailabilityByCount(), upstreamInputPorts, tupleCounts );
+    }
+
+    private Pair<Integer, UpstreamConnectionStatus>[] getUpstreamConnectionStatusesSortedByActiveness ()
+    {
+        final Pair<Integer, UpstreamConnectionStatus>[] s = new Pair[ upstreamInputPortCount ];
+        for ( int i = 0; i < upstreamInputPortCount; i++ )
+        {
+            s[ i ] = Pair.of( i, pipelineUpstreamContext.getUpstreamConnectionStatus( i ) );
+        }
+        Arrays.sort( s, ( o1, o2 ) -> {
+            if ( o1._2 == o2._2 )
+            {
+                return Integer.compare( o1._1, o2._1 );
+            }
+
+            return o1._2 == ACTIVE ? -1 : 1;
+        } );
+        return s;
     }
 
     public UpstreamContext getPipelineUpstreamContext ()
@@ -149,15 +271,7 @@ public class PipelineInstance
 
     private void drainUpstreamTupleQueueContext ()
     {
-        if ( noBlockOnUpstreamTupleQueueContext )
-        {
-            upstreamDrainer.setParameters( AT_LEAST, nonBlockingUpstreamTupleCounts );
-        }
-        else
-        {
-            upstreamDrainer.setParameters( AT_LEAST, blockingUpstreamTupleCounts );
-        }
-
+        upstreamDrainerParameterSetter.accept( upstreamDrainer );
         upstreamTupleQueueContext.drain( upstreamDrainer );
     }
 
@@ -197,11 +311,6 @@ public class PipelineInstance
     public int getOperatorCount ()
     {
         return operatorCount;
-    }
-
-    public OperatorDefinition getOperatorDefinition ( final int index )
-    {
-        return operators[ index ].getOperatorDefinition();
     }
 
     public OperatorInstance getOperatorInstance ( final int index )

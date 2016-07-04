@@ -19,12 +19,16 @@ import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.T
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ALL_PORTS;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ANY_PORT;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
+import cs.bilkent.zanza.operator.spec.OperatorType;
+import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 
 @NotThreadSafe
 public class NonBlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
 {
 
     private final int inputPortCount;
+
+    private final OperatorType operatorType;
 
     private NonBlockingSinglePortDrainer singlePortDrainer;
 
@@ -39,12 +43,20 @@ public class NonBlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
     public NonBlockingTupleQueueDrainerPool ( final ZanzaConfig config, final OperatorDefinition operatorDefinition )
     {
         this.inputPortCount = operatorDefinition.inputPortCount();
+        this.operatorType = operatorDefinition.operatorType();
 
         final int maxBatchSize = config.getTupleQueueDrainerConfig().getMaxBatchSize();
 
-        this.singlePortDrainer = new NonBlockingSinglePortDrainer( maxBatchSize );
-        this.multiPortConjunctiveDrainer = new NonBlockingMultiPortConjunctiveDrainer( inputPortCount, maxBatchSize );
-        this.multiPortDisjunctiveDrainer = new NonBlockingMultiPortDisjunctiveDrainer( inputPortCount, maxBatchSize );
+        if ( inputPortCount == 1 )
+        {
+            this.singlePortDrainer = new NonBlockingSinglePortDrainer( maxBatchSize );
+        }
+        else if ( inputPortCount > 1 )
+        {
+            this.multiPortConjunctiveDrainer = new NonBlockingMultiPortConjunctiveDrainer( inputPortCount, maxBatchSize );
+            this.multiPortDisjunctiveDrainer = new NonBlockingMultiPortDisjunctiveDrainer( inputPortCount, maxBatchSize );
+        }
+
         this.greedyDrainer = new GreedyDrainer( inputPortCount );
     }
 
@@ -63,22 +75,31 @@ public class NonBlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
 
             if ( inputPortCount == 1 )
             {
-                active = singlePortDrainer;
                 singlePortDrainer.setParameters( strategy.getTupleAvailabilityByCount(), strategy.getTupleCount( DEFAULT_PORT_INDEX ) );
+                active = singlePortDrainer;
             }
             else
             {
                 checkArgument( !( strategy.getTupleAvailabilityByPort() == ANY_PORT
                                   && strategy.getTupleAvailabilityByCount() == AT_LEAST_BUT_SAME_ON_ALL_PORTS ) );
-                if ( strategy.getTupleAvailabilityByPort() == ALL_PORTS )
+                final int[] inputPorts = new int[ inputPortCount ];
+                for ( int i = 0; i < inputPortCount; i++ )
                 {
+                    inputPorts[ i ] = i;
+                }
+                if ( strategy.getTupleAvailabilityByPort() == ALL_PORTS && operatorType != PARTITIONED_STATEFUL )
+                {
+                    multiPortConjunctiveDrainer.setParameters( strategy.getTupleAvailabilityByCount(),
+                                                               inputPorts,
+                                                               strategy.getTupleCounts() );
                     active = multiPortConjunctiveDrainer;
-                    multiPortConjunctiveDrainer.setParameters( strategy.getTupleAvailabilityByCount(), strategy.getTupleCounts() );
                 }
                 else
                 {
+                    multiPortDisjunctiveDrainer.setParameters( strategy.getTupleAvailabilityByCount(),
+                                                               inputPorts,
+                                                               strategy.getTupleCounts() );
                     active = multiPortDisjunctiveDrainer;
-                    multiPortDisjunctiveDrainer.setParameters( strategy.getTupleAvailabilityByCount(), strategy.getTupleCounts() );
                 }
             }
         }

@@ -6,6 +6,7 @@ import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class ZanzaConfigTest
 {
@@ -16,9 +17,9 @@ public class ZanzaConfigTest
         final Config config = ConfigFactory.load();
         final ZanzaConfig zanzaConfig = new ZanzaConfig( config );
 
-        assertEquals( 100, zanzaConfig.getPipelineInstanceRunnerConfig().getWaitTimeoutInMillis() );
-        assertEquals( 100, zanzaConfig.getTupleQueueManagerConfig().getTupleQueueInitialSize() );
-        assertEquals( 100, zanzaConfig.getTupleQueueDrainerConfig().getDrainTimeoutInMillis() );
+        assertTrue( zanzaConfig.getPipelineInstanceRunnerConfig().getWaitTimeoutInMillis() > 0 );
+        assertTrue( zanzaConfig.getTupleQueueManagerConfig().getTupleQueueInitialSize() > 0 );
+        assertTrue( zanzaConfig.getTupleQueueDrainerConfig().getDrainTimeoutInMillis() > 0 );
     }
 
     @Test

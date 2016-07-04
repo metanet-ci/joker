@@ -133,7 +133,9 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
                                                                                           tupleQueueConstructor );
                 final int[] partitions = partitionService.getOrCreatePartitionDistribution( regionId, replicaCount );
                 final PartitionKeyFunction partitionKeyExtractor = getPartitionKeyFunction( operatorDefinition.partitionFieldNames() );
-                tupleQueueContexts[ replicaIndex ] = new PartitionedTupleQueueContext( operatorId, partitionService.getPartitionCount(),
+                tupleQueueContexts[ replicaIndex ] = new PartitionedTupleQueueContext( operatorId,
+                                                                                       inputPortCount,
+                                                                                       partitionService.getPartitionCount(),
                                                                                        replicaIndex,
                                                                                        partitionKeyExtractor,
                                                                                        containers,
@@ -206,7 +208,7 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
             final TupleQueueContainer[] containers = new TupleQueueContainer[ partitionCount ];
             for ( int i = 0; i < partitionCount; i++ )
             {
-                containers[ i ] = new TupleQueueContainer( operatorId, inputPortCount, tupleQueueConstructor );
+                containers[ i ] = new TupleQueueContainer( operatorId, inputPortCount, i, tupleQueueConstructor );
             }
 
             return containers;

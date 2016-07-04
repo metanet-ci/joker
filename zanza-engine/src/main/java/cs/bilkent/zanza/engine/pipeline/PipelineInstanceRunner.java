@@ -115,8 +115,10 @@ public class PipelineInstanceRunner implements Runnable
                     }
                     else if ( command.getType() == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
                     {
-                        LOGGER.info( "{}: handling update pipeline upstream context during pause request", id );
                         updatePipelineUpstreamContextInternal();
+                        LOGGER.info( "{}: handling update pipeline upstream context {} during pause request",
+                                     pipeline.getPipelineUpstreamContext(),
+                                     id );
                         command.complete();
                         command = PipelineInstanceRunnerCommand.pause();
                         this.command = command;
@@ -175,8 +177,10 @@ public class PipelineInstanceRunner implements Runnable
                     }
                     else if ( command.getType() == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
                     {
-                        LOGGER.info( "{}: handling update pipeline upstream context during resume request", id );
                         updatePipelineUpstreamContextInternal();
+                        LOGGER.info( "{}: handling update pipeline upstream context {} during resume request",
+                                     pipeline.getPipelineUpstreamContext(),
+                                     id );
                         command.complete();
                         command = PipelineInstanceRunnerCommand.resume();
                         this.command = command;
@@ -229,10 +233,11 @@ public class PipelineInstanceRunner implements Runnable
                 }
                 else if ( command.hasType( PAUSE ) || command.hasType( RESUME ) )
                 {
-                    LOGGER.info( "{}: updating pipeline upstream context immediately since there is pending command: {}",
+                    updatePipelineUpstreamContextInternal();
+                    LOGGER.info( "{}: updating pipeline upstream context {} immediately since there is pending command: {}",
+                                 pipeline.getPipelineUpstreamContext(),
                                  id,
                                  command.getType() );
-                    updatePipelineUpstreamContextInternal();
                     result = new CompletableFuture<>();
                     result.complete( null );
                 }
@@ -334,11 +339,11 @@ public class PipelineInstanceRunner implements Runnable
             {
                 if ( commandType == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
                 {
-                    LOGGER.info( "{}: update pipeline upstream context command is noticed", id );
+                    updatePipelineUpstreamContextInternal();
+                    LOGGER.info( "{}: update {} command is noticed", id, pipeline.getPipelineUpstreamContext() );
                     this.command = null;
                     this.status = RUNNING;
                     command.complete();
-                    updatePipelineUpstreamContextInternal();
                 }
                 else if ( status == RUNNING )
                 {

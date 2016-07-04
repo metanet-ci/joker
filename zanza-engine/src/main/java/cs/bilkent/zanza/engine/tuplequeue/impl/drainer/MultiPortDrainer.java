@@ -17,7 +17,9 @@ public abstract class MultiPortDrainer implements TupleQueueDrainer
 
     static final int NO_TUPLES_AVAILABLE = -1;
 
-    int[] tupleCounts;
+    protected final int[] tupleCounts;
+
+    protected final int limit;
 
     protected final int inputPortCount;
 
@@ -33,15 +35,22 @@ public abstract class MultiPortDrainer implements TupleQueueDrainer
 
     MultiPortDrainer ( final int inputPortCount, final int maxBatchSize )
     {
+        checkArgument( inputPortCount > 1 );
         this.inputPortCount = inputPortCount;
         this.maxBatchSize = maxBatchSize;
         this.buffer = new TuplesImpl( inputPortCount );
+        this.tupleCounts = new int[ inputPortCount * 2 ];
+        this.limit = this.tupleCounts.length - 1;
     }
 
-    public void setParameters ( final TupleAvailabilityByCount tupleAvailabilityByCount, final int[] tupleCounts )
+    public void setParameters ( final TupleAvailabilityByCount tupleAvailabilityByCount, final int[] inputPorts, final int[] tupleCounts )
     {
         this.tupleAvailabilityByCount = tupleAvailabilityByCount;
-        this.tupleCounts = tupleCounts;
+        for ( int i = 0; i < inputPortCount; i++ )
+        {
+            this.tupleCounts[ i * 2 ] = inputPorts[ i ];
+            this.tupleCounts[ i * 2 + 1 ] = tupleCounts[ i ];
+        }
     }
 
     @Override
@@ -54,9 +63,10 @@ public abstract class MultiPortDrainer implements TupleQueueDrainer
         final int[] tupleCounts = checkQueueSizes( tupleQueues );
         if ( tupleCounts != null )
         {
-            for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
+            for ( int i = 0; i < limit; i += 2 )
             {
-                final int tupleCount = tupleCounts[ portIndex ];
+                final int portIndex = tupleCounts[ i ];
+                final int tupleCount = tupleCounts[ i + 1 ];
                 if ( tupleCount == NO_TUPLES_AVAILABLE )
                 {
                     continue;

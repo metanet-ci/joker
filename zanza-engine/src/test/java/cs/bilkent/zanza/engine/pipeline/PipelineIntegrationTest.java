@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -16,6 +17,7 @@ import java.util.function.Supplier;
 import org.junit.Before;
 import org.junit.Test;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static cs.bilkent.zanza.engine.TestUtils.assertTrueEventually;
 import static cs.bilkent.zanza.engine.TestUtils.spawnThread;
 import static cs.bilkent.zanza.engine.config.ThreadingPreference.MULTI_THREADED;
@@ -93,9 +95,9 @@ public class PipelineIntegrationTest
 
     private final PipelineInstanceId pipelineInstanceId1 = new PipelineInstanceId( new PipelineId( 0, 0 ), 0 );
 
-    private final PipelineInstanceId pipelineInstanceId2 = new PipelineInstanceId( new PipelineId( 0, 1 ), 0 );
+    private final PipelineInstanceId pipelineInstanceId2 = new PipelineInstanceId( new PipelineId( 1, 0 ), 0 );
 
-    private final PipelineInstanceId pipelineInstanceId3 = new PipelineInstanceId( new PipelineId( 0, 2 ), 0 );
+    private final PipelineInstanceId pipelineInstanceId3 = new PipelineInstanceId( new PipelineId( 2, 0 ), 0 );
 
     @Before
     public void init ()
@@ -490,7 +492,6 @@ public class PipelineIntegrationTest
         supervisor.upstreamContexts.put( pipelineInstanceId3, new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE, ACTIVE } ) );
         supervisor.inputPortIndices.put( pipelineInstanceId1, 0 );
         supervisor.inputPortIndices.put( pipelineInstanceId2, 1 );
-        supervisor.inputPortIndices.put( pipelineInstanceId3, 2 );
 
         final int batchCount = 4;
 
@@ -914,6 +915,10 @@ public class PipelineIntegrationTest
                     final int val = increment ? ++count : --count;
                     output.add( new Tuple( Math.abs( val ), "val", val ) );
                 }
+            }
+            else
+            {
+                sleepUninterruptibly( 1, TimeUnit.MICROSECONDS );
             }
         }
 

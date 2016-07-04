@@ -61,7 +61,7 @@ public interface TupleQueue
      * @param tuple
      *         tuple to be offered to the queue
      */
-    void forceOffer ( Tuple tuple );
+    void forceOfferTuple ( Tuple tuple );
 
     /**
      * Offers given tuples to the queue by blocking. If the queue has no enough capacity, the call blocks until all tuples are added

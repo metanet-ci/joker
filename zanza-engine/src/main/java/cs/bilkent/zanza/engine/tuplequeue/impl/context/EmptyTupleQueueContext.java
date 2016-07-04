@@ -7,6 +7,7 @@ import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.zanza.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import cs.bilkent.zanza.operator.Tuple;
+import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort;
 
 public class EmptyTupleQueueContext implements TupleQueueContext
 {
@@ -29,6 +30,12 @@ public class EmptyTupleQueueContext implements TupleQueueContext
     public String getOperatorId ()
     {
         return operatorId;
+    }
+
+    @Override
+    public int getInputPortCount ()
+    {
+        return tupleQueues.length;
     }
 
     @Override
@@ -67,9 +74,16 @@ public class EmptyTupleQueueContext implements TupleQueueContext
 
     }
 
-    public int getInputPortCount ()
+    @Override
+    public void setTupleCounts ( final int[] tupleCounts, final TupleAvailabilityByPort tupleAvailabilityByPort )
     {
-        return tupleQueues.length;
+
+    }
+
+    @Override
+    public void prepareGreedyDraining ()
+    {
+
     }
 
 }

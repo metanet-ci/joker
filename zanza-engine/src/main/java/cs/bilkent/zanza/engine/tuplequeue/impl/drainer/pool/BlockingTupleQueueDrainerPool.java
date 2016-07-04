@@ -43,9 +43,16 @@ public class BlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
         final int maxBatchSize = config.getTupleQueueDrainerConfig().getMaxBatchSize();
         final long timeoutInMillis = config.getTupleQueueDrainerConfig().getDrainTimeoutInMillis();
 
-        this.singlePortDrainer = new BlockingSinglePortDrainer( maxBatchSize, timeoutInMillis );
-        this.multiPortConjunctiveDrainer = new BlockingMultiPortConjunctiveDrainer( inputPortCount, maxBatchSize, timeoutInMillis );
-        this.multiPortDisjunctiveDrainer = new BlockingMultiPortDisjunctiveDrainer( inputPortCount, maxBatchSize, timeoutInMillis );
+        if ( inputPortCount == 1 )
+        {
+            this.singlePortDrainer = new BlockingSinglePortDrainer( maxBatchSize, timeoutInMillis );
+        }
+        else if ( inputPortCount > 1 )
+        {
+            this.multiPortConjunctiveDrainer = new BlockingMultiPortConjunctiveDrainer( inputPortCount, maxBatchSize, timeoutInMillis );
+            this.multiPortDisjunctiveDrainer = new BlockingMultiPortDisjunctiveDrainer( inputPortCount, maxBatchSize, timeoutInMillis );
+        }
+
         this.greedyDrainer = new GreedyDrainer( inputPortCount );
     }
 
@@ -63,22 +70,31 @@ public class BlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
             final ScheduleWhenTuplesAvailable strategy = (ScheduleWhenTuplesAvailable) input;
             if ( inputPortCount == 1 )
             {
-                active = singlePortDrainer;
                 singlePortDrainer.setParameters( strategy.getTupleAvailabilityByCount(), strategy.getTupleCount( DEFAULT_PORT_INDEX ) );
+                active = singlePortDrainer;
             }
             else
             {
                 checkArgument( !( strategy.getTupleAvailabilityByPort() == ANY_PORT
                                   && strategy.getTupleAvailabilityByCount() == AT_LEAST_BUT_SAME_ON_ALL_PORTS ) );
+                final int[] inputPorts = new int[ inputPortCount ];
+                for ( int i = 0; i < inputPortCount; i++ )
+                {
+                    inputPorts[ i ] = i;
+                }
                 if ( strategy.getTupleAvailabilityByPort() == ALL_PORTS )
                 {
+                    multiPortConjunctiveDrainer.setParameters( strategy.getTupleAvailabilityByCount(),
+                                                               inputPorts,
+                                                               strategy.getTupleCounts() );
                     active = multiPortConjunctiveDrainer;
-                    multiPortConjunctiveDrainer.setParameters( strategy.getTupleAvailabilityByCount(), strategy.getTupleCounts() );
                 }
                 else
                 {
+                    multiPortDisjunctiveDrainer.setParameters( strategy.getTupleAvailabilityByCount(),
+                                                               inputPorts,
+                                                               strategy.getTupleCounts() );
                     active = multiPortDisjunctiveDrainer;
-                    multiPortDisjunctiveDrainer.setParameters( strategy.getTupleAvailabilityByCount(), strategy.getTupleCounts() );
                 }
             }
         }

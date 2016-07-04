@@ -3,6 +3,7 @@ package cs.bilkent.zanza.engine.tuplequeue;
 import java.util.List;
 
 import cs.bilkent.zanza.operator.Tuple;
+import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort;
 
 /**
  * Manages input {@link Tuple} queues for a single operator instance replica
@@ -11,6 +12,8 @@ public interface TupleQueueContext
 {
 
     String getOperatorId ();
+
+    int getInputPortCount ();
 
     /**
      * Offers given tuples to the tuple queue of the given port index.
@@ -61,8 +64,12 @@ public interface TupleQueueContext
      * @param capacity
      *         number of tuples guaranteed to be accepted by the tuple queue without blocking
      */
-    void ensureCapacity ( final int portIndex, final int capacity );
+    void ensureCapacity ( int portIndex, int capacity );
 
     void clear ();
+
+    void setTupleCounts ( int[] tupleCounts, TupleAvailabilityByPort tupleAvailabilityByPort );
+
+    void prepareGreedyDraining ();
 
 }
