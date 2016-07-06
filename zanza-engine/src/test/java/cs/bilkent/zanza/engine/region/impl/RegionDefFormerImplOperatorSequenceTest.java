@@ -6,10 +6,10 @@ import java.util.stream.Collectors;
 
 import org.junit.Test;
 
-import cs.bilkent.zanza.flow.FlowDefinition;
-import cs.bilkent.zanza.flow.FlowDefinitionBuilder;
-import cs.bilkent.zanza.flow.OperatorDefinition;
-import cs.bilkent.zanza.flow.OperatorDefinitionBuilder;
+import cs.bilkent.zanza.flow.FlowDef;
+import cs.bilkent.zanza.flow.FlowDefBuilder;
+import cs.bilkent.zanza.flow.OperatorDef;
+import cs.bilkent.zanza.flow.OperatorDefBuilder;
 import cs.bilkent.zanza.operators.MapperOperator;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -18,12 +18,12 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertTrue;
 
-public class RegionDefinitionFormerImplOperatorSequenceTest
+public class RegionDefFormerImplOperatorSequenceTest
 {
 
-    private final RegionDefinitionFormerImpl regionFormer = new RegionDefinitionFormerImpl();
+    private final RegionDefFormerImpl regionFormer = new RegionDefFormerImpl();
 
-    private final FlowDefinitionBuilder flowBuilder = new FlowDefinitionBuilder();
+    private final FlowDefBuilder flowBuilder = new FlowDefBuilder();
 
 
     @Test
@@ -33,16 +33,16 @@ public class RegionDefinitionFormerImplOperatorSequenceTest
          * O1 --> O2
          */
 
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o1", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o2", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o2", MapperOperator.class ) );
         flowBuilder.connect( "o1", "o2" );
-        final FlowDefinition flow = flowBuilder.build();
+        final FlowDef flow = flowBuilder.build();
 
-        final Collection<List<OperatorDefinition>> operatorSequences = regionFormer.createOperatorSequences( flow );
+        final Collection<List<OperatorDef>> operatorSequences = regionFormer.createOperatorSequences( flow );
 
         assertThat( operatorSequences, hasSize( 1 ) );
 
-        final List<OperatorDefinition> operators = operatorSequences.iterator().next();
+        final List<OperatorDef> operators = operatorSequences.iterator().next();
         assertThat( operators, hasSize( 2 ) );
         assertThat( operators.get( 0 ).id(), equalTo( "o1" ) );
         assertThat( operators.get( 1 ).id(), equalTo( "o2" ) );
@@ -55,18 +55,18 @@ public class RegionDefinitionFormerImplOperatorSequenceTest
          * O1 --> O2 --> O3
          */
 
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o1", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o2", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o3", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o2", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o3", MapperOperator.class ) );
         flowBuilder.connect( "o1", "o2" );
         flowBuilder.connect( "o2", "o3" );
-        final FlowDefinition flow = flowBuilder.build();
+        final FlowDef flow = flowBuilder.build();
 
-        final Collection<List<OperatorDefinition>> operatorSequences = regionFormer.createOperatorSequences( flow );
+        final Collection<List<OperatorDef>> operatorSequences = regionFormer.createOperatorSequences( flow );
 
         assertThat( operatorSequences, hasSize( 1 ) );
 
-        final List<OperatorDefinition> operators = operatorSequences.iterator().next();
+        final List<OperatorDef> operators = operatorSequences.iterator().next();
         assertThat( operators, hasSize( 3 ) );
         assertThat( operators.get( 0 ).id(), equalTo( "o1" ) );
         assertThat( operators.get( 1 ).id(), equalTo( "o2" ) );
@@ -86,18 +86,18 @@ public class RegionDefinitionFormerImplOperatorSequenceTest
          *
          */
 
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o1", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o2", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o3", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o4", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o5", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o2", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o3", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o4", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o5", MapperOperator.class ) );
         flowBuilder.connect( "o1", "o2" );
         flowBuilder.connect( "o2", "o3" );
         flowBuilder.connect( "o3", "o4" );
         flowBuilder.connect( "o3", "o5" );
-        final FlowDefinition flow = flowBuilder.build();
+        final FlowDef flow = flowBuilder.build();
 
-        final Collection<List<OperatorDefinition>> operatorSequences = regionFormer.createOperatorSequences( flow );
+        final Collection<List<OperatorDef>> operatorSequences = regionFormer.createOperatorSequences( flow );
 
         assertThat( operatorSequences, hasSize( 3 ) );
         assertOperatorSequence( asList( "o1", "o2", "o3" ), operatorSequences );
@@ -116,18 +116,18 @@ public class RegionDefinitionFormerImplOperatorSequenceTest
          *
          */
 
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o1", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o2", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o3", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o4", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o5", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o2", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o3", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o4", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o5", MapperOperator.class ) );
         flowBuilder.connect( "o1", "o2" );
         flowBuilder.connect( "o2", "o3" );
         flowBuilder.connect( "o4", "o3" );
         flowBuilder.connect( "o3", "o5" );
-        final FlowDefinition flow = flowBuilder.build();
+        final FlowDef flow = flowBuilder.build();
 
-        final Collection<List<OperatorDefinition>> operatorSequences = regionFormer.createOperatorSequences( flow );
+        final Collection<List<OperatorDef>> operatorSequences = regionFormer.createOperatorSequences( flow );
 
         assertThat( operatorSequences, hasSize( 3 ) );
         assertOperatorSequence( asList( "o1", "o2" ), operatorSequences );
@@ -146,16 +146,16 @@ public class RegionDefinitionFormerImplOperatorSequenceTest
          *
          */
 
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o1", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o2", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o3", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o4", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o2", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o3", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o4", MapperOperator.class ) );
         flowBuilder.connect( "o1", "o2" );
         flowBuilder.connect( "o2", "o3" );
         flowBuilder.connect( "o4", "o3" );
-        final FlowDefinition flow = flowBuilder.build();
+        final FlowDef flow = flowBuilder.build();
 
-        final Collection<List<OperatorDefinition>> operatorSequences = regionFormer.createOperatorSequences( flow );
+        final Collection<List<OperatorDef>> operatorSequences = regionFormer.createOperatorSequences( flow );
 
         assertThat( operatorSequences, hasSize( 3 ) );
         assertOperatorSequence( asList( "o1", "o2" ), operatorSequences );
@@ -176,19 +176,19 @@ public class RegionDefinitionFormerImplOperatorSequenceTest
          *
          */
 
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o1", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o2", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o3", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o4", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o5", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o2", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o3", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o4", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o5", MapperOperator.class ) );
         flowBuilder.connect( "o1", "o2" );
         flowBuilder.connect( "o1", "o3" );
         flowBuilder.connect( "o2", "o4" );
         flowBuilder.connect( "o3", "o4" );
         flowBuilder.connect( "o4", "o5" );
-        final FlowDefinition flow = flowBuilder.build();
+        final FlowDef flow = flowBuilder.build();
 
-        final Collection<List<OperatorDefinition>> operatorSequences = regionFormer.createOperatorSequences( flow );
+        final Collection<List<OperatorDef>> operatorSequences = regionFormer.createOperatorSequences( flow );
 
         assertThat( operatorSequences, hasSize( 4 ) );
         assertOperatorSequence( singletonList( "o1" ), operatorSequences );
@@ -212,18 +212,18 @@ public class RegionDefinitionFormerImplOperatorSequenceTest
          *
          */
 
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o1", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o2", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o3", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o4", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o5", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o2", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o3", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o4", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o5", MapperOperator.class ) );
         flowBuilder.connect( "o1", "o2" );
         flowBuilder.connect( "o1", "o3" );
         flowBuilder.connect( "o2", "o4" );
         flowBuilder.connect( "o2", "o5" );
-        final FlowDefinition flow = flowBuilder.build();
+        final FlowDef flow = flowBuilder.build();
 
-        final Collection<List<OperatorDefinition>> operatorSequences = regionFormer.createOperatorSequences( flow );
+        final Collection<List<OperatorDef>> operatorSequences = regionFormer.createOperatorSequences( flow );
 
         assertThat( operatorSequences, hasSize( 5 ) );
         assertOperatorSequence( singletonList( "o1" ), operatorSequences );
@@ -248,18 +248,18 @@ public class RegionDefinitionFormerImplOperatorSequenceTest
          *
          */
 
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o1", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o2", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o3", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o4", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "o5", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o2", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o3", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o4", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o5", MapperOperator.class ) );
         flowBuilder.connect( "o1", "o2" );
         flowBuilder.connect( "o1", "o3" );
         flowBuilder.connect( "o2", "o4" );
         flowBuilder.connect( "o5", "o4" );
-        final FlowDefinition flow = flowBuilder.build();
+        final FlowDef flow = flowBuilder.build();
 
-        final Collection<List<OperatorDefinition>> operatorSequences = regionFormer.createOperatorSequences( flow );
+        final Collection<List<OperatorDef>> operatorSequences = regionFormer.createOperatorSequences( flow );
 
         assertThat( operatorSequences, hasSize( 5 ) );
         assertOperatorSequence( singletonList( "o1" ), operatorSequences );
@@ -269,7 +269,7 @@ public class RegionDefinitionFormerImplOperatorSequenceTest
         assertOperatorSequence( singletonList( "o5" ), operatorSequences );
     }
 
-    private void assertOperatorSequence ( final List<String> expectedOperatorIds, Collection<List<OperatorDefinition>> operatorSequences )
+    private void assertOperatorSequence ( final List<String> expectedOperatorIds, Collection<List<OperatorDef>> operatorSequences )
     {
         final boolean sequenceExists = operatorSequences.stream().anyMatch( operatorSequence -> {
             final List<String> sequenceOperatorIds = operatorSequence.stream().map( op -> op.id() ).collect( Collectors.toList() );

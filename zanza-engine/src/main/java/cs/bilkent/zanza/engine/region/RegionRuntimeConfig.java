@@ -3,7 +3,7 @@ package cs.bilkent.zanza.engine.region;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import cs.bilkent.zanza.flow.OperatorDefinition;
+import cs.bilkent.zanza.flow.OperatorDef;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 
 public class RegionRuntimeConfig
@@ -11,20 +11,19 @@ public class RegionRuntimeConfig
 
     private final int regionId;
 
-    private final RegionDefinition region;
+    private final RegionDef regionDef;
 
     private final int replicaCount;
 
     private final List<Integer> pipelineStartIndices;
 
-    public RegionRuntimeConfig ( final int regionId,
-                                 final RegionDefinition region,
+    public RegionRuntimeConfig ( final int regionId, final RegionDef regionDef,
                                  final int replicaCount,
                                  final List<Integer> pipelineStartIndices )
     {
-        checkArgument( ( region.getRegionType() == PARTITIONED_STATEFUL && replicaCount > 0 ) || replicaCount == 1 );
+        checkArgument( ( regionDef.getRegionType() == PARTITIONED_STATEFUL && replicaCount > 0 ) || replicaCount == 1 );
         this.regionId = regionId;
-        this.region = region;
+        this.regionDef = regionDef;
         this.replicaCount = replicaCount;
         this.pipelineStartIndices = pipelineStartIndices;
     }
@@ -34,9 +33,9 @@ public class RegionRuntimeConfig
         return regionId;
     }
 
-    public RegionDefinition getRegion ()
+    public RegionDef getRegionDef ()
     {
-        return region;
+        return regionDef;
     }
 
     public int getReplicaCount ()
@@ -54,15 +53,15 @@ public class RegionRuntimeConfig
         return pipelineStartIndices;
     }
 
-    public OperatorDefinition[] getOperatorDefinitions ( final int pipelineId )
+    public OperatorDef[] getOperatorDefs ( final int pipelineId )
     {
-        final List<OperatorDefinition> operators = region.getOperators();
+        final List<OperatorDef> operators = regionDef.getOperators();
         final int startIndex = pipelineStartIndices.get( pipelineId );
         final int endIndex = startIndex + 1 < pipelineStartIndices.size() ? pipelineStartIndices.get( startIndex + 1 ) : operators.size();
-        final List<OperatorDefinition> operatorDefinitions = operators.subList( startIndex, endIndex );
-        final OperatorDefinition[] operatorDefinitionsArr = new OperatorDefinition[ operatorDefinitions.size() ];
-        operatorDefinitions.toArray( operatorDefinitionsArr );
-        return operatorDefinitionsArr;
+        final List<OperatorDef> operatorDefs = operators.subList( startIndex, endIndex );
+        final OperatorDef[] operatorDefsArr = new OperatorDef[ operatorDefs.size() ];
+        operatorDefs.toArray( operatorDefsArr );
+        return operatorDefsArr;
     }
 
     @Override
@@ -70,7 +69,7 @@ public class RegionRuntimeConfig
     {
         return "RegionRuntimeConfig{" +
                "regionId=" + regionId +
-               ", region=" + region +
+               ", regionDef=" + regionDef +
                ", replicaCount=" + replicaCount +
                ", pipelineStartIndices=" + pipelineStartIndices +
                '}';

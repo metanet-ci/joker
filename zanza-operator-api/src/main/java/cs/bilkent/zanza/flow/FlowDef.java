@@ -21,35 +21,35 @@ import static com.google.common.collect.Multimaps.unmodifiableMultimap;
 import static java.util.Collections.unmodifiableMap;
 
 
-public class FlowDefinition
+public class FlowDef
 {
-    private final Map<String, OperatorDefinition> operators;
+    private final Map<String, OperatorDef> operators;
 
     private final Multimap<Port, Port> connections;
 
-    public FlowDefinition ( final Map<String, OperatorDefinition> operators, final Multimap<Port, Port> connections )
+    public FlowDef ( final Map<String, OperatorDef> operators, final Multimap<Port, Port> connections )
     {
-        validateFlowDefinition( operators, connections );
+        validateFlowDef( operators, connections );
         this.operators = unmodifiableMap( operators );
         this.connections = unmodifiableMultimap( connections );
     }
 
-    public OperatorDefinition getOperator ( final String operatorId )
+    public OperatorDef getOperator ( final String operatorId )
     {
         return operators.get( operatorId );
     }
 
-    public Collection<OperatorDefinition> getOperators ()
+    public Collection<OperatorDef> getOperators ()
     {
         return operators.values();
     }
 
-    public Collection<OperatorDefinition> getOperatorsWithNoInputPorts ()
+    public Collection<OperatorDef> getOperatorsWithNoInputPorts ()
     {
-        final Set<OperatorDefinition> result = new HashSet<>( operators.values() );
+        final Set<OperatorDef> result = new HashSet<>( operators.values() );
         for ( Port targetPort : connections.values() )
         {
-            final OperatorDefinition operatorToExclude = operators.get( targetPort.operatorId );
+            final OperatorDef operatorToExclude = operators.get( targetPort.operatorId );
             result.remove( operatorToExclude );
         }
 
@@ -57,14 +57,14 @@ public class FlowDefinition
     }
 
     // TODO improve flow validation
-    private void validateFlowDefinition ( final Map<String, OperatorDefinition> operators, final Multimap<Port, Port> connections )
+    private void validateFlowDef ( final Map<String, OperatorDef> operators, final Multimap<Port, Port> connections )
     {
         checkNotNull( operators );
         checkNotNull( connections );
         checkAllOperatorsHaveConnection( operators, connections );
     }
 
-    private void checkAllOperatorsHaveConnection ( final Map<String, OperatorDefinition> operators, final Multimap<Port, Port> connections )
+    private void checkAllOperatorsHaveConnection ( final Map<String, OperatorDef> operators, final Multimap<Port, Port> connections )
     {
         final long connectedOperatorCount = connections.entries()
                                                        .stream()

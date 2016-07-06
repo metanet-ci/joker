@@ -17,7 +17,7 @@ import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.INITIALIZAT
 import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.RUNNING;
 import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.SHUT_DOWN;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
-import cs.bilkent.zanza.engine.region.RegionDefinition;
+import cs.bilkent.zanza.engine.region.RegionDef;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.zanza.engine.tuplequeue.impl.context.EmptyTupleQueueContext;
@@ -33,7 +33,7 @@ import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import cs.bilkent.zanza.utils.Pair;
 
 /**
- * Manages runtime state of a pipeline defined by the system for a {@link RegionDefinition} and provides methods for operator invocation.
+ * Manages runtime state of a pipeline defined by the system for a {@link RegionDef} and provides methods for operator invocation.
  */
 @NotThreadSafe
 public class PipelineReplica
@@ -80,7 +80,7 @@ public class PipelineReplica
         this.operators = operators;
         this.operatorCount = operators.length;
         this.upstreamTupleQueueContext = upstreamTupleQueueContext;
-        this.upstreamInputPortCount = operators[ 0 ].getOperatorDefinition().inputPortCount();
+        this.upstreamInputPortCount = operators[ 0 ].getOperatorDef().inputPortCount();
         this.upstreamInputPorts = new int[ upstreamInputPortCount ];
         this.blockingUpstreamTupleCounts = new int[ upstreamInputPortCount ];
         this.nonBlockingUpstreamTupleCounts = new int[ upstreamInputPortCount ];
@@ -210,7 +210,7 @@ public class PipelineReplica
             tupleCounts[ i ] = schedulingStrategy.getTupleCount( portIndex );
         }
 
-        final MultiPortDrainer drainer = operator.getOperatorDefinition().operatorType() == PARTITIONED_STATEFUL
+        final MultiPortDrainer drainer = operator.getOperatorDef().operatorType() == PARTITIONED_STATEFUL
                                          ? (MultiPortDrainer) upstreamDrainer
                                          : (MultiPortDrainer) operator.getDrainer();
         LOGGER.info( "{} is updating drainer parameters: {}, input ports: {}, tuple counts: {}",

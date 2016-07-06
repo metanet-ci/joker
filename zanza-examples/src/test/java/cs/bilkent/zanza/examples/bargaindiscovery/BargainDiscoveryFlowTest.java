@@ -8,8 +8,8 @@ import static cs.bilkent.zanza.examples.bargaindiscovery.VWAPAggregatorOperator.
 import static cs.bilkent.zanza.examples.bargaindiscovery.VWAPAggregatorOperator.TICKER_SYMBOL_FIELD;
 import static cs.bilkent.zanza.examples.bargaindiscovery.VWAPAggregatorOperator.TIMESTAMP_FIELD;
 import static cs.bilkent.zanza.examples.bargaindiscovery.VWAPAggregatorOperator.WINDOW_SIZE_CONfIG_PARAMETER;
-import cs.bilkent.zanza.flow.FlowDefinitionBuilder;
-import cs.bilkent.zanza.flow.OperatorDefinitionBuilder;
+import cs.bilkent.zanza.flow.FlowDefBuilder;
+import cs.bilkent.zanza.flow.OperatorDefBuilder;
 import cs.bilkent.zanza.flow.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.zanza.operator.OperatorConfig;
 import cs.bilkent.zanza.operators.MapperOperator;
@@ -23,14 +23,14 @@ public class BargainDiscoveryFlowTest
     @Test
     public void shouldCreateBargainDiscoveryFlow ()
     {
-        final FlowDefinitionBuilder flowBuilder = new FlowDefinitionBuilder();
+        final FlowDefBuilder flowBuilder = new FlowDefBuilder();
 
         final OperatorConfig vwapAggregatorConfig = new OperatorConfig();
         vwapAggregatorConfig.set( WINDOW_SIZE_CONfIG_PARAMETER, 5 );
 
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "vwapAggregator", VWAPAggregatorOperator.class )
-                                                  .setConfig( vwapAggregatorConfig )
-                                                  .setPartitionFieldNames( singletonList( TICKER_SYMBOL_FIELD ) ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "vwapAggregator", VWAPAggregatorOperator.class )
+                                           .setConfig( vwapAggregatorConfig )
+                                           .setPartitionFieldNames( singletonList( TICKER_SYMBOL_FIELD ) ) );
 
         final OperatorConfig cvwapConfig = new OperatorConfig();
         cvwapConfig.set( MAPPER_CONFIG_PARAMETER, new CVWAPFunction() );
@@ -46,13 +46,12 @@ public class BargainDiscoveryFlowTest
                      .addField( CVWAP_FIELD, Double.class )
                      .addField( TIMESTAMP_FIELD, Long.class );
 
-        flowBuilder.add( OperatorDefinitionBuilder.newInstance( "cvwap", MapperOperator.class )
-                                                  .setConfig( cvwapConfig )
-                                                  .setExtendingSchema( schemaBuilder.build() ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "cvwap", MapperOperator.class )
+                                           .setConfig( cvwapConfig )
+                                           .setExtendingSchema( schemaBuilder.build() ) );
 
-        final OperatorDefinitionBuilder bargainIndexOperatorBuilder = OperatorDefinitionBuilder.newInstance( "bargainIndex",
-                                                                                                             BargainIndexOperator.class )
-                                                                                               .setPartitionFieldNames( singletonList(
+        final OperatorDefBuilder bargainIndexOperatorBuilder = OperatorDefBuilder.newInstance( "bargainIndex", BargainIndexOperator.class )
+                                                                                 .setPartitionFieldNames( singletonList(
                                                                                                        TICKER_SYMBOL_FIELD ) );
         flowBuilder.add( bargainIndexOperatorBuilder );
 

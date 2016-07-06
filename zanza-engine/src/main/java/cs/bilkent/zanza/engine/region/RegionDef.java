@@ -3,22 +3,20 @@ package cs.bilkent.zanza.engine.region;
 import java.util.ArrayList;
 import java.util.List;
 
-import cs.bilkent.zanza.flow.OperatorDefinition;
+import cs.bilkent.zanza.flow.OperatorDef;
 import cs.bilkent.zanza.operator.spec.OperatorType;
 import static java.util.Collections.unmodifiableList;
 
-public class RegionDefinition
+public class RegionDef
 {
 
     private final OperatorType regionType;
 
     private final List<String> partitionFieldNames;
 
-    private final List<OperatorDefinition> operators;
+    private final List<OperatorDef> operators;
 
-    public RegionDefinition ( final OperatorType regionType,
-                              final List<String> partitionFieldNames,
-                              final List<OperatorDefinition> operators )
+    public RegionDef ( final OperatorType regionType, final List<String> partitionFieldNames, final List<OperatorDef> operators )
     {
         this.regionType = regionType;
         this.partitionFieldNames = unmodifiableList( new ArrayList<>( partitionFieldNames ) );
@@ -35,7 +33,7 @@ public class RegionDefinition
         return partitionFieldNames;
     }
 
-    public List<OperatorDefinition> getOperators ()
+    public List<OperatorDef> getOperators ()
     {
         return operators;
     }
@@ -43,7 +41,7 @@ public class RegionDefinition
     @Override
     public String toString ()
     {
-        return "RegionDefinition{" +
+        return "RegionDef{" +
                "regionType=" + regionType +
                ", partitionFieldNames=" + partitionFieldNames +
                ", operators=" + operators +

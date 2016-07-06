@@ -18,7 +18,7 @@ import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainerPool;
-import cs.bilkent.zanza.flow.OperatorDefinition;
+import cs.bilkent.zanza.flow.OperatorDef;
 import cs.bilkent.zanza.operator.InitializationContext;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.impl.InvocationContextImpl;
@@ -45,7 +45,7 @@ public class OperatorReplicaInitializationTest
     private Operator operator;
 
     @Mock
-    private OperatorDefinition operatorDefinition;
+    private OperatorDef operatorDef;
 
     @Mock
     private TupleQueueDrainerPool drainerPool;
@@ -59,17 +59,16 @@ public class OperatorReplicaInitializationTest
     @Before
     public void before () throws InstantiationException, IllegalAccessException
     {
-        operatorReplica = new OperatorReplica( new PipelineReplicaId( new PipelineId( 0, 0 ), 0 ),
-                                               operatorDefinition,
+        operatorReplica = new OperatorReplica( new PipelineReplicaId( new PipelineId( 0, 0 ), 0 ), operatorDef,
                                                mock( TupleQueueContext.class ),
                                                mock( KVStoreContext.class ),
                                                drainerPool,
                                                mock( Supplier.class ),
                                                new InvocationContextImpl() );
 
-        when( operatorDefinition.id() ).thenReturn( "op1" );
-        when( operatorDefinition.outputPortCount() ).thenReturn( outputPortCount );
-        when( operatorDefinition.createOperator() ).thenReturn( operator );
+        when( operatorDef.id() ).thenReturn( "op1" );
+        when( operatorDef.outputPortCount() ).thenReturn( outputPortCount );
+        when( operatorDef.createOperator() ).thenReturn( operator );
     }
 
     @Test
@@ -119,7 +118,7 @@ public class OperatorReplicaInitializationTest
                                                        final SchedulingStrategy schedulingStrategy,
                                                        final UpstreamContext upstreamContext )
     {
-        when( operatorDefinition.inputPortCount() ).thenReturn( inputPortCount );
+        when( operatorDef.inputPortCount() ).thenReturn( inputPortCount );
         validUpstreamContext = newUpstreamContextInstance( 0, inputPortCount, ACTIVE );
 
         when( operator.init( any( InitializationContext.class ) ) ).thenReturn( schedulingStrategy );
@@ -207,7 +206,7 @@ public class OperatorReplicaInitializationTest
                                                   final SchedulingStrategy schedulingStrategy,
                                                   final UpstreamContext upstreamContext )
     {
-        when( operatorDefinition.inputPortCount() ).thenReturn( inputPortCount );
+        when( operatorDef.inputPortCount() ).thenReturn( inputPortCount );
         when( operator.init( any( InitializationContext.class ) ) ).thenReturn( schedulingStrategy );
 
         try

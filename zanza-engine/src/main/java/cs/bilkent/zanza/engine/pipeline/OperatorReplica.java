@@ -22,8 +22,8 @@ import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainerPool;
-import cs.bilkent.zanza.flow.FlowDefinition;
-import cs.bilkent.zanza.flow.OperatorDefinition;
+import cs.bilkent.zanza.flow.FlowDef;
+import cs.bilkent.zanza.flow.OperatorDef;
 import cs.bilkent.zanza.operator.InitializationContext;
 import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.INPUT_PORT_CLOSED;
@@ -42,7 +42,7 @@ import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.T
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 /**
- * Manages runtime state of an {@link Operator} defined in a {@link FlowDefinition} and provides methods for operator invocation.
+ * Manages runtime state of an {@link Operator} defined in a {@link FlowDef} and provides methods for operator invocation.
  * Holds the actual instance of user-defined {@link Operator} implementation and all necessary internal state required for operator
  * invocation, such as input tuple queues, key-value store etc.
  * <p>
@@ -57,7 +57,7 @@ public class OperatorReplica
 
     private final String operatorName;
 
-    private final OperatorDefinition operatorDefinition;
+    private final OperatorDef operatorDef;
 
     private final TupleQueueContext queue;
 
@@ -89,27 +89,25 @@ public class OperatorReplica
 
     private boolean invokedOnLastAttempt;
 
-    public OperatorReplica ( final PipelineReplicaId pipelineReplicaId,
-                             final OperatorDefinition operatorDefinition,
+    public OperatorReplica ( final PipelineReplicaId pipelineReplicaId, final OperatorDef operatorDef,
                              final TupleQueueContext queue,
                              final KVStoreContext kvStoreContext,
                              final TupleQueueDrainerPool drainerPool,
                              final Supplier<TuplesImpl> outputSupplier )
     {
-        this( pipelineReplicaId, operatorDefinition, queue, kvStoreContext, drainerPool, outputSupplier, new InvocationContextImpl() );
+        this( pipelineReplicaId, operatorDef, queue, kvStoreContext, drainerPool, outputSupplier, new InvocationContextImpl() );
     }
 
-    public OperatorReplica ( final PipelineReplicaId pipelineReplicaId,
-                             final OperatorDefinition operatorDefinition,
+    public OperatorReplica ( final PipelineReplicaId pipelineReplicaId, final OperatorDef operatorDef,
                              final TupleQueueContext queue,
                              final KVStoreContext kvStoreContext,
                              final TupleQueueDrainerPool drainerPool,
                              final Supplier<TuplesImpl> outputSupplier,
                              final InvocationContextImpl invocationContext )
     {
-        this.operatorName = pipelineReplicaId.toString() + ".Operator<" + operatorDefinition.id() + ">";
+        this.operatorName = pipelineReplicaId.toString() + ".Operator<" + operatorDef.id() + ">";
         this.queue = queue;
-        this.operatorDefinition = operatorDefinition;
+        this.operatorDef = operatorDef;
         this.kvStoreContext = kvStoreContext;
         this.drainerPool = drainerPool;
         this.invocationContext = invocationContext;
@@ -130,7 +128,7 @@ public class OperatorReplica
             this.listener = listener != null ? listener : ( operatorId, status1 ) -> {
             };
 
-            operator = operatorDefinition.createOperator();
+            operator = operatorDef.createOperator();
             checkState( operator != null, "operator implementation can not be null" );
             setUpstreamContext( upstreamContext );
             initializeOperator( upstreamContext );
@@ -153,7 +151,7 @@ public class OperatorReplica
         try
         {
             this.status = status;
-            listener.onStatusChange( operatorDefinition.id(), status );
+            listener.onStatusChange( operatorDef.id(), status );
         }
         catch ( Exception e )
         {
@@ -168,12 +166,12 @@ public class OperatorReplica
     private void initializeOperator ( final UpstreamContext upstreamContext )
     {
         final boolean[] upstreamConnectionStatuses = upstreamContext.getUpstreamConnectionStatuses();
-        final InitializationContext initContext = new InitializationContextImpl( operatorDefinition.id(),
-                                                                                 operatorDefinition.inputPortCount(),
-                                                                                 operatorDefinition.outputPortCount(),
-                                                                                 operatorDefinition.partitionFieldNames(),
-                                                                                 operatorDefinition.schema(),
-                                                                                 operatorDefinition.config(),
+        final InitializationContext initContext = new InitializationContextImpl( operatorDef.id(),
+                                                                                 operatorDef.inputPortCount(),
+                                                                                 operatorDef.outputPortCount(),
+                                                                                 operatorDef.partitionFieldNames(),
+                                                                                 operatorDef.schema(),
+                                                                                 operatorDef.config(),
                                                                                  upstreamConnectionStatuses );
         final SchedulingStrategy schedulingStrategy = operator.init( initContext );
         verifySchedulingStrategy( schedulingStrategy, upstreamContext );
@@ -208,29 +206,28 @@ public class OperatorReplica
 
     private void verifySchedulingStrategy ( final SchedulingStrategy schedulingStrategy, final UpstreamContext upstreamContext )
     {
-        checkArgument( operatorDefinition.inputPortCount() == upstreamContext.getPortCount() );
+        checkArgument( operatorDef.inputPortCount() == upstreamContext.getPortCount() );
 
         if ( schedulingStrategy instanceof ScheduleWhenAvailable )
         {
-            checkState( operatorDefinition.inputPortCount() == 0,
+            checkState( operatorDef.inputPortCount() == 0,
                         "%s cannot be used by operator: %s with input port count: %s",
                         ScheduleWhenAvailable.class.getSimpleName(),
-                        operatorName,
-                        operatorDefinition.inputPortCount() );
+                        operatorName, operatorDef.inputPortCount() );
             checkState( upstreamContext.getVersion() == 0, "upstream context is closed for 0 input port operator: %s", operatorName );
         }
         else if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
         {
-            checkState( operatorDefinition.inputPortCount() > 0,
+            checkState( operatorDef.inputPortCount() > 0,
                         "0 input port operator: %s cannot use %s",
                         operatorName,
                         ScheduleWhenTuplesAvailable.class.getSimpleName() );
             final ScheduleWhenTuplesAvailable s = (ScheduleWhenTuplesAvailable) schedulingStrategy;
-            checkState( operatorDefinition.inputPortCount() == s.getPortCount(), "" );
+            checkState( operatorDef.inputPortCount() == s.getPortCount(), "" );
             if ( s.getTupleAvailabilityByPort() == ANY_PORT )
             {
                 boolean valid = false;
-                for ( int i = 0; i < operatorDefinition.inputPortCount(); i++ )
+                for ( int i = 0; i < operatorDef.inputPortCount(); i++ )
                 {
                     if ( s.getTupleCount( i ) > 0 && upstreamContext.getUpstreamConnectionStatus( i ) == ACTIVE )
                     {
@@ -243,7 +240,7 @@ public class OperatorReplica
             }
             else if ( s.getTupleAvailabilityByPort() == ALL_PORTS )
             {
-                for ( int i = 0; i < operatorDefinition.inputPortCount(); i++ )
+                for ( int i = 0; i < operatorDef.inputPortCount(); i++ )
                 {
                     checkState( upstreamContext.getUpstreamConnectionStatus( i ) == ACTIVE );
                 }
@@ -266,7 +263,7 @@ public class OperatorReplica
     private void setSelfUpstreamContext ( final UpstreamConnectionStatus status )
     {
         final int version = selfUpstreamContext != null ? selfUpstreamContext.getVersion() + 1 : 0;
-        final UpstreamConnectionStatus[] selfStatuses = new UpstreamConnectionStatus[ operatorDefinition.outputPortCount() ];
+        final UpstreamConnectionStatus[] selfStatuses = new UpstreamConnectionStatus[ operatorDef.outputPortCount() ];
         Arrays.fill( selfStatuses, 0, selfStatuses.length, status );
         selfUpstreamContext = new UpstreamContext( version, selfStatuses );
     }
@@ -358,7 +355,7 @@ public class OperatorReplica
             // status = COMPLETING
             if ( handleNewUpstreamContext( upstreamContext ) )
             {
-                output = invokeOperator( INPUT_PORT_CLOSED, new TuplesImpl( operatorDefinition.inputPortCount() ), null );
+                output = invokeOperator( INPUT_PORT_CLOSED, new TuplesImpl( operatorDef.inputPortCount() ), null );
             }
             else
             {
@@ -508,9 +505,9 @@ public class OperatorReplica
         }
     }
 
-    public OperatorDefinition getOperatorDefinition ()
+    public OperatorDef getOperatorDef ()
     {
-        return operatorDefinition;
+        return operatorDef;
     }
 
     public SchedulingStrategy getInitialSchedulingStrategy ()

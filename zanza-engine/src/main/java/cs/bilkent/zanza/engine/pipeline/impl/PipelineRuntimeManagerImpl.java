@@ -56,8 +56,8 @@ import cs.bilkent.zanza.engine.region.RegionManager;
 import cs.bilkent.zanza.engine.region.RegionRuntimeConfig;
 import cs.bilkent.zanza.engine.supervisor.Supervisor;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
-import cs.bilkent.zanza.flow.FlowDefinition;
-import cs.bilkent.zanza.flow.OperatorDefinition;
+import cs.bilkent.zanza.flow.FlowDef;
+import cs.bilkent.zanza.flow.OperatorDef;
 import cs.bilkent.zanza.flow.Port;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
@@ -226,8 +226,7 @@ public class PipelineRuntimeManagerImpl implements PipelineRuntimeManager
     }
 
     @Override
-    public List<PipelineRuntimeState> createPipelineRuntimeStates ( final Supervisor supervisor,
-                                                                    final FlowDefinition flow,
+    public List<PipelineRuntimeState> createPipelineRuntimeStates ( final Supervisor supervisor, final FlowDef flow,
                                                                     final List<RegionRuntimeConfig> regionRuntimeConfigs )
     {
         createPipelineRuntimeStates( regionRuntimeConfigs );
@@ -259,7 +258,7 @@ public class PipelineRuntimeManagerImpl implements PipelineRuntimeManager
         }
     }
 
-    private void createPipelineReplicas ( final FlowDefinition flow, final Collection<RegionRuntimeConfig> regionRuntimeConfigs )
+    private void createPipelineReplicas ( final FlowDef flow, final Collection<RegionRuntimeConfig> regionRuntimeConfigs )
     {
         for ( RegionRuntimeConfig regionRuntimeConfig : regionRuntimeConfigs )
         {
@@ -279,7 +278,7 @@ public class PipelineRuntimeManagerImpl implements PipelineRuntimeManager
         }
     }
 
-    private void createDownstreamTupleSenders ( final FlowDefinition flow )
+    private void createDownstreamTupleSenders ( final FlowDef flow )
     {
         for ( PipelineRuntimeState pipelineRuntimeState : pipelineRuntimeStates.values() )
         {
@@ -287,10 +286,10 @@ public class PipelineRuntimeManagerImpl implements PipelineRuntimeManager
         }
     }
 
-    private void createDownstreamTupleSenders ( final FlowDefinition flow, final PipelineRuntimeState pipelineRuntimeState )
+    private void createDownstreamTupleSenders ( final FlowDef flow, final PipelineRuntimeState pipelineRuntimeState )
     {
-        final OperatorDefinition[] operators = pipelineRuntimeState.getOperatorDefinitions();
-        final OperatorDefinition lastOperator = operators[ operators.length - 1 ];
+        final OperatorDef[] operators = pipelineRuntimeState.getOperatorDefs();
+        final OperatorDef lastOperator = operators[ operators.length - 1 ];
         final Map<String, List<Pair<Port, Port>>> connections = getDownstreamConnections( flow, lastOperator );
         LOGGER.info( "Pipeline {} with last operator {} has following downstream connections: {}",
                      pipelineRuntimeState.getId(),
@@ -305,7 +304,7 @@ public class PipelineRuntimeManagerImpl implements PipelineRuntimeManager
             {
                 final String downstreamOperatorId = e.getKey();
                 final List<Pair<Port, Port>> pairs = e.getValue();
-                final OperatorDefinition downstreamOperator = flow.getOperator( downstreamOperatorId );
+                final OperatorDef downstreamOperator = flow.getOperator( downstreamOperatorId );
                 final TupleQueueContext[] pipelineTupleQueueContexts = getPipelineTupleQueueContexts( downstreamOperator );
                 final int j = min( pairs.size(), DOWNSTREAM_TUPLE_SENDER_CONSTRUCTOR_COUNT );
                 if ( downstreamOperator.operatorType() == PARTITIONED_STATEFUL )
@@ -347,7 +346,7 @@ public class PipelineRuntimeManagerImpl implements PipelineRuntimeManager
         }
     }
 
-    private Map<String, List<Pair<Port, Port>>> getDownstreamConnections ( final FlowDefinition flow, final OperatorDefinition operator )
+    private Map<String, List<Pair<Port, Port>>> getDownstreamConnections ( final FlowDef flow, final OperatorDef operator )
     {
         final Map<String, List<Pair<Port, Port>>> result = new LinkedHashMap<>();
         final Map<Port, Collection<Port>> connections = flow.getDownstreamConnections( operator.id() );
@@ -386,14 +385,14 @@ public class PipelineRuntimeManagerImpl implements PipelineRuntimeManager
         return result;
     }
 
-    private int[] getPartitionDistribution ( final OperatorDefinition operator )
+    private int[] getPartitionDistribution ( final OperatorDef operator )
     {
         final PipelineRuntimeState pipelineRuntimeState = getPipelineRuntimeState( operator, 0 );
         return partitionService.getOrCreatePartitionDistribution( pipelineRuntimeState.getId().regionId,
                                                                   pipelineRuntimeState.getReplicaCount() );
     }
 
-    private TupleQueueContext[] getPipelineTupleQueueContexts ( final OperatorDefinition operator )
+    private TupleQueueContext[] getPipelineTupleQueueContexts ( final OperatorDef operator )
     {
         final PipelineRuntimeState pipelineRuntimeState = getPipelineRuntimeState( operator, 0 );
         final int replicaCount = pipelineRuntimeState.getReplicaCount();
@@ -415,12 +414,12 @@ public class PipelineRuntimeManagerImpl implements PipelineRuntimeManager
         }
     }
 
-    private void createUpstreamContexts ( final FlowDefinition flow )
+    private void createUpstreamContexts ( final FlowDef flow )
     {
         for ( PipelineRuntimeState pipelineRuntimeState : pipelineRuntimeStates.values() )
         {
             UpstreamContext upstreamContext;
-            final OperatorDefinition firstOperator = pipelineRuntimeState.getOperatorDefinitions()[ 0 ];
+            final OperatorDef firstOperator = pipelineRuntimeState.getOperatorDefs()[ 0 ];
             if ( firstOperator.inputPortCount() == 0 )
             {
                 upstreamContext = new UpstreamContext( 0, new UpstreamConnectionStatus[] {} );
@@ -441,7 +440,7 @@ public class PipelineRuntimeManagerImpl implements PipelineRuntimeManager
                     {
                         for ( Port upstreamPort : upstreamPorts )
                         {
-                            final OperatorDefinition upstreamOperator = flow.getOperator( upstreamPort.operatorId );
+                            final OperatorDef upstreamOperator = flow.getOperator( upstreamPort.operatorId );
                             final PipelineRuntimeState upstreamPipeline = getPipelineRuntimeState( upstreamOperator, -1 );
                             final int operatorIndex = upstreamPipeline.getOperatorIndex( upstreamOperator );
                             checkState( ( upstreamPipeline.getOperatorCount() - 1 ) == operatorIndex,
@@ -467,7 +466,7 @@ public class PipelineRuntimeManagerImpl implements PipelineRuntimeManager
         }
     }
 
-    private PipelineRuntimeState getPipelineRuntimeState ( final OperatorDefinition operator, final int operatorIndex )
+    private PipelineRuntimeState getPipelineRuntimeState ( final OperatorDef operator, final int operatorIndex )
     {
         for ( PipelineRuntimeState pipelineRuntimeState : pipelineRuntimeStates.values() )
         {

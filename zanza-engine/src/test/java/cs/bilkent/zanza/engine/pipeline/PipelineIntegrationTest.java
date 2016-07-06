@@ -43,9 +43,9 @@ import cs.bilkent.zanza.engine.tuplequeue.impl.context.PartitionedTupleQueueCont
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.pool.BlockingTupleQueueDrainerPool;
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.pool.NonBlockingTupleQueueDrainerPool;
 import cs.bilkent.zanza.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
-import cs.bilkent.zanza.flow.FlowDefinition;
-import cs.bilkent.zanza.flow.OperatorDefinition;
-import cs.bilkent.zanza.flow.OperatorDefinitionBuilder;
+import cs.bilkent.zanza.flow.FlowDef;
+import cs.bilkent.zanza.flow.OperatorDef;
+import cs.bilkent.zanza.flow.OperatorDefBuilder;
 import cs.bilkent.zanza.operator.InitializationContext;
 import cs.bilkent.zanza.operator.InvocationContext;
 import cs.bilkent.zanza.operator.Operator;
@@ -114,9 +114,9 @@ public class PipelineIntegrationTest
         final OperatorConfig mapperOperatorConfig = new OperatorConfig();
         final Function<Tuple, Tuple> multiplyBy2 = tuple -> new Tuple( "val", 2 * tuple.getIntegerValueOrDefault( "val", 0 ) );
         mapperOperatorConfig.set( MapperOperator.MAPPER_CONFIG_PARAMETER, multiplyBy2 );
-        final OperatorDefinition mapperOperatorDef = OperatorDefinitionBuilder.newInstance( "map", MapperOperator.class )
-                                                                              .setConfig( mapperOperatorConfig )
-                                                                              .build();
+        final OperatorDef mapperOperatorDef = OperatorDefBuilder.newInstance( "map", MapperOperator.class )
+                                                                .setConfig( mapperOperatorConfig )
+                                                                .build();
 
         final TupleQueueContext tupleQueueContext = tupleQueueContextManager.createDefaultTupleQueueContext( REGION_ID,
                                                                                                              REPLICA_INDEX,
@@ -178,9 +178,9 @@ public class PipelineIntegrationTest
         final OperatorConfig mapperOperatorConfig = new OperatorConfig();
         final Function<Tuple, Tuple> add1 = tuple -> new Tuple( "val", 1 + tuple.getIntegerValueOrDefault( "val", -1 ) );
         mapperOperatorConfig.set( MapperOperator.MAPPER_CONFIG_PARAMETER, add1 );
-        final OperatorDefinition mapperOperatorDef = OperatorDefinitionBuilder.newInstance( "map", MapperOperator.class )
-                                                                              .setConfig( mapperOperatorConfig )
-                                                                              .build();
+        final OperatorDef mapperOperatorDef = OperatorDefBuilder.newInstance( "map", MapperOperator.class )
+                                                                .setConfig( mapperOperatorConfig )
+                                                                .build();
 
         final TupleQueueContext mapperTupleQueueContext = tupleQueueContextManager.createDefaultTupleQueueContext( REGION_ID,
                                                                                                                    REPLICA_INDEX,
@@ -200,9 +200,9 @@ public class PipelineIntegrationTest
         final OperatorConfig filterOperatorConfig = new OperatorConfig();
         final Predicate<Tuple> filterEvenVals = tuple -> tuple.getInteger( "val" ) % 2 == 0;
         filterOperatorConfig.set( FilterOperator.PREDICATE_CONFIG_PARAMETER, filterEvenVals );
-        final OperatorDefinition filterOperatorDef = OperatorDefinitionBuilder.newInstance( "filter", FilterOperator.class )
-                                                                              .setConfig( filterOperatorConfig )
-                                                                              .build();
+        final OperatorDef filterOperatorDef = OperatorDefBuilder.newInstance( "filter", FilterOperator.class )
+                                                                .setConfig( filterOperatorConfig )
+                                                                .build();
 
         final TupleQueueContext filterTupleQueueContext = tupleQueueContextManager.createDefaultTupleQueueContext( REGION_ID,
                                                                                                                    REPLICA_INDEX,
@@ -277,9 +277,9 @@ public class PipelineIntegrationTest
         final OperatorConfig generatorOperatorConfig = new OperatorConfig();
         generatorOperatorConfig.set( "batchCount", batchCount );
 
-        final OperatorDefinition generatorOperatorDef = OperatorDefinitionBuilder.newInstance( "generator", ValueGeneratorOperator.class )
-                                                                                 .setConfig( generatorOperatorConfig )
-                                                                                 .build();
+        final OperatorDef generatorOperatorDef = OperatorDefBuilder.newInstance( "generator", ValueGeneratorOperator.class )
+                                                                   .setConfig( generatorOperatorConfig )
+                                                                   .build();
 
         final TupleQueueContext generatorTupleQueueContext = new EmptyTupleQueueContext( generatorOperatorDef.id(),
                                                                                          generatorOperatorDef.inputPortCount() );
@@ -297,9 +297,9 @@ public class PipelineIntegrationTest
         final OperatorConfig passerOperatorConfig = new OperatorConfig();
         passerOperatorConfig.set( "batchCount", batchCount / 2 );
 
-        final OperatorDefinition passerOperatorDef = OperatorDefinitionBuilder.newInstance( "passer", ValuePasserOperator.class )
-                                                                              .setConfig( passerOperatorConfig )
-                                                                              .build();
+        final OperatorDef passerOperatorDef = OperatorDefBuilder.newInstance( "passer", ValuePasserOperator.class )
+                                                                .setConfig( passerOperatorConfig )
+                                                                .build();
 
         final TupleQueueContext passerTupleQueueContext = tupleQueueContextManager.createDefaultTupleQueueContext( REGION_ID,
                                                                                                                    REPLICA_INDEX,
@@ -318,9 +318,9 @@ public class PipelineIntegrationTest
 
         final KVStoreContext[] kvStoreContexts = kvStoreContextManager.createPartitionedKVStoreContexts( REGION_ID, 1, "state" );
 
-        final OperatorDefinition stateOperatorDef = OperatorDefinitionBuilder.newInstance( "state", ValueStateOperator.class )
-                                                                             .setPartitionFieldNames( singletonList( "val" ) )
-                                                                             .build();
+        final OperatorDef stateOperatorDef = OperatorDefBuilder.newInstance( "state", ValueStateOperator.class )
+                                                               .setPartitionFieldNames( singletonList( "val" ) )
+                                                               .build();
 
         final PartitionedTupleQueueContext[] stateTupleQueueContexts = tupleQueueContextManager.createPartitionedTupleQueueContext(
                 REGION_ID,
@@ -390,9 +390,9 @@ public class PipelineIntegrationTest
         final OperatorConfig mapperOperatorConfig = new OperatorConfig();
         final Function<Tuple, Tuple> add1 = tuple -> new Tuple( "val", 1 + tuple.getIntegerValueOrDefault( "val", -1 ) );
         mapperOperatorConfig.set( MapperOperator.MAPPER_CONFIG_PARAMETER, add1 );
-        final OperatorDefinition mapperOperatorDef = OperatorDefinitionBuilder.newInstance( "map", MapperOperator.class )
-                                                                              .setConfig( mapperOperatorConfig )
-                                                                              .build();
+        final OperatorDef mapperOperatorDef = OperatorDefBuilder.newInstance( "map", MapperOperator.class )
+                                                                .setConfig( mapperOperatorConfig )
+                                                                .build();
 
         final TupleQueueContext mapperTupleQueueContext = tupleQueueContextManager.createDefaultTupleQueueContext( REGION_ID,
                                                                                                                    REPLICA_INDEX,
@@ -420,9 +420,9 @@ public class PipelineIntegrationTest
         final OperatorConfig filterOperatorConfig = new OperatorConfig();
         final Predicate<Tuple> filterEvenVals = tuple -> tuple.getInteger( "val" ) % 2 == 0;
         filterOperatorConfig.set( FilterOperator.PREDICATE_CONFIG_PARAMETER, filterEvenVals );
-        final OperatorDefinition filterOperatorDef = OperatorDefinitionBuilder.newInstance( "filter", FilterOperator.class )
-                                                                              .setConfig( filterOperatorConfig )
-                                                                              .build();
+        final OperatorDef filterOperatorDef = OperatorDefBuilder.newInstance( "filter", FilterOperator.class )
+                                                                .setConfig( filterOperatorConfig )
+                                                                .build();
 
         final TupleQueueContext filterTupleQueueContext = tupleQueueContextManager.createDefaultTupleQueueContext( REGION_ID,
                                                                                                                    REPLICA_INDEX,
@@ -518,9 +518,9 @@ public class PipelineIntegrationTest
         final OperatorConfig generatorOperatorConfig1 = new OperatorConfig();
         generatorOperatorConfig1.set( "batchCount", batchCount );
 
-        final OperatorDefinition generatorOperatorDef1 = OperatorDefinitionBuilder.newInstance( "generator1", ValueGeneratorOperator.class )
-                                                                                  .setConfig( generatorOperatorConfig1 )
-                                                                                  .build();
+        final OperatorDef generatorOperatorDef1 = OperatorDefBuilder.newInstance( "generator1", ValueGeneratorOperator.class )
+                                                                    .setConfig( generatorOperatorConfig1 )
+                                                                    .build();
 
         final TupleQueueContext generatorTupleQueueContext1 = new EmptyTupleQueueContext( generatorOperatorDef1.id(),
                                                                                           generatorOperatorDef1.inputPortCount() );
@@ -549,9 +549,9 @@ public class PipelineIntegrationTest
         generatorOperatorConfig2.set( "batchCount", batchCount );
         generatorOperatorConfig2.set( "increment", false );
 
-        final OperatorDefinition generatorOperatorDef2 = OperatorDefinitionBuilder.newInstance( "generator2", ValueGeneratorOperator.class )
-                                                                                  .setConfig( generatorOperatorConfig2 )
-                                                                                  .build();
+        final OperatorDef generatorOperatorDef2 = OperatorDefBuilder.newInstance( "generator2", ValueGeneratorOperator.class )
+                                                                    .setConfig( generatorOperatorConfig2 )
+                                                                    .build();
 
         final TupleQueueContext generatorTupleQueueContext2 = new EmptyTupleQueueContext( generatorOperatorDef2.id(),
                                                                                           generatorOperatorDef2.inputPortCount() );
@@ -577,9 +577,9 @@ public class PipelineIntegrationTest
         pipeline2.init( supervisor.upstreamContexts.get( pipelineReplicaId2 ), supervisorNotifier2 );
 
         final OperatorConfig sinkOperatorConfig = new OperatorConfig();
-        final OperatorDefinition sinkOperatorDef = OperatorDefinitionBuilder.newInstance( "sink", ValueSinkOperator.class )
-                                                                            .setConfig( sinkOperatorConfig )
-                                                                            .build();
+        final OperatorDef sinkOperatorDef = OperatorDefBuilder.newInstance( "sink", ValueSinkOperator.class )
+                                                              .setConfig( sinkOperatorConfig )
+                                                              .build();
 
         final TupleQueueContext sinkTupleQueueContext = tupleQueueContextManager.createDefaultTupleQueueContext( REGION_ID,
                                                                                                                  REPLICA_INDEX,
@@ -601,9 +601,9 @@ public class PipelineIntegrationTest
         final OperatorConfig passerOperatorConfig = new OperatorConfig();
         passerOperatorConfig.set( "batchCount", batchCount / 2 );
 
-        final OperatorDefinition passerOperatorDef = OperatorDefinitionBuilder.newInstance( "passer", ValuePasserOperator.class )
-                                                                              .setConfig( passerOperatorConfig )
-                                                                              .build();
+        final OperatorDef passerOperatorDef = OperatorDefBuilder.newInstance( "passer", ValuePasserOperator.class )
+                                                                .setConfig( passerOperatorConfig )
+                                                                .build();
 
         final TupleQueueContext passerTupleQueueContext = tupleQueueContextManager.createDefaultTupleQueueContext( REGION_ID,
                                                                                                                    REPLICA_INDEX,
@@ -622,9 +622,9 @@ public class PipelineIntegrationTest
 
         final KVStoreContext[] kvStoreContexts = kvStoreContextManager.createPartitionedKVStoreContexts( REGION_ID, 1, "state" );
 
-        final OperatorDefinition stateOperatorDef = OperatorDefinitionBuilder.newInstance( "state", ValueStateOperator.class )
-                                                                             .setPartitionFieldNames( singletonList( "val" ) )
-                                                                             .build();
+        final OperatorDef stateOperatorDef = OperatorDefBuilder.newInstance( "state", ValueStateOperator.class )
+                                                               .setPartitionFieldNames( singletonList( "val" ) )
+                                                               .build();
 
         final PartitionedTupleQueueContext[] stateTupleQueueContexts = tupleQueueContextManager.createPartitionedTupleQueueContext(
                 REGION_ID,
@@ -720,9 +720,9 @@ public class PipelineIntegrationTest
         final OperatorConfig generatorOperatorConfig = new OperatorConfig();
         generatorOperatorConfig.set( "batchCount", batchCount );
 
-        final OperatorDefinition generatorOperatorDef = OperatorDefinitionBuilder.newInstance( "generator", ValueGeneratorOperator.class )
-                                                                                 .setConfig( generatorOperatorConfig )
-                                                                                 .build();
+        final OperatorDef generatorOperatorDef = OperatorDefBuilder.newInstance( "generator", ValueGeneratorOperator.class )
+                                                                   .setConfig( generatorOperatorConfig )
+                                                                   .build();
 
         final TupleQueueContext generatorTupleQueueContext = new EmptyTupleQueueContext( generatorOperatorDef.id(),
                                                                                          generatorOperatorDef.inputPortCount() );
@@ -740,9 +740,9 @@ public class PipelineIntegrationTest
         final OperatorConfig passerOperatorConfig = new OperatorConfig();
         passerOperatorConfig.set( "batchCount", batchCount / 2 );
 
-        final OperatorDefinition passerOperatorDef = OperatorDefinitionBuilder.newInstance( "passer", ValuePasserOperator.class )
-                                                                              .setConfig( passerOperatorConfig )
-                                                                              .build();
+        final OperatorDef passerOperatorDef = OperatorDefBuilder.newInstance( "passer", ValuePasserOperator.class )
+                                                                .setConfig( passerOperatorConfig )
+                                                                .build();
 
         final TupleQueueContext passerTupleQueueContext = tupleQueueContextManager.createDefaultTupleQueueContext( REGION_ID,
                                                                                                                    REPLICA_INDEX,
@@ -761,9 +761,9 @@ public class PipelineIntegrationTest
 
         final KVStoreContext[] kvStoreContexts = kvStoreContextManager.createPartitionedKVStoreContexts( REGION_ID, 1, "state" );
 
-        final OperatorDefinition stateOperatorDef = OperatorDefinitionBuilder.newInstance( "state", ValueStateOperator.class )
-                                                                             .setPartitionFieldNames( singletonList( "val" ) )
-                                                                             .build();
+        final OperatorDef stateOperatorDef = OperatorDefBuilder.newInstance( "state", ValueStateOperator.class )
+                                                               .setPartitionFieldNames( singletonList( "val" ) )
+                                                               .build();
 
         final PartitionedTupleQueueContext[] stateTupleQueueContexts = tupleQueueContextManager.createPartitionedTupleQueueContext(
                 REGION_ID,
@@ -1067,7 +1067,7 @@ public class PipelineIntegrationTest
         private PipelineReplicaRunner runner;
 
         @Override
-        public void deploy ( final FlowDefinition flow, final List<RegionRuntimeConfig> regionRuntimeConfigs )
+        public void deploy ( final FlowDef flow, final List<RegionRuntimeConfig> regionRuntimeConfigs )
         {
 
         }

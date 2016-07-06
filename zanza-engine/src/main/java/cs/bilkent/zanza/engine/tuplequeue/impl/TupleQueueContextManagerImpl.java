@@ -26,7 +26,7 @@ import cs.bilkent.zanza.engine.tuplequeue.impl.context.DefaultTupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.impl.context.PartitionedTupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
-import cs.bilkent.zanza.flow.OperatorDefinition;
+import cs.bilkent.zanza.flow.OperatorDef;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import cs.bilkent.zanza.utils.Pair;
 import cs.bilkent.zanza.utils.Triple;
@@ -64,19 +64,18 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
 
     @Override
     public TupleQueueContext createDefaultTupleQueueContext ( final int regionId,
-                                                              final int replicaIndex,
-                                                              final OperatorDefinition operatorDefinition,
+                                                              final int replicaIndex, final OperatorDef operatorDef,
                                                               final ThreadingPreference threadingPreference )
     {
-        checkArgument( operatorDefinition != null );
-        checkArgument( operatorDefinition.operatorType() != PARTITIONED_STATEFUL || threadingPreference == MULTI_THREADED );
+        checkArgument( operatorDef != null );
+        checkArgument( operatorDef.operatorType() != PARTITIONED_STATEFUL || threadingPreference == MULTI_THREADED );
         checkArgument( threadingPreference != null );
         checkArgument( replicaIndex >= 0 );
 
         final Function<Boolean, TupleQueue> tupleQueueConstructor = getTupleQueueConstructor( threadingPreference,
                                                                                               initialTupleQueueCapacity );
-        final String operatorId = operatorDefinition.id();
-        final int inputPortCount = operatorDefinition.inputPortCount();
+        final String operatorId = operatorDef.id();
+        final int inputPortCount = operatorDef.inputPortCount();
 
         final Function<Triple<Integer, Integer, String>, TupleQueueContext> c = t -> {
             LOGGER.info( "created single tuple queue context for regionId={} replicaIndex={} operatorId={}",
@@ -91,15 +90,14 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
 
     @Override
     public PartitionedTupleQueueContext[] createPartitionedTupleQueueContext ( final int regionId,
-                                                                               final int replicaCount,
-                                                                               final OperatorDefinition operatorDefinition )
+                                                                               final int replicaCount, final OperatorDef operatorDef )
     {
-        checkArgument( operatorDefinition != null );
-        checkArgument( operatorDefinition.operatorType() == PARTITIONED_STATEFUL );
+        checkArgument( operatorDef != null );
+        checkArgument( operatorDef.operatorType() == PARTITIONED_STATEFUL );
         checkArgument( replicaCount > 0 );
         final Function<Boolean, TupleQueue> tupleQueueConstructor = getTupleQueueConstructor( SINGLE_THREADED, initialTupleQueueCapacity );
-        final String operatorId = operatorDefinition.id();
-        final int inputPortCount = operatorDefinition.inputPortCount();
+        final String operatorId = operatorDef.id();
+        final int inputPortCount = operatorDef.inputPortCount();
 
         final Function<Pair<Integer, String>, PartitionedTupleQueueContext[]> c = p -> {
             final PartitionedTupleQueueContext[] tupleQueueContexts = new PartitionedTupleQueueContext[ replicaCount ];
@@ -110,8 +108,7 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
                                                                                           partitionService.getPartitionCount(),
                                                                                           tupleQueueConstructor );
                 final int[] partitions = partitionService.getOrCreatePartitionDistribution( regionId, replicaCount );
-                final PartitionKeyFunction partitionKeyExtractor = partitionKeyFunctionFactory.createPartitionKeyFunction(
-                        operatorDefinition.partitionFieldNames() );
+                final PartitionKeyFunction partitionKeyExtractor = partitionKeyFunctionFactory.createPartitionKeyFunction( operatorDef.partitionFieldNames() );
                 tupleQueueContexts[ replicaIndex ] = new PartitionedTupleQueueContext( operatorId,
                                                                                        inputPortCount,
                                                                                        partitionService.getPartitionCount(),

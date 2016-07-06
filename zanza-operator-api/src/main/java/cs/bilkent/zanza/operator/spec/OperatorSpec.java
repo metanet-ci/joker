@@ -6,7 +6,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import cs.bilkent.zanza.flow.FlowDefinition;
+import cs.bilkent.zanza.flow.FlowDef;
 import static cs.bilkent.zanza.flow.Port.DYNAMIC_PORT_COUNT;
 import cs.bilkent.zanza.operator.Operator;
 
@@ -19,7 +19,7 @@ import cs.bilkent.zanza.operator.Operator;
  *
  * @see Operator
  * @see OperatorType
- * @see FlowDefinition
+ * @see FlowDef
  */
 @Retention( RetentionPolicy.RUNTIME )
 @Target( ElementType.TYPE )
@@ -35,21 +35,21 @@ public @interface OperatorSpec
 
     /**
      * Returns the number of input ports that an operator uses during processing tuples.
-     * If not defined within the operator class, it must be provided while composing the {@link FlowDefinition}
+     * If not defined within the operator class, it must be provided while composing the {@link FlowDef}
      *
      * @return the number of input ports that an operator uses during processing tuples
      *
-     * @see FlowDefinition
+     * @see FlowDef
      */
     int inputPortCount () default DYNAMIC_PORT_COUNT;
 
     /**
      * Returns the number of output ports that an operator produces tuples during the processing.
-     * If not defined within the operator class, it must be provided while composing the {@link FlowDefinition}
+     * If not defined within the operator class, it must be provided while composing the {@link FlowDef}
      *
      * @return the number of output ports that an operator produces tuples during the processing
      *
-     * @see FlowDefinition
+     * @see FlowDef
      */
     int outputPortCount () default DYNAMIC_PORT_COUNT;
 

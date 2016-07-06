@@ -1,7 +1,7 @@
 package cs.bilkent.zanza.operator;
 
 
-import cs.bilkent.zanza.flow.FlowDefinition;
+import cs.bilkent.zanza.flow.FlowDef;
 import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
 import cs.bilkent.zanza.operator.kvstore.KVStore;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
@@ -12,7 +12,7 @@ import cs.bilkent.zanza.operator.spec.OperatorType;
 
 /**
  * {@code Operator} is the main component that is responsible for producing or processing tuples.
- * An operator implementation is provided to {@link FlowDefinition}
+ * An operator implementation is provided to {@link FlowDef}
  * with its configuration and its life-cycle is managed by the Engine afterwards.
  * <p>
  * State-related characteristics of a user-defined operator must be specified with {@link OperatorSpec} annotation.

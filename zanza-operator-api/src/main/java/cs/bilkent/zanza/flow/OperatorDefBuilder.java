@@ -24,10 +24,10 @@ import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
 import static java.util.stream.Collectors.toList;
 
 
-public class OperatorDefinitionBuilder
+public class OperatorDefBuilder
 {
 
-    public static OperatorDefinitionBuilder newInstance ( final String id, final Class<? extends Operator> clazz )
+    public static OperatorDefBuilder newInstance ( final String id, final Class<? extends Operator> clazz )
     {
         failIfEmptyOperatorId( id );
         checkArgument( clazz != null, "clazz must be provided" );
@@ -66,7 +66,7 @@ public class OperatorDefinitionBuilder
             failIfInvalidPortCount( spec.type(), spec.outputPortCount(), "output" );
         }
 
-        return new OperatorDefinitionBuilder( id, clazz, spec, schema );
+        return new OperatorDefBuilder( id, clazz, spec, schema );
     }
 
     private static OperatorSpec getOperatorSpecOrFail ( Class<? extends Operator> clazz )
@@ -139,10 +139,10 @@ public class OperatorDefinitionBuilder
 
     private List<String> partitionFieldNames;
 
-    private OperatorDefinitionBuilder ( final String id,
-                                        final Class<? extends Operator> clazz,
-                                        final OperatorSpec spec,
-                                        final OperatorSchema schema )
+    private OperatorDefBuilder ( final String id,
+                                 final Class<? extends Operator> clazz,
+                                 final OperatorSpec spec,
+                                 final OperatorSchema schema )
     {
         this.id = id;
         this.clazz = clazz;
@@ -152,7 +152,7 @@ public class OperatorDefinitionBuilder
         this.schema = schema;
     }
 
-    public OperatorDefinitionBuilder setInputPortCount ( final int inputPortCount )
+    public OperatorDefBuilder setInputPortCount ( final int inputPortCount )
     {
         checkState( this.inputPortCount == DYNAMIC_PORT_COUNT, "input port count can be set only once" );
         checkArgument( inputPortCount >= 0, "input port count must be non-negative" );
@@ -162,7 +162,7 @@ public class OperatorDefinitionBuilder
         return this;
     }
 
-    public OperatorDefinitionBuilder setOutputPortCount ( final int outputPortCount )
+    public OperatorDefBuilder setOutputPortCount ( final int outputPortCount )
     {
         checkState( this.outputPortCount == DYNAMIC_PORT_COUNT, "output port count can be set only once" );
         checkArgument( outputPortCount >= 0, "output port count must be non-negative" );
@@ -171,7 +171,7 @@ public class OperatorDefinitionBuilder
         return this;
     }
 
-    public OperatorDefinitionBuilder setConfig ( final OperatorConfig config )
+    public OperatorDefBuilder setConfig ( final OperatorConfig config )
     {
         checkState( this.config == null, "config can be set only once" );
         checkArgument( config != null, "config argument can not be null" );
@@ -179,13 +179,13 @@ public class OperatorDefinitionBuilder
         return this;
     }
 
-    public OperatorDefinitionBuilder setExtendingSchema ( final OperatorRuntimeSchemaBuilder extendingSchemaBuilder )
+    public OperatorDefBuilder setExtendingSchema ( final OperatorRuntimeSchemaBuilder extendingSchemaBuilder )
     {
         checkArgument( extendingSchemaBuilder != null, "extending schema builder can not be null" );
         return setExtendingSchema( extendingSchemaBuilder.build() );
     }
 
-    public OperatorDefinitionBuilder setExtendingSchema ( final OperatorRuntimeSchema extendingSchema )
+    public OperatorDefBuilder setExtendingSchema ( final OperatorRuntimeSchema extendingSchema )
     {
         checkArgument( extendingSchema != null, "extending schema argument can not be null" );
         checkState( this.extendingSchema == null, "extending schema can be set only once" );
@@ -205,7 +205,7 @@ public class OperatorDefinitionBuilder
     }
 
 
-    public OperatorDefinitionBuilder setPartitionFieldNames ( final List<String> partitionFieldNames )
+    public OperatorDefBuilder setPartitionFieldNames ( final List<String> partitionFieldNames )
     {
         checkArgument( partitionFieldNames != null, "partition field names must be non-null" );
         checkState( ( this.type == PARTITIONED_STATEFUL && !partitionFieldNames.isEmpty() ) || ( this.type != PARTITIONED_STATEFUL
@@ -217,19 +217,19 @@ public class OperatorDefinitionBuilder
         return this;
     }
 
-    public OperatorDefinition build ()
+    public OperatorDef build ()
     {
         checkState( inputPortCount != DYNAMIC_PORT_COUNT, "input port count must be set" );
         checkState( outputPortCount != DYNAMIC_PORT_COUNT, "output port count must be set" );
         checkState( !( type == PARTITIONED_STATEFUL && ( partitionFieldNames == null || partitionFieldNames.isEmpty() ) ) );
-        return new OperatorDefinition( id,
-                                       clazz,
-                                       type,
-                                       inputPortCount,
-                                       outputPortCount,
-                                       buildOperatorRuntimeSchema(),
-                                       getConfigOrEmptyConfig(),
-                                       partitionFieldNames );
+        return new OperatorDef( id,
+                                clazz,
+                                type,
+                                inputPortCount,
+                                outputPortCount,
+                                buildOperatorRuntimeSchema(),
+                                getConfigOrEmptyConfig(),
+                                partitionFieldNames );
     }
 
     private void failIfExtendingSchemaPortSchemaSizesMismatch ( final int schemaSize, final int portCount )

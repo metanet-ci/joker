@@ -12,7 +12,7 @@ import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainerPool;
-import cs.bilkent.zanza.flow.OperatorDefinition;
+import cs.bilkent.zanza.flow.OperatorDef;
 import cs.bilkent.zanza.operator.InitializationContext;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.OPERATOR_REQUESTED_SHUTDOWN;
 import cs.bilkent.zanza.operator.Operator;
@@ -34,7 +34,7 @@ class AbstractOperatorReplicaInvocationTest
     protected Operator operator;
 
     @Mock
-    protected OperatorDefinition operatorDefinition;
+    protected OperatorDef operatorDef;
 
     @Mock
     protected KVStoreContext kvStoreContext;
@@ -62,8 +62,7 @@ class AbstractOperatorReplicaInvocationTest
     @Before
     public void before ()
     {
-        operatorReplica = new OperatorReplica( new PipelineReplicaId( new PipelineId( 0, 0 ), 0 ),
-                                               operatorDefinition,
+        operatorReplica = new OperatorReplica( new PipelineReplicaId( new PipelineId( 0, 0 ), 0 ), operatorDef,
                                                queue,
                                                kvStoreContext,
                                                drainerPool,
@@ -75,7 +74,7 @@ class AbstractOperatorReplicaInvocationTest
 
     protected void applyDefaultMocks ()
     {
-        when( operatorDefinition.id() ).thenReturn( "op1" );
+        when( operatorDef.id() ).thenReturn( "op1" );
         when( drainerPool.acquire( any( SchedulingStrategy.class ) ) ).thenReturn( drainer );
         when( drainer.getKey() ).thenReturn( key );
         when( kvStoreContext.getKVStore( key ) ).thenReturn( kvStore );
@@ -85,20 +84,20 @@ class AbstractOperatorReplicaInvocationTest
                                                final int outputPortCount,
                                                final SchedulingStrategy schedulingStrategy )
     {
-        mockOperatorDefinition( inputPortCount, outputPortCount );
+        mockOperatorDef( inputPortCount, outputPortCount );
         mockOperatorInitializationSchedulingStrategy( schedulingStrategy );
 
         initializationUpstreamContext = newUpstreamContextInstance( 0, inputPortCount, ACTIVE );
         operatorReplica.init( initializationUpstreamContext, null );
     }
 
-    protected void mockOperatorDefinition ( final int inputPortCount, final int outputPortCount )
+    protected void mockOperatorDef ( final int inputPortCount, final int outputPortCount )
     {
-        when( operatorDefinition.inputPortCount() ).thenReturn( inputPortCount );
-        when( operatorDefinition.outputPortCount() ).thenReturn( outputPortCount );
+        when( operatorDef.inputPortCount() ).thenReturn( inputPortCount );
+        when( operatorDef.outputPortCount() ).thenReturn( outputPortCount );
         try
         {
-            when( operatorDefinition.createOperator() ).thenReturn( operator );
+            when( operatorDef.createOperator() ).thenReturn( operator );
         }
         catch ( Throwable e )
         {

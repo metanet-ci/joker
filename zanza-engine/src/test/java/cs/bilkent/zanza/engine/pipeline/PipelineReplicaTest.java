@@ -11,7 +11,7 @@ import cs.bilkent.zanza.engine.exception.InitializationException;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
-import cs.bilkent.zanza.flow.OperatorDefinition;
+import cs.bilkent.zanza.flow.OperatorDef;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -60,9 +60,9 @@ public class PipelineReplicaTest
     @Before
     public void before ()
     {
-        final OperatorDefinition operatorDefinition0 = mock( OperatorDefinition.class );
-        when( operator0.getOperatorDefinition() ).thenReturn( operatorDefinition0 );
-        when( operatorDefinition0.inputPortCount() ).thenReturn( 1 );
+        final OperatorDef operatorDef0 = mock( OperatorDef.class );
+        when( operator0.getOperatorDef() ).thenReturn( operatorDef0 );
+        when( operatorDef0.inputPortCount() ).thenReturn( 1 );
         pipeline = new PipelineReplica( config,
                                         new PipelineReplicaId( new PipelineId( 0, 0 ), 0 ),
                                         new OperatorReplica[] { operator0, operator1, operator2 },

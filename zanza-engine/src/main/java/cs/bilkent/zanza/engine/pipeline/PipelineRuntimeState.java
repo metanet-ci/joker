@@ -5,9 +5,9 @@ import java.util.Arrays;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.INITIAL;
-import cs.bilkent.zanza.engine.region.RegionDefinition;
+import cs.bilkent.zanza.engine.region.RegionDef;
 import cs.bilkent.zanza.engine.region.RegionRuntimeConfig;
-import cs.bilkent.zanza.flow.OperatorDefinition;
+import cs.bilkent.zanza.flow.OperatorDef;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 public class PipelineRuntimeState
@@ -51,19 +51,19 @@ public class PipelineRuntimeState
         return id;
     }
 
-    public RegionDefinition getRegionDefinition ()
+    public RegionDef getRegionDef ()
     {
-        return regionRuntimeConfig.getRegion();
+        return regionRuntimeConfig.getRegionDef();
     }
 
-    public OperatorDefinition[] getOperatorDefinitions ()
+    public OperatorDef[] getOperatorDefs ()
     {
-        return regionRuntimeConfig.getOperatorDefinitions( id.pipelineId );
+        return regionRuntimeConfig.getOperatorDefs( id.pipelineId );
     }
 
     public int getOperatorCount ()
     {
-        return regionRuntimeConfig.getOperatorDefinitions( id.pipelineId ).length;
+        return regionRuntimeConfig.getOperatorDefs( id.pipelineId ).length;
     }
 
     public OperatorReplicaStatus getPipelineStatus ()
@@ -99,12 +99,12 @@ public class PipelineRuntimeState
         this.upstreamContext = upstreamContext;
     }
 
-    public int getOperatorIndex ( final OperatorDefinition operator )
+    public int getOperatorIndex ( final OperatorDef operator )
     {
-        final OperatorDefinition[] operatorDefinitions = getOperatorDefinitions();
-        for ( int i = 0; i < operatorDefinitions.length; i++ )
+        final OperatorDef[] operatorDefs = getOperatorDefs();
+        for ( int i = 0; i < operatorDefs.length; i++ )
         {
-            if ( operatorDefinitions[ i ].equals( operator ) )
+            if ( operatorDefs[ i ].equals( operator ) )
             {
                 return i;
             }

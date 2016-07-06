@@ -11,7 +11,7 @@ import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.BlockingMultiPortConjunct
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.BlockingMultiPortDisjunctiveDrainer;
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.BlockingSinglePortDrainer;
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.GreedyDrainer;
-import cs.bilkent.zanza.flow.OperatorDefinition;
+import cs.bilkent.zanza.flow.OperatorDef;
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
@@ -36,9 +36,9 @@ public class BlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
 
     private TupleQueueDrainer active;
 
-    public BlockingTupleQueueDrainerPool ( final ZanzaConfig config, final OperatorDefinition operatorDefinition )
+    public BlockingTupleQueueDrainerPool ( final ZanzaConfig config, final OperatorDef operatorDef )
     {
-        this.inputPortCount = operatorDefinition.inputPortCount();
+        this.inputPortCount = operatorDef.inputPortCount();
 
         final int maxBatchSize = config.getTupleQueueDrainerConfig().getMaxBatchSize();
         final long timeoutInMillis = config.getTupleQueueDrainerConfig().getDrainTimeoutInMillis();

@@ -13,7 +13,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
 
 
-public class OperatorDefinition
+public class OperatorDef
 {
     private final String id;
 
@@ -31,14 +31,14 @@ public class OperatorDefinition
 
     private final List<String> partitionFieldNames;
 
-    public OperatorDefinition ( final String id,
-                                final Class<? extends Operator> clazz,
-                                final OperatorType type,
-                                final int inputPortCount,
-                                final int outputPortCount,
-                                final OperatorRuntimeSchema schema,
-                                final OperatorConfig config,
-                                final List<String> partitionFieldNames )
+    public OperatorDef ( final String id,
+                         final Class<? extends Operator> clazz,
+                         final OperatorType type,
+                         final int inputPortCount,
+                         final int outputPortCount,
+                         final OperatorRuntimeSchema schema,
+                         final OperatorConfig config,
+                         final List<String> partitionFieldNames )
     {
         checkArgument( id != null, "id can't be null" );
         checkArgument( clazz != null, "clazz can't be null" );
@@ -114,7 +114,7 @@ public class OperatorDefinition
             return false;
         }
 
-        final OperatorDefinition that = (OperatorDefinition) o;
+        final OperatorDef that = (OperatorDef) o;
 
         return id.equals( that.id );
 
@@ -129,7 +129,7 @@ public class OperatorDefinition
     @Override
     public String toString ()
     {
-        return "OperatorDefinition{" +
+        return "OperatorDef{" +
                "id='" + id + '\'' +
                ", clazz=" + clazz +
                ", type=" + type +

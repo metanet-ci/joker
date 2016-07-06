@@ -12,7 +12,7 @@ import cs.bilkent.zanza.engine.partition.PartitionService;
 import cs.bilkent.zanza.engine.partition.PartitionServiceImpl;
 import cs.bilkent.zanza.engine.partition.impl.PartitionKeyFunctionFactoryImpl;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
-import cs.bilkent.zanza.flow.OperatorDefinition;
+import cs.bilkent.zanza.flow.OperatorDef;
 import cs.bilkent.zanza.flow.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
@@ -35,7 +35,7 @@ public class TupleQueueContextManagerImplTest
     }
 
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotCreateTupleQueueContexteWithoutOperatorDefinition ()
+    public void shouldNotCreateTupleQueueContexteWithoutOperatorDef ()
     {
         tupleQueueManager.createDefaultTupleQueueContext( 1, 1, null, ThreadingPreference.SINGLE_THREADED );
     }
@@ -43,22 +43,18 @@ public class TupleQueueContextManagerImplTest
     @Test
     public void shouldCreateTupleQueueContextOnlyOnceForMultipleInvocations ()
     {
-        final OperatorDefinition operatorDefinition = new OperatorDefinition( "op1",
-                                                                              Operator.class,
-                                                                              OperatorType.STATELESS,
-                                                                              1,
-                                                                              1,
-                                                                              new OperatorRuntimeSchemaBuilder( 1, 1 ).build(),
-                                                                              new OperatorConfig(),
-                                                                              Collections.emptyList() );
+        final OperatorDef operatorDef = new OperatorDef( "op1",
+                                                         Operator.class,
+                                                         OperatorType.STATELESS,
+                                                         1,
+                                                         1,
+                                                         new OperatorRuntimeSchemaBuilder( 1, 1 ).build(),
+                                                         new OperatorConfig(),
+                                                         Collections.emptyList() );
 
-        final TupleQueueContext tupleQueueContext1 = tupleQueueManager.createDefaultTupleQueueContext( 1,
-                                                                                                       1,
-                                                                                                       operatorDefinition,
+        final TupleQueueContext tupleQueueContext1 = tupleQueueManager.createDefaultTupleQueueContext( 1, 1, operatorDef,
                                                                                                        MULTI_THREADED );
-        final TupleQueueContext tupleQueueContext2 = tupleQueueManager.createDefaultTupleQueueContext( 1,
-                                                                                                       1,
-                                                                                                       operatorDefinition,
+        final TupleQueueContext tupleQueueContext2 = tupleQueueManager.createDefaultTupleQueueContext( 1, 1, operatorDef,
                                                                                                        MULTI_THREADED );
 
         assertTrue( tupleQueueContext1 == tupleQueueContext2 );
@@ -67,17 +63,15 @@ public class TupleQueueContextManagerImplTest
     @Test
     public void shouldCleanTupleQueueContextOnRelease ()
     {
-        final OperatorDefinition operatorDefinition = new OperatorDefinition( "op1",
-                                                                              Operator.class,
-                                                                              OperatorType.STATELESS,
-                                                                              1,
-                                                                              1,
-                                                                              new OperatorRuntimeSchemaBuilder( 1, 1 ).build(),
-                                                                              new OperatorConfig(),
-                                                                              Collections.emptyList() );
-        final TupleQueueContext tupleQueueContext = tupleQueueManager.createDefaultTupleQueueContext( 1,
-                                                                                                      1,
-                                                                                                      operatorDefinition,
+        final OperatorDef operatorDef = new OperatorDef( "op1",
+                                                         Operator.class,
+                                                         OperatorType.STATELESS,
+                                                         1,
+                                                         1,
+                                                         new OperatorRuntimeSchemaBuilder( 1, 1 ).build(),
+                                                         new OperatorConfig(),
+                                                         Collections.emptyList() );
+        final TupleQueueContext tupleQueueContext = tupleQueueManager.createDefaultTupleQueueContext( 1, 1, operatorDef,
                                                                                                       MULTI_THREADED );
         tupleQueueContext.offer( 0, Collections.singletonList( new Tuple() ) );
         assertTrue( tupleQueueManager.releaseDefaultTupleQueueContext( 1, 1, "op1" ) );

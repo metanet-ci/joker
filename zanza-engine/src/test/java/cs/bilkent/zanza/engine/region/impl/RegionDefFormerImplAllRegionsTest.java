@@ -4,12 +4,12 @@ import java.util.List;
 
 import org.junit.Test;
 
-import cs.bilkent.zanza.engine.region.RegionDefinition;
-import static cs.bilkent.zanza.engine.region.impl.RegionFormerImplRegionDefinitionTest.assertRegion;
-import cs.bilkent.zanza.flow.FlowDefinition;
-import cs.bilkent.zanza.flow.FlowDefinitionBuilder;
-import cs.bilkent.zanza.flow.OperatorDefinition;
-import cs.bilkent.zanza.flow.OperatorDefinitionBuilder;
+import cs.bilkent.zanza.engine.region.RegionDef;
+import static cs.bilkent.zanza.engine.region.impl.RegionFormerImplRegionDefTest.assertRegion;
+import cs.bilkent.zanza.flow.FlowDef;
+import cs.bilkent.zanza.flow.FlowDefBuilder;
+import cs.bilkent.zanza.flow.OperatorDef;
+import cs.bilkent.zanza.flow.OperatorDefBuilder;
 import cs.bilkent.zanza.flow.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.zanza.operator.InitializationContext;
 import cs.bilkent.zanza.operator.InvocationContext;
@@ -32,12 +32,12 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.fail;
 
-public class RegionDefinitionFormerImplAllRegionsTest
+public class RegionDefFormerImplAllRegionsTest
 {
 
-    private final RegionDefinitionFormerImpl regionFormer = new RegionDefinitionFormerImpl();
+    private final RegionDefFormerImpl regionFormer = new RegionDefFormerImpl();
 
-    private final FlowDefinitionBuilder flowBuilder = new FlowDefinitionBuilder();
+    private final FlowDefBuilder flowBuilder = new FlowDefBuilder();
 
 
     @Test
@@ -47,14 +47,14 @@ public class RegionDefinitionFormerImplAllRegionsTest
          * O1 --> O2
          */
 
-        final OperatorDefinition operator1 = OperatorDefinitionBuilder.newInstance( "o1", MapperOperator.class ).build();
-        final OperatorDefinition operator2 = OperatorDefinitionBuilder.newInstance( "o2", MapperOperator.class ).build();
+        final OperatorDef operator1 = OperatorDefBuilder.newInstance( "o1", MapperOperator.class ).build();
+        final OperatorDef operator2 = OperatorDefBuilder.newInstance( "o2", MapperOperator.class ).build();
         flowBuilder.add( operator1 );
         flowBuilder.add( operator2 );
         flowBuilder.connect( "o1", "o2" );
-        final FlowDefinition flow = flowBuilder.build();
+        final FlowDef flow = flowBuilder.build();
 
-        final List<RegionDefinition> regions = regionFormer.createRegions( flow );
+        final List<RegionDef> regions = regionFormer.createRegions( flow );
         assertThat( regions, hasSize( 1 ) );
         assertRegion( regions.get( 0 ), STATELESS, emptyList(), asList( operator1, operator2 ) );
     }
@@ -68,20 +68,20 @@ public class RegionDefinitionFormerImplAllRegionsTest
          * O1 -----> O2
          */
 
-        final OperatorDefinition operator1 = OperatorDefinitionBuilder.newInstance( "o1", DoubleOutputPortOperator.class )
-                                                                      .setPartitionFieldNames( singletonList( "f" ) )
-                                                                      .build();
+        final OperatorDef operator1 = OperatorDefBuilder.newInstance( "o1", DoubleOutputPortOperator.class )
+                                                        .setPartitionFieldNames( singletonList( "f" ) )
+                                                        .build();
         final OperatorRuntimeSchemaBuilder mapperSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
         mapperSchema.getInputPortSchemaBuilder( 0 ).addField( "f", Integer.class );
-        final OperatorDefinition operator2 = OperatorDefinitionBuilder.newInstance( "o2", MapperOperator.class )
-                                                                      .setExtendingSchema( mapperSchema )
-                                                                      .build();
+        final OperatorDef operator2 = OperatorDefBuilder.newInstance( "o2", MapperOperator.class )
+                                                        .setExtendingSchema( mapperSchema )
+                                                        .build();
         flowBuilder.add( operator1 );
         flowBuilder.add( operator2 );
         flowBuilder.connect( "o1", "o2" );
-        final FlowDefinition flow = flowBuilder.build();
+        final FlowDef flow = flowBuilder.build();
 
-        final List<RegionDefinition> regions = regionFormer.createRegions( flow );
+        final List<RegionDef> regions = regionFormer.createRegions( flow );
         assertThat( regions, hasSize( 1 ) );
         assertRegion( regions.get( 0 ), PARTITIONED_STATEFUL, singletonList( "f" ), asList( operator1, operator2 ) );
     }
@@ -97,10 +97,10 @@ public class RegionDefinitionFormerImplAllRegionsTest
          *
          */
 
-        final OperatorDefinition operator1 = OperatorDefinitionBuilder.newInstance( "o1", MapperOperator.class ).build();
-        final OperatorDefinition operator2 = OperatorDefinitionBuilder.newInstance( "o2", MapperOperator.class ).build();
-        final OperatorDefinition operator3 = OperatorDefinitionBuilder.newInstance( "o3", MapperOperator.class ).build();
-        final OperatorDefinition operator4 = OperatorDefinitionBuilder.newInstance( "o4", MapperOperator.class ).build();
+        final OperatorDef operator1 = OperatorDefBuilder.newInstance( "o1", MapperOperator.class ).build();
+        final OperatorDef operator2 = OperatorDefBuilder.newInstance( "o2", MapperOperator.class ).build();
+        final OperatorDef operator3 = OperatorDefBuilder.newInstance( "o3", MapperOperator.class ).build();
+        final OperatorDef operator4 = OperatorDefBuilder.newInstance( "o4", MapperOperator.class ).build();
         flowBuilder.add( operator1 );
         flowBuilder.add( operator2 );
         flowBuilder.add( operator3 );
@@ -109,20 +109,19 @@ public class RegionDefinitionFormerImplAllRegionsTest
         flowBuilder.connect( "o2", "o3" );
         flowBuilder.connect( "o2", "o4" );
 
-        final FlowDefinition flow = flowBuilder.build();
-        final List<RegionDefinition> regions = regionFormer.createRegions( flow );
+        final FlowDef flow = flowBuilder.build();
+        final List<RegionDef> regions = regionFormer.createRegions( flow );
         assertThat( regions, hasSize( 3 ) );
         assertRegionExists( regions, STATELESS, emptyList(), asList( operator1, operator2 ) );
         assertRegionExists( regions, STATELESS, emptyList(), singletonList( operator3 ) );
         assertRegionExists( regions, STATELESS, emptyList(), singletonList( operator4 ) );
     }
 
-    private void assertRegionExists ( final List<RegionDefinition> regionDefs,
+    private void assertRegionExists ( final List<RegionDef> regionDefs,
                                       final OperatorType regionType,
-                                      final List<String> partitionFieldNames,
-                                      final List<OperatorDefinition> operators )
+                                      final List<String> partitionFieldNames, final List<OperatorDef> operators )
     {
-        for ( RegionDefinition regionDef : regionDefs )
+        for ( RegionDef regionDef : regionDefs )
         {
             try
             {

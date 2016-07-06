@@ -20,7 +20,7 @@ import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineRep
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import cs.bilkent.zanza.engine.supervisor.Supervisor;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
-import cs.bilkent.zanza.flow.OperatorDefinition;
+import cs.bilkent.zanza.flow.OperatorDef;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -40,7 +40,7 @@ public class PipelineReplicaRunnerTest
 {
 
     @Mock
-    private OperatorDefinition operatorDefinition;
+    private OperatorDef operatorDef;
 
     @Mock
     private OperatorReplica operator;
@@ -66,10 +66,10 @@ public class PipelineReplicaRunnerTest
     public void init () throws Exception
     {
         final PipelineReplicaId id = new PipelineReplicaId( new PipelineId( 0, 0 ), 0 );
-        when( operator.getOperatorDefinition() ).thenReturn( operatorDefinition );
-        when( operatorDefinition.id() ).thenReturn( "op1" );
-        when( operatorDefinition.inputPortCount() ).thenReturn( inputOutputPortCount );
-        when( operatorDefinition.outputPortCount() ).thenReturn( inputOutputPortCount );
+        when( operator.getOperatorDef() ).thenReturn( operatorDef );
+        when( operatorDef.id() ).thenReturn( "op1" );
+        when( operatorDef.inputPortCount() ).thenReturn( inputOutputPortCount );
+        when( operatorDef.outputPortCount() ).thenReturn( inputOutputPortCount );
         final ZanzaConfig config = new ZanzaConfig();
         pipeline = new PipelineReplica( config, id, new OperatorReplica[] { operator }, mock( TupleQueueContext.class ) );
         runner = new PipelineReplicaRunner( config, pipeline, supervisor, supervisorNotifier, downstreamTupleSender );

@@ -3,7 +3,7 @@ package cs.bilkent.zanza.operator.schema.annotation;
 
 import java.lang.annotation.Retention;
 
-import cs.bilkent.zanza.flow.FlowDefinitionBuilder;
+import cs.bilkent.zanza.flow.FlowDefBuilder;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 
@@ -23,7 +23,7 @@ public @interface PortSchema
 
     /**
      * Scope of the schema. All field names that are guaranteed to be present in the runtime maybe defined in design time, or
-     * list of the field names can be extended while composing the flow via {@link FlowDefinitionBuilder}
+     * list of the field names can be extended while composing the flow via {@link FlowDefBuilder}
      *
      * @return scope of the schema
      */

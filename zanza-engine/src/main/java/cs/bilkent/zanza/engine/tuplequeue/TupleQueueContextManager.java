@@ -2,19 +2,17 @@ package cs.bilkent.zanza.engine.tuplequeue;
 
 import cs.bilkent.zanza.engine.config.ThreadingPreference;
 import cs.bilkent.zanza.engine.tuplequeue.impl.context.PartitionedTupleQueueContext;
-import cs.bilkent.zanza.flow.OperatorDefinition;
+import cs.bilkent.zanza.flow.OperatorDef;
 
 
 public interface TupleQueueContextManager
 {
 
     TupleQueueContext createDefaultTupleQueueContext ( int regionId,
-                                                       int replicaIndex,
-                                                       OperatorDefinition operatorDefinition,
+                                                       int replicaIndex, OperatorDef operatorDef,
                                                        ThreadingPreference threadingPreference );
 
-    PartitionedTupleQueueContext[] createPartitionedTupleQueueContext ( int regionId,
-                                                                        int replicaCount, OperatorDefinition operatorDefinition );
+    PartitionedTupleQueueContext[] createPartitionedTupleQueueContext ( int regionId, int replicaCount, OperatorDef operatorDef );
 
     boolean releaseDefaultTupleQueueContext ( int regionId, int replicaIndex, String operatorId );
 

@@ -17,14 +17,14 @@ import cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.NO_CONNECTION;
 import cs.bilkent.zanza.engine.pipeline.UpstreamContext;
-import cs.bilkent.zanza.engine.region.RegionDefinition;
-import cs.bilkent.zanza.engine.region.RegionDefinitionFormer;
+import cs.bilkent.zanza.engine.region.RegionDef;
+import cs.bilkent.zanza.engine.region.RegionDefFormer;
 import cs.bilkent.zanza.engine.region.RegionRuntimeConfig;
 import cs.bilkent.zanza.engine.supervisor.Supervisor;
-import cs.bilkent.zanza.flow.FlowDefinition;
-import cs.bilkent.zanza.flow.FlowDefinitionBuilder;
-import cs.bilkent.zanza.flow.OperatorDefinition;
-import cs.bilkent.zanza.flow.OperatorDefinitionBuilder;
+import cs.bilkent.zanza.flow.FlowDef;
+import cs.bilkent.zanza.flow.FlowDefBuilder;
+import cs.bilkent.zanza.flow.OperatorDef;
+import cs.bilkent.zanza.flow.OperatorDefBuilder;
 import cs.bilkent.zanza.operator.InitializationContext;
 import cs.bilkent.zanza.operator.InvocationContext;
 import cs.bilkent.zanza.operator.Operator;
@@ -48,7 +48,7 @@ public class PipelineRuntimeManagerImplTest
 
     private final ZanzaConfig zanzaConfig = new ZanzaConfig();
 
-    private RegionDefinitionFormer regionDefinitionFormer;
+    private RegionDefFormer regionDefFormer;
 
     private PipelineRuntimeManager pipelineRuntimeManager;
 
@@ -58,7 +58,7 @@ public class PipelineRuntimeManagerImplTest
     public void init ()
     {
         final Injector injector = Guice.createInjector( new ZanzaModule( zanzaConfig ) );
-        regionDefinitionFormer = injector.getInstance( RegionDefinitionFormer.class );
+        regionDefFormer = injector.getInstance( RegionDefFormer.class );
         pipelineRuntimeManager = injector.getInstance( PipelineRuntimeManager.class );
         supervisor = injector.getInstance( Supervisor.class );
     }
@@ -66,11 +66,10 @@ public class PipelineRuntimeManagerImplTest
     @Test
     public void test_singleStatefulRegion ()
     {
-        final OperatorDefinition operatorDefinition = OperatorDefinitionBuilder.newInstance( "op1", StatefulOperatorInput0Output1.class )
-                                                                               .build();
-        final FlowDefinition flow = new FlowDefinitionBuilder().add( operatorDefinition ).build();
+        final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "op1", StatefulOperatorInput0Output1.class ).build();
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef ).build();
 
-        final List<RegionDefinition> regions = regionDefinitionFormer.createRegions( flow );
+        final List<RegionDef> regions = regionDefFormer.createRegions( flow );
         final RegionRuntimeConfig regionRuntimeConfig = new RegionRuntimeConfig( 0, regions.get( 0 ), 1, singletonList( 0 ) );
 
         final List<PipelineRuntimeState> pipelineRuntimeStates = pipelineRuntimeManager.createPipelineRuntimeStates( supervisor,
@@ -81,7 +80,7 @@ public class PipelineRuntimeManagerImplTest
         assertEquals( 1, pipelineRuntimeStates.size() );
 
         final PipelineRuntimeState pipelineRuntimeState = pipelineRuntimeStates.get( 0 );
-        assertEquals( 0, pipelineRuntimeState.getOperatorIndex( operatorDefinition ) );
+        assertEquals( 0, pipelineRuntimeState.getOperatorIndex( operatorDef ) );
         assertEquals( INITIAL, pipelineRuntimeState.getPipelineStatus() );
 
         assertNotNull( pipelineRuntimeState.getPipelineReplica( 0 ) );
@@ -93,33 +92,27 @@ public class PipelineRuntimeManagerImplTest
     @Test
     public void test_statefulRegion_partitionedStatefulRegionWithPartitionedStatefulAndStatelessOperators ()
     {
-        final OperatorDefinition operatorDefinition1 = OperatorDefinitionBuilder.newInstance( "op1", StatefulOperatorInput0Output1.class )
-                                                                                .build();
-        final OperatorDefinition operatorDefinition2 = OperatorDefinitionBuilder.newInstance( "op2",
-                                                                                              PartitionedStatefulOperatorInput2Output2
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatefulOperatorInput0Output1.class ).build();
+        final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", PartitionedStatefulOperatorInput2Output2
                                                                                                       .class )
-                                                                                .setPartitionFieldNames( singletonList( "field1" ) )
-                                                                                .build();
-        final OperatorDefinition operatorDefinition3 = OperatorDefinitionBuilder.newInstance( "op3", StatelessOperatorInput1Output1.class )
-                                                                                .build();
-        final FlowDefinition flow = new FlowDefinitionBuilder().add( operatorDefinition1 )
-                                                               .add( operatorDefinition2 )
-                                                               .add( operatorDefinition3 )
-                                                               .connect( "op1", "op2" )
-                                                               .connect( "op2", "op3" )
-                                                               .build();
+                                                           .setPartitionFieldNames( singletonList( "field1" ) )
+                                                           .build();
+        final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessOperatorInput1Output1.class ).build();
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef1 )
+                                                 .add( operatorDef2 )
+                                                 .add( operatorDef3 )
+                                                 .connect( "op1", "op2" )
+                                                 .connect( "op2", "op3" )
+                                                 .build();
 
-        final List<RegionDefinition> regions = regionDefinitionFormer.createRegions( flow );
+        final List<RegionDef> regions = regionDefFormer.createRegions( flow );
         assertEquals( 2, regions.size() );
-        final RegionDefinition statefulRegionDef = regions.stream()
-                                                          .filter( regionDefinition -> regionDefinition.getRegionType() == STATEFUL )
-                                                          .findFirst()
-                                                          .get();
-        final RegionDefinition partitionedStatefulRegionDef = regions.stream()
-                                                                     .filter( regionDefinition -> regionDefinition.getRegionType()
+        final RegionDef statefulRegionDef = regions.stream().filter( regionDef -> regionDef.getRegionType() == STATEFUL ).findFirst().get();
+        final RegionDef partitionedStatefulRegionDef = regions.stream()
+                                                              .filter( regionDef -> regionDef.getRegionType()
                                                                                                   == PARTITIONED_STATEFUL )
-                                                                     .findFirst()
-                                                                     .get();
+                                                              .findFirst()
+                                                              .get();
         final RegionRuntimeConfig regionRuntimeConfig1 = new RegionRuntimeConfig( 0, statefulRegionDef, 1, singletonList( 0 ) );
         final RegionRuntimeConfig regionRuntimeConfig2 = new RegionRuntimeConfig( 1, partitionedStatefulRegionDef, 2, asList( 0, 1 ) );
 
@@ -131,56 +124,50 @@ public class PipelineRuntimeManagerImplTest
         assertEquals( 3, pipelineRuntimeStates.size() );
 
         final PipelineRuntimeState pipelineRuntimeState1 = pipelineRuntimeStates.get( 0 );
-        assertEquals( statefulRegionDef, pipelineRuntimeState1.getRegionDefinition() );
-        assertEquals( 0, pipelineRuntimeState1.getOperatorIndex( operatorDefinition1 ) );
+        assertEquals( statefulRegionDef, pipelineRuntimeState1.getRegionDef() );
+        assertEquals( 0, pipelineRuntimeState1.getOperatorIndex( operatorDef1 ) );
 
         final PipelineRuntimeState pipelineRuntimeState2 = pipelineRuntimeStates.get( 1 );
         assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE, NO_CONNECTION } ),
                       pipelineRuntimeState2.getUpstreamContext() );
-        assertEquals( partitionedStatefulRegionDef, pipelineRuntimeState2.getRegionDefinition() );
-        assertEquals( 0, pipelineRuntimeState2.getOperatorIndex( operatorDefinition2 ) );
+        assertEquals( partitionedStatefulRegionDef, pipelineRuntimeState2.getRegionDef() );
+        assertEquals( 0, pipelineRuntimeState2.getOperatorIndex( operatorDef2 ) );
         assertFalse( pipelineRuntimeState2.getPipelineReplica( 0 ) == pipelineRuntimeState2.getPipelineReplica( 1 ) );
 
         final PipelineRuntimeState pipelineRuntimeState3 = pipelineRuntimeStates.get( 2 );
         assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ), pipelineRuntimeState3.getUpstreamContext() );
-        assertEquals( partitionedStatefulRegionDef, pipelineRuntimeState3.getRegionDefinition() );
-        assertEquals( 0, pipelineRuntimeState3.getOperatorIndex( operatorDefinition3 ) );
+        assertEquals( partitionedStatefulRegionDef, pipelineRuntimeState3.getRegionDef() );
+        assertEquals( 0, pipelineRuntimeState3.getOperatorIndex( operatorDef3 ) );
         assertFalse( pipelineRuntimeState3.getPipelineReplica( 0 ) == pipelineRuntimeState3.getPipelineReplica( 1 ) );
     }
 
     @Test
     public void test_statefulRegion_partitionedStatefulRegionWithStatelessAndPartitionedStatefulOperators ()
     {
-        final OperatorDefinition operatorDefinition1 = OperatorDefinitionBuilder.newInstance( "op1", StatefulOperatorInput0Output1.class )
-                                                                                .build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatefulOperatorInput0Output1.class ).build();
 
-        final OperatorDefinition operatorDefinition2 = OperatorDefinitionBuilder.newInstance( "op2", StatelessOperatorInput1Output1.class )
-                                                                                .build();
-        final OperatorDefinition operatorDefinition3 = OperatorDefinitionBuilder.newInstance( "op3",
-                                                                                              PartitionedStatefulOperatorInput2Output2
+        final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatelessOperatorInput1Output1.class ).build();
+        final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", PartitionedStatefulOperatorInput2Output2
                                                                                                       .class )
-                                                                                .setPartitionFieldNames( singletonList( "field1" ) )
-                                                                                .build();
+                                                           .setPartitionFieldNames( singletonList( "field1" ) )
+                                                           .build();
 
-        final FlowDefinition flow = new FlowDefinitionBuilder().add( operatorDefinition1 )
-                                                               .add( operatorDefinition2 )
-                                                               .add( operatorDefinition3 )
-                                                               .connect( "op1", "op2" )
-                                                               .connect( "op2", "op3" )
-                                                               .build();
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef1 )
+                                                 .add( operatorDef2 )
+                                                 .add( operatorDef3 )
+                                                 .connect( "op1", "op2" )
+                                                 .connect( "op2", "op3" )
+                                                 .build();
 
-        final List<RegionDefinition> regions = regionDefinitionFormer.createRegions( flow );
+        final List<RegionDef> regions = regionDefFormer.createRegions( flow );
         assertEquals( 2, regions.size() );
 
-        final RegionDefinition statefulRegionDef = regions.stream()
-                                                          .filter( regionDefinition -> regionDefinition.getRegionType() == STATEFUL )
-                                                          .findFirst()
-                                                          .get();
-        final RegionDefinition partitionedStatefulRegionDef = regions.stream()
-                                                                     .filter( regionDefinition -> regionDefinition.getRegionType()
+        final RegionDef statefulRegionDef = regions.stream().filter( regionDef -> regionDef.getRegionType() == STATEFUL ).findFirst().get();
+        final RegionDef partitionedStatefulRegionDef = regions.stream()
+                                                              .filter( regionDef -> regionDef.getRegionType()
                                                                                                   == PARTITIONED_STATEFUL )
-                                                                     .findFirst()
-                                                                     .get();
+                                                              .findFirst()
+                                                              .get();
         final RegionRuntimeConfig regionRuntimeConfig1 = new RegionRuntimeConfig( 0, statefulRegionDef, 1, singletonList( 0 ) );
         final RegionRuntimeConfig regionRuntimeConfig2 = new RegionRuntimeConfig( 1, partitionedStatefulRegionDef, 2, asList( 0, 1 ) );
 
@@ -192,55 +179,52 @@ public class PipelineRuntimeManagerImplTest
         assertEquals( 3, pipelineRuntimeStates.size() );
 
         final PipelineRuntimeState pipelineRuntimeState1 = pipelineRuntimeStates.get( 0 );
-        assertEquals( statefulRegionDef, pipelineRuntimeState1.getRegionDefinition() );
-        assertEquals( 0, pipelineRuntimeState1.getOperatorIndex( operatorDefinition1 ) );
+        assertEquals( statefulRegionDef, pipelineRuntimeState1.getRegionDef() );
+        assertEquals( 0, pipelineRuntimeState1.getOperatorIndex( operatorDef1 ) );
 
         final PipelineRuntimeState pipelineRuntimeState2 = pipelineRuntimeStates.get( 1 );
         assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ), pipelineRuntimeState2.getUpstreamContext() );
-        assertEquals( partitionedStatefulRegionDef, pipelineRuntimeState2.getRegionDefinition() );
-        assertEquals( 0, pipelineRuntimeState2.getOperatorIndex( operatorDefinition2 ) );
+        assertEquals( partitionedStatefulRegionDef, pipelineRuntimeState2.getRegionDef() );
+        assertEquals( 0, pipelineRuntimeState2.getOperatorIndex( operatorDef2 ) );
         assertFalse( pipelineRuntimeState2.getPipelineReplica( 0 ) == pipelineRuntimeState2.getPipelineReplica( 1 ) );
 
         final PipelineRuntimeState pipelineRuntimeState3 = pipelineRuntimeStates.get( 2 );
         assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE, NO_CONNECTION } ),
                       pipelineRuntimeState3.getUpstreamContext() );
-        assertEquals( partitionedStatefulRegionDef, pipelineRuntimeState3.getRegionDefinition() );
-        assertEquals( 0, pipelineRuntimeState3.getOperatorIndex( operatorDefinition3 ) );
+        assertEquals( partitionedStatefulRegionDef, pipelineRuntimeState3.getRegionDef() );
+        assertEquals( 0, pipelineRuntimeState3.getOperatorIndex( operatorDef3 ) );
         assertFalse( pipelineRuntimeState3.getPipelineReplica( 0 ) == pipelineRuntimeState3.getPipelineReplica( 1 ) );
     }
 
     @Test
     public void test_twoRegions_connectedToSingleRegion ()
     {
-        final OperatorDefinition operatorDefinition1 = OperatorDefinitionBuilder.newInstance( "op1", StatefulOperatorInput0Output1.class )
-                                                                                .build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatefulOperatorInput0Output1.class ).build();
 
-        final OperatorDefinition operatorDefinition2 = OperatorDefinitionBuilder.newInstance( "op2", StatefulOperatorInput0Output1.class )
-                                                                                .build();
+        final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatefulOperatorInput0Output1.class ).build();
 
-        final OperatorDefinition operatorDefinition3 = OperatorDefinitionBuilder.newInstance( "op3", StatelessOperatorInput1Output1.class )
-                                                                                .build();
+        final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessOperatorInput1Output1.class ).build();
 
-        final FlowDefinition flow = new FlowDefinitionBuilder().add( operatorDefinition1 )
-                                                               .add( operatorDefinition2 )
-                                                               .add( operatorDefinition3 )
-                                                               .connect( "op1", "op3" )
-                                                               .connect( "op2", "op3" )
-                                                               .build();
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef1 )
+                                                 .add( operatorDef2 )
+                                                 .add( operatorDef3 )
+                                                 .connect( "op1", "op3" )
+                                                 .connect( "op2", "op3" )
+                                                 .build();
 
-        final List<RegionDefinition> regions = regionDefinitionFormer.createRegions( flow );
+        final List<RegionDef> regions = regionDefFormer.createRegions( flow );
         assertEquals( 3, regions.size() );
 
-        final RegionDefinition statelessRegionDef = regions.stream()
-                                                           .filter( regionDefinition -> regionDefinition.getRegionType() == STATELESS )
-                                                           .findFirst()
-                                                           .get();
+        final RegionDef statelessRegionDef = regions.stream()
+                                                    .filter( regionDef -> regionDef.getRegionType() == STATELESS )
+                                                    .findFirst()
+                                                    .get();
 
-        final List<RegionDefinition> statefulRegionDefs = regions.stream()
-                                                                 .filter( regionDefinition -> regionDefinition.getRegionType() == STATEFUL )
-                                                                 .collect( Collectors.toList() );
+        final List<RegionDef> statefulRegionDefs = regions.stream()
+                                                          .filter( regionDef -> regionDef.getRegionType() == STATEFUL )
+                                                          .collect( Collectors.toList() );
 
-        final RegionDefinition statefulRegionDef1 = statefulRegionDefs.get( 0 ), statefulRegionDef2 = statefulRegionDefs.get( 1 );
+        final RegionDef statefulRegionDef1 = statefulRegionDefs.get( 0 ), statefulRegionDef2 = statefulRegionDefs.get( 1 );
 
         final RegionRuntimeConfig regionRuntimeConfig1 = new RegionRuntimeConfig( 0, statefulRegionDef1, 1, singletonList( 0 ) );
         final RegionRuntimeConfig regionRuntimeConfig2 = new RegionRuntimeConfig( 1, statefulRegionDef2, 1, singletonList( 0 ) );
@@ -253,60 +237,54 @@ public class PipelineRuntimeManagerImplTest
                                                                                                                              regionRuntimeConfig3 ) );
 
         final PipelineRuntimeState pipelineRuntimeState1 = pipelineRuntimeStates.get( 0 );
-        assertEquals( statefulRegionDef1, pipelineRuntimeState1.getRegionDefinition() );
+        assertEquals( statefulRegionDef1, pipelineRuntimeState1.getRegionDef() );
         assertEquals( 0, pipelineRuntimeState1.getOperatorIndex( statefulRegionDef1.getOperators().get( 0 ) ) );
 
         final PipelineRuntimeState pipelineRuntimeState2 = pipelineRuntimeStates.get( 1 );
-        assertEquals( statefulRegionDef2, pipelineRuntimeState2.getRegionDefinition() );
+        assertEquals( statefulRegionDef2, pipelineRuntimeState2.getRegionDef() );
         assertEquals( 0, pipelineRuntimeState2.getOperatorIndex( statefulRegionDef2.getOperators().get( 0 ) ) );
 
         final PipelineRuntimeState pipelineRuntimeState3 = pipelineRuntimeStates.get( 2 );
         assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ), pipelineRuntimeState3.getUpstreamContext() );
-        assertEquals( statelessRegionDef, pipelineRuntimeState3.getRegionDefinition() );
-        assertEquals( 0, pipelineRuntimeState3.getOperatorIndex( operatorDefinition3 ) );
+        assertEquals( statelessRegionDef, pipelineRuntimeState3.getRegionDef() );
+        assertEquals( 0, pipelineRuntimeState3.getOperatorIndex( operatorDef3 ) );
     }
 
     @Test
     public void test_singleRegion_connectedToTwoRegions ()
     {
-        final OperatorDefinition operatorDefinition1 = OperatorDefinitionBuilder.newInstance( "op1", StatefulOperatorInput0Output1.class )
-                                                                                .build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatefulOperatorInput0Output1.class ).build();
 
-        final OperatorDefinition operatorDefinition2 = OperatorDefinitionBuilder.newInstance( "op2", StatelessOperatorInput1Output1.class )
-                                                                                .build();
+        final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatelessOperatorInput1Output1.class ).build();
 
-        final OperatorDefinition operatorDefinition3 = OperatorDefinitionBuilder.newInstance( "op3",
-                                                                                              PartitionedStatefulOperatorInput2Output2
+        final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", PartitionedStatefulOperatorInput2Output2
                                                                                                       .class )
-                                                                                .setPartitionFieldNames( singletonList( "field1" ) )
-                                                                                .build();
+                                                           .setPartitionFieldNames( singletonList( "field1" ) )
+                                                           .build();
 
-        final FlowDefinition flow = new FlowDefinitionBuilder().add( operatorDefinition1 )
-                                                               .add( operatorDefinition2 )
-                                                               .add( operatorDefinition3 )
-                                                               .connect( "op1", "op2" )
-                                                               .connect( "op1", 0, "op3", 0 )
-                                                               .connect( "op1", 0, "op3", 1 )
-                                                               .build();
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef1 )
+                                                 .add( operatorDef2 )
+                                                 .add( operatorDef3 )
+                                                 .connect( "op1", "op2" )
+                                                 .connect( "op1", 0, "op3", 0 )
+                                                 .connect( "op1", 0, "op3", 1 )
+                                                 .build();
 
-        final List<RegionDefinition> regions = regionDefinitionFormer.createRegions( flow );
+        final List<RegionDef> regions = regionDefFormer.createRegions( flow );
         assertEquals( 3, regions.size() );
 
-        final RegionDefinition statefulRegionDef = regions.stream()
-                                                          .filter( regionDefinition -> regionDefinition.getRegionType() == STATEFUL )
-                                                          .findFirst()
-                                                          .get();
+        final RegionDef statefulRegionDef = regions.stream().filter( regionDef -> regionDef.getRegionType() == STATEFUL ).findFirst().get();
 
-        final RegionDefinition statelessRegionDef = regions.stream()
-                                                           .filter( regionDefinition -> regionDefinition.getRegionType() == STATELESS )
-                                                           .findFirst()
-                                                           .get();
+        final RegionDef statelessRegionDef = regions.stream()
+                                                    .filter( regionDef -> regionDef.getRegionType() == STATELESS )
+                                                    .findFirst()
+                                                    .get();
 
-        final RegionDefinition partitionedStatefulRegionDef = regions.stream()
-                                                                     .filter( regionDefinition -> regionDefinition.getRegionType()
+        final RegionDef partitionedStatefulRegionDef = regions.stream()
+                                                              .filter( regionDef -> regionDef.getRegionType()
                                                                                                   == PARTITIONED_STATEFUL )
-                                                                     .findFirst()
-                                                                     .get();
+                                                              .findFirst()
+                                                              .get();
 
         final RegionRuntimeConfig regionRuntimeConfig1 = new RegionRuntimeConfig( 0, statefulRegionDef, 1, singletonList( 0 ) );
         final RegionRuntimeConfig regionRuntimeConfig2 = new RegionRuntimeConfig( 1, statelessRegionDef, 1, singletonList( 0 ) );
@@ -319,19 +297,19 @@ public class PipelineRuntimeManagerImplTest
                                                                                                                              regionRuntimeConfig3 ) );
 
         final PipelineRuntimeState pipelineRuntimeState1 = pipelineRuntimeStates.get( 0 );
-        assertEquals( statefulRegionDef, pipelineRuntimeState1.getRegionDefinition() );
+        assertEquals( statefulRegionDef, pipelineRuntimeState1.getRegionDef() );
         assertEquals( 0, pipelineRuntimeState1.getOperatorIndex( statefulRegionDef.getOperators().get( 0 ) ) );
 
         final PipelineRuntimeState pipelineRuntimeState2 = pipelineRuntimeStates.get( 1 );
-        assertEquals( statelessRegionDef, pipelineRuntimeState2.getRegionDefinition() );
+        assertEquals( statelessRegionDef, pipelineRuntimeState2.getRegionDef() );
         assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ), pipelineRuntimeState2.getUpstreamContext() );
         assertEquals( 0, pipelineRuntimeState2.getOperatorIndex( statelessRegionDef.getOperators().get( 0 ) ) );
 
         final PipelineRuntimeState pipelineRuntimeState3 = pipelineRuntimeStates.get( 2 );
         assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE, ACTIVE } ),
                       pipelineRuntimeState3.getUpstreamContext() );
-        assertEquals( partitionedStatefulRegionDef, pipelineRuntimeState3.getRegionDefinition() );
-        assertEquals( 0, pipelineRuntimeState3.getOperatorIndex( operatorDefinition3 ) );
+        assertEquals( partitionedStatefulRegionDef, pipelineRuntimeState3.getRegionDef() );
+        assertEquals( 0, pipelineRuntimeState3.getOperatorIndex( operatorDef3 ) );
     }
 
     @OperatorSpec( type = STATEFUL, inputPortCount = 0, outputPortCount = 1 )

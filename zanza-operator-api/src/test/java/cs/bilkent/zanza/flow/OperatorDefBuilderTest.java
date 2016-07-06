@@ -4,12 +4,12 @@ import java.util.List;
 
 import org.junit.Test;
 
-import cs.bilkent.zanza.flow.FlowDefinitionBuilderTest.NopOperator;
-import cs.bilkent.zanza.flow.FlowDefinitionBuilderTest.OperatorWithNoSpec;
-import cs.bilkent.zanza.flow.FlowDefinitionBuilderTest.StatefulOperatorWithFixedPortCounts;
-import cs.bilkent.zanza.flow.FlowDefinitionBuilderTest.StatefulOperatorWithInvalidInputPortCount;
-import cs.bilkent.zanza.flow.FlowDefinitionBuilderTest.StatefulOperatorWithInvalidOutputPortCount;
-import cs.bilkent.zanza.flow.FlowDefinitionBuilderTest.StatelessOperatorWithDynamicPortCounts;
+import cs.bilkent.zanza.flow.FlowDefBuilderTest.NopOperator;
+import cs.bilkent.zanza.flow.FlowDefBuilderTest.OperatorWithNoSpec;
+import cs.bilkent.zanza.flow.FlowDefBuilderTest.StatefulOperatorWithFixedPortCounts;
+import cs.bilkent.zanza.flow.FlowDefBuilderTest.StatefulOperatorWithInvalidInputPortCount;
+import cs.bilkent.zanza.flow.FlowDefBuilderTest.StatefulOperatorWithInvalidOutputPortCount;
+import cs.bilkent.zanza.flow.FlowDefBuilderTest.StatelessOperatorWithDynamicPortCounts;
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
 import cs.bilkent.zanza.operator.schema.annotation.OperatorSchema;
 import cs.bilkent.zanza.operator.schema.annotation.PortSchema;
@@ -31,114 +31,114 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 
-public class OperatorDefinitionBuilderTest
+public class OperatorDefBuilderTest
 {
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotBuildBuilderWithNullId ()
     {
-        OperatorDefinitionBuilder.newInstance( null, StatelessOperatorWithDynamicPortCounts.class );
+        OperatorDefBuilder.newInstance( null, StatelessOperatorWithDynamicPortCounts.class );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotBuildBuilderWithEmptyId ()
     {
-        OperatorDefinitionBuilder.newInstance( "", StatelessOperatorWithDynamicPortCounts.class );
+        OperatorDefBuilder.newInstance( "", StatelessOperatorWithDynamicPortCounts.class );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotBuildBuilderWithNullClass ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", null );
+        OperatorDefBuilder.newInstance( "op1", null );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotBuildBuilderWithoutOperatorSpec ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", OperatorWithNoSpec.class );
+        OperatorDefBuilder.newInstance( "op1", OperatorWithNoSpec.class );
     }
 
     @Test( expected = IllegalStateException.class )
-    public void shouldNotBuildOperatorDefinitionWithInvalidFixedInputCountAndNoConfig ()
+    public void shouldNotBuildOperatorDefWithInvalidFixedInputCountAndNoConfig ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).build();
+        OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).build();
     }
 
     @Test( expected = IllegalStateException.class )
-    public void shouldNotBuildOperatorDefinitionWithDynamicInputPortCount ()
+    public void shouldNotBuildOperatorDefWithDynamicInputPortCount ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setOutputPortCount( 1 ).build();
+        OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setOutputPortCount( 1 ).build();
     }
 
     @Test
     public void shouldSetSingleInputPortCountForStatelessOperator ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setInputPortCount( 1 );
+        OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setInputPortCount( 1 );
     }
 
     @Test
     public void shouldSetZeroInputPortCountForStatelessOperator ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setInputPortCount( 0 );
+        OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setInputPortCount( 0 );
     }
 
     @Test
     public void shouldSetSingleOutputPortCountForStatelessOperator ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setOutputPortCount( 1 );
+        OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setOutputPortCount( 1 );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotSetMultipleInputPortCountForStatelessOperator ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setInputPortCount( 2 );
+        OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setInputPortCount( 2 );
     }
 
     @Test
     public void shouldSetMultipleOutputPortCountForStatelessOperator ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setOutputPortCount( 2 );
+        OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setOutputPortCount( 2 );
     }
 
     @Test( expected = IllegalStateException.class )
-    public void shouldNotBuildOperatorDefinitionWithDynamicOutputPortCount ()
+    public void shouldNotBuildOperatorDefWithDynamicOutputPortCount ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setInputPortCount( 1 ).build();
+        OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setInputPortCount( 1 ).build();
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotBuildBuilderWithMultipleInputPortCount ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithMultipleInputPortCount.class );
+        OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithMultipleInputPortCount.class );
     }
 
     @Test
-    public void shouldBuildStatelessOperatorDefinitionWithMultipleOutputPortCount ()
+    public void shouldBuildStatelessOperatorDefWithMultipleOutputPortCount ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithMultipleOutputPortCount.class ).setInputPortCount( 1 ).build();
+        OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithMultipleOutputPortCount.class ).setInputPortCount( 1 ).build();
     }
 
     @Test
     public void shouldBuildBuilderWithSingleInputOutputPortCount ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithSingleInputOutputPortCount.class );
+        OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithSingleInputOutputPortCount.class );
     }
 
     @Test
     public void shouldBuildBuilderWithZeroInputOutputPortCount ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithZeroInputOutputPortCount.class );
+        OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithZeroInputOutputPortCount.class );
     }
 
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotBuildOperatorDefinitionWithInvalidFixedInputCount ()
+    public void shouldNotBuildOperatorDefWithInvalidFixedInputCount ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", StatefulOperatorWithInvalidInputPortCount.class ).build();
+        OperatorDefBuilder.newInstance( "op1", StatefulOperatorWithInvalidInputPortCount.class ).build();
     }
 
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotBuildOperatorDefinitionWithInvalidFixedOutputCount ()
+    public void shouldNotBuildOperatorDefWithInvalidFixedOutputCount ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", StatefulOperatorWithInvalidOutputPortCount.class ).build();
+        OperatorDefBuilder.newInstance( "op1", StatefulOperatorWithInvalidOutputPortCount.class ).build();
     }
 
     @Test( expected = IllegalStateException.class )
@@ -146,9 +146,9 @@ public class OperatorDefinitionBuilderTest
     {
         final OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
         schemaBuilder.getInputPortSchemaBuilder( DEFAULT_PORT_INDEX ).addField( "field3", boolean.class );
-        OperatorDefinitionBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema.class )
-                                 .setExtendingSchema( schemaBuilder.build() )
-                                 .build();
+        OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema.class )
+                          .setExtendingSchema( schemaBuilder.build() )
+                          .build();
     }
 
     @Test( expected = IllegalArgumentException.class )
@@ -156,9 +156,9 @@ public class OperatorDefinitionBuilderTest
     {
         final OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( 2, 1 );
         schemaBuilder.getInputPortSchemaBuilder( DEFAULT_PORT_INDEX ).addField( "field3", boolean.class );
-        OperatorDefinitionBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema.class )
-                                 .setExtendingSchema( schemaBuilder.build() )
-                                 .build();
+        OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema.class )
+                          .setExtendingSchema( schemaBuilder.build() )
+                          .build();
     }
 
     @Test( expected = IllegalArgumentException.class )
@@ -166,9 +166,9 @@ public class OperatorDefinitionBuilderTest
     {
         final OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 2 );
         schemaBuilder.getInputPortSchemaBuilder( DEFAULT_PORT_INDEX ).addField( "field3", boolean.class );
-        OperatorDefinitionBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema.class )
-                                 .setExtendingSchema( schemaBuilder.build() )
-                                 .build();
+        OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema.class )
+                          .setExtendingSchema( schemaBuilder.build() )
+                          .build();
     }
 
     @Test( expected = IllegalArgumentException.class )
@@ -176,9 +176,9 @@ public class OperatorDefinitionBuilderTest
     {
         final OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
         schemaBuilder.getInputPortSchemaBuilder( DEFAULT_PORT_INDEX ).addField( "field1", boolean.class );
-        OperatorDefinitionBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema.class )
-                                 .setExtendingSchema( schemaBuilder.build() )
-                                 .build();
+        OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema.class )
+                          .setExtendingSchema( schemaBuilder.build() )
+                          .build();
     }
 
     @Test( expected = IllegalArgumentException.class )
@@ -186,46 +186,46 @@ public class OperatorDefinitionBuilderTest
     {
         final OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
         schemaBuilder.getOutputPortSchemaBuilder( DEFAULT_PORT_INDEX ).addField( "field2", boolean.class );
-        OperatorDefinitionBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema.class )
-                                 .setExtendingSchema( schemaBuilder.build() )
-                                 .build();
+        OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema.class )
+                          .setExtendingSchema( schemaBuilder.build() )
+                          .build();
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotSetNonExistingPartitionFieldNameInPortSchema ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema.class )
-                                 .setPartitionFieldNames( singletonList( "field2" ) );
+        OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema.class )
+                          .setPartitionFieldNames( singletonList( "field2" ) );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotSetNonExistingPartitionFieldNamePortSchemas ()
     {
         final OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        OperatorDefinitionBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema.class )
-                                 .setExtendingSchema( schemaBuilder )
-                                 .setPartitionFieldNames( singletonList( "field2" ) );
+        OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema.class )
+                          .setExtendingSchema( schemaBuilder )
+                          .setPartitionFieldNames( singletonList( "field2" ) );
     }
 
     @Test( expected = IllegalStateException.class )
     public void shouldNotSetPartitionFieldNamesToStatelessOperator ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class )
-                                 .setPartitionFieldNames( singletonList( "field1" ) );
+        OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class )
+                          .setPartitionFieldNames( singletonList( "field1" ) );
     }
 
     @Test( expected = IllegalStateException.class )
     public void shouldNotSetPartitionFieldNamesToStatefulOperator ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", StatefulOperatorWithFixedPortCounts.class )
-                                 .setPartitionFieldNames( singletonList( "field1" ) );
+        OperatorDefBuilder.newInstance( "op1", StatefulOperatorWithFixedPortCounts.class )
+                          .setPartitionFieldNames( singletonList( "field1" ) );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotSetPartitionFieldNameNotExistOnAllInputPorts ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", PartitionedStatefulOperatorWithBaseInputPortSchema.class )
-                                 .setPartitionFieldNames( singletonList( "field1" ) );
+        OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorWithBaseInputPortSchema.class )
+                          .setPartitionFieldNames( singletonList( "field1" ) );
     }
 
     @Test( expected = IllegalArgumentException.class )
@@ -233,9 +233,9 @@ public class OperatorDefinitionBuilderTest
     {
         final OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( 2, 1 );
         schemaBuilder.getInputPortSchemaBuilder( 1 ).addField( "field1", long.class );
-        OperatorDefinitionBuilder.newInstance( "op1", PartitionedStatefulOperatorWithBaseInputPortSchema.class )
-                                 .setExtendingSchema( schemaBuilder )
-                                 .setPartitionFieldNames( singletonList( "field1" ) );
+        OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorWithBaseInputPortSchema.class )
+                          .setExtendingSchema( schemaBuilder )
+                          .setPartitionFieldNames( singletonList( "field1" ) );
     }
 
     @Test
@@ -243,20 +243,19 @@ public class OperatorDefinitionBuilderTest
     {
         final OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( 2, 1 );
         schemaBuilder.getInputPortSchemaBuilder( 1 ).addField( "field1", int.class );
-        OperatorDefinitionBuilder.newInstance( "op1", PartitionedStatefulOperatorWithBaseInputPortSchema.class )
-                                 .setExtendingSchema( schemaBuilder )
-                                 .setPartitionFieldNames( singletonList( "field1" ) );
+        OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorWithBaseInputPortSchema.class )
+                          .setExtendingSchema( schemaBuilder )
+                          .setPartitionFieldNames( singletonList( "field1" ) );
     }
 
     @Test
     public void shouldSetPartitionFieldNamesToPartitionedStatefulOperator ()
     {
         final List<String> partitionFieldNames = singletonList( "field1" );
-        final OperatorDefinition definition = OperatorDefinitionBuilder.newInstance( "op1",
-                                                                                     PartitionedStatefulOperatorWithExactInputPortSchema
+        final OperatorDef definition = OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema
                                                                                              .class )
-                                                                       .setPartitionFieldNames( partitionFieldNames )
-                                                                       .build();
+                                                         .setPartitionFieldNames( partitionFieldNames )
+                                                         .build();
 
         assertTrue( partitionFieldNames.equals( definition.partitionFieldNames() ) );
     }
@@ -264,61 +263,61 @@ public class OperatorDefinitionBuilderTest
     @Test( expected = IllegalStateException.class )
     public void shouldNotSetInputPortCountToOperatorWithInputPortCountInSpec ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema.class ).setInputPortCount( 1 );
+        OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema.class ).setInputPortCount( 1 );
     }
 
     @Test( expected = IllegalStateException.class )
     public void shouldNotSetOutputPortCountToOperatorWithOutputPortCountInSpec ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema.class ).setOutputPortCount( 1 );
+        OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema.class ).setOutputPortCount( 1 );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotBuildBuilderForOperatorWithNoInputPortCountButInputSchema ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", OperatorWithNoInputPortCountButInputSchema.class );
+        OperatorDefBuilder.newInstance( "op1", OperatorWithNoInputPortCountButInputSchema.class );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotBuildBuilderForOperatorWithNoOutputPortCountButOutputSchema ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", OperatorWithNoOutputPortCountButOutputSchema.class );
+        OperatorDefBuilder.newInstance( "op1", OperatorWithNoOutputPortCountButOutputSchema.class );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotBuildBuilderForOperatorWithDuplicateInputPortSchema ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", OperatorWithDuplicateInputPortSchema.class );
+        OperatorDefBuilder.newInstance( "op1", OperatorWithDuplicateInputPortSchema.class );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotBuildBuilderForOperatorWithDuplicateOutputPortSchema ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", OperatorWithDuplicateOutputPortSchema.class );
+        OperatorDefBuilder.newInstance( "op1", OperatorWithDuplicateOutputPortSchema.class );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotBuildBuilderForOperatorWithNegativeInputPortSchema ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", OperatorWithNegativeInputPortSchema.class );
+        OperatorDefBuilder.newInstance( "op1", OperatorWithNegativeInputPortSchema.class );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotBuildBuilderForOperatorWithNegativeOutputPortSchema ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", OperatorWithNegativeOutputPortSchema.class );
+        OperatorDefBuilder.newInstance( "op1", OperatorWithNegativeOutputPortSchema.class );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotBuildBuilderForOperatorWithExceedingInputPortSchema ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", OperatorWithExceedingInputPortSchema.class );
+        OperatorDefBuilder.newInstance( "op1", OperatorWithExceedingInputPortSchema.class );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotBuildBuilderForOperatorWithExceedingOutputPortSchema ()
     {
-        OperatorDefinitionBuilder.newInstance( "op1", OperatorWithExceedingOutputPortSchema.class );
+        OperatorDefBuilder.newInstance( "op1", OperatorWithExceedingOutputPortSchema.class );
     }
 
     @Test( expected = IllegalStateException.class )
@@ -327,23 +326,22 @@ public class OperatorDefinitionBuilderTest
         final OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
         schemaBuilder.getOutputPortSchemaBuilder( DEFAULT_PORT_INDEX ).addField( "field3", boolean.class );
 
-        OperatorDefinitionBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema.class )
-                                 .setExtendingSchema( schemaBuilder.build() )
-                                 .build();
+        OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema.class )
+                          .setExtendingSchema( schemaBuilder.build() )
+                          .build();
     }
 
     @Test
-    public void shouldBuildOperatorDefinitionWithExtendedOutputPortSchema ()
+    public void shouldBuildOperatorDefWithExtendedOutputPortSchema ()
     {
         final OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
         schemaBuilder.getOutputPortSchemaBuilder( DEFAULT_PORT_INDEX ).addField( "field3", boolean.class );
 
-        final OperatorDefinition definition = OperatorDefinitionBuilder.newInstance( "op1",
-                                                                                     PartitionedStatefulOperatorWithExactInputPortSchema
+        final OperatorDef definition = OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema
                                                                                              .class )
-                                                                       .setExtendingSchema( schemaBuilder.build() )
-                                                                       .setPartitionFieldNames( singletonList( "field1" ) )
-                                                                       .build();
+                                                         .setExtendingSchema( schemaBuilder.build() )
+                                                         .setPartitionFieldNames( singletonList( "field1" ) )
+                                                         .build();
         final OperatorRuntimeSchema schema = definition.schema();
         assertThat( schema.getOutputSchemas(), hasSize( 1 ) );
         final PortRuntimeSchema outputSchema = schema.getOutputSchema( DEFAULT_PORT_INDEX );
@@ -355,13 +353,12 @@ public class OperatorDefinitionBuilderTest
 
 
     @Test
-    public void shouldBuildOperatorDefinitionWithPortSchemaDefinition ()
+    public void shouldBuildOperatorDefWithPortSchemaDefinition ()
     {
-        final OperatorDefinition definition = OperatorDefinitionBuilder.newInstance( "op1",
-                                                                                     PartitionedStatefulOperatorWithExactInputPortSchema
+        final OperatorDef definition = OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema
                                                                                              .class )
-                                                                       .setPartitionFieldNames( singletonList( "field1" ) )
-                                                                       .build();
+                                                         .setPartitionFieldNames( singletonList( "field1" ) )
+                                                         .build();
         final OperatorRuntimeSchema schema = definition.schema();
         assertThat( schema.getInputSchemas(), hasSize( 1 ) );
         final PortRuntimeSchema inputSchema = schema.getInputSchema( DEFAULT_PORT_INDEX );
@@ -378,8 +375,7 @@ public class OperatorDefinitionBuilderTest
     @Test
     public void shouldBuildEmptyRuntimeSchemaWithNoSchemaDefinition ()
     {
-        final OperatorDefinition definition = OperatorDefinitionBuilder.newInstance( "op1", StatefulOperatorWithFixedPortCounts.class )
-                                                                       .build();
+        final OperatorDef definition = OperatorDefBuilder.newInstance( "op1", StatefulOperatorWithFixedPortCounts.class ).build();
         assertNotNull( definition );
 
         final OperatorRuntimeSchema schema = definition.schema();

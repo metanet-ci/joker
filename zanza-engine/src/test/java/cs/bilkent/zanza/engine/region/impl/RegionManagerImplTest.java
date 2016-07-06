@@ -25,7 +25,7 @@ import cs.bilkent.zanza.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.zanza.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
 import cs.bilkent.zanza.engine.pipeline.impl.tuplesupplier.NonCachedTuplesImplSupplier;
 import cs.bilkent.zanza.engine.region.Region;
-import cs.bilkent.zanza.engine.region.RegionDefinition;
+import cs.bilkent.zanza.engine.region.RegionDef;
 import cs.bilkent.zanza.engine.region.RegionRuntimeConfig;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.impl.TupleQueueContextManagerImpl;
@@ -34,10 +34,10 @@ import cs.bilkent.zanza.engine.tuplequeue.impl.context.EmptyTupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.impl.context.PartitionedTupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.pool.BlockingTupleQueueDrainerPool;
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.pool.NonBlockingTupleQueueDrainerPool;
-import cs.bilkent.zanza.flow.FlowDefinition;
-import cs.bilkent.zanza.flow.FlowDefinitionBuilder;
-import cs.bilkent.zanza.flow.OperatorDefinition;
-import cs.bilkent.zanza.flow.OperatorDefinitionBuilder;
+import cs.bilkent.zanza.flow.FlowDef;
+import cs.bilkent.zanza.flow.FlowDefBuilder;
+import cs.bilkent.zanza.flow.OperatorDef;
+import cs.bilkent.zanza.flow.OperatorDefBuilder;
 import cs.bilkent.zanza.flow.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.zanza.operator.InitializationContext;
 import cs.bilkent.zanza.operator.InvocationContext;
@@ -73,16 +73,13 @@ public class RegionManagerImplTest
     {
 
         final Class<StatelessOperatorWithSingleInputOutputPortCount> operatorClazz = StatelessOperatorWithSingleInputOutputPortCount.class;
-        final OperatorDefinition operatorDefinition0 = OperatorDefinitionBuilder.newInstance( "op0", operatorClazz ).build();
-        final OperatorDefinition operatorDefinition1 = OperatorDefinitionBuilder.newInstance( "op1", operatorClazz ).build();
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", operatorClazz ).build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", operatorClazz ).build();
 
-        final FlowDefinition flow = new FlowDefinitionBuilder().add( operatorDefinition0 )
-                                                               .add( operatorDefinition1 )
-                                                               .connect( "op0", "op1" )
-                                                               .build();
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef0 ).add( operatorDef1 ).connect( "op0", "op1" ).build();
 
-        final List<RegionDefinition> regionDefs = new RegionDefinitionFormerImpl().createRegions( flow );
-        final RegionDefinition regionDef = regionDefs.get( 0 );
+        final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
+        final RegionDef regionDef = regionDefs.get( 0 );
         final RegionRuntimeConfig regionConfig = new RegionRuntimeConfig( 1, regionDef, 1, singletonList( 0 ) );
 
         final Region region = regionManagerImpl.createRegion( flow, regionConfig );
@@ -90,9 +87,9 @@ public class RegionManagerImplTest
         final PipelineReplica[] pipelines = region.getReplicaPipelines( 0 );
         assertEquals( 1, pipelines.length );
         final PipelineReplica pipeline = pipelines[ 0 ];
-        assertEmptyTupleQueueContext( pipeline, operatorDefinition0.inputPortCount() );
+        assertEmptyTupleQueueContext( pipeline, operatorDef0.inputPortCount() );
 
-        assertStatelessPipelineWithNoInput( 1, 0, 0, operatorDefinition0, operatorDefinition1, pipeline );
+        assertStatelessPipelineWithNoInput( 1, 0, 0, operatorDef0, operatorDef1, pipeline );
     }
 
     // TODO fix it after splitters and mergers are implemented
@@ -102,16 +99,13 @@ public class RegionManagerImplTest
     {
 
         final Class<StatelessOperatorWithSingleInputOutputPortCount> operatorClazz = StatelessOperatorWithSingleInputOutputPortCount.class;
-        final OperatorDefinition operatorDefinition0 = OperatorDefinitionBuilder.newInstance( "op0", operatorClazz ).build();
-        final OperatorDefinition operatorDefinition1 = OperatorDefinitionBuilder.newInstance( "op1", operatorClazz ).build();
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", operatorClazz ).build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", operatorClazz ).build();
 
-        final FlowDefinition flow = new FlowDefinitionBuilder().add( operatorDefinition0 )
-                                                               .add( operatorDefinition1 )
-                                                               .connect( "op0", "op1" )
-                                                               .build();
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef0 ).add( operatorDef1 ).connect( "op0", "op1" ).build();
 
-        final List<RegionDefinition> regionDefs = new RegionDefinitionFormerImpl().createRegions( flow );
-        final RegionDefinition regionDef = regionDefs.get( 0 );
+        final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
+        final RegionDef regionDef = regionDefs.get( 0 );
         final RegionRuntimeConfig regionConfig = new RegionRuntimeConfig( 1, regionDef, 2, singletonList( 0 ) );
 
         final Region region = regionManagerImpl.createRegion( flow, regionConfig );
@@ -121,11 +115,11 @@ public class RegionManagerImplTest
         assertEquals( 1, pipelines0.length );
         final PipelineReplica pipelineReplica0 = pipelines0[ 0 ];
         final PipelineReplica pipelineReplica1 = pipelines1[ 0 ];
-        assertEmptyTupleQueueContext( pipelineReplica0, operatorDefinition0.inputPortCount() );
-        assertEmptyTupleQueueContext( pipelineReplica1, operatorDefinition0.inputPortCount() );
+        assertEmptyTupleQueueContext( pipelineReplica0, operatorDef0.inputPortCount() );
+        assertEmptyTupleQueueContext( pipelineReplica1, operatorDef0.inputPortCount() );
 
-        assertStatelessPipelineWithNoInput( 1, 0, 0, operatorDefinition0, operatorDefinition1, pipelineReplica0 );
-        assertStatelessPipelineWithNoInput( 1, 1, 0, operatorDefinition0, operatorDefinition1, pipelineReplica1 );
+        assertStatelessPipelineWithNoInput( 1, 0, 0, operatorDef0, operatorDef1, pipelineReplica0 );
+        assertStatelessPipelineWithNoInput( 1, 1, 0, operatorDef0, operatorDef1, pipelineReplica1 );
     }
 
     @Test
@@ -133,16 +127,13 @@ public class RegionManagerImplTest
     {
 
         final Class<StatelessOperatorWithSingleInputOutputPortCount> operatorClazz = StatelessOperatorWithSingleInputOutputPortCount.class;
-        final OperatorDefinition operatorDefinition0 = OperatorDefinitionBuilder.newInstance( "op0", operatorClazz ).build();
-        final OperatorDefinition operatorDefinition1 = OperatorDefinitionBuilder.newInstance( "op1", operatorClazz ).build();
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", operatorClazz ).build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", operatorClazz ).build();
 
-        final FlowDefinition flow = new FlowDefinitionBuilder().add( operatorDefinition0 )
-                                                               .add( operatorDefinition1 )
-                                                               .connect( "op0", "op1" )
-                                                               .build();
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef0 ).add( operatorDef1 ).connect( "op0", "op1" ).build();
 
-        final List<RegionDefinition> regionDefs = new RegionDefinitionFormerImpl().createRegions( flow );
-        final RegionDefinition regionDef = regionDefs.get( 0 );
+        final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
+        final RegionDef regionDef = regionDefs.get( 0 );
         final RegionRuntimeConfig regionConfig = new RegionRuntimeConfig( 1, regionDef, 1, asList( 0, 1 ) );
 
         final Region region = regionManagerImpl.createRegion( flow, regionConfig );
@@ -151,8 +142,8 @@ public class RegionManagerImplTest
         assertEquals( 2, pipelines.length );
         final PipelineReplica pipeline0 = pipelines[ 0 ];
         final PipelineReplica pipeline1 = pipelines[ 1 ];
-        assertEmptyTupleQueueContext( pipeline0, operatorDefinition0.inputPortCount() );
-        assertDefaultTupleQueueContext( pipeline1, operatorDefinition1.inputPortCount() );
+        assertEmptyTupleQueueContext( pipeline0, operatorDef0.inputPortCount() );
+        assertDefaultTupleQueueContext( pipeline1, operatorDef1.inputPortCount() );
 
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 0 ), pipeline0.id() );
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 1 ), 0 ), pipeline1.id() );
@@ -160,10 +151,10 @@ public class RegionManagerImplTest
         assertEquals( 1, pipeline1.getOperatorCount() );
         final OperatorReplica operatorReplica0 = pipeline0.getOperator( 0 );
         final OperatorReplica operatorReplica1 = pipeline1.getOperator( 0 );
-        assertOperatorDefinition( operatorReplica0, operatorDefinition0 );
-        assertOperatorDefinition( operatorReplica1, operatorDefinition1 );
+        assertOperatorDef( operatorReplica0, operatorDef0 );
+        assertOperatorDef( operatorReplica1, operatorDef1 );
         assertEmptyTupleQueueContext( operatorReplica0 );
-        assertDefaultTupleQueueContext( operatorReplica1, operatorDefinition1.inputPortCount(), MULTI_THREADED );
+        assertDefaultTupleQueueContext( operatorReplica1, operatorDef1.inputPortCount(), MULTI_THREADED );
         assertEmptyKVStoreContext( operatorReplica0 );
         assertEmptyKVStoreContext( operatorReplica1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica0 );
@@ -175,17 +166,18 @@ public class RegionManagerImplTest
     private void assertStatelessPipelineWithNoInput ( final int regionId,
                                                       final int replicaIndex,
                                                       final int pipelineId,
-                                                      final OperatorDefinition operatorDefinition0,
-                                                      final OperatorDefinition operatorDefinition1, final PipelineReplica pipelineReplica0 )
+                                                      final OperatorDef operatorDef0,
+                                                      final OperatorDef operatorDef1,
+                                                      final PipelineReplica pipelineReplica0 )
     {
         assertEquals( new PipelineReplicaId( new PipelineId( regionId, pipelineId ), replicaIndex ), pipelineReplica0.id() );
         assertEquals( 2, pipelineReplica0.getOperatorCount() );
         final OperatorReplica operatorReplica0 = pipelineReplica0.getOperator( 0 );
         final OperatorReplica operatorReplica1 = pipelineReplica0.getOperator( 1 );
-        assertOperatorDefinition( operatorReplica0, operatorDefinition0 );
-        assertOperatorDefinition( operatorReplica1, operatorDefinition1 );
+        assertOperatorDef( operatorReplica0, operatorDef0 );
+        assertOperatorDef( operatorReplica1, operatorDef1 );
         assertEmptyTupleQueueContext( operatorReplica0 );
-        assertDefaultTupleQueueContext( operatorReplica1, operatorDefinition1.inputPortCount(), SINGLE_THREADED );
+        assertDefaultTupleQueueContext( operatorReplica1, operatorDef1.inputPortCount(), SINGLE_THREADED );
         assertEmptyKVStoreContext( operatorReplica0 );
         assertEmptyKVStoreContext( operatorReplica1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica0 );
@@ -199,21 +191,20 @@ public class RegionManagerImplTest
     {
 
         final Class<StatelessOperatorWithSingleInputOutputPortCount> operatorClazz = StatelessOperatorWithSingleInputOutputPortCount.class;
-        final OperatorDefinition operatorDefinition0 = OperatorDefinitionBuilder.newInstance( "op0",
-                                                                                              StatefulOperatorWithSingleInputOutputPortCount.class )
-                                                                                .build();
-        final OperatorDefinition operatorDefinition1 = OperatorDefinitionBuilder.newInstance( "op1", operatorClazz ).build();
-        final OperatorDefinition operatorDefinition2 = OperatorDefinitionBuilder.newInstance( "op2", operatorClazz ).build();
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithSingleInputOutputPortCount.class )
+                                                           .build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", operatorClazz ).build();
+        final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", operatorClazz ).build();
 
-        final FlowDefinition flow = new FlowDefinitionBuilder().add( operatorDefinition0 )
-                                                               .add( operatorDefinition1 )
-                                                               .add( operatorDefinition2 )
-                                                               .connect( "op0", "op1" )
-                                                               .connect( "op1", "op2" )
-                                                               .build();
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef0 )
+                                                 .add( operatorDef1 )
+                                                 .add( operatorDef2 )
+                                                 .connect( "op0", "op1" )
+                                                 .connect( "op1", "op2" )
+                                                 .build();
 
-        final List<RegionDefinition> regionDefs = new RegionDefinitionFormerImpl().createRegions( flow );
-        final RegionDefinition regionDef = regionDefs.get( 1 );
+        final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
+        final RegionDef regionDef = regionDefs.get( 1 );
         final RegionRuntimeConfig regionConfig = new RegionRuntimeConfig( 1, regionDef, 1, singletonList( 0 ) );
 
         final Region regionInstance = regionManagerImpl.createRegion( flow, regionConfig );
@@ -221,16 +212,16 @@ public class RegionManagerImplTest
         final PipelineReplica[] pipelines = regionInstance.getReplicaPipelines( 0 );
         assertEquals( 1, pipelines.length );
         final PipelineReplica pipeline = pipelines[ 0 ];
-        assertDefaultTupleQueueContext( pipeline, operatorDefinition1.inputPortCount() );
+        assertDefaultTupleQueueContext( pipeline, operatorDef1.inputPortCount() );
 
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 0 ), pipeline.id() );
         assertEquals( 2, pipeline.getOperatorCount() );
         final OperatorReplica operatorReplica1 = pipeline.getOperator( 0 );
         final OperatorReplica operatorReplica2 = pipeline.getOperator( 1 );
-        assertOperatorDefinition( operatorReplica1, operatorDefinition1 );
-        assertOperatorDefinition( operatorReplica2, operatorDefinition2 );
-        assertDefaultTupleQueueContext( operatorReplica1, operatorDefinition1.inputPortCount(), MULTI_THREADED );
-        assertDefaultTupleQueueContext( operatorReplica2, operatorDefinition2.inputPortCount(), SINGLE_THREADED );
+        assertOperatorDef( operatorReplica1, operatorDef1 );
+        assertOperatorDef( operatorReplica2, operatorDef2 );
+        assertDefaultTupleQueueContext( operatorReplica1, operatorDef1.inputPortCount(), MULTI_THREADED );
+        assertDefaultTupleQueueContext( operatorReplica2, operatorDef2.inputPortCount(), SINGLE_THREADED );
         assertEmptyKVStoreContext( operatorReplica1 );
         assertEmptyKVStoreContext( operatorReplica2 );
         assertBlockingTupleQueueDrainerPool( operatorReplica1 );
@@ -242,20 +233,15 @@ public class RegionManagerImplTest
     @Test
     public void test_statefulRegion_singlePipeline_singleReplica ()
     {
-        final OperatorDefinition operatorDefinition0 = OperatorDefinitionBuilder.newInstance( "op0",
-                                                                                              StatelessOperatorWithSingleInputOutputPortCount.class )
-                                                                                .build();
-        final OperatorDefinition operatorDefinition1 = OperatorDefinitionBuilder.newInstance( "op1",
-                                                                                              StatefulOperatorWithSingleInputOutputPortCount.class )
-                                                                                .build();
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatelessOperatorWithSingleInputOutputPortCount.class )
+                                                           .build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatefulOperatorWithSingleInputOutputPortCount.class )
+                                                           .build();
 
-        final FlowDefinition flow = new FlowDefinitionBuilder().add( operatorDefinition0 )
-                                                               .add( operatorDefinition1 )
-                                                               .connect( "op0", "op1" )
-                                                               .build();
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef0 ).add( operatorDef1 ).connect( "op0", "op1" ).build();
 
-        final List<RegionDefinition> regionDefs = new RegionDefinitionFormerImpl().createRegions( flow );
-        final RegionDefinition regionDef = regionDefs.get( 1 );
+        final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
+        final RegionDef regionDef = regionDefs.get( 1 );
         final RegionRuntimeConfig regionConfig = new RegionRuntimeConfig( 1, regionDef, 1, singletonList( 0 ) );
 
         final Region regionInstance = regionManagerImpl.createRegion( flow, regionConfig );
@@ -263,14 +249,14 @@ public class RegionManagerImplTest
         final PipelineReplica[] pipelines = regionInstance.getReplicaPipelines( 0 );
         assertEquals( 1, pipelines.length );
         final PipelineReplica pipeline = pipelines[ 0 ];
-        assertDefaultTupleQueueContext( pipeline, operatorDefinition1.inputPortCount() );
+        assertDefaultTupleQueueContext( pipeline, operatorDef1.inputPortCount() );
 
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 0 ), pipeline.id() );
         assertEquals( 1, pipeline.getOperatorCount() );
 
         final OperatorReplica operatorReplica1 = pipeline.getOperator( 0 );
-        assertOperatorDefinition( operatorReplica1, operatorDefinition1 );
-        assertDefaultTupleQueueContext( operatorReplica1, operatorDefinition1.inputPortCount(), MULTI_THREADED );
+        assertOperatorDef( operatorReplica1, operatorDef1 );
+        assertDefaultTupleQueueContext( operatorReplica1, operatorDef1.inputPortCount(), MULTI_THREADED );
         assertDefaultKVStoreContext( operatorReplica1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica1 );
         assertNonCachedTuplesImplSupplier( operatorReplica1 );
@@ -286,23 +272,19 @@ public class RegionManagerImplTest
         operatorRuntimeSchemaBuilder1.getInputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
         operatorRuntimeSchemaBuilder1.getInputPortSchemaBuilder( 1 ).addField( "field2", Integer.class );
         operatorRuntimeSchemaBuilder1.getOutputPortSchemaBuilder( 0 ).addField( "field3", Integer.class );
-        final OperatorDefinition operatorDefinition0 = OperatorDefinitionBuilder.newInstance( "op0",
-                                                                                              StatefulOperatorWithSingleInputOutputPortCount.class )
-                                                                                .setExtendingSchema( operatorRuntimeSchemaBuilder0 )
-                                                                                .build();
-        final OperatorDefinition operatorDefinition1 = OperatorDefinitionBuilder.newInstance( "op1",
-                                                                                              PartitionedStatefulOperatorWithSingleInputOutputPortCount.class )
-                                                                                .setExtendingSchema( operatorRuntimeSchemaBuilder1 )
-                                                                                .setPartitionFieldNames( singletonList( "field2" ) )
-                                                                                .build();
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithSingleInputOutputPortCount.class )
+                                                           .setExtendingSchema( operatorRuntimeSchemaBuilder0 )
+                                                           .build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1",
+                                                                         PartitionedStatefulOperatorWithSingleInputOutputPortCount.class )
+                                                           .setExtendingSchema( operatorRuntimeSchemaBuilder1 )
+                                                           .setPartitionFieldNames( singletonList( "field2" ) )
+                                                           .build();
 
-        final FlowDefinition flow = new FlowDefinitionBuilder().add( operatorDefinition0 )
-                                                               .add( operatorDefinition1 )
-                                                               .connect( "op0", "op1" )
-                                                               .build();
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef0 ).add( operatorDef1 ).connect( "op0", "op1" ).build();
 
-        final List<RegionDefinition> regionDefs = new RegionDefinitionFormerImpl().createRegions( flow );
-        final RegionDefinition regionDef = regionDefs.get( 1 );
+        final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
+        final RegionDef regionDef = regionDefs.get( 1 );
         final RegionRuntimeConfig regionConfig = new RegionRuntimeConfig( 1, regionDef, 1, singletonList( 0 ) );
 
         final Region regionInstance = regionManagerImpl.createRegion( flow, regionConfig );
@@ -310,13 +292,13 @@ public class RegionManagerImplTest
         final PipelineReplica[] pipelines = regionInstance.getReplicaPipelines( 0 );
         assertEquals( 1, pipelines.length );
         final PipelineReplica pipeline = pipelines[ 0 ];
-        assertDefaultTupleQueueContext( pipeline, operatorDefinition1.inputPortCount() );
+        assertDefaultTupleQueueContext( pipeline, operatorDef1.inputPortCount() );
 
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 0 ), pipeline.id() );
         assertEquals( 1, pipeline.getOperatorCount() );
 
         final OperatorReplica operatorReplica1 = pipeline.getOperator( 0 );
-        assertOperatorDefinition( operatorReplica1, operatorDefinition1 );
+        assertOperatorDef( operatorReplica1, operatorDef1 );
         assertPartitionedTupleQueueContext( operatorReplica1 );
         assertPartitionedKVStoreContext( operatorReplica1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica1 );
@@ -333,23 +315,19 @@ public class RegionManagerImplTest
         operatorRuntimeSchemaBuilder1.getInputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
         operatorRuntimeSchemaBuilder1.getInputPortSchemaBuilder( 1 ).addField( "field2", Integer.class );
         operatorRuntimeSchemaBuilder1.getOutputPortSchemaBuilder( 0 ).addField( "field3", Integer.class );
-        final OperatorDefinition operatorDefinition0 = OperatorDefinitionBuilder.newInstance( "op0",
-                                                                                              StatefulOperatorWithSingleInputOutputPortCount.class )
-                                                                                .setExtendingSchema( operatorRuntimeSchemaBuilder0 )
-                                                                                .build();
-        final OperatorDefinition operatorDefinition1 = OperatorDefinitionBuilder.newInstance( "op1",
-                                                                                              PartitionedStatefulOperatorWithSingleInputOutputPortCount.class )
-                                                                                .setExtendingSchema( operatorRuntimeSchemaBuilder1 )
-                                                                                .setPartitionFieldNames( singletonList( "field2" ) )
-                                                                                .build();
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithSingleInputOutputPortCount.class )
+                                                           .setExtendingSchema( operatorRuntimeSchemaBuilder0 )
+                                                           .build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1",
+                                                                         PartitionedStatefulOperatorWithSingleInputOutputPortCount.class )
+                                                           .setExtendingSchema( operatorRuntimeSchemaBuilder1 )
+                                                           .setPartitionFieldNames( singletonList( "field2" ) )
+                                                           .build();
 
-        final FlowDefinition flow = new FlowDefinitionBuilder().add( operatorDefinition0 )
-                                                               .add( operatorDefinition1 )
-                                                               .connect( "op0", "op1" )
-                                                               .build();
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef0 ).add( operatorDef1 ).connect( "op0", "op1" ).build();
 
-        final List<RegionDefinition> regionDefs = new RegionDefinitionFormerImpl().createRegions( flow );
-        final RegionDefinition regionDef = regionDefs.get( 1 );
+        final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
+        final RegionDef regionDef = regionDefs.get( 1 );
         final RegionRuntimeConfig regionConfig = new RegionRuntimeConfig( 1, regionDef, 2, singletonList( 0 ) );
 
         final Region regionInstance = regionManagerImpl.createRegion( flow, regionConfig );
@@ -360,8 +338,8 @@ public class RegionManagerImplTest
         assertEquals( 1, pipelines1.length );
         final PipelineReplica pipelineReplica0 = pipelines0[ 0 ];
         final PipelineReplica pipelineReplica1 = pipelines1[ 0 ];
-        assertDefaultTupleQueueContext( pipelineReplica0, operatorDefinition1.inputPortCount() );
-        assertDefaultTupleQueueContext( pipelineReplica1, operatorDefinition1.inputPortCount() );
+        assertDefaultTupleQueueContext( pipelineReplica0, operatorDef1.inputPortCount() );
+        assertDefaultTupleQueueContext( pipelineReplica1, operatorDef1.inputPortCount() );
 
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 0 ), pipelineReplica0.id() );
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 1 ), pipelineReplica1.id() );
@@ -370,8 +348,8 @@ public class RegionManagerImplTest
 
         final OperatorReplica operatorReplica0 = pipelineReplica0.getOperator( 0 );
         final OperatorReplica operatorReplica1 = pipelineReplica1.getOperator( 0 );
-        assertOperatorDefinition( operatorReplica0, operatorDefinition1 );
-        assertOperatorDefinition( operatorReplica1, operatorDefinition1 );
+        assertOperatorDef( operatorReplica0, operatorDef1 );
+        assertOperatorDef( operatorReplica1, operatorDef1 );
         assertPartitionedTupleQueueContext( operatorReplica0 );
         assertPartitionedTupleQueueContext( operatorReplica1 );
         assertPartitionedKVStoreContext( operatorReplica0 );
@@ -395,29 +373,27 @@ public class RegionManagerImplTest
         operatorRuntimeSchemaBuilder2.getInputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
         operatorRuntimeSchemaBuilder2.getInputPortSchemaBuilder( 1 ).addField( "field2", Integer.class );
         operatorRuntimeSchemaBuilder2.getOutputPortSchemaBuilder( 0 ).addField( "field3", Integer.class );
-        final OperatorDefinition operatorDefinition0 = OperatorDefinitionBuilder.newInstance( "op0",
-                                                                                              StatefulOperatorWithSingleInputOutputPortCount.class )
-                                                                                .setExtendingSchema( operatorRuntimeSchemaBuilder0 )
-                                                                                .build();
-        final OperatorDefinition operatorDefinition1 = OperatorDefinitionBuilder.newInstance( "op1",
-                                                                                              StatelessOperatorWithSingleInputOutputPortCount.class )
-                                                                                .setExtendingSchema( operatorRuntimeSchemaBuilder1 )
-                                                                                .build();
-        final OperatorDefinition operatorDefinition2 = OperatorDefinitionBuilder.newInstance( "op2",
-                                                                                              PartitionedStatefulOperatorWithSingleInputOutputPortCount.class )
-                                                                                .setExtendingSchema( operatorRuntimeSchemaBuilder2 )
-                                                                                .setPartitionFieldNames( singletonList( "field2" ) )
-                                                                                .build();
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithSingleInputOutputPortCount.class )
+                                                           .setExtendingSchema( operatorRuntimeSchemaBuilder0 )
+                                                           .build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithSingleInputOutputPortCount.class )
+                                                           .setExtendingSchema( operatorRuntimeSchemaBuilder1 )
+                                                           .build();
+        final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2",
+                                                                         PartitionedStatefulOperatorWithSingleInputOutputPortCount.class )
+                                                           .setExtendingSchema( operatorRuntimeSchemaBuilder2 )
+                                                           .setPartitionFieldNames( singletonList( "field2" ) )
+                                                           .build();
 
-        final FlowDefinition flow = new FlowDefinitionBuilder().add( operatorDefinition0 )
-                                                               .add( operatorDefinition1 )
-                                                               .add( operatorDefinition2 )
-                                                               .connect( "op0", "op1" )
-                                                               .connect( "op1", "op2" )
-                                                               .build();
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef0 )
+                                                 .add( operatorDef1 )
+                                                 .add( operatorDef2 )
+                                                 .connect( "op0", "op1" )
+                                                 .connect( "op1", "op2" )
+                                                 .build();
 
-        final List<RegionDefinition> regionDefs = new RegionDefinitionFormerImpl().createRegions( flow );
-        final RegionDefinition regionDef = regionDefs.get( 1 );
+        final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
+        final RegionDef regionDef = regionDefs.get( 1 );
         final RegionRuntimeConfig regionConfig = new RegionRuntimeConfig( 1, regionDef, 1, singletonList( 0 ) );
 
         final Region region = regionManagerImpl.createRegion( flow, regionConfig );
@@ -425,20 +401,20 @@ public class RegionManagerImplTest
         final PipelineReplica[] pipelines = region.getReplicaPipelines( 0 );
         assertEquals( 1, pipelines.length );
         final PipelineReplica pipeline = pipelines[ 0 ];
-        assertDefaultTupleQueueContext( pipeline, operatorDefinition1.inputPortCount() );
+        assertDefaultTupleQueueContext( pipeline, operatorDef1.inputPortCount() );
 
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 0 ), pipeline.id() );
         assertEquals( 2, pipeline.getOperatorCount() );
 
         final OperatorReplica operatorReplica1 = pipeline.getOperator( 0 );
-        assertOperatorDefinition( operatorReplica1, operatorDefinition1 );
-        assertDefaultTupleQueueContext( operatorReplica1, operatorDefinition1.inputPortCount(), MULTI_THREADED );
+        assertOperatorDef( operatorReplica1, operatorDef1 );
+        assertDefaultTupleQueueContext( operatorReplica1, operatorDef1.inputPortCount(), MULTI_THREADED );
         assertEmptyKVStoreContext( operatorReplica1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica1 );
         assertCachedTuplesImplSupplier( operatorReplica1 );
 
         final OperatorReplica operatorReplica2 = pipeline.getOperator( 1 );
-        assertOperatorDefinition( operatorReplica2, operatorDefinition2 );
+        assertOperatorDef( operatorReplica2, operatorDef2 );
         assertPartitionedTupleQueueContext( operatorReplica2 );
         assertPartitionedKVStoreContext( operatorReplica2 );
         assertNonBlockingTupleQueueDrainerPool( operatorReplica2 );
@@ -458,29 +434,27 @@ public class RegionManagerImplTest
         operatorRuntimeSchemaBuilder2.getInputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
         operatorRuntimeSchemaBuilder2.getInputPortSchemaBuilder( 1 ).addField( "field2", Integer.class );
         operatorRuntimeSchemaBuilder2.getOutputPortSchemaBuilder( 0 ).addField( "field3", Integer.class );
-        final OperatorDefinition operatorDefinition0 = OperatorDefinitionBuilder.newInstance( "op0",
-                                                                                              StatefulOperatorWithSingleInputOutputPortCount.class )
-                                                                                .setExtendingSchema( operatorRuntimeSchemaBuilder0 )
-                                                                                .build();
-        final OperatorDefinition operatorDefinition1 = OperatorDefinitionBuilder.newInstance( "op1",
-                                                                                              StatelessOperatorWithSingleInputOutputPortCount.class )
-                                                                                .setExtendingSchema( operatorRuntimeSchemaBuilder1 )
-                                                                                .build();
-        final OperatorDefinition operatorDefinition2 = OperatorDefinitionBuilder.newInstance( "op2",
-                                                                                              PartitionedStatefulOperatorWithSingleInputOutputPortCount.class )
-                                                                                .setExtendingSchema( operatorRuntimeSchemaBuilder2 )
-                                                                                .setPartitionFieldNames( singletonList( "field2" ) )
-                                                                                .build();
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithSingleInputOutputPortCount.class )
+                                                           .setExtendingSchema( operatorRuntimeSchemaBuilder0 )
+                                                           .build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithSingleInputOutputPortCount.class )
+                                                           .setExtendingSchema( operatorRuntimeSchemaBuilder1 )
+                                                           .build();
+        final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2",
+                                                                         PartitionedStatefulOperatorWithSingleInputOutputPortCount.class )
+                                                           .setExtendingSchema( operatorRuntimeSchemaBuilder2 )
+                                                           .setPartitionFieldNames( singletonList( "field2" ) )
+                                                           .build();
 
-        final FlowDefinition flow = new FlowDefinitionBuilder().add( operatorDefinition0 )
-                                                               .add( operatorDefinition1 )
-                                                               .add( operatorDefinition2 )
-                                                               .connect( "op0", "op1" )
-                                                               .connect( "op1", "op2" )
-                                                               .build();
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef0 )
+                                                 .add( operatorDef1 )
+                                                 .add( operatorDef2 )
+                                                 .connect( "op0", "op1" )
+                                                 .connect( "op1", "op2" )
+                                                 .build();
 
-        final List<RegionDefinition> regionDefs = new RegionDefinitionFormerImpl().createRegions( flow );
-        final RegionDefinition regionDef = regionDefs.get( 1 );
+        final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
+        final RegionDef regionDef = regionDefs.get( 1 );
         final RegionRuntimeConfig regionConfig = new RegionRuntimeConfig( 1, regionDef, 2, singletonList( 0 ) );
 
         final Region region = regionManagerImpl.createRegion( flow, regionConfig );
@@ -491,8 +465,8 @@ public class RegionManagerImplTest
         assertEquals( 1, pipelinesReplica1.length );
         final PipelineReplica pipelineReplica0 = pipelinesReplica0[ 0 ];
         final PipelineReplica pipelineReplica1 = pipelinesReplica1[ 0 ];
-        assertDefaultTupleQueueContext( pipelineReplica0, operatorDefinition1.inputPortCount() );
-        assertDefaultTupleQueueContext( pipelineReplica1, operatorDefinition1.inputPortCount() );
+        assertDefaultTupleQueueContext( pipelineReplica0, operatorDef1.inputPortCount() );
+        assertDefaultTupleQueueContext( pipelineReplica1, operatorDef1.inputPortCount() );
 
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 0 ), pipelineReplica0.id() );
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 1 ), pipelineReplica1.id() );
@@ -500,28 +474,28 @@ public class RegionManagerImplTest
         assertEquals( 2, pipelineReplica1.getOperatorCount() );
 
         final OperatorReplica operatorReplica0_1 = pipelineReplica0.getOperator( 0 );
-        assertOperatorDefinition( operatorReplica0_1, operatorDefinition1 );
-        assertDefaultTupleQueueContext( operatorReplica0_1, operatorDefinition1.inputPortCount(), MULTI_THREADED );
+        assertOperatorDef( operatorReplica0_1, operatorDef1 );
+        assertDefaultTupleQueueContext( operatorReplica0_1, operatorDef1.inputPortCount(), MULTI_THREADED );
         assertEmptyKVStoreContext( operatorReplica0_1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica0_1 );
         assertCachedTuplesImplSupplier( operatorReplica0_1 );
 
         final OperatorReplica operatorReplica1_1 = pipelineReplica0.getOperator( 0 );
-        assertOperatorDefinition( operatorReplica1_1, operatorDefinition1 );
-        assertDefaultTupleQueueContext( operatorReplica1_1, operatorDefinition1.inputPortCount(), MULTI_THREADED );
+        assertOperatorDef( operatorReplica1_1, operatorDef1 );
+        assertDefaultTupleQueueContext( operatorReplica1_1, operatorDef1.inputPortCount(), MULTI_THREADED );
         assertEmptyKVStoreContext( operatorReplica1_1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica1_1 );
         assertCachedTuplesImplSupplier( operatorReplica1_1 );
 
         final OperatorReplica operatorReplica0_2 = pipelineReplica0.getOperator( 1 );
-        assertOperatorDefinition( operatorReplica0_2, operatorDefinition2 );
+        assertOperatorDef( operatorReplica0_2, operatorDef2 );
         assertPartitionedTupleQueueContext( operatorReplica0_2 );
         assertPartitionedKVStoreContext( operatorReplica0_2 );
         assertNonBlockingTupleQueueDrainerPool( operatorReplica0_2 );
         assertNonCachedTuplesImplSupplier( operatorReplica0_2 );
 
         final OperatorReplica operatorReplica1_2 = pipelineReplica0.getOperator( 1 );
-        assertOperatorDefinition( operatorReplica1_2, operatorDefinition2 );
+        assertOperatorDef( operatorReplica1_2, operatorDef2 );
         assertPartitionedTupleQueueContext( operatorReplica1_2 );
         assertPartitionedKVStoreContext( operatorReplica1_2 );
         assertNonBlockingTupleQueueDrainerPool( operatorReplica1_2 );
@@ -544,35 +518,32 @@ public class RegionManagerImplTest
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder3 = new OperatorRuntimeSchemaBuilder( 1, 1 );
         operatorRuntimeSchemaBuilder3.getInputPortSchemaBuilder( 0 ).addField( "field3", Integer.class );
         operatorRuntimeSchemaBuilder3.getOutputPortSchemaBuilder( 0 ).addField( "field3", Integer.class );
-        final OperatorDefinition operatorDefinition0 = OperatorDefinitionBuilder.newInstance( "op0",
-                                                                                              StatefulOperatorWithSingleInputOutputPortCount.class )
-                                                                                .setExtendingSchema( operatorRuntimeSchemaBuilder0 )
-                                                                                .build();
-        final OperatorDefinition operatorDefinition1 = OperatorDefinitionBuilder.newInstance( "op1",
-                                                                                              StatelessOperatorWithSingleInputOutputPortCount.class )
-                                                                                .setExtendingSchema( operatorRuntimeSchemaBuilder1 )
-                                                                                .build();
-        final OperatorDefinition operatorDefinition2 = OperatorDefinitionBuilder.newInstance( "op2",
-                                                                                              PartitionedStatefulOperatorWithSingleInputOutputPortCount.class )
-                                                                                .setExtendingSchema( operatorRuntimeSchemaBuilder2 )
-                                                                                .setPartitionFieldNames( singletonList( "field2" ) )
-                                                                                .build();
-        final OperatorDefinition operatorDefinition3 = OperatorDefinitionBuilder.newInstance( "op3",
-                                                                                              StatelessOperatorWithSingleInputOutputPortCount.class )
-                                                                                .setExtendingSchema( operatorRuntimeSchemaBuilder3 )
-                                                                                .build();
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithSingleInputOutputPortCount.class )
+                                                           .setExtendingSchema( operatorRuntimeSchemaBuilder0 )
+                                                           .build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithSingleInputOutputPortCount.class )
+                                                           .setExtendingSchema( operatorRuntimeSchemaBuilder1 )
+                                                           .build();
+        final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2",
+                                                                         PartitionedStatefulOperatorWithSingleInputOutputPortCount.class )
+                                                           .setExtendingSchema( operatorRuntimeSchemaBuilder2 )
+                                                           .setPartitionFieldNames( singletonList( "field2" ) )
+                                                           .build();
+        final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessOperatorWithSingleInputOutputPortCount.class )
+                                                           .setExtendingSchema( operatorRuntimeSchemaBuilder3 )
+                                                           .build();
 
-        final FlowDefinition flow = new FlowDefinitionBuilder().add( operatorDefinition0 )
-                                                               .add( operatorDefinition1 )
-                                                               .add( operatorDefinition2 )
-                                                               .add( operatorDefinition3 )
-                                                               .connect( "op0", "op1" )
-                                                               .connect( "op1", "op2" )
-                                                               .connect( "op2", "op3" )
-                                                               .build();
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef0 )
+                                                 .add( operatorDef1 )
+                                                 .add( operatorDef2 )
+                                                 .add( operatorDef3 )
+                                                 .connect( "op0", "op1" )
+                                                 .connect( "op1", "op2" )
+                                                 .connect( "op2", "op3" )
+                                                 .build();
 
-        final List<RegionDefinition> regionDefs = new RegionDefinitionFormerImpl().createRegions( flow );
-        final RegionDefinition regionDef = regionDefs.get( 1 );
+        final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
+        final RegionDef regionDef = regionDefs.get( 1 );
         final RegionRuntimeConfig regionConfig = new RegionRuntimeConfig( 1, regionDef, 1, asList( 0, 1 ) );
 
         final Region region = regionManagerImpl.createRegion( flow, regionConfig );
@@ -581,8 +552,8 @@ public class RegionManagerImplTest
         assertEquals( 2, pipelines.length );
         final PipelineReplica pipeline0 = pipelines[ 0 ];
         final PipelineReplica pipeline1 = pipelines[ 1 ];
-        assertDefaultTupleQueueContext( pipeline0, operatorDefinition1.inputPortCount() );
-        assertDefaultTupleQueueContext( pipeline1, operatorDefinition2.inputPortCount() );
+        assertDefaultTupleQueueContext( pipeline0, operatorDef1.inputPortCount() );
+        assertDefaultTupleQueueContext( pipeline1, operatorDef2.inputPortCount() );
 
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 0 ), pipeline0.id() );
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 1 ), 0 ), pipeline1.id() );
@@ -590,22 +561,22 @@ public class RegionManagerImplTest
         assertEquals( 2, pipeline1.getOperatorCount() );
 
         final OperatorReplica operatorReplica1 = pipeline0.getOperator( 0 );
-        assertOperatorDefinition( operatorReplica1, operatorDefinition1 );
-        assertDefaultTupleQueueContext( operatorReplica1, operatorDefinition1.inputPortCount(), MULTI_THREADED );
+        assertOperatorDef( operatorReplica1, operatorDef1 );
+        assertDefaultTupleQueueContext( operatorReplica1, operatorDef1.inputPortCount(), MULTI_THREADED );
         assertEmptyKVStoreContext( operatorReplica1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica1 );
         assertNonCachedTuplesImplSupplier( operatorReplica1 );
 
         final OperatorReplica operatorReplica2 = pipeline1.getOperator( 0 );
-        assertOperatorDefinition( operatorReplica2, operatorDefinition2 );
+        assertOperatorDef( operatorReplica2, operatorDef2 );
         assertPartitionedTupleQueueContext( operatorReplica2 );
         assertPartitionedKVStoreContext( operatorReplica2 );
         assertBlockingTupleQueueDrainerPool( operatorReplica2 );
         assertCachedTuplesImplSupplier( operatorReplica2 );
 
         final OperatorReplica operatorReplica3 = pipeline1.getOperator( 1 );
-        assertOperatorDefinition( operatorReplica3, operatorDefinition3 );
-        assertDefaultTupleQueueContext( operatorReplica3, operatorDefinition3.inputPortCount(), SINGLE_THREADED );
+        assertOperatorDef( operatorReplica3, operatorDef3 );
+        assertDefaultTupleQueueContext( operatorReplica3, operatorDef3.inputPortCount(), SINGLE_THREADED );
         assertEmptyKVStoreContext( operatorReplica3 );
         assertNonBlockingTupleQueueDrainerPool( operatorReplica3 );
         assertNonCachedTuplesImplSupplier( operatorReplica3 );
@@ -626,16 +597,16 @@ public class RegionManagerImplTest
         assertEquals( inputPortCount, tupleQueueContext.getInputPortCount() );
     }
 
-    private void assertOperatorDefinition ( final OperatorReplica operatorReplica, final OperatorDefinition operatorDefinition )
+    private void assertOperatorDef ( final OperatorReplica operatorReplica, final OperatorDef operatorDef )
     {
-        assertTrue( operatorReplica.getOperatorDefinition() == operatorDefinition );
+        assertTrue( operatorReplica.getOperatorDef() == operatorDef );
     }
 
     private void assertEmptyTupleQueueContext ( final OperatorReplica operatorReplica )
     {
         final TupleQueueContext tupleQueueContext = operatorReplica.getQueue();
         assertTrue( tupleQueueContext instanceof EmptyTupleQueueContext );
-        assertEquals( operatorReplica.getOperatorDefinition().id(), tupleQueueContext.getOperatorId() );
+        assertEquals( operatorReplica.getOperatorDef().id(), tupleQueueContext.getOperatorId() );
     }
 
     private void assertDefaultTupleQueueContext ( final OperatorReplica operatorReplica,
@@ -644,7 +615,7 @@ public class RegionManagerImplTest
     {
         final TupleQueueContext tupleQueueContext = operatorReplica.getQueue();
         assertTrue( tupleQueueContext instanceof DefaultTupleQueueContext );
-        assertEquals( operatorReplica.getOperatorDefinition().id(), tupleQueueContext.getOperatorId() );
+        assertEquals( operatorReplica.getOperatorDef().id(), tupleQueueContext.getOperatorId() );
         assertEquals( threadingPreference, ( (DefaultTupleQueueContext) tupleQueueContext ).getThreadingPreference() );
         assertEquals( inputPortCount, tupleQueueContext.getInputPortCount() );
     }
@@ -653,7 +624,7 @@ public class RegionManagerImplTest
     {
         final TupleQueueContext tupleQueueContext = operatorReplica.getQueue();
         assertTrue( tupleQueueContext instanceof PartitionedTupleQueueContext );
-        assertEquals( operatorReplica.getOperatorDefinition().id(), tupleQueueContext.getOperatorId() );
+        assertEquals( operatorReplica.getOperatorDef().id(), tupleQueueContext.getOperatorId() );
     }
 
     private void assertEmptyKVStoreContext ( final OperatorReplica operatorReplica )
@@ -665,14 +636,14 @@ public class RegionManagerImplTest
     {
         final KVStoreContext kvStoreContext = operatorReplica.getKvStoreContext();
         assertTrue( kvStoreContext instanceof DefaultKVStoreContext );
-        assertEquals( operatorReplica.getOperatorDefinition().id(), kvStoreContext.getOperatorId() );
+        assertEquals( operatorReplica.getOperatorDef().id(), kvStoreContext.getOperatorId() );
     }
 
     private void assertPartitionedKVStoreContext ( final OperatorReplica operatorReplica )
     {
         final KVStoreContext kvStoreContext = operatorReplica.getKvStoreContext();
         assertTrue( kvStoreContext instanceof PartitionedKVStoreContext );
-        assertEquals( operatorReplica.getOperatorDefinition().id(), kvStoreContext.getOperatorId() );
+        assertEquals( operatorReplica.getOperatorDef().id(), kvStoreContext.getOperatorId() );
     }
 
     private void assertBlockingTupleQueueDrainerPool ( final OperatorReplica operatorReplica )

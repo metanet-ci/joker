@@ -4,7 +4,7 @@ package cs.bilkent.zanza.operator.schema.annotation;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
-import cs.bilkent.zanza.flow.FlowDefinition;
+import cs.bilkent.zanza.flow.FlowDef;
 import cs.bilkent.zanza.operator.InvocationContext;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.Tuple;
@@ -22,7 +22,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * Field list for a port can be completely defined, partially defined or not-defined at all at design time.
  * See {@link PortSchemaScope}.
  * <p>
- * Port schemas are used while connecting {@link Operator} instances within a {@link FlowDefinition}.
+ * Port schemas are used while connecting {@link Operator} instances within a {@link FlowDef}.
  * See {@link PortRuntimeSchema#isCompatibleWith(PortRuntimeSchema)}.
  */
 @Retention( RUNTIME )
