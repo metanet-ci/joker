@@ -12,10 +12,10 @@ import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.zanza.engine.config.TupleQueueDrainerConfig;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import cs.bilkent.zanza.engine.exception.InitializationException;
-import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.INITIAL;
-import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.INITIALIZATION_FAILED;
-import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.RUNNING;
-import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.SHUT_DOWN;
+import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.INITIAL;
+import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.INITIALIZATION_FAILED;
+import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.RUNNING;
+import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.SHUT_DOWN;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import cs.bilkent.zanza.engine.region.RegionDefinition;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
@@ -36,17 +36,17 @@ import cs.bilkent.zanza.utils.Pair;
  * Manages runtime state of a pipeline defined by the system for a {@link RegionDefinition} and provides methods for operator invocation.
  */
 @NotThreadSafe
-public class PipelineInstance
+public class PipelineReplica
 {
 
-    private static Logger LOGGER = LoggerFactory.getLogger( PipelineInstance.class );
+    private static Logger LOGGER = LoggerFactory.getLogger( PipelineReplica.class );
 
 
     private final ZanzaConfig config;
 
-    private final PipelineInstanceId id;
+    private final PipelineReplicaId id;
 
-    private final OperatorInstance[] operators;
+    private final OperatorReplica[] operators;
 
     private final TupleQueueContext upstreamTupleQueueContext;
 
@@ -64,15 +64,16 @@ public class PipelineInstance
 
     private final Consumer<TupleQueueDrainer> upstreamDrainerParameterSetter;
 
-    private OperatorInstanceStatus status = INITIAL;
+    private OperatorReplicaStatus status = INITIAL;
 
     private UpstreamContext pipelineUpstreamContext;
 
     private boolean noBlockOnUpstreamTupleQueueContext;
 
-    public PipelineInstance ( final ZanzaConfig config, final PipelineInstanceId id,
-                              final OperatorInstance[] operators,
-                              final TupleQueueContext upstreamTupleQueueContext )
+    public PipelineReplica ( final ZanzaConfig config,
+                             final PipelineReplicaId id,
+                             final OperatorReplica[] operators,
+                             final TupleQueueContext upstreamTupleQueueContext )
     {
         this.config = config;
         this.id = id;
@@ -140,7 +141,7 @@ public class PipelineInstance
         };
     }
 
-    public SchedulingStrategy[] init ( final UpstreamContext upstreamContext, final OperatorInstanceListener operatorInstanceListener )
+    public SchedulingStrategy[] init ( final UpstreamContext upstreamContext, final OperatorReplicaListener operatorReplicaListener )
     {
         checkState( status == INITIAL );
         checkNotNull( upstreamContext );
@@ -151,8 +152,8 @@ public class PipelineInstance
         {
             try
             {
-                final OperatorInstance operator = operators[ i ];
-                schedulingStrategies[ i ] = operator.init( uc, operatorInstanceListener );
+                final OperatorReplica operator = operators[ i ];
+                schedulingStrategies[ i ] = operator.init( uc, operatorReplicaListener );
                 uc = operator.getSelfUpstreamContext();
             }
             catch ( InitializationException e )
@@ -175,7 +176,7 @@ public class PipelineInstance
         this.pipelineUpstreamContext = pipelineUpstreamContext;
         if ( upstreamInputPortCount > 1 )
         {
-            final OperatorInstance operator = operators[ 0 ];
+            final OperatorReplica operator = operators[ 0 ];
             final SchedulingStrategy schedulingStrategy = operator.getSchedulingStrategy();
             if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
             {
@@ -189,7 +190,7 @@ public class PipelineInstance
     }
 
     // updates the upstream input port check order such that open ports are checked first
-    private void updateUpstreamInputPortDrainOrder ( final OperatorInstance operator, final ScheduleWhenTuplesAvailable schedulingStrategy )
+    private void updateUpstreamInputPortDrainOrder ( final OperatorReplica operator, final ScheduleWhenTuplesAvailable schedulingStrategy )
     {
         if ( operator.getStatus() != RUNNING )
         {
@@ -245,12 +246,12 @@ public class PipelineInstance
 
     public TupleQueueContext getUpstreamTupleQueueContext ()
     {
-        return upstreamTupleQueueContext;
+        return upstreamTupleQueueContext instanceof EmptyTupleQueueContext ? operators[ 0 ].getQueue() : upstreamTupleQueueContext;
     }
 
     public TuplesImpl invoke ()
     {
-        OperatorInstance operator;
+        OperatorReplica operator;
         drainUpstreamTupleQueueContext();
         TuplesImpl tuples = upstreamDrainer.getResult();
         UpstreamContext upstreamContext = this.pipelineUpstreamContext;
@@ -291,7 +292,7 @@ public class PipelineInstance
     {
         for ( int i = 0; i < operatorCount; i++ )
         {
-            final OperatorInstance operator = operators[ i ];
+            final OperatorReplica operator = operators[ i ];
             try
             {
                 operator.shutdown();
@@ -303,7 +304,7 @@ public class PipelineInstance
         }
     }
 
-    public PipelineInstanceId id ()
+    public PipelineReplicaId id ()
     {
         return id;
     }
@@ -313,7 +314,7 @@ public class PipelineInstance
         return operatorCount;
     }
 
-    public OperatorInstance getOperatorInstance ( final int index )
+    public OperatorReplica getOperatorInstance ( final int index )
     {
         return operators[ index ];
     }

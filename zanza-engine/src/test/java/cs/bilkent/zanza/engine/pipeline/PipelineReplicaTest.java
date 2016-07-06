@@ -26,22 +26,22 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith( MockitoJUnitRunner.class )
-public class PipelineInstanceTest
+public class PipelineReplicaTest
 {
 
     @Mock
     private TupleQueueContext upstreamTupleQueueContext;
 
     @Mock
-    private OperatorInstance operator0;
+    private OperatorReplica operator0;
 
     @Mock
-    private OperatorInstance operator1;
+    private OperatorReplica operator1;
 
     @Mock
-    private OperatorInstance operator2;
+    private OperatorReplica operator2;
 
-    private PipelineInstance pipeline;
+    private PipelineReplica pipeline;
 
     private final ZanzaConfig config = new ZanzaConfig();
 
@@ -63,9 +63,10 @@ public class PipelineInstanceTest
         final OperatorDefinition operatorDefinition0 = mock( OperatorDefinition.class );
         when( operator0.getOperatorDefinition() ).thenReturn( operatorDefinition0 );
         when( operatorDefinition0.inputPortCount() ).thenReturn( 1 );
-        pipeline = new PipelineInstance( config, new PipelineInstanceId( new PipelineId( 0, 0 ), 0 ),
-                                         new OperatorInstance[] { operator0, operator1, operator2 },
-                                         upstreamTupleQueueContext );
+        pipeline = new PipelineReplica( config,
+                                        new PipelineReplicaId( new PipelineId( 0, 0 ), 0 ),
+                                        new OperatorReplica[] { operator0, operator1, operator2 },
+                                        upstreamTupleQueueContext );
 
         upstreamInput1.add( new Tuple( "k1", "v1" ) );
         upstreamInput2.add( new Tuple( "k2", "v2" ) );

@@ -3,20 +3,20 @@ package cs.bilkent.zanza.engine;
 
 import javax.inject.Inject;
 
-import cs.bilkent.zanza.engine.region.RegionFormer;
+import cs.bilkent.zanza.engine.region.RegionDefinitionFormer;
 import cs.bilkent.zanza.engine.supervisor.Supervisor;
 
 public class ZanzaEngine
 {
 
-    private final RegionFormer regionFormer;
+    private final RegionDefinitionFormer regionDefinitionFormer;
 
     private final Supervisor supervisor;
 
     @Inject
-    public ZanzaEngine ( final RegionFormer regionFormer, final Supervisor supervisor )
+    public ZanzaEngine ( final RegionDefinitionFormer regionDefinitionFormer, final Supervisor supervisor )
     {
-        this.regionFormer = regionFormer;
+        this.regionDefinitionFormer = regionDefinitionFormer;
         this.supervisor = supervisor;
     }
 

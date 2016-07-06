@@ -4,10 +4,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
 
-import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceInitializationTest.newUpstreamContextInstance;
-import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.COMPLETED;
-import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.COMPLETING;
-import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.RUNNING;
+import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaInitializationTest.newUpstreamContextInstance;
+import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.COMPLETED;
+import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.COMPLETING;
+import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.RUNNING;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.INPUT_PORT_CLOSED;
@@ -34,7 +34,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith( MockitoJUnitRunner.class )
-public class OperatorInstanceRunningStatusTest extends AbstractOperatorInstanceInvocationTest
+public class OperatorReplicaRunningStatusTest extends AbstractOperatorInstanceInvocationTest
 {
 
     @Test
@@ -88,7 +88,7 @@ public class OperatorInstanceRunningStatusTest extends AbstractOperatorInstanceI
             upstreamInput.add( new Tuple( "f1", "val1" ) );
         }
 
-        final TuplesImpl output = operatorInstance.invoke( upstreamInput, upstreamContext );
+        final TuplesImpl output = operatorReplica.invoke( upstreamInput, upstreamContext );
 
         if ( inputPortCount > 0 )
         {
@@ -107,10 +107,10 @@ public class OperatorInstanceRunningStatusTest extends AbstractOperatorInstanceI
         assertThat( invocationContext.getInput(), equalTo( operatorInput ) );
 
         assertThat( output, equalTo( expectedOutput ) );
-        assertThat( operatorInstance.getSchedulingStrategy(), equalTo( initializationStrategy ) );
-        assertNull( operatorInstance.getCompletionReason() );
-        assertThat( operatorInstance.getUpstreamContext(), equalTo( initializationUpstreamContext ) );
-        assertThat( operatorInstance.getStatus(), equalTo( RUNNING ) );
+        assertThat( operatorReplica.getSchedulingStrategy(), equalTo( initializationStrategy ) );
+        assertNull( operatorReplica.getCompletionReason() );
+        assertThat( operatorReplica.getUpstreamContext(), equalTo( initializationUpstreamContext ) );
+        assertThat( operatorReplica.getStatus(), equalTo( RUNNING ) );
     }
 
     @Test
@@ -130,7 +130,7 @@ public class OperatorInstanceRunningStatusTest extends AbstractOperatorInstanceI
         when( outputSupplier.get() ).thenReturn( expectedOutput );
 
         final TuplesImpl upstreamInput = new TuplesImpl( inputPortCount );
-        final TuplesImpl output = operatorInstance.invoke( upstreamInput, newUpstreamContext );
+        final TuplesImpl output = operatorReplica.invoke( upstreamInput, newUpstreamContext );
 
         verify( queue, never() ).offer( anyInt(), anyList() );
         verify( queue ).drain( drainer );
@@ -142,10 +142,10 @@ public class OperatorInstanceRunningStatusTest extends AbstractOperatorInstanceI
         assertThat( invocationContext.getInput(), equalTo( operatorInput ) );
 
         assertThat( output, equalTo( expectedOutput ) );
-        assertThat( operatorInstance.getSchedulingStrategy(), equalTo( ScheduleNever.INSTANCE ) );
-        assertThat( operatorInstance.getCompletionReason(), equalTo( SHUTDOWN ) );
-        assertThat( operatorInstance.getUpstreamContext(), equalTo( newUpstreamContext ) );
-        assertThat( operatorInstance.getStatus(), equalTo( COMPLETED ) );
+        assertThat( operatorReplica.getSchedulingStrategy(), equalTo( ScheduleNever.INSTANCE ) );
+        assertThat( operatorReplica.getCompletionReason(), equalTo( SHUTDOWN ) );
+        assertThat( operatorReplica.getUpstreamContext(), equalTo( newUpstreamContext ) );
+        assertThat( operatorReplica.getStatus(), equalTo( COMPLETED ) );
     }
 
     @Test
@@ -158,7 +158,7 @@ public class OperatorInstanceRunningStatusTest extends AbstractOperatorInstanceI
         final TuplesImpl upstreamInput = new TuplesImpl( inputPortCount );
         upstreamInput.add( new Tuple( "f1", "val1" ) );
         final UpstreamContext upstreamContext = newUpstreamContextInstance( 0, inputPortCount, ACTIVE );
-        final TuplesImpl output = operatorInstance.invoke( upstreamInput, upstreamContext );
+        final TuplesImpl output = operatorReplica.invoke( upstreamInput, upstreamContext );
 
         verify( queue ).offer( 0, singletonList( new Tuple( "f1", "val1" ) ) );
         verify( queue ).drain( drainer );
@@ -168,10 +168,10 @@ public class OperatorInstanceRunningStatusTest extends AbstractOperatorInstanceI
         verify( drainerPool ).acquire( initializationStrategy );
 
         assertNull( output );
-        assertThat( operatorInstance.getSchedulingStrategy(), equalTo( initializationStrategy ) );
-        assertThat( operatorInstance.getUpstreamContext(), equalTo( upstreamContext ) );
-        assertNull( operatorInstance.getCompletionReason() );
-        assertThat( operatorInstance.getStatus(), equalTo( RUNNING ) );
+        assertThat( operatorReplica.getSchedulingStrategy(), equalTo( initializationStrategy ) );
+        assertThat( operatorReplica.getUpstreamContext(), equalTo( upstreamContext ) );
+        assertNull( operatorReplica.getCompletionReason() );
+        assertThat( operatorReplica.getStatus(), equalTo( RUNNING ) );
     }
 
     @Test
@@ -188,7 +188,7 @@ public class OperatorInstanceRunningStatusTest extends AbstractOperatorInstanceI
 
         final TuplesImpl upstreamInput = new TuplesImpl( inputPortCount );
         upstreamInput.add( new Tuple( "f1", "val1" ) );
-        final TuplesImpl output = operatorInstance.invoke( upstreamInput, newUpstreamContext );
+        final TuplesImpl output = operatorReplica.invoke( upstreamInput, newUpstreamContext );
 
         verify( queue ).offer( 0, singletonList( new Tuple( "f1", "val1" ) ) );
         verify( queue ).drain( drainer );
@@ -198,9 +198,9 @@ public class OperatorInstanceRunningStatusTest extends AbstractOperatorInstanceI
         verify( drainerPool ).acquire( initializationStrategy );
 
         assertNull( output );
-        assertNull( operatorInstance.getCompletionReason() );
-        assertThat( operatorInstance.getUpstreamContext(), equalTo( newUpstreamContext ) );
-        assertThat( operatorInstance.getStatus(), equalTo( RUNNING ) );
+        assertNull( operatorReplica.getCompletionReason() );
+        assertThat( operatorReplica.getUpstreamContext(), equalTo( newUpstreamContext ) );
+        assertThat( operatorReplica.getStatus(), equalTo( RUNNING ) );
     }
 
     @Test
@@ -217,7 +217,7 @@ public class OperatorInstanceRunningStatusTest extends AbstractOperatorInstanceI
 
         final TuplesImpl upstreamInput = new TuplesImpl( inputPortCount );
         upstreamInput.add( new Tuple( "f1", "val1" ) );
-        final TuplesImpl output = operatorInstance.invoke( upstreamInput, newUpstreamContext );
+        final TuplesImpl output = operatorReplica.invoke( upstreamInput, newUpstreamContext );
 
         verify( queue ).offer( 0, singletonList( new Tuple( "f1", "val1" ) ) );
         verify( queue, times( 2 ) ).drain( drainer );
@@ -229,9 +229,9 @@ public class OperatorInstanceRunningStatusTest extends AbstractOperatorInstanceI
         assertThat( invocationContext.getKVStore(), equalTo( kvStore ) );
 
         assertNull( output );
-        assertThat( operatorInstance.getCompletionReason(), equalTo( INPUT_PORT_CLOSED ) );
-        assertThat( operatorInstance.getUpstreamContext(), equalTo( newUpstreamContext ) );
-        assertThat( operatorInstance.getStatus(), equalTo( COMPLETING ) );
+        assertThat( operatorReplica.getCompletionReason(), equalTo( INPUT_PORT_CLOSED ) );
+        assertThat( operatorReplica.getUpstreamContext(), equalTo( newUpstreamContext ) );
+        assertThat( operatorReplica.getStatus(), equalTo( COMPLETING ) );
     }
 
 }

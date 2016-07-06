@@ -42,7 +42,7 @@ public class PartitionServiceImpl implements PartitionService
     @Override
     public int[] getOrCreatePartitionDistribution ( final int regionId, final int replicaCount )
     {
-        final int[] distribution = regionReplicaDistributions.computeIfAbsent( regionId, integer -> {
+        final int[] distribution = regionReplicaDistributions.computeIfAbsent( regionId, r -> {
             final List<Integer> l = new ArrayList<>( partitionCount );
             for ( int i = 0; i < partitionCount; i++ )
             {

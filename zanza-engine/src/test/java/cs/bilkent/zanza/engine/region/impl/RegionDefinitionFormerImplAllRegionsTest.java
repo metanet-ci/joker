@@ -5,7 +5,7 @@ import java.util.List;
 import org.junit.Test;
 
 import cs.bilkent.zanza.engine.region.RegionDefinition;
-import static cs.bilkent.zanza.engine.region.impl.RegionFormerImplRegionTest.assertRegion;
+import static cs.bilkent.zanza.engine.region.impl.RegionFormerImplRegionDefinitionTest.assertRegion;
 import cs.bilkent.zanza.flow.FlowDefinition;
 import cs.bilkent.zanza.flow.FlowDefinitionBuilder;
 import cs.bilkent.zanza.flow.OperatorDefinition;
@@ -32,10 +32,10 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.fail;
 
-public class RegionFormerImplAllRegionsTest
+public class RegionDefinitionFormerImplAllRegionsTest
 {
 
-    private final RegionFormerImpl regionFormer = new RegionFormerImpl();
+    private final RegionDefinitionFormerImpl regionFormer = new RegionDefinitionFormerImpl();
 
     private final FlowDefinitionBuilder flowBuilder = new FlowDefinitionBuilder();
 
@@ -117,18 +117,18 @@ public class RegionFormerImplAllRegionsTest
         assertRegionExists( regions, STATELESS, emptyList(), singletonList( operator4 ) );
     }
 
-    private void assertRegionExists ( final List<RegionDefinition> regions,
+    private void assertRegionExists ( final List<RegionDefinition> regionDefs,
                                       final OperatorType regionType,
                                       final List<String> partitionFieldNames,
                                       final List<OperatorDefinition> operators )
     {
-        for ( RegionDefinition region : regions )
+        for ( RegionDefinition regionDef : regionDefs )
         {
             try
             {
-                assertThat( region.getRegionType(), equalTo( regionType ) );
-                assertThat( region.getPartitionFieldNames(), equalTo( partitionFieldNames ) );
-                assertThat( region.getOperators(), equalTo( operators ) );
+                assertThat( regionDef.getRegionType(), equalTo( regionType ) );
+                assertThat( regionDef.getPartitionFieldNames(), equalTo( partitionFieldNames ) );
+                assertThat( regionDef.getOperators(), equalTo( operators ) );
                 return;
             }
             catch ( AssertionError expected )

@@ -1,6 +1,6 @@
 package cs.bilkent.zanza.engine.pipeline;
 
-public class PipelineInstanceId
+public class PipelineReplicaId
 {
 
     public final PipelineId pipelineId;
@@ -11,7 +11,7 @@ public class PipelineInstanceId
 
     private final int hashCode;
 
-    public PipelineInstanceId ( PipelineId pipelineId, final int replicaIndex )
+    public PipelineReplicaId ( PipelineId pipelineId, final int replicaIndex )
     {
         this.pipelineId = pipelineId;
         this.replicaIndex = replicaIndex;
@@ -32,7 +32,7 @@ public class PipelineInstanceId
             return false;
         }
 
-        final PipelineInstanceId that = (PipelineInstanceId) o;
+        final PipelineReplicaId that = (PipelineReplicaId) o;
 
         return str.equals( that.str );
     }

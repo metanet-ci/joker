@@ -4,7 +4,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
 
-import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.COMPLETED;
+import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.COMPLETED;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
@@ -12,7 +12,7 @@ import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import static org.junit.Assert.assertNull;
 
 @RunWith( MockitoJUnitRunner.class )
-public class OperatorInstanceCompletedStatusTest extends AbstractOperatorInstanceInvocationTest
+public class OperatorReplicaCompletedStatusTest extends AbstractOperatorInstanceInvocationTest
 {
 
     @Test
@@ -23,8 +23,8 @@ public class OperatorInstanceCompletedStatusTest extends AbstractOperatorInstanc
         initializeOperatorInstance( inputPortCount, outputPortCount, initializationStrategy );
         moveOperatorInstanceToStatus( COMPLETED );
 
-        assertNull( operatorInstance.invoke( new TuplesImpl( inputPortCount ),
-                                             OperatorInstanceInitializationTest.newUpstreamContextInstance( 0, inputPortCount, ACTIVE ) ) );
+        assertNull( operatorReplica.invoke( new TuplesImpl( inputPortCount ),
+                                            OperatorReplicaInitializationTest.newUpstreamContextInstance( 0, inputPortCount, ACTIVE ) ) );
     }
 
 }

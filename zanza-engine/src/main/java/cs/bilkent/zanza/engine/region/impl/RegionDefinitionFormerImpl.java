@@ -16,7 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import cs.bilkent.zanza.engine.region.RegionDefinition;
-import cs.bilkent.zanza.engine.region.RegionFormer;
+import cs.bilkent.zanza.engine.region.RegionDefinitionFormer;
 import cs.bilkent.zanza.flow.FlowDefinition;
 import cs.bilkent.zanza.flow.OperatorDefinition;
 import cs.bilkent.zanza.flow.Port;
@@ -31,13 +31,13 @@ import static java.util.Collections.singletonList;
 
 @Singleton
 @NotThreadSafe
-public class RegionFormerImpl implements RegionFormer
+public class RegionDefinitionFormerImpl implements RegionDefinitionFormer
 {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger( RegionFormerImpl.class );
+    private static final Logger LOGGER = LoggerFactory.getLogger( RegionDefinitionFormerImpl.class );
 
 
-    public RegionFormerImpl ()
+    public RegionDefinitionFormerImpl ()
     {
     }
 

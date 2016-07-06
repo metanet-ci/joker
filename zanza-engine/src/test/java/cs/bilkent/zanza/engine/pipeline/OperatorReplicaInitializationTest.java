@@ -12,8 +12,8 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 import cs.bilkent.zanza.engine.exception.InitializationException;
 import cs.bilkent.zanza.engine.kvstore.KVStoreContext;
-import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.INITIALIZATION_FAILED;
-import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.RUNNING;
+import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.INITIALIZATION_FAILED;
+import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.RUNNING;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
@@ -39,7 +39,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith( MockitoJUnitRunner.class )
-public class OperatorInstanceInitializationTest
+public class OperatorReplicaInitializationTest
 {
     @Mock
     private Operator operator;
@@ -52,20 +52,20 @@ public class OperatorInstanceInitializationTest
 
     private final int outputPortCount = 1;
 
-    private OperatorInstance operatorInstance;
+    private OperatorReplica operatorReplica;
 
     private UpstreamContext validUpstreamContext;
 
     @Before
     public void before () throws InstantiationException, IllegalAccessException
     {
-        operatorInstance = new OperatorInstance( new PipelineInstanceId( new PipelineId( 0, 0 ), 0 ),
-                                                 operatorDefinition,
-                                                 mock( TupleQueueContext.class ),
-                                                 mock( KVStoreContext.class ),
-                                                 drainerPool,
-                                                 mock( Supplier.class ),
-                                                 new InvocationContextImpl() );
+        operatorReplica = new OperatorReplica( new PipelineReplicaId( new PipelineId( 0, 0 ), 0 ),
+                                               operatorDefinition,
+                                               mock( TupleQueueContext.class ),
+                                               mock( KVStoreContext.class ),
+                                               drainerPool,
+                                               mock( Supplier.class ),
+                                               new InvocationContextImpl() );
 
         when( operatorDefinition.id() ).thenReturn( "op1" );
         when( operatorDefinition.outputPortCount() ).thenReturn( outputPortCount );
@@ -124,15 +124,15 @@ public class OperatorInstanceInitializationTest
 
         when( operator.init( any( InitializationContext.class ) ) ).thenReturn( schedulingStrategy );
 
-        operatorInstance.init( upstreamContext, null );
+        operatorReplica.init( upstreamContext, null );
 
-        assertThat( operatorInstance.getStatus(), equalTo( RUNNING ) );
-        assertThat( operatorInstance.getInitialSchedulingStrategy(), equalTo( schedulingStrategy ) );
-        assertThat( operatorInstance.getSchedulingStrategy(), equalTo( schedulingStrategy ) );
-        assertThat( operatorInstance.getUpstreamContext(), equalTo( upstreamContext ) );
-        assertThat( operatorInstance.getSelfUpstreamContext(), equalTo( newUpstreamContextInstance( 0, outputPortCount, ACTIVE ) ) );
+        assertThat( operatorReplica.getStatus(), equalTo( RUNNING ) );
+        assertThat( operatorReplica.getInitialSchedulingStrategy(), equalTo( schedulingStrategy ) );
+        assertThat( operatorReplica.getSchedulingStrategy(), equalTo( schedulingStrategy ) );
+        assertThat( operatorReplica.getUpstreamContext(), equalTo( upstreamContext ) );
+        assertThat( operatorReplica.getSelfUpstreamContext(), equalTo( newUpstreamContextInstance( 0, outputPortCount, ACTIVE ) ) );
 
-        final UpstreamContext selfUpstreamContext = operatorInstance.getSelfUpstreamContext();
+        final UpstreamContext selfUpstreamContext = operatorReplica.getSelfUpstreamContext();
         assertThat( selfUpstreamContext, equalTo( newUpstreamContextInstance( 0, outputPortCount, ACTIVE ) ) );
 
         verify( drainerPool ).acquire( schedulingStrategy );
@@ -145,7 +145,7 @@ public class OperatorInstanceInitializationTest
 
         try
         {
-            operatorInstance.init( newUpstreamContextInstance( 0, 1, ACTIVE ), null );
+            operatorReplica.init( newUpstreamContextInstance( 0, 1, ACTIVE ), null );
             fail();
         }
         catch ( InitializationException expected )
@@ -212,7 +212,7 @@ public class OperatorInstanceInitializationTest
 
         try
         {
-            operatorInstance.init( upstreamContext, null );
+            operatorReplica.init( upstreamContext, null );
             fail();
         }
         catch ( InitializationException expected )
@@ -231,7 +231,7 @@ public class OperatorInstanceInitializationTest
 
         try
         {
-            operatorInstance.init( validUpstreamContext, null );
+            operatorReplica.init( validUpstreamContext, null );
             fail();
         }
         catch ( InitializationException expected )
@@ -244,8 +244,8 @@ public class OperatorInstanceInitializationTest
 
     private void assertFailedInitialization ()
     {
-        assertThat( operatorInstance.getStatus(), equalTo( INITIALIZATION_FAILED ) );
-        assertThat( operatorInstance.getSelfUpstreamContext(), equalTo( newUpstreamContextInstance( 0, 1, CLOSED ) ) );
+        assertThat( operatorReplica.getStatus(), equalTo( INITIALIZATION_FAILED ) );
+        assertThat( operatorReplica.getSelfUpstreamContext(), equalTo( newUpstreamContextInstance( 0, 1, CLOSED ) ) );
     }
 
     static UpstreamContext newUpstreamContextInstance ( final int version, final int portCount, final UpstreamConnectionStatus status )

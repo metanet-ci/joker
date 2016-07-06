@@ -1,22 +1,27 @@
 package cs.bilkent.zanza;
 
 import com.google.inject.AbstractModule;
+import com.google.inject.name.Names;
 
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import cs.bilkent.zanza.engine.kvstore.KVStoreContextManager;
 import cs.bilkent.zanza.engine.kvstore.impl.KVStoreContextManagerImpl;
+import cs.bilkent.zanza.engine.partition.PartitionKeyFunctionFactory;
 import cs.bilkent.zanza.engine.partition.PartitionService;
 import cs.bilkent.zanza.engine.partition.PartitionServiceImpl;
-import cs.bilkent.zanza.engine.region.RegionFormer;
+import cs.bilkent.zanza.engine.partition.impl.PartitionKeyFunctionFactoryImpl;
+import cs.bilkent.zanza.engine.pipeline.PipelineRuntimeManager;
+import cs.bilkent.zanza.engine.pipeline.impl.PipelineRuntimeManagerImpl;
+import cs.bilkent.zanza.engine.region.RegionDefinitionFormer;
 import cs.bilkent.zanza.engine.region.RegionManager;
-import cs.bilkent.zanza.engine.region.impl.RegionFormerImpl;
+import cs.bilkent.zanza.engine.region.impl.RegionDefinitionFormerImpl;
 import cs.bilkent.zanza.engine.region.impl.RegionManagerImpl;
 import cs.bilkent.zanza.engine.supervisor.Supervisor;
 import cs.bilkent.zanza.engine.supervisor.impl.SupervisorImpl;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContextManager;
 import cs.bilkent.zanza.engine.tuplequeue.impl.TupleQueueContextManagerImpl;
 
-class ZanzaModule extends AbstractModule
+public class ZanzaModule extends AbstractModule
 {
 
     private final ZanzaConfig config;
@@ -33,9 +38,12 @@ class ZanzaModule extends AbstractModule
         bind( KVStoreContextManager.class ).to( KVStoreContextManagerImpl.class );
         bind( TupleQueueContextManager.class ).to( TupleQueueContextManagerImpl.class );
         bind( RegionManager.class ).to( RegionManagerImpl.class );
-        bind( RegionFormer.class ).to( RegionFormerImpl.class );
+        bind( RegionDefinitionFormer.class ).to( RegionDefinitionFormerImpl.class );
         bind( Supervisor.class ).to( SupervisorImpl.class );
+        bind( PartitionKeyFunctionFactory.class ).to( PartitionKeyFunctionFactoryImpl.class );
+        bind( PipelineRuntimeManager.class ).to( PipelineRuntimeManagerImpl.class );
         bind( ZanzaConfig.class ).toInstance( config );
+        bind( ThreadGroup.class ).annotatedWith( Names.named( "ZanzaThreadGroup" ) ).toInstance( new ThreadGroup( "Zanza" ) );
     }
 
 }

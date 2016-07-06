@@ -25,10 +25,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 
-public class RegionFormerImplRegionTest
+public class RegionFormerImplRegionDefinitionTest
 {
 
-    private final RegionFormerImpl regionFormer = new RegionFormerImpl();
+    private final RegionDefinitionFormerImpl regionFormer = new RegionDefinitionFormerImpl();
 
     @Test
     public void test_STATELESS ()

@@ -10,6 +10,7 @@ import static cs.bilkent.zanza.engine.config.ThreadingPreference.MULTI_THREADED;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import cs.bilkent.zanza.engine.partition.PartitionService;
 import cs.bilkent.zanza.engine.partition.PartitionServiceImpl;
+import cs.bilkent.zanza.engine.partition.impl.PartitionKeyFunctionFactoryImpl;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.flow.OperatorDefinition;
 import cs.bilkent.zanza.flow.OperatorRuntimeSchemaBuilder;
@@ -30,7 +31,7 @@ public class TupleQueueContextManagerImplTest
     {
         final ZanzaConfig zanzaConfig = new ZanzaConfig();
         final PartitionService partitionService = new PartitionServiceImpl( zanzaConfig );
-        tupleQueueManager = new TupleQueueContextManagerImpl( partitionService, zanzaConfig );
+        tupleQueueManager = new TupleQueueContextManagerImpl( zanzaConfig, partitionService, new PartitionKeyFunctionFactoryImpl() );
     }
 
     @Test( expected = IllegalArgumentException.class )

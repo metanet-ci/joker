@@ -1,16 +1,16 @@
 package cs.bilkent.zanza.engine.region;
 
-import cs.bilkent.zanza.engine.pipeline.PipelineInstance;
+import cs.bilkent.zanza.engine.pipeline.PipelineReplica;
 
-public class RegionInstance
+public class Region
 {
 
     private final RegionRuntimeConfig config;
 
     // [pipelineIndex, replicaIndex]
-    private final PipelineInstance[][] pipelines;
+    private final PipelineReplica[][] pipelines;
 
-    public RegionInstance ( final RegionRuntimeConfig config, final PipelineInstance[][] pipelines )
+    public Region ( final RegionRuntimeConfig config, final PipelineReplica[][] pipelines )
     {
         this.config = config;
         this.pipelines = pipelines;
@@ -21,9 +21,9 @@ public class RegionInstance
         return config;
     }
 
-    public PipelineInstance[] getReplicaPipelines ( final int replicaIndex )
+    public PipelineReplica[] getReplicaPipelines ( final int replicaIndex )
     {
-        final PipelineInstance[] p = new PipelineInstance[ config.getPipelineCount() ];
+        final PipelineReplica[] p = new PipelineReplica[ config.getPipelineCount() ];
         for ( int i = 0; i < config.getPipelineCount(); i++ )
         {
             p[ i ] = pipelines[ i ][ replicaIndex ];
@@ -31,7 +31,7 @@ public class RegionInstance
         return p;
     }
 
-    public PipelineInstance[] getPipelineReplicas ( final int pipelineId )
+    public PipelineReplica[] getPipelineReplicas ( final int pipelineId )
     {
         return pipelines[ pipelineId ];
     }

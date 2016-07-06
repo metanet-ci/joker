@@ -5,9 +5,9 @@ import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 
 /**
- * @see OperatorInstance
+ * @see OperatorReplica
  */
-enum OperatorInstanceStatus
+public enum OperatorReplicaStatus
 {
 
     /**

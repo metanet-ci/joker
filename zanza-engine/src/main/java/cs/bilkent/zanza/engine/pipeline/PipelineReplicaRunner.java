@@ -10,13 +10,13 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
-import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunner.PipelineInstanceRunnerCommandType.PAUSE;
-import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunner.PipelineInstanceRunnerCommandType.RESUME;
-import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunner.PipelineInstanceRunnerCommandType.UPDATE_PIPELINE_UPSTREAM_CONTEXT;
-import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.COMPLETED;
-import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.INITIAL;
-import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.PAUSED;
-import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.RUNNING;
+import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineInstanceRunnerCommandType.PAUSE;
+import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineInstanceRunnerCommandType.RESUME;
+import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineInstanceRunnerCommandType.UPDATE_PIPELINE_UPSTREAM_CONTEXT;
+import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.COMPLETED;
+import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.INITIAL;
+import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.PAUSED;
+import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.RUNNING;
 import cs.bilkent.zanza.engine.supervisor.Supervisor;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
@@ -25,19 +25,28 @@ import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
  * Execution model of the operators is such that it invokes all of the invokable operators until they set their scheduling strategy to
  * {@link ScheduleNever}. Therefore, some of the operators may be invokable while others complete their execution.
  */
-public class PipelineInstanceRunner implements Runnable
+public class PipelineReplicaRunner implements Runnable
 {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger( PipelineInstanceRunner.class );
+    private static final Logger LOGGER = LoggerFactory.getLogger( PipelineReplicaRunner.class );
+
+
+    public enum PipelineReplicaRunnerStatus
+    {
+        INITIAL,
+        RUNNING,
+        PAUSED,
+        COMPLETED
+    }
 
 
     private final Object monitor = new Object();
 
     private final ZanzaConfig config;
 
-    private final PipelineInstance pipeline;
+    private final PipelineReplica pipeline;
 
-    private final PipelineInstanceId id;
+    private final PipelineReplicaId id;
 
     private final long waitTimeoutInMillis;
 
@@ -50,15 +59,16 @@ public class PipelineInstanceRunner implements Runnable
 
     private Future<Void> downstreamTuplesFuture;
 
-    private PipelineInstanceRunnerStatus status = INITIAL;
+    private PipelineReplicaRunnerStatus status = INITIAL;
 
     private volatile PipelineInstanceRunnerCommand command;
 
 
-    public PipelineInstanceRunner ( final ZanzaConfig config,
-                                    final PipelineInstance pipeline,
-                                    final Supervisor supervisor,
-                                    final SupervisorNotifier supervisorNotifier )
+    public PipelineReplicaRunner ( final ZanzaConfig config,
+                                   final PipelineReplica pipeline,
+                                   final Supervisor supervisor,
+                                   final SupervisorNotifier supervisorNotifier,
+                                   final DownstreamTupleSender downstreamTupleSender )
     {
         this.config = config;
         this.pipeline = pipeline;
@@ -70,14 +80,10 @@ public class PipelineInstanceRunner implements Runnable
         }
         this.supervisor = supervisor;
         this.supervisorNotifier = supervisorNotifier;
-    }
-
-    public void setDownstreamTupleSender ( final DownstreamTupleSender downstreamTupleSender )
-    {
         this.downstreamTupleSender = downstreamTupleSender;
     }
 
-    public PipelineInstanceRunnerStatus getStatus ()
+    public PipelineReplicaRunnerStatus getStatus ()
     {
         synchronized ( monitor )
         {
@@ -90,7 +96,7 @@ public class PipelineInstanceRunner implements Runnable
         final CompletableFuture<Void> result;
         synchronized ( monitor )
         {
-            final PipelineInstanceRunnerStatus status = this.status;
+            final PipelineReplicaRunnerStatus status = this.status;
             if ( status == PAUSED )
             {
                 LOGGER.info( "{}: shortcutting pause feature since already paused", id );
@@ -151,7 +157,7 @@ public class PipelineInstanceRunner implements Runnable
         final CompletableFuture<Void> result;
         synchronized ( monitor )
         {
-            final PipelineInstanceRunnerStatus status = this.status;
+            final PipelineReplicaRunnerStatus status = this.status;
             if ( status == RUNNING )
             {
                 LOGGER.info( "{}: shortcutting resume since already running", id );
@@ -214,7 +220,7 @@ public class PipelineInstanceRunner implements Runnable
         final CompletableFuture<Void> result;
         synchronized ( monitor )
         {
-            final PipelineInstanceRunnerStatus status = this.status;
+            final PipelineReplicaRunnerStatus status = this.status;
             if ( status == PAUSED || status == RUNNING )
             {
                 PipelineInstanceRunnerCommand command = this.command;
@@ -285,7 +291,7 @@ public class PipelineInstanceRunner implements Runnable
         {
             while ( true )
             {
-                final PipelineInstanceRunnerStatus status = checkStatus();
+                final PipelineReplicaRunnerStatus status = checkStatus();
                 if ( status == PAUSED )
                 {
                     awaitDownstreamTuplesFuture();
@@ -327,10 +333,10 @@ public class PipelineInstanceRunner implements Runnable
         }
     }
 
-    private PipelineInstanceRunnerStatus checkStatus () throws InterruptedException
+    private PipelineReplicaRunnerStatus checkStatus () throws InterruptedException
     {
-        PipelineInstanceRunnerStatus result = RUNNING;
-        final PipelineInstanceRunnerStatus status = this.status;
+        PipelineReplicaRunnerStatus result = RUNNING;
+        final PipelineReplicaRunnerStatus status = this.status;
         final PipelineInstanceRunnerCommand command = this.command;
         if ( command != null )
         {
@@ -506,4 +512,5 @@ public class PipelineInstanceRunner implements Runnable
         }
 
     }
+
 }

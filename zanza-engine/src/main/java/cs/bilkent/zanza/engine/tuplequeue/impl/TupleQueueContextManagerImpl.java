@@ -2,7 +2,6 @@ package cs.bilkent.zanza.engine.tuplequeue.impl;
 
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -18,18 +17,8 @@ import static cs.bilkent.zanza.engine.config.ThreadingPreference.MULTI_THREADED;
 import static cs.bilkent.zanza.engine.config.ThreadingPreference.SINGLE_THREADED;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import cs.bilkent.zanza.engine.partition.PartitionKeyFunction;
+import cs.bilkent.zanza.engine.partition.PartitionKeyFunctionFactory;
 import cs.bilkent.zanza.engine.partition.PartitionService;
-import cs.bilkent.zanza.engine.partition.impl.PartitionKeyFunction1;
-import cs.bilkent.zanza.engine.partition.impl.PartitionKeyFunction10;
-import cs.bilkent.zanza.engine.partition.impl.PartitionKeyFunction2;
-import cs.bilkent.zanza.engine.partition.impl.PartitionKeyFunction3;
-import cs.bilkent.zanza.engine.partition.impl.PartitionKeyFunction4;
-import cs.bilkent.zanza.engine.partition.impl.PartitionKeyFunction5;
-import cs.bilkent.zanza.engine.partition.impl.PartitionKeyFunction6;
-import cs.bilkent.zanza.engine.partition.impl.PartitionKeyFunction7;
-import cs.bilkent.zanza.engine.partition.impl.PartitionKeyFunction8;
-import cs.bilkent.zanza.engine.partition.impl.PartitionKeyFunction9;
-import cs.bilkent.zanza.engine.partition.impl.PartitionKeyFunctionN;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContextManager;
@@ -41,7 +30,6 @@ import cs.bilkent.zanza.flow.OperatorDefinition;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import cs.bilkent.zanza.utils.Pair;
 import cs.bilkent.zanza.utils.Triple;
-import static java.lang.Math.min;
 
 @Singleton
 @NotThreadSafe
@@ -50,10 +38,10 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
 
     private static final Logger LOGGER = LoggerFactory.getLogger( TupleQueueContextManagerImpl.class );
 
-    private static final int PARTITION_KEY_FUNCTION_COUNT = 11;
-
 
     private final PartitionService partitionService;
+
+    private final PartitionKeyFunctionFactory partitionKeyFunctionFactory;
 
     private final int initialTupleQueueCapacity;
 
@@ -63,25 +51,15 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
 
     private final Map<String, TupleQueueContainer[]> tupleQueueContainersByOperatorId = new HashMap<>();
 
-    private final Function<List<String>, PartitionKeyFunction>[] partitionKeyFunctionConstructors;
 
     @Inject
-    public TupleQueueContextManagerImpl ( final PartitionService partitionService, final ZanzaConfig zanzaConfig )
+    public TupleQueueContextManagerImpl ( final ZanzaConfig zanzaConfig,
+                                          final PartitionService partitionService,
+                                          final PartitionKeyFunctionFactory partitionKeyFunctionFactory )
     {
         this.partitionService = partitionService;
+        this.partitionKeyFunctionFactory = partitionKeyFunctionFactory;
         this.initialTupleQueueCapacity = zanzaConfig.getTupleQueueManagerConfig().getTupleQueueInitialSize();
-        this.partitionKeyFunctionConstructors = new Function[ PARTITION_KEY_FUNCTION_COUNT + 1 ];
-        this.partitionKeyFunctionConstructors[ 1 ] = PartitionKeyFunction1::new;
-        this.partitionKeyFunctionConstructors[ 2 ] = PartitionKeyFunction2::new;
-        this.partitionKeyFunctionConstructors[ 3 ] = PartitionKeyFunction3::new;
-        this.partitionKeyFunctionConstructors[ 4 ] = PartitionKeyFunction4::new;
-        this.partitionKeyFunctionConstructors[ 5 ] = PartitionKeyFunction5::new;
-        this.partitionKeyFunctionConstructors[ 6 ] = PartitionKeyFunction6::new;
-        this.partitionKeyFunctionConstructors[ 7 ] = PartitionKeyFunction7::new;
-        this.partitionKeyFunctionConstructors[ 8 ] = PartitionKeyFunction8::new;
-        this.partitionKeyFunctionConstructors[ 9 ] = PartitionKeyFunction9::new;
-        this.partitionKeyFunctionConstructors[ 10 ] = PartitionKeyFunction10::new;
-        this.partitionKeyFunctionConstructors[ 11 ] = PartitionKeyFunctionN::new;
     }
 
     @Override
@@ -132,7 +110,8 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
                                                                                           partitionService.getPartitionCount(),
                                                                                           tupleQueueConstructor );
                 final int[] partitions = partitionService.getOrCreatePartitionDistribution( regionId, replicaCount );
-                final PartitionKeyFunction partitionKeyExtractor = getPartitionKeyFunction( operatorDefinition.partitionFieldNames() );
+                final PartitionKeyFunction partitionKeyExtractor = partitionKeyFunctionFactory.createPartitionKeyFunction(
+                        operatorDefinition.partitionFieldNames() );
                 tupleQueueContexts[ replicaIndex ] = new PartitionedTupleQueueContext( operatorId,
                                                                                        inputPortCount,
                                                                                        partitionService.getPartitionCount(),
@@ -159,13 +138,6 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
         return threadingPreference == SINGLE_THREADED
                ? ( capacityCheckEnabled ) -> new SingleThreadedTupleQueue( queueCapacity )
                : ( capacityCheckEnabled ) -> new MultiThreadedTupleQueue( queueCapacity, capacityCheckEnabled );
-    }
-
-    private PartitionKeyFunction getPartitionKeyFunction ( final List<String> partitionFieldNames )
-    {
-        checkArgument( partitionFieldNames.size() > 0 );
-        final int i = min( partitionFieldNames.size(), PARTITION_KEY_FUNCTION_COUNT );
-        return partitionKeyFunctionConstructors[ i ].apply( partitionFieldNames );
     }
 
     @Override

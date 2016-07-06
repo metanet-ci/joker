@@ -6,8 +6,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
 
-import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.COMPLETED;
-import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.COMPLETING;
+import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.COMPLETED;
+import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.COMPLETING;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.INPUT_PORT_CLOSED;
@@ -27,7 +27,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith( MockitoJUnitRunner.class )
-public class OperatorInstanceCompletingStatusTest extends AbstractOperatorInstanceInvocationTest
+public class OperatorReplicaCompletingStatusTest extends AbstractOperatorInstanceInvocationTest
 {
 
     @Test
@@ -47,7 +47,7 @@ public class OperatorInstanceCompletingStatusTest extends AbstractOperatorInstan
     private void testSatisfiedSchedulingStrategy ( final int inputPortCount, final int outputPortCount, final boolean newUpstreamContext )
     {
         initializeOperatorInstance( inputPortCount, outputPortCount );
-        final UpstreamContext upstreamContext = operatorInstance.getUpstreamContext();
+        final UpstreamContext upstreamContext = operatorReplica.getUpstreamContext();
         final UpstreamContext invocationUpstreamContext = newUpstreamContext
                                                           ? upstreamContext.withUpstreamConnectionStatus( 1, CLOSED )
                                                           : upstreamContext;
@@ -63,7 +63,7 @@ public class OperatorInstanceCompletingStatusTest extends AbstractOperatorInstan
         final TuplesImpl upstreamInput = new TuplesImpl( inputPortCount );
         upstreamInput.add( new Tuple( "f1", "val1" ) );
 
-        final TuplesImpl output = operatorInstance.invoke( upstreamInput, invocationUpstreamContext );
+        final TuplesImpl output = operatorReplica.invoke( upstreamInput, invocationUpstreamContext );
 
         verify( queue ).offer( 0, singletonList( new Tuple( "f1", "val1" ) ) );
         verify( queue ).drain( drainer );
@@ -74,9 +74,9 @@ public class OperatorInstanceCompletingStatusTest extends AbstractOperatorInstan
         assertThat( invocationContext.getInput(), equalTo( operatorInput ) );
 
         assertThat( output, equalTo( expectedOutput ) );
-        assertThat( operatorInstance.getSchedulingStrategy(), equalTo( ScheduleWhenAvailable.INSTANCE ) );
-        assertThat( operatorInstance.getUpstreamContext(), equalTo( upstreamContext ) );
-        assertThat( operatorInstance.getStatus(), equalTo( COMPLETING ) );
+        assertThat( operatorReplica.getSchedulingStrategy(), equalTo( ScheduleWhenAvailable.INSTANCE ) );
+        assertThat( operatorReplica.getUpstreamContext(), equalTo( upstreamContext ) );
+        assertThat( operatorReplica.getStatus(), equalTo( COMPLETING ) );
     }
 
     @Test
@@ -85,12 +85,12 @@ public class OperatorInstanceCompletingStatusTest extends AbstractOperatorInstan
         final int inputPortCount = 2, outputPortCount = 1;
         initializeOperatorInstance( inputPortCount, outputPortCount );
 
-        final UpstreamContext upstreamContext = operatorInstance.getUpstreamContext();
+        final UpstreamContext upstreamContext = operatorReplica.getUpstreamContext();
         when( drainer.getResult() ).thenReturn( new TuplesImpl( inputPortCount ) );
 
         final TuplesImpl upstreamInput = new TuplesImpl( inputPortCount );
         upstreamInput.add( new Tuple( "f1", "val1" ) );
-        final TuplesImpl output = operatorInstance.invoke( upstreamInput, upstreamContext );
+        final TuplesImpl output = operatorReplica.invoke( upstreamInput, upstreamContext );
 
         verify( queue ).offer( 0, singletonList( new Tuple( "f1", "val1" ) ) );
         verify( queue ).drain( drainer );
@@ -99,9 +99,9 @@ public class OperatorInstanceCompletingStatusTest extends AbstractOperatorInstan
         verify( drainer ).reset();
 
         assertNull( output );
-        assertThat( operatorInstance.getSchedulingStrategy(), equalTo( ScheduleWhenAvailable.INSTANCE ) );
-        assertThat( operatorInstance.getUpstreamContext(), equalTo( upstreamContext ) );
-        assertThat( operatorInstance.getStatus(), equalTo( COMPLETING ) );
+        assertThat( operatorReplica.getSchedulingStrategy(), equalTo( ScheduleWhenAvailable.INSTANCE ) );
+        assertThat( operatorReplica.getUpstreamContext(), equalTo( upstreamContext ) );
+        assertThat( operatorReplica.getStatus(), equalTo( COMPLETING ) );
     }
 
     @Test
@@ -110,13 +110,13 @@ public class OperatorInstanceCompletingStatusTest extends AbstractOperatorInstan
         final int inputPortCount = 3, outputPortCount = 1;
         initializeOperatorInstance( inputPortCount, outputPortCount );
 
-        final UpstreamContext invocationUpstreamContext = operatorInstance.getUpstreamContext().withUpstreamConnectionStatus( 1, CLOSED );
+        final UpstreamContext invocationUpstreamContext = operatorReplica.getUpstreamContext().withUpstreamConnectionStatus( 1, CLOSED );
 
         when( drainer.getResult() ).thenReturn( new TuplesImpl( inputPortCount ) );
 
         final TuplesImpl upstreamInput = new TuplesImpl( inputPortCount );
         upstreamInput.add( new Tuple( "f1", "val1" ) );
-        final TuplesImpl output = operatorInstance.invoke( upstreamInput, invocationUpstreamContext );
+        final TuplesImpl output = operatorReplica.invoke( upstreamInput, invocationUpstreamContext );
 
         verify( queue ).offer( 0, singletonList( new Tuple( "f1", "val1" ) ) );
         verify( queue ).drain( drainer );
@@ -130,9 +130,9 @@ public class OperatorInstanceCompletingStatusTest extends AbstractOperatorInstan
         assertThat( invocationContext.getInput(), equalTo( new TuplesImpl( inputPortCount ) ) );
 
         assertNull( output );
-        assertThat( operatorInstance.getSchedulingStrategy(), equalTo( ScheduleWhenAvailable.INSTANCE ) );
-        assertThat( operatorInstance.getUpstreamContext(), equalTo( invocationUpstreamContext ) );
-        assertThat( operatorInstance.getStatus(), equalTo( COMPLETING ) );
+        assertThat( operatorReplica.getSchedulingStrategy(), equalTo( ScheduleWhenAvailable.INSTANCE ) );
+        assertThat( operatorReplica.getUpstreamContext(), equalTo( invocationUpstreamContext ) );
+        assertThat( operatorReplica.getStatus(), equalTo( COMPLETING ) );
     }
 
     @Test
@@ -142,7 +142,7 @@ public class OperatorInstanceCompletingStatusTest extends AbstractOperatorInstan
 
         initializeOperatorInstance( inputPortCount, outputPortCount );
 
-        final UpstreamContext invocationUpstreamContext = operatorInstance.getUpstreamContext().withUpstreamConnectionStatus( 1, CLOSED );
+        final UpstreamContext invocationUpstreamContext = operatorReplica.getUpstreamContext().withUpstreamConnectionStatus( 1, CLOSED );
 
         final TuplesImpl input = new TuplesImpl( inputPortCount );
         when( drainer.getResult() ).thenReturn( input );
@@ -153,7 +153,7 @@ public class OperatorInstanceCompletingStatusTest extends AbstractOperatorInstan
 
         final TuplesImpl upstreamInput = new TuplesImpl( inputPortCount );
         upstreamInput.add( new Tuple( "f1", "val1" ) );
-        final TuplesImpl output = operatorInstance.invoke( upstreamInput, invocationUpstreamContext );
+        final TuplesImpl output = operatorReplica.invoke( upstreamInput, invocationUpstreamContext );
 
         verify( queue ).offer( 0, singletonList( new Tuple( "f1", "val1" ) ) );
         verify( queue ).drain( drainer );
@@ -167,9 +167,9 @@ public class OperatorInstanceCompletingStatusTest extends AbstractOperatorInstan
         assertThat( invocationContext.getInput(), equalTo( new TuplesImpl( inputPortCount ) ) );
 
         assertThat( output, equalTo( expectedOutput ) );
-        assertThat( operatorInstance.getSchedulingStrategy(), equalTo( ScheduleNever.INSTANCE ) );
-        assertThat( operatorInstance.getUpstreamContext(), equalTo( invocationUpstreamContext ) );
-        assertThat( operatorInstance.getStatus(), equalTo( COMPLETED ) );
+        assertThat( operatorReplica.getSchedulingStrategy(), equalTo( ScheduleNever.INSTANCE ) );
+        assertThat( operatorReplica.getUpstreamContext(), equalTo( invocationUpstreamContext ) );
+        assertThat( operatorReplica.getStatus(), equalTo( COMPLETED ) );
     }
 
     private void initializeOperatorInstance ( final int inputPortCount, final int outputPortCount )
@@ -186,9 +186,9 @@ public class OperatorInstanceCompletingStatusTest extends AbstractOperatorInstan
         final UpstreamConnectionStatus[] statuses = new UpstreamConnectionStatus[ inputPortCount ];
         Arrays.fill( statuses, ACTIVE );
         statuses[ 0 ] = CLOSED;
-        operatorInstance.invoke( null, new UpstreamContext( 1, statuses ) );
-        assertThat( operatorInstance.getStatus(), equalTo( COMPLETING ) );
-        assertThat( operatorInstance.getCompletionReason(), equalTo( INPUT_PORT_CLOSED ) );
+        operatorReplica.invoke( null, new UpstreamContext( 1, statuses ) );
+        assertThat( operatorReplica.getStatus(), equalTo( COMPLETING ) );
+        assertThat( operatorReplica.getCompletionReason(), equalTo( INPUT_PORT_CLOSED ) );
 
         reset( queue );
         reset( drainer );

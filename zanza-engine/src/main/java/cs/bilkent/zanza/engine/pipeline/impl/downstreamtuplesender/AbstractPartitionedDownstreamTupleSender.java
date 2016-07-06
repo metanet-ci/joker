@@ -57,6 +57,7 @@ public abstract class AbstractPartitionedDownstreamTupleSender implements Downst
             if ( tupleLists[ i ].size() > 0 )
             {
                 tupleQueueContexts[ i ].offer( destinationPortIndex, tupleLists[ i ] );
+                tupleLists[ i ].clear();
             }
         }
 

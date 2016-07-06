@@ -21,13 +21,13 @@ import cs.bilkent.zanza.engine.kvstore.KVStoreContextManager;
 import cs.bilkent.zanza.engine.kvstore.impl.DefaultKVStoreContext;
 import cs.bilkent.zanza.engine.kvstore.impl.EmptyKVStoreContext;
 import cs.bilkent.zanza.engine.kvstore.impl.PartitionedKVStoreContext;
-import cs.bilkent.zanza.engine.pipeline.OperatorInstance;
+import cs.bilkent.zanza.engine.pipeline.OperatorReplica;
 import cs.bilkent.zanza.engine.pipeline.PipelineId;
-import cs.bilkent.zanza.engine.pipeline.PipelineInstance;
-import cs.bilkent.zanza.engine.pipeline.PipelineInstanceId;
+import cs.bilkent.zanza.engine.pipeline.PipelineReplica;
+import cs.bilkent.zanza.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.zanza.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
 import cs.bilkent.zanza.engine.pipeline.impl.tuplesupplier.NonCachedTuplesImplSupplier;
-import cs.bilkent.zanza.engine.region.RegionInstance;
+import cs.bilkent.zanza.engine.region.Region;
 import cs.bilkent.zanza.engine.region.RegionManager;
 import cs.bilkent.zanza.engine.region.RegionRuntimeConfig;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
@@ -57,7 +57,7 @@ public class RegionManagerImpl implements RegionManager
 
     private final TupleQueueContextManager tupleQueueContextManager;
 
-    private final Map<Integer, RegionInstance> regions = new HashMap<>();
+    private final Map<Integer, Region> regions = new HashMap<>();
 
     @Inject
     public RegionManagerImpl ( final ZanzaConfig config,
@@ -70,7 +70,7 @@ public class RegionManagerImpl implements RegionManager
     }
 
     @Override
-    public RegionInstance createRegion ( final FlowDefinition flow, final RegionRuntimeConfig regionConfig )
+    public Region createRegion ( final FlowDefinition flow, final RegionRuntimeConfig regionConfig )
     {
         checkState( !regions.containsKey( regionConfig.getRegionId() ) );
         checkPipelineStartIndices( regionConfig );
@@ -81,20 +81,20 @@ public class RegionManagerImpl implements RegionManager
 
         LOGGER.info( "Creating components for regionId={} pipelineCount={} replicaCount={}", regionId, pipelineCount, replicaCount );
 
-        final PipelineInstance[][] pipelineInstances = new PipelineInstance[ pipelineCount ][ replicaCount ];
+        final PipelineReplica[][] pipelineReplicas = new PipelineReplica[ pipelineCount ][ replicaCount ];
 
         for ( int pipelineId = 0; pipelineId < pipelineCount; pipelineId++ )
         {
 
             final OperatorDefinition[] operatorDefinitions = regionConfig.getOperatorDefinitions( pipelineId );
             final int operatorCount = operatorDefinitions.length;
-            final OperatorInstance[][] operatorInstances = new OperatorInstance[ replicaCount ][ operatorCount ];
+            final OperatorReplica[][] operatorReplicas = new OperatorReplica[ replicaCount ][ operatorCount ];
             LOGGER.info( "Initializing pipeline instance for regionId={} pipelineId={} with {} operators",
                          regionId,
                          pipelineId,
                          operatorCount );
 
-            final PipelineInstanceId[] pipelineInstanceIds = createPipelineInstanceIds( regionId, replicaCount, pipelineId );
+            final PipelineReplicaId[] pipelineReplicaIds = createPipelineInstanceIds( regionId, replicaCount, pipelineId );
 
             for ( int operatorIndex = 0; operatorIndex < operatorCount; operatorIndex++ )
             {
@@ -122,12 +122,12 @@ public class RegionManagerImpl implements RegionManager
 
                 for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
                 {
-                    operatorInstances[ replicaIndex ][ operatorIndex ] = new OperatorInstance( pipelineInstanceIds[ replicaIndex ],
-                                                                                               operatorDefinition,
-                                                                                               tupleQueueContexts[ replicaIndex ],
-                                                                                               kvStoreContexts[ replicaIndex ],
-                                                                                               drainerPools[ replicaIndex ],
-                                                                                               outputSuppliers[ replicaIndex ] );
+                    operatorReplicas[ replicaIndex ][ operatorIndex ] = new OperatorReplica( pipelineReplicaIds[ replicaIndex ],
+                                                                                             operatorDefinition,
+                                                                                             tupleQueueContexts[ replicaIndex ],
+                                                                                             kvStoreContexts[ replicaIndex ],
+                                                                                             drainerPools[ replicaIndex ],
+                                                                                             outputSuppliers[ replicaIndex ] );
                 }
             }
 
@@ -137,19 +137,20 @@ public class RegionManagerImpl implements RegionManager
                              regionId,
                              replicaIndex,
                              pipelineId );
-                final OperatorInstance[] pipelineOperatorInstances = operatorInstances[ replicaIndex ];
+                final OperatorReplica[] pipelineOperatorReplicas = operatorReplicas[ replicaIndex ];
                 final TupleQueueContext pipelineTupleQueueContext = createPipelineTupleQueueContext( flow,
                                                                                                      regionId,
                                                                                                      regionConfig,
-                                                                                                     pipelineOperatorInstances );
+                                                                                                     pipelineOperatorReplicas );
 
-                pipelineInstances[ pipelineId ][ replicaIndex ] = new PipelineInstance( config, pipelineInstanceIds[ replicaIndex ],
-                                                                                        pipelineOperatorInstances,
-                                                                                        pipelineTupleQueueContext );
+                pipelineReplicas[ pipelineId ][ replicaIndex ] = new PipelineReplica( config,
+                                                                                      pipelineReplicaIds[ replicaIndex ],
+                                                                                      pipelineOperatorReplicas,
+                                                                                      pipelineTupleQueueContext );
             }
         }
 
-        final RegionInstance region = new RegionInstance( regionConfig, pipelineInstances );
+        final Region region = new Region( regionConfig, pipelineReplicas );
         regions.put( regionId, region );
         return region;
     }
@@ -166,14 +167,14 @@ public class RegionManagerImpl implements RegionManager
         }
     }
 
-    private PipelineInstanceId[] createPipelineInstanceIds ( final int regionId, final int replicaCount, final int pipelineId )
+    private PipelineReplicaId[] createPipelineInstanceIds ( final int regionId, final int replicaCount, final int pipelineId )
     {
-        final PipelineInstanceId[] pipelineInstanceIds = new PipelineInstanceId[ replicaCount ];
+        final PipelineReplicaId[] pipelineReplicaIds = new PipelineReplicaId[ replicaCount ];
         for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
         {
-            pipelineInstanceIds[ replicaIndex ] = new PipelineInstanceId( new PipelineId( regionId, pipelineId ), replicaIndex );
+            pipelineReplicaIds[ replicaIndex ] = new PipelineReplicaId( new PipelineId( regionId, pipelineId ), replicaIndex );
         }
-        return pipelineInstanceIds;
+        return pipelineReplicaIds;
     }
 
     private TupleQueueContext[] createTupleQueueContexts ( final FlowDefinition flow,
@@ -324,9 +325,9 @@ public class RegionManagerImpl implements RegionManager
     private TupleQueueContext createPipelineTupleQueueContext ( final FlowDefinition flow,
                                                                 final int regionId,
                                                                 final RegionRuntimeConfig regionConfig,
-                                                                final OperatorInstance[] pipelineOperatorInstances )
+                                                                final OperatorReplica[] pipelineOperatorReplicas )
     {
-        final OperatorDefinition firstOperatorDefinition = pipelineOperatorInstances[ 0 ].getOperatorDefinition();
+        final OperatorDefinition firstOperatorDefinition = pipelineOperatorReplicas[ 0 ].getOperatorDefinition();
         if ( flow.getUpstreamConnections( firstOperatorDefinition.id() ).isEmpty() )
         {
             LOGGER.info( "Creating {} for pipeline tuple queue context of regionId={} as pipeline has no input port",

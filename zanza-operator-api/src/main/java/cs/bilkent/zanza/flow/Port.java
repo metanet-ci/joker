@@ -52,4 +52,14 @@ public class Port
         result = 31 * result + portIndex;
         return result;
     }
+
+    @Override
+    public String toString ()
+    {
+        return "Port{" +
+               "operatorId='" + operatorId + '\'' +
+               ", portIndex=" + portIndex +
+               '}';
+    }
+
 }

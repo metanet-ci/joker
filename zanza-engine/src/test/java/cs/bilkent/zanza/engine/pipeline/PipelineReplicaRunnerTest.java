@@ -14,9 +14,9 @@ import org.mockito.runners.MockitoJUnitRunner;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static cs.bilkent.zanza.engine.TestUtils.assertTrueEventually;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
-import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.COMPLETED;
-import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.PAUSED;
-import static cs.bilkent.zanza.engine.pipeline.PipelineInstanceRunnerStatus.RUNNING;
+import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.COMPLETED;
+import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.PAUSED;
+import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.RUNNING;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import cs.bilkent.zanza.engine.supervisor.Supervisor;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
@@ -36,14 +36,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith( MockitoJUnitRunner.class )
-public class PipelineInstanceRunnerTest
+public class PipelineReplicaRunnerTest
 {
 
     @Mock
     private OperatorDefinition operatorDefinition;
 
     @Mock
-    private OperatorInstance operator;
+    private OperatorReplica operator;
 
     @Mock
     private Supervisor supervisor;
@@ -54,9 +54,9 @@ public class PipelineInstanceRunnerTest
     @Mock
     private DownstreamTupleSender downstreamTupleSender;
 
-    private PipelineInstance pipeline;
+    private PipelineReplica pipeline;
 
-    private PipelineInstanceRunner runner;
+    private PipelineReplicaRunner runner;
 
     private Thread thread;
 
@@ -65,16 +65,15 @@ public class PipelineInstanceRunnerTest
     @Before
     public void init () throws Exception
     {
-        final PipelineInstanceId id = new PipelineInstanceId( new PipelineId( 0, 0 ), 0 );
+        final PipelineReplicaId id = new PipelineReplicaId( new PipelineId( 0, 0 ), 0 );
         when( operator.getOperatorDefinition() ).thenReturn( operatorDefinition );
         when( operatorDefinition.id() ).thenReturn( "op1" );
         when( operatorDefinition.inputPortCount() ).thenReturn( inputOutputPortCount );
         when( operatorDefinition.outputPortCount() ).thenReturn( inputOutputPortCount );
         final ZanzaConfig config = new ZanzaConfig();
-        pipeline = new PipelineInstance( config, id, new OperatorInstance[] { operator }, mock( TupleQueueContext.class ) );
-        runner = new PipelineInstanceRunner( config, pipeline, supervisor, supervisorNotifier );
+        pipeline = new PipelineReplica( config, id, new OperatorReplica[] { operator }, mock( TupleQueueContext.class ) );
+        runner = new PipelineReplicaRunner( config, pipeline, supervisor, supervisorNotifier, downstreamTupleSender );
 
-        runner.setDownstreamTupleSender( downstreamTupleSender );
         thread = new Thread( runner );
 
         when( operator.isInvokable() ).thenReturn( true );

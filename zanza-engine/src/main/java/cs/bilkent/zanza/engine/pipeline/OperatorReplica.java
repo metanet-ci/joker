@@ -11,12 +11,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.zanza.engine.exception.InitializationException;
 import cs.bilkent.zanza.engine.kvstore.KVStoreContext;
-import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.COMPLETED;
-import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.COMPLETING;
-import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.INITIAL;
-import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.INITIALIZATION_FAILED;
-import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.RUNNING;
-import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceStatus.SHUT_DOWN;
+import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.COMPLETED;
+import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.COMPLETING;
+import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.INITIAL;
+import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.INITIALIZATION_FAILED;
+import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.RUNNING;
+import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.SHUT_DOWN;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
@@ -49,10 +49,10 @@ import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
  * Reflects the life-cycle defined in {@link Operator} interface and provides the corresponding methods.
  */
 @NotThreadSafe
-public class OperatorInstance
+public class OperatorReplica
 {
 
-    private static Logger LOGGER = LoggerFactory.getLogger( OperatorInstance.class );
+    private static Logger LOGGER = LoggerFactory.getLogger( OperatorReplica.class );
 
 
     private final String operatorName;
@@ -69,7 +69,7 @@ public class OperatorInstance
 
     private final Supplier<TuplesImpl> outputSupplier;
 
-    private OperatorInstanceStatus status = INITIAL;
+    private OperatorReplicaStatus status = INITIAL;
 
     private UpstreamContext upstreamContext;
 
@@ -85,29 +85,29 @@ public class OperatorInstance
 
     private TupleQueueDrainer drainer;
 
-    private OperatorInstanceListener listener;
+    private OperatorReplicaListener listener;
 
     private boolean invokedOnLastAttempt;
 
-    public OperatorInstance ( final PipelineInstanceId pipelineInstanceId,
-                              final OperatorDefinition operatorDefinition,
-                              final TupleQueueContext queue,
-                              final KVStoreContext kvStoreContext,
-                              final TupleQueueDrainerPool drainerPool,
-                              final Supplier<TuplesImpl> outputSupplier )
+    public OperatorReplica ( final PipelineReplicaId pipelineReplicaId,
+                             final OperatorDefinition operatorDefinition,
+                             final TupleQueueContext queue,
+                             final KVStoreContext kvStoreContext,
+                             final TupleQueueDrainerPool drainerPool,
+                             final Supplier<TuplesImpl> outputSupplier )
     {
-        this( pipelineInstanceId, operatorDefinition, queue, kvStoreContext, drainerPool, outputSupplier, new InvocationContextImpl() );
+        this( pipelineReplicaId, operatorDefinition, queue, kvStoreContext, drainerPool, outputSupplier, new InvocationContextImpl() );
     }
 
-    public OperatorInstance ( final PipelineInstanceId pipelineInstanceId,
-                              final OperatorDefinition operatorDefinition,
-                              final TupleQueueContext queue,
-                              final KVStoreContext kvStoreContext,
-                              final TupleQueueDrainerPool drainerPool,
-                              final Supplier<TuplesImpl> outputSupplier,
-                              final InvocationContextImpl invocationContext )
+    public OperatorReplica ( final PipelineReplicaId pipelineReplicaId,
+                             final OperatorDefinition operatorDefinition,
+                             final TupleQueueContext queue,
+                             final KVStoreContext kvStoreContext,
+                             final TupleQueueDrainerPool drainerPool,
+                             final Supplier<TuplesImpl> outputSupplier,
+                             final InvocationContextImpl invocationContext )
     {
-        this.operatorName = pipelineInstanceId.toString() + ".Operator<" + operatorDefinition.id() + ">";
+        this.operatorName = pipelineReplicaId.toString() + ".Operator<" + operatorDefinition.id() + ">";
         this.queue = queue;
         this.operatorDefinition = operatorDefinition;
         this.kvStoreContext = kvStoreContext;
@@ -118,11 +118,11 @@ public class OperatorInstance
 
     /**
      * Initializes its internal state to get ready for operator invocation. After initialization is completed successfully, it moves
-     * the status to {@link OperatorInstanceStatus#RUNNING}. If {@link Operator#init(InitializationContext)} throws an exception,
-     * it moves the status to {@link OperatorInstanceStatus#INITIALIZATION_FAILED} and propagates the exception to the caller after
+     * the status to {@link OperatorReplicaStatus#RUNNING}. If {@link Operator#init(InitializationContext)} throws an exception,
+     * it moves the status to {@link OperatorReplicaStatus#INITIALIZATION_FAILED} and propagates the exception to the caller after
      * wrapping it with {@link InitializationException}.
      */
-    public SchedulingStrategy init ( final UpstreamContext upstreamContext, final OperatorInstanceListener listener )
+    public SchedulingStrategy init ( final UpstreamContext upstreamContext, final OperatorReplicaListener listener )
     {
         checkState( status == INITIAL );
         try
@@ -148,7 +148,7 @@ public class OperatorInstance
         }
     }
 
-    private void setStatus ( final OperatorInstanceStatus status )
+    private void setStatus ( final OperatorReplicaStatus status )
     {
         try
         {
@@ -274,21 +274,21 @@ public class OperatorInstance
     /**
      * Performs the operator invocation as described below.
      * <p>
-     * When the operator is in {@link OperatorInstanceStatus#RUNNING} status:
+     * When the operator is in {@link OperatorReplicaStatus#RUNNING} status:
      * invokes the operator successfully if
      * - the operator has a non-empty input for its {@link ScheduleWhenTuplesAvailable} scheduling strategy,
      * - scheduling strategy is {@link ScheduleWhenAvailable} and there is no change upstream context.
      * Otherwise, it checks if there is a change in the upstream context. If it is the case,
-     * - it makes the final invocation and moves the operator into {@link OperatorInstanceStatus#COMPLETED},
+     * - it makes the final invocation and moves the operator into {@link OperatorReplicaStatus#COMPLETED},
      * if the scheduling strategy is {@link ScheduleWhenAvailable}.
      * - if the scheduling strategy is {@link ScheduleWhenTuplesAvailable} and operator is still invokable with the new upstream context,
      * it skips the invocation.
      * - if the scheduling strategy is {@link ScheduleWhenTuplesAvailable} and operator is not invokable with the new upstream context
      * anymore, it invokes the operator with {@link InvocationReason#INPUT_PORT_CLOSED},
      * <p>
-     * When the operator is in {@link OperatorInstanceStatus#COMPLETING} status:
+     * When the operator is in {@link OperatorReplicaStatus#COMPLETING} status:
      * It invokes the operator successfully if it can drain a non-empty input from the tuple queues. If there is no non-empty input:
-     * - it performs the final invocation and moves the operator to {@link OperatorInstanceStatus#COMPLETED} status
+     * - it performs the final invocation and moves the operator to {@link OperatorReplicaStatus#COMPLETED} status
      * if all input ports are closed.
      *
      * @param upstreamInput
@@ -456,7 +456,7 @@ public class OperatorInstance
 
     /**
      * Finalizes the running schedule of the operator. It releases the drainer, sets the scheduling strategy to {@link ScheduleNever},
-     * sets status to {@link OperatorInstanceStatus#COMPLETED} and updates the upstream context that will be passed to the next operator.
+     * sets status to {@link OperatorReplicaStatus#COMPLETED} and updates the upstream context that will be passed to the next operator.
      */
     private void completeRun ()
     {
@@ -471,7 +471,7 @@ public class OperatorInstance
     }
 
     /**
-     * Shuts down the operator and sets status to {@link OperatorInstanceStatus#SHUT_DOWN}
+     * Shuts down the operator and sets status to {@link OperatorReplicaStatus#SHUT_DOWN}
      */
     public void shutdown ()
     {
@@ -523,7 +523,7 @@ public class OperatorInstance
         return schedulingStrategy;
     }
 
-    public OperatorInstanceStatus getStatus ()
+    public OperatorReplicaStatus getStatus ()
     {
         return status;
     }

@@ -7,7 +7,7 @@ import org.junit.Before;
 import org.mockito.Mock;
 
 import cs.bilkent.zanza.engine.kvstore.KVStoreContext;
-import static cs.bilkent.zanza.engine.pipeline.OperatorInstanceInitializationTest.newUpstreamContextInstance;
+import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaInitializationTest.newUpstreamContextInstance;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainer;
@@ -55,19 +55,20 @@ public class AbstractOperatorInstanceInvocationTest
 
     protected final InvocationContextImpl invocationContext = new InvocationContextImpl();
 
-    protected OperatorInstance operatorInstance;
+    protected OperatorReplica operatorReplica;
 
     protected UpstreamContext initializationUpstreamContext;
 
     @Before
     public void before ()
     {
-        operatorInstance = new OperatorInstance( new PipelineInstanceId( new PipelineId( 0, 0 ), 0 ),
-                                                 operatorDefinition,
-                                                 queue, kvStoreContext,
-                                                 drainerPool,
-                                                 outputSupplier,
-                                                 invocationContext );
+        operatorReplica = new OperatorReplica( new PipelineReplicaId( new PipelineId( 0, 0 ), 0 ),
+                                               operatorDefinition,
+                                               queue,
+                                               kvStoreContext,
+                                               drainerPool,
+                                               outputSupplier,
+                                               invocationContext );
 
         applyDefaultMocks();
     }
@@ -88,7 +89,7 @@ public class AbstractOperatorInstanceInvocationTest
         mockOperatorInitializationSchedulingStrategy( schedulingStrategy );
 
         initializationUpstreamContext = newUpstreamContextInstance( 0, inputPortCount, ACTIVE );
-        operatorInstance.init( initializationUpstreamContext, null );
+        operatorReplica.init( initializationUpstreamContext, null );
     }
 
     protected void mockOperatorDefinition ( final int inputPortCount, final int outputPortCount )
@@ -123,17 +124,17 @@ public class AbstractOperatorInstanceInvocationTest
         verify( operator, never() ).invoke( invocationContext );
     }
 
-    protected void moveOperatorInstanceToStatus ( OperatorInstanceStatus status )
+    protected void moveOperatorInstanceToStatus ( OperatorReplicaStatus status )
     {
         try
         {
-            final Field statusField = OperatorInstance.class.getDeclaredField( "status" );
+            final Field statusField = OperatorReplica.class.getDeclaredField( "status" );
             statusField.setAccessible( true );
-            statusField.set( operatorInstance, status );
+            statusField.set( operatorReplica, status );
 
-            final Field completionReasonField = OperatorInstance.class.getDeclaredField( "completionReason" );
+            final Field completionReasonField = OperatorReplica.class.getDeclaredField( "completionReason" );
             completionReasonField.setAccessible( true );
-            completionReasonField.set( operatorInstance, OPERATOR_REQUESTED_SHUTDOWN );
+            completionReasonField.set( operatorReplica, OPERATOR_REQUESTED_SHUTDOWN );
         }
         catch ( Exception e )
         {

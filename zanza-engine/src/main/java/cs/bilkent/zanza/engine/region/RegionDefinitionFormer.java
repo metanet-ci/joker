@@ -4,7 +4,7 @@ import java.util.List;
 
 import cs.bilkent.zanza.flow.FlowDefinition;
 
-public interface RegionFormer
+public interface RegionDefinitionFormer
 {
 
     List<RegionDefinition> createRegions ( FlowDefinition flowDefinition );
