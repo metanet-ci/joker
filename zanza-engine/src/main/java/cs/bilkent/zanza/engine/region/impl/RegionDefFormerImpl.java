@@ -41,6 +41,7 @@ public class RegionDefFormerImpl implements RegionDefFormer
     {
     }
 
+    // TODO return regions topologically sorted
     @Override
     public List<RegionDef> createRegions ( final FlowDef flow )
     {

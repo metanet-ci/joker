@@ -57,6 +57,8 @@ public class FlowDef
     }
 
     // TODO improve flow validation
+    // TODO operators with at least 1 input port should have at least 1 connection
+    // TODO there should be a single connected component
     private void validateFlowDef ( final Map<String, OperatorDef> operators, final Multimap<Port, Port> connections )
     {
         checkNotNull( operators );
