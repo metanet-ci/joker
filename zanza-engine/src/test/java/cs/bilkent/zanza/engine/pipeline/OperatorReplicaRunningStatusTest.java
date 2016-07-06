@@ -34,7 +34,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith( MockitoJUnitRunner.class )
-public class OperatorReplicaRunningStatusTest extends AbstractOperatorInstanceInvocationTest
+public class OperatorReplicaRunningStatusTest extends AbstractOperatorReplicaInvocationTest
 {
 
     @Test
@@ -73,7 +73,7 @@ public class OperatorReplicaRunningStatusTest extends AbstractOperatorInstanceIn
                                                    final SchedulingStrategy initializationStrategy,
                                                    final UpstreamContext upstreamContext )
     {
-        initializeOperatorInstance( inputPortCount, outputPortCount, initializationStrategy );
+        initializeOperatorReplica( inputPortCount, outputPortCount, initializationStrategy );
 
         final TuplesImpl operatorInput = new TuplesImpl( inputPortCount );
         when( drainer.getResult() ).thenReturn( operatorInput );
@@ -120,7 +120,7 @@ public class OperatorReplicaRunningStatusTest extends AbstractOperatorInstanceIn
         final SchedulingStrategy initializationStrategy = ScheduleWhenAvailable.INSTANCE;
         final UpstreamContext newUpstreamContext = newUpstreamContextInstance( 1, inputPortCount, CLOSED );
 
-        initializeOperatorInstance( inputPortCount, outputPortCount, initializationStrategy );
+        initializeOperatorReplica( inputPortCount, outputPortCount, initializationStrategy );
 
         final TuplesImpl operatorInput = new TuplesImpl( inputPortCount );
         when( drainer.getResult() ).thenReturn( operatorInput );
@@ -153,7 +153,7 @@ public class OperatorReplicaRunningStatusTest extends AbstractOperatorInstanceIn
     {
         final int inputPortCount = 1, outputPortCount = 1;
         final SchedulingStrategy initializationStrategy = scheduleWhenTuplesAvailableOnDefaultPort( 1 );
-        initializeOperatorInstance( inputPortCount, outputPortCount, initializationStrategy );
+        initializeOperatorReplica( inputPortCount, outputPortCount, initializationStrategy );
 
         final TuplesImpl upstreamInput = new TuplesImpl( inputPortCount );
         upstreamInput.add( new Tuple( "f1", "val1" ) );
@@ -179,7 +179,7 @@ public class OperatorReplicaRunningStatusTest extends AbstractOperatorInstanceIn
     {
         final int inputPortCount = 2, outputPortCount = 1;
         final SchedulingStrategy initializationStrategy = scheduleWhenTuplesAvailableOnAny( 2, 1, 0, 1 );
-        initializeOperatorInstance( inputPortCount, outputPortCount, initializationStrategy );
+        initializeOperatorReplica( inputPortCount, outputPortCount, initializationStrategy );
         final UpstreamContext newUpstreamContext = new UpstreamContext( 1, new UpstreamConnectionStatus[] { ACTIVE, CLOSED } );
 
         final TuplesImpl operatorInput = new TuplesImpl( inputPortCount );
@@ -208,7 +208,7 @@ public class OperatorReplicaRunningStatusTest extends AbstractOperatorInstanceIn
     {
         final int inputPortCount = 2, outputPortCount = 1;
         final SchedulingStrategy initializationStrategy = scheduleWhenTuplesAvailableOnAll( AT_LEAST, 2, 1, 0, 1 );
-        initializeOperatorInstance( inputPortCount, outputPortCount, initializationStrategy );
+        initializeOperatorReplica( inputPortCount, outputPortCount, initializationStrategy );
         final UpstreamContext newUpstreamContext = new UpstreamContext( 1, new UpstreamConnectionStatus[] { ACTIVE, CLOSED } );
 
         final TuplesImpl operatorInput = new TuplesImpl( inputPortCount );

@@ -158,8 +158,8 @@ public class RegionManagerImplTest
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 1 ), 0 ), pipeline1.id() );
         assertEquals( 1, pipeline0.getOperatorCount() );
         assertEquals( 1, pipeline1.getOperatorCount() );
-        final OperatorReplica operatorReplica0 = pipeline0.getOperatorInstance( 0 );
-        final OperatorReplica operatorReplica1 = pipeline1.getOperatorInstance( 0 );
+        final OperatorReplica operatorReplica0 = pipeline0.getOperator( 0 );
+        final OperatorReplica operatorReplica1 = pipeline1.getOperator( 0 );
         assertOperatorDefinition( operatorReplica0, operatorDefinition0 );
         assertOperatorDefinition( operatorReplica1, operatorDefinition1 );
         assertEmptyTupleQueueContext( operatorReplica0 );
@@ -180,8 +180,8 @@ public class RegionManagerImplTest
     {
         assertEquals( new PipelineReplicaId( new PipelineId( regionId, pipelineId ), replicaIndex ), pipelineReplica0.id() );
         assertEquals( 2, pipelineReplica0.getOperatorCount() );
-        final OperatorReplica operatorReplica0 = pipelineReplica0.getOperatorInstance( 0 );
-        final OperatorReplica operatorReplica1 = pipelineReplica0.getOperatorInstance( 1 );
+        final OperatorReplica operatorReplica0 = pipelineReplica0.getOperator( 0 );
+        final OperatorReplica operatorReplica1 = pipelineReplica0.getOperator( 1 );
         assertOperatorDefinition( operatorReplica0, operatorDefinition0 );
         assertOperatorDefinition( operatorReplica1, operatorDefinition1 );
         assertEmptyTupleQueueContext( operatorReplica0 );
@@ -225,8 +225,8 @@ public class RegionManagerImplTest
 
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 0 ), pipeline.id() );
         assertEquals( 2, pipeline.getOperatorCount() );
-        final OperatorReplica operatorReplica1 = pipeline.getOperatorInstance( 0 );
-        final OperatorReplica operatorReplica2 = pipeline.getOperatorInstance( 1 );
+        final OperatorReplica operatorReplica1 = pipeline.getOperator( 0 );
+        final OperatorReplica operatorReplica2 = pipeline.getOperator( 1 );
         assertOperatorDefinition( operatorReplica1, operatorDefinition1 );
         assertOperatorDefinition( operatorReplica2, operatorDefinition2 );
         assertDefaultTupleQueueContext( operatorReplica1, operatorDefinition1.inputPortCount(), MULTI_THREADED );
@@ -268,7 +268,7 @@ public class RegionManagerImplTest
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 0 ), pipeline.id() );
         assertEquals( 1, pipeline.getOperatorCount() );
 
-        final OperatorReplica operatorReplica1 = pipeline.getOperatorInstance( 0 );
+        final OperatorReplica operatorReplica1 = pipeline.getOperator( 0 );
         assertOperatorDefinition( operatorReplica1, operatorDefinition1 );
         assertDefaultTupleQueueContext( operatorReplica1, operatorDefinition1.inputPortCount(), MULTI_THREADED );
         assertDefaultKVStoreContext( operatorReplica1 );
@@ -315,7 +315,7 @@ public class RegionManagerImplTest
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 0 ), pipeline.id() );
         assertEquals( 1, pipeline.getOperatorCount() );
 
-        final OperatorReplica operatorReplica1 = pipeline.getOperatorInstance( 0 );
+        final OperatorReplica operatorReplica1 = pipeline.getOperator( 0 );
         assertOperatorDefinition( operatorReplica1, operatorDefinition1 );
         assertPartitionedTupleQueueContext( operatorReplica1 );
         assertPartitionedKVStoreContext( operatorReplica1 );
@@ -368,8 +368,8 @@ public class RegionManagerImplTest
         assertEquals( 1, pipelineReplica0.getOperatorCount() );
         assertEquals( 1, pipelineReplica1.getOperatorCount() );
 
-        final OperatorReplica operatorReplica0 = pipelineReplica0.getOperatorInstance( 0 );
-        final OperatorReplica operatorReplica1 = pipelineReplica1.getOperatorInstance( 0 );
+        final OperatorReplica operatorReplica0 = pipelineReplica0.getOperator( 0 );
+        final OperatorReplica operatorReplica1 = pipelineReplica1.getOperator( 0 );
         assertOperatorDefinition( operatorReplica0, operatorDefinition1 );
         assertOperatorDefinition( operatorReplica1, operatorDefinition1 );
         assertPartitionedTupleQueueContext( operatorReplica0 );
@@ -430,14 +430,14 @@ public class RegionManagerImplTest
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 0 ), pipeline.id() );
         assertEquals( 2, pipeline.getOperatorCount() );
 
-        final OperatorReplica operatorReplica1 = pipeline.getOperatorInstance( 0 );
+        final OperatorReplica operatorReplica1 = pipeline.getOperator( 0 );
         assertOperatorDefinition( operatorReplica1, operatorDefinition1 );
         assertDefaultTupleQueueContext( operatorReplica1, operatorDefinition1.inputPortCount(), MULTI_THREADED );
         assertEmptyKVStoreContext( operatorReplica1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica1 );
         assertCachedTuplesImplSupplier( operatorReplica1 );
 
-        final OperatorReplica operatorReplica2 = pipeline.getOperatorInstance( 1 );
+        final OperatorReplica operatorReplica2 = pipeline.getOperator( 1 );
         assertOperatorDefinition( operatorReplica2, operatorDefinition2 );
         assertPartitionedTupleQueueContext( operatorReplica2 );
         assertPartitionedKVStoreContext( operatorReplica2 );
@@ -499,28 +499,28 @@ public class RegionManagerImplTest
         assertEquals( 2, pipelineReplica0.getOperatorCount() );
         assertEquals( 2, pipelineReplica1.getOperatorCount() );
 
-        final OperatorReplica operatorReplica0_1 = pipelineReplica0.getOperatorInstance( 0 );
+        final OperatorReplica operatorReplica0_1 = pipelineReplica0.getOperator( 0 );
         assertOperatorDefinition( operatorReplica0_1, operatorDefinition1 );
         assertDefaultTupleQueueContext( operatorReplica0_1, operatorDefinition1.inputPortCount(), MULTI_THREADED );
         assertEmptyKVStoreContext( operatorReplica0_1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica0_1 );
         assertCachedTuplesImplSupplier( operatorReplica0_1 );
 
-        final OperatorReplica operatorReplica1_1 = pipelineReplica0.getOperatorInstance( 0 );
+        final OperatorReplica operatorReplica1_1 = pipelineReplica0.getOperator( 0 );
         assertOperatorDefinition( operatorReplica1_1, operatorDefinition1 );
         assertDefaultTupleQueueContext( operatorReplica1_1, operatorDefinition1.inputPortCount(), MULTI_THREADED );
         assertEmptyKVStoreContext( operatorReplica1_1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica1_1 );
         assertCachedTuplesImplSupplier( operatorReplica1_1 );
 
-        final OperatorReplica operatorReplica0_2 = pipelineReplica0.getOperatorInstance( 1 );
+        final OperatorReplica operatorReplica0_2 = pipelineReplica0.getOperator( 1 );
         assertOperatorDefinition( operatorReplica0_2, operatorDefinition2 );
         assertPartitionedTupleQueueContext( operatorReplica0_2 );
         assertPartitionedKVStoreContext( operatorReplica0_2 );
         assertNonBlockingTupleQueueDrainerPool( operatorReplica0_2 );
         assertNonCachedTuplesImplSupplier( operatorReplica0_2 );
 
-        final OperatorReplica operatorReplica1_2 = pipelineReplica0.getOperatorInstance( 1 );
+        final OperatorReplica operatorReplica1_2 = pipelineReplica0.getOperator( 1 );
         assertOperatorDefinition( operatorReplica1_2, operatorDefinition2 );
         assertPartitionedTupleQueueContext( operatorReplica1_2 );
         assertPartitionedKVStoreContext( operatorReplica1_2 );
@@ -589,21 +589,21 @@ public class RegionManagerImplTest
         assertEquals( 1, pipeline0.getOperatorCount() );
         assertEquals( 2, pipeline1.getOperatorCount() );
 
-        final OperatorReplica operatorReplica1 = pipeline0.getOperatorInstance( 0 );
+        final OperatorReplica operatorReplica1 = pipeline0.getOperator( 0 );
         assertOperatorDefinition( operatorReplica1, operatorDefinition1 );
         assertDefaultTupleQueueContext( operatorReplica1, operatorDefinition1.inputPortCount(), MULTI_THREADED );
         assertEmptyKVStoreContext( operatorReplica1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica1 );
         assertNonCachedTuplesImplSupplier( operatorReplica1 );
 
-        final OperatorReplica operatorReplica2 = pipeline1.getOperatorInstance( 0 );
+        final OperatorReplica operatorReplica2 = pipeline1.getOperator( 0 );
         assertOperatorDefinition( operatorReplica2, operatorDefinition2 );
         assertPartitionedTupleQueueContext( operatorReplica2 );
         assertPartitionedKVStoreContext( operatorReplica2 );
         assertBlockingTupleQueueDrainerPool( operatorReplica2 );
         assertCachedTuplesImplSupplier( operatorReplica2 );
 
-        final OperatorReplica operatorReplica3 = pipeline1.getOperatorInstance( 1 );
+        final OperatorReplica operatorReplica3 = pipeline1.getOperator( 1 );
         assertOperatorDefinition( operatorReplica3, operatorDefinition3 );
         assertDefaultTupleQueueContext( operatorReplica3, operatorDefinition3.inputPortCount(), SINGLE_THREADED );
         assertEmptyKVStoreContext( operatorReplica3 );

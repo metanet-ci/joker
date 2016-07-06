@@ -12,16 +12,16 @@ import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import static org.junit.Assert.assertNull;
 
 @RunWith( MockitoJUnitRunner.class )
-public class OperatorReplicaCompletedStatusTest extends AbstractOperatorInstanceInvocationTest
+public class OperatorReplicaCompletedStatusTest extends AbstractOperatorReplicaInvocationTest
 {
 
     @Test
-    public void shouldNotInvokeWhenOperatorInstanceStatusIsCompleted ()
+    public void shouldNotInvokeWhenOperatorReplicaStatusIsCompleted ()
     {
         final int inputPortCount = 1, outputPortCount = 1;
         final SchedulingStrategy initializationStrategy = scheduleWhenTuplesAvailableOnDefaultPort( 1 );
-        initializeOperatorInstance( inputPortCount, outputPortCount, initializationStrategy );
-        moveOperatorInstanceToStatus( COMPLETED );
+        initializeOperatorReplica( inputPortCount, outputPortCount, initializationStrategy );
+        setOperatorReplicaStatus( COMPLETED );
 
         assertNull( operatorReplica.invoke( new TuplesImpl( inputPortCount ),
                                             OperatorReplicaInitializationTest.newUpstreamContextInstance( 0, inputPortCount, ACTIVE ) ) );

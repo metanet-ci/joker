@@ -73,7 +73,7 @@ public class OperatorReplicaInitializationTest
     }
 
     @Test
-    public void shouldInitializeOperatorInstanceWhenOperatorInitializationSucceeds_ScheduleWhenTuplesAvailable_ANY_PORT_SINGLE ()
+    public void shouldInitializeOperatorReplicaWhenOperatorInitializationSucceeds_ScheduleWhenTuplesAvailable_ANY_PORT_SINGLE ()
     {
         final int inputPortCount = 1;
         final ScheduleWhenTuplesAvailable schedulingStrategy = scheduleWhenTuplesAvailableOnAny( inputPortCount, 1, 0 );
@@ -81,7 +81,7 @@ public class OperatorReplicaInitializationTest
     }
 
     @Test
-    public void shouldInitializeOperatorInstanceWhenOperatorInitializationSucceeds_ScheduleWhenTuplesAvailable_ANY_PORT_MULTI ()
+    public void shouldInitializeOperatorReplicaWhenOperatorInitializationSucceeds_ScheduleWhenTuplesAvailable_ANY_PORT_MULTI ()
     {
         final int inputPortCount = 2;
         final ScheduleWhenTuplesAvailable schedulingStrategy = scheduleWhenTuplesAvailableOnAny( inputPortCount, 1, 1 );
@@ -89,7 +89,7 @@ public class OperatorReplicaInitializationTest
     }
 
     @Test
-    public void shouldInitializeOperatorInstanceWhenOperatorInitializationSucceeds_ScheduleWhenTuplesAvailable_ANY_PORT_MULTI_portClosed ()
+    public void shouldInitializeOperatorReplicaWhenOperatorInitializationSucceeds_ScheduleWhenTuplesAvailable_ANY_PORT_MULTI_portClosed ()
     {
         final int inputPortCount = 2;
         final ScheduleWhenTuplesAvailable schedulingStrategy = scheduleWhenTuplesAvailableOnAny( inputPortCount, 1, 0, 1 );
@@ -99,7 +99,7 @@ public class OperatorReplicaInitializationTest
     }
 
     @Test
-    public void shouldInitializeOperatorInstanceWhenOperatorInitializationSucceeds_ScheduleWhenTuplesAvailable_ALL_PORTS ()
+    public void shouldInitializeOperatorReplicaWhenOperatorInitializationSucceeds_ScheduleWhenTuplesAvailable_ALL_PORTS ()
     {
         final int inputPortCount = 2;
         final ScheduleWhenTuplesAvailable schedulingStrategy = scheduleWhenTuplesAvailableOnAll( AT_LEAST, inputPortCount, 1, 0, 1 );
@@ -107,7 +107,7 @@ public class OperatorReplicaInitializationTest
     }
 
     @Test
-    public void shouldInitializeOperatorInstanceWhenOperatorInitializationSucceeds_ScheduleWhenAvailable ()
+    public void shouldInitializeOperatorReplicaWhenOperatorInitializationSucceeds_ScheduleWhenAvailable ()
     {
         final int inputPortCount = 0;
         shouldInitializeOperatorSuccessfully( inputPortCount,

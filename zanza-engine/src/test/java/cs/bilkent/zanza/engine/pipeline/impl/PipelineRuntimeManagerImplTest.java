@@ -84,8 +84,8 @@ public class PipelineRuntimeManagerImplTest
         assertEquals( 0, pipelineRuntimeState.getOperatorIndex( operatorDefinition ) );
         assertEquals( INITIAL, pipelineRuntimeState.getPipelineStatus() );
 
-        assertNotNull( pipelineRuntimeState.getPipelineInstance( 0 ) );
-        assertNotNull( pipelineRuntimeState.getPipelineInstanceRunner( 0 ) );
+        assertNotNull( pipelineRuntimeState.getPipelineReplica( 0 ) );
+        assertNotNull( pipelineRuntimeState.getPipelineReplicaRunner( 0 ) );
         assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ), pipelineRuntimeState.getUpstreamContext() );
         assertNotNull( pipelineRuntimeState.getDownstreamTupleSender( 0 ) );
     }
@@ -139,13 +139,13 @@ public class PipelineRuntimeManagerImplTest
                       pipelineRuntimeState2.getUpstreamContext() );
         assertEquals( partitionedStatefulRegionDef, pipelineRuntimeState2.getRegionDefinition() );
         assertEquals( 0, pipelineRuntimeState2.getOperatorIndex( operatorDefinition2 ) );
-        assertFalse( pipelineRuntimeState2.getPipelineInstance( 0 ) == pipelineRuntimeState2.getPipelineInstance( 1 ) );
+        assertFalse( pipelineRuntimeState2.getPipelineReplica( 0 ) == pipelineRuntimeState2.getPipelineReplica( 1 ) );
 
         final PipelineRuntimeState pipelineRuntimeState3 = pipelineRuntimeStates.get( 2 );
         assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ), pipelineRuntimeState3.getUpstreamContext() );
         assertEquals( partitionedStatefulRegionDef, pipelineRuntimeState3.getRegionDefinition() );
         assertEquals( 0, pipelineRuntimeState3.getOperatorIndex( operatorDefinition3 ) );
-        assertFalse( pipelineRuntimeState3.getPipelineInstance( 0 ) == pipelineRuntimeState3.getPipelineInstance( 1 ) );
+        assertFalse( pipelineRuntimeState3.getPipelineReplica( 0 ) == pipelineRuntimeState3.getPipelineReplica( 1 ) );
     }
 
     @Test
@@ -199,14 +199,14 @@ public class PipelineRuntimeManagerImplTest
         assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ), pipelineRuntimeState2.getUpstreamContext() );
         assertEquals( partitionedStatefulRegionDef, pipelineRuntimeState2.getRegionDefinition() );
         assertEquals( 0, pipelineRuntimeState2.getOperatorIndex( operatorDefinition2 ) );
-        assertFalse( pipelineRuntimeState2.getPipelineInstance( 0 ) == pipelineRuntimeState2.getPipelineInstance( 1 ) );
+        assertFalse( pipelineRuntimeState2.getPipelineReplica( 0 ) == pipelineRuntimeState2.getPipelineReplica( 1 ) );
 
         final PipelineRuntimeState pipelineRuntimeState3 = pipelineRuntimeStates.get( 2 );
         assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE, NO_CONNECTION } ),
                       pipelineRuntimeState3.getUpstreamContext() );
         assertEquals( partitionedStatefulRegionDef, pipelineRuntimeState3.getRegionDefinition() );
         assertEquals( 0, pipelineRuntimeState3.getOperatorIndex( operatorDefinition3 ) );
-        assertFalse( pipelineRuntimeState3.getPipelineInstance( 0 ) == pipelineRuntimeState3.getPipelineInstance( 1 ) );
+        assertFalse( pipelineRuntimeState3.getPipelineReplica( 0 ) == pipelineRuntimeState3.getPipelineReplica( 1 ) );
     }
 
     @Test

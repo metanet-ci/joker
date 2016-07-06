@@ -94,7 +94,7 @@ public class RegionManagerImpl implements RegionManager
                          pipelineId,
                          operatorCount );
 
-            final PipelineReplicaId[] pipelineReplicaIds = createPipelineInstanceIds( regionId, replicaCount, pipelineId );
+            final PipelineReplicaId[] pipelineReplicaIds = createPipelineReplicaIds( regionId, replicaCount, pipelineId );
 
             for ( int operatorIndex = 0; operatorIndex < operatorCount; operatorIndex++ )
             {
@@ -167,7 +167,7 @@ public class RegionManagerImpl implements RegionManager
         }
     }
 
-    private PipelineReplicaId[] createPipelineInstanceIds ( final int regionId, final int replicaCount, final int pipelineId )
+    private PipelineReplicaId[] createPipelineReplicaIds ( final int regionId, final int replicaCount, final int pipelineId )
     {
         final PipelineReplicaId[] pipelineReplicaIds = new PipelineReplicaId[ replicaCount ];
         for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )

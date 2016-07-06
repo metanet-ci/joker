@@ -10,9 +10,9 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
-import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineInstanceRunnerCommandType.PAUSE;
-import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineInstanceRunnerCommandType.RESUME;
-import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineInstanceRunnerCommandType.UPDATE_PIPELINE_UPSTREAM_CONTEXT;
+import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerCommandType.PAUSE;
+import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerCommandType.RESUME;
+import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerCommandType.UPDATE_PIPELINE_UPSTREAM_CONTEXT;
 import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.COMPLETED;
 import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.INITIAL;
 import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.PAUSED;
@@ -61,7 +61,7 @@ public class PipelineReplicaRunner implements Runnable
 
     private PipelineReplicaRunnerStatus status = INITIAL;
 
-    private volatile PipelineInstanceRunnerCommand command;
+    private volatile PipelineReplicaRunnerCommand command;
 
 
     public PipelineReplicaRunner ( final ZanzaConfig config,
@@ -73,7 +73,7 @@ public class PipelineReplicaRunner implements Runnable
         this.config = config;
         this.pipeline = pipeline;
         this.id = pipeline.id();
-        this.waitTimeoutInMillis = config.getPipelineInstanceRunnerConfig().waitTimeoutInMillis;
+        this.waitTimeoutInMillis = config.getPipelineReplicaRunnerConfig().waitTimeoutInMillis;
         synchronized ( monitor )
         {
             status = INITIAL;
@@ -111,7 +111,7 @@ public class PipelineReplicaRunner implements Runnable
             }
             else
             {
-                PipelineInstanceRunnerCommand command = this.command;
+                PipelineReplicaRunnerCommand command = this.command;
                 if ( command != null )
                 {
                     if ( command.getType() == PAUSE )
@@ -126,7 +126,7 @@ public class PipelineReplicaRunner implements Runnable
                                      pipeline.getPipelineUpstreamContext(),
                                      id );
                         command.complete();
-                        command = PipelineInstanceRunnerCommand.pause();
+                        command = PipelineReplicaRunnerCommand.pause();
                         this.command = command;
                         result = command.getFuture();
                     }
@@ -142,7 +142,7 @@ public class PipelineReplicaRunner implements Runnable
                 else
                 {
                     LOGGER.info( "{}: pause command is set", id );
-                    command = PipelineInstanceRunnerCommand.pause();
+                    command = PipelineReplicaRunnerCommand.pause();
                     this.command = command;
                     result = command.getFuture();
                 }
@@ -172,7 +172,7 @@ public class PipelineReplicaRunner implements Runnable
             }
             else
             {
-                PipelineInstanceRunnerCommand command = this.command;
+                PipelineReplicaRunnerCommand command = this.command;
                 if ( command != null )
                 {
                     if ( command.getType() == RESUME )
@@ -188,7 +188,7 @@ public class PipelineReplicaRunner implements Runnable
                                      pipeline.getPipelineUpstreamContext(),
                                      id );
                         command.complete();
-                        command = PipelineInstanceRunnerCommand.resume();
+                        command = PipelineReplicaRunnerCommand.resume();
                         this.command = command;
                         monitor.notify();
                         result = command.getFuture();
@@ -204,7 +204,7 @@ public class PipelineReplicaRunner implements Runnable
                 else
                 {
                     LOGGER.info( "{}: resume command is set", id );
-                    command = PipelineInstanceRunnerCommand.resume();
+                    command = PipelineReplicaRunnerCommand.resume();
                     this.command = command;
                     monitor.notify();
                     result = command.getFuture();
@@ -223,11 +223,11 @@ public class PipelineReplicaRunner implements Runnable
             final PipelineReplicaRunnerStatus status = this.status;
             if ( status == PAUSED || status == RUNNING )
             {
-                PipelineInstanceRunnerCommand command = this.command;
+                PipelineReplicaRunnerCommand command = this.command;
                 if ( command == null )
                 {
                     LOGGER.info( "{}: update pipeline upstream context command is set", id );
-                    command = PipelineInstanceRunnerCommand.updatePipelineUpstreamContext();
+                    command = PipelineReplicaRunnerCommand.updatePipelineUpstreamContext();
                     this.command = command;
                     result = command.getFuture();
                     monitor.notify();
@@ -337,10 +337,10 @@ public class PipelineReplicaRunner implements Runnable
     {
         PipelineReplicaRunnerStatus result = RUNNING;
         final PipelineReplicaRunnerStatus status = this.status;
-        final PipelineInstanceRunnerCommand command = this.command;
+        final PipelineReplicaRunnerCommand command = this.command;
         if ( command != null )
         {
-            final PipelineInstanceRunnerCommandType commandType = command.getType();
+            final PipelineReplicaRunnerCommandType commandType = command.getType();
             synchronized ( monitor )
             {
                 if ( commandType == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
@@ -429,10 +429,10 @@ public class PipelineReplicaRunner implements Runnable
         synchronized ( monitor )
         {
             status = COMPLETED;
-            final PipelineInstanceRunnerCommand command = this.command;
+            final PipelineReplicaRunnerCommand command = this.command;
             if ( command != null )
             {
-                final PipelineInstanceRunnerCommandType type = command.getType();
+                final PipelineReplicaRunnerCommandType type = command.getType();
                 if ( type == RESUME || type == PAUSE )
                 {
                     LOGGER.warn( "{}: completing command with type: {} exceptionally", id, type );
@@ -449,7 +449,7 @@ public class PipelineReplicaRunner implements Runnable
     }
 
 
-    enum PipelineInstanceRunnerCommandType
+    enum PipelineReplicaRunnerCommandType
     {
         PAUSE,
         RESUME,
@@ -457,40 +457,40 @@ public class PipelineReplicaRunner implements Runnable
     }
 
 
-    private static class PipelineInstanceRunnerCommand
+    private static class PipelineReplicaRunnerCommand
     {
 
-        static PipelineInstanceRunnerCommand pause ()
+        static PipelineReplicaRunnerCommand pause ()
         {
-            return new PipelineInstanceRunnerCommand( PAUSE );
+            return new PipelineReplicaRunnerCommand( PAUSE );
         }
 
-        static PipelineInstanceRunnerCommand resume ()
+        static PipelineReplicaRunnerCommand resume ()
         {
-            return new PipelineInstanceRunnerCommand( RESUME );
+            return new PipelineReplicaRunnerCommand( RESUME );
         }
 
-        static PipelineInstanceRunnerCommand updatePipelineUpstreamContext ()
+        static PipelineReplicaRunnerCommand updatePipelineUpstreamContext ()
         {
-            return new PipelineInstanceRunnerCommand( UPDATE_PIPELINE_UPSTREAM_CONTEXT );
+            return new PipelineReplicaRunnerCommand( UPDATE_PIPELINE_UPSTREAM_CONTEXT );
         }
 
 
-        private final PipelineInstanceRunnerCommandType type;
+        private final PipelineReplicaRunnerCommandType type;
 
         private final CompletableFuture<Void> future = new CompletableFuture<>();
 
-        private PipelineInstanceRunnerCommand ( final PipelineInstanceRunnerCommandType type )
+        private PipelineReplicaRunnerCommand ( final PipelineReplicaRunnerCommandType type )
         {
             this.type = type;
         }
 
-        PipelineInstanceRunnerCommandType getType ()
+        PipelineReplicaRunnerCommandType getType ()
         {
             return type;
         }
 
-        boolean hasType ( final PipelineInstanceRunnerCommandType type )
+        boolean hasType ( final PipelineReplicaRunnerCommandType type )
         {
             return this.type == type;
         }

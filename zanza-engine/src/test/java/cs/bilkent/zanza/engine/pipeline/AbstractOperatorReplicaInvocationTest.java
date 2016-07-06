@@ -25,7 +25,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class AbstractOperatorInstanceInvocationTest
+class AbstractOperatorReplicaInvocationTest
 {
     @Mock
     protected TupleQueueContext queue;
@@ -81,9 +81,9 @@ public class AbstractOperatorInstanceInvocationTest
         when( kvStoreContext.getKVStore( key ) ).thenReturn( kvStore );
     }
 
-    protected void initializeOperatorInstance ( final int inputPortCount,
-                                                final int outputPortCount,
-                                                final SchedulingStrategy schedulingStrategy )
+    protected void initializeOperatorReplica ( final int inputPortCount,
+                                               final int outputPortCount,
+                                               final SchedulingStrategy schedulingStrategy )
     {
         mockOperatorDefinition( inputPortCount, outputPortCount );
         mockOperatorInitializationSchedulingStrategy( schedulingStrategy );
@@ -124,7 +124,7 @@ public class AbstractOperatorInstanceInvocationTest
         verify( operator, never() ).invoke( invocationContext );
     }
 
-    protected void moveOperatorInstanceToStatus ( OperatorReplicaStatus status )
+    protected void setOperatorReplicaStatus ( OperatorReplicaStatus status )
     {
         try
         {

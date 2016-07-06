@@ -14,7 +14,7 @@ public class ZanzaConfig
 
     private final TupleQueueDrainerConfig tupleQueueDrainerConfig;
 
-    private final PipelineInstanceRunnerConfig pipelineInstanceRunnerConfig;
+    private final PipelineReplicaRunnerConfig pipelineReplicaRunnerConfig;
 
     private final PartitionServiceConfig partitionServiceConfig;
 
@@ -29,7 +29,7 @@ public class ZanzaConfig
         final Config engineConfig = config.getConfig( ENGINE_CONFIG_NAME );
         this.tupleQueueManagerConfig = new TupleQueueManagerConfig( engineConfig );
         this.tupleQueueDrainerConfig = new TupleQueueDrainerConfig( engineConfig );
-        this.pipelineInstanceRunnerConfig = new PipelineInstanceRunnerConfig( engineConfig );
+        this.pipelineReplicaRunnerConfig = new PipelineReplicaRunnerConfig( engineConfig );
         this.partitionServiceConfig = new PartitionServiceConfig( engineConfig );
     }
 
@@ -48,9 +48,9 @@ public class ZanzaConfig
         return tupleQueueDrainerConfig;
     }
 
-    public PipelineInstanceRunnerConfig getPipelineInstanceRunnerConfig ()
+    public PipelineReplicaRunnerConfig getPipelineReplicaRunnerConfig ()
     {
-        return pipelineInstanceRunnerConfig;
+        return pipelineReplicaRunnerConfig;
     }
 
     public PartitionServiceConfig getPartitionServiceConfig ()

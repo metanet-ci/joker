@@ -27,7 +27,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith( MockitoJUnitRunner.class )
-public class OperatorReplicaCompletingStatusTest extends AbstractOperatorInstanceInvocationTest
+public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplicaInvocationTest
 {
 
     @Test
@@ -46,7 +46,7 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorInstanc
 
     private void testSatisfiedSchedulingStrategy ( final int inputPortCount, final int outputPortCount, final boolean newUpstreamContext )
     {
-        initializeOperatorInstance( inputPortCount, outputPortCount );
+        initializeOperatorReplica( inputPortCount, outputPortCount );
         final UpstreamContext upstreamContext = operatorReplica.getUpstreamContext();
         final UpstreamContext invocationUpstreamContext = newUpstreamContext
                                                           ? upstreamContext.withUpstreamConnectionStatus( 1, CLOSED )
@@ -83,7 +83,7 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorInstanc
     public void test_notSatisfied_sameUpstreamContext ()
     {
         final int inputPortCount = 2, outputPortCount = 1;
-        initializeOperatorInstance( inputPortCount, outputPortCount );
+        initializeOperatorReplica( inputPortCount, outputPortCount );
 
         final UpstreamContext upstreamContext = operatorReplica.getUpstreamContext();
         when( drainer.getResult() ).thenReturn( new TuplesImpl( inputPortCount ) );
@@ -108,7 +108,7 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorInstanc
     public void test_notSatisfied_newUpstreamContext ()
     {
         final int inputPortCount = 3, outputPortCount = 1;
-        initializeOperatorInstance( inputPortCount, outputPortCount );
+        initializeOperatorReplica( inputPortCount, outputPortCount );
 
         final UpstreamContext invocationUpstreamContext = operatorReplica.getUpstreamContext().withUpstreamConnectionStatus( 1, CLOSED );
 
@@ -140,7 +140,7 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorInstanc
     {
         final int inputPortCount = 2, outputPortCount = 1;
 
-        initializeOperatorInstance( inputPortCount, outputPortCount );
+        initializeOperatorReplica( inputPortCount, outputPortCount );
 
         final UpstreamContext invocationUpstreamContext = operatorReplica.getUpstreamContext().withUpstreamConnectionStatus( 1, CLOSED );
 
@@ -172,16 +172,16 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorInstanc
         assertThat( operatorReplica.getStatus(), equalTo( COMPLETED ) );
     }
 
-    private void initializeOperatorInstance ( final int inputPortCount, final int outputPortCount )
+    private void initializeOperatorReplica ( final int inputPortCount, final int outputPortCount )
     {
         final int[] counts = new int[ inputPortCount ];
         for ( int i = 0; i < inputPortCount; i++ )
         {
             counts[ i ] = i;
         }
-        super.initializeOperatorInstance( inputPortCount,
-                                          outputPortCount,
-                                          scheduleWhenTuplesAvailableOnAll( AT_LEAST, inputPortCount, 1, counts ) );
+        super.initializeOperatorReplica( inputPortCount,
+                                         outputPortCount,
+                                         scheduleWhenTuplesAvailableOnAll( AT_LEAST, inputPortCount, 1, counts ) );
 
         final UpstreamConnectionStatus[] statuses = new UpstreamConnectionStatus[ inputPortCount ];
         Arrays.fill( statuses, ACTIVE );

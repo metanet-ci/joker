@@ -17,7 +17,7 @@ public class ZanzaConfigTest
         final Config config = ConfigFactory.load();
         final ZanzaConfig zanzaConfig = new ZanzaConfig( config );
 
-        assertTrue( zanzaConfig.getPipelineInstanceRunnerConfig().getWaitTimeoutInMillis() > 0 );
+        assertTrue( zanzaConfig.getPipelineReplicaRunnerConfig().getWaitTimeoutInMillis() > 0 );
         assertTrue( zanzaConfig.getTupleQueueManagerConfig().getTupleQueueInitialSize() > 0 );
         assertTrue( zanzaConfig.getTupleQueueDrainerConfig().getDrainTimeoutInMillis() > 0 );
     }

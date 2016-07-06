@@ -2,17 +2,17 @@ package cs.bilkent.zanza.engine.config;
 
 import com.typesafe.config.Config;
 
-public class PipelineInstanceRunnerConfig
+public class PipelineReplicaRunnerConfig
 {
 
-    static final String CONFIG_NAME = "pipelineInstanceRunner";
+    static final String CONFIG_NAME = "pipelineReplicaRunner";
 
     static final String RUNNER_WAIT_TIME_IN_MILLIS = "runnerWaitTimeInMillis";
 
 
     public final long waitTimeoutInMillis;
 
-    PipelineInstanceRunnerConfig ( Config parentConfig )
+    PipelineReplicaRunnerConfig ( Config parentConfig )
     {
         final Config config = parentConfig.getConfig( CONFIG_NAME );
         waitTimeoutInMillis = config.getLong( RUNNER_WAIT_TIME_IN_MILLIS );

@@ -118,19 +118,19 @@ public class PipelineRuntimeState
         return replicas.length;
     }
 
-    public void setPipelineInstance ( final int replicaIndex, final PipelineReplica pipelineReplica )
+    public void setPipelineReplica ( final int replicaIndex, final PipelineReplica pipelineReplica )
     {
         checkNotNull( pipelineReplica );
         checkState( replicas[ replicaIndex ] == null );
         replicas[ replicaIndex ] = pipelineReplica;
     }
 
-    public PipelineReplica getPipelineInstance ( final int replicaIndex )
+    public PipelineReplica getPipelineReplica ( final int replicaIndex )
     {
         return replicas[ replicaIndex ];
     }
 
-    public void setPipelineInstanceRunner ( final int replicaIndex, final PipelineReplicaRunner pipelineReplicaRunner, final Thread thread )
+    public void setPipelineReplicaRunner ( final int replicaIndex, final PipelineReplicaRunner pipelineReplicaRunner, final Thread thread )
     {
         checkNotNull( pipelineReplicaRunner );
         checkNotNull( thread );
@@ -140,12 +140,12 @@ public class PipelineRuntimeState
         threads[ replicaIndex ] = thread;
     }
 
-    public PipelineReplicaRunner getPipelineInstanceRunner ( final int replicaIndex )
+    public PipelineReplicaRunner getPipelineReplicaRunner ( final int replicaIndex )
     {
         return runners[ replicaIndex ];
     }
 
-    public Thread getPipelineInstanceRunnerThread ( final int replicaIndex )
+    public Thread getPipelineReplicaRunnerThread ( final int replicaIndex )
     {
         return threads[ replicaIndex ];
     }

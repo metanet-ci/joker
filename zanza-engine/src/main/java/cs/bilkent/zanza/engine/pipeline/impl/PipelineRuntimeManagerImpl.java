@@ -231,10 +231,10 @@ public class PipelineRuntimeManagerImpl implements PipelineRuntimeManager
                                                                     final List<RegionRuntimeConfig> regionRuntimeConfigs )
     {
         createPipelineRuntimeStates( regionRuntimeConfigs );
-        createPipelineInstances( flow, regionRuntimeConfigs );
+        createPipelineReplicas( flow, regionRuntimeConfigs );
         createDownstreamTupleSenders( flow );
         createUpstreamContexts( flow );
-        createPipelineInstanceRunners( supervisor );
+        createPipelineReplicaRunners( supervisor );
         return new ArrayList<>( this.pipelineRuntimeStates.values() );
     }
 
@@ -259,7 +259,7 @@ public class PipelineRuntimeManagerImpl implements PipelineRuntimeManager
         }
     }
 
-    private void createPipelineInstances ( final FlowDefinition flow, final Collection<RegionRuntimeConfig> regionRuntimeConfigs )
+    private void createPipelineReplicas ( final FlowDefinition flow, final Collection<RegionRuntimeConfig> regionRuntimeConfigs )
     {
         for ( RegionRuntimeConfig regionRuntimeConfig : regionRuntimeConfigs )
         {
@@ -271,7 +271,7 @@ public class PipelineRuntimeManagerImpl implements PipelineRuntimeManager
                 final PipelineRuntimeState pipelineRuntimeState = pipelineRuntimeStates.get( id );
                 for ( int replicaIndex = 0; replicaIndex < pipelineRuntimeState.getReplicaCount(); replicaIndex++ )
                 {
-                    pipelineRuntimeState.setPipelineInstance( replicaIndex, pipelineReplicas[ replicaIndex ] );
+                    pipelineRuntimeState.setPipelineReplica( replicaIndex, pipelineReplicas[ replicaIndex ] );
                 }
             }
 
@@ -400,7 +400,7 @@ public class PipelineRuntimeManagerImpl implements PipelineRuntimeManager
         final TupleQueueContext[] tupleQueueContexts = new TupleQueueContext[ replicaCount ];
         for ( int i = 0; i < replicaCount; i++ )
         {
-            tupleQueueContexts[ i ] = pipelineRuntimeState.getPipelineInstance( i ).getUpstreamTupleQueueContext();
+            tupleQueueContexts[ i ] = pipelineRuntimeState.getPipelineReplica( i ).getUpstreamTupleQueueContext();
         }
 
         return tupleQueueContexts;
@@ -492,13 +492,13 @@ public class PipelineRuntimeManagerImpl implements PipelineRuntimeManager
         throw new IllegalArgumentException( "Operator " + operator.id() + " is not found in the pipelines" );
     }
 
-    private void createPipelineInstanceRunners ( final Supervisor supervisor )
+    private void createPipelineReplicaRunners ( final Supervisor supervisor )
     {
         for ( PipelineRuntimeState pipelineRuntimeState : pipelineRuntimeStates.values() )
         {
             for ( int replicaIndex = 0; replicaIndex < pipelineRuntimeState.getReplicaCount(); replicaIndex++ )
             {
-                final PipelineReplica pipelineReplica = pipelineRuntimeState.getPipelineInstance( replicaIndex );
+                final PipelineReplica pipelineReplica = pipelineRuntimeState.getPipelineReplica( replicaIndex );
                 final SupervisorNotifier supervisorNotifier = new SupervisorNotifier( supervisor, pipelineReplica );
                 final PipelineReplicaRunner runner = new PipelineReplicaRunner( zanzaConfig,
                                                                                 pipelineReplica,
@@ -507,7 +507,7 @@ public class PipelineRuntimeManagerImpl implements PipelineRuntimeManager
                                                                                 pipelineRuntimeState.getDownstreamTupleSender(
                                                                                         replicaIndex ) );
                 final Thread thread = new Thread( zanzaThreadGroup, runner, "Thread-" + pipelineReplica.id() );
-                pipelineRuntimeState.setPipelineInstanceRunner( replicaIndex, runner, thread );
+                pipelineRuntimeState.setPipelineReplicaRunner( replicaIndex, runner, thread );
                 LOGGER.info( "Created runner thread for pipeline instance: {}", pipelineReplica.id() );
             }
         }

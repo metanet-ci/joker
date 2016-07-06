@@ -314,7 +314,7 @@ public class PipelineReplica
         return operatorCount;
     }
 
-    public OperatorReplica getOperatorInstance ( final int index )
+    public OperatorReplica getOperator ( final int index )
     {
         return operators[ index ];
     }
