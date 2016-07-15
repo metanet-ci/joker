@@ -13,7 +13,7 @@ import cs.bilkent.zanza.operator.schema.runtime.RuntimeSchemaField;
 import static java.util.stream.Collectors.toList;
 
 
-public class OperatorRuntimeSchemaBuilder
+public final class OperatorRuntimeSchemaBuilder
 {
 
     private final PortRuntimeSchemaBuilder[] inputSchemaBuilders;

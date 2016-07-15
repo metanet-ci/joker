@@ -21,7 +21,7 @@ import static com.google.common.collect.Multimaps.unmodifiableMultimap;
 import static java.util.Collections.unmodifiableMap;
 
 
-public class FlowDef
+public final class FlowDef
 {
     private final Map<String, OperatorDef> operators;
 

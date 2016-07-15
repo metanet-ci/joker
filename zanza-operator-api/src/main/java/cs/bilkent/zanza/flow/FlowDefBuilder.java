@@ -14,7 +14,7 @@ import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
 import cs.bilkent.zanza.operator.schema.runtime.OperatorRuntimeSchema;
 
 
-public class FlowDefBuilder
+public final class FlowDefBuilder
 {
 
     private final Map<String, OperatorDef> operators = new LinkedHashMap<>();

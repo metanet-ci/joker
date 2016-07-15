@@ -12,7 +12,7 @@ import cs.bilkent.zanza.operator.spec.OperatorType;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
 
-
+// TODO MAKE FINAL
 public class OperatorDef
 {
     private final String id;

@@ -12,7 +12,7 @@ import cs.bilkent.zanza.operator.schema.runtime.PortRuntimeSchema;
 import cs.bilkent.zanza.operator.schema.runtime.RuntimeSchemaField;
 
 
-public class PortRuntimeSchemaBuilder
+public final class PortRuntimeSchemaBuilder
 {
 
     private final int portIndex;

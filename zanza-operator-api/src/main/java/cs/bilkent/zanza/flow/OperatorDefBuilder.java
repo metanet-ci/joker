@@ -24,7 +24,7 @@ import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
 import static java.util.stream.Collectors.toList;
 
 
-public class OperatorDefBuilder
+public final class OperatorDefBuilder
 {
 
     public static OperatorDefBuilder newInstance ( final String id, final Class<? extends Operator> clazz )
