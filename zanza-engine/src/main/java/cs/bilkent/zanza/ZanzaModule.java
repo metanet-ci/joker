@@ -10,8 +10,8 @@ import cs.bilkent.zanza.engine.partition.PartitionKeyFunctionFactory;
 import cs.bilkent.zanza.engine.partition.PartitionService;
 import cs.bilkent.zanza.engine.partition.PartitionServiceImpl;
 import cs.bilkent.zanza.engine.partition.impl.PartitionKeyFunctionFactoryImpl;
-import cs.bilkent.zanza.engine.pipeline.PipelineRuntimeManager;
-import cs.bilkent.zanza.engine.pipeline.impl.PipelineRuntimeManagerImpl;
+import cs.bilkent.zanza.engine.pipeline.PipelineManager;
+import cs.bilkent.zanza.engine.pipeline.impl.PipelineManagerImpl;
 import cs.bilkent.zanza.engine.region.RegionDefFormer;
 import cs.bilkent.zanza.engine.region.RegionManager;
 import cs.bilkent.zanza.engine.region.impl.RegionDefFormerImpl;
@@ -41,7 +41,7 @@ public class ZanzaModule extends AbstractModule
         bind( RegionDefFormer.class ).to( RegionDefFormerImpl.class );
         bind( Supervisor.class ).to( SupervisorImpl.class );
         bind( PartitionKeyFunctionFactory.class ).to( PartitionKeyFunctionFactoryImpl.class );
-        bind( PipelineRuntimeManager.class ).to( PipelineRuntimeManagerImpl.class );
+        bind( PipelineManager.class ).to( PipelineManagerImpl.class );
         bind( ZanzaConfig.class ).toInstance( config );
         bind( ThreadGroup.class ).annotatedWith( Names.named( "ZanzaThreadGroup" ) ).toInstance( new ThreadGroup( "Zanza" ) );
     }

@@ -1,16 +1,10 @@
 package cs.bilkent.zanza.engine.supervisor;
 
-import java.util.List;
-
 import cs.bilkent.zanza.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.zanza.engine.pipeline.UpstreamContext;
-import cs.bilkent.zanza.engine.region.RegionRuntimeConfig;
-import cs.bilkent.zanza.flow.FlowDef;
 
 public interface Supervisor
 {
-
-    void deploy ( FlowDef flow, List<RegionRuntimeConfig> regionRuntimeConfigs );
 
     /**
      * Returns the upstream context for the first operator of the pipeline specified with the given id
@@ -28,6 +22,8 @@ public interface Supervisor
      * @param id
      *         id of the pipeline instance
      */
-    void notifyPipelineCompletedRunning ( PipelineReplicaId id );
+    void notifyPipelineReplicaCompleted ( PipelineReplicaId id );
+
+    void notifyPipelineReplicaFailed ( PipelineReplicaId id, Throwable failure );
 
 }

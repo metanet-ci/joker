@@ -62,7 +62,7 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
             }
             else
             {
-                tupleQueueContainers[ i ] = null;
+                this.tupleQueueContainers[ i ] = null;
             }
         }
         this.ownedPartitions = new int[ ownedPartitionCount ];
@@ -150,12 +150,6 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
     }
 
     @Override
-    public void ensureCapacity ( final int portIndex, final int capacity )
-    {
-        throw new UnsupportedOperationException( getOperatorId() );
-    }
-
-    @Override
     public void clear ()
     {
         LOGGER.info( "Clearing partitioned tuple queues of operator: {}", operatorId );
@@ -195,6 +189,24 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
         {
             drainablePartitions.add( partitionId );
         }
+    }
+
+    @Override
+    public void enableCapacityCheck ( final int portIndex )
+    {
+
+    }
+
+    @Override
+    public void disableCapacityCheck ( final int portIndex )
+    {
+
+    }
+
+    @Override
+    public boolean isCapacityCheckEnabled ( final int portIndex )
+    {
+        return false;
     }
 
 }

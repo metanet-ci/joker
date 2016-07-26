@@ -63,8 +63,7 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
     }
 
     @Override
-    public TupleQueueContext createDefaultTupleQueueContext ( final int regionId,
-                                                              final int replicaIndex, final OperatorDef operatorDef,
+    public TupleQueueContext createDefaultTupleQueueContext ( final int regionId, final int replicaIndex, final OperatorDef operatorDef,
                                                               final ThreadingPreference threadingPreference )
     {
         checkArgument( operatorDef != null );
@@ -77,7 +76,8 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
         final String operatorId = operatorDef.id();
         final int inputPortCount = operatorDef.inputPortCount();
 
-        final Function<Triple<Integer, Integer, String>, TupleQueueContext> c = t -> {
+        final Function<Triple<Integer, Integer, String>, TupleQueueContext> c = t ->
+        {
             LOGGER.info( "created single tuple queue context for regionId={} replicaIndex={} operatorId={}",
                          regionId,
                          replicaIndex,
@@ -88,9 +88,15 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
         return singleTupleQueueContexts.computeIfAbsent( Triple.of( regionId, replicaIndex, operatorId ), c );
     }
 
+    public TupleQueueContext getDefaultTupleQueueContext ( final int regionId, final int replicaIndex, final OperatorDef operatorDef )
+    {
+        return singleTupleQueueContexts.get( Triple.of( regionId, replicaIndex, operatorDef.id() ) );
+    }
+
     @Override
     public PartitionedTupleQueueContext[] createPartitionedTupleQueueContext ( final int regionId,
-                                                                               final int replicaCount, final OperatorDef operatorDef )
+                                                                               final int replicaCount,
+                                                                               final OperatorDef operatorDef )
     {
         checkArgument( operatorDef != null );
         checkArgument( operatorDef.operatorType() == PARTITIONED_STATEFUL );
@@ -99,7 +105,8 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
         final String operatorId = operatorDef.id();
         final int inputPortCount = operatorDef.inputPortCount();
 
-        final Function<Pair<Integer, String>, PartitionedTupleQueueContext[]> c = p -> {
+        final Function<Pair<Integer, String>, PartitionedTupleQueueContext[]> c = p ->
+        {
             final PartitionedTupleQueueContext[] tupleQueueContexts = new PartitionedTupleQueueContext[ replicaCount ];
             for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
             {
@@ -108,7 +115,8 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
                                                                                           partitionService.getPartitionCount(),
                                                                                           tupleQueueConstructor );
                 final int[] partitions = partitionService.getOrCreatePartitionDistribution( regionId, replicaCount );
-                final PartitionKeyFunction partitionKeyExtractor = partitionKeyFunctionFactory.createPartitionKeyFunction( operatorDef.partitionFieldNames() );
+                final PartitionKeyFunction partitionKeyExtractor = partitionKeyFunctionFactory.createPartitionKeyFunction( operatorDef
+                                                                                                                                   .partitionFieldNames() );
                 tupleQueueContexts[ replicaIndex ] = new PartitionedTupleQueueContext( operatorId,
                                                                                        inputPortCount,
                                                                                        partitionService.getPartitionCount(),
@@ -127,6 +135,11 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
 
         return partitionedTupleQueueContexts.computeIfAbsent( Pair.of( regionId, operatorId ), c );
 
+    }
+
+    public PartitionedTupleQueueContext[] getPartitionedTupleQueueContexts ( final int regionId, final OperatorDef operatorDef )
+    {
+        return partitionedTupleQueueContexts.get( Pair.of( regionId, operatorDef.id() ) );
     }
 
     private Function<Boolean, TupleQueue> getTupleQueueConstructor ( final ThreadingPreference threadingPreference,
@@ -173,7 +186,8 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
                                                                     final int partitionCount,
                                                                     final Function<Boolean, TupleQueue> tupleQueueConstructor )
     {
-        return tupleQueueContainersByOperatorId.computeIfAbsent( operatorId, s -> {
+        return tupleQueueContainersByOperatorId.computeIfAbsent( operatorId, s ->
+        {
             final TupleQueueContainer[] containers = new TupleQueueContainer[ partitionCount ];
             for ( int i = 0; i < partitionCount; i++ )
             {
@@ -190,7 +204,7 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
 
         if ( tupleQueueContainers != null )
         {
-            LOGGER.info( "tuple queue containers of operator {} are released.", operatorId );
+            LOGGER.info( "Releasing tuple queue containers of operator {}", operatorId );
             for ( TupleQueueContainer container : tupleQueueContainers )
             {
                 container.clear();

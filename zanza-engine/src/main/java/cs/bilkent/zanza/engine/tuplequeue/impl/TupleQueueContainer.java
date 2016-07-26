@@ -135,7 +135,7 @@ public class TupleQueueContainer
 
     public void clear ()
     {
-        LOGGER.info( "Clearing partitioned tuple queues of operator: {}", operatorId );
+        LOGGER.info( "Clearing partitioned tuple queues of operator: {} partitionId={}", operatorId, partitionId );
 
         for ( TupleQueue[] tupleQueues : tupleQueuesByKeys.values() )
         {

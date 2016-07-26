@@ -121,20 +121,23 @@ public class PipelineReplica
     {
         if ( upstreamTupleQueueContext instanceof EmptyTupleQueueContext )
         {
-            return drainer -> {
+            return drainer ->
+            {
             };
         }
 
         if ( upstreamInputPortCount == 1 )
         {
-            return drainer -> {
+            return drainer ->
+            {
                 final BlockingSinglePortDrainer b = (BlockingSinglePortDrainer) drainer;
                 final int count = noBlockOnUpstreamTupleQueueContext ? 0 : 1;
                 b.setParameters( AT_LEAST, count );
             };
         }
 
-        return drainer -> {
+        return drainer ->
+        {
             final MultiPortDrainer multiPortDrainer = (MultiPortDrainer) upstreamDrainer;
             final int[] tupleCounts = noBlockOnUpstreamTupleQueueContext ? nonBlockingUpstreamTupleCounts : blockingUpstreamTupleCounts;
             multiPortDrainer.setParameters( AT_LEAST, upstreamInputPorts, tupleCounts );
@@ -228,7 +231,8 @@ public class PipelineReplica
         {
             s[ i ] = Pair.of( i, pipelineUpstreamContext.getUpstreamConnectionStatus( i ) );
         }
-        Arrays.sort( s, ( o1, o2 ) -> {
+        Arrays.sort( s, ( o1, o2 ) ->
+        {
             if ( o1._2 == o2._2 )
             {
                 return Integer.compare( o1._1, o2._1 );
@@ -247,6 +251,11 @@ public class PipelineReplica
     public TupleQueueContext getUpstreamTupleQueueContext ()
     {
         return upstreamTupleQueueContext instanceof EmptyTupleQueueContext ? operators[ 0 ].getQueue() : upstreamTupleQueueContext;
+    }
+
+    public TupleQueueContext getSelfUpstreamTupleQueueContext ()
+    {
+        return upstreamTupleQueueContext;
     }
 
     public TuplesImpl invoke ()

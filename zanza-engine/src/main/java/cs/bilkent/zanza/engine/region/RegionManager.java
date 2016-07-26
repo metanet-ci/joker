@@ -5,6 +5,8 @@ import cs.bilkent.zanza.flow.FlowDef;
 public interface RegionManager
 {
 
-    Region createRegion ( final FlowDef flow, final RegionRuntimeConfig regionConfig );
+    Region createRegion ( final FlowDef flow, final RegionConfig regionConfig );
+
+    void releaseRegion ( int regionId );
 
 }

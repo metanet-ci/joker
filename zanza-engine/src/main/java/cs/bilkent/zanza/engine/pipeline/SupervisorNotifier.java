@@ -46,7 +46,7 @@ public class SupervisorNotifier implements OperatorReplicaListener
         if ( ++completedOperatorCount == operatorCount )
         {
             LOGGER.info( "{} is completed as {} is completed lastly", pipelineReplicaId, operatorId );
-            supervisor.notifyPipelineCompletedRunning( pipelineReplicaId );
+            supervisor.notifyPipelineReplicaCompleted( pipelineReplicaId );
         }
         else
         {

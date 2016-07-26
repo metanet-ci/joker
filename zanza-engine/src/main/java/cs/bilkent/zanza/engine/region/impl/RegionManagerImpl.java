@@ -11,6 +11,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.zanza.engine.config.ThreadingPreference;
 import static cs.bilkent.zanza.engine.config.ThreadingPreference.MULTI_THREADED;
@@ -28,8 +29,8 @@ import cs.bilkent.zanza.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.zanza.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
 import cs.bilkent.zanza.engine.pipeline.impl.tuplesupplier.NonCachedTuplesImplSupplier;
 import cs.bilkent.zanza.engine.region.Region;
+import cs.bilkent.zanza.engine.region.RegionConfig;
 import cs.bilkent.zanza.engine.region.RegionManager;
-import cs.bilkent.zanza.engine.region.RegionRuntimeConfig;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContextManager;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueDrainerPool;
@@ -41,7 +42,9 @@ import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.pool.NonBlockingTupleQueu
 import cs.bilkent.zanza.flow.FlowDef;
 import cs.bilkent.zanza.flow.OperatorDef;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
+import cs.bilkent.zanza.operator.spec.OperatorType;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
+import static cs.bilkent.zanza.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
 
 @Singleton
@@ -70,7 +73,7 @@ public class RegionManagerImpl implements RegionManager
     }
 
     @Override
-    public Region createRegion ( final FlowDef flow, final RegionRuntimeConfig regionConfig )
+    public Region createRegion ( final FlowDef flow, final RegionConfig regionConfig )
     {
         checkState( !regions.containsKey( regionConfig.getRegionId() ) );
         checkPipelineStartIndices( regionConfig );
@@ -85,7 +88,6 @@ public class RegionManagerImpl implements RegionManager
 
         for ( int pipelineId = 0; pipelineId < pipelineCount; pipelineId++ )
         {
-
             final OperatorDef[] operatorDefs = regionConfig.getOperatorDefs( pipelineId );
             final int operatorCount = operatorDefs.length;
             final OperatorReplica[][] operatorReplicas = new OperatorReplica[ replicaCount ][ operatorCount ];
@@ -103,16 +105,19 @@ public class RegionManagerImpl implements RegionManager
                 final boolean isFirstOperator = operatorIndex == 0;
                 final TupleQueueContext[] tupleQueueContexts = createTupleQueueContexts( flow,
                                                                                          regionId,
-                                                                                         replicaCount, isFirstOperator, operatorDef );
+                                                                                         replicaCount,
+                                                                                         isFirstOperator,
+                                                                                         operatorDef );
 
                 final TupleQueueDrainerPool[] drainerPools = createTupleQueueDrainerPools( regionId,
-                                                                                           replicaCount, isFirstOperator, operatorDef );
+                                                                                           replicaCount,
+                                                                                           isFirstOperator,
+                                                                                           operatorDef );
 
                 final KVStoreContext[] kvStoreContexts = createKvStoreContexts( regionId, replicaCount, operatorDef );
 
                 final boolean isLastOperator = operatorIndex == ( operatorCount - 1 );
-                final Supplier<TuplesImpl>[] outputSuppliers = createOutputSuppliers( regionId,
-                                                                                      replicaCount, isLastOperator, operatorDef );
+                final Supplier<TuplesImpl>[] outputSuppliers = createOutputSuppliers( regionId, replicaCount, isLastOperator, operatorDef );
 
                 for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
                 {
@@ -132,9 +137,10 @@ public class RegionManagerImpl implements RegionManager
                              replicaIndex,
                              pipelineId );
                 final OperatorReplica[] pipelineOperatorReplicas = operatorReplicas[ replicaIndex ];
+                final OperatorType regionType =
+                        pipelineId == 0 ? regionConfig.getRegionDef().getRegionType() : operatorDefs[ 0 ].operatorType();
                 final TupleQueueContext pipelineTupleQueueContext = createPipelineTupleQueueContext( flow,
-                                                                                                     regionId,
-                                                                                                     regionConfig,
+                                                                                                     regionId, replicaIndex, regionType,
                                                                                                      pipelineOperatorReplicas );
 
                 pipelineReplicas[ pipelineId ][ replicaIndex ] = new PipelineReplica( config,
@@ -149,7 +155,76 @@ public class RegionManagerImpl implements RegionManager
         return region;
     }
 
-    private void checkPipelineStartIndices ( final RegionRuntimeConfig regionConfig )
+    @Override
+    public void releaseRegion ( final int regionId )
+    {
+        final Region region = regions.remove( regionId );
+        checkNotNull( region, "Region %s not found to release", regionId );
+
+        final RegionConfig regionConfig = region.getConfig();
+        final int replicaCount = regionConfig.getReplicaCount();
+        final int pipelineCount = regionConfig.getPipelineStartIndices().size();
+
+        for ( int pipelineId = 0; pipelineId < pipelineCount; pipelineId++ )
+        {
+            final PipelineReplica[] pipelineReplicas = region.getPipelineReplicas( pipelineId );
+            for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
+            {
+                final PipelineReplica pipelineReplica = pipelineReplicas[ replicaIndex ];
+
+                final TupleQueueContext selfUpstreamTupleQueueContext = pipelineReplica.getSelfUpstreamTupleQueueContext();
+                if ( selfUpstreamTupleQueueContext instanceof DefaultTupleQueueContext )
+                {
+                    LOGGER.info( "Releasing default tuple queue context of pipeline {}", pipelineReplica.id() );
+                    final OperatorDef[] operatorDefs = regionConfig.getOperatorDefs( pipelineId );
+                    checkState( tupleQueueContextManager.releaseDefaultTupleQueueContext( regionId,
+                                                                                          replicaIndex,
+                                                                                          operatorDefs[ 0 ].id() ) );
+                }
+
+                for ( int i = 0; i < pipelineReplica.getOperatorCount(); i++ )
+                {
+                    final OperatorReplica operator = pipelineReplica.getOperator( i );
+                    final OperatorDef operatorDef = operator.getOperatorDef();
+                    final TupleQueueContext queue = operator.getQueue();
+                    if ( queue instanceof DefaultTupleQueueContext )
+                    {
+                        LOGGER.info( "Releasing default tuple queue context of Operator {} in Pipeline {}",
+                                     operatorDef.id(),
+                                     pipelineReplica.id() );
+                        checkState( tupleQueueContextManager.releaseDefaultTupleQueueContext( regionId, replicaIndex, operatorDef.id() ) );
+                    }
+                    else if ( queue instanceof PartitionedTupleQueueContext && replicaIndex == 0 )
+                    {
+                        LOGGER.info( "Releasing partitioned tuple queue context of Operator {} in Pipeline {}",
+                                     operatorDef.id(),
+                                     pipelineReplica.id() );
+                        checkState( tupleQueueContextManager.releasePartitionedTupleQueueContexts( regionId, operatorDef.id() ) );
+                    }
+
+                    if ( replicaIndex == 0 )
+                    {
+                        if ( operatorDef.operatorType() == STATEFUL )
+                        {
+                            LOGGER.info( "Releasing default kv store context of Operator {} in Pipeline {}",
+                                         operatorDef.id(),
+                                         pipelineReplica.id() );
+                            checkState( kvStoreContextManager.releaseDefaultKVStoreContext( regionId, operatorDef.id() ) );
+                        }
+                        else if ( operatorDef.operatorType() == PARTITIONED_STATEFUL )
+                        {
+                            LOGGER.info( "Releasing partitioned kv store context of Operator {} in Pipeline {}",
+                                         operatorDef.id(),
+                                         pipelineReplica.id() );
+                            checkState( kvStoreContextManager.releasePartitionedKVStoreContext( regionId, operatorDef.id() ) );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void checkPipelineStartIndices ( final RegionConfig regionConfig )
     {
         final int operatorCount = regionConfig.getRegionDef().getOperators().size();
         int j = -1;
@@ -174,7 +249,8 @@ public class RegionManagerImpl implements RegionManager
     private TupleQueueContext[] createTupleQueueContexts ( final FlowDef flow,
                                                            final int regionId,
                                                            final int replicaCount,
-                                                           final boolean isFirstOperator, final OperatorDef operatorDef )
+                                                           final boolean isFirstOperator,
+                                                           final OperatorDef operatorDef )
     {
         final String operatorId = operatorDef.id();
         final TupleQueueContext[] tupleQueueContexts;
@@ -219,7 +295,8 @@ public class RegionManagerImpl implements RegionManager
 
     private TupleQueueDrainerPool[] createTupleQueueDrainerPools ( final int regionId,
                                                                    final int replicaCount,
-                                                                   final boolean isFirstOperator, final OperatorDef operatorDef )
+                                                                   final boolean isFirstOperator,
+                                                                   final OperatorDef operatorDef )
     {
         final String operatorId = operatorDef.id();
         final TupleQueueDrainerPool[] drainerPools = new TupleQueueDrainerPool[ replicaCount ];
@@ -248,8 +325,7 @@ public class RegionManagerImpl implements RegionManager
         return drainerPools;
     }
 
-    private KVStoreContext[] createKvStoreContexts ( final int regionId,
-                                                     final int replicaCount, final OperatorDef operatorDef )
+    private KVStoreContext[] createKvStoreContexts ( final int regionId, final int replicaCount, final OperatorDef operatorDef )
     {
         final String operatorId = operatorDef.id();
         final KVStoreContext[] kvStoreContexts;
@@ -283,7 +359,8 @@ public class RegionManagerImpl implements RegionManager
 
     private Supplier<TuplesImpl>[] createOutputSuppliers ( final int regionId,
                                                            final int replicaCount,
-                                                           final boolean isLastOperator, final OperatorDef operatorDef )
+                                                           final boolean isLastOperator,
+                                                           final OperatorDef operatorDef )
     {
         final String operatorId = operatorDef.id();
         final Supplier<TuplesImpl>[] outputSuppliers = new Supplier[ replicaCount ];
@@ -313,8 +390,7 @@ public class RegionManagerImpl implements RegionManager
     }
 
     private TupleQueueContext createPipelineTupleQueueContext ( final FlowDef flow,
-                                                                final int regionId,
-                                                                final RegionRuntimeConfig regionConfig,
+                                                                final int regionId, final int replicaIndex, final OperatorType regionType,
                                                                 final OperatorReplica[] pipelineOperatorReplicas )
     {
         final OperatorDef firstOperatorDef = pipelineOperatorReplicas[ 0 ].getOperatorDef();
@@ -325,14 +401,13 @@ public class RegionManagerImpl implements RegionManager
                          regionId );
             return new EmptyTupleQueueContext( firstOperatorDef.id(), firstOperatorDef.inputPortCount() );
         }
-        else if ( regionConfig.getRegionDef().getRegionType() == PARTITIONED_STATEFUL )
+        else if ( regionType == PARTITIONED_STATEFUL )
         {
             if ( firstOperatorDef.operatorType() == PARTITIONED_STATEFUL )
             {
                 LOGGER.info( "Creating {} for pipeline tuple queue context of regionId={} for pipeline operator={}",
-                             DefaultTupleQueueContext.class.getSimpleName(),
-                             regionId, firstOperatorDef.id() );
-                return tupleQueueContextManager.createDefaultTupleQueueContext( regionId, 0, firstOperatorDef, MULTI_THREADED );
+                             DefaultTupleQueueContext.class.getSimpleName(), regionId, firstOperatorDef.id() );
+                return tupleQueueContextManager.createDefaultTupleQueueContext( regionId, replicaIndex, firstOperatorDef, MULTI_THREADED );
             }
             else
             {

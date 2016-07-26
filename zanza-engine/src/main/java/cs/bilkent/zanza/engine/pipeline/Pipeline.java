@@ -2,24 +2,27 @@ package cs.bilkent.zanza.engine.pipeline;
 
 import java.util.Arrays;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.INITIAL;
+import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.COMPLETED;
+import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.COMPLETING;
+import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.RUNNING;
+import cs.bilkent.zanza.engine.region.RegionConfig;
 import cs.bilkent.zanza.engine.region.RegionDef;
-import cs.bilkent.zanza.engine.region.RegionRuntimeConfig;
 import cs.bilkent.zanza.flow.OperatorDef;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
-public class PipelineRuntimeState
+public class Pipeline
 {
 
     private final PipelineId id;
 
-    private final RegionRuntimeConfig regionRuntimeConfig;
+    private final RegionConfig regionConfig;
 
     private PipelineReplica[] replicas;
 
-    private OperatorReplicaStatus pipelineStatus = INITIAL;
+    private OperatorReplicaStatus pipelineStatus = RUNNING;
 
     private OperatorReplicaStatus[] replicaStatuses;
 
@@ -27,22 +30,19 @@ public class PipelineRuntimeState
 
     private PipelineReplicaRunner[] runners;
 
-    private Thread[] threads;
-
-    private UpstreamContext upstreamContext;
-
     private DownstreamTupleSender[] downstreamTupleSenders;
 
-    public PipelineRuntimeState ( final PipelineId id, final RegionRuntimeConfig regionRuntimeConfig )
+    private volatile UpstreamContext upstreamContext;
+
+    public Pipeline ( final PipelineId id, final RegionConfig regionConfig )
     {
         this.id = id;
-        this.regionRuntimeConfig = regionRuntimeConfig;
-        final int replicaCount = regionRuntimeConfig.getReplicaCount();
+        this.regionConfig = regionConfig;
+        final int replicaCount = regionConfig.getReplicaCount();
         this.replicas = new PipelineReplica[ replicaCount ];
         replicaStatuses = new OperatorReplicaStatus[ replicaCount ];
-        Arrays.fill( replicaStatuses, INITIAL );
+        Arrays.fill( replicaStatuses, RUNNING );
         this.runners = new PipelineReplicaRunner[ replicaCount ];
-        this.threads = new Thread[ replicaCount ];
         this.downstreamTupleSenders = new DownstreamTupleSender[ replicaCount ];
     }
 
@@ -53,28 +53,33 @@ public class PipelineRuntimeState
 
     public RegionDef getRegionDef ()
     {
-        return regionRuntimeConfig.getRegionDef();
+        return regionConfig.getRegionDef();
     }
 
-    public OperatorDef[] getOperatorDefs ()
+    public OperatorDef getOperatorDef ( int operatorIndex )
     {
-        return regionRuntimeConfig.getOperatorDefs( id.pipelineId );
+        return regionConfig.getOperatorDefs( id.pipelineId )[ operatorIndex ];
+    }
+
+    public OperatorDef getFirstOperatorDef ()
+    {
+        return getOperatorDef( 0 );
+    }
+
+    public OperatorDef getLastOperatorDef ()
+    {
+        final OperatorDef[] operatorDefs = regionConfig.getOperatorDefs( id.pipelineId );
+        return regionConfig.getOperatorDefs( id.pipelineId )[ operatorDefs.length - 1 ];
     }
 
     public int getOperatorCount ()
     {
-        return regionRuntimeConfig.getOperatorDefs( id.pipelineId ).length;
+        return regionConfig.getOperatorDefs( id.pipelineId ).length;
     }
 
     public OperatorReplicaStatus getPipelineStatus ()
     {
         return pipelineStatus;
-    }
-
-    public void setPipelineStatus ( final OperatorReplicaStatus pipelineStatus )
-    {
-        checkNotNull( pipelineStatus );
-        this.pipelineStatus = pipelineStatus;
     }
 
     public SchedulingStrategy getInitialSchedulingStrategy ()
@@ -96,12 +101,13 @@ public class PipelineRuntimeState
     public void setUpstreamContext ( final UpstreamContext upstreamContext )
     {
         checkNotNull( upstreamContext );
+        checkArgument( this.upstreamContext == null || this.upstreamContext.getVersion() < upstreamContext.getVersion() );
         this.upstreamContext = upstreamContext;
     }
 
     public int getOperatorIndex ( final OperatorDef operator )
     {
-        final OperatorDef[] operatorDefs = getOperatorDefs();
+        final OperatorDef[] operatorDefs = regionConfig.getOperatorDefs( id.pipelineId );
         for ( int i = 0; i < operatorDefs.length; i++ )
         {
             if ( operatorDefs[ i ].equals( operator ) )
@@ -130,24 +136,16 @@ public class PipelineRuntimeState
         return replicas[ replicaIndex ];
     }
 
-    public void setPipelineReplicaRunner ( final int replicaIndex, final PipelineReplicaRunner pipelineReplicaRunner, final Thread thread )
+    public void setPipelineReplicaRunner ( final int replicaIndex, final PipelineReplicaRunner pipelineReplicaRunner )
     {
         checkNotNull( pipelineReplicaRunner );
-        checkNotNull( thread );
         checkState( runners[ replicaIndex ] == null );
-        checkState( threads[ replicaIndex ] == null );
         runners[ replicaIndex ] = pipelineReplicaRunner;
-        threads[ replicaIndex ] = thread;
     }
 
     public PipelineReplicaRunner getPipelineReplicaRunner ( final int replicaIndex )
     {
         return runners[ replicaIndex ];
-    }
-
-    public Thread getPipelineReplicaRunnerThread ( final int replicaIndex )
-    {
-        return threads[ replicaIndex ];
     }
 
     public void setDownstreamTupleSender ( final int replicaIndex, final DownstreamTupleSender downstreamTupleSender )
@@ -160,6 +158,38 @@ public class PipelineRuntimeState
     public DownstreamTupleSender getDownstreamTupleSender ( final int replicaIndex )
     {
         return downstreamTupleSenders[ replicaIndex ];
+    }
+
+    public void setPipelineCompleting ()
+    {
+        checkState( pipelineStatus == RUNNING );
+        for ( OperatorReplicaStatus replicaStatus : replicaStatuses )
+        {
+            checkState( replicaStatus == RUNNING );
+        }
+
+        pipelineStatus = COMPLETING;
+        for ( int i = 0, j = getReplicaCount(); i < j; i++ )
+        {
+            replicaStatuses[ i ] = COMPLETING;
+        }
+    }
+
+    public boolean setPipelineReplicaCompleted ( final int replicaIndex )
+    {
+        checkState( pipelineStatus == COMPLETING );
+        checkState( replicaStatuses[ replicaIndex ] == COMPLETING );
+        replicaStatuses[ replicaIndex ] = COMPLETED;
+        for ( OperatorReplicaStatus replicaStatus : replicaStatuses )
+        {
+            if ( replicaStatus != COMPLETED )
+            {
+                return false;
+            }
+        }
+
+        pipelineStatus = COMPLETED;
+        return true;
     }
 
 }

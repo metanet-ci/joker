@@ -3,6 +3,7 @@ package cs.bilkent.zanza.engine.pipeline;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
 import org.junit.Before;
@@ -16,7 +17,6 @@ import static cs.bilkent.zanza.engine.TestUtils.assertTrueEventually;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.COMPLETED;
 import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.PAUSED;
-import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.RUNNING;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import cs.bilkent.zanza.engine.supervisor.Supervisor;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
@@ -32,6 +32,8 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -62,10 +64,11 @@ public class PipelineReplicaRunnerTest
 
     private final int inputOutputPortCount = 1;
 
+    private final PipelineReplicaId id = new PipelineReplicaId( new PipelineId( 0, 0 ), 0 );
+
     @Before
     public void init () throws Exception
     {
-        final PipelineReplicaId id = new PipelineReplicaId( new PipelineId( 0, 0 ), 0 );
         when( operator.getOperatorDef() ).thenReturn( operatorDef );
         when( operatorDef.id() ).thenReturn( "op1" );
         when( operatorDef.inputPortCount() ).thenReturn( inputOutputPortCount );
@@ -84,62 +87,51 @@ public class PipelineReplicaRunnerTest
     {
         try
         {
-            updatePipelineUpstreamContextForCompletion().get();
+            runner.stop().get();
         }
-        catch ( InterruptedException e )
+        catch ( ExecutionException | InterruptedException e )
         {
-            e.printStackTrace();
-        }
-        catch ( ExecutionException expected )
-        {
-
+            fail( e.getMessage() );
         }
 
         thread.join();
     }
 
-    private CompletableFuture<Void> updatePipelineUpstreamContextForCompletion ()
-    {
-        when( supervisorNotifier.isPipelineCompleted() ).thenReturn( true );
-        final CompletableFuture<Void> future = runner.updatePipelineUpstreamContext();
-        return future;
-    }
-
-    @Test
-    public void shouldStartRunning () throws ExecutionException, InterruptedException
-    {
-        startRunner();
-    }
-
     @Test
     public void shouldPauseWhileRunning () throws ExecutionException, InterruptedException
     {
-        startRunner();
+        thread.start();
 
         runner.pause().get();
 
-        assertTrueEventually( () -> {
-            assertEquals( PAUSED, runner.getStatus() );
-        } );
+        assertTrueEventually( () ->
+                              {
+                                  assertEquals( PAUSED, runner.getStatus() );
+                              } );
     }
 
     @Test
     public void shouldPauseWhenAlreadyPaused () throws ExecutionException, InterruptedException
     {
-        startRunner();
+        thread.start();
 
         runner.pause().get();
 
-        assertTrueEventually( () -> {
-            assertEquals( PAUSED, runner.getStatus() );
-        } );
+        assertTrueEventually( () ->
+                              {
+                                  assertEquals( PAUSED, runner.getStatus() );
+                              } );
 
         runner.pause().get();
     }
 
     @Test
-    public void shouldNotPauseBeforeStartedRunning () throws InterruptedException
+    public void shouldNotPauseAfterStopped () throws InterruptedException, ExecutionException
     {
+        thread.start();
+
+        runner.stop().get();
+
         try
         {
             runner.pause().get();
@@ -154,21 +146,39 @@ public class PipelineReplicaRunnerTest
     @Test( expected = ExecutionException.class )
     public void shouldNotPauseAfterCompleted () throws ExecutionException, InterruptedException
     {
-        startRunner();
+        thread.start();
 
-        updatePipelineUpstreamContextForCompletion();
+        when( supervisorNotifier.isPipelineCompleted() ).thenReturn( true );
 
         assertTrueEventually( () -> assertEquals( runner.getStatus(), COMPLETED ) );
 
         runner.pause().get();
     }
 
+    @Test
+    public void shouldNotResumeAfterStopped () throws InterruptedException, ExecutionException
+    {
+        thread.start();
+
+        runner.stop().get();
+
+        try
+        {
+            runner.resume().get();
+            fail();
+        }
+        catch ( ExecutionException e )
+        {
+            assertTrue( e.getCause() instanceof IllegalStateException );
+        }
+    }
+
     @Test( expected = ExecutionException.class )
     public void shouldNotResumeAfterCompleted () throws ExecutionException, InterruptedException
     {
-        startRunner();
+        thread.start();
 
-        updatePipelineUpstreamContextForCompletion();
+        when( supervisorNotifier.isPipelineCompleted() ).thenReturn( true );
 
         assertTrueEventually( () -> assertEquals( runner.getStatus(), COMPLETED ) );
 
@@ -183,18 +193,22 @@ public class PipelineReplicaRunnerTest
         final TuplesImpl output = new TuplesImpl( 1 );
         output.add( new Tuple() );
 
-        when( operator.invoke( anyObject(), anyObject() ) ).thenAnswer( invocation -> {
-            invocationStartLatch.countDown();
-            invocationDoneLatch.await();
-            return output;
-        } );
+        when( operator.invoke( anyObject(), anyObject() ) ).thenAnswer( invocation ->
+                                                                        {
+                                                                            invocationStartLatch.countDown();
+                                                                            invocationDoneLatch.await( 2, TimeUnit.MINUTES );
+                                                                            return output;
+                                                                        } );
 
-        startRunner();
+        thread.start();
 
-        final CompletableFuture<Void> future = updatePipelineUpstreamContextForCompletion();
-        invocationStartLatch.await();
+        reset( supervisor );
+
+        when( supervisorNotifier.isPipelineCompleted() ).thenReturn( true );
+
+        invocationStartLatch.await( 2, TimeUnit.MINUTES );
         invocationDoneLatch.countDown();
-        future.get();
+
         assertTrueEventually( () -> assertEquals( runner.getStatus(), COMPLETED ) );
         verify( downstreamTupleSender ).send( output );
     }
@@ -202,7 +216,7 @@ public class PipelineReplicaRunnerTest
     @Test
     public void shouldUpdateUpstreamContextWhenPaused () throws ExecutionException, InterruptedException
     {
-        startRunner();
+        thread.start();
 
         runner.pause().get();
 
@@ -211,30 +225,20 @@ public class PipelineReplicaRunnerTest
         final UpstreamContext upstreamContext = new UpstreamContext( 1, new UpstreamConnectionStatus[] { CLOSED } );
         when( supervisor.getUpstreamContext( pipeline.id() ) ).thenReturn( upstreamContext );
 
-        updatePipelineUpstreamContextForCompletion().get();
+        final CompletableFuture<Void> future = runner.updatePipelineUpstreamContext();
+        assertTrueEventually( () -> verify( supervisor, times( 2 ) ).getUpstreamContext( id ) );
+        when( supervisorNotifier.isPipelineCompleted() ).thenReturn( true );
+        future.get();
+
         assertThat( runner.getPipelineUpstreamContext(), equalTo( upstreamContext ) );
     }
 
     @Test
     public void shouldResumeWhileRunning () throws ExecutionException, InterruptedException
     {
-        startRunner();
+        thread.start();
 
         runner.resume().get();
-    }
-
-    @Test
-    public void shouldNotResumeBeforeStartedRunning () throws InterruptedException
-    {
-        try
-        {
-            runner.pause().get();
-            fail();
-        }
-        catch ( ExecutionException e )
-        {
-            assertTrue( e.getCause() instanceof IllegalStateException );
-        }
     }
 
     @Test
@@ -247,7 +251,7 @@ public class PipelineReplicaRunnerTest
 
         when( operator.invoke( anyObject(), anyObject() ) ).thenReturn( output1, output2 );
 
-        startRunner();
+        thread.start();
 
         sleepUninterruptibly( 1, SECONDS );
         when( supervisorNotifier.isPipelineCompleted() ).thenReturn( true );
@@ -257,13 +261,16 @@ public class PipelineReplicaRunnerTest
         verify( downstreamTupleSender, atLeastOnce() ).send( output2 );
     }
 
-    private void startRunner ()
+    @Test
+    public void shouldCompleteRunningWhenPipelineFailsDuringInvocations ()
     {
+        final RuntimeException failure = new RuntimeException( "expected" );
+        when( operator.invoke( anyObject(), anyObject() ) ).thenThrow( failure );
+
         thread.start();
 
-        assertTrueEventually( () -> {
-            assertEquals( RUNNING, runner.getStatus() );
-        } );
+        assertTrueEventually( () -> assertEquals( runner.getStatus(), COMPLETED ), 10 );
+        verify( supervisor ).notifyPipelineReplicaFailed( id, failure );
     }
 
 }

@@ -6,6 +6,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
 
+import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaInitializationTest.withUpstreamConnectionStatus;
 import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.COMPLETED;
 import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.COMPLETING;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
@@ -48,9 +49,8 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
     {
         initializeOperatorReplica( inputPortCount, outputPortCount );
         final UpstreamContext upstreamContext = operatorReplica.getUpstreamContext();
-        final UpstreamContext invocationUpstreamContext = newUpstreamContext
-                                                          ? upstreamContext.withUpstreamConnectionStatus( 1, CLOSED )
-                                                          : upstreamContext;
+        final UpstreamContext invocationUpstreamContext = newUpstreamContext ? withUpstreamConnectionStatus( upstreamContext, 1, CLOSED )
+                                                                             : upstreamContext;
 
         final TuplesImpl operatorInput = new TuplesImpl( inputPortCount );
         operatorInput.add( new Tuple( "f1", "val1" ) );
@@ -110,7 +110,7 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
         final int inputPortCount = 3, outputPortCount = 1;
         initializeOperatorReplica( inputPortCount, outputPortCount );
 
-        final UpstreamContext invocationUpstreamContext = operatorReplica.getUpstreamContext().withUpstreamConnectionStatus( 1, CLOSED );
+        final UpstreamContext invocationUpstreamContext = withUpstreamConnectionStatus( operatorReplica.getUpstreamContext(), 1, CLOSED );
 
         when( drainer.getResult() ).thenReturn( new TuplesImpl( inputPortCount ) );
 
@@ -142,7 +142,8 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
 
         initializeOperatorReplica( inputPortCount, outputPortCount );
 
-        final UpstreamContext invocationUpstreamContext = operatorReplica.getUpstreamContext().withUpstreamConnectionStatus( 1, CLOSED );
+        final UpstreamContext invocationUpstreamContext = withUpstreamConnectionStatus( operatorReplica.getUpstreamContext(), 1, CLOSED );
+        ;
 
         final TuplesImpl input = new TuplesImpl( inputPortCount );
         when( drainer.getResult() ).thenReturn( input );

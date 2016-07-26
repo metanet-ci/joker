@@ -5,18 +5,23 @@ import cs.bilkent.zanza.engine.pipeline.PipelineReplica;
 public class Region
 {
 
-    private final RegionRuntimeConfig config;
+    private final RegionConfig config;
 
     // [pipelineIndex, replicaIndex]
     private final PipelineReplica[][] pipelines;
 
-    public Region ( final RegionRuntimeConfig config, final PipelineReplica[][] pipelines )
+    public Region ( final RegionConfig config, final PipelineReplica[][] pipelines )
     {
         this.config = config;
         this.pipelines = pipelines;
     }
 
-    public RegionRuntimeConfig getConfig ()
+    public int getRegionId ()
+    {
+        return config.getRegionId();
+    }
+
+    public RegionConfig getConfig ()
     {
         return config;
     }

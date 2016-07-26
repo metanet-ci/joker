@@ -37,8 +37,6 @@ import cs.bilkent.zanza.operator.kvstore.KVStore;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
-import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ALL_PORTS;
-import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ANY_PORT;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 /**
@@ -125,7 +123,8 @@ public class OperatorReplica
         checkState( status == INITIAL );
         try
         {
-            this.listener = listener != null ? listener : ( operatorId, status1 ) -> {
+            this.listener = listener != null ? listener : ( operatorId, status1 ) ->
+            {
             };
 
             operator = operatorDef.createOperator();
@@ -174,85 +173,14 @@ public class OperatorReplica
                                                                                  operatorDef.config(),
                                                                                  upstreamConnectionStatuses );
         final SchedulingStrategy schedulingStrategy = operator.init( initContext );
-        verifySchedulingStrategy( schedulingStrategy, upstreamContext );
+        upstreamContext.verifyOrFail( operatorDef, schedulingStrategy );
         this.schedulingStrategy = schedulingStrategy;
         initialSchedulingStrategy = this.schedulingStrategy;
-        verifySchedulingStrategy( this.schedulingStrategy, upstreamContext );
         drainer = drainerPool.acquire( this.schedulingStrategy );
         if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
         {
             final ScheduleWhenTuplesAvailable ss = (ScheduleWhenTuplesAvailable) schedulingStrategy;
             queue.setTupleCounts( ss.getTupleCounts(), ss.getTupleAvailabilityByPort() );
-        }
-    }
-
-    public boolean isInvokable ( final UpstreamContext upstreamContext )
-    {
-        try
-        {
-            verifySchedulingStrategy( initialSchedulingStrategy, upstreamContext );
-            return true;
-        }
-        catch ( IllegalStateException e )
-        {
-            LOGGER.info( "{} not invokable anymore. scheduling strategy: {} upstream context: {} error: {}",
-                         operatorName,
-                         schedulingStrategy,
-                         upstreamContext,
-                         e.getMessage() );
-            return false;
-        }
-    }
-
-    private void verifySchedulingStrategy ( final SchedulingStrategy schedulingStrategy, final UpstreamContext upstreamContext )
-    {
-        checkArgument( operatorDef.inputPortCount() == upstreamContext.getPortCount() );
-
-        if ( schedulingStrategy instanceof ScheduleWhenAvailable )
-        {
-            checkState( operatorDef.inputPortCount() == 0,
-                        "%s cannot be used by operator: %s with input port count: %s",
-                        ScheduleWhenAvailable.class.getSimpleName(),
-                        operatorName, operatorDef.inputPortCount() );
-            checkState( upstreamContext.getVersion() == 0, "upstream context is closed for 0 input port operator: %s", operatorName );
-        }
-        else if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
-        {
-            checkState( operatorDef.inputPortCount() > 0,
-                        "0 input port operator: %s cannot use %s",
-                        operatorName,
-                        ScheduleWhenTuplesAvailable.class.getSimpleName() );
-            final ScheduleWhenTuplesAvailable s = (ScheduleWhenTuplesAvailable) schedulingStrategy;
-            checkState( operatorDef.inputPortCount() == s.getPortCount(), "" );
-            if ( s.getTupleAvailabilityByPort() == ANY_PORT )
-            {
-                boolean valid = false;
-                for ( int i = 0; i < operatorDef.inputPortCount(); i++ )
-                {
-                    if ( s.getTupleCount( i ) > 0 && upstreamContext.getUpstreamConnectionStatus( i ) == ACTIVE )
-                    {
-                        valid = true;
-                        break;
-                    }
-                }
-
-                checkState( valid );
-            }
-            else if ( s.getTupleAvailabilityByPort() == ALL_PORTS )
-            {
-                for ( int i = 0; i < operatorDef.inputPortCount(); i++ )
-                {
-                    checkState( upstreamContext.getUpstreamConnectionStatus( i ) == ACTIVE );
-                }
-            }
-            else
-            {
-                throw new IllegalStateException( s.toString() );
-            }
-        }
-        else
-        {
-            throw new IllegalStateException( operatorName + " returns invalid initial scheduling strategy: " + schedulingStrategy );
         }
     }
 
@@ -328,7 +256,8 @@ public class OperatorReplica
             {
                 output = invokeOperator( SUCCESS, input, drainer.getKey() );
             }
-            else if ( handleNewUpstreamContext( upstreamContext ) && !isInvokable( upstreamContext ) )
+            else if ( handleNewUpstreamContext( upstreamContext ) && !upstreamContext.isInvokable( operatorDef,
+                                                                                                   initialSchedulingStrategy ) )
             {
                 setStatus( COMPLETING );
                 completionReason = INPUT_PORT_CLOSED;
@@ -472,8 +401,6 @@ public class OperatorReplica
      */
     public void shutdown ()
     {
-        // TODO should we clear internal queues and kv store here?
-
         if ( status == INITIAL )
         {
             LOGGER.info( "{} ignoring shutdown request since not initialized", operatorName );
@@ -485,7 +412,10 @@ public class OperatorReplica
             return;
         }
 
-        checkState( status == RUNNING || status == INITIALIZATION_FAILED );
+        checkState( status == INITIALIZATION_FAILED || status == RUNNING || status == COMPLETING || status == COMPLETED,
+                    "Operator %s cannot be shut down because it is in %s state",
+                    operatorName,
+                    status );
         try
         {
             if ( operator != null )

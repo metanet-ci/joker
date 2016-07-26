@@ -255,4 +255,18 @@ public class OperatorReplicaInitializationTest
         return new UpstreamContext( version, upstreamConnectionStatuses );
     }
 
+    public static UpstreamContext withUpstreamConnectionStatus ( final UpstreamContext upstreamContext,
+                                                                 final int portIndex,
+                                                                 final UpstreamConnectionStatus newStatus )
+    {
+        final int portCount = upstreamContext.getPortCount();
+        final UpstreamConnectionStatus[] statuses = new UpstreamConnectionStatus[ portCount ];
+        for ( int i = 0; i < portCount; i++ )
+        {
+            statuses[ i ] = upstreamContext.getUpstreamConnectionStatus( i );
+        }
+        statuses[ portIndex ] = newStatus;
+        return new UpstreamContext( upstreamContext.getVersion() + 1, statuses );
+    }
+
 }

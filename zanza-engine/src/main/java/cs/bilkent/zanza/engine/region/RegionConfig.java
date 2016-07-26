@@ -6,7 +6,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.zanza.flow.OperatorDef;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 
-public class RegionRuntimeConfig
+public class RegionConfig
 {
 
     private final int regionId;
@@ -17,9 +17,7 @@ public class RegionRuntimeConfig
 
     private final List<Integer> pipelineStartIndices;
 
-    public RegionRuntimeConfig ( final int regionId, final RegionDef regionDef,
-                                 final int replicaCount,
-                                 final List<Integer> pipelineStartIndices )
+    public RegionConfig ( final int regionId, final RegionDef regionDef, final int replicaCount, final List<Integer> pipelineStartIndices )
     {
         checkArgument( ( regionDef.getRegionType() == PARTITIONED_STATEFUL && replicaCount > 0 ) || replicaCount == 1 );
         this.regionId = regionId;
@@ -67,7 +65,7 @@ public class RegionRuntimeConfig
     @Override
     public String toString ()
     {
-        return "RegionRuntimeConfig{" +
+        return "RegionConfig{" +
                "regionId=" + regionId +
                ", regionDef=" + regionDef +
                ", replicaCount=" + replicaCount +

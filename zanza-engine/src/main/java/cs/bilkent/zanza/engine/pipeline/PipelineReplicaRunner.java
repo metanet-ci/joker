@@ -12,9 +12,9 @@ import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerCommandType.PAUSE;
 import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerCommandType.RESUME;
+import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerCommandType.STOP;
 import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerCommandType.UPDATE_PIPELINE_UPSTREAM_CONTEXT;
 import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.COMPLETED;
-import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.INITIAL;
 import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.PAUSED;
 import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.RUNNING;
 import cs.bilkent.zanza.engine.supervisor.Supervisor;
@@ -33,10 +33,7 @@ public class PipelineReplicaRunner implements Runnable
 
     public enum PipelineReplicaRunnerStatus
     {
-        INITIAL,
-        RUNNING,
-        PAUSED,
-        COMPLETED
+        RUNNING, PAUSED, COMPLETED
     }
 
 
@@ -59,7 +56,7 @@ public class PipelineReplicaRunner implements Runnable
 
     private Future<Void> downstreamTuplesFuture;
 
-    private PipelineReplicaRunnerStatus status = INITIAL;
+    private PipelineReplicaRunnerStatus status = RUNNING;
 
     private volatile PipelineReplicaRunnerCommand command;
 
@@ -74,13 +71,14 @@ public class PipelineReplicaRunner implements Runnable
         this.pipeline = pipeline;
         this.id = pipeline.id();
         this.waitTimeoutInMillis = config.getPipelineReplicaRunnerConfig().waitTimeoutInMillis;
-        synchronized ( monitor )
-        {
-            status = INITIAL;
-        }
         this.supervisor = supervisor;
         this.supervisorNotifier = supervisorNotifier;
         this.downstreamTupleSender = downstreamTupleSender;
+    }
+
+    public SupervisorNotifier getSupervisorNotifier ()
+    {
+        return supervisorNotifier;
     }
 
     public PipelineReplicaRunnerStatus getStatus ()
@@ -91,61 +89,74 @@ public class PipelineReplicaRunner implements Runnable
         }
     }
 
+    public UpstreamContext getPipelineUpstreamContext ()
+    {
+        synchronized ( monitor )
+        {
+            return pipeline.getPipelineUpstreamContext();
+        }
+    }
+
     public CompletableFuture<Void> pause ()
     {
         final CompletableFuture<Void> result;
         synchronized ( monitor )
         {
+            PipelineReplicaRunnerCommand command = this.command;
             final PipelineReplicaRunnerStatus status = this.status;
-            if ( status == PAUSED )
+            if ( command != null )
             {
-                LOGGER.info( "{}: shortcutting pause feature since already paused", id );
-                result = new CompletableFuture<>();
-                result.complete( null );
-            }
-            else if ( status != RUNNING )
-            {
-                LOGGER.error( "{}: pause failed since not running! status: {}", id, status );
-                result = new CompletableFuture<>();
-                result.completeExceptionally( new IllegalStateException( id + ": pause failed since status: " + status ) );
-            }
-            else
-            {
-                PipelineReplicaRunnerCommand command = this.command;
-                if ( command != null )
+                final PipelineReplicaRunnerCommandType type = command.type;
+                if ( type == PAUSE )
                 {
-                    if ( command.getType() == PAUSE )
-                    {
-                        LOGGER.info( "{}: pause command is already set", id );
-                        result = command.getFuture();
-                    }
-                    else if ( command.getType() == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
-                    {
-                        updatePipelineUpstreamContextInternal();
-                        LOGGER.info( "{}: handling update pipeline upstream context {} during pause request",
-                                     pipeline.getPipelineUpstreamContext(),
-                                     id );
-                        command.complete();
-                        command = PipelineReplicaRunnerCommand.pause();
-                        this.command = command;
-                        result = command.getFuture();
-                    }
-                    else
-                    {
-                        LOGGER.error( "{}: pause failed since there is another pending command with type: {}", id, command.getType() );
-                        result = new CompletableFuture<>();
-                        result.completeExceptionally( new IllegalStateException( id
-                                                                                 + ": pause failed since there is another pending command"
-                                                                                 + " with type: " + command.getType() ) );
-                    }
+                    checkState( status == RUNNING, "%s: cannot be paused since its status is %s", id, status );
+                    LOGGER.info( "{}: {} command is already set", id, PAUSE );
+                    result = command.future;
+                }
+                else if ( type == RESUME )
+                {
+                    checkState( status == PAUSED, "Pipeline %s cannot be paused since its status is %s", id, status );
+                    LOGGER.info( "{}: Completing pending {} command because of new {} command.", id, RESUME, PAUSE );
+                    command.complete();
+                    this.command = null;
+                    result = CompletableFuture.completedFuture( null );
+                }
+                else if ( type == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
+                {
+                    LOGGER.info( "{}: switching pending {} command to {}", id, UPDATE_PIPELINE_UPSTREAM_CONTEXT, PAUSE );
+                    command = new PipelineReplicaRunnerCommand( PAUSE, command.future );
+                    this.command = command;
+                    result = command.future;
                 }
                 else
                 {
-                    LOGGER.info( "{}: pause command is set", id );
-                    command = PipelineReplicaRunnerCommand.pause();
-                    this.command = command;
-                    result = command.getFuture();
+                    // STOP OR UNKNOWN COMMAND
+                    LOGGER.error( "{}: {} failed since there is a pending {} command", id, PAUSE, type );
+                    result = new CompletableFuture<>();
+                    command.future.thenRun( () -> result.completeExceptionally( new IllegalStateException( id + ": " + PAUSE
+                                                                                                           + " failed since there "
+                                                                                                           + "is a pending " + type
+                                                                                                           + " command" ) ) );
                 }
+            }
+            else if ( status == PAUSED )
+            {
+                LOGGER.info( "{} is already {}", id, PAUSED );
+                result = CompletableFuture.completedFuture( null );
+            }
+            else if ( status == RUNNING )
+            {
+                LOGGER.info( "{}: {} command is set", id, PAUSE );
+                command = new PipelineReplicaRunnerCommand( PAUSE );
+                this.command = command;
+                result = command.future;
+            }
+            else
+            {
+                // COMPLETED OR UNKNOWN STATE
+                LOGGER.error( "{}: {} failed since status is {}", id, PAUSE, status );
+                result = new CompletableFuture<>();
+                result.completeExceptionally( new IllegalStateException( id + ": " + PAUSE + " pause failed since status is " + status ) );
             }
         }
 
@@ -157,58 +168,131 @@ public class PipelineReplicaRunner implements Runnable
         final CompletableFuture<Void> result;
         synchronized ( monitor )
         {
+            PipelineReplicaRunnerCommand command = this.command;
             final PipelineReplicaRunnerStatus status = this.status;
-            if ( status == RUNNING )
+            if ( command != null )
             {
-                LOGGER.info( "{}: shortcutting resume since already running", id );
-                result = new CompletableFuture<>();
-                result.complete( null );
+                final PipelineReplicaRunnerCommandType type = command.type;
+                if ( type == RESUME )
+                {
+                    checkState( status == PAUSED, "%s: cannot be resumed since its status is %s", id, status );
+                    LOGGER.info( "{}: {} command is already set", id, RESUME );
+                    monitor.notify();
+                    result = command.future;
+                }
+                else if ( type == PAUSE )
+                {
+                    checkState( status == RUNNING, "Pipeline %s cannot be resumed since its status is %s", id, status );
+                    LOGGER.info( "{}: Completing pending {} command because of new {} command.", id, PAUSE, RESUME );
+                    command.complete();
+                    this.command = null;
+                    result = CompletableFuture.completedFuture( null );
+                }
+                else if ( type == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
+                {
+                    LOGGER.info( "{}: switching pending {} command to {}", id, UPDATE_PIPELINE_UPSTREAM_CONTEXT, RESUME );
+                    command = new PipelineReplicaRunnerCommand( RESUME, command.future );
+                    this.command = command;
+                    result = command.future;
+                }
+
+                else
+                {
+                    // STOP OR UNKNOWN COMMAND
+                    LOGGER.error( "{}: {} failed since there is a pending {} command", id, RESUME, type );
+                    result = new CompletableFuture<>();
+                    command.future.thenRun( () -> result.completeExceptionally( new IllegalStateException( id + ": " + RESUME
+                                                                                                           + " failed since there "
+                                                                                                           + "is a pending " + type
+                                                                                                           + " command" ) ) );
+                }
             }
-            else if ( status != PAUSED )
+            else if ( status == RUNNING )
             {
-                LOGGER.error( "{}: resume failed since not paused. status: {}", id, status );
-                result = new CompletableFuture<>();
-                result.completeExceptionally( new IllegalStateException( id + ": resume failed since not paused. status: " + status ) );
+                result = CompletableFuture.completedFuture( null );
+
+            }
+            else if ( status == PAUSED )
+            {
+                command = new PipelineReplicaRunnerCommand( RESUME );
+                this.command = command;
+                result = command.future;
             }
             else
             {
-                PipelineReplicaRunnerCommand command = this.command;
-                if ( command != null )
+                // COMPLETED OR UNKNOWN STATE
+                LOGGER.error( "{}: {} failed since status is {}", id, RESUME, status );
+                result = new CompletableFuture<>();
+                result.completeExceptionally( new IllegalStateException( id + ": " + RESUME + " failed since status is " + status ) );
+            }
+        }
+
+        return result;
+    }
+
+    public CompletableFuture<Void> stop ()
+    {
+        final CompletableFuture<Void> result;
+        synchronized ( monitor )
+        {
+            PipelineReplicaRunnerCommand command = this.command;
+            final PipelineReplicaRunnerStatus status = this.status;
+            if ( command != null )
+            {
+                final PipelineReplicaRunnerCommandType type = command.type;
+                if ( type == RESUME )
                 {
-                    if ( command.getType() == RESUME )
-                    {
-                        LOGGER.info( "{}: resume command is already set. notifying anyway", id );
-                        monitor.notify();
-                        result = command.getFuture();
-                    }
-                    else if ( command.getType() == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
-                    {
-                        updatePipelineUpstreamContextInternal();
-                        LOGGER.info( "{}: handling update pipeline upstream context {} during resume request",
-                                     pipeline.getPipelineUpstreamContext(),
-                                     id );
-                        command.complete();
-                        command = PipelineReplicaRunnerCommand.resume();
-                        this.command = command;
-                        monitor.notify();
-                        result = command.getFuture();
-                    }
-                    else
-                    {
-                        LOGGER.error( "{}: resume failed since there is another pending command with type: {}", id, command.getType() );
-                        result = new CompletableFuture<>();
-                        result.completeExceptionally( new IllegalStateException( id + ": resume failed since there is another pending "
-                                                                                 + "command with type: " + command.getType() ) );
-                    }
+                    checkState( status == PAUSED, "%s: cannot be stopped since its status is %s", id, status );
+                    LOGGER.info( "{}: Completing pending {} command because of new {} command.", id, RESUME, STOP );
+                    command.complete();
+                    command = new PipelineReplicaRunnerCommand( STOP, command.future );
+                    this.command = command;
+                    result = command.future;
+                }
+                else if ( type == PAUSE )
+                {
+                    checkState( status == RUNNING, "Pipeline %s cannot be stopped since its status is %s", id, status );
+                    LOGGER.info( "{}: switching pending {} command to {}", id, PAUSE, STOP );
+                    command = new PipelineReplicaRunnerCommand( STOP, command.future );
+                    this.command = command;
+                    result = command.future;
+                }
+                else if ( type == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
+                {
+                    LOGGER.info( "{}: switching pending {} command to {}", id, UPDATE_PIPELINE_UPSTREAM_CONTEXT, STOP );
+                    command = new PipelineReplicaRunnerCommand( STOP, command.future );
+                    this.command = command;
+                    result = command.future;
                 }
                 else
                 {
-                    LOGGER.info( "{}: resume command is set", id );
-                    command = PipelineReplicaRunnerCommand.resume();
-                    this.command = command;
-                    monitor.notify();
-                    result = command.getFuture();
+                    // STOP OR UNKNOWN COMMAND
+                    LOGGER.error( "{}: {} failed since there is a pending {} command", id, STOP, type );
+                    result = new CompletableFuture<>();
+                    command.future.thenRun( () -> result.completeExceptionally( new IllegalStateException( id + ": " + STOP
+                                                                                                           + " failed since there "
+                                                                                                           + "is a pending " + type
+                                                                                                           + " command" ) ) );
                 }
+            }
+            else if ( status == PAUSED || status == RUNNING )
+            {
+                LOGGER.info( "{}: {} command is set in {} status", id, STOP, status );
+                command = new PipelineReplicaRunnerCommand( STOP );
+                this.command = command;
+                result = command.future;
+            }
+            else if ( status == COMPLETED )
+            {
+                LOGGER.info( "{} is already {}", id, COMPLETED );
+                result = CompletableFuture.completedFuture( null );
+            }
+            else
+            {
+                // UNKNOWN STATE
+                LOGGER.error( "{}: {} failed since status is {}", id, STOP, status );
+                result = new CompletableFuture<>();
+                result.completeExceptionally( new IllegalStateException( id + ": " + STOP + " failed since status is " + status ) );
             }
         }
 
@@ -220,73 +304,37 @@ public class PipelineReplicaRunner implements Runnable
         final CompletableFuture<Void> result;
         synchronized ( monitor )
         {
+            PipelineReplicaRunnerCommand command = this.command;
             final PipelineReplicaRunnerStatus status = this.status;
-            if ( status == PAUSED || status == RUNNING )
+            if ( command == null )
             {
-                PipelineReplicaRunnerCommand command = this.command;
-                if ( command == null )
+                if ( status != COMPLETED )
                 {
-                    LOGGER.info( "{}: update pipeline upstream context command is set", id );
-                    command = PipelineReplicaRunnerCommand.updatePipelineUpstreamContext();
+                    LOGGER.info( "{}: {} command is set", id, UPDATE_PIPELINE_UPSTREAM_CONTEXT );
+                    command = new PipelineReplicaRunnerCommand( UPDATE_PIPELINE_UPSTREAM_CONTEXT );
                     this.command = command;
-                    result = command.getFuture();
-                    monitor.notify();
-                }
-                else if ( command.getType() == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
-                {
-                    LOGGER.info( "{}: update pipeline upstream context command is already set", id );
-                    result = command.getFuture();
-                }
-                else if ( command.hasType( PAUSE ) || command.hasType( RESUME ) )
-                {
-                    updatePipelineUpstreamContextInternal();
-                    LOGGER.info( "{}: updating pipeline upstream context {} immediately since there is pending command: {}",
-                                 pipeline.getPipelineUpstreamContext(),
-                                 id,
-                                 command.getType() );
-                    result = new CompletableFuture<>();
-                    result.complete( null );
+                    result = command.future;
                 }
                 else
                 {
-                    LOGGER.error( "{}: update pipeline upstream context failed since there is another pending command with type: {}",
-                                  id,
-                                  command.getType() );
+                    LOGGER.error( "{}: {} failed since status is {}", id, UPDATE_PIPELINE_UPSTREAM_CONTEXT, COMPLETED );
                     result = new CompletableFuture<>();
-                    result.completeExceptionally( new IllegalStateException( id + ": update pipeline upstream context tail sender failed "
-                                                                             + "since " + "there is another pending "
-                                                                             + "command with type: " + command.getType() ) );
+                    result.completeExceptionally( new IllegalStateException( id + ": " + UPDATE_PIPELINE_UPSTREAM_CONTEXT
+                                                                             + " failed since status is " + COMPLETED ) );
                 }
             }
             else
             {
-                LOGGER.error( "{}: update pipeline upstream context failed since not running or paused. status: {}", id, status );
-                result = new CompletableFuture<>();
-                result.completeExceptionally( new IllegalStateException( id
-                                                                         + ": update pipeline upstream context failed since not running or "
-                                                                         + "paused. status: " + status ) );
+                LOGGER.info( "{}: there is already pending command", id, command.type );
+                result = command.future;
             }
         }
 
         return result;
     }
 
-    public UpstreamContext getPipelineUpstreamContext ()
-    {
-        synchronized ( monitor )
-        {
-            return pipeline.getPipelineUpstreamContext();
-        }
-    }
-
     public void run ()
     {
-        checkState( status == INITIAL );
-        synchronized ( monitor )
-        {
-            status = RUNNING;
-        }
-
         try
         {
             while ( true )
@@ -301,6 +349,12 @@ public class PipelineReplicaRunner implements Runnable
                     }
                     continue;
                 }
+                else if ( status == COMPLETED )
+                {
+                    awaitDownstreamTuplesFuture();
+                    completeRun();
+                    break;
+                }
 
                 final TuplesImpl output = pipeline.invoke();
                 if ( output != null && output.isNonEmpty() )
@@ -311,16 +365,17 @@ public class PipelineReplicaRunner implements Runnable
 
                 if ( supervisorNotifier.isPipelineCompleted() )
                 {
+                    LOGGER.info( "All operators of Pipeline {} are completed.", id );
                     completeRun();
                     break;
                 }
             }
         }
-        catch ( InterruptedException e )
+        catch ( Exception e )
         {
-            LOGGER.error( "{}: runner thread interrupted", id );
-            Thread.currentThread().interrupt();
-            // TODO stop operators and clean its internal state here
+            LOGGER.error( "{}: runner failed", id );
+            supervisor.notifyPipelineReplicaFailed( id, e );
+            completeRun();
         }
 
         if ( status == COMPLETED )
@@ -340,21 +395,28 @@ public class PipelineReplicaRunner implements Runnable
         final PipelineReplicaRunnerCommand command = this.command;
         if ( command != null )
         {
-            final PipelineReplicaRunnerCommandType commandType = command.getType();
+            final UpstreamContext pipelineUpstreamContext = supervisor.getUpstreamContext( id );
             synchronized ( monitor )
             {
+                final PipelineReplicaRunnerCommandType commandType = command.type;
                 if ( commandType == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
                 {
-                    updatePipelineUpstreamContextInternal();
-                    LOGGER.info( "{}: update {} command is noticed", id, pipeline.getPipelineUpstreamContext() );
+                    pipeline.setPipelineUpstreamContext( pipelineUpstreamContext );
+                    LOGGER.info( "{}: update {} command is handled", id, pipeline.getPipelineUpstreamContext() );
                     this.command = null;
-                    this.status = RUNNING;
                     command.complete();
+                }
+                else if ( commandType == STOP )
+                {
+                    pipeline.setPipelineUpstreamContext( pipelineUpstreamContext );
+                    LOGGER.info( "{}: stopping while {}", id, status );
+                    result = COMPLETED;
                 }
                 else if ( status == RUNNING )
                 {
                     if ( commandType == PAUSE )
                     {
+                        pipeline.setPipelineUpstreamContext( pipelineUpstreamContext );
                         LOGGER.info( "{}: pausing", id );
                         command.complete();
                         this.command = null;
@@ -373,6 +435,7 @@ public class PipelineReplicaRunner implements Runnable
                 {
                     if ( commandType == RESUME )
                     {
+                        pipeline.setPipelineUpstreamContext( pipelineUpstreamContext );
                         LOGGER.info( "{}: resuming", id );
                         command.complete();
                         this.command = null;
@@ -396,15 +459,7 @@ public class PipelineReplicaRunner implements Runnable
         return result;
     }
 
-    // this method is invoked within a lock. normally, it is a bad practice since we are calling an alien object inside the method.
-    // we are still doing it anyway since it simplifies the logic a lot and the alien method is a very simple query method.
-    private void updatePipelineUpstreamContextInternal ()
-    {
-        final UpstreamContext pipelineUpstreamContext = supervisor.getUpstreamContext( id );
-        pipeline.setPipelineUpstreamContext( pipelineUpstreamContext );
-    }
-
-    private void awaitDownstreamTuplesFuture () throws InterruptedException
+    private void awaitDownstreamTuplesFuture ()
     {
         try
         {
@@ -414,13 +469,23 @@ public class PipelineReplicaRunner implements Runnable
                 downstreamTuplesFuture = null;
             }
         }
+        catch ( InterruptedException e )
+        {
+            LOGGER.error( "{}: runner thread interrupted", id );
+            downstreamTuplesFuture = null;
+            Thread.currentThread().interrupt();
+            supervisor.notifyPipelineReplicaFailed( id, e );
+            // TODO NOT SURE ABOUT THIS PART
+        }
         catch ( ExecutionException e )
         {
             LOGGER.error( id + ": await downstream tuple future failed", e );
+            downstreamTuplesFuture = null;
+            supervisor.notifyPipelineReplicaFailed( id, e );
         }
     }
 
-    private void completeRun () throws InterruptedException
+    private void completeRun ()
     {
         LOGGER.info( "{}: completing the run", id );
         awaitDownstreamTuplesFuture();
@@ -428,76 +493,49 @@ public class PipelineReplicaRunner implements Runnable
 
         synchronized ( monitor )
         {
-            status = COMPLETED;
             final PipelineReplicaRunnerCommand command = this.command;
             if ( command != null )
             {
-                final PipelineReplicaRunnerCommandType type = command.getType();
-                if ( type == RESUME || type == PAUSE )
+                final PipelineReplicaRunnerCommandType type = command.type;
+                if ( type == STOP )
+                {
+                    LOGGER.info( "{}: completing command with type: {}", id, type );
+                    command.complete();
+                }
+                else
                 {
                     LOGGER.warn( "{}: completing command with type: {} exceptionally", id, type );
                     command.completeExceptionally( new IllegalStateException( id + " completed running!" ) );
                 }
-                else
-                {
-                    LOGGER.info( "{}: completing command with type: {}", id, UPDATE_PIPELINE_UPSTREAM_CONTEXT );
-                    command.complete();
-                }
                 this.command = null;
             }
+            this.status = COMPLETED;
         }
     }
 
 
     enum PipelineReplicaRunnerCommandType
     {
-        PAUSE,
-        RESUME,
-        UPDATE_PIPELINE_UPSTREAM_CONTEXT
+        PAUSE, RESUME, STOP, UPDATE_PIPELINE_UPSTREAM_CONTEXT
     }
 
 
     private static class PipelineReplicaRunnerCommand
     {
 
-        static PipelineReplicaRunnerCommand pause ()
-        {
-            return new PipelineReplicaRunnerCommand( PAUSE );
-        }
-
-        static PipelineReplicaRunnerCommand resume ()
-        {
-            return new PipelineReplicaRunnerCommand( RESUME );
-        }
-
-        static PipelineReplicaRunnerCommand updatePipelineUpstreamContext ()
-        {
-            return new PipelineReplicaRunnerCommand( UPDATE_PIPELINE_UPSTREAM_CONTEXT );
-        }
-
-
         private final PipelineReplicaRunnerCommandType type;
 
-        private final CompletableFuture<Void> future = new CompletableFuture<>();
+        private final CompletableFuture<Void> future;
 
         private PipelineReplicaRunnerCommand ( final PipelineReplicaRunnerCommandType type )
         {
+            this( type, new CompletableFuture<>() );
+        }
+
+        private PipelineReplicaRunnerCommand ( final PipelineReplicaRunnerCommandType type, final CompletableFuture<Void> future )
+        {
             this.type = type;
-        }
-
-        PipelineReplicaRunnerCommandType getType ()
-        {
-            return type;
-        }
-
-        boolean hasType ( final PipelineReplicaRunnerCommandType type )
-        {
-            return this.type == type;
-        }
-
-        public CompletableFuture<Void> getFuture ()
-        {
-            return future;
+            this.future = future;
         }
 
         void complete ()

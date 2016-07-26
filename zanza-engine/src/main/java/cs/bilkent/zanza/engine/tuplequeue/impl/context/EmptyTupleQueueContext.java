@@ -63,12 +63,6 @@ public class EmptyTupleQueueContext implements TupleQueueContext
     }
 
     @Override
-    public void ensureCapacity ( final int portIndex, final int capacity )
-    {
-
-    }
-
-    @Override
     public void clear ()
     {
 
@@ -84,6 +78,24 @@ public class EmptyTupleQueueContext implements TupleQueueContext
     public void prepareGreedyDraining ()
     {
 
+    }
+
+    @Override
+    public void enableCapacityCheck ( final int portIndex )
+    {
+
+    }
+
+    @Override
+    public void disableCapacityCheck ( final int portIndex )
+    {
+
+    }
+
+    @Override
+    public boolean isCapacityCheckEnabled ( final int portIndex )
+    {
+        return false;
     }
 
 }

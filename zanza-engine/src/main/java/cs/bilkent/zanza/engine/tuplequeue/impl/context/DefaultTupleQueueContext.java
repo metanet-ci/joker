@@ -127,7 +127,13 @@ public class DefaultTupleQueueContext implements TupleQueueContext
     @Override
     public void setTupleCounts ( final int[] tupleCounts, final TupleAvailabilityByPort tupleAvailabilityByPort )
     {
-
+        if ( threadingPreference == MULTI_THREADED )
+        {
+            for ( int portIndex = 0; portIndex < getInputPortCount(); portIndex++ )
+            {
+                tupleQueues[ portIndex ].ensureCapacity( tupleCounts[ portIndex ] );
+            }
+        }
     }
 
     @Override
@@ -136,28 +142,25 @@ public class DefaultTupleQueueContext implements TupleQueueContext
 
     }
 
+    @Override
     public void enableCapacityCheck ( final int portIndex )
     {
         checkState( threadingPreference == MULTI_THREADED );
         tupleQueues[ portIndex ].enableCapacityCheck();
     }
 
+    @Override
     public void disableCapacityCheck ( final int portIndex )
     {
         checkState( threadingPreference == MULTI_THREADED );
         tupleQueues[ portIndex ].disableCapacityCheck();
     }
 
+    @Override
     public boolean isCapacityCheckEnabled ( final int portIndex )
     {
         checkState( threadingPreference == MULTI_THREADED );
         return tupleQueues[ portIndex ].isCapacityCheckEnabled();
-    }
-
-    public boolean isCapacityCheckDisabled ( final int portIndex )
-    {
-        checkState( threadingPreference == MULTI_THREADED );
-        return !tupleQueues[ portIndex ].isCapacityCheckEnabled();
     }
 
     public ThreadingPreference getThreadingPreference ()

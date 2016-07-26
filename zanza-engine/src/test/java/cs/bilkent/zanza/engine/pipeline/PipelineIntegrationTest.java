@@ -28,11 +28,11 @@ import cs.bilkent.zanza.engine.kvstore.impl.KVStoreContextManagerImpl;
 import cs.bilkent.zanza.engine.partition.PartitionService;
 import cs.bilkent.zanza.engine.partition.PartitionServiceImpl;
 import cs.bilkent.zanza.engine.partition.impl.PartitionKeyFunctionFactoryImpl;
+import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaInitializationTest.withUpstreamConnectionStatus;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import cs.bilkent.zanza.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
 import cs.bilkent.zanza.engine.pipeline.impl.tuplesupplier.NonCachedTuplesImplSupplier;
-import cs.bilkent.zanza.engine.region.RegionRuntimeConfig;
 import cs.bilkent.zanza.engine.supervisor.Supervisor;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
@@ -43,7 +43,6 @@ import cs.bilkent.zanza.engine.tuplequeue.impl.context.PartitionedTupleQueueCont
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.pool.BlockingTupleQueueDrainerPool;
 import cs.bilkent.zanza.engine.tuplequeue.impl.drainer.pool.NonBlockingTupleQueueDrainerPool;
 import cs.bilkent.zanza.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
-import cs.bilkent.zanza.flow.FlowDef;
 import cs.bilkent.zanza.flow.OperatorDef;
 import cs.bilkent.zanza.flow.OperatorDefBuilder;
 import cs.bilkent.zanza.operator.InitializationContext;
@@ -342,7 +341,7 @@ public class PipelineIntegrationTest
                                                               pipelineReplicaId1,
                                                               new OperatorReplica[] { generatorOperator, passerOperator, stateOperator },
                                                               new EmptyTupleQueueContext( "generator",
-                                                                                            generatorOperatorDef.inputPortCount() ) );
+                                                                                          generatorOperatorDef.inputPortCount() ) );
 
         final Supervisor supervisor = mock( Supervisor.class );
         final SupervisorNotifier supervisorNotifier = new SupervisorNotifier( supervisor, pipeline );
@@ -366,7 +365,7 @@ public class PipelineIntegrationTest
         when( supervisor.getUpstreamContext( pipelineReplicaId1 ) ).thenReturn( updatedUpstreamContext );
         runner.updatePipelineUpstreamContext();
 
-        assertTrueEventually( () -> verify( supervisor ).notifyPipelineCompletedRunning( pipelineReplicaId1 ) );
+        assertTrueEventually( () -> verify( supervisor ).notifyPipelineReplicaCompleted( pipelineReplicaId1 ) );
 
         runnerThread.join();
 
@@ -445,8 +444,7 @@ public class PipelineIntegrationTest
         final PipelineReplica pipeline2 = new PipelineReplica( zanzaConfig,
                                                                pipelineReplicaId2,
                                                                new OperatorReplica[] { filterOperator },
-                                                               new EmptyTupleQueueContext( "filter",
-                                                                                             filterOperatorDef.inputPortCount() ) );
+                                                               new EmptyTupleQueueContext( "filter", filterOperatorDef.inputPortCount() ) );
         final SupervisorNotifier supervisorNotifier2 = new SupervisorNotifier( supervisor, pipeline2 );
 
         pipeline2.init( supervisor.upstreamContexts.get( pipelineReplicaId2 ), supervisorNotifier2 );
@@ -540,7 +538,7 @@ public class PipelineIntegrationTest
                                                                pipelineReplicaId1,
                                                                new OperatorReplica[] { generatorOperator1 },
                                                                new EmptyTupleQueueContext( "generator1",
-                                                                                             generatorOperatorDef1.inputPortCount() ) );
+                                                                                           generatorOperatorDef1.inputPortCount() ) );
 
         final SupervisorNotifier supervisorNotifier1 = new SupervisorNotifier( supervisor, pipeline1 );
         pipeline1.init( supervisor.upstreamContexts.get( pipelineReplicaId1 ), supervisorNotifier1 );
@@ -571,7 +569,7 @@ public class PipelineIntegrationTest
                                                                pipelineReplicaId2,
                                                                new OperatorReplica[] { generatorOperator2 },
                                                                new EmptyTupleQueueContext( "generator2",
-                                                                                             generatorOperatorDef2.inputPortCount() ) );
+                                                                                           generatorOperatorDef2.inputPortCount() ) );
         final SupervisorNotifier supervisorNotifier2 = new SupervisorNotifier( supervisor, pipeline2 );
 
         pipeline2.init( supervisor.upstreamContexts.get( pipelineReplicaId2 ), supervisorNotifier2 );
@@ -785,7 +783,7 @@ public class PipelineIntegrationTest
                                                                pipelineReplicaId1,
                                                                new OperatorReplica[] { generatorOperator, passerOperator },
                                                                new EmptyTupleQueueContext( "generator",
-                                                                                             generatorOperatorDef.inputPortCount() ) );
+                                                                                           generatorOperatorDef.inputPortCount() ) );
         final SupervisorNotifier supervisorNotifier1 = new SupervisorNotifier( supervisor, pipeline1 );
 
         pipeline1.init( supervisor.upstreamContexts.get( pipelineReplicaId1 ), supervisorNotifier1 );
@@ -794,10 +792,9 @@ public class PipelineIntegrationTest
                                                                pipelineReplicaId2,
                                                                new OperatorReplica[] { stateOperator },
                                                                tupleQueueContextManager.createDefaultTupleQueueContext( REGION_ID,
-                                                                                                                          REPLICA_INDEX,
-                                                                                                                          stateOperatorDef,
-                                                                                                                          MULTI_THREADED
-                                                                 ) );
+                                                                                                                        REPLICA_INDEX,
+                                                                                                                        stateOperatorDef,
+                                                                                                                        MULTI_THREADED ) );
 
         final SupervisorNotifier supervisorNotifier2 = new SupervisorNotifier( supervisor, pipeline2 );
 
@@ -807,7 +804,8 @@ public class PipelineIntegrationTest
                                                                          pipeline1,
                                                                          supervisor,
                                                                          supervisorNotifier1,
-                                                                         new DownstreamTupleSenderImpl( pipeline2.getUpstreamTupleQueueContext(),
+                                                                         new DownstreamTupleSenderImpl(
+                                                                                 pipeline2.getUpstreamTupleQueueContext(),
                                                                                                         new Pair[] { Pair.of( 0, 0 ) } ) );
         final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( zanzaConfig,
                                                                          pipeline2,
@@ -884,9 +882,8 @@ public class PipelineIntegrationTest
 
     @OperatorSpec( type = STATEFUL, inputPortCount = 2, outputPortCount = 1 )
     @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ),
-                                @PortSchema( portIndex = 1, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ) },
-            outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class
-            ) } ) } )
+
+                                @PortSchema( portIndex = 1, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ) }, outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ) } )
     public static class ValueSinkOperator implements Operator
     {
 
@@ -965,9 +962,7 @@ public class PipelineIntegrationTest
 
 
     @OperatorSpec( type = STATELESS, inputPortCount = 1, outputPortCount = 1 )
-    @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ) },
-            outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class
-            ) } ) } )
+    @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ) }, outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ) } )
     public static class ValuePasserOperator implements Operator
     {
 
@@ -1067,29 +1062,31 @@ public class PipelineIntegrationTest
         private PipelineReplicaRunner runner;
 
         @Override
-        public void deploy ( final FlowDef flow, final List<RegionRuntimeConfig> regionRuntimeConfigs )
-        {
-
-        }
-
-        @Override
         public UpstreamContext getUpstreamContext ( final PipelineReplicaId id )
         {
             return upstreamContexts.get( id );
         }
 
         @Override
-        public synchronized void notifyPipelineCompletedRunning ( final PipelineReplicaId id )
+        public synchronized void notifyPipelineReplicaCompleted ( final PipelineReplicaId id )
         {
             assertTrue( completedPipelines.add( id ) );
             if ( !id.equals( targetPipelineReplicaId ) )
             {
                 final UpstreamContext currentUpstreamContext = upstreamContexts.get( targetPipelineReplicaId );
-                final UpstreamContext newUpstreamContext = currentUpstreamContext.withUpstreamConnectionStatus( inputPortIndices.get( id ),
-                                                                                                                CLOSED );
+                final UpstreamContext newUpstreamContext = withUpstreamConnectionStatus( currentUpstreamContext,
+                                                                                         inputPortIndices.get( id ),
+                                                                                         CLOSED );
                 upstreamContexts.put( targetPipelineReplicaId, newUpstreamContext );
                 runner.updatePipelineUpstreamContext();
             }
+        }
+
+        @Override
+        public void notifyPipelineReplicaFailed ( final PipelineReplicaId id, final Throwable failure )
+        {
+            System.err.println( "Pipeline Replica " + id + " failed with " + failure );
+            failure.printStackTrace();
         }
 
     }

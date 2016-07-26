@@ -2,10 +2,24 @@ package cs.bilkent.zanza.engine.pipeline;
 
 import java.util.Arrays;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
+import cs.bilkent.zanza.flow.OperatorDef;
+import cs.bilkent.zanza.operator.scheduling.ScheduleWhenAvailable;
+import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
+import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ALL_PORTS;
+import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ANY_PORT;
+import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 
 public class UpstreamContext
 {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger( UpstreamContext.class );
+
 
     private final int version;
 
@@ -61,25 +75,75 @@ public class UpstreamContext
         return b;
     }
 
-    public int getActiveConnectionCount ()
+    public boolean isInvokable ( final OperatorDef operatorDef, final SchedulingStrategy schedulingStrategy )
     {
-        int count = 0;
-        for ( UpstreamConnectionStatus status : statuses )
+        try
         {
-            if ( status == ACTIVE )
-            {
-                count++;
-            }
+            verifyOrFail( operatorDef, schedulingStrategy );
+            return true;
         }
-
-        return count;
+        catch ( IllegalStateException e )
+        {
+            LOGGER.info( "{} not invokable anymore. scheduling strategy: {} upstream context: {} error: {}",
+                         operatorDef.id(),
+                         schedulingStrategy,
+                         this,
+                         e.getMessage() );
+            return false;
+        }
     }
 
-    public UpstreamContext withUpstreamConnectionStatus ( final int portIndex, final UpstreamConnectionStatus newStatus )
+    public void verifyOrFail ( final OperatorDef operatorDef, final SchedulingStrategy schedulingStrategy )
     {
-        final UpstreamConnectionStatus[] statuses = Arrays.copyOf( this.statuses, this.statuses.length );
-        statuses[ portIndex ] = newStatus;
-        return new UpstreamContext( this.version + 1, statuses );
+        checkArgument( operatorDef.inputPortCount() == getPortCount() );
+
+        if ( schedulingStrategy instanceof ScheduleWhenAvailable )
+        {
+            checkState( operatorDef.inputPortCount() == 0,
+                        "%s cannot be used by operator: %s with input port count: %s",
+                        ScheduleWhenAvailable.class.getSimpleName(),
+                        operatorDef.id(),
+                        operatorDef.inputPortCount() );
+            checkState( version == 0, "upstream context is closed for 0 input port operator: %s", operatorDef.id() );
+        }
+        else if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
+        {
+            checkState( operatorDef.inputPortCount() > 0,
+                        "0 input port operator: %s cannot use %s",
+                        operatorDef.id(),
+                        ScheduleWhenTuplesAvailable.class.getSimpleName() );
+            final ScheduleWhenTuplesAvailable s = (ScheduleWhenTuplesAvailable) schedulingStrategy;
+            checkState( operatorDef.inputPortCount() == s.getPortCount(), "" );
+            if ( s.getTupleAvailabilityByPort() == ANY_PORT )
+            {
+                boolean valid = false;
+                for ( int i = 0; i < operatorDef.inputPortCount(); i++ )
+                {
+                    if ( s.getTupleCount( i ) > 0 && getUpstreamConnectionStatus( i ) == ACTIVE )
+                    {
+                        valid = true;
+                        break;
+                    }
+                }
+
+                checkState( valid );
+            }
+            else if ( s.getTupleAvailabilityByPort() == ALL_PORTS )
+            {
+                for ( int i = 0; i < operatorDef.inputPortCount(); i++ )
+                {
+                    checkState( getUpstreamConnectionStatus( i ) == ACTIVE );
+                }
+            }
+            else
+            {
+                throw new IllegalStateException( s.toString() );
+            }
+        }
+        else
+        {
+            throw new IllegalStateException( operatorDef.id() + " returns invalid initial scheduling strategy: " + schedulingStrategy );
+        }
     }
 
     @Override
@@ -115,10 +179,7 @@ public class UpstreamContext
     @Override
     public String toString ()
     {
-        return "UpstreamContext{" +
-               "version=" + version +
-               ", statuses=" + Arrays.toString( statuses ) +
-               '}';
+        return "UpstreamContext{" + "version=" + version + ", statuses=" + Arrays.toString( statuses ) + '}';
     }
 
 }

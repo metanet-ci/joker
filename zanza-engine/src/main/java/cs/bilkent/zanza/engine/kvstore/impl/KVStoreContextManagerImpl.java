@@ -46,12 +46,18 @@ public class KVStoreContextManagerImpl implements KVStoreContextManager
         checkArgument( regionId >= 0 );
         checkArgument( operatorId != null );
 
-        return defaultKVStoreContexts.computeIfAbsent( Pair.of( regionId, operatorId ), p -> {
+        return defaultKVStoreContexts.computeIfAbsent( Pair.of( regionId, operatorId ), p ->
+        {
             checkState( !kvStores.containsKey( p ) );
             final KVStore kvStore = new InMemoryKVStore();
             kvStores.put( p, new KVStore[] { kvStore } );
             return new DefaultKVStoreContext( operatorId, kvStore );
         } );
+    }
+
+    public KVStoreContext getDefaultKVStoreContext ( final int regionId, final String operatorId )
+    {
+        return defaultKVStoreContexts.get( Pair.of( regionId, operatorId ) );
     }
 
     @Override
@@ -61,7 +67,8 @@ public class KVStoreContextManagerImpl implements KVStoreContextManager
         checkArgument( replicaCount > 0 );
         checkArgument( operatorId != null );
 
-        return partitionedKvStoreContexts.computeIfAbsent( Pair.of( regionId, operatorId ), p -> {
+        return partitionedKvStoreContexts.computeIfAbsent( Pair.of( regionId, operatorId ), p ->
+        {
             checkState( !kvStores.containsKey( p ) );
             final int partitionCount = partitionService.getPartitionCount();
             final KVStore[] k = new KVStore[ partitionCount ];
@@ -81,6 +88,11 @@ public class KVStoreContextManagerImpl implements KVStoreContextManager
 
             return kvStoreContexts;
         } );
+    }
+
+    public KVStoreContext[] getPartitionedKVStoreContexts ( final int regionId, final String operatorId )
+    {
+        return partitionedKvStoreContexts.get( Pair.of( regionId, operatorId ) );
     }
 
     public KVStore[] getKVStores ( final int regionId, final String operatorId )
