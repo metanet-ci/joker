@@ -76,7 +76,10 @@ public final class FlowDefBuilder
         final OperatorRuntimeSchema sourceOperatorSchema = operators.get( sourceOperatorId ).schema();
         final OperatorRuntimeSchema targetOperatorSchema = operators.get( destinationOperatorId ).schema();
         checkState( sourceOperatorSchema.getOutputSchema( sourcePort )
-                                        .isCompatibleWith( targetOperatorSchema.getInputSchema( destinationPort ) ) );
+                                        .isCompatibleWith( targetOperatorSchema.getInputSchema( destinationPort ) ),
+                    "incompatible schemas between source %s and destination %s",
+                    sourcePort,
+                    destinationPort );
 
         final Port source = new Port( sourceOperatorId, sourcePort );
         final Port target = new Port( destinationOperatorId, destinationPort );

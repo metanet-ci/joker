@@ -221,7 +221,8 @@ public final class OperatorDefBuilder
     {
         checkState( inputPortCount != DYNAMIC_PORT_COUNT, "input port count must be set" );
         checkState( outputPortCount != DYNAMIC_PORT_COUNT, "output port count must be set" );
-        checkState( !( type == PARTITIONED_STATEFUL && ( partitionFieldNames == null || partitionFieldNames.isEmpty() ) ) );
+        checkState( !( type == PARTITIONED_STATEFUL && ( partitionFieldNames == null || partitionFieldNames.isEmpty() ) ),
+                    "invalid partition field names" );
         return new OperatorDef( id,
                                 clazz,
                                 type,

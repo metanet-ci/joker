@@ -89,7 +89,7 @@ public class Pipeline
 
     public void setInitialSchedulingStrategy ( final SchedulingStrategy initialSchedulingStrategy )
     {
-        checkNotNull( initialSchedulingStrategy );
+        checkNotNull( initialSchedulingStrategy, "Cannot set null initial SchedulingStrategy for Pipeline %s", id );
         this.initialSchedulingStrategy = initialSchedulingStrategy;
     }
 
@@ -100,7 +100,7 @@ public class Pipeline
 
     public void setUpstreamContext ( final UpstreamContext upstreamContext )
     {
-        checkNotNull( upstreamContext );
+        checkNotNull( upstreamContext, "Cannot set null upstream context of Pipeline %s", id );
         checkArgument( this.upstreamContext == null || this.upstreamContext.getVersion() < upstreamContext.getVersion() );
         this.upstreamContext = upstreamContext;
     }
@@ -126,8 +126,11 @@ public class Pipeline
 
     public void setPipelineReplica ( final int replicaIndex, final PipelineReplica pipelineReplica )
     {
-        checkNotNull( pipelineReplica );
-        checkState( replicas[ replicaIndex ] == null );
+        checkNotNull( pipelineReplica, "Cannot set null pipeline replica for replicaIndex=%s of Pipeline %s", replicaIndex, id );
+        checkState( replicas[ replicaIndex ] == null,
+                    "Cannot set PipelineReplica for replicaIndex=%s of Pipeline %s as it is already set",
+                    replicaIndex,
+                    id );
         replicas[ replicaIndex ] = pipelineReplica;
     }
 
@@ -138,8 +141,14 @@ public class Pipeline
 
     public void setPipelineReplicaRunner ( final int replicaIndex, final PipelineReplicaRunner pipelineReplicaRunner )
     {
-        checkNotNull( pipelineReplicaRunner );
-        checkState( runners[ replicaIndex ] == null );
+        checkNotNull( pipelineReplicaRunner,
+                      "Cannot set null pipeline replica runner for replicaIndex=%s of Pipeline %s",
+                      replicaIndex,
+                      id );
+        checkState( runners[ replicaIndex ] == null,
+                    "Cannot set pipeline replica runner for replicaIndex=%s for Pipeline %s",
+                    replicaIndex,
+                    id );
         runners[ replicaIndex ] = pipelineReplicaRunner;
     }
 
@@ -150,8 +159,12 @@ public class Pipeline
 
     public void setDownstreamTupleSender ( final int replicaIndex, final DownstreamTupleSender downstreamTupleSender )
     {
-        checkNotNull( downstreamTupleSender );
-        checkState( downstreamTupleSenders[ replicaIndex ] == null );
+        checkNotNull( downstreamTupleSender, "Cannot set null DownstreamTupleSender for Pipeline %s replicaIndex=%s", id, replicaIndex );
+        checkState( downstreamTupleSenders[ replicaIndex ] == null,
+                    "DownstreamTupleSender %s already set for Pipeline %s replicaIndex=%s",
+                    downstreamTupleSenders[ replicaIndex ],
+                    id,
+                    replicaIndex );
         downstreamTupleSenders[ replicaIndex ] = downstreamTupleSender;
     }
 
@@ -162,23 +175,41 @@ public class Pipeline
 
     public void setPipelineCompleting ()
     {
-        checkState( pipelineStatus == RUNNING );
-        for ( OperatorReplicaStatus replicaStatus : replicaStatuses )
+        checkState( pipelineStatus == RUNNING,
+                    "Pipeline %s cannot move to %s state since it is in %s state",
+                    id,
+                    COMPLETING,
+                    pipelineStatus );
+
+        for ( int i = 0, j = getReplicaCount(); i < j; i++ )
         {
-            checkState( replicaStatus == RUNNING );
+            checkState( replicaStatuses[ i ] == RUNNING,
+                        "Pipeline %s cannot move to %s state since replica index %s in %s state",
+                        id,
+                        COMPLETING,
+                        i,
+                        replicaStatuses[ i ] );
         }
 
-        pipelineStatus = COMPLETING;
         for ( int i = 0, j = getReplicaCount(); i < j; i++ )
         {
             replicaStatuses[ i ] = COMPLETING;
         }
+
+        pipelineStatus = COMPLETING;
     }
 
     public boolean setPipelineReplicaCompleted ( final int replicaIndex )
     {
-        checkState( pipelineStatus == COMPLETING );
-        checkState( replicaStatuses[ replicaIndex ] == COMPLETING );
+        checkState( pipelineStatus == COMPLETING,
+                    "Cannot set pipeline replica completed for replicaIndex=%s of Pipeline %s as it is in %s status",
+                    replicaIndex,
+                    id,
+                    pipelineStatus );
+        checkState( replicaStatuses[ replicaIndex ] == COMPLETING,
+                    "Cannot set pipeline replica completed for replicaIndex=%s as replica is in %s status",
+                    replicaIndex,
+                    replicaStatuses[ replicaIndex ] );
         replicaStatuses[ replicaIndex ] = COMPLETED;
         for ( OperatorReplicaStatus replicaStatus : replicaStatuses )
         {

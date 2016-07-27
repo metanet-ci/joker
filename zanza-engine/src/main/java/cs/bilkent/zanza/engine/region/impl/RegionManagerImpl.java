@@ -75,7 +75,7 @@ public class RegionManagerImpl implements RegionManager
     @Override
     public Region createRegion ( final FlowDef flow, final RegionConfig regionConfig )
     {
-        checkState( !regions.containsKey( regionConfig.getRegionId() ) );
+        checkState( !regions.containsKey( regionConfig.getRegionId() ), "Region %s is already created!", regionConfig.getRegionId() );
         checkPipelineStartIndices( regionConfig );
 
         final int regionId = regionConfig.getRegionId();
@@ -140,7 +140,9 @@ public class RegionManagerImpl implements RegionManager
                 final OperatorType regionType =
                         pipelineId == 0 ? regionConfig.getRegionDef().getRegionType() : operatorDefs[ 0 ].operatorType();
                 final TupleQueueContext pipelineTupleQueueContext = createPipelineTupleQueueContext( flow,
-                                                                                                     regionId, replicaIndex, regionType,
+                                                                                                     regionId,
+                                                                                                     replicaIndex,
+                                                                                                     regionType,
                                                                                                      pipelineOperatorReplicas );
 
                 pipelineReplicas[ pipelineId ][ replicaIndex ] = new PipelineReplica( config,
@@ -177,9 +179,12 @@ public class RegionManagerImpl implements RegionManager
                 {
                     LOGGER.info( "Releasing default tuple queue context of pipeline {}", pipelineReplica.id() );
                     final OperatorDef[] operatorDefs = regionConfig.getOperatorDefs( pipelineId );
-                    checkState( tupleQueueContextManager.releaseDefaultTupleQueueContext( regionId,
-                                                                                          replicaIndex,
-                                                                                          operatorDefs[ 0 ].id() ) );
+                    final String operatorId = operatorDefs[ 0 ].id();
+                    checkState( tupleQueueContextManager.releaseDefaultTupleQueueContext( regionId, replicaIndex, operatorId ),
+                                "Cannot release default tuple queue context of regionId=%s replicaIndex=%s operator=%s",
+                                regionId,
+                                replicaIndex,
+                                operatorId );
                 }
 
                 for ( int i = 0; i < pipelineReplica.getOperatorCount(); i++ )
@@ -189,17 +194,23 @@ public class RegionManagerImpl implements RegionManager
                     final TupleQueueContext queue = operator.getQueue();
                     if ( queue instanceof DefaultTupleQueueContext )
                     {
-                        LOGGER.info( "Releasing default tuple queue context of Operator {} in Pipeline {}",
-                                     operatorDef.id(),
-                                     pipelineReplica.id() );
-                        checkState( tupleQueueContextManager.releaseDefaultTupleQueueContext( regionId, replicaIndex, operatorDef.id() ) );
+                        LOGGER.info( "Releasing default tuple queue context of Operator {} in Pipeline {} replicaIndex {}",
+                                     operatorDef.id(), pipelineReplica.id(), replicaIndex );
+                        checkState( tupleQueueContextManager.releaseDefaultTupleQueueContext( regionId, replicaIndex, operatorDef.id() ),
+                                    "Cannot release default tuple queue context of Operator %s in Pipeline %s replicaIndex %s",
+                                    operatorDef.id(),
+                                    pipelineReplica.id(),
+                                    replicaIndex );
                     }
                     else if ( queue instanceof PartitionedTupleQueueContext && replicaIndex == 0 )
                     {
                         LOGGER.info( "Releasing partitioned tuple queue context of Operator {} in Pipeline {}",
                                      operatorDef.id(),
                                      pipelineReplica.id() );
-                        checkState( tupleQueueContextManager.releasePartitionedTupleQueueContexts( regionId, operatorDef.id() ) );
+                        checkState( tupleQueueContextManager.releasePartitionedTupleQueueContexts( regionId, operatorDef.id() ),
+                                    "Cannot release partitioned tuple queue context of Operator %s in Pipeline %s",
+                                    operatorDef.id(),
+                                    pipelineReplica.id() );
                     }
 
                     if ( replicaIndex == 0 )
@@ -209,14 +220,20 @@ public class RegionManagerImpl implements RegionManager
                             LOGGER.info( "Releasing default kv store context of Operator {} in Pipeline {}",
                                          operatorDef.id(),
                                          pipelineReplica.id() );
-                            checkState( kvStoreContextManager.releaseDefaultKVStoreContext( regionId, operatorDef.id() ) );
+                            checkState( kvStoreContextManager.releaseDefaultKVStoreContext( regionId, operatorDef.id() ),
+                                        "Cannot release default kv store context of Operator %s in Pipeline %s",
+                                        operatorDef.id(),
+                                        pipelineReplica.id() );
                         }
                         else if ( operatorDef.operatorType() == PARTITIONED_STATEFUL )
                         {
                             LOGGER.info( "Releasing partitioned kv store context of Operator {} in Pipeline {}",
                                          operatorDef.id(),
                                          pipelineReplica.id() );
-                            checkState( kvStoreContextManager.releasePartitionedKVStoreContext( regionId, operatorDef.id() ) );
+                            checkState( kvStoreContextManager.releasePartitionedKVStoreContext( regionId, operatorDef.id() ),
+                                        "Cannot release partitioned kv store context of Operator %s in Pipeline %s",
+                                        operatorDef.id(),
+                                        pipelineReplica.id() );
                         }
                     }
                 }
@@ -390,7 +407,9 @@ public class RegionManagerImpl implements RegionManager
     }
 
     private TupleQueueContext createPipelineTupleQueueContext ( final FlowDef flow,
-                                                                final int regionId, final int replicaIndex, final OperatorType regionType,
+                                                                final int regionId,
+                                                                final int replicaIndex,
+                                                                final OperatorType regionType,
                                                                 final OperatorReplica[] pipelineOperatorReplicas )
     {
         final OperatorDef firstOperatorDef = pipelineOperatorReplicas[ 0 ].getOperatorDef();
@@ -406,7 +425,9 @@ public class RegionManagerImpl implements RegionManager
             if ( firstOperatorDef.operatorType() == PARTITIONED_STATEFUL )
             {
                 LOGGER.info( "Creating {} for pipeline tuple queue context of regionId={} for pipeline operator={}",
-                             DefaultTupleQueueContext.class.getSimpleName(), regionId, firstOperatorDef.id() );
+                             DefaultTupleQueueContext.class.getSimpleName(),
+                             regionId,
+                             firstOperatorDef.id() );
                 return tupleQueueContextManager.createDefaultTupleQueueContext( regionId, replicaIndex, firstOperatorDef, MULTI_THREADED );
             }
             else

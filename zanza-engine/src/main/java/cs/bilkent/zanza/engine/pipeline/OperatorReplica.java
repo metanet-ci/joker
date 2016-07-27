@@ -120,7 +120,7 @@ public class OperatorReplica
      */
     public SchedulingStrategy init ( final UpstreamContext upstreamContext, final OperatorReplicaListener listener )
     {
-        checkState( status == INITIAL );
+        checkState( status == INITIAL, "Cannot initialize Operator %s as it is in %s state", operatorName, status );
         try
         {
             this.listener = listener != null ? listener : ( operatorId, status1 ) ->
@@ -128,7 +128,7 @@ public class OperatorReplica
             };
 
             operator = operatorDef.createOperator();
-            checkState( operator != null, "operator implementation can not be null" );
+            checkState( operator != null, "Operator %s implementation can not be null", operatorName );
             setUpstreamContext( upstreamContext );
             initializeOperator( upstreamContext );
             setSelfUpstreamContext( ACTIVE );
@@ -231,7 +231,7 @@ public class OperatorReplica
             return null;
         }
 
-        checkState( status == RUNNING || status == COMPLETING );
+        checkState( status == RUNNING || status == COMPLETING, "Operator %s cannot be invoked in %s state", operatorName, status );
 
         offer( upstreamInput );
 

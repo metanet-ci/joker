@@ -6,7 +6,6 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST_BUT_SAME_ON_ALL_PORTS;
@@ -25,9 +24,7 @@ public final class ScheduleWhenTuplesAvailable implements SchedulingStrategy
 
     public enum TupleAvailabilityByCount
     {
-        EXACT,
-        AT_LEAST,
-        AT_LEAST_BUT_SAME_ON_ALL_PORTS
+        EXACT, AT_LEAST, AT_LEAST_BUT_SAME_ON_ALL_PORTS
     }
 
     public static ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailableOnAll ( final TupleAvailabilityByCount tupleAvailabilityByCount,
@@ -183,17 +180,15 @@ public final class ScheduleWhenTuplesAvailable implements SchedulingStrategy
         }
         else if ( tupleAvailabilityByPort == ANY_PORT )
         {
-            boolean valid = false;
             for ( int tupleCount : tupleCounts )
             {
                 if ( tupleCount > 0 )
                 {
-                    valid = true;
-                    break;
+                    return;
                 }
             }
 
-            checkState( valid );
+            throw new IllegalStateException();
         }
         else
         {
@@ -264,11 +259,8 @@ public final class ScheduleWhenTuplesAvailable implements SchedulingStrategy
     @Override
     public String toString ()
     {
-        return "ScheduleWhenTuplesAvailable{" +
-               "tupleCounts=" + Arrays.toString( tupleCounts ) +
-               ", tupleAvailabilityByCount=" + tupleAvailabilityByCount +
-               ", tupleAvailabilityByPort=" + tupleAvailabilityByPort +
-               '}';
+        return "ScheduleWhenTuplesAvailable{" + "tupleCounts=" + Arrays.toString( tupleCounts ) + ", tupleAvailabilityByCount="
+               + tupleAvailabilityByCount + ", tupleAvailabilityByPort=" + tupleAvailabilityByPort + '}';
     }
 
 }

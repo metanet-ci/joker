@@ -24,6 +24,8 @@ import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 public class BlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
 {
 
+    private final String operatorId;
+
     private final int inputPortCount;
 
     private BlockingSinglePortDrainer singlePortDrainer;
@@ -38,6 +40,7 @@ public class BlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
 
     public BlockingTupleQueueDrainerPool ( final ZanzaConfig config, final OperatorDef operatorDef )
     {
+        this.operatorId = operatorDef.id();
         this.inputPortCount = operatorDef.inputPortCount();
 
         final int maxBatchSize = config.getTupleQueueDrainerConfig().getMaxBatchSize();
@@ -59,7 +62,7 @@ public class BlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
     @Override
     public TupleQueueDrainer acquire ( final SchedulingStrategy input )
     {
-        checkState( active == null );
+        checkState( active == null, "cannot acquire new drainer when there is an active one for operator %s", operatorId );
 
         if ( input instanceof ScheduleWhenAvailable )
         {

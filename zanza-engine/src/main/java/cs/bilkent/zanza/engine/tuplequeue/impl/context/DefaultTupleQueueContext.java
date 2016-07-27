@@ -145,21 +145,27 @@ public class DefaultTupleQueueContext implements TupleQueueContext
     @Override
     public void enableCapacityCheck ( final int portIndex )
     {
-        checkState( threadingPreference == MULTI_THREADED );
+        checkState( threadingPreference == MULTI_THREADED,
+                    "Cannot enable capacity check for single threaded tuple queue of operator %s",
+                    operatorId );
         tupleQueues[ portIndex ].enableCapacityCheck();
     }
 
     @Override
     public void disableCapacityCheck ( final int portIndex )
     {
-        checkState( threadingPreference == MULTI_THREADED );
+        checkState( threadingPreference == MULTI_THREADED,
+                    "Cannot disable capacity check for single threaded tuple queue of operator %s",
+                    operatorId );
         tupleQueues[ portIndex ].disableCapacityCheck();
     }
 
     @Override
     public boolean isCapacityCheckEnabled ( final int portIndex )
     {
-        checkState( threadingPreference == MULTI_THREADED );
+        checkState( threadingPreference == MULTI_THREADED,
+                    "Cannot check if capacity enabled for single threaded tuple queue of operator %s",
+                    operatorId );
         return tupleQueues[ portIndex ].isCapacityCheckEnabled();
     }
 

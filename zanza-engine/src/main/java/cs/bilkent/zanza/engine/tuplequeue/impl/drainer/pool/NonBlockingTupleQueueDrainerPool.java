@@ -26,6 +26,8 @@ import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 public class NonBlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
 {
 
+    private final String operatorId;
+
     private final int inputPortCount;
 
     private final OperatorType operatorType;
@@ -42,6 +44,7 @@ public class NonBlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
 
     public NonBlockingTupleQueueDrainerPool ( final ZanzaConfig config, final OperatorDef operatorDef )
     {
+        this.operatorId = operatorDef.id();
         this.inputPortCount = operatorDef.inputPortCount();
         this.operatorType = operatorDef.operatorType();
 
@@ -63,7 +66,7 @@ public class NonBlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
     @Override
     public TupleQueueDrainer acquire ( final SchedulingStrategy input )
     {
-        checkState( active == null );
+        checkState( active == null, "cannot acquire new drainer when there is an active one for operator %s", operatorId );
 
         if ( input instanceof ScheduleWhenAvailable )
         {

@@ -113,26 +113,31 @@ public class UpstreamContext
                         operatorDef.id(),
                         ScheduleWhenTuplesAvailable.class.getSimpleName() );
             final ScheduleWhenTuplesAvailable s = (ScheduleWhenTuplesAvailable) schedulingStrategy;
-            checkState( operatorDef.inputPortCount() == s.getPortCount(), "" );
+            checkState( operatorDef.inputPortCount() == s.getPortCount(),
+                        "Operator %s and SchedulingStrategy %s has different input port counts: %s, %s respectively.",
+                        operatorDef.id(),
+                        s,
+                        operatorDef.inputPortCount(),
+                        s.getPortCount() );
             if ( s.getTupleAvailabilityByPort() == ANY_PORT )
             {
-                boolean valid = false;
                 for ( int i = 0; i < operatorDef.inputPortCount(); i++ )
                 {
                     if ( s.getTupleCount( i ) > 0 && getUpstreamConnectionStatus( i ) == ACTIVE )
                     {
-                        valid = true;
-                        break;
+                        return;
                     }
                 }
 
-                checkState( valid );
+                throw new IllegalStateException( "SchedulingStrategy " + s + " is not invokable anymore since there is no open port" );
             }
             else if ( s.getTupleAvailabilityByPort() == ALL_PORTS )
             {
                 for ( int i = 0; i < operatorDef.inputPortCount(); i++ )
                 {
-                    checkState( getUpstreamConnectionStatus( i ) == ACTIVE );
+                    checkState( getUpstreamConnectionStatus( i ) == ACTIVE,
+                                "SchedulingStrategy %s is not invokable anymore since there is closed port",
+                                s );
                 }
             }
             else

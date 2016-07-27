@@ -146,8 +146,8 @@ public class PipelineReplica
 
     public SchedulingStrategy[] init ( final UpstreamContext upstreamContext, final OperatorReplicaListener operatorReplicaListener )
     {
-        checkState( status == INITIAL );
-        checkNotNull( upstreamContext );
+        checkState( status == INITIAL, "Cannot initialize PipelineReplica %s as it is in %s state", id, status );
+        checkNotNull( upstreamContext, "Cannot initialize PipelineReplica %s as upstream context is null, id" );
 
         SchedulingStrategy[] schedulingStrategies = new SchedulingStrategy[ operatorCount ];
         UpstreamContext uc = upstreamContext;
@@ -292,7 +292,10 @@ public class PipelineReplica
             return;
         }
 
-        checkState( status == RUNNING || status == INITIALIZATION_FAILED );
+        checkState( status == RUNNING || status == INITIALIZATION_FAILED,
+                    "Cannot shutdown PipelineReplica %s as it is in %s state",
+                    id,
+                    status );
         shutdownOperators();
         status = SHUT_DOWN;
     }

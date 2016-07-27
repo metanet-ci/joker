@@ -48,7 +48,7 @@ public class KVStoreContextManagerImpl implements KVStoreContextManager
 
         return defaultKVStoreContexts.computeIfAbsent( Pair.of( regionId, operatorId ), p ->
         {
-            checkState( !kvStores.containsKey( p ) );
+            checkState( !kvStores.containsKey( p ), "default kvStore for <regionId, operatorId> %s already exists!", p );
             final KVStore kvStore = new InMemoryKVStore();
             kvStores.put( p, new KVStore[] { kvStore } );
             return new DefaultKVStoreContext( operatorId, kvStore );
@@ -69,7 +69,7 @@ public class KVStoreContextManagerImpl implements KVStoreContextManager
 
         return partitionedKvStoreContexts.computeIfAbsent( Pair.of( regionId, operatorId ), p ->
         {
-            checkState( !kvStores.containsKey( p ) );
+            checkState( !kvStores.containsKey( p ), "partitioned kvStore for <regionId, operatorId> %s already exists!", p );
             final int partitionCount = partitionService.getPartitionCount();
             final KVStore[] k = new KVStore[ partitionCount ];
             for ( int i = 0; i < partitionCount; i++ )
@@ -134,8 +134,9 @@ public class KVStoreContextManagerImpl implements KVStoreContextManager
 
     private void releaseKVStores ( final int regionId, final String operatorId )
     {
-        final KVStore[] kvs = kvStores.remove( Pair.of( regionId, operatorId ) );
-        checkState( kvs != null );
+        final Pair<Integer, String> p = Pair.of( regionId, operatorId );
+        final KVStore[] kvs = kvStores.remove( p );
+        checkState( kvs != null, "kvStores not found for <regionId, operatorId> %s", p );
         for ( KVStore k : kvs )
         {
             k.clear();
