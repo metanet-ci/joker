@@ -56,18 +56,18 @@ public class MultiThreadedTupleQueue implements TupleQueue
     @Override
     public void ensureCapacity ( final int newCapacity )
     {
-        if ( newCapacity > capacity )
+        lock.lock();
+        try
         {
-            lock.lock();
-            try
+            if ( newCapacity > capacity )
             {
                 capacity = newCapacity;
                 fullCondition.signalAll();
             }
-            finally
-            {
-                lock.unlock();
-            }
+        }
+        finally
+        {
+            lock.unlock();
         }
     }
 

@@ -163,6 +163,12 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
     }
 
     @Override
+    public void ensureCapacity ( final int portIndex, final int capacity )
+    {
+
+    }
+
+    @Override
     public void clear ()
     {
         LOGGER.info( "Clearing partitioned tuple queues of operator: {}", operatorId );

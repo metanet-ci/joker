@@ -108,6 +108,7 @@ public class DefaultTupleQueueContext implements TupleQueueContext
         drainer.drain( null, tupleQueues );
     }
 
+    @Override
     public void ensureCapacity ( final int portIndex, final int capacity )
     {
         tupleQueues[ portIndex ].ensureCapacity( capacity );

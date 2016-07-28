@@ -180,6 +180,11 @@ public class OperatorReplica
         if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
         {
             final ScheduleWhenTuplesAvailable ss = (ScheduleWhenTuplesAvailable) schedulingStrategy;
+            for ( int portIndex = 0; portIndex < ss.getPortCount(); portIndex++ )
+            {
+                queue.ensureCapacity( portIndex, ss.getTupleCount( portIndex ) );
+
+            }
             queue.setTupleCounts( ss.getTupleCounts(), ss.getTupleAvailabilityByPort() );
         }
     }

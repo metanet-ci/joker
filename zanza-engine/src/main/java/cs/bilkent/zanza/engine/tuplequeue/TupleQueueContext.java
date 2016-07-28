@@ -58,6 +58,8 @@ public interface TupleQueueContext
      */
     void drain ( TupleQueueDrainer drainer );
 
+    void ensureCapacity ( int portIndex, int capacity );
+
     void clear ();
 
     void setTupleCounts ( int[] tupleCounts, TupleAvailabilityByPort tupleAvailabilityByPort );

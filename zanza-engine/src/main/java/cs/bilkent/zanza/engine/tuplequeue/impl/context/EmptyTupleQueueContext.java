@@ -63,6 +63,12 @@ public class EmptyTupleQueueContext implements TupleQueueContext
     }
 
     @Override
+    public void ensureCapacity ( final int portIndex, final int capacity )
+    {
+
+    }
+
+    @Override
     public void clear ()
     {
 
