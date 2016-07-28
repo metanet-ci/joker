@@ -6,7 +6,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
 import cs.bilkent.zanza.operator.InvocationContext;
 import cs.bilkent.zanza.operator.Operator;
@@ -58,33 +57,30 @@ public final class TuplesImpl implements Tuples
     @Override
     public void add ( final Tuple tuple )
     {
-        checkNotNull( tuple, "tuple can't be null" );
+        checkArgument( tuple != null );
         add( DEFAULT_PORT_INDEX, tuple );
     }
 
     @Override
     public void addAll ( final List<Tuple> tuples )
     {
-        checkNotNull( tuples, "tuples can't be null" );
+        checkArgument( tuples != null );
         addAll( DEFAULT_PORT_INDEX, tuples );
     }
 
     @Override
     public void add ( final int portIndex, final Tuple tuple )
     {
-        checkArgument( portIndex >= 0, "port must be non-negative" );
-        checkNotNull( tuple, "tuple can't be null" );
-
+        checkArgument( tuple != null );
         ports[ portIndex ].add( tuple );
     }
 
     @Override
-    public void addAll ( final int portIndex, final List<Tuple> tuplesToAdd )
+    public void addAll ( final int portIndex, final List<Tuple> tuples )
     {
-        checkArgument( portIndex >= 0, "port must be non-negative" );
-        checkNotNull( tuplesToAdd, "tuples can't be null" );
+        checkArgument( tuples != null );
 
-        ports[ portIndex ].addAll( tuplesToAdd );
+        ports[ portIndex ].addAll( tuples );
     }
 
     @Override

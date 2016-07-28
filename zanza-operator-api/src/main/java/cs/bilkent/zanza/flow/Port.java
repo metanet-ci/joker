@@ -2,7 +2,6 @@ package cs.bilkent.zanza.flow;
 
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 
 public final class Port
@@ -17,7 +16,7 @@ public final class Port
 
     public Port ( String operatorId, int portIndex )
     {
-        checkNotNull( operatorId, "operator id can't be null" );
+        checkArgument( operatorId != null, "operator id can't be null" );
         checkArgument( portIndex >= 0, "port must be non-negative" );
         this.operatorId = operatorId;
         this.portIndex = portIndex;

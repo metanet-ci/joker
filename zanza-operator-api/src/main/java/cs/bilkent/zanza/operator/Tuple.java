@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Collections.unmodifiableMap;
 
@@ -35,16 +34,14 @@ public final class Tuple implements Fields<String>
 
     public Tuple ( final String key, final Object value )
     {
-        checkNotNull( key, "key can't be null" );
-        checkNotNull( value, "value can't be null" );
+        checkArgument( value != null, "value can't be null" );
         this.values = new HashMap<>();
         this.values.put( key, value );
     }
 
     public Tuple ( final int sequenceNumber, final String key, final Object value )
     {
-        checkNotNull( key, "key can't be null" );
-        checkNotNull( value, "value can't be null" );
+        checkArgument( value != null, "value can't be null" );
         setSequenceNumber( sequenceNumber );
         this.values = new HashMap<>();
         this.values.put( key, value );
@@ -52,14 +49,14 @@ public final class Tuple implements Fields<String>
 
     public Tuple ( final Map<String, Object> values )
     {
-        checkNotNull( values, "values can't be null" );
+        checkArgument( values != null, "values can't be null" );
         this.values = new HashMap<>();
         this.values.putAll( values );
     }
 
     public Tuple ( final int sequenceNumber, final Map<String, Object> values )
     {
-        checkNotNull( values, "values can't be null" );
+        checkArgument( values != null, "values can't be null" );
         setSequenceNumber( sequenceNumber );
         this.values = new HashMap<>();
         this.values.putAll( values );
@@ -74,22 +71,19 @@ public final class Tuple implements Fields<String>
     @Override
     public <T> T get ( final String key )
     {
-        checkNotNull( key, "key can't be null" );
         return (T) values.get( key );
     }
 
     @Override
     public boolean contains ( final String key )
     {
-        checkNotNull( key, "key can't be null" );
         return values.containsKey( key );
     }
 
     @Override
     public void set ( final String key, final Object value )
     {
-        checkNotNull( key, "key can't be null" );
-        checkNotNull( value, "value can't be null" );
+        checkArgument( value != null, "value can't be null" );
         this.values.put( key, value );
     }
 
@@ -97,22 +91,19 @@ public final class Tuple implements Fields<String>
     @Override
     public <T> T put ( final String key, final T value )
     {
-        checkNotNull( key, "key can't be null" );
-        checkNotNull( value, "value can't be null" );
+        checkArgument( value != null, "value can't be null" );
         return (T) this.values.put( key, value );
     }
 
     @Override
     public Object remove ( final String key )
     {
-        checkNotNull( key, "key can't be null" );
         return this.values.remove( key );
     }
 
     @Override
     public boolean delete ( final String key )
     {
-        checkNotNull( key, "key can't be null" );
         return this.values.remove( key ) != null;
     }
 
@@ -166,7 +157,7 @@ public final class Tuple implements Fields<String>
      */
     public void setSequenceNumber ( final int sequenceNumber )
     {
-        checkArgument( sequenceNumber > NO_SEQUENCE_NUMBER );
+        checkArgument( sequenceNumber != NO_SEQUENCE_NUMBER );
         this.sequenceNumber = sequenceNumber;
     }
 

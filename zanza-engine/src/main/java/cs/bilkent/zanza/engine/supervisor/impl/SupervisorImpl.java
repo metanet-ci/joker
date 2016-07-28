@@ -460,7 +460,7 @@ public class SupervisorImpl implements Supervisor
     private Pipeline getPipelineOrFail ( final PipelineId id )
     {
         final Pipeline pipeline = pipelines.get( id );
-        checkArgument( pipeline != null, "no pipeline runtime context found for " + "pipeline instance id: " + id );
+        checkArgument( pipeline != null, "no pipeline runtime context found for pipeline instance id: " + id );
         return pipeline;
     }
 

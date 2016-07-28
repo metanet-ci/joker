@@ -43,8 +43,8 @@ public class KVStoreContextManagerImpl implements KVStoreContextManager
     @Override
     public KVStoreContext createDefaultKVStoreContext ( final int regionId, final String operatorId )
     {
-        checkArgument( regionId >= 0 );
-        checkArgument( operatorId != null );
+        checkArgument( regionId >= 0, "invalid regionId %s", regionId );
+        checkArgument( operatorId != null, "null operatorId for regionId %s", regionId );
 
         return defaultKVStoreContexts.computeIfAbsent( Pair.of( regionId, operatorId ), p ->
         {
@@ -63,9 +63,9 @@ public class KVStoreContextManagerImpl implements KVStoreContextManager
     @Override
     public KVStoreContext[] createPartitionedKVStoreContexts ( final int regionId, final int replicaCount, final String operatorId )
     {
-        checkArgument( regionId >= 0 );
-        checkArgument( replicaCount > 0 );
-        checkArgument( operatorId != null );
+        checkArgument( regionId >= 0, "invalid regionId %s", regionId );
+        checkArgument( operatorId != null, "null operatorId for regionId %s", regionId );
+        checkArgument( replicaCount > 0, "invalid replicaCount %s for regionId %s operatorId %s", replicaCount, regionId );
 
         return partitionedKvStoreContexts.computeIfAbsent( Pair.of( regionId, operatorId ), p ->
         {

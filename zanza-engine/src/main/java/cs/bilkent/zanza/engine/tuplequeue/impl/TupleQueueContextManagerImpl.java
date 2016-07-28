@@ -66,10 +66,24 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
     public TupleQueueContext createDefaultTupleQueueContext ( final int regionId, final int replicaIndex, final OperatorDef operatorDef,
                                                               final ThreadingPreference threadingPreference )
     {
-        checkArgument( operatorDef != null );
-        checkArgument( operatorDef.operatorType() != PARTITIONED_STATEFUL || threadingPreference == MULTI_THREADED );
-        checkArgument( threadingPreference != null );
-        checkArgument( replicaIndex >= 0 );
+        checkArgument( operatorDef != null, "No operator definition! regionId %s, replicaIndex %s", regionId, replicaIndex );
+        checkArgument( threadingPreference != null,
+                       "No threading preference is given! regionId %s, replicaIndex %s operatorId %s",
+                       regionId,
+                       replicaIndex,
+                       operatorDef.id() );
+        checkArgument( operatorDef.operatorType() != PARTITIONED_STATEFUL || threadingPreference == MULTI_THREADED,
+                       "invalid <operator type, threading preference> pair! regionId %s operatorId %s operatorType %s threadingPreference"
+                       + " %s ",
+                       regionId,
+                       operatorDef.id(),
+                       operatorDef.operatorType(),
+                       threadingPreference );
+        checkArgument( replicaIndex >= 0,
+                       "invalid replica index! regionId %s, replicaIndex %s operatorId %s",
+                       regionId,
+                       replicaIndex,
+                       operatorDef.id() );
 
         final Function<Boolean, TupleQueue> tupleQueueConstructor = getTupleQueueConstructor( threadingPreference,
                                                                                               initialTupleQueueCapacity );
@@ -98,9 +112,12 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
                                                                                final int replicaCount,
                                                                                final OperatorDef operatorDef )
     {
-        checkArgument( operatorDef != null );
-        checkArgument( operatorDef.operatorType() == PARTITIONED_STATEFUL );
-        checkArgument( replicaCount > 0 );
+        checkArgument( operatorDef != null, "No operator definition! regionId %s, replicaCount %s", regionId, replicaCount );
+        checkArgument( operatorDef.operatorType() == PARTITIONED_STATEFUL,
+                       "invalid operator type: %s ! regionId %s operatorId %s",
+                       regionId,
+                       operatorDef.id() );
+        checkArgument( replicaCount > 0, "invalid replica count %s ! regionId %s operatorId %s", replicaCount, regionId, operatorDef.id() );
         final Function<Boolean, TupleQueue> tupleQueueConstructor = getTupleQueueConstructor( SINGLE_THREADED, initialTupleQueueCapacity );
         final String operatorId = operatorDef.id();
         final int inputPortCount = operatorDef.inputPortCount();

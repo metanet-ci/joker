@@ -84,7 +84,7 @@ public class NonBlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
             else
             {
                 checkArgument( !( strategy.getTupleAvailabilityByPort() == ANY_PORT
-                                  && strategy.getTupleAvailabilityByCount() == AT_LEAST_BUT_SAME_ON_ALL_PORTS ) );
+                                  && strategy.getTupleAvailabilityByCount() == AT_LEAST_BUT_SAME_ON_ALL_PORTS ), "invalid %s", strategy );
                 final int[] inputPorts = new int[ inputPortCount ];
                 for ( int i = 0; i < inputPortCount; i++ )
                 {
@@ -117,7 +117,7 @@ public class NonBlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
     @Override
     public void release ( final TupleQueueDrainer drainer )
     {
-        checkArgument( active == drainer, "active: " + active + " drainer: " + drainer );
+        checkArgument( active == drainer, "cannot release active drainer %s by drainer %s", active, drainer );
         active.reset();
         active = null;
     }

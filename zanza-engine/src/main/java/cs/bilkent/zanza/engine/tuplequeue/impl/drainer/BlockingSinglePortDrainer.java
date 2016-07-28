@@ -40,8 +40,8 @@ public class BlockingSinglePortDrainer implements TupleQueueDrainer
 
     public void setParameters ( final TupleAvailabilityByCount tupleAvailabilityByCount, final int tupleCount )
     {
-        checkArgument( tupleCount >= 0 );
         checkArgument( tupleAvailabilityByCount != null );
+        checkArgument( tupleCount >= 0 );
         this.tupleCount = tupleCount;
         this.tupleAvailabilityByCount = tupleAvailabilityByCount;
     }

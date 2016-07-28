@@ -5,7 +5,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST_BUT_SAME_ON_ALL_PORTS;
@@ -117,8 +116,8 @@ public final class ScheduleWhenTuplesAvailable implements SchedulingStrategy
                                          final TupleAvailabilityByPort tupleAvailabilityByPort,
                                          final int[] tupleCounts )
     {
-        checkNotNull( tupleAvailabilityByCount );
-        checkNotNull( tupleAvailabilityByPort );
+        checkArgument( tupleAvailabilityByCount != null );
+        checkArgument( tupleAvailabilityByPort != null );
         checkArgument( tupleCounts.length == 1 || !( tupleAvailabilityByCount == AT_LEAST_BUT_SAME_ON_ALL_PORTS
                                                      && tupleAvailabilityByPort == ANY_PORT ) );
         this.tupleAvailabilityByCount = tupleAvailabilityByCount;
@@ -133,8 +132,8 @@ public final class ScheduleWhenTuplesAvailable implements SchedulingStrategy
                                          final int tupleCount,
                                          final int... ports )
     {
-        checkNotNull( tupleAvailabilityByCount );
-        checkNotNull( tupleAvailabilityByPort );
+        checkArgument( tupleAvailabilityByCount != null );
+        checkArgument( tupleAvailabilityByPort != null );
         checkArgument( portCount > 0 );
         checkArgument( ports != null && ports.length > 0 );
 
@@ -154,8 +153,8 @@ public final class ScheduleWhenTuplesAvailable implements SchedulingStrategy
                                          final int tupleCount,
                                          final List<Integer> ports )
     {
-        checkNotNull( tupleAvailabilityByCount );
-        checkNotNull( tupleAvailabilityByPort );
+        checkArgument( tupleAvailabilityByCount != null );
+        checkArgument( tupleAvailabilityByPort != null );
         checkArgument( portCount > 0 );
         checkArgument( ports != null && ports.size() > 0 );
 

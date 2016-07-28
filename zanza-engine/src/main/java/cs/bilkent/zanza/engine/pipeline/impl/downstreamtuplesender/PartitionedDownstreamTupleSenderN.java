@@ -22,7 +22,11 @@ public class PartitionedDownstreamTupleSenderN extends AbstractPartitionedDownst
                                                final PartitionKeyFunction partitionKeyExtractor )
     {
         super( partitionCount, partitionDistribution, tupleQueueContexts, partitionKeyExtractor );
-        checkArgument( sourcePorts.length == destinationPorts.length );
+        checkArgument( sourcePorts.length == destinationPorts.length,
+                       "source ports size = %s and destination ports = %s ! operatorId=%s",
+                       sourcePorts.length,
+                       destinationPorts.length,
+                       tupleQueueContexts[ 0 ].getOperatorId() );
         this.portCount = sourcePorts.length;
         this.ports = new int[ portCount ][ 2 ];
         for ( int i = 0; i < portCount; i++ )

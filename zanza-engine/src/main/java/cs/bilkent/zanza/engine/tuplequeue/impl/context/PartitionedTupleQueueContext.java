@@ -45,9 +45,22 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
                                           final TupleQueueContainer[] tupleQueueContainers,
                                           final int[] partitions )
     {
-        checkArgument( partitionCount == tupleQueueContainers.length );
-        checkArgument( partitionCount == partitions.length );
-        checkArgument( inputPortCount >= 0 );
+        checkArgument( partitionCount == tupleQueueContainers.length,
+                       "mismatching partition count %s and tuple queue container count %s partitioned tuple queue context of for operator"
+                       + " %s",
+                       partitionCount,
+                       tupleQueueContainers.length,
+                       operatorId );
+        checkArgument( partitionCount == partitions.length,
+                       "mismatching partition count %s and partition distribution count %s for partitioned tuple queue context of "
+                       + "operator %s",
+                       partitionCount,
+                       partitions.length,
+                       operatorId );
+        checkArgument( inputPortCount >= 0,
+                       "invalid input port count %s for partitioned tuple queue context of operator $s",
+                       inputPortCount,
+                       operatorId );
         this.operatorId = operatorId;
         this.inputPortCount = inputPortCount;
         this.partitionCount = partitionCount;

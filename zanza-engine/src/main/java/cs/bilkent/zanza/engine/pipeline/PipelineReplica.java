@@ -7,7 +7,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.zanza.engine.config.TupleQueueDrainerConfig;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
@@ -147,7 +147,7 @@ public class PipelineReplica
     public SchedulingStrategy[] init ( final UpstreamContext upstreamContext, final OperatorReplicaListener operatorReplicaListener )
     {
         checkState( status == INITIAL, "Cannot initialize PipelineReplica %s as it is in %s state", id, status );
-        checkNotNull( upstreamContext, "Cannot initialize PipelineReplica %s as upstream context is null, id" );
+        checkArgument( upstreamContext != null, "Cannot initialize PipelineReplica %s as upstream context is null", id );
 
         SchedulingStrategy[] schedulingStrategies = new SchedulingStrategy[ operatorCount ];
         UpstreamContext uc = upstreamContext;

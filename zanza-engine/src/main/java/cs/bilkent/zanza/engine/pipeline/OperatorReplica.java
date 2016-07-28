@@ -231,7 +231,7 @@ public class OperatorReplica
             return null;
         }
 
-        checkState( status == RUNNING || status == COMPLETING, "Operator %s cannot be invoked in %s state", operatorName, status );
+        checkState( status == RUNNING || status == COMPLETING, operatorName );
 
         offer( upstreamInput );
 
@@ -375,7 +375,7 @@ public class OperatorReplica
      */
     private void setUpstreamContext ( final UpstreamContext upstreamContext )
     {
-        checkArgument( upstreamContext != null );
+        checkArgument( upstreamContext != null, "upstream context is null! operator ", operatorName );
         this.upstreamContext = upstreamContext;
         invocationContext.setUpstreamConnectionStatuses( upstreamContext.getUpstreamConnectionStatuses() );
     }

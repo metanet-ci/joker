@@ -3,7 +3,6 @@ package cs.bilkent.zanza.engine.pipeline;
 import java.util.Arrays;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.COMPLETED;
 import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.COMPLETING;
@@ -89,7 +88,7 @@ public class Pipeline
 
     public void setInitialSchedulingStrategy ( final SchedulingStrategy initialSchedulingStrategy )
     {
-        checkNotNull( initialSchedulingStrategy, "Cannot set null initial SchedulingStrategy for Pipeline %s", id );
+        checkArgument( initialSchedulingStrategy != null, "Cannot set null initial SchedulingStrategy for Pipeline %s", id );
         this.initialSchedulingStrategy = initialSchedulingStrategy;
     }
 
@@ -100,7 +99,7 @@ public class Pipeline
 
     public void setUpstreamContext ( final UpstreamContext upstreamContext )
     {
-        checkNotNull( upstreamContext, "Cannot set null upstream context of Pipeline %s", id );
+        checkArgument( upstreamContext != null, "Cannot set null upstream context of Pipeline %s", id );
         checkArgument( this.upstreamContext == null || this.upstreamContext.getVersion() < upstreamContext.getVersion() );
         this.upstreamContext = upstreamContext;
     }
@@ -126,7 +125,7 @@ public class Pipeline
 
     public void setPipelineReplica ( final int replicaIndex, final PipelineReplica pipelineReplica )
     {
-        checkNotNull( pipelineReplica, "Cannot set null pipeline replica for replicaIndex=%s of Pipeline %s", replicaIndex, id );
+        checkArgument( pipelineReplica != null, "Cannot set null pipeline replica for replicaIndex=%s of Pipeline %s", replicaIndex, id );
         checkState( replicas[ replicaIndex ] == null,
                     "Cannot set PipelineReplica for replicaIndex=%s of Pipeline %s as it is already set",
                     replicaIndex,
@@ -141,10 +140,10 @@ public class Pipeline
 
     public void setPipelineReplicaRunner ( final int replicaIndex, final PipelineReplicaRunner pipelineReplicaRunner )
     {
-        checkNotNull( pipelineReplicaRunner,
-                      "Cannot set null pipeline replica runner for replicaIndex=%s of Pipeline %s",
-                      replicaIndex,
-                      id );
+        checkArgument( pipelineReplicaRunner != null,
+                       "Cannot set null pipeline replica runner for replicaIndex=%s of Pipeline %s",
+                       replicaIndex,
+                       id );
         checkState( runners[ replicaIndex ] == null,
                     "Cannot set pipeline replica runner for replicaIndex=%s for Pipeline %s",
                     replicaIndex,
@@ -159,7 +158,10 @@ public class Pipeline
 
     public void setDownstreamTupleSender ( final int replicaIndex, final DownstreamTupleSender downstreamTupleSender )
     {
-        checkNotNull( downstreamTupleSender, "Cannot set null DownstreamTupleSender for Pipeline %s replicaIndex=%s", id, replicaIndex );
+        checkArgument( downstreamTupleSender != null,
+                       "Cannot set null DownstreamTupleSender for Pipeline %s replicaIndex=%s",
+                       id,
+                       replicaIndex );
         checkState( downstreamTupleSenders[ replicaIndex ] == null,
                     "DownstreamTupleSender %s already set for Pipeline %s replicaIndex=%s",
                     downstreamTupleSenders[ replicaIndex ],

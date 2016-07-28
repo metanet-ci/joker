@@ -49,7 +49,8 @@ public class TupleQueueContainer
         this.inputPortCount = inputPortCount;
         this.partitionId = partitionId;
         this.tupleQueuesByKeys = new THashMap<>();
-        this.tupleQueuesConstructor = ( partitionKey ) -> {
+        this.tupleQueuesConstructor = ( partitionKey ) ->
+        {
             final TupleQueue[] tupleQueues = new TupleQueue[ inputPortCount ];
             for ( int i = 0; i < inputPortCount; i++ )
             {
@@ -151,8 +152,16 @@ public class TupleQueueContainer
 
     public void setTupleCounts ( final int[] tupleCounts, final TupleAvailabilityByPort tupleAvailabilityByPort )
     {
-        checkArgument( tupleCounts.length == inputPortCount );
-        checkArgument( tupleAvailabilityByPort == ANY_PORT || tupleAvailabilityByPort == ALL_PORTS );
+        checkArgument( inputPortCount == tupleCounts.length,
+                       "mismatching input port counts for tuple queue container of operator: %s operator input port count: %s, arg: %s",
+                       operatorId,
+                       inputPortCount,
+                       tupleCounts.length );
+        checkArgument( tupleAvailabilityByPort == ANY_PORT || tupleAvailabilityByPort == ALL_PORTS,
+                       "invalid 5s:%s for tuple queue container of operator: %s operator",
+                       TupleAvailabilityByPort.class,
+                       tupleAvailabilityByPort,
+                       operatorId );
         this.tupleCounts = tupleCounts;
         this.tupleAvailabilityByPort = tupleAvailabilityByPort;
         this.drainableKeys.clear();

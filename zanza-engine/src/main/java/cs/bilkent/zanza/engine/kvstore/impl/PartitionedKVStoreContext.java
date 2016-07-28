@@ -2,7 +2,7 @@ package cs.bilkent.zanza.engine.kvstore.impl;
 
 import java.util.Arrays;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.zanza.engine.kvstore.KVStoreContext;
 import static cs.bilkent.zanza.engine.partition.PartitionUtil.getPartitionId;
 import cs.bilkent.zanza.operator.kvstore.KVStore;
@@ -50,7 +50,7 @@ public class PartitionedKVStoreContext implements KVStoreContext
 
         final int partitionId = getPartitionId( key, partitionCount );
         final KVStore kvStore = kvStores[ partitionId ];
-        checkNotNull( kvStore, "partitionId=% is not in replicaIndex=%", partitionId, replicaIndex );
+        checkArgument( kvStore != null, "partitionId=% is not in replicaIndex=%", partitionId, replicaIndex );
         return new KeyDecoratedKVStore( key, kvStore );
     }
 

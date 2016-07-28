@@ -7,7 +7,6 @@ import java.util.concurrent.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerCommandType.PAUSE;
@@ -545,7 +544,6 @@ public class PipelineReplicaRunner implements Runnable
 
         void completeExceptionally ( final Throwable throwable )
         {
-            checkNotNull( throwable );
             future.completeExceptionally( throwable );
         }
 

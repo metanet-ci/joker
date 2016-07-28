@@ -1,6 +1,7 @@
 package cs.bilkent.zanza.engine.region.impl;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -11,7 +12,6 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.zanza.engine.config.ThreadingPreference;
 import static cs.bilkent.zanza.engine.config.ThreadingPreference.MULTI_THREADED;
@@ -161,7 +161,7 @@ public class RegionManagerImpl implements RegionManager
     public void releaseRegion ( final int regionId )
     {
         final Region region = regions.remove( regionId );
-        checkNotNull( region, "Region %s not found to release", regionId );
+        checkArgument( region != null, "Region %s not found to release", regionId );
 
         final RegionConfig regionConfig = region.getConfig();
         final int replicaCount = regionConfig.getReplicaCount();
@@ -195,7 +195,9 @@ public class RegionManagerImpl implements RegionManager
                     if ( queue instanceof DefaultTupleQueueContext )
                     {
                         LOGGER.info( "Releasing default tuple queue context of Operator {} in Pipeline {} replicaIndex {}",
-                                     operatorDef.id(), pipelineReplica.id(), replicaIndex );
+                                     operatorDef.id(),
+                                     pipelineReplica.id(),
+                                     replicaIndex );
                         checkState( tupleQueueContextManager.releaseDefaultTupleQueueContext( regionId, replicaIndex, operatorDef.id() ),
                                     "Cannot release default tuple queue context of Operator %s in Pipeline %s replicaIndex %s",
                                     operatorDef.id(),
@@ -245,11 +247,15 @@ public class RegionManagerImpl implements RegionManager
     {
         final int operatorCount = regionConfig.getRegionDef().getOperators().size();
         int j = -1;
-        for ( int i : regionConfig.getPipelineStartIndices() )
+        final List<Integer> pipelineStartIndices = regionConfig.getPipelineStartIndices();
+        for ( int i : pipelineStartIndices )
         {
-            checkArgument( i > j );
+            checkArgument( i > j, "invalid pipeline indices: %s for region %s", pipelineStartIndices, regionConfig.getRegionId() );
             j = i;
-            checkArgument( i < operatorCount );
+            checkArgument( i < operatorCount,
+                           "invalid pipeline indices: %s for region %s",
+                           pipelineStartIndices,
+                           regionConfig.getRegionId() );
         }
     }
 
@@ -367,7 +373,7 @@ public class RegionManagerImpl implements RegionManager
         else
         {
             LOGGER.info( "Creating {} for regionId={} operatorId={}", DefaultKVStoreContext.class.getSimpleName(), regionId, operatorId );
-            checkArgument( replicaCount == 1 );
+            checkArgument( replicaCount == 1, "invalid replica count for operator %s in region %s", operatorDef.id(), regionId );
             kvStoreContexts = new KVStoreContext[ 1 ];
             kvStoreContexts[ 0 ] = kvStoreContextManager.createDefaultKVStoreContext( regionId, operatorId );
         }

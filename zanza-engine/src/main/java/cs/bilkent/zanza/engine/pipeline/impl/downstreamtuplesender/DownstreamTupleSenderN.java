@@ -18,7 +18,11 @@ public class DownstreamTupleSenderN implements DownstreamTupleSender
 
     public DownstreamTupleSenderN ( final int[] sourcePorts, final int[] destinationPorts, final TupleQueueContext tupleQueueContext )
     {
-        checkArgument( sourcePorts.length == destinationPorts.length );
+        checkArgument( sourcePorts.length == destinationPorts.length,
+                       "source ports size = %s and destination ports = %s ! operatorId=%s",
+                       sourcePorts.length,
+                       destinationPorts.length,
+                       tupleQueueContext.getOperatorId() );
         final int portCount = sourcePorts.length;
         this.ports = new int[ portCount * 2 ];
         this.limit = sourcePorts.length - 1;

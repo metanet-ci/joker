@@ -35,7 +35,7 @@ public class PartitionKeyFunctionFactoryImpl implements PartitionKeyFunctionFact
     @Override
     public PartitionKeyFunction createPartitionKeyFunction ( final List<String> partitionFieldNames )
     {
-        checkArgument( partitionFieldNames.size() > 0 );
+        checkArgument( partitionFieldNames.size() > 0, "no partition field names provided" );
         final int i = min( partitionFieldNames.size(), PARTITION_KEY_FUNCTION_COUNT );
         return partitionKeyFunctionConstructors[ i ].apply( partitionFieldNames );
     }

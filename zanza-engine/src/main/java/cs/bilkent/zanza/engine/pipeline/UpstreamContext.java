@@ -95,7 +95,10 @@ public class UpstreamContext
 
     public void verifyOrFail ( final OperatorDef operatorDef, final SchedulingStrategy schedulingStrategy )
     {
-        checkArgument( operatorDef.inputPortCount() == getPortCount() );
+        checkArgument( operatorDef.inputPortCount() == getPortCount(),
+                       "different input port counts! operator=%s upstream context=%s",
+                       operatorDef.inputPortCount(),
+                       getPortCount() );
 
         if ( schedulingStrategy instanceof ScheduleWhenAvailable )
         {

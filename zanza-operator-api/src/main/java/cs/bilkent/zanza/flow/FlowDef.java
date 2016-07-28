@@ -15,7 +15,7 @@ import java.util.stream.Stream;
 
 import com.google.common.collect.Multimap;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Multimaps.unmodifiableMultimap;
 import static java.util.Collections.unmodifiableMap;
@@ -61,8 +61,8 @@ public final class FlowDef
     // TODO there should be a single connected component
     private void validateFlowDef ( final Map<String, OperatorDef> operators, final Multimap<Port, Port> connections )
     {
-        checkNotNull( operators );
-        checkNotNull( connections );
+        checkArgument( operators != null, "operators cannot be null" );
+        checkArgument( connections != null, "connections cannot be null" );
         checkAllOperatorsHaveConnection( operators, connections );
     }
 
