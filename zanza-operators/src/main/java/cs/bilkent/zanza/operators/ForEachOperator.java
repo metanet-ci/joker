@@ -51,10 +51,11 @@ public class ForEachOperator implements Operator
         final Tuples input = invocationContext.getInput();
         final Tuples output = invocationContext.getOutput();
 
-        input.getTuplesByDefaultPort().stream().forEach( tuple -> {
-            consumerFunc.accept( tuple );
-            output.add( tuple );
-        } );
+        input.getTuplesByDefaultPort().stream().forEach( tuple ->
+                                                         {
+                                                             consumerFunc.accept( tuple );
+                                                             output.add( tuple );
+                                                         } );
     }
 
 }

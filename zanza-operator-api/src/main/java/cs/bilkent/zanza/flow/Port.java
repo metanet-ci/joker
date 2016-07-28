@@ -55,10 +55,7 @@ public final class Port
     @Override
     public String toString ()
     {
-        return "Port{" +
-               "operatorId='" + operatorId + '\'' +
-               ", portIndex=" + portIndex +
-               '}';
+        return "Port{" + "operatorId='" + operatorId + '\'' + ", portIndex=" + portIndex + '}';
     }
 
 }

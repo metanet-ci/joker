@@ -84,10 +84,6 @@ public class Triple<T1, T2, T3>
     @Override
     public String toString ()
     {
-        return "Triple{" +
-               "_1=" + _1 +
-               ", _2=" + _2 +
-               ", _3=" + _3 +
-               '}';
+        return "Triple{" + "_1=" + _1 + ", _2=" + _2 + ", _3=" + _3 + '}';
     }
 }

@@ -238,8 +238,8 @@ public class RegionDefFormerImpl implements RegionDefFormer
         return operator;
     }
 
-    private OperatorDef getSingleDownstreamOperatorWithSingleUpstreamOperator ( final FlowDef flow, final Collection<OperatorDef>
-                                                                                               downstreamOperators )
+    private OperatorDef getSingleDownstreamOperatorWithSingleUpstreamOperator ( final FlowDef flow,
+                                                                                final Collection<OperatorDef> downstreamOperators )
     {
         if ( downstreamOperators.size() == 1 )
         {

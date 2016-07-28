@@ -68,9 +68,6 @@ public final class RuntimeSchemaField
     @Override
     public String toString ()
     {
-        return "RuntimeSchemaField{" +
-               "name='" + name + '\'' +
-               ", type=" + type +
-               '}';
+        return "RuntimeSchemaField{" + "name='" + name + '\'' + ", type=" + type + '}';
     }
 }

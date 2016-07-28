@@ -420,7 +420,8 @@ public class RegionFormerImplRegionDefTest
     }
 
     static void assertPartitionedStatefulRegion ( final RegionDef region,
-                                                  final List<String> partitionFieldNames, final List<OperatorDef> operators )
+                                                  final List<String> partitionFieldNames,
+                                                  final List<OperatorDef> operators )
     {
         assertRegion( region, PARTITIONED_STATEFUL, partitionFieldNames, operators );
     }
@@ -432,8 +433,7 @@ public class RegionFormerImplRegionDefTest
 
 
     static void assertRegion ( final RegionDef region,
-                               final OperatorType regionType,
-                               final List<String> partitionFieldNames, final List<OperatorDef> operators )
+                               final OperatorType regionType, final List<String> partitionFieldNames, final List<OperatorDef> operators )
     {
         assertThat( region.getRegionType(), equalTo( regionType ) );
         assertThat( region.getPartitionFieldNames(), equalTo( partitionFieldNames ) );

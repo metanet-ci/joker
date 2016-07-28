@@ -271,10 +271,16 @@ public class RegionDefFormerImplOperatorSequenceTest
 
     private void assertOperatorSequence ( final List<String> expectedOperatorIds, Collection<List<OperatorDef>> operatorSequences )
     {
-        final boolean sequenceExists = operatorSequences.stream().anyMatch( operatorSequence -> {
-            final List<String> sequenceOperatorIds = operatorSequence.stream().map( op -> op.id() ).collect( Collectors.toList() );
-            return sequenceOperatorIds.equals( expectedOperatorIds );
-        } );
+        final boolean sequenceExists = operatorSequences.stream().anyMatch( operatorSequence ->
+                                                                            {
+                                                                                final List<String> sequenceOperatorIds = operatorSequence
+                                                                                                                                 .stream()
+                                                                                                                                         .map( op -> op.id() )
+                                                                                                                                         .collect(
+                                                                                                                                                 Collectors
+                                                                                                                                                         .toList() );
+                                                                                return sequenceOperatorIds.equals( expectedOperatorIds );
+                                                                            } );
 
         assertTrue( sequenceExists );
     }

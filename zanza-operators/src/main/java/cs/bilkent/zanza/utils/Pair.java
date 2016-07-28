@@ -73,9 +73,6 @@ public class Pair<T1, T2>
     @Override
     public String toString ()
     {
-        return "Pair{" +
-               "_1=" + _1 +
-               ", _2=" + _2 +
-               '}';
+        return "Pair{" + "_1=" + _1 + ", _2=" + _2 + '}';
     }
 }

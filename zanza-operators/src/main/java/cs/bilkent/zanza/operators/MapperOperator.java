@@ -35,7 +35,8 @@ public class MapperOperator implements Operator
         final OperatorConfig config = context.getConfig();
 
         final Function<Tuple, Tuple> userMapper = config.getOrFail( MAPPER_CONFIG_PARAMETER );
-        this.mapper = tuple -> {
+        this.mapper = tuple ->
+        {
             final Tuple mapped = userMapper.apply( tuple );
             mapped.setSequenceNumber( tuple.getSequenceNumber() );
             return mapped;

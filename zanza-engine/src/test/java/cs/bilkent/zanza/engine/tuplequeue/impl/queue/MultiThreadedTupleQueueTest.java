@@ -244,7 +244,8 @@ public class MultiThreadedTupleQueueTest
 
     private Runnable increaseCapacity ( final Thread testThread, final int newCapacity )
     {
-        return () -> {
+        return () ->
+        {
             while ( !( testThread.getState() == WAITING || testThread.getState() == TIMED_WAITING ) )
             {
                 sleepUninterruptibly( 1, TimeUnit.MILLISECONDS );
@@ -256,7 +257,8 @@ public class MultiThreadedTupleQueueTest
 
     public static Runnable offerTuples ( final Thread testThread, final TupleQueue queue, final List<Tuple> tuples )
     {
-        return () -> {
+        return () ->
+        {
             while ( !( testThread.getState() == WAITING || testThread.getState() == TIMED_WAITING ) )
             {
                 sleepUninterruptibly( 1, TimeUnit.MILLISECONDS );

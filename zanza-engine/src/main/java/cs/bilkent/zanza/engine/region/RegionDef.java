@@ -41,11 +41,8 @@ public class RegionDef
     @Override
     public String toString ()
     {
-        return "RegionDef{" +
-               "regionType=" + regionType +
-               ", partitionFieldNames=" + partitionFieldNames +
-               ", operators=" + operators +
-               '}';
+        return "RegionDef{" + "regionType=" + regionType + ", partitionFieldNames=" + partitionFieldNames + ", operators=" + operators
+               + '}';
     }
 
 }

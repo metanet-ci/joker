@@ -119,7 +119,8 @@ public class RegionDefFormerImplAllRegionsTest
 
     private void assertRegionExists ( final List<RegionDef> regionDefs,
                                       final OperatorType regionType,
-                                      final List<String> partitionFieldNames, final List<OperatorDef> operators )
+                                      final List<String> partitionFieldNames,
+                                      final List<OperatorDef> operators )
     {
         for ( RegionDef regionDef : regionDefs )
         {
@@ -140,13 +141,8 @@ public class RegionDefFormerImplAllRegionsTest
     }
 
     @OperatorSpec( type = PARTITIONED_STATEFUL, inputPortCount = 1, outputPortCount = 2 )
-    @OperatorSchema(
-            inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "f", type = Integer.class ) }
-            ) },
-            outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "f", type = Integer.class )
-            } ),
-                        @PortSchema( portIndex = 1, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "f", type = Integer.class )
-                        } ) } )
+    @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "f", type = Integer.class ) } ) }, outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "f", type = Integer.class ) } ),
+                                                                                                                                                                    @PortSchema( portIndex = 1, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "f", type = Integer.class ) } ) } )
     private static class DoubleOutputPortOperator implements Operator
     {
 

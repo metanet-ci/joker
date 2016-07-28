@@ -50,10 +50,7 @@ public final class OperatorRuntimeSchema
     @Override
     public String toString ()
     {
-        return "OperatorRuntimeSchema{" +
-               "inputSchemas=" + inputSchemas +
-               ", outputSchemas=" + outputSchemas +
-               '}';
+        return "OperatorRuntimeSchema{" + "inputSchemas=" + inputSchemas + ", outputSchemas=" + outputSchemas + '}';
     }
 
 }

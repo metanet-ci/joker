@@ -116,10 +116,11 @@ public class BarrierOperatorTest
         initContext.getConfig().set( MERGE_POLICY_CONfIG_PARAMETER, mergePolicy );
         operator.init( initContext );
 
-        IntStream.of( inputPorts ).forEach( portIndex -> {
-            final Tuple tuple = new Tuple( 1, "count", portIndex );
-            input.add( portIndex, tuple );
-        } );
+        IntStream.of( inputPorts ).forEach( portIndex ->
+                                            {
+                                                final Tuple tuple = new Tuple( 1, "count", portIndex );
+                                                input.add( portIndex, tuple );
+                                            } );
 
         operator.invoke( invocationContext );
 
@@ -133,10 +134,11 @@ public class BarrierOperatorTest
         initContext.getConfig().set( MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
         operator.init( initContext );
 
-        IntStream.of( inputPorts ).forEach( portIndex -> {
-            final Tuple tuple = new Tuple( "count", portIndex );
-            input.add( portIndex, tuple );
-        } );
+        IntStream.of( inputPorts ).forEach( portIndex ->
+                                            {
+                                                final Tuple tuple = new Tuple( "count", portIndex );
+                                                input.add( portIndex, tuple );
+                                            } );
         input.add( new Tuple( "count", -1 ) );
 
         operator.invoke( invocationContext );
@@ -168,10 +170,11 @@ public class BarrierOperatorTest
 
     private void populateTuplesWithUniqueFields ( final TuplesImpl input )
     {
-        IntStream.of( inputPorts ).forEach( portIndex -> {
-            final Tuple tuple = new Tuple( "field" + portIndex, portIndex );
-            input.add( portIndex, tuple );
-        } );
+        IntStream.of( inputPorts ).forEach( portIndex ->
+                                            {
+                                                final Tuple tuple = new Tuple( "field" + portIndex, portIndex );
+                                                input.add( portIndex, tuple );
+                                            } );
     }
 
     private void assertSchedulingStrategy ( final SchedulingStrategy initialStrategy )

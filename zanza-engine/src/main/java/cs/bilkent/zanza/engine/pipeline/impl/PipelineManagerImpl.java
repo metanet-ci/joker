@@ -288,8 +288,10 @@ public class PipelineManagerImpl implements PipelineManager
         final OperatorDef lastOperator = pipeline.getLastOperatorDef();
         final Map<String, List<Pair<Integer, Integer>>> connectionsByOperatorId = getDownstreamConnectionsByOperatorId( flow,
                                                                                                                         lastOperator );
-        LOGGER.info( "Pipeline {} with last operator {} has following downstream connectionsByOperatorId: {}", pipeline.getId(),
-                     lastOperator.id(), connectionsByOperatorId );
+        LOGGER.info( "Pipeline {} with last operator {} has following downstream connectionsByOperatorId: {}",
+                     pipeline.getId(),
+                     lastOperator.id(),
+                     connectionsByOperatorId );
 
         if ( connectionsByOperatorId.size() == 1 )
         {
@@ -529,7 +531,8 @@ public class PipelineManagerImpl implements PipelineManager
 
             checkArgument( operatorIndex == i,
                            "Operator {} is expected to be at %s'th index of pipeline %s but it is at %s'th index",
-                           operator.id(), pipeline.getId(),
+                           operator.id(),
+                           pipeline.getId(),
                            i );
             return pipeline;
         }

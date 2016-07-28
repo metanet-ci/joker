@@ -8,8 +8,7 @@ import cs.bilkent.zanza.flow.OperatorDef;
 public interface TupleQueueContextManager
 {
 
-    TupleQueueContext createDefaultTupleQueueContext ( int regionId,
-                                                       int replicaIndex, OperatorDef operatorDef,
+    TupleQueueContext createDefaultTupleQueueContext ( int regionId, int replicaIndex, OperatorDef operatorDef,
                                                        ThreadingPreference threadingPreference );
 
     PartitionedTupleQueueContext[] createPartitionedTupleQueueContext ( int regionId, int replicaCount, OperatorDef operatorDef );

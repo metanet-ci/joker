@@ -54,11 +54,7 @@ public class PartitionKey3
     @Override
     public String toString ()
     {
-        return "PartitionKey3{" +
-               "val1=" + val1 +
-               ", val2=" + val2 +
-               ", val3=" + val3 +
-               '}';
+        return "PartitionKey3{" + "val1=" + val1 + ", val2=" + val2 + ", val3=" + val3 + '}';
     }
 
     public static int computeHashCode ( final Object val1, final Object val2, final Object val3 )

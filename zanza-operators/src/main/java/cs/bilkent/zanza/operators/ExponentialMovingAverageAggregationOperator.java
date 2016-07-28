@@ -25,10 +25,8 @@ import static cs.bilkent.zanza.operator.spec.OperatorType.STATEFUL;
  */
 
 @OperatorSpec( type = STATEFUL, inputPortCount = 1, outputPortCount = 1 )
-@OperatorSchema( inputs = {}, outputs = { @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = EXACT_FIELD_SET,
-        fields = { @SchemaField(
-                name = ExponentialMovingAverageAggregationOperator.VALUE_FIELD,
-                type = double.class ) } ) } )
+@OperatorSchema( inputs = {}, outputs = { @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = EXACT_FIELD_SET, fields = { @SchemaField(
+        name = ExponentialMovingAverageAggregationOperator.VALUE_FIELD, type = double.class ) } ) } )
 public class ExponentialMovingAverageAggregationOperator implements Operator
 {
 

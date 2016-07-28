@@ -52,10 +52,8 @@ public class TupleQueueContextManagerImplTest
                                                          new OperatorConfig(),
                                                          Collections.emptyList() );
 
-        final TupleQueueContext tupleQueueContext1 = tupleQueueManager.createDefaultTupleQueueContext( 1, 1, operatorDef,
-                                                                                                       MULTI_THREADED );
-        final TupleQueueContext tupleQueueContext2 = tupleQueueManager.createDefaultTupleQueueContext( 1, 1, operatorDef,
-                                                                                                       MULTI_THREADED );
+        final TupleQueueContext tupleQueueContext1 = tupleQueueManager.createDefaultTupleQueueContext( 1, 1, operatorDef, MULTI_THREADED );
+        final TupleQueueContext tupleQueueContext2 = tupleQueueManager.createDefaultTupleQueueContext( 1, 1, operatorDef, MULTI_THREADED );
 
         assertTrue( tupleQueueContext1 == tupleQueueContext2 );
     }
@@ -71,8 +69,7 @@ public class TupleQueueContextManagerImplTest
                                                          new OperatorRuntimeSchemaBuilder( 1, 1 ).build(),
                                                          new OperatorConfig(),
                                                          Collections.emptyList() );
-        final TupleQueueContext tupleQueueContext = tupleQueueManager.createDefaultTupleQueueContext( 1, 1, operatorDef,
-                                                                                                      MULTI_THREADED );
+        final TupleQueueContext tupleQueueContext = tupleQueueManager.createDefaultTupleQueueContext( 1, 1, operatorDef, MULTI_THREADED );
         tupleQueueContext.offer( 0, Collections.singletonList( new Tuple() ) );
         assertTrue( tupleQueueManager.releaseDefaultTupleQueueContext( 1, 1, "op1" ) );
     }

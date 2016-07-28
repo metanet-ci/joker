@@ -81,10 +81,7 @@ public final class PortRuntimeSchema
     @Override
     public String toString ()
     {
-        return "PortRuntimeSchema{" +
-               "portIndex=" + portIndex +
-               ", fields=" + fields +
-               '}';
+        return "PortRuntimeSchema{" + "portIndex=" + portIndex + ", fields=" + fields + '}';
     }
 
 }

@@ -152,7 +152,8 @@ public class MapperOperatorTest
 
     private void initializeOperatorWithMultipleBy2Mapper ()
     {
-        final Function<Tuple, Tuple> mapper = input -> {
+        final Function<Tuple, Tuple> mapper = input ->
+        {
             Tuple output = new Tuple();
             output.set( "count", input.getInteger( "count" ) * 2 );
             return output;

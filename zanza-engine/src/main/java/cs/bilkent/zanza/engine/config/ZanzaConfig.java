@@ -57,5 +57,5 @@ public class ZanzaConfig
     {
         return partitionServiceConfig;
     }
-    
+
 }

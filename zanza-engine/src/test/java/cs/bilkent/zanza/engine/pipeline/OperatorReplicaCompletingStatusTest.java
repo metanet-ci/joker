@@ -49,8 +49,9 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
     {
         initializeOperatorReplica( inputPortCount, outputPortCount );
         final UpstreamContext upstreamContext = operatorReplica.getUpstreamContext();
-        final UpstreamContext invocationUpstreamContext = newUpstreamContext ? withUpstreamConnectionStatus( upstreamContext, 1, CLOSED )
-                                                                             : upstreamContext;
+        final UpstreamContext invocationUpstreamContext = newUpstreamContext
+                                                          ? withUpstreamConnectionStatus( upstreamContext, 1, CLOSED )
+                                                          : upstreamContext;
 
         final TuplesImpl operatorInput = new TuplesImpl( inputPortCount );
         operatorInput.add( new Tuple( "f1", "val1" ) );

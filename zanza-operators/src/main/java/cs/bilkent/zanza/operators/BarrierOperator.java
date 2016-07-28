@@ -29,8 +29,7 @@ public class BarrierOperator implements Operator
 
     public enum TupleValueMergePolicy
     {
-        KEEP_EXISTING_VALUE,
-        OVERWRITE_WITH_NEW_VALUE
+        KEEP_EXISTING_VALUE, OVERWRITE_WITH_NEW_VALUE
     }
 
 

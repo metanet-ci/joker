@@ -39,7 +39,9 @@ public class SupervisorNotifier implements OperatorReplicaListener
         if ( completedOperatorCount == operatorCount )
         {
             LOGGER.error( "{} moves to {} status although all operators of {} have already moved",
-                          operatorId, COMPLETED, pipelineReplicaId );
+                          operatorId,
+                          COMPLETED,
+                          pipelineReplicaId );
             return;
         }
 

@@ -104,17 +104,8 @@ public class PartitionKey9
     @Override
     public String toString ()
     {
-        return "PartitionKey9{" +
-               "val1=" + val1 +
-               ", val2=" + val2 +
-               ", val3=" + val3 +
-               ", val4=" + val4 +
-               ", val5=" + val5 +
-               ", val6=" + val6 +
-               ", val7=" + val7 +
-               ", val8=" + val8 +
-               ", val9=" + val9 +
-               '}';
+        return "PartitionKey9{" + "val1=" + val1 + ", val2=" + val2 + ", val3=" + val3 + ", val4=" + val4 + ", val5=" + val5 + ", val6="
+               + val6 + ", val7=" + val7 + ", val8=" + val8 + ", val9=" + val9 + '}';
     }
 
     public static int computeHashCode ( final Object val1,

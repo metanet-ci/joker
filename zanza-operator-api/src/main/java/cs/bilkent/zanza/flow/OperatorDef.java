@@ -129,16 +129,9 @@ public class OperatorDef
     @Override
     public String toString ()
     {
-        return "OperatorDef{" +
-               "id='" + id + '\'' +
-               ", clazz=" + clazz +
-               ", type=" + type +
-               ", inputPortCount=" + inputPortCount +
-               ", outputPortCount=" + outputPortCount +
-               ", schema=" + schema +
-               ", config=" + config +
-               ", partitionFieldNames=" + partitionFieldNames +
-               '}';
+        return "OperatorDef{" + "id='" + id + '\'' + ", clazz=" + clazz + ", type=" + type + ", inputPortCount=" + inputPortCount
+               + ", outputPortCount=" + outputPortCount + ", schema=" + schema + ", config=" + config + ", partitionFieldNames="
+               + partitionFieldNames + '}';
     }
 
 }
