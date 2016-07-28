@@ -5,7 +5,6 @@ import java.util.Collections;
 import org.junit.Before;
 import org.junit.Test;
 
-import cs.bilkent.testutils.ZanzaTest;
 import cs.bilkent.zanza.engine.config.ThreadingPreference;
 import static cs.bilkent.zanza.engine.config.ThreadingPreference.MULTI_THREADED;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
@@ -19,6 +18,7 @@ import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.spec.OperatorType;
+import cs.bilkent.zanza.testutils.ZanzaTest;
 import static org.junit.Assert.assertTrue;
 
 

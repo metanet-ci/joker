@@ -6,7 +6,6 @@ import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Test;
 
-import cs.bilkent.testutils.ZanzaTest;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.SHUTDOWN;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.SUCCESS;
 import cs.bilkent.zanza.operator.Tuple;
@@ -19,6 +18,7 @@ import static cs.bilkent.zanza.operators.BarrierOperator.MERGE_POLICY_CONfIG_PAR
 import cs.bilkent.zanza.operators.BarrierOperator.TupleValueMergePolicy;
 import static cs.bilkent.zanza.operators.BarrierOperator.TupleValueMergePolicy.KEEP_EXISTING_VALUE;
 import static cs.bilkent.zanza.operators.BarrierOperator.TupleValueMergePolicy.OVERWRITE_WITH_NEW_VALUE;
+import cs.bilkent.zanza.testutils.ZanzaTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;

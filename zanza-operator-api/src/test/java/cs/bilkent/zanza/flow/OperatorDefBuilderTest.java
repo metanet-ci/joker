@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.junit.Test;
 
-import cs.bilkent.testutils.ZanzaTest;
 import cs.bilkent.zanza.flow.FlowDefBuilderTest.NopOperator;
 import cs.bilkent.zanza.flow.FlowDefBuilderTest.OperatorWithNoSpec;
 import cs.bilkent.zanza.flow.FlowDefBuilderTest.StatefulOperatorWithFixedPortCounts;
@@ -24,6 +23,7 @@ import cs.bilkent.zanza.operator.spec.OperatorSpec;
 import cs.bilkent.zanza.operator.spec.OperatorType;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
+import cs.bilkent.zanza.testutils.ZanzaTest;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;

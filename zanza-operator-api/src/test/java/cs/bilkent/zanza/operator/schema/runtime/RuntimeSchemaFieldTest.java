@@ -2,7 +2,7 @@ package cs.bilkent.zanza.operator.schema.runtime;
 
 import org.junit.Test;
 
-import cs.bilkent.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaTest;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 

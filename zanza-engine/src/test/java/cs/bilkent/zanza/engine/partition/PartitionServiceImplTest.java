@@ -8,9 +8,9 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
-import cs.bilkent.testutils.ZanzaTest;
 import cs.bilkent.zanza.engine.config.PartitionServiceConfig;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
+import cs.bilkent.zanza.testutils.ZanzaTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 

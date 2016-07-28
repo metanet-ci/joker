@@ -6,12 +6,12 @@ import java.util.stream.Collectors;
 
 import org.junit.Test;
 
-import cs.bilkent.testutils.ZanzaTest;
 import cs.bilkent.zanza.flow.FlowDef;
 import cs.bilkent.zanza.flow.FlowDefBuilder;
 import cs.bilkent.zanza.flow.OperatorDef;
 import cs.bilkent.zanza.flow.OperatorDefBuilder;
 import cs.bilkent.zanza.operators.MapperOperator;
+import cs.bilkent.zanza.testutils.ZanzaTest;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;

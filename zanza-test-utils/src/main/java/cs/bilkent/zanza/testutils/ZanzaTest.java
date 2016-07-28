@@ -1,4 +1,4 @@
-package cs.bilkent.testutils;
+package cs.bilkent.zanza.testutils;
 
 import java.util.concurrent.TimeUnit;
 

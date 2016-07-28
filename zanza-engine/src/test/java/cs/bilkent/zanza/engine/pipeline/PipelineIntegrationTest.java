@@ -18,7 +18,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import cs.bilkent.testutils.ZanzaTest;
 import static cs.bilkent.zanza.engine.config.ThreadingPreference.MULTI_THREADED;
 import static cs.bilkent.zanza.engine.config.ThreadingPreference.SINGLE_THREADED;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
@@ -67,6 +66,7 @@ import static cs.bilkent.zanza.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.zanza.operators.FilterOperator;
 import cs.bilkent.zanza.operators.MapperOperator;
+import cs.bilkent.zanza.testutils.ZanzaTest;
 import cs.bilkent.zanza.utils.Pair;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;

@@ -2,7 +2,6 @@ package cs.bilkent.zanza.operators;
 
 import org.junit.Test;
 
-import cs.bilkent.testutils.ZanzaTest;
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.SUCCESS;
 import cs.bilkent.zanza.operator.Tuple;
@@ -19,6 +18,7 @@ import static cs.bilkent.zanza.operators.ExponentialMovingAverageAggregationOper
 import static cs.bilkent.zanza.operators.ExponentialMovingAverageAggregationOperator.TUPLE_COUNT_FIELD;
 import static cs.bilkent.zanza.operators.ExponentialMovingAverageAggregationOperator.VALUE_FIELD;
 import static cs.bilkent.zanza.operators.ExponentialMovingAverageAggregationOperator.WEIGHT_CONFIG_PARAMETER;
+import cs.bilkent.zanza.testutils.ZanzaTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;

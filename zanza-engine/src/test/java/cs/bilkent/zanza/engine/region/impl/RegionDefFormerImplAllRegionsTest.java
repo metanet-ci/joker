@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.junit.Test;
 
-import cs.bilkent.testutils.ZanzaTest;
 import cs.bilkent.zanza.engine.region.RegionDef;
 import static cs.bilkent.zanza.engine.region.impl.RegionFormerImplRegionDefTest.assertRegion;
 import cs.bilkent.zanza.flow.FlowDef;
@@ -25,6 +24,7 @@ import cs.bilkent.zanza.operator.spec.OperatorType;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.zanza.operators.MapperOperator;
+import cs.bilkent.zanza.testutils.ZanzaTest;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
