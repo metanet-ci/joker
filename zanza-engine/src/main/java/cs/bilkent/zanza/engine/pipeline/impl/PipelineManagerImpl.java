@@ -345,7 +345,6 @@ public class PipelineManagerImpl implements PipelineManager
             }
             else
             {
-                // TODO FIX THIS CHECK WHEN WE HAVE MULTIPLE REPLICA STATELESS REGIONS
                 final int l = pipelineTupleQueueContexts.length;
                 checkState( l == 1, "Operator %s can not have %s replicas", downstreamOperatorId, l );
                 final TupleQueueContext pipelineTupleQueueContext = pipelineTupleQueueContexts[ 0 ];

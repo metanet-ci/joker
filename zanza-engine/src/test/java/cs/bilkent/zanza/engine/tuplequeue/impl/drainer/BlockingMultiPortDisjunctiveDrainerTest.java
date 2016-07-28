@@ -46,13 +46,13 @@ public class BlockingMultiPortDisjunctiveDrainerTest
     }
 
     @Test
-    public void test_TupleAvailabilityByCount_AT_LEAST_singleQueueSatisfiesAfterwards ()
+    public void test_TupleAvailabilityByCount_AT_LEAST_singleQueueSatisfiesAfterwards () throws InterruptedException
     {
         drainer.setParameters( TupleAvailabilityByCount.AT_LEAST, new int[] { 0, 1 }, new int[] { 2, 2 } );
         final TupleQueue tupleQueue1 = new MultiThreadedTupleQueue( 2 );
         final TupleQueue tupleQueue2 = new MultiThreadedTupleQueue( 2 );
         tupleQueue2.offerTuple( new Tuple() );
-        spawnThread( offerTuples( Thread.currentThread(), tupleQueue1, asList( new Tuple(), new Tuple() ) ) );
+        final Thread thread = spawnThread( offerTuples( Thread.currentThread(), tupleQueue1, asList( new Tuple(), new Tuple() ) ) );
 
         drainer.drain( null, new TupleQueue[] { tupleQueue1, tupleQueue2 } );
 
@@ -62,6 +62,8 @@ public class BlockingMultiPortDisjunctiveDrainerTest
         assertThat( tuples.getTupleCount( 0 ), equalTo( 2 ) );
         assertThat( tupleQueue1.size(), equalTo( 0 ) );
         assertThat( tupleQueue2.size(), equalTo( 1 ) );
+
+        thread.join();
     }
 
     @Test

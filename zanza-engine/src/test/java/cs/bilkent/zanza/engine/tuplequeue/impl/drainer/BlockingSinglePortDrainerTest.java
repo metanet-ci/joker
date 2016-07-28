@@ -71,13 +71,13 @@ public class BlockingSinglePortDrainerTest
     }
 
     @Test
-    public void shouldDrainAllTuplesWithAtLeastTupleAvailabilityByCountSatisfiesAfterwards ()
+    public void shouldDrainAllTuplesWithAtLeastTupleAvailabilityByCountSatisfiesAfterwards () throws InterruptedException
     {
         final TupleQueue tupleQueue = new MultiThreadedTupleQueue( 2 );
         final Tuple tuple1 = new Tuple();
         final Tuple tuple2 = new Tuple();
 
-        spawnThread( offerTuples( Thread.currentThread(), tupleQueue, asList( tuple1, tuple2 ) ) );
+        final Thread thread = spawnThread( offerTuples( Thread.currentThread(), tupleQueue, asList( tuple1, tuple2 ) ) );
         drainer.setParameters( AT_LEAST, 1 );
         drainer.drain( null, new TupleQueue[] { tupleQueue } );
 
@@ -88,6 +88,8 @@ public class BlockingSinglePortDrainerTest
         assertTrue( tuple1 == tuples.getTupleOrFail( DEFAULT_PORT_INDEX, 0 ) );
         assertTrue( tuple2 == tuples.getTupleOrFail( DEFAULT_PORT_INDEX, 1 ) );
         assertThat( tupleQueue.size(), equalTo( 0 ) );
+
+        thread.join();
     }
 
     @Test
@@ -118,13 +120,13 @@ public class BlockingSinglePortDrainerTest
     }
 
     @Test
-    public void shouldDrainTuplesWithExactButSameOnAllPortsTupleAvailabilityByCountSatisfiedAfterwards ()
+    public void shouldDrainTuplesWithExactButSameOnAllPortsTupleAvailabilityByCountSatisfiedAfterwards () throws InterruptedException
     {
         final TupleQueue tupleQueue = new MultiThreadedTupleQueue( 2 );
         final Tuple tuple1 = new Tuple();
         final Tuple tuple2 = new Tuple();
 
-        spawnThread( offerTuples( Thread.currentThread(), tupleQueue, asList( tuple1, tuple2 ) ) );
+        final Thread thread = spawnThread( offerTuples( Thread.currentThread(), tupleQueue, asList( tuple1, tuple2 ) ) );
         drainer.setParameters( AT_LEAST_BUT_SAME_ON_ALL_PORTS, 1 );
         drainer.drain( null, new TupleQueue[] { tupleQueue } );
 
@@ -135,6 +137,8 @@ public class BlockingSinglePortDrainerTest
         assertTrue( tuple1 == tuples.getTupleOrFail( DEFAULT_PORT_INDEX, 0 ) );
         assertTrue( tuple2 == tuples.getTupleOrFail( DEFAULT_PORT_INDEX, 1 ) );
         assertThat( tupleQueue.size(), equalTo( 0 ) );
+
+        thread.join();
     }
 
     @Test
@@ -164,12 +168,12 @@ public class BlockingSinglePortDrainerTest
     }
 
     @Test
-    public void shouldDrainTuplesWithExactTupleAvailabilityByCountSatisfiedAfterwards ()
+    public void shouldDrainTuplesWithExactTupleAvailabilityByCountSatisfiedAfterwards () throws InterruptedException
     {
         final TupleQueue tupleQueue = new MultiThreadedTupleQueue( 2 );
         final Tuple tuple1 = new Tuple();
 
-        spawnThread( offerTuples( Thread.currentThread(), tupleQueue, asList( tuple1, new Tuple() ) ) );
+        final Thread thread = spawnThread( offerTuples( Thread.currentThread(), tupleQueue, asList( tuple1, new Tuple() ) ) );
 
         drainer.setParameters( EXACT, 1 );
         drainer.drain( null, new TupleQueue[] { tupleQueue } );
@@ -181,6 +185,8 @@ public class BlockingSinglePortDrainerTest
         assertTrue( tuple1 == tuples.getTupleOrFail( DEFAULT_PORT_INDEX, 0 ) );
 
         assertThat( tupleQueue.size(), equalTo( 1 ) );
+
+        thread.join();
     }
 
     @Test

@@ -81,7 +81,7 @@ public class MapperOperatorTest
     @Test
     public void shouldMapSingleTupleForSuccessfulInvocation ()
     {
-        input.add( new Tuple( 1, "count", 5 ) );
+        input.add( new Tuple( "count", 5 ) );
 
         shouldMultiplyCountValuesBy2( invocationContext );
     }
@@ -89,7 +89,7 @@ public class MapperOperatorTest
     @Test
     public void shouldMapSingleTupleForErroneousInvocation ()
     {
-        input.add( new Tuple( 1, "count", 5 ) );
+        input.add( new Tuple( "count", 5 ) );
         invocationContext.setReason( SHUTDOWN );
         shouldMultiplyCountValuesBy2( invocationContext );
     }
@@ -112,7 +112,7 @@ public class MapperOperatorTest
         initContext.getConfig().set( MAPPER_CONFIG_PARAMETER, mapper );
 
         operator.init( initContext );
-        input.add( new Tuple( 1, "count", 5 ) );
+        input.add( new Tuple( "count", 5 ) );
         invocationContext.setReason( invocationReason );
         operator.invoke( invocationContext );
     }
@@ -120,16 +120,16 @@ public class MapperOperatorTest
     @Test
     public void shouldMapMultipleTuplesForSuccessfulInvocation ()
     {
-        input.add( new Tuple( 1, "count", 5 ) );
-        input.add( new Tuple( 2, "count", 10 ) );
+        input.add( new Tuple( "count", 5 ) );
+        input.add( new Tuple( "count", 10 ) );
         shouldMultiplyCountValuesBy2( invocationContext );
     }
 
     @Test
     public void shouldMapMultipleTuplesForErroneousInvocation ()
     {
-        input.add( new Tuple( 1, "count", 5 ) );
-        input.add( new Tuple( 2, "count", 10 ) );
+        input.add( new Tuple( "count", 5 ) );
+        input.add( new Tuple( "count", 10 ) );
         shouldMultiplyCountValuesBy2( invocationContext );
     }
 
@@ -146,7 +146,6 @@ public class MapperOperatorTest
             final Tuple inputTuple = inputTuples.get( i );
             final Tuple outputTuple = outputTuples.get( i );
             assertThat( outputTuple.getInteger( "count" ), equalTo( 2 * inputTuple.getInteger( "count" ) ) );
-            assertThat( outputTuple.getSequenceNumber(), equalTo( inputTuple.getSequenceNumber() ) );
         }
     }
 

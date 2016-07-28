@@ -80,7 +80,7 @@ public class TupleCountBasedWindowReducerOperatorTest
         configureReducerAndTupleCount();
         operator.init( initContext );
 
-        input.add( new Tuple( 1, "count", 1 ) );
+        input.add( new Tuple( "count", 1 ) );
 
         operator.invoke( invocationContext );
 
@@ -97,7 +97,7 @@ public class TupleCountBasedWindowReducerOperatorTest
         initContext.getConfig().set( INITIAL_VALUE_CONFIG_PARAMETER, new Tuple( "count", 2 ) );
         operator.init( initContext );
 
-        input.add( new Tuple( 1, "count", 1 ) );
+        input.add( new Tuple( "count", 1 ) );
 
         operator.invoke( invocationContext );
 

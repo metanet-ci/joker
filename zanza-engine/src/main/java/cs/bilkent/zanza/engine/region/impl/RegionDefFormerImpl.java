@@ -65,7 +65,7 @@ public class RegionDefFormerImpl implements RegionDefFormer
 
         for ( OperatorDef currentOperator : operatorSequence )
         {
-            LOGGER.debug( "currentOperatorId={}", currentOperator.id() );
+            LOGGER.info( "current operator={}", currentOperator.id() );
 
             final OperatorType operatorType = currentOperator.operatorType();
 
@@ -167,12 +167,12 @@ public class RegionDefFormerImpl implements RegionDefFormer
         while ( ( operator = removeRandomOperator( sequenceStartOperators ) ) != null )
         {
             processedSequenceStartOperators.add( operator );
-            LOGGER.debug( "Starting new sequence with oid={}", operator.id() );
+            LOGGER.info( "Starting new sequence with operator={}", operator.id() );
 
             while ( true )
             {
                 currentOperatorSequence.add( operator );
-                LOGGER.debug( "Adding oid={} to current sequence", operator.id() );
+                LOGGER.info( "Adding operator={} to current sequence", operator.id() );
 
                 final Collection<OperatorDef> downstreamOperators = getDownstreamOperators( flow, operator );
                 final OperatorDef downstreamOperator = getSingleDownstreamOperatorWithSingleUpstreamOperator( flow, downstreamOperators );
@@ -186,9 +186,9 @@ public class RegionDefFormerImpl implements RegionDefFormer
                     sequenceStartOperators.addAll( downstreamOperators );
                     sequences.add( currentOperatorSequence );
 
-                    LOGGER.debug( "Sequence Completed! Sequence={}. New sequence starts={}",
-                                  getOperatorIds( currentOperatorSequence ),
-                                  getOperatorIds( downstreamOperators ) );
+                    LOGGER.info( "Sequence Completed! Sequence={}. New sequence starts={}",
+                                 getOperatorIds( currentOperatorSequence ),
+                                 getOperatorIds( downstreamOperators ) );
                     currentOperatorSequence = new ArrayList<>();
                     break;
                 }

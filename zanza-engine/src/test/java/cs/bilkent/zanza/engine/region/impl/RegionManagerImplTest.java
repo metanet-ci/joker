@@ -3,7 +3,6 @@ package cs.bilkent.zanza.engine.region.impl;
 import java.util.List;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import cs.bilkent.zanza.engine.config.ThreadingPreference;
@@ -93,35 +92,6 @@ public class RegionManagerImplTest
         assertEmptyTupleQueueContext( pipeline, operatorDef0.inputPortCount() );
 
         assertStatelessPipelineWithNoInput( 1, 0, 0, operatorDef0, operatorDef1, pipeline );
-    }
-
-    // TODO fix it after splitters and mergers are implemented
-    @Ignore
-    @Test
-    public void test_statelessRegion_singlePipeline_multiReplica_noInputConnection ()
-    {
-        final Class<StatelessOperatorWithSingleInputOutputPortCount> operatorClazz = StatelessOperatorWithSingleInputOutputPortCount.class;
-        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", operatorClazz ).build();
-        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", operatorClazz ).build();
-
-        final FlowDef flow = new FlowDefBuilder().add( operatorDef0 ).add( operatorDef1 ).connect( "op0", "op1" ).build();
-
-        final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
-        final RegionDef regionDef = regionDefs.get( 0 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, 2, singletonList( 0 ) );
-
-        final Region region = regionManager.createRegion( flow, regionConfig );
-        assertNotNull( region );
-        final PipelineReplica[] pipelines0 = region.getReplicaPipelines( 0 );
-        final PipelineReplica[] pipelines1 = region.getReplicaPipelines( 1 );
-        assertEquals( 1, pipelines0.length );
-        final PipelineReplica pipelineReplica0 = pipelines0[ 0 ];
-        final PipelineReplica pipelineReplica1 = pipelines1[ 0 ];
-        assertEmptyTupleQueueContext( pipelineReplica0, operatorDef0.inputPortCount() );
-        assertEmptyTupleQueueContext( pipelineReplica1, operatorDef0.inputPortCount() );
-
-        assertStatelessPipelineWithNoInput( 1, 0, 0, operatorDef0, operatorDef1, pipelineReplica0 );
-        assertStatelessPipelineWithNoInput( 1, 1, 0, operatorDef0, operatorDef1, pipelineReplica1 );
     }
 
     @Test

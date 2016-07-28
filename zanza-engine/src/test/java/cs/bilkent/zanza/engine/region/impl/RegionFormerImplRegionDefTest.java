@@ -433,7 +433,9 @@ public class RegionFormerImplRegionDefTest
 
 
     static void assertRegion ( final RegionDef region,
-                               final OperatorType regionType, final List<String> partitionFieldNames, final List<OperatorDef> operators )
+                               final OperatorType regionType,
+                               final List<String> partitionFieldNames,
+                               final List<OperatorDef> operators )
     {
         assertThat( region.getRegionType(), equalTo( regionType ) );
         assertThat( region.getPartitionFieldNames(), equalTo( partitionFieldNames ) );

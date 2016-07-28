@@ -118,7 +118,7 @@ public class BarrierOperatorTest
 
         IntStream.of( inputPorts ).forEach( portIndex ->
                                             {
-                                                final Tuple tuple = new Tuple( 1, "count", portIndex );
+                                                final Tuple tuple = new Tuple( "count", portIndex );
                                                 input.add( portIndex, tuple );
                                             } );
 

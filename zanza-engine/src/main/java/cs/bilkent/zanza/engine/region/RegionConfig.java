@@ -19,7 +19,6 @@ public class RegionConfig
 
     public RegionConfig ( final int regionId, final RegionDef regionDef, final int replicaCount, final List<Integer> pipelineStartIndices )
     {
-        // TODO FIX HERE WHEN WE HAVE MULTI REPLICA STATELESS REGIONS
         checkArgument( ( regionDef.getRegionType() == PARTITIONED_STATEFUL && replicaCount > 0 ) || replicaCount == 1 );
         this.regionId = regionId;
         this.regionDef = regionDef;

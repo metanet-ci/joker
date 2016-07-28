@@ -153,7 +153,7 @@ public class PipelineIntegrationTest
         final int tupleCount = 200;
         for ( int i = 0; i < tupleCount; i++ )
         {
-            tupleQueueContext.offer( 0, singletonList( new Tuple( i + 1, "val", initialVal + i ) ) );
+            tupleQueueContext.offer( 0, singletonList( new Tuple( "val", initialVal + i ) ) );
         }
 
         assertTrueEventually( () -> assertEquals( tupleCount, tupleCollector.tupleQueues[ 0 ].size() ) );
@@ -161,7 +161,6 @@ public class PipelineIntegrationTest
         for ( int i = 0; i < tupleCount; i++ )
         {
             final Tuple expected = multiplyBy2.apply( new Tuple( "val", initialVal + i ) );
-            expected.setSequenceNumber( i + 1 );
             assertEquals( expected, tuples.get( i ) );
         }
 
@@ -245,7 +244,7 @@ public class PipelineIntegrationTest
         for ( int i = 0; i < tupleCount; i++ )
         {
             final int value = initialVal + i;
-            final Tuple tuple = new Tuple( i + 1, "val", value );
+            final Tuple tuple = new Tuple( "val", value );
             mapperTupleQueueContext.offer( 0, singletonList( tuple ) );
         }
 
@@ -257,7 +256,6 @@ public class PipelineIntegrationTest
             final Tuple expected = add1.apply( new Tuple( "val", initialVal + ( i * 2 ) ) );
             if ( filterEvenVals.test( expected ) )
             {
-                expected.setSequenceNumber( ( i + 1 ) * 2 );
                 assertEquals( expected, tuples.get( i ) );
             }
         }
@@ -476,7 +474,7 @@ public class PipelineIntegrationTest
         for ( int i = 0; i < tupleCount; i++ )
         {
             final int value = initialVal + i;
-            final Tuple tuple = new Tuple( i + 1, "val", value );
+            final Tuple tuple = new Tuple( "val", value );
             mapperTupleQueueContext.offer( 0, singletonList( tuple ) );
         }
 
@@ -488,7 +486,6 @@ public class PipelineIntegrationTest
             final Tuple expected = add1.apply( new Tuple( "val", initialVal + ( i * 2 ) ) );
             if ( filterEvenVals.test( expected ) )
             {
-                expected.setSequenceNumber( ( i + 1 ) * 2 );
                 assertEquals( expected, tuples.get( i ) );
             }
         }
@@ -887,8 +884,6 @@ public class PipelineIntegrationTest
     public static class ValueSinkOperator implements Operator
     {
 
-        private int seqNo = 0;
-
         @Override
         public SchedulingStrategy init ( final InitializationContext context )
         {
@@ -899,14 +894,6 @@ public class PipelineIntegrationTest
         public void invoke ( final InvocationContext invocationContext )
         {
             final Tuples input = invocationContext.getInput();
-            for ( Tuple tuple : input.getTuples( 0 ) )
-            {
-                tuple.setSequenceNumber( ++seqNo );
-            }
-            for ( Tuple tuple : input.getTuples( 1 ) )
-            {
-                tuple.setSequenceNumber( ++seqNo );
-            }
 
             final Tuples output = invocationContext.getOutput();
             output.addAll( input.getTuples( 0 ) );
@@ -949,7 +936,7 @@ public class PipelineIntegrationTest
                 for ( int i = 0; i < batchCount; i++ )
                 {
                     final int val = increment ? ++count : --count;
-                    output.add( new Tuple( Math.abs( val ), "val", val ) );
+                    output.add( new Tuple( "val", val ) );
                 }
             }
             else

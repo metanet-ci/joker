@@ -16,7 +16,6 @@ import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
 
 /**
  * Maps the input tuples into new output tuples with the provided mapper function.
- * Output tuples have same sequence number with their corresponding input tuples.
  */
 @OperatorSpec( type = STATELESS, inputPortCount = 1, outputPortCount = 1 )
 public class MapperOperator implements Operator
@@ -34,13 +33,7 @@ public class MapperOperator implements Operator
     {
         final OperatorConfig config = context.getConfig();
 
-        final Function<Tuple, Tuple> userMapper = config.getOrFail( MAPPER_CONFIG_PARAMETER );
-        this.mapper = tuple ->
-        {
-            final Tuple mapped = userMapper.apply( tuple );
-            mapped.setSequenceNumber( tuple.getSequenceNumber() );
-            return mapped;
-        };
+        this.mapper = config.getOrFail( MAPPER_CONFIG_PARAMETER );
         final int tupleCount = config.getIntegerOrDefault( TUPLE_COUNT_CONFIG_PARAMETER, 1 );
         return scheduleWhenTuplesAvailableOnDefaultPort( tupleCount );
     }

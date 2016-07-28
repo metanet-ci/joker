@@ -57,17 +57,7 @@ public class PartitionServiceImpl implements PartitionService
                 d[ i ] = l.get( i );
             }
 
-            if ( LOGGER.isDebugEnabled() )
-            {
-                LOGGER.debug( "partition distribution is created for regionId={} replicaCount={} partitions={}",
-                              regionId,
-                              replicaCount,
-                              d );
-            }
-            else
-            {
-                LOGGER.info( "partition distribution is created for regionId={} replicaCount={}", regionId, replicaCount );
-            }
+            LOGGER.info( "partition distribution is created for regionId={} replicaCount={} partitions={}", regionId, replicaCount, d );
 
             return d;
         } );
