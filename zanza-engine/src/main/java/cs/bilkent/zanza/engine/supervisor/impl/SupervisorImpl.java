@@ -108,7 +108,6 @@ public class SupervisorImpl implements Supervisor
         synchronized ( monitor )
         {
             doDeploy( flow, regionConfigs );
-
         }
         supervisorThread.start();
     }
