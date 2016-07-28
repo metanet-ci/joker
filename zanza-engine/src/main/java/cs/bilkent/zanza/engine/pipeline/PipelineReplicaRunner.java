@@ -324,7 +324,7 @@ public class PipelineReplicaRunner implements Runnable
             }
             else
             {
-                LOGGER.info( "{}: there is already pending command", id, command.type );
+                LOGGER.info( "{}: there is already pending command {}", id, command.type );
                 result = command.future;
             }
         }
@@ -394,9 +394,9 @@ public class PipelineReplicaRunner implements Runnable
         final PipelineReplicaRunnerCommand command = this.command;
         if ( command != null )
         {
-            final UpstreamContext pipelineUpstreamContext = supervisor.getUpstreamContext( id );
             synchronized ( monitor )
             {
+                final UpstreamContext pipelineUpstreamContext = supervisor.getUpstreamContext( id );
                 final PipelineReplicaRunnerCommandType commandType = command.type;
                 if ( commandType == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
                 {
