@@ -11,6 +11,7 @@ import java.util.Set;
 
 import org.junit.Test;
 
+import cs.bilkent.testutils.ZanzaTest;
 import cs.bilkent.zanza.operator.kvstore.KVStore;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
@@ -21,7 +22,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 
-public class InMemoryKvStoreTest
+public class InMemoryKvStoreTest extends ZanzaTest
 {
 
     final KVStore kvStore = new InMemoryKVStore();

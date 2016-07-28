@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.ThreadSafe;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -75,12 +76,15 @@ public class SupervisorImpl implements Supervisor
 
     private final ThreadGroup zanzaThreadGroup;
 
-    private FlowDef flow;
-
     private volatile FlowStatus status = INITIAL;
 
+    @GuardedBy( "monitor" )
+    private FlowDef flow;
+
+    @GuardedBy( "monitor" )
     private final Map<PipelineId, Pipeline> pipelines = new ConcurrentHashMap<>();
 
+    @GuardedBy( "monitor" )
     private final Map<PipelineId, Thread[]> pipelineThreads = new HashMap<>();
 
     private final BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>( Integer.MAX_VALUE );
@@ -95,7 +99,7 @@ public class SupervisorImpl implements Supervisor
     {
         this.pipelineManager = pipelineManager;
         this.zanzaThreadGroup = zanzaThreadGroup;
-        this.supervisorThread = new Thread( zanzaThreadGroup, new TaskRunner(), "-Supervisor" );
+        this.supervisorThread = new Thread( zanzaThreadGroup, new TaskRunner(), zanzaThreadGroup.getName() + "-Supervisor" );
     }
 
     public FlowStatus getStatus ()
@@ -202,7 +206,7 @@ public class SupervisorImpl implements Supervisor
                 LOGGER.info( "Starting thread for Pipeline {} Replica {}", pipeline.getId(), replicaIndex );
                 threads[ replicaIndex ] = new Thread( zanzaThreadGroup,
                                                       pipeline.getPipelineReplicaRunner( replicaIndex ),
-                                                      "-" + pipeline.getPipelineReplica( replicaIndex ).id() );
+                                                      zanzaThreadGroup.getName() + "-" + pipeline.getPipelineReplica( replicaIndex ).id() );
 
             }
         }
@@ -589,28 +593,41 @@ public class SupervisorImpl implements Supervisor
 
     private void shutdownGracefully ( final Throwable reason )
     {
-        if ( reason != null )
+        try
         {
-            LOGGER.error( "Shutting down flow", reason );
-        }
-        else
-        {
-            LOGGER.info( "Shutting down flow..." );
-        }
+            if ( reason != null )
+            {
+                LOGGER.error( "Shutting down flow", reason );
+            }
+            else
+            {
+                LOGGER.info( "Shutting down flow..." );
+            }
 
-        setShutDownStatus();
+            setShutDownStatus();
 
-        stopPipelineReplicaRunners();
-        awaitPipelineThreads();
-        shutdownPipelines();
+            stopPipelineReplicaRunners();
+            awaitPipelineThreads();
+            shutdownPipelines();
 
-        if ( reason != null )
-        {
-            shutdownFuture.completeExceptionally( reason );
+            CompletableFuture<Void> shutdownFuture;
+            synchronized ( monitor )
+            {
+                shutdownFuture = this.shutdownFuture;
+            }
+
+            if ( reason != null )
+            {
+                shutdownFuture.completeExceptionally( reason );
+            }
+            else
+            {
+                shutdownFuture.complete( null );
+            }
         }
-        else
+        catch ( Exception e )
         {
-            shutdownFuture.complete( null );
+            LOGGER.error( "Shutdown failed", e );
         }
     }
 

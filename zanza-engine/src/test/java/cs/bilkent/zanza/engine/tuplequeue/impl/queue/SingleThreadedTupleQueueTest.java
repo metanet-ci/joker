@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import cs.bilkent.testutils.ZanzaTest;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.operator.Tuple;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -13,7 +14,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertTrue;
 
 
-public class SingleThreadedTupleQueueTest
+public class SingleThreadedTupleQueueTest extends ZanzaTest
 {
 
     private final TupleQueue queue = new SingleThreadedTupleQueue( 1 );

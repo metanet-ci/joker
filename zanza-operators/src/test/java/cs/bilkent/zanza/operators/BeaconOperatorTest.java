@@ -6,6 +6,7 @@ import java.util.function.Function;
 
 import org.junit.Test;
 
+import cs.bilkent.testutils.ZanzaTest;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.SUCCESS;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.impl.InitializationContextImpl;
@@ -19,7 +20,7 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
 
 
-public class BeaconOperatorTest
+public class BeaconOperatorTest extends ZanzaTest
 {
 
     private final BeaconOperator operator = new BeaconOperator();

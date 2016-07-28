@@ -4,6 +4,7 @@ import java.util.function.BiFunction;
 
 import org.junit.Test;
 
+import cs.bilkent.testutils.ZanzaTest;
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.SUCCESS;
 import cs.bilkent.zanza.operator.Tuple;
@@ -28,7 +29,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 
-public class TupleCountBasedWindowReducerOperatorTest
+public class TupleCountBasedWindowReducerOperatorTest extends ZanzaTest
 {
 
     private static final String TUPLE_PARTITION_KEY = "key1";

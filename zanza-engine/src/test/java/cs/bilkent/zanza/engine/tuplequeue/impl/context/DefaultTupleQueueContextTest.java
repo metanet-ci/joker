@@ -5,6 +5,7 @@ import java.util.function.Function;
 
 import org.junit.Test;
 
+import cs.bilkent.testutils.ZanzaTest;
 import cs.bilkent.zanza.engine.config.ThreadingPreference;
 import static cs.bilkent.zanza.engine.config.ThreadingPreference.MULTI_THREADED;
 import static cs.bilkent.zanza.engine.config.ThreadingPreference.SINGLE_THREADED;
@@ -20,7 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 
-public class DefaultTupleQueueContextTest
+public class DefaultTupleQueueContextTest extends ZanzaTest
 {
 
     private static final int TIMEOUT_IN_MILLIS = 2000;

@@ -2,6 +2,7 @@ package cs.bilkent.zanza.engine.tuplequeue.impl.drainer;
 
 import org.junit.Test;
 
+import cs.bilkent.testutils.ZanzaTest;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import cs.bilkent.zanza.operator.Tuple;
@@ -12,10 +13,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 
-public class GreedyDrainerTest
+public class GreedyDrainerTest extends ZanzaTest
 {
-
-    private static final long TIMEOUT_IN_MILLIS = Long.MAX_VALUE;
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithNullTupleQueues ()

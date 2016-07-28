@@ -6,6 +6,7 @@ import java.util.function.Function;
 import org.junit.Before;
 import org.junit.Test;
 
+import cs.bilkent.testutils.ZanzaTest;
 import cs.bilkent.zanza.engine.partition.impl.PartitionKeyFunction1;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.impl.TupleQueueContainer;
@@ -19,7 +20,7 @@ import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
-public class PartitionedTupleQueueContextTest
+public class PartitionedTupleQueueContextTest extends ZanzaTest
 {
 
     private static final int INPUT_PORT_COUNT = 2;

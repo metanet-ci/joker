@@ -2,6 +2,7 @@ package cs.bilkent.zanza.operators;
 
 import org.junit.Test;
 
+import cs.bilkent.testutils.ZanzaTest;
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.SUCCESS;
 import cs.bilkent.zanza.operator.Tuple;
@@ -24,7 +25,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 
-public class ExponentialMovingAverageAggregationOperatorTest
+public class ExponentialMovingAverageAggregationOperatorTest extends ZanzaTest
 {
 
     private final ExponentialMovingAverageAggregationOperator operator = new ExponentialMovingAverageAggregationOperator();

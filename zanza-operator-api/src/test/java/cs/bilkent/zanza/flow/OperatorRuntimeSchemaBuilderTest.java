@@ -2,6 +2,7 @@ package cs.bilkent.zanza.flow;
 
 import org.junit.Test;
 
+import cs.bilkent.testutils.ZanzaTest;
 import cs.bilkent.zanza.operator.schema.annotation.OperatorSchema;
 import cs.bilkent.zanza.operator.schema.annotation.PortSchema;
 import static cs.bilkent.zanza.operator.schema.annotation.PortSchemaScope.EXACT_FIELD_SET;
@@ -15,7 +16,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 
 
-public class OperatorRuntimeSchemaBuilderTest
+public class OperatorRuntimeSchemaBuilderTest extends ZanzaTest
 {
 
     @Test( expected = IllegalArgumentException.class )

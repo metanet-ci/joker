@@ -2,6 +2,7 @@ package cs.bilkent.zanza.examples.bargaindiscovery;
 
 import org.junit.Test;
 
+import cs.bilkent.testutils.ZanzaTest;
 import static cs.bilkent.zanza.examples.bargaindiscovery.CVWAPFunction.CVWAP_FIELD;
 import static cs.bilkent.zanza.examples.bargaindiscovery.VWAPAggregatorOperator.SINGLE_VOLUME_FIELD;
 import static cs.bilkent.zanza.examples.bargaindiscovery.VWAPAggregatorOperator.SINGLE_VWAP_FIELD;
@@ -17,7 +18,7 @@ import static cs.bilkent.zanza.operators.MapperOperator.MAPPER_CONFIG_PARAMETER;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertNotNull;
 
-public class BargainDiscoveryFlowTest
+public class BargainDiscoveryFlowTest extends ZanzaTest
 {
 
     @Test

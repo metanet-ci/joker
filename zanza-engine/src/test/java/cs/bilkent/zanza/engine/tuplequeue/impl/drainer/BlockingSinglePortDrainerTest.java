@@ -2,7 +2,7 @@ package cs.bilkent.zanza.engine.tuplequeue.impl.drainer;
 
 import org.junit.Test;
 
-import static cs.bilkent.zanza.engine.TestUtils.spawnThread;
+import cs.bilkent.testutils.ZanzaTest;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
 import static cs.bilkent.zanza.engine.tuplequeue.impl.queue.MultiThreadedTupleQueueTest.offerTuples;
@@ -21,7 +21,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 
-public class BlockingSinglePortDrainerTest
+public class BlockingSinglePortDrainerTest extends ZanzaTest
 {
 
     private static final long TIMEOUT_IN_MILLIS = 5000;

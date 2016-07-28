@@ -5,6 +5,7 @@ import java.util.Collection;
 
 import org.junit.Test;
 
+import cs.bilkent.testutils.ZanzaTest;
 import cs.bilkent.zanza.operator.InitializationContext;
 import cs.bilkent.zanza.operator.InvocationContext;
 import cs.bilkent.zanza.operator.Operator;
@@ -17,7 +18,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertNotNull;
 
 
-public class FlowDefBuilderTest
+public class FlowDefBuilderTest extends ZanzaTest
 {
 
     private static final int SPEC_INPUT_PORT_COUNT = 4;

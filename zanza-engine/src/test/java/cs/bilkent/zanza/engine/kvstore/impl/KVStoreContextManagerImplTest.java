@@ -3,6 +3,7 @@ package cs.bilkent.zanza.engine.kvstore.impl;
 import org.junit.Before;
 import org.junit.Test;
 
+import cs.bilkent.testutils.ZanzaTest;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import cs.bilkent.zanza.engine.kvstore.KVStoreContext;
 import cs.bilkent.zanza.engine.partition.PartitionService;
@@ -16,7 +17,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 
-public class KVStoreContextManagerImplTest
+public class KVStoreContextManagerImplTest extends ZanzaTest
 {
 
     private static final int REGION_ID = 1;

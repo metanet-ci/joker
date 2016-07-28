@@ -13,7 +13,7 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static cs.bilkent.zanza.engine.TestUtils.assertTrueEventually;
+import cs.bilkent.testutils.ZanzaTest;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.COMPLETED;
 import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.PAUSED;
@@ -38,7 +38,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith( MockitoJUnitRunner.class )
-public class PipelineReplicaRunnerTest
+public class PipelineReplicaRunnerTest extends ZanzaTest
 {
 
     @Mock

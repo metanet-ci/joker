@@ -7,8 +7,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import cs.bilkent.zanza.engine.TestUtils;
-import static cs.bilkent.zanza.engine.TestUtils.spawnThread;
+import cs.bilkent.testutils.ZanzaTest;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.operator.Tuple;
 import static java.lang.Thread.State.TIMED_WAITING;
@@ -18,7 +17,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class MultiThreadedTupleQueueTest
+public class MultiThreadedTupleQueueTest extends ZanzaTest
 {
 
     private static final int TIMEOUT_IN_MILLIS = 5000;
@@ -182,7 +181,7 @@ public class MultiThreadedTupleQueueTest
                                                         asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ), newTuple( 4 ) ) ) );
         queue.disableCapacityCheck();
 
-        TestUtils.assertTrueEventually( () -> assertQueueContent( 4 ) );
+        assertTrueEventually( () -> assertQueueContent( 4 ) );
 
         thread.join();
     }

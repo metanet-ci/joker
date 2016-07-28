@@ -10,6 +10,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
+import cs.bilkent.testutils.ZanzaTest;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.SUCCESS;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.impl.InitializationContextImpl;
@@ -22,7 +23,7 @@ import static org.mockito.Mockito.verify;
 
 
 @RunWith( MockitoJUnitRunner.class )
-public class ConsoleAppenderOperatorTest
+public class ConsoleAppenderOperatorTest extends ZanzaTest
 {
 
     @Mock

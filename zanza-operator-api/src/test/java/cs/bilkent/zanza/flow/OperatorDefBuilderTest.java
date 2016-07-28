@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import cs.bilkent.testutils.ZanzaTest;
 import cs.bilkent.zanza.flow.FlowDefBuilderTest.NopOperator;
 import cs.bilkent.zanza.flow.FlowDefBuilderTest.OperatorWithNoSpec;
 import cs.bilkent.zanza.flow.FlowDefBuilderTest.StatefulOperatorWithFixedPortCounts;
@@ -31,7 +32,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 
-public class OperatorDefBuilderTest
+public class OperatorDefBuilderTest extends ZanzaTest
 {
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotBuildBuilderWithNullId ()

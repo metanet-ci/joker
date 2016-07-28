@@ -5,6 +5,7 @@ import java.util.function.Function;
 
 import org.junit.Test;
 
+import cs.bilkent.testutils.ZanzaTest;
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
 import cs.bilkent.zanza.operator.InvocationContext.InvocationReason;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.INPUT_PORT_CLOSED;
@@ -24,7 +25,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertTrue;
 
 
-public class MapperOperatorTest
+public class MapperOperatorTest extends ZanzaTest
 {
 
     private final MapperOperator operator = new MapperOperator();

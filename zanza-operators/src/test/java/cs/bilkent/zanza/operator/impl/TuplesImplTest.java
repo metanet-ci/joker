@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import cs.bilkent.testutils.ZanzaTest;
 import cs.bilkent.zanza.operator.Tuple;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -11,7 +12,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 
 
-public class TuplesImplTest
+public class TuplesImplTest extends ZanzaTest
 {
     private final TuplesImpl tuples = new TuplesImpl( 2 );
 

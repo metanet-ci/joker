@@ -5,10 +5,11 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
+import cs.bilkent.testutils.ZanzaTest;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class ZanzaConfigTest
+public class ZanzaConfigTest extends ZanzaTest
 {
 
     @Test

@@ -2,6 +2,7 @@ package cs.bilkent.zanza.examples.bargaindiscovery;
 
 import org.junit.Test;
 
+import cs.bilkent.testutils.ZanzaTest;
 import static cs.bilkent.zanza.examples.bargaindiscovery.BargainIndexOperator.ASKED_SIZE_FIELD;
 import static cs.bilkent.zanza.examples.bargaindiscovery.BargainIndexOperator.ASKED_TICKER_SYMBOL_PRICE_FIELD;
 import static cs.bilkent.zanza.examples.bargaindiscovery.BargainIndexOperator.BARGAIN_INDEX_FIELD;
@@ -19,7 +20,7 @@ import cs.bilkent.zanza.operator.kvstore.impl.KeyDecoratedKVStore;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
-public class BargainIndexOperatorTest
+public class BargainIndexOperatorTest extends ZanzaTest
 {
 
     private static final String TUPLE_PARTITION_KEY = "key1";

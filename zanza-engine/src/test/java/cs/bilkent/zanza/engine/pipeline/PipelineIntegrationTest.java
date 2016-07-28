@@ -18,8 +18,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static cs.bilkent.zanza.engine.TestUtils.assertTrueEventually;
-import static cs.bilkent.zanza.engine.TestUtils.spawnThread;
+import cs.bilkent.testutils.ZanzaTest;
 import static cs.bilkent.zanza.engine.config.ThreadingPreference.MULTI_THREADED;
 import static cs.bilkent.zanza.engine.config.ThreadingPreference.SINGLE_THREADED;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
@@ -77,7 +76,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 // TODO clean up duplicate code
-public class PipelineIntegrationTest
+public class PipelineIntegrationTest extends ZanzaTest
 {
 
     private static final int REGION_ID = 1;

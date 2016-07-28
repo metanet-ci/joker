@@ -6,6 +6,7 @@ import java.util.function.Supplier;
 import org.junit.Before;
 import org.mockito.Mock;
 
+import cs.bilkent.testutils.ZanzaTest;
 import cs.bilkent.zanza.engine.kvstore.KVStoreContext;
 import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaInitializationTest.newUpstreamContextInstance;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
@@ -25,7 +26,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class AbstractOperatorReplicaInvocationTest
+class AbstractOperatorReplicaInvocationTest extends ZanzaTest
 {
     @Mock
     protected TupleQueueContext queue;

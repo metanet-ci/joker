@@ -2,6 +2,7 @@ package cs.bilkent.zanza.engine.tuplequeue.impl.drainer;
 
 import org.junit.Test;
 
+import cs.bilkent.testutils.ZanzaTest;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
@@ -17,7 +18,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 
-public class NonBlockingSinglePortDrainerTest
+public class NonBlockingSinglePortDrainerTest extends ZanzaTest
 {
 
     @Test( expected = IllegalArgumentException.class )

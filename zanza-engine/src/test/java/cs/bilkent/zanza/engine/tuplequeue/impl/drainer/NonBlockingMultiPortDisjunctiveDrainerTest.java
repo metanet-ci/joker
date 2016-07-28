@@ -2,6 +2,7 @@ package cs.bilkent.zanza.engine.tuplequeue.impl.drainer;
 
 import org.junit.Test;
 
+import cs.bilkent.testutils.ZanzaTest;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import cs.bilkent.zanza.operator.Tuple;
@@ -13,7 +14,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;
 
 
-public class NonBlockingMultiPortDisjunctiveDrainerTest
+public class NonBlockingMultiPortDisjunctiveDrainerTest extends ZanzaTest
 {
 
     @Test

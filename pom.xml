@@ -15,6 +15,7 @@
         <module>zanza-operators</module>
         <module>zanza-engine</module>
         <module>zanza-examples</module>
+        <module>zanza-test-utils</module>
     </modules>
 
     <properties>
@@ -124,6 +125,7 @@
                         <forkCount>2</forkCount>
                         <reuseForks>true</reuseForks>
                         <argLine>-Xms1G -Xmx4G</argLine>
+                        <redirectTestOutputToFile>true</redirectTestOutputToFile>
                     </configuration>
                 </plugin>
             </plugins>

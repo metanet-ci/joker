@@ -5,6 +5,7 @@ import java.util.function.Predicate;
 
 import org.junit.Test;
 
+import cs.bilkent.testutils.ZanzaTest;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.SHUTDOWN;
 import static cs.bilkent.zanza.operator.InvocationContext.InvocationReason.SUCCESS;
 import cs.bilkent.zanza.operator.Tuple;
@@ -20,7 +21,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertTrue;
 
 
-public class FilterOperatorTest
+public class FilterOperatorTest extends ZanzaTest
 {
 
     private final FilterOperator operator = new FilterOperator();

@@ -9,6 +9,7 @@ import org.junit.Test;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 
+import cs.bilkent.testutils.ZanzaTest;
 import cs.bilkent.zanza.ZanzaModule;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import static cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus.RUNNING;
@@ -53,7 +54,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-public class PipelineManagerImplTest
+public class PipelineManagerImplTest extends ZanzaTest
 {
 
     private final ZanzaConfig zanzaConfig = new ZanzaConfig();

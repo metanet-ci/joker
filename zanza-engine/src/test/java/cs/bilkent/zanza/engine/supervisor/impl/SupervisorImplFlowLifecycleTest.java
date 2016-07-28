@@ -5,14 +5,16 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.junit.Before;
 import org.junit.Test;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 
+import cs.bilkent.testutils.ZanzaTest;
 import cs.bilkent.zanza.ZanzaModule;
-import static cs.bilkent.zanza.engine.TestUtils.assertTrueEventually;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
 import cs.bilkent.zanza.engine.exception.InitializationException;
 import cs.bilkent.zanza.engine.pipeline.OperatorReplicaStatus;
@@ -50,9 +52,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class SupervisorImplFlowLifecycleTest
+public class SupervisorImplFlowLifecycleTest extends ZanzaTest
 {
-
 
     private SupervisorImpl supervisor;
 
@@ -70,7 +71,7 @@ public class SupervisorImplFlowLifecycleTest
     }
 
     @Test
-    public void testFlowDeploymentWithTwoSubsequentRegions () throws ExecutionException, InterruptedException
+    public void testFlowDeploymentWithTwoSubsequentRegions () throws ExecutionException, InterruptedException, TimeoutException
     {
         final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatefulOperatorInput0Output1.class ).build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatefulOperatorInput1Output1.class ).build();
@@ -94,11 +95,11 @@ public class SupervisorImplFlowLifecycleTest
             }
         }
 
-        supervisor.shutdown().get();
+        supervisor.shutdown().get( 30, TimeUnit.SECONDS );
     }
 
     @Test
-    public void testFlowDeploymentWithRegionWithMultipleUpstreamRegions () throws ExecutionException, InterruptedException
+    public void testFlowDeploymentWithRegionWithMultipleUpstreamRegions () throws ExecutionException, InterruptedException, TimeoutException
     {
         final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatefulOperatorInput0Output1.class ).build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatefulOperatorInput0Output1.class ).build();
@@ -123,11 +124,11 @@ public class SupervisorImplFlowLifecycleTest
 
         supervisor.deploy( flowDef, regionConfigs );
 
-        supervisor.shutdown().get();
+        supervisor.shutdown().get( 30, TimeUnit.SECONDS );
     }
 
     @Test( expected = IllegalStateException.class )
-    public void testFlowDeploymentFailed () throws ExecutionException, InterruptedException
+    public void testFlowDeploymentFailed () throws ExecutionException, InterruptedException, TimeoutException
     {
         final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatefulOperatorInput0Output1.class ).build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", FailingOnInitializationStatefulOperatorInput1Output1.class )
@@ -148,11 +149,11 @@ public class SupervisorImplFlowLifecycleTest
             assertTrue( pipelineManager.getPipelines().isEmpty() );
         }
 
-        supervisor.shutdown();
+        supervisor.shutdown().get( 30, TimeUnit.SECONDS );
     }
 
     @Test( expected = ExecutionException.class )
-    public void testFlowFailedDuringExecution () throws ExecutionException, InterruptedException
+    public void testFlowFailedDuringExecution () throws ExecutionException, InterruptedException, TimeoutException
     {
         final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", TupleProducingStatefulOperatorInput0Output1.class ).build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", FailingOnInvocationStatefulOperatorInput1Output1.class )
@@ -166,11 +167,11 @@ public class SupervisorImplFlowLifecycleTest
         supervisor.deploy( flowDef, Arrays.asList( regionConfig1, regionConfig2 ) );
         assertTrueEventually( () -> assertEquals( FlowStatus.SHUT_DOWN, supervisor.getStatus() ) );
 
-        supervisor.shutdown().get();
+        supervisor.shutdown().get( 30, TimeUnit.SECONDS );
     }
 
     @Test
-    public void testFlowFailedDuringShutdown () throws ExecutionException, InterruptedException
+    public void testFlowFailedDuringShutdown () throws ExecutionException, InterruptedException, TimeoutException
     {
         final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", FailingOnShutdownStatefulOperatorInput0Output1.class )
                                                            .build();
@@ -183,7 +184,7 @@ public class SupervisorImplFlowLifecycleTest
 
         supervisor.deploy( flowDef, Arrays.asList( regionConfig1, regionConfig2 ) );
 
-        supervisor.shutdown().get();
+        supervisor.shutdown().get( 30, TimeUnit.SECONDS );
     }
 
     @OperatorSpec( type = STATEFUL, inputPortCount = 1, outputPortCount = 1 )

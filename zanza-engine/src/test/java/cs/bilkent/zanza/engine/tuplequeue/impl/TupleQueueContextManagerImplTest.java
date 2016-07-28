@@ -5,6 +5,7 @@ import java.util.Collections;
 import org.junit.Before;
 import org.junit.Test;
 
+import cs.bilkent.testutils.ZanzaTest;
 import cs.bilkent.zanza.engine.config.ThreadingPreference;
 import static cs.bilkent.zanza.engine.config.ThreadingPreference.MULTI_THREADED;
 import cs.bilkent.zanza.engine.config.ZanzaConfig;
@@ -21,7 +22,7 @@ import cs.bilkent.zanza.operator.spec.OperatorType;
 import static org.junit.Assert.assertTrue;
 
 
-public class TupleQueueContextManagerImplTest
+public class TupleQueueContextManagerImplTest extends ZanzaTest
 {
 
     private TupleQueueContextManagerImpl tupleQueueManager;

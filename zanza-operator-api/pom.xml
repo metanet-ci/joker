@@ -15,5 +15,14 @@
     <name>zanza-operator-api</name>
     <url>http://maven.apache.org</url>
 
+    <dependencies>
+        <dependency>
+            <groupId>cs.bilkent</groupId>
+            <artifactId>zanza-test-utils</artifactId>
+            <scope>test</scope>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
+
 
 </project>

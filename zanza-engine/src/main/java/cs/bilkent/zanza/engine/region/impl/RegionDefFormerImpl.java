@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.inject.Singleton;
@@ -187,8 +188,8 @@ public class RegionDefFormerImpl implements RegionDefFormer
                     sequences.add( currentOperatorSequence );
 
                     LOGGER.info( "Sequence Completed! Sequence={}. New sequence starts={}",
-                                 getOperatorIds( currentOperatorSequence ),
-                                 getOperatorIds( downstreamOperators ) );
+                                 getOperatorIds( currentOperatorSequence ).collect( Collectors.toList() ),
+                                 getOperatorIds( downstreamOperators ).collect( Collectors.toList() ) );
                     currentOperatorSequence = new ArrayList<>();
                     break;
                 }

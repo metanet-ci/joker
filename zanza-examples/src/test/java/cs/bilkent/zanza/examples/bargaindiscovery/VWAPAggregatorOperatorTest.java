@@ -2,6 +2,7 @@ package cs.bilkent.zanza.examples.bargaindiscovery;
 
 import org.junit.Test;
 
+import cs.bilkent.testutils.ZanzaTest;
 import static cs.bilkent.zanza.examples.bargaindiscovery.VWAPAggregatorOperator.SINGLE_VOLUME_FIELD;
 import static cs.bilkent.zanza.examples.bargaindiscovery.VWAPAggregatorOperator.SINGLE_VWAP_FIELD;
 import static cs.bilkent.zanza.examples.bargaindiscovery.VWAPAggregatorOperator.SLIDE_FACTOR_CONfIG_PARAMETER;
@@ -28,7 +29,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;
 
-public class VWAPAggregatorOperatorTest
+public class VWAPAggregatorOperatorTest extends ZanzaTest
 {
 
     private static final String TUPLE_PARTITION_KEY = "key1";

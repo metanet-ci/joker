@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import cs.bilkent.testutils.ZanzaTest;
 import cs.bilkent.zanza.engine.region.RegionDef;
 import cs.bilkent.zanza.flow.OperatorDef;
 import cs.bilkent.zanza.flow.OperatorDefBuilder;
@@ -25,7 +26,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 
-public class RegionFormerImplRegionDefTest
+public class RegionFormerImplRegionDefTest extends ZanzaTest
 {
 
     private final RegionDefFormerImpl regionFormer = new RegionDefFormerImpl();
