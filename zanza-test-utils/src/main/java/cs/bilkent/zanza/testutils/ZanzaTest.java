@@ -11,7 +11,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 public abstract class ZanzaTest
 {
 
-    public static long DEFAULT_ASSERT_EVENTUALLY_TIMEOUT_SECONDS = 30;
+    public static long DEFAULT_ASSERT_EVENTUALLY_TIMEOUT_IN_SECONDS = 30;
 
 
     @FunctionalInterface
@@ -35,7 +35,7 @@ public abstract class ZanzaTest
         }
 
         @Override
-        protected void finished ( Description description )
+        protected void finished ( final Description description )
         {
             final long durationNanos = System.nanoTime() - start;
             final long durationMicros = durationNanos / 1000;
@@ -59,17 +59,17 @@ public abstract class ZanzaTest
         return thread;
     }
 
-    public static void assertTrueEventually ( AssertTask task )
+    public static void assertTrueEventually ( final AssertTask task )
     {
-        assertTrueEventually( task, DEFAULT_ASSERT_EVENTUALLY_TIMEOUT_SECONDS );
+        assertTrueEventually( task, DEFAULT_ASSERT_EVENTUALLY_TIMEOUT_IN_SECONDS );
     }
 
-    public static void assertTrueEventually ( AssertTask task, long timeoutSeconds )
+    public static void assertTrueEventually ( final AssertTask task, final long timeoutSeconds )
     {
         AssertionError error = null;
 
-        long iterations = timeoutSeconds * 10;
-        int sleepMillis = 100;
+        final long iterations = timeoutSeconds * 10;
+        final int sleepMillis = 100;
         for ( int k = 0; k < iterations; k++ )
         {
             try
@@ -82,6 +82,7 @@ public abstract class ZanzaTest
                 {
                     throw new RuntimeException( e );
                 }
+
                 return;
             }
             catch ( AssertionError e )
@@ -91,6 +92,7 @@ public abstract class ZanzaTest
 
             sleepUninterruptibly( sleepMillis, TimeUnit.MILLISECONDS );
         }
+
         throw error;
     }
 
