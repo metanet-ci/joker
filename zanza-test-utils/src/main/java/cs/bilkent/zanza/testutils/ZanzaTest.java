@@ -37,17 +37,16 @@ public abstract class ZanzaTest
         @Override
         protected void finished ( Description description )
         {
-            final long durationNs = System.nanoTime() - start;
-            final long durationMs = durationNs / 1_000_000;
-            if ( durationMs > 0 )
-            {
-                System.out.println( "##### TEST: " + description.getMethodName() + " COMPLETED IN " + durationMs + " ms ####" );
-            }
-            else
-            {
-                System.out.println( "##### TEST: " + description.getMethodName() + " COMPLETED IN " + durationNs + " ns ####" );
-            }
-
+            final long durationNanos = System.nanoTime() - start;
+            final long durationMicros = durationNanos / 1000;
+            final long durationMillis = durationMicros / 1000;
+            final long durationSeconds = durationMillis / 1000;
+            final long duration = durationSeconds > 0
+                                  ? durationSeconds
+                                  : ( durationMillis > 0 ? durationMillis : ( durationMicros > 0 ? durationMicros : durationNanos ) );
+            final String unit =
+                    durationSeconds > 0 ? "secs" : ( durationMillis > 0 ? "millis" : ( durationMicros > 0 ? "micros" : "nanos" ) );
+            System.out.println( "##### TEST: " + description.getMethodName() + " COMPLETED IN " + duration + " " + unit + " ####" );
         }
 
     };
