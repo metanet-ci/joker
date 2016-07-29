@@ -10,12 +10,14 @@ import cs.bilkent.zanza.operator.InvocationContext;
 import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
-import cs.bilkent.zanza.operator.spec.OperatorType;
+import static cs.bilkent.zanza.operator.spec.OperatorType.STATEFUL;
+import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.zanza.testutils.ZanzaTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 
 public class FlowDefBuilderTest extends ZanzaTest
@@ -40,8 +42,9 @@ public class FlowDefBuilderTest extends ZanzaTest
     @Test( expected = IllegalStateException.class )
     public void shouldNotAddOperatorAfterBuilt ()
     {
+        builder.add( OperatorDefBuilder.newInstance( "op1", StatefulOperatorWithFixedPortCounts.class ) );
         builder.build();
-        builder.add( OperatorDefBuilder.newInstance( "op", StatelessOperatorWithDynamicPortCounts.class ) );
+        builder.add( OperatorDefBuilder.newInstance( "op2", StatelessOperatorWithDynamicPortCounts.class ) );
     }
 
     @Test( expected = IllegalArgumentException.class )
@@ -152,8 +155,117 @@ public class FlowDefBuilderTest extends ZanzaTest
         builder.connect( "op1", "op3" );
     }
 
-    @Test
-    public void shouldBuildEmptyFlow ()
+    @Test( expected = IllegalArgumentException.class )
+    public void shouldNotAddCyclicConnection ()
+    {
+        builder.add( OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class )
+                                       .setInputPortCount( 1 )
+                                       .setOutputPortCount( 1 ) );
+        builder.add( OperatorDefBuilder.newInstance( "op2", StatelessOperatorWithDynamicPortCounts.class )
+                                       .setInputPortCount( 1 )
+                                       .setOutputPortCount( 1 ) );
+        try
+        {
+            builder.connect( "op1", "op2" );
+        }
+        catch ( Exception e )
+        {
+            e.printStackTrace();
+            fail();
+        }
+
+        builder.connect( "op2", "op1" );
+    }
+
+    @Test( expected = IllegalArgumentException.class )
+    public void shouldNotAddCyclicConnection2 ()
+    {
+        builder.add( OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class )
+                                       .setInputPortCount( 1 )
+                                       .setOutputPortCount( 1 ) );
+        builder.add( OperatorDefBuilder.newInstance( "op2", StatelessOperatorWithDynamicPortCounts.class )
+                                       .setInputPortCount( 1 )
+                                       .setOutputPortCount( 1 ) );
+        builder.add( OperatorDefBuilder.newInstance( "op3", StatelessOperatorWithDynamicPortCounts.class )
+                                       .setInputPortCount( 1 )
+                                       .setOutputPortCount( 1 ) );
+        try
+        {
+            builder.connect( "op1", "op2" );
+            builder.connect( "op2", "op3" );
+        }
+        catch ( Exception e )
+        {
+            e.printStackTrace();
+            fail();
+        }
+
+        builder.connect( "op3", "op1" );
+    }
+
+    @Test( expected = IllegalArgumentException.class )
+    public void shouldNotAddCyclicConnection3 ()
+    {
+        builder.add( OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class )
+                                       .setInputPortCount( 1 )
+                                       .setOutputPortCount( 1 ) );
+        builder.add( OperatorDefBuilder.newInstance( "op2", StatelessOperatorWithDynamicPortCounts.class )
+                                       .setInputPortCount( 1 )
+                                       .setOutputPortCount( 1 ) );
+        builder.add( OperatorDefBuilder.newInstance( "op3", StatelessOperatorWithDynamicPortCounts.class )
+                                       .setInputPortCount( 1 )
+                                       .setOutputPortCount( 1 ) );
+        builder.add( OperatorDefBuilder.newInstance( "op4", StatelessOperatorWithDynamicPortCounts.class )
+                                       .setInputPortCount( 1 )
+                                       .setOutputPortCount( 1 ) );
+        try
+        {
+            builder.connect( "op1", "op2" );
+            builder.connect( "op1", "op3" );
+            builder.connect( "op2", "op4" );
+            builder.connect( "op3", "op4" );
+        }
+        catch ( Exception e )
+        {
+            e.printStackTrace();
+            fail();
+        }
+
+        builder.connect( "op4", "op1" );
+    }
+
+    @Test( expected = IllegalArgumentException.class )
+    public void shouldNotAddCyclicConnection4 ()
+    {
+        builder.add( OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class )
+                                       .setInputPortCount( 1 )
+                                       .setOutputPortCount( 1 ) );
+        builder.add( OperatorDefBuilder.newInstance( "op2", StatelessOperatorWithDynamicPortCounts.class )
+                                       .setInputPortCount( 1 )
+                                       .setOutputPortCount( 1 ) );
+        builder.add( OperatorDefBuilder.newInstance( "op3", StatelessOperatorWithDynamicPortCounts.class )
+                                       .setInputPortCount( 1 )
+                                       .setOutputPortCount( 1 ) );
+        builder.add( OperatorDefBuilder.newInstance( "op4", StatelessOperatorWithDynamicPortCounts.class )
+                                       .setInputPortCount( 1 )
+                                       .setOutputPortCount( 1 ) );
+        try
+        {
+            builder.connect( "op1", "op2" );
+            builder.connect( "op1", "op3" );
+            builder.connect( "op3", "op4" );
+        }
+        catch ( Exception e )
+        {
+            e.printStackTrace();
+            fail();
+        }
+
+        builder.connect( "op4", "op1" );
+    }
+
+    @Test( expected = IllegalArgumentException.class )
+    public void shouldNotBuildEmptyFlow ()
     {
         assertNotNull( builder.build() );
     }
@@ -238,43 +350,71 @@ public class FlowDefBuilderTest extends ZanzaTest
         builder.connect( "op1", "op2" );
     }
 
+    @Test( expected = IllegalStateException.class )
+    public void shouldNotBuildWithMultipleSCCs ()
+    {
+        builder.add( OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class )
+                                       .setInputPortCount( 1 )
+                                       .setOutputPortCount( 1 ) );
+        builder.add( OperatorDefBuilder.newInstance( "op2", StatelessOperatorWithDynamicPortCounts.class )
+                                       .setInputPortCount( 1 )
+                                       .setOutputPortCount( 1 ) );
+        builder.add( OperatorDefBuilder.newInstance( "op3", StatelessOperatorWithDynamicPortCounts.class )
+                                       .setInputPortCount( 1 )
+                                       .setOutputPortCount( 1 ) );
+        builder.add( OperatorDefBuilder.newInstance( "op4", StatelessOperatorWithDynamicPortCounts.class )
+                                       .setInputPortCount( 1 )
+                                       .setOutputPortCount( 1 ) );
+        try
+        {
+            builder.connect( "op1", "op2" );
+            builder.connect( "op2", "op4" );
+        }
+        catch ( Exception e )
+        {
+            e.printStackTrace();
+            fail();
+        }
 
-    public static class OperatorWithNoSpec extends NopOperator
+        builder.build();
+    }
+
+    static class OperatorWithNoSpec extends NopOperator
     {
 
     }
 
 
-    @OperatorSpec( type = OperatorType.STATELESS )
-    public static class StatelessOperatorWithDynamicPortCounts extends NopOperator
+    @OperatorSpec( type = STATELESS )
+    static class StatelessOperatorWithDynamicPortCounts extends NopOperator
     {
 
     }
 
 
-    @OperatorSpec( type = OperatorType.STATEFUL, inputPortCount = SPEC_INPUT_PORT_COUNT, outputPortCount = SPEC_OUTPUT_PORT_COUNT )
-    public static class StatefulOperatorWithFixedPortCounts extends NopOperator
+    @OperatorSpec( type = STATEFUL, inputPortCount = SPEC_INPUT_PORT_COUNT, outputPortCount = SPEC_OUTPUT_PORT_COUNT )
+    static class StatefulOperatorWithFixedPortCounts extends NopOperator
     {
 
     }
 
 
-    @OperatorSpec( type = OperatorType.STATEFUL )
-    public static class StatefulOperatorWithDynamicPortCounts extends NopOperator
+    @OperatorSpec( type = STATEFUL )
+    private static class StatefulOperatorWithDynamicPortCounts extends NopOperator
     {
 
     }
 
 
-    @OperatorSpec( type = OperatorType.STATEFUL, inputPortCount = INVALID_PORT_COUNT, outputPortCount = SPEC_OUTPUT_PORT_COUNT )
-    public static class StatefulOperatorWithInvalidInputPortCount extends NopOperator
+    @OperatorSpec( type = STATEFUL, inputPortCount = INVALID_PORT_COUNT, outputPortCount = SPEC_OUTPUT_PORT_COUNT )
+    static class StatefulOperatorWithInvalidInputPortCount extends NopOperator
     {
 
     }
 
 
-    @OperatorSpec( type = OperatorType.STATEFUL, inputPortCount = SPEC_INPUT_PORT_COUNT, outputPortCount = INVALID_PORT_COUNT )
-    public static class StatefulOperatorWithInvalidOutputPortCount extends NopOperator
+    @OperatorSpec( type = STATEFUL, inputPortCount = SPEC_INPUT_PORT_COUNT, outputPortCount = INVALID_PORT_COUNT )
+    static class StatefulOperatorWithInvalidOutputPortCount extends NopOperator
     {
 
     }

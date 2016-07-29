@@ -1,8 +1,12 @@
 package cs.bilkent.zanza.flow;
 
 
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.HashMultimap;
@@ -72,19 +76,18 @@ public final class FlowDefBuilder
         failIfNonExistingOperatorId( destinationOperatorId );
         failIfInvalidPort( operators.get( destinationOperatorId ).inputPortCount(), destinationPort );
         checkArgument( !sourceOperatorId.equals( destinationOperatorId ), "operator ids must be different!" );
-
-        final OperatorRuntimeSchema sourceOperatorSchema = operators.get( sourceOperatorId ).schema();
-        final OperatorRuntimeSchema targetOperatorSchema = operators.get( destinationOperatorId ).schema();
-        checkState( sourceOperatorSchema.getOutputSchema( sourcePort )
-                                        .isCompatibleWith( targetOperatorSchema.getInputSchema( destinationPort ) ),
-                    "incompatible schemas between source %s and destination %s",
-                    sourcePort,
-                    destinationPort );
+        failIfConnected( destinationOperatorId, sourceOperatorId );
+        failIfIncompatibleSchemas( sourceOperatorId, sourcePort, destinationOperatorId, destinationPort );
 
         final Port source = new Port( sourceOperatorId, sourcePort );
         final Port target = new Port( destinationOperatorId, destinationPort );
         connections.put( source, target );
         return this;
+    }
+
+    private void failIfAlreadyBuilt ()
+    {
+        checkState( !built, "Flow already built!" );
     }
 
     private void failIfEmptyOperatorId ( final String operatorId )
@@ -102,9 +105,45 @@ public final class FlowDefBuilder
         checkArgument( port >= DEFAULT_PORT_INDEX && port < validPortCount, "Invalid port!" );
     }
 
-    private void failIfAlreadyBuilt ()
+    private void failIfConnected ( final String sourceOperatorId, final String destinationOperatorId )
     {
-        checkState( !built, "Flow already built!" );
+        final Set<String> visited = new HashSet<>();
+        final Set<String> toVisit = new HashSet<>();
+        toVisit.add( sourceOperatorId );
+        while ( !toVisit.isEmpty() )
+        {
+            final Iterator<String> it = toVisit.iterator();
+            final String current = it.next();
+            it.remove();
+            checkArgument( !current.equals( destinationOperatorId ),
+                           "Cycle detected between %s and %s",
+                           sourceOperatorId,
+                           destinationOperatorId );
+            if ( visited.add( current ) )
+            {
+                for ( Entry<Port, Port> e : connections.entries() )
+                {
+                    if ( e.getKey().operatorId.equals( current ) )
+                    {
+                        toVisit.add( e.getValue().operatorId );
+                    }
+                }
+            }
+        }
+    }
+
+    private void failIfIncompatibleSchemas ( final String sourceOperatorId,
+                                             final int sourcePort,
+                                             final String destinationOperatorId,
+                                             final int destinationPort )
+    {
+        final OperatorRuntimeSchema sourceOperatorSchema = operators.get( sourceOperatorId ).schema();
+        final OperatorRuntimeSchema targetOperatorSchema = operators.get( destinationOperatorId ).schema();
+        checkState( sourceOperatorSchema.getOutputSchema( sourcePort )
+                                        .isCompatibleWith( targetOperatorSchema.getInputSchema( destinationPort ) ),
+                    "incompatible schemas between source %s and destination %s",
+                    sourcePort,
+                    destinationPort );
     }
 
 }

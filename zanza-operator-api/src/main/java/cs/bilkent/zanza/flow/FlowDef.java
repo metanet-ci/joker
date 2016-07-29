@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -56,33 +57,42 @@ public final class FlowDef
         return result;
     }
 
-    // TODO improve flow validation
-    // TODO operators with at least 1 input port should have at least 1 connection
-    // TODO there should be a single connected component
     private void validateFlowDef ( final Map<String, OperatorDef> operators, final Multimap<Port, Port> connections )
     {
         checkArgument( operators != null, "operators cannot be null" );
         checkArgument( connections != null, "connections cannot be null" );
-        checkAllOperatorsHaveConnection( operators, connections );
+        checkArgument( !operators.isEmpty(), "there should be at least one operator" );
+        failIfMultipleIndependentDAGs( operators, connections );
     }
 
-    private void checkAllOperatorsHaveConnection ( final Map<String, OperatorDef> operators, final Multimap<Port, Port> connections )
+    private void failIfMultipleIndependentDAGs ( final Map<String, OperatorDef> operators, final Multimap<Port, Port> connections )
     {
-        final long connectedOperatorCount = connections.entries()
-                                                       .stream()
-                                                       .flatMap( entry -> Stream.of( entry.getKey().operatorId,
-                                                                                     entry.getValue().operatorId ) )
-                                                       .distinct()
-                                                       .count();
+        final Set<String> visited = new HashSet<>();
+        final Set<String> toVisit = new HashSet<>();
+        toVisit.add( operators.keySet().iterator().next() );
+        while ( !toVisit.isEmpty() )
+        {
+            final Iterator<String> it = toVisit.iterator();
+            final String current = it.next();
+            it.remove();
 
-        if ( operators.size() == 1 )
-        {
-            checkState( connectedOperatorCount == 0, "Invalid flow definition!" );
+            if ( visited.add( current ) )
+            {
+                for ( Entry<Port, Port> e : connections.entries() )
+                {
+                    if ( e.getKey().operatorId.equals( current ) )
+                    {
+                        toVisit.add( e.getValue().operatorId );
+                    }
+                    else if ( e.getValue().operatorId.equals( current ) )
+                    {
+                        toVisit.add( e.getKey().operatorId );
+                    }
+                }
+            }
         }
-        else
-        {
-            checkState( operators.size() == connectedOperatorCount, "Invalid flow definition!" );
-        }
+
+        checkState( operators.size() == visited.size(), "there are multiple DAGs in the flow!" );
     }
 
     public Collection<Entry<Port, Port>> getAllConnections ()
