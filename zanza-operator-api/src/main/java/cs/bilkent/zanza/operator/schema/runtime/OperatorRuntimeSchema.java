@@ -21,8 +21,8 @@ public final class OperatorRuntimeSchema
 
     public OperatorRuntimeSchema ( final List<PortRuntimeSchema> inputSchemas, final List<PortRuntimeSchema> outputSchemas )
     {
-        checkArgument( inputSchemas != null );
-        checkArgument( outputSchemas != null );
+        checkArgument( inputSchemas != null, "null input port runtime schemas!" );
+        checkArgument( outputSchemas != null, "null output port runtime schemas!" );
         this.inputSchemas = unmodifiableList( new ArrayList<>( inputSchemas ) );
         this.outputSchemas = unmodifiableList( new ArrayList<>( outputSchemas ) );
     }

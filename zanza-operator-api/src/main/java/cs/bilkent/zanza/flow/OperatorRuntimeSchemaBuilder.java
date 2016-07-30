@@ -28,7 +28,7 @@ public final class OperatorRuntimeSchemaBuilder
         this.outputSchemaBuilders = new PortRuntimeSchemaBuilder[ outputPortCount ];
     }
 
-    public OperatorRuntimeSchemaBuilder ( final int inputPortCount, final int outputPortCount, final OperatorSchema operatorSchema )
+    OperatorRuntimeSchemaBuilder ( final int inputPortCount, final int outputPortCount, final OperatorSchema operatorSchema )
     {
         checkArgument( inputPortCount >= 0, "input port count must be non-negative" );
         checkArgument( outputPortCount >= 0, "output port count must be non-negative" );

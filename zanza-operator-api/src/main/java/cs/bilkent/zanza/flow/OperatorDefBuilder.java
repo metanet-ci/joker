@@ -208,7 +208,7 @@ public final class OperatorDefBuilder
                                                                                                  && partitionFieldNames.isEmpty() ),
                     "partition field names can be only used with " + PARTITIONED_STATEFUL + " operators!" );
         checkState( this.partitionFieldNames == null, "partition key extractor can be set only once" );
-        partitionFieldNames.stream().forEach( this::failIfFieldNotExistInInputPortsOrExistWithDifferentTypes );
+        partitionFieldNames.forEach( this::failIfFieldNotExistInInputPortsOrExistWithDifferentTypes );
         this.partitionFieldNames = partitionFieldNames;
         return this;
     }
