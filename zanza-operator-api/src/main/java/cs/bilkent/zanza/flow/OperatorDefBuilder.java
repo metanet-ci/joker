@@ -193,12 +193,8 @@ public final class OperatorDefBuilder
         failIfExtendingSchemaPortSchemaSizesMismatch( extendingSchema.getOutputSchemas().size(), this.outputPortCount );
         if ( this.schema != null )
         {
-            extendingSchema.getInputSchemas()
-                           .stream()
-                           .forEach( s -> failIfExtendingSchemaContainsDuplicateField( s, this.schema.inputs() ) );
-            extendingSchema.getOutputSchemas()
-                           .stream()
-                           .forEach( s -> failIfExtendingSchemaContainsDuplicateField( s, this.schema.outputs() ) );
+            extendingSchema.getInputSchemas().forEach( s -> failIfExtendingSchemaContainsDuplicateField( s, this.schema.inputs() ) );
+            extendingSchema.getOutputSchemas().forEach( s -> failIfExtendingSchemaContainsDuplicateField( s, this.schema.outputs() ) );
         }
         this.extendingSchema = extendingSchema;
         return this;

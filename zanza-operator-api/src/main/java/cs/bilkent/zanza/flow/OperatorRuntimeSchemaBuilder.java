@@ -47,8 +47,7 @@ public final class OperatorRuntimeSchemaBuilder
         {
             final int portIndex = portSchema.portIndex();
             checkArgument( builders[ portIndex ] == null, "port index: " + portIndex + " has multiple schemas!" );
-            final List<RuntimeSchemaField> fields = Arrays.asList( portSchema.fields() )
-                                                          .stream()
+            final List<RuntimeSchemaField> fields = Arrays.stream( portSchema.fields() )
                                                           .map( f -> new RuntimeSchemaField( f.name(), f.type() ) )
                                                           .collect( toList() );
             final PortRuntimeSchemaBuilder builder = new PortRuntimeSchemaBuilder( portIndex, portSchema.scope(), fields );
