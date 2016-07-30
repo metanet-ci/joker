@@ -28,7 +28,7 @@ public class UpstreamContext
     public UpstreamContext ( final int version, final UpstreamConnectionStatus[] statuses )
     {
         this.version = version;
-        this.statuses = statuses;
+        this.statuses = Arrays.copyOf( statuses, statuses.length );
     }
 
     public int getVersion ()

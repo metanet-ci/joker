@@ -77,7 +77,7 @@ public class PipelineReplica
     {
         this.config = config;
         this.id = id;
-        this.operators = operators;
+        this.operators = Arrays.copyOf( operators, operators.length );
         this.operatorCount = operators.length;
         this.upstreamTupleQueueContext = upstreamTupleQueueContext;
         this.upstreamInputPortCount = operators[ 0 ].getOperatorDef().inputPortCount();

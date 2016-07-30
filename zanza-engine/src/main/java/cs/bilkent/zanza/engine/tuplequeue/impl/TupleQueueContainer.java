@@ -162,7 +162,7 @@ public class TupleQueueContainer
                        TupleAvailabilityByPort.class,
                        tupleAvailabilityByPort,
                        operatorId );
-        this.tupleCounts = tupleCounts;
+        this.tupleCounts = Arrays.copyOf( tupleCounts, tupleCounts.length );
         this.tupleAvailabilityByPort = tupleAvailabilityByPort;
         this.drainableKeys.clear();
         for ( Entry<Object, TupleQueue[]> e : tupleQueuesByKeys.entrySet() )

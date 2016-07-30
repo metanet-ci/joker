@@ -1,5 +1,6 @@
 package cs.bilkent.zanza.engine.pipeline.impl.downstreamtuplesender;
 
+import java.util.Arrays;
 import java.util.concurrent.Future;
 
 import cs.bilkent.zanza.engine.pipeline.DownstreamTupleSender;
@@ -14,7 +15,7 @@ public class CompositeDownstreamTupleSender implements DownstreamTupleSender
 
     public CompositeDownstreamTupleSender ( final DownstreamTupleSender[] senders )
     {
-        this.senders = senders;
+        this.senders = Arrays.copyOf( senders, senders.length );
         this.size = senders.length;
     }
 

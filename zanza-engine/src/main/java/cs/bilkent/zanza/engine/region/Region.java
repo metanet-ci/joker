@@ -1,5 +1,7 @@
 package cs.bilkent.zanza.engine.region;
 
+import java.util.Arrays;
+
 import cs.bilkent.zanza.engine.pipeline.PipelineReplica;
 
 public class Region
@@ -13,7 +15,11 @@ public class Region
     public Region ( final RegionConfig config, final PipelineReplica[][] pipelines )
     {
         this.config = config;
-        this.pipelines = pipelines;
+        this.pipelines = Arrays.copyOf( pipelines, pipelines.length );
+        for ( int i = 0; i < pipelines.length; i++ )
+        {
+            this.pipelines[ i ] = Arrays.copyOf( pipelines[ i ], pipelines[ i ].length );
+        }
     }
 
     public int getRegionId ()

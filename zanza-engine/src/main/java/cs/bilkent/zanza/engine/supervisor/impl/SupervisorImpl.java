@@ -230,7 +230,7 @@ public class SupervisorImpl implements Supervisor
                 if ( shutdownFuture == null )
                 {
                     shutdownFuture = new CompletableFuture<>();
-                    queue.offer( this::triggerShutdown );
+                    assert queue.offer( this::triggerShutdown );
                 }
 
                 future = shutdownFuture;
@@ -281,7 +281,7 @@ public class SupervisorImpl implements Supervisor
         {
             if ( status == SHUTTING_DOWN )
             {
-                queue.offer( () -> doNotifyPipelineReplicaCompleted( id ) );
+                assert queue.offer( () -> doNotifyPipelineReplicaCompleted( id ) );
             }
             else
             {
@@ -298,7 +298,7 @@ public class SupervisorImpl implements Supervisor
         {
             if ( status == RUNNING || status == SHUTTING_DOWN )
             {
-                queue.offer( () -> doNotifyPipelineReplicaFailed( id, failure ) );
+                assert queue.offer( () -> doNotifyPipelineReplicaFailed( id, failure ) );
             }
             else
             {
@@ -504,7 +504,7 @@ public class SupervisorImpl implements Supervisor
 
     private void stopPipelineReplicaRunners ()
     {
-        final List<Future<Void>> futures = new ArrayList<>();
+        final List<Future<Boolean>> futures = new ArrayList<>();
         for ( Pipeline pipeline : pipelines.values() )
         {
             for ( int replicaIndex = 0; replicaIndex < pipeline.getReplicaCount(); replicaIndex++ )
@@ -526,7 +526,7 @@ public class SupervisorImpl implements Supervisor
             }
         }
 
-        for ( Future<Void> future : futures )
+        for ( Future<Boolean> future : futures )
         {
             try
             {

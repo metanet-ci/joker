@@ -1,5 +1,7 @@
 package cs.bilkent.zanza.operator.impl;
 
+import java.util.Arrays;
+
 import cs.bilkent.zanza.operator.InvocationContext;
 import cs.bilkent.zanza.operator.kvstore.KVStore;
 
@@ -54,7 +56,7 @@ public class InvocationContextImpl implements InvocationContext
 
     public void setUpstreamConnectionStatuses ( final boolean[] upstreamConnectionStatuses )
     {
-        this.upstreamConnectionStatuses = upstreamConnectionStatuses;
+        this.upstreamConnectionStatuses = Arrays.copyOf( upstreamConnectionStatuses, upstreamConnectionStatuses.length );
     }
 
     @Override

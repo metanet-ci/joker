@@ -1,6 +1,7 @@
 package cs.bilkent.zanza.engine.pipeline.impl.downstreamtuplesender;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Future;
 
@@ -32,9 +33,9 @@ public abstract class AbstractPartitionedDownstreamTupleSender implements Downst
                                                       final PartitionKeyFunction partitionKeyExtractor )
     {
         this.partitionCount = partitionCount;
-        this.partitionDistribution = partitionDistribution;
+        this.partitionDistribution = Arrays.copyOf( partitionDistribution, partitionDistribution.length );
         this.replicaCount = tupleQueueContexts.length;
-        this.tupleQueueContexts = tupleQueueContexts;
+        this.tupleQueueContexts = Arrays.copyOf( tupleQueueContexts, tupleQueueContexts.length );
         this.partitionKeyExtractor = partitionKeyExtractor;
         this.tupleLists = new List[ tupleQueueContexts.length ];
         for ( int i = 0; i < tupleQueueContexts.length; i++ )

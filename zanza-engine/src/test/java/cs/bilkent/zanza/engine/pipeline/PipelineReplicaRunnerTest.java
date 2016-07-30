@@ -225,10 +225,10 @@ public class PipelineReplicaRunnerTest extends ZanzaAbstractTest
         final UpstreamContext upstreamContext = new UpstreamContext( 1, new UpstreamConnectionStatus[] { CLOSED } );
         when( supervisor.getUpstreamContext( pipeline.id() ) ).thenReturn( upstreamContext );
 
-        final CompletableFuture<Void> future = runner.updatePipelineUpstreamContext();
+        final CompletableFuture<Boolean> future = runner.updatePipelineUpstreamContext();
         assertTrueEventually( () -> verify( supervisor, times( 2 ) ).getUpstreamContext( id ) );
         when( supervisorNotifier.isPipelineCompleted() ).thenReturn( true );
-        future.get();
+        assertTrue( future.get() );
 
         assertThat( runner.getPipelineUpstreamContext(), equalTo( upstreamContext ) );
     }

@@ -30,6 +30,7 @@
         <mockito.version>1.10.19</mockito.version>
         <jsr305.version>3.0.1</jsr305.version>
         <trove4j.version>3.0.3</trove4j.version>
+        <findbugs-maven-plugin.version>3.0.1</findbugs-maven-plugin.version>
     </properties>
 
     <dependencies>
@@ -131,5 +132,34 @@
             </plugins>
         </pluginManagement>
     </build>
+
+    <profiles>
+        <profile>
+            <id>findbugs</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>findbugs-maven-plugin</artifactId>
+                        <version>${findbugs-maven-plugin.version}</version>
+                        <configuration>
+                            <findbugsXmlOutput>true</findbugsXmlOutput>
+                            <xmlOutput>true</xmlOutput>
+                            <failOnError>true</failOnError>
+                            <!--<excludeFilterFile>${main.basedir}/findbugs/findbugs-exclude.xml</excludeFilterFile>-->
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <phase>compile</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>

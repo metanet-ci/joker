@@ -55,7 +55,7 @@ public interface InitializationContext
      */
     default boolean isInputPortClosed ( int portIndex )
     {
-        return !isInputPortClosed( portIndex );
+        return !isInputPortOpen( portIndex );
     }
 
     /**

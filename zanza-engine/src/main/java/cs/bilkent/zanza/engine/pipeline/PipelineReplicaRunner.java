@@ -19,6 +19,7 @@ import static cs.bilkent.zanza.engine.pipeline.PipelineReplicaRunner.PipelineRep
 import cs.bilkent.zanza.engine.supervisor.Supervisor;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import cs.bilkent.zanza.operator.scheduling.ScheduleNever;
+import static java.lang.Boolean.TRUE;
 
 /**
  * Execution model of the operators is such that it invokes all of the invokable operators until they set their scheduling strategy to
@@ -96,9 +97,9 @@ public class PipelineReplicaRunner implements Runnable
         }
     }
 
-    public CompletableFuture<Void> pause ()
+    public CompletableFuture<Boolean> pause ()
     {
-        final CompletableFuture<Void> result;
+        final CompletableFuture<Boolean> result;
         synchronized ( monitor )
         {
             PipelineReplicaRunnerCommand command = this.command;
@@ -118,7 +119,7 @@ public class PipelineReplicaRunner implements Runnable
                     LOGGER.info( "{}: Completing pending {} command because of new {} command.", id, RESUME, PAUSE );
                     command.complete();
                     this.command = null;
-                    result = CompletableFuture.completedFuture( null );
+                    result = CompletableFuture.completedFuture( TRUE );
                 }
                 else if ( type == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
                 {
@@ -141,7 +142,7 @@ public class PipelineReplicaRunner implements Runnable
             else if ( status == PAUSED )
             {
                 LOGGER.info( "{} is already {}", id, PAUSED );
-                result = CompletableFuture.completedFuture( null );
+                result = CompletableFuture.completedFuture( TRUE );
             }
             else if ( status == RUNNING )
             {
@@ -162,9 +163,9 @@ public class PipelineReplicaRunner implements Runnable
         return result;
     }
 
-    public CompletableFuture<Void> resume ()
+    public CompletableFuture<Boolean> resume ()
     {
-        final CompletableFuture<Void> result;
+        final CompletableFuture<Boolean> result;
         synchronized ( monitor )
         {
             PipelineReplicaRunnerCommand command = this.command;
@@ -185,7 +186,7 @@ public class PipelineReplicaRunner implements Runnable
                     LOGGER.info( "{}: Completing pending {} command because of new {} command.", id, PAUSE, RESUME );
                     command.complete();
                     this.command = null;
-                    result = CompletableFuture.completedFuture( null );
+                    result = CompletableFuture.completedFuture( TRUE );
                 }
                 else if ( type == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
                 {
@@ -208,7 +209,7 @@ public class PipelineReplicaRunner implements Runnable
             }
             else if ( status == RUNNING )
             {
-                result = CompletableFuture.completedFuture( null );
+                result = CompletableFuture.completedFuture( TRUE );
 
             }
             else if ( status == PAUSED )
@@ -229,9 +230,9 @@ public class PipelineReplicaRunner implements Runnable
         return result;
     }
 
-    public CompletableFuture<Void> stop ()
+    public CompletableFuture<Boolean> stop ()
     {
-        final CompletableFuture<Void> result;
+        final CompletableFuture<Boolean> result;
         synchronized ( monitor )
         {
             PipelineReplicaRunnerCommand command = this.command;
@@ -284,7 +285,7 @@ public class PipelineReplicaRunner implements Runnable
             else if ( status == COMPLETED )
             {
                 LOGGER.info( "{} is already {}", id, COMPLETED );
-                result = CompletableFuture.completedFuture( null );
+                result = CompletableFuture.completedFuture( TRUE );
             }
             else
             {
@@ -298,9 +299,9 @@ public class PipelineReplicaRunner implements Runnable
         return result;
     }
 
-    public CompletableFuture<Void> updatePipelineUpstreamContext ()
+    public CompletableFuture<Boolean> updatePipelineUpstreamContext ()
     {
-        final CompletableFuture<Void> result;
+        final CompletableFuture<Boolean> result;
         synchronized ( monitor )
         {
             PipelineReplicaRunnerCommand command = this.command;
@@ -524,14 +525,14 @@ public class PipelineReplicaRunner implements Runnable
 
         private final PipelineReplicaRunnerCommandType type;
 
-        private final CompletableFuture<Void> future;
+        private final CompletableFuture<Boolean> future;
 
         private PipelineReplicaRunnerCommand ( final PipelineReplicaRunnerCommandType type )
         {
             this( type, new CompletableFuture<>() );
         }
 
-        private PipelineReplicaRunnerCommand ( final PipelineReplicaRunnerCommandType type, final CompletableFuture<Void> future )
+        private PipelineReplicaRunnerCommand ( final PipelineReplicaRunnerCommandType type, final CompletableFuture<Boolean> future )
         {
             this.type = type;
             this.future = future;
@@ -539,7 +540,7 @@ public class PipelineReplicaRunner implements Runnable
 
         void complete ()
         {
-            future.complete( null );
+            future.complete( TRUE );
         }
 
         void completeExceptionally ( final Throwable throwable )

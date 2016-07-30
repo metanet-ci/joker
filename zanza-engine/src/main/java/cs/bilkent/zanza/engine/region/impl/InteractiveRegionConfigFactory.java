@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javax.inject.Singleton;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Splitter;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -33,7 +34,7 @@ public class InteractiveRegionConfigFactory implements RegionConfigFactory
     public List<RegionConfig> createRegionConfigs ( final FlowDef flow, final List<RegionDef> regions )
     {
         checkArgument( regions != null, "null region definitions" );
-        try ( final BufferedReader br = new BufferedReader( new InputStreamReader( System.in ) ) )
+        try ( final BufferedReader br = new BufferedReader( new InputStreamReader( System.in, Charsets.UTF_8 ) ) )
         {
             final List<RegionConfig> regionConfigs = new ArrayList<>( regions.size() );
 
@@ -109,6 +110,7 @@ public class InteractiveRegionConfigFactory implements RegionConfigFactory
         }
     }
 
+    // TODO return regions topologically sorted
     private List<RegionDef> getRegionsBFSOrdered ( final FlowDef flow, final List<RegionDef> regions )
     {
         final List<RegionDef> curr = new LinkedList<>();

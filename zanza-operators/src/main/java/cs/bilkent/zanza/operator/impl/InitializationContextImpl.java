@@ -1,5 +1,6 @@
 package cs.bilkent.zanza.operator.impl;
 
+import java.util.Arrays;
 import java.util.List;
 
 import cs.bilkent.zanza.operator.InitializationContext;
@@ -42,7 +43,7 @@ public class InitializationContextImpl implements InitializationContext
         this.partitionFieldNames = partitionFieldNames;
         this.runtimeSchema = runtimeSchema;
         this.config = config;
-        this.upstreamConnectionStatuses = upstreamConnectionStatuses;
+        this.upstreamConnectionStatuses = Arrays.copyOf( upstreamConnectionStatuses, upstreamConnectionStatuses.length );
     }
 
     public void setId ( final String id )
@@ -119,6 +120,6 @@ public class InitializationContextImpl implements InitializationContext
 
     public void setUpstreamConnectionStatuses ( final boolean[] upstreamConnectionStatuses )
     {
-        this.upstreamConnectionStatuses = upstreamConnectionStatuses;
+        this.upstreamConnectionStatuses = Arrays.copyOf( upstreamConnectionStatuses, upstreamConnectionStatuses.length );
     }
 }

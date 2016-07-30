@@ -11,7 +11,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 public abstract class ZanzaAbstractTest
 {
 
-    public static long DEFAULT_ASSERT_EVENTUALLY_TIMEOUT_IN_SECONDS = 30;
+    public static final long DEFAULT_ASSERT_EVENTUALLY_TIMEOUT_IN_SECONDS = 30;
 
 
     @FunctionalInterface

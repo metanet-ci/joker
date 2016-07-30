@@ -30,11 +30,22 @@ public final class TuplesImpl implements Tuples
         int sysArg = -1;
         try
         {
-            sysArg = Integer.parseInt( System.getProperty( INITIAL_CAPACITY_SYS_PARAM ) );
-            System.out.println( "Static initialization: " + TuplesImpl.class.getSimpleName() + " initial capacity is set to " + sysArg );
+            String val = System.getProperty( INITIAL_CAPACITY_SYS_PARAM );
+            if ( val != null )
+            {
+                val = val.trim();
+                if ( val.length() > 0 )
+                {
+                    sysArg = Integer.parseInt( val );
+                    System.out.println(
+                            "Static initialization: " + TuplesImpl.class.getSimpleName() + " initial capacity is set to " + sysArg );
+                }
+            }
         }
-        catch ( Exception expected )
+        catch ( Exception e )
         {
+            System.err.println( "Static initialization: " + TuplesImpl.class.getSimpleName() + " initial capacity failed " );
+            e.printStackTrace();
         }
 
         INITIAL_CAPACITY = sysArg != -1 ? sysArg : DEFAULT_INITIAL_CAPACITY;

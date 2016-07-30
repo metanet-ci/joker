@@ -122,7 +122,7 @@ public final class ScheduleWhenTuplesAvailable implements SchedulingStrategy
                                                      && tupleAvailabilityByPort == ANY_PORT ) );
         this.tupleAvailabilityByCount = tupleAvailabilityByCount;
         this.tupleAvailabilityByPort = tupleAvailabilityByPort;
-        this.tupleCounts = tupleCounts;
+        this.tupleCounts = Arrays.copyOf( tupleCounts, tupleCounts.length );
         validateTupleCounts();
     }
 
@@ -202,7 +202,7 @@ public final class ScheduleWhenTuplesAvailable implements SchedulingStrategy
 
     public int[] getTupleCounts ()
     {
-        return tupleCounts;
+        return Arrays.copyOf( tupleCounts, tupleCounts.length );
     }
 
     public TupleAvailabilityByPort getTupleAvailabilityByPort ()

@@ -76,7 +76,7 @@ public interface InvocationContext
      */
     default boolean isInputPortClosed ( int portIndex )
     {
-        return !isInputPortClosed( portIndex );
+        return !isInputPortOpen( portIndex );
     }
 
     /**
