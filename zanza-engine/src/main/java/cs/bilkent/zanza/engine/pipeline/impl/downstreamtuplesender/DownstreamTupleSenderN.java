@@ -25,7 +25,7 @@ public class DownstreamTupleSenderN implements DownstreamTupleSender
                        tupleQueueContext.getOperatorId() );
         final int portCount = sourcePorts.length;
         this.ports = new int[ portCount * 2 ];
-        this.limit = sourcePorts.length - 1;
+        this.limit = this.ports.length - 1;
         for ( int i = 0; i < portCount; i++ )
         {
             ports[ i * 2 ] = sourcePorts[ i ];
@@ -39,7 +39,7 @@ public class DownstreamTupleSenderN implements DownstreamTupleSender
     {
         for ( int i = 0; i < limit; i += 2 )
         {
-            tupleQueueContext.offer( ports[ i ], tuples.getTuples( ports[ i + 1 ] ) );
+            tupleQueueContext.offer( ports[ i + 1 ], tuples.getTuples( ports[ i ] ) );
         }
 
         return null;

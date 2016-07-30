@@ -44,7 +44,7 @@ public abstract class AbstractPartitionedDownstreamTupleSender implements Downst
         }
     }
 
-    protected Future<Void> send ( final TuplesImpl input, final int sourcePortIndex, final int destinationPortIndex )
+    protected final Future<Void> send ( final TuplesImpl input, final int sourcePortIndex, final int destinationPortIndex )
     {
         for ( Tuple tuple : input.getTuples( sourcePortIndex ) )
         {
@@ -55,10 +55,11 @@ public abstract class AbstractPartitionedDownstreamTupleSender implements Downst
 
         for ( int i = 0; i < replicaCount; i++ )
         {
-            if ( tupleLists[ i ].size() > 0 )
+            final List<Tuple> tuples = tupleLists[ i ];
+            if ( tuples.size() > 0 )
             {
-                tupleQueueContexts[ i ].offer( destinationPortIndex, tupleLists[ i ] );
-                tupleLists[ i ].clear();
+                tupleQueueContexts[ i ].offer( destinationPortIndex, tuples );
+                tuples.clear();
             }
         }
 
