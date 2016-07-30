@@ -22,7 +22,7 @@ import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.flow.OperatorDef;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -38,7 +38,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith( MockitoJUnitRunner.class )
-public class PipelineReplicaRunnerTest extends ZanzaTest
+public class PipelineReplicaRunnerTest extends ZanzaAbstractTest
 {
 
     @Mock

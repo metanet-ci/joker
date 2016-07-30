@@ -25,6 +25,8 @@ public class MapperOperator implements Operator
 
     public static final String TUPLE_COUNT_CONFIG_PARAMETER = "tupleCount";
 
+    public static final int DEFAULT_TUPLE_COUNT_CONFIG_VALUE = 1;
+
 
     private Function<Tuple, Tuple> mapper;
 
@@ -34,7 +36,7 @@ public class MapperOperator implements Operator
         final OperatorConfig config = context.getConfig();
 
         this.mapper = config.getOrFail( MAPPER_CONFIG_PARAMETER );
-        final int tupleCount = config.getIntegerOrDefault( TUPLE_COUNT_CONFIG_PARAMETER, 1 );
+        final int tupleCount = config.getIntegerOrDefault( TUPLE_COUNT_CONFIG_PARAMETER, DEFAULT_TUPLE_COUNT_CONFIG_VALUE );
         return scheduleWhenTuplesAvailableOnDefaultPort( tupleCount );
     }
 

@@ -66,7 +66,7 @@ import static cs.bilkent.zanza.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.zanza.operators.FilterOperator;
 import cs.bilkent.zanza.operators.MapperOperator;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import cs.bilkent.zanza.utils.Pair;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
@@ -76,7 +76,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 // TODO clean up duplicate code
-public class PipelineIntegrationTest extends ZanzaTest
+public class PipelineIntegrationTest extends ZanzaAbstractTest
 {
 
     private static final int REGION_ID = 1;

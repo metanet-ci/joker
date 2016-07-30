@@ -24,7 +24,7 @@ import cs.bilkent.zanza.operator.spec.OperatorType;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.zanza.operators.MapperOperator;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -33,7 +33,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.fail;
 
-public class RegionDefFormerImplAllRegionsTest extends ZanzaTest
+public class RegionDefFormerImplAllRegionsTest extends ZanzaAbstractTest
 {
 
     private final RegionDefFormerImpl regionFormer = new RegionDefFormerImpl();

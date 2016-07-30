@@ -23,13 +23,13 @@ import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import cs.bilkent.zanza.operator.kvstore.KVStore;
 import cs.bilkent.zanza.operator.kvstore.impl.InMemoryKVStore;
 import cs.bilkent.zanza.operator.kvstore.impl.KeyDecoratedKVStore;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;
 
-public class VWAPAggregatorOperatorTest extends ZanzaTest
+public class VWAPAggregatorOperatorTest extends ZanzaAbstractTest
 {
 
     private static final String TUPLE_PARTITION_KEY = "key1";

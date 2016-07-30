@@ -9,7 +9,7 @@ import org.junit.Test;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.operator.Tuple;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static java.lang.Thread.State.TIMED_WAITING;
 import static java.lang.Thread.State.WAITING;
 import static java.util.Arrays.asList;
@@ -17,7 +17,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class MultiThreadedTupleQueueTest extends ZanzaTest
+public class MultiThreadedTupleQueueTest extends ZanzaAbstractTest
 {
 
     private static final int TIMEOUT_IN_MILLIS = 5000;

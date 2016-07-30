@@ -11,7 +11,7 @@ import java.util.Set;
 
 import org.junit.Test;
 
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
@@ -21,7 +21,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 
-public class TupleTest extends ZanzaTest
+public class TupleTest extends ZanzaAbstractTest
 {
     private Tuple tuple = new Tuple();
 

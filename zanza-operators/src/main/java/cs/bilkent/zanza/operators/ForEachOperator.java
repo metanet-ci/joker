@@ -12,7 +12,7 @@ import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAva
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
-import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
+import static cs.bilkent.zanza.operator.spec.OperatorType.STATEFUL;
 
 
 /**
@@ -20,13 +20,15 @@ import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
  * Forwards all input tuples to default output port directly.
  * {@link Consumer} function is assumed not to mutate input tuples.
  */
-@OperatorSpec( type = STATELESS, inputPortCount = 1, outputPortCount = 1 )
+@OperatorSpec( type = STATEFUL, inputPortCount = 1, outputPortCount = 1 )
 public class ForEachOperator implements Operator
 {
 
     public static final String CONSUMER_FUNCTION_CONFIG_PARAMETER = "consumer";
 
     public static final String EXACT_TUPLE_COUNT_CONFIG_PARAMETER = "tupleCount";
+
+    public static final int DEFAULT_TUPLE_COUNT_CONFIG_VALUE = 1;
 
 
     private Consumer<Tuple> consumerFunc;
@@ -37,7 +39,7 @@ public class ForEachOperator implements Operator
         final OperatorConfig config = context.getConfig();
 
         this.consumerFunc = config.getOrFail( CONSUMER_FUNCTION_CONFIG_PARAMETER );
-        final int tupleCount = config.getIntegerOrDefault( EXACT_TUPLE_COUNT_CONFIG_PARAMETER, 1 );
+        final int tupleCount = config.getIntegerOrDefault( EXACT_TUPLE_COUNT_CONFIG_PARAMETER, DEFAULT_TUPLE_COUNT_CONFIG_VALUE );
 
         return tupleCount > 0
                ? scheduleWhenTuplesAvailableOnDefaultPort( TupleAvailabilityByCount.EXACT, tupleCount )

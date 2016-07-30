@@ -18,14 +18,14 @@ import static cs.bilkent.zanza.operators.ExponentialMovingAverageAggregationOper
 import static cs.bilkent.zanza.operators.ExponentialMovingAverageAggregationOperator.TUPLE_COUNT_FIELD;
 import static cs.bilkent.zanza.operators.ExponentialMovingAverageAggregationOperator.VALUE_FIELD;
 import static cs.bilkent.zanza.operators.ExponentialMovingAverageAggregationOperator.WEIGHT_CONFIG_PARAMETER;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 
-public class ExponentialMovingAverageAggregationOperatorTest extends ZanzaTest
+public class ExponentialMovingAverageAggregationOperatorTest extends ZanzaAbstractTest
 {
 
     private final ExponentialMovingAverageAggregationOperator operator = new ExponentialMovingAverageAggregationOperator();

@@ -8,13 +8,13 @@ import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.EXACT;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;
 
 
-public class NonBlockingMultiPortDisjunctiveDrainerTest extends ZanzaTest
+public class NonBlockingMultiPortDisjunctiveDrainerTest extends ZanzaAbstractTest
 {
 
     @Test

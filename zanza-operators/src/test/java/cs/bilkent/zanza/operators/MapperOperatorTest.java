@@ -18,14 +18,14 @@ import cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import static cs.bilkent.zanza.operators.MapperOperator.MAPPER_CONFIG_PARAMETER;
 import static cs.bilkent.zanza.operators.MapperOperator.TUPLE_COUNT_CONFIG_PARAMETER;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertTrue;
 
 
-public class MapperOperatorTest extends ZanzaTest
+public class MapperOperatorTest extends ZanzaAbstractTest
 {
 
     private final MapperOperator operator = new MapperOperator();

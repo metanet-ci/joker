@@ -15,13 +15,13 @@ import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import static cs.bilkent.zanza.operators.FilterOperator.PREDICATE_CONFIG_PARAMETER;
 import static cs.bilkent.zanza.operators.FilterOperator.TUPLE_COUNT_CONFIG_PARAMETER;
 import static cs.bilkent.zanza.operators.MapperOperatorTest.assertScheduleWhenTuplesAvailableStrategy;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertTrue;
 
 
-public class FilterOperatorTest extends ZanzaTest
+public class FilterOperatorTest extends ZanzaAbstractTest
 {
 
     private final FilterOperator operator = new FilterOperator();

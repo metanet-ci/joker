@@ -18,14 +18,14 @@ import static cs.bilkent.zanza.operators.BarrierOperator.MERGE_POLICY_CONfIG_PAR
 import cs.bilkent.zanza.operators.BarrierOperator.TupleValueMergePolicy;
 import static cs.bilkent.zanza.operators.BarrierOperator.TupleValueMergePolicy.KEEP_EXISTING_VALUE;
 import static cs.bilkent.zanza.operators.BarrierOperator.TupleValueMergePolicy.OVERWRITE_WITH_NEW_VALUE;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertTrue;
 
 
-public class BarrierOperatorTest extends ZanzaTest
+public class BarrierOperatorTest extends ZanzaAbstractTest
 {
 
     private final BarrierOperator operator = new BarrierOperator();

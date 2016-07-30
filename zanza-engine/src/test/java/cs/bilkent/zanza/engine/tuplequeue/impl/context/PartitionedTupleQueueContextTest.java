@@ -15,12 +15,12 @@ import cs.bilkent.zanza.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import cs.bilkent.zanza.operator.Tuple;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ANY_PORT;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
-public class PartitionedTupleQueueContextTest extends ZanzaTest
+public class PartitionedTupleQueueContextTest extends ZanzaAbstractTest
 {
 
     private static final int INPUT_PORT_COUNT = 2;

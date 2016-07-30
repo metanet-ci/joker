@@ -18,11 +18,11 @@ import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.OperatorConfig;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.spec.OperatorType;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static org.junit.Assert.assertTrue;
 
 
-public class TupleQueueContextManagerImplTest extends ZanzaTest
+public class TupleQueueContextManagerImplTest extends ZanzaAbstractTest
 {
 
     private TupleQueueContextManagerImpl tupleQueueManager;

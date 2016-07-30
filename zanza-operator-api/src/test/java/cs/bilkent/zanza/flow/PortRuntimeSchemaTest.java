@@ -3,12 +3,12 @@ package cs.bilkent.zanza.flow;
 import org.junit.Test;
 
 import cs.bilkent.zanza.operator.schema.runtime.PortRuntimeSchema;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 
-public class PortRuntimeSchemaTest extends ZanzaTest
+public class PortRuntimeSchemaTest extends ZanzaAbstractTest
 {
 
     private final PortRuntimeSchemaBuilder sourceSchemaBuilder = new PortRuntimeSchemaBuilder( 0 );

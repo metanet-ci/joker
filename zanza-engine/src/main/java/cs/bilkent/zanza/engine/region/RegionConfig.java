@@ -17,7 +17,7 @@ public class RegionConfig
 
     private final List<Integer> pipelineStartIndices;
 
-    public RegionConfig ( final int regionId, final RegionDef regionDef, final int replicaCount, final List<Integer> pipelineStartIndices )
+    public RegionConfig ( final int regionId, final RegionDef regionDef, final List<Integer> pipelineStartIndices, final int replicaCount )
     {
         checkArgument( ( regionDef.getRegionType() == PARTITIONED_STATEFUL && replicaCount > 0 ) || replicaCount == 1 );
         this.regionId = regionId;

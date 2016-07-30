@@ -23,7 +23,7 @@ import cs.bilkent.zanza.operator.spec.OperatorSpec;
 import cs.bilkent.zanza.operator.spec.OperatorType;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -32,7 +32,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 
-public class OperatorDefBuilderTest extends ZanzaTest
+public class OperatorDefBuilderTest extends ZanzaAbstractTest
 {
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotBuildBuilderWithNullId ()

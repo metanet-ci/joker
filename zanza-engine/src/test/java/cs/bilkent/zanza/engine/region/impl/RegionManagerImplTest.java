@@ -44,7 +44,7 @@ import cs.bilkent.zanza.operator.Operator;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
 import cs.bilkent.zanza.operator.spec.OperatorType;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
@@ -53,7 +53,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-public class RegionManagerImplTest extends ZanzaTest
+public class RegionManagerImplTest extends ZanzaAbstractTest
 {
 
     private RegionManagerImpl regionManager;
@@ -83,7 +83,7 @@ public class RegionManagerImplTest extends ZanzaTest
 
         final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 0 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, 1, singletonList( 0 ) );
+        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, singletonList( 0 ), 1 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
         assertNotNull( region );
@@ -106,7 +106,7 @@ public class RegionManagerImplTest extends ZanzaTest
 
         final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 0 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, 1, asList( 0, 1 ) );
+        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, asList( 0, 1 ), 1 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
         assertNotNull( region );
@@ -146,7 +146,7 @@ public class RegionManagerImplTest extends ZanzaTest
 
         final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 0 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, 1, asList( 0, 1 ) );
+        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, asList( 0, 1 ), 1 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
 
@@ -198,7 +198,7 @@ public class RegionManagerImplTest extends ZanzaTest
 
         final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, 1, singletonList( 0 ) );
+        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, singletonList( 0 ), 1 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
         assertNotNull( region );
@@ -235,7 +235,7 @@ public class RegionManagerImplTest extends ZanzaTest
 
         final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, 1, singletonList( 0 ) );
+        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, singletonList( 0 ), 1 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
         assertNotNull( region );
@@ -267,7 +267,7 @@ public class RegionManagerImplTest extends ZanzaTest
 
         final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, 1, singletonList( 0 ) );
+        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, singletonList( 0 ), 1 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
 
@@ -303,7 +303,7 @@ public class RegionManagerImplTest extends ZanzaTest
 
         final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, 1, singletonList( 0 ) );
+        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, singletonList( 0 ), 1 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
         assertNotNull( region );
@@ -346,7 +346,7 @@ public class RegionManagerImplTest extends ZanzaTest
 
         final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, 1, singletonList( 0 ) );
+        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, singletonList( 0 ), 1 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
 
@@ -390,7 +390,7 @@ public class RegionManagerImplTest extends ZanzaTest
 
         final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, 2, singletonList( 0 ) );
+        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, singletonList( 0 ), 2 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
         assertNotNull( region );
@@ -456,7 +456,7 @@ public class RegionManagerImplTest extends ZanzaTest
 
         final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, 1, singletonList( 0 ) );
+        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, singletonList( 0 ), 1 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
         assertNotNull( region );
@@ -517,7 +517,7 @@ public class RegionManagerImplTest extends ZanzaTest
 
         final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, 2, singletonList( 0 ) );
+        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, singletonList( 0 ), 2 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
         assertNotNull( region );
@@ -599,7 +599,7 @@ public class RegionManagerImplTest extends ZanzaTest
 
         final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, 2, singletonList( 0 ) );
+        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, singletonList( 0 ), 2 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
 
@@ -664,7 +664,7 @@ public class RegionManagerImplTest extends ZanzaTest
 
         final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, 1, asList( 0, 1 ) );
+        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, asList( 0, 1 ), 1 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
         assertNotNull( region );
@@ -744,7 +744,7 @@ public class RegionManagerImplTest extends ZanzaTest
 
         final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, 1, asList( 0, 1, 2 ) );
+        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, asList( 0, 1, 2 ), 1 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
         assertNotNull( region );

@@ -10,13 +10,13 @@ import cs.bilkent.zanza.operator.schema.annotation.SchemaField;
 import cs.bilkent.zanza.operator.schema.runtime.OperatorRuntimeSchema;
 import cs.bilkent.zanza.operator.schema.runtime.PortRuntimeSchema;
 import cs.bilkent.zanza.operator.schema.runtime.RuntimeSchemaField;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 
 
-public class OperatorRuntimeSchemaBuilderTest extends ZanzaTest
+public class OperatorRuntimeSchemaBuilderTest extends ZanzaAbstractTest
 {
 
     @Test( expected = IllegalArgumentException.class )

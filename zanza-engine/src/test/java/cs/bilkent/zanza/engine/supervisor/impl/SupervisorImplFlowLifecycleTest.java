@@ -46,13 +46,13 @@ import cs.bilkent.zanza.operator.schema.annotation.SchemaField;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATEFUL;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class SupervisorImplFlowLifecycleTest extends ZanzaTest
+public class SupervisorImplFlowLifecycleTest extends ZanzaAbstractTest
 {
 
     private SupervisorImpl supervisor;
@@ -78,10 +78,10 @@ public class SupervisorImplFlowLifecycleTest extends ZanzaTest
 
         final FlowDef flowDef = new FlowDefBuilder().add( operatorDef1 ).add( operatorDef2 ).connect( "op1", "op2" ).build();
         final List<RegionDef> regions = regionDefFormer.createRegions( flowDef );
-        final RegionConfig regionConfig1 = new RegionConfig( 0, regions.get( 0 ), 1, singletonList( 0 ) );
-        final RegionConfig regionConfig2 = new RegionConfig( 1, regions.get( 1 ), 1, singletonList( 0 ) );
+        final RegionConfig regionConfig1 = new RegionConfig( 0, regions.get( 0 ), singletonList( 0 ), 1 );
+        final RegionConfig regionConfig2 = new RegionConfig( 1, regions.get( 1 ), singletonList( 0 ), 1 );
 
-        supervisor.deploy( flowDef, Arrays.asList( regionConfig1, regionConfig2 ) );
+        supervisor.start( flowDef, Arrays.asList( regionConfig1, regionConfig2 ) );
 
         for ( Pipeline pipeline : pipelineManager.getPipelines().values() )
         {
@@ -119,10 +119,10 @@ public class SupervisorImplFlowLifecycleTest extends ZanzaTest
         for ( RegionDef region : regions )
         {
             final int replicaCount = region.getRegionType() == PARTITIONED_STATEFUL ? 4 : 1;
-            regionConfigs.add( new RegionConfig( i++, region, replicaCount, singletonList( 0 ) ) );
+            regionConfigs.add( new RegionConfig( i++, region, singletonList( 0 ), replicaCount ) );
         }
 
-        supervisor.deploy( flowDef, regionConfigs );
+        supervisor.start( flowDef, regionConfigs );
 
         supervisor.shutdown().get( 30, TimeUnit.SECONDS );
     }
@@ -136,12 +136,12 @@ public class SupervisorImplFlowLifecycleTest extends ZanzaTest
 
         final FlowDef flowDef = new FlowDefBuilder().add( operatorDef1 ).add( operatorDef2 ).connect( "op1", "op2" ).build();
         final List<RegionDef> regions = regionDefFormer.createRegions( flowDef );
-        final RegionConfig regionConfig1 = new RegionConfig( 0, regions.get( 0 ), 1, singletonList( 0 ) );
-        final RegionConfig regionConfig2 = new RegionConfig( 1, regions.get( 1 ), 1, singletonList( 0 ) );
+        final RegionConfig regionConfig1 = new RegionConfig( 0, regions.get( 0 ), singletonList( 0 ), 1 );
+        final RegionConfig regionConfig2 = new RegionConfig( 1, regions.get( 1 ), singletonList( 0 ), 1 );
 
         try
         {
-            supervisor.deploy( flowDef, Arrays.asList( regionConfig1, regionConfig2 ) );
+            supervisor.start( flowDef, Arrays.asList( regionConfig1, regionConfig2 ) );
             fail();
         }
         catch ( InitializationException e )
@@ -161,10 +161,10 @@ public class SupervisorImplFlowLifecycleTest extends ZanzaTest
 
         final FlowDef flowDef = new FlowDefBuilder().add( operatorDef1 ).add( operatorDef2 ).connect( "op1", "op2" ).build();
         final List<RegionDef> regions = regionDefFormer.createRegions( flowDef );
-        final RegionConfig regionConfig1 = new RegionConfig( 0, regions.get( 0 ), 1, singletonList( 0 ) );
-        final RegionConfig regionConfig2 = new RegionConfig( 1, regions.get( 1 ), 1, singletonList( 0 ) );
+        final RegionConfig regionConfig1 = new RegionConfig( 0, regions.get( 0 ), singletonList( 0 ), 1 );
+        final RegionConfig regionConfig2 = new RegionConfig( 1, regions.get( 1 ), singletonList( 0 ), 1 );
 
-        supervisor.deploy( flowDef, Arrays.asList( regionConfig1, regionConfig2 ) );
+        supervisor.start( flowDef, Arrays.asList( regionConfig1, regionConfig2 ) );
         assertTrueEventually( () -> assertEquals( FlowStatus.SHUT_DOWN, supervisor.getStatus() ) );
 
         supervisor.shutdown().get( 30, TimeUnit.SECONDS );
@@ -179,10 +179,10 @@ public class SupervisorImplFlowLifecycleTest extends ZanzaTest
 
         final FlowDef flowDef = new FlowDefBuilder().add( operatorDef1 ).add( operatorDef2 ).connect( "op1", "op2" ).build();
         final List<RegionDef> regions = regionDefFormer.createRegions( flowDef );
-        final RegionConfig regionConfig1 = new RegionConfig( 0, regions.get( 0 ), 1, singletonList( 0 ) );
-        final RegionConfig regionConfig2 = new RegionConfig( 1, regions.get( 1 ), 1, singletonList( 0 ) );
+        final RegionConfig regionConfig1 = new RegionConfig( 0, regions.get( 0 ), singletonList( 0 ), 1 );
+        final RegionConfig regionConfig2 = new RegionConfig( 1, regions.get( 1 ), singletonList( 0 ), 1 );
 
-        supervisor.deploy( flowDef, Arrays.asList( regionConfig1, regionConfig2 ) );
+        supervisor.start( flowDef, Arrays.asList( regionConfig1, regionConfig2 ) );
 
         supervisor.shutdown().get( 30, TimeUnit.SECONDS );
     }

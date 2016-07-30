@@ -20,13 +20,13 @@ import cs.bilkent.zanza.operator.impl.InvocationContextImpl;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import cs.bilkent.zanza.operator.kvstore.KVStore;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class AbstractOperatorReplicaInvocationTest extends ZanzaTest
+class AbstractOperatorReplicaInvocationTest extends ZanzaAbstractTest
 {
     @Mock
     protected TupleQueueContext queue;

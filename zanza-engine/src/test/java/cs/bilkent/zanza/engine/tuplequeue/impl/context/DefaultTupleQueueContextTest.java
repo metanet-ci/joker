@@ -15,13 +15,13 @@ import cs.bilkent.zanza.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
 import cs.bilkent.zanza.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static junit.framework.TestCase.assertNotNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 
-public class DefaultTupleQueueContextTest extends ZanzaTest
+public class DefaultTupleQueueContextTest extends ZanzaAbstractTest
 {
 
     private static final int TIMEOUT_IN_MILLIS = 2000;

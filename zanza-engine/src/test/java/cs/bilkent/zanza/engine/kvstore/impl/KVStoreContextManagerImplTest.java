@@ -9,7 +9,7 @@ import cs.bilkent.zanza.engine.partition.PartitionService;
 import cs.bilkent.zanza.engine.partition.PartitionServiceImpl;
 import cs.bilkent.zanza.operator.kvstore.KVStore;
 import cs.bilkent.zanza.operator.kvstore.impl.KeyDecoratedKVStore;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;
@@ -17,7 +17,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 
-public class KVStoreContextManagerImplTest extends ZanzaTest
+public class KVStoreContextManagerImplTest extends ZanzaAbstractTest
 {
 
     private static final int REGION_ID = 1;

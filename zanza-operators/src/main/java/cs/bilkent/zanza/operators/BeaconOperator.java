@@ -13,13 +13,13 @@ import cs.bilkent.zanza.operator.Tuples;
 import cs.bilkent.zanza.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
-import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
+import static cs.bilkent.zanza.operator.spec.OperatorType.STATEFUL;
 
 
 /**
  * Produces output tuples on each invocation using the provided tuple generator function
  */
-@OperatorSpec( type = STATELESS, inputPortCount = 0, outputPortCount = 1 )
+@OperatorSpec( type = STATEFUL, inputPortCount = 0, outputPortCount = 1 )
 public class BeaconOperator implements Operator
 {
 

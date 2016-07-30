@@ -11,7 +11,7 @@ import cs.bilkent.zanza.flow.FlowDefBuilder;
 import cs.bilkent.zanza.flow.OperatorDef;
 import cs.bilkent.zanza.flow.OperatorDefBuilder;
 import cs.bilkent.zanza.operators.MapperOperator;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -19,7 +19,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertTrue;
 
-public class RegionDefFormerImplOperatorSequenceTest extends ZanzaTest
+public class RegionDefFormerImplOperatorSequenceTest extends ZanzaAbstractTest
 {
 
     private final RegionDefFormerImpl regionFormer = new RegionDefFormerImpl();

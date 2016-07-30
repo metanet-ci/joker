@@ -7,14 +7,14 @@ import org.junit.Test;
 
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueue;
 import cs.bilkent.zanza.operator.Tuple;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertTrue;
 
 
-public class SingleThreadedTupleQueueTest extends ZanzaTest
+public class SingleThreadedTupleQueueTest extends ZanzaAbstractTest
 {
 
     private final TupleQueue queue = new SingleThreadedTupleQueue( 1 );

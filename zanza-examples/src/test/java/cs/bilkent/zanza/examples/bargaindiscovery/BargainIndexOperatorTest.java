@@ -16,11 +16,11 @@ import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import cs.bilkent.zanza.operator.kvstore.KVStore;
 import cs.bilkent.zanza.operator.kvstore.impl.InMemoryKVStore;
 import cs.bilkent.zanza.operator.kvstore.impl.KeyDecoratedKVStore;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
-public class BargainIndexOperatorTest extends ZanzaTest
+public class BargainIndexOperatorTest extends ZanzaAbstractTest
 {
 
     private static final String TUPLE_PARTITION_KEY = "key1";

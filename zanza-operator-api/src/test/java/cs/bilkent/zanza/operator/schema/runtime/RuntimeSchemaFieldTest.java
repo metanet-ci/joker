@@ -2,12 +2,12 @@ package cs.bilkent.zanza.operator.schema.runtime;
 
 import org.junit.Test;
 
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 
-public class RuntimeSchemaFieldTest extends ZanzaTest
+public class RuntimeSchemaFieldTest extends ZanzaAbstractTest
 {
 
     @Test

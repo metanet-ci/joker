@@ -13,14 +13,14 @@ import cs.bilkent.zanza.operator.impl.InvocationContextImpl;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import static cs.bilkent.zanza.operators.BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER;
 import static cs.bilkent.zanza.operators.BeaconOperator.TUPLE_GENERATOR_CONFIG_PARAMETER;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
 
 
-public class BeaconOperatorTest extends ZanzaTest
+public class BeaconOperatorTest extends ZanzaAbstractTest
 {
 
     private final BeaconOperator operator = new BeaconOperator();

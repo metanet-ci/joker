@@ -8,7 +8,7 @@ import static cs.bilkent.zanza.operator.schema.annotation.PortSchemaScope.EXACT_
 import static cs.bilkent.zanza.operator.schema.annotation.PortSchemaScope.EXTENDABLE_FIELD_SET;
 import cs.bilkent.zanza.operator.schema.runtime.PortRuntimeSchema;
 import cs.bilkent.zanza.operator.schema.runtime.RuntimeSchemaField;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -16,7 +16,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 
 
-public class PortRuntimeSchemaBuilderTest extends ZanzaTest
+public class PortRuntimeSchemaBuilderTest extends ZanzaAbstractTest
 {
 
     @Test( expected = IllegalArgumentException.class )

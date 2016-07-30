@@ -5,14 +5,14 @@ import java.util.List;
 import org.junit.Test;
 
 import cs.bilkent.zanza.operator.Tuple;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 
 
-public class TuplesImplTest extends ZanzaTest
+public class TuplesImplTest extends ZanzaAbstractTest
 {
     private final TuplesImpl tuples = new TuplesImpl( 2 );
 

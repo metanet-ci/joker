@@ -29,7 +29,7 @@ import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.T
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAll;
 import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAny;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.fail;
@@ -40,7 +40,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith( MockitoJUnitRunner.class )
-public class OperatorReplicaInitializationTest extends ZanzaTest
+public class OperatorReplicaInitializationTest extends ZanzaAbstractTest
 {
     @Mock
     private Operator operator;

@@ -14,11 +14,11 @@ import cs.bilkent.zanza.flow.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.zanza.operator.OperatorConfig;
 import cs.bilkent.zanza.operators.MapperOperator;
 import static cs.bilkent.zanza.operators.MapperOperator.MAPPER_CONFIG_PARAMETER;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertNotNull;
 
-public class BargainDiscoveryFlowTest extends ZanzaTest
+public class BargainDiscoveryFlowTest extends ZanzaAbstractTest
 {
 
     @Test

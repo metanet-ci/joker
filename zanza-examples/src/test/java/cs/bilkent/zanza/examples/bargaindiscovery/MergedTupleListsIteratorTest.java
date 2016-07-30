@@ -9,14 +9,14 @@ import java.util.NoSuchElementException;
 import org.junit.Test;
 
 import cs.bilkent.zanza.operator.Tuple;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 
-public class MergedTupleListsIteratorTest extends ZanzaTest
+public class MergedTupleListsIteratorTest extends ZanzaAbstractTest
 {
 
     private final static String FIELD_NAME = "val";

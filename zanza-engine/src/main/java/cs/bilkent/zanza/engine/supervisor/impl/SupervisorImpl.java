@@ -107,20 +107,20 @@ public class SupervisorImpl implements Supervisor
         return status;
     }
 
-    public void deploy ( final FlowDef flow, final List<RegionConfig> regionConfigs ) throws InitializationException
+    public void start ( final FlowDef flow, final List<RegionConfig> regionConfigs ) throws InitializationException
     {
         synchronized ( monitor )
         {
-            doDeploy( flow, regionConfigs );
+            doStart( flow, regionConfigs );
         }
         supervisorThread.start();
     }
 
-    private void doDeploy ( final FlowDef flow, final List<RegionConfig> regionConfigs ) throws InitializationException
+    private void doStart ( final FlowDef flow, final List<RegionConfig> regionConfigs ) throws InitializationException
     {
         try
         {
-            checkState( status == INITIAL, "cannot deploy since status is %s", status );
+            checkState( status == INITIAL, "cannot start since status is %s", status );
             this.flow = flow;
             final List<Pipeline> pipelines = pipelineManager.createPipelines( this, flow, regionConfigs );
             initPipelineReplicas( pipelines );
@@ -134,7 +134,7 @@ public class SupervisorImpl implements Supervisor
         catch ( Exception e )
         {
             status = INITIALIZATION_FAILED;
-            throw new InitializationException( "Flow deployment failed", e );
+            throw new InitializationException( "Flow start failed", e );
         }
     }
 

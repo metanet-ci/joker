@@ -46,7 +46,7 @@ import cs.bilkent.zanza.operator.spec.OperatorType;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
@@ -54,7 +54,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-public class PipelineManagerImplTest extends ZanzaTest
+public class PipelineManagerImplTest extends ZanzaAbstractTest
 {
 
     private final ZanzaConfig zanzaConfig = new ZanzaConfig();
@@ -81,7 +81,7 @@ public class PipelineManagerImplTest extends ZanzaTest
         final FlowDef flow = new FlowDefBuilder().add( operatorDef ).build();
 
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
-        final RegionConfig regionConfig = new RegionConfig( 0, regions.get( 0 ), 1, singletonList( 0 ) );
+        final RegionConfig regionConfig = new RegionConfig( 0, regions.get( 0 ), singletonList( 0 ), 1 );
 
         final List<Pipeline> pipelines = pipelineManager.createPipelines( supervisor, flow, singletonList( regionConfig ) );
 
@@ -108,8 +108,8 @@ public class PipelineManagerImplTest extends ZanzaTest
         assertEquals( 2, regions.size() );
         final RegionDef partitionedStatefulRegionDef = findRegion( regions, PARTITIONED_STATEFUL );
         final RegionDef statefulRegionDef = findRegion( regions, STATEFUL );
-        final RegionConfig regionConfig1 = new RegionConfig( 0, partitionedStatefulRegionDef, 2, singletonList( 0 ) );
-        final RegionConfig regionConfig2 = new RegionConfig( 1, statefulRegionDef, 1, singletonList( 0 ) );
+        final RegionConfig regionConfig1 = new RegionConfig( 0, partitionedStatefulRegionDef, singletonList( 0 ), 2 );
+        final RegionConfig regionConfig2 = new RegionConfig( 1, statefulRegionDef, singletonList( 0 ), 1 );
         final List<Pipeline> pipelines = pipelineManager.createPipelines( supervisor, flow, asList( regionConfig1, regionConfig2 ) );
 
         assertEquals( 2, pipelines.size() );
@@ -144,8 +144,8 @@ public class PipelineManagerImplTest extends ZanzaTest
         assertEquals( 2, regions.size() );
         final RegionDef statefulRegionDef = findRegion( regions, STATEFUL );
         final RegionDef partitionedStatefulRegionDef = findRegion( regions, PARTITIONED_STATEFUL );
-        final RegionConfig regionConfig1 = new RegionConfig( 0, statefulRegionDef, 1, singletonList( 0 ) );
-        final RegionConfig regionConfig2 = new RegionConfig( 1, partitionedStatefulRegionDef, 2, asList( 0, 1 ) );
+        final RegionConfig regionConfig1 = new RegionConfig( 0, statefulRegionDef, singletonList( 0 ), 1 );
+        final RegionConfig regionConfig2 = new RegionConfig( 1, partitionedStatefulRegionDef, asList( 0, 1 ), 2 );
 
         final List<Pipeline> pipelines = pipelineManager.createPipelines( supervisor, flow, asList( regionConfig1, regionConfig2 ) );
 
@@ -194,8 +194,8 @@ public class PipelineManagerImplTest extends ZanzaTest
 
         final RegionDef statefulRegionDef = findRegion( regions, STATEFUL );
         final RegionDef partitionedStatefulRegionDef = findRegion( regions, PARTITIONED_STATEFUL );
-        final RegionConfig regionConfig1 = new RegionConfig( 0, statefulRegionDef, 1, singletonList( 0 ) );
-        final RegionConfig regionConfig2 = new RegionConfig( 1, partitionedStatefulRegionDef, 2, asList( 0, 1 ) );
+        final RegionConfig regionConfig1 = new RegionConfig( 0, statefulRegionDef, singletonList( 0 ), 1 );
+        final RegionConfig regionConfig2 = new RegionConfig( 1, partitionedStatefulRegionDef, asList( 0, 1 ), 2 );
 
         final List<Pipeline> pipelines = pipelineManager.createPipelines( supervisor, flow, asList( regionConfig1, regionConfig2 ) );
 
@@ -248,9 +248,9 @@ public class PipelineManagerImplTest extends ZanzaTest
 
         final RegionDef statefulRegionDef1 = statefulRegionDefs.get( 0 ), statefulRegionDef2 = statefulRegionDefs.get( 1 );
 
-        final RegionConfig regionConfig1 = new RegionConfig( 0, statefulRegionDef1, 1, singletonList( 0 ) );
-        final RegionConfig regionConfig2 = new RegionConfig( 1, statefulRegionDef2, 1, singletonList( 0 ) );
-        final RegionConfig regionConfig3 = new RegionConfig( 2, statelessRegionDef, 1, singletonList( 0 ) );
+        final RegionConfig regionConfig1 = new RegionConfig( 0, statefulRegionDef1, singletonList( 0 ), 1 );
+        final RegionConfig regionConfig2 = new RegionConfig( 1, statefulRegionDef2, singletonList( 0 ), 1 );
+        final RegionConfig regionConfig3 = new RegionConfig( 2, statelessRegionDef, singletonList( 0 ), 1 );
 
         final List<Pipeline> pipelines = pipelineManager.createPipelines( supervisor,
                                                                           flow,
@@ -297,9 +297,9 @@ public class PipelineManagerImplTest extends ZanzaTest
         final RegionDef statelessRegionDef = findRegion( regions, STATELESS );
         final RegionDef partitionedStatefulRegionDef = findRegion( regions, PARTITIONED_STATEFUL );
 
-        final RegionConfig regionConfig1 = new RegionConfig( 0, statefulRegionDef, 1, singletonList( 0 ) );
-        final RegionConfig regionConfig2 = new RegionConfig( 1, statelessRegionDef, 1, singletonList( 0 ) );
-        final RegionConfig regionConfig3 = new RegionConfig( 2, partitionedStatefulRegionDef, 1, singletonList( 0 ) );
+        final RegionConfig regionConfig1 = new RegionConfig( 0, statefulRegionDef, singletonList( 0 ), 1 );
+        final RegionConfig regionConfig2 = new RegionConfig( 1, statelessRegionDef, singletonList( 0 ), 1 );
+        final RegionConfig regionConfig3 = new RegionConfig( 2, partitionedStatefulRegionDef, singletonList( 0 ), 1 );
 
         final List<Pipeline> pipelines = pipelineManager.createPipelines( supervisor,
                                                                           flow,

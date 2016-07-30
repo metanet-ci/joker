@@ -12,7 +12,7 @@ import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -20,7 +20,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 
-public class FlowDefBuilderTest extends ZanzaTest
+public class FlowDefBuilderTest extends ZanzaAbstractTest
 {
 
     private static final int SPEC_INPUT_PORT_COUNT = 4;

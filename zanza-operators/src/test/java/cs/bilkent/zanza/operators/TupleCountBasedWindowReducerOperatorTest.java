@@ -20,7 +20,7 @@ import static cs.bilkent.zanza.operators.TupleCountBasedWindowReducerOperator.RE
 import static cs.bilkent.zanza.operators.TupleCountBasedWindowReducerOperator.TUPLE_COUNT_CONFIG_PARAMETER;
 import static cs.bilkent.zanza.operators.TupleCountBasedWindowReducerOperator.TUPLE_COUNT_FIELD;
 import static cs.bilkent.zanza.operators.TupleCountBasedWindowReducerOperator.WINDOW_FIELD;
-import cs.bilkent.zanza.testutils.ZanzaTest;
+import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -29,7 +29,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 
-public class TupleCountBasedWindowReducerOperatorTest extends ZanzaTest
+public class TupleCountBasedWindowReducerOperatorTest extends ZanzaAbstractTest
 {
 
     private static final String TUPLE_PARTITION_KEY = "key1";
