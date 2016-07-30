@@ -147,15 +147,8 @@ public class OperatorReplica
 
     private void setStatus ( final OperatorReplicaStatus status )
     {
-        try
-        {
-            this.status = status;
-            listener.onStatusChange( operatorDef.id(), status );
-        }
-        catch ( Exception e )
-        {
-            LOGGER.error( operatorName + " lifecycle listener failed for status change to " + status, e );
-        }
+        this.status = status;
+        listener.onStatusChange( operatorDef.id(), status );
     }
 
     /**

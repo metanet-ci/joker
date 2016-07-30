@@ -29,7 +29,7 @@ public abstract class ZanzaAbstractTest
         @Override
         protected void starting ( final Description description )
         {
-            System.out.println( "##+## STARTING TEST: " + description.getMethodName() );
+            System.out.println( "+ STARTING TEST: " + description.getMethodName() );
             start = System.nanoTime();
             super.starting( description );
         }
@@ -46,7 +46,7 @@ public abstract class ZanzaAbstractTest
                                   : ( durationMillis > 0 ? durationMillis : ( durationMicros > 0 ? durationMicros : durationNanos ) );
             final String unit =
                     durationSeconds > 0 ? "secs" : ( durationMillis > 0 ? "millis" : ( durationMicros > 0 ? "micros" : "nanos" ) );
-            System.out.println( "##+## TEST: " + description.getMethodName() + " COMPLETED IN " + duration + " " + unit );
+            System.out.println( "+ COMPLETED TEST: " + description.getMethodName() + " IN " + duration + " " + unit );
         }
 
     };
