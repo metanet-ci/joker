@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.inject.Singleton;
@@ -29,6 +28,7 @@ import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.reverse;
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 
 @Singleton
 @NotThreadSafe
@@ -58,6 +58,7 @@ public class RegionDefFormerImpl implements RegionDefFormer
 
     List<RegionDef> createRegions ( final List<OperatorDef> operatorSequence )
     {
+        LOGGER.info( "Creating regions for operator sequence: " + operatorSequence.stream().map( OperatorDef::id ).collect( toList() ) );
         final List<RegionDef> regions = new ArrayList<>();
 
         OperatorType regionType = null;
@@ -188,8 +189,8 @@ public class RegionDefFormerImpl implements RegionDefFormer
                     sequences.add( currentOperatorSequence );
 
                     LOGGER.info( "Sequence Completed! Sequence={}. New sequence starts={}",
-                                 getOperatorIds( currentOperatorSequence ).collect( Collectors.toList() ),
-                                 getOperatorIds( downstreamOperators ).collect( Collectors.toList() ) );
+                                 getOperatorIds( currentOperatorSequence ).collect( toList() ),
+                                 getOperatorIds( downstreamOperators ).collect( toList() ) );
                     currentOperatorSequence = new ArrayList<>();
                     break;
                 }

@@ -2,7 +2,6 @@ package cs.bilkent.zanza.engine.pipeline.impl;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -49,6 +48,7 @@ import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -243,8 +243,7 @@ public class PipelineManagerImplTest extends ZanzaAbstractTest
         final RegionDef statelessRegionDef = findRegion( regions, STATELESS );
 
         final List<RegionDef> statefulRegionDefs = regions.stream()
-                                                          .filter( regionDef -> regionDef.getRegionType() == STATEFUL )
-                                                          .collect( Collectors.toList() );
+                                                          .filter( regionDef -> regionDef.getRegionType() == STATEFUL ).collect( toList() );
 
         final RegionDef statefulRegionDef1 = statefulRegionDefs.get( 0 ), statefulRegionDef2 = statefulRegionDefs.get( 1 );
 

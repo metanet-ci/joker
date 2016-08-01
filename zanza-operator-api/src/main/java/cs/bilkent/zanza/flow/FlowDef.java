@@ -11,7 +11,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.google.common.collect.Multimap;
@@ -20,6 +19,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Multimaps.unmodifiableMultimap;
 import static java.util.Collections.unmodifiableMap;
+import static java.util.stream.Collectors.toList;
 
 
 public final class FlowDef
@@ -116,7 +116,7 @@ public final class FlowDef
 
     public Collection<Port> getUpstreamConnections ( final Port port )
     {
-        return getUpstreamConnectionsStream( port ).collect( Collectors.toList() );
+        return getUpstreamConnectionsStream( port ).collect( toList() );
     }
 
     public Map<Port, Collection<Port>> getDownstreamConnections ( final String operatorId )
@@ -136,7 +136,7 @@ public final class FlowDef
 
     public Collection<Port> getDownstreamConnections ( final Port port )
     {
-        return getDownstreamConnectionsStream( port ).collect( Collectors.toList() );
+        return getDownstreamConnectionsStream( port ).collect( toList() );
     }
 
     private Stream<Port> getUpstreamConnectionsStream ( final Port port )

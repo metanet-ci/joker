@@ -2,7 +2,6 @@ package cs.bilkent.zanza.engine.region.impl;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.junit.Test;
 
@@ -14,6 +13,7 @@ import cs.bilkent.zanza.operators.MapperOperator;
 import cs.bilkent.zanza.testutils.ZanzaAbstractTest;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -276,10 +276,9 @@ public class RegionDefFormerImplOperatorSequenceTest extends ZanzaAbstractTest
                                                                             {
                                                                                 final List<String> sequenceOperatorIds = operatorSequence
                                                                                                                                  .stream()
-                                                                                                                                         .map( op -> op.id() )
-                                                                                                                                         .collect(
-                                                                                                                                                 Collectors
-                                                                                                                                                         .toList() );
+                                                                                                                                 .map( OperatorDef::id )
+                                                                                                                                 .collect(
+                                                                                                                                         toList() );
                                                                                 return sequenceOperatorIds.equals( expectedOperatorIds );
                                                                             } );
 

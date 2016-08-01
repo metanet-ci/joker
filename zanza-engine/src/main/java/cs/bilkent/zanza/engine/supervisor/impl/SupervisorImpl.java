@@ -15,7 +15,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.ThreadSafe;
 import javax.inject.Inject;
@@ -55,6 +54,8 @@ import cs.bilkent.zanza.flow.Port;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.zanza.utils.Pair;
 import static java.util.Collections.reverse;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Collectors.toList;
 
 @Singleton
 @ThreadSafe
@@ -62,6 +63,8 @@ public class SupervisorImpl implements Supervisor
 {
 
     private static final Logger LOGGER = LoggerFactory.getLogger( SupervisorImpl.class );
+
+    private static final long HEARTBEAT_LOG_PERIOD = SECONDS.toMillis( 15 );
 
 
     enum FlowStatus
@@ -439,7 +442,7 @@ public class SupervisorImpl implements Supervisor
                                                                                 .map( port -> flow.getOperator( port.operatorId ) )
                                                                                 .map( operator -> Pair.of( operator,
                                                                                                            getPipelineOrFail( operator ) ) )
-                                                                                .collect( Collectors.toList() );
+                                                                                .collect( toList() );
 
                 upstream.forEach( p -> checkState( p._2.getOperatorIndex( p._1 ) == p._2.getOperatorCount() - 1 ) );
 
@@ -475,8 +478,7 @@ public class SupervisorImpl implements Supervisor
                    .flatMap( ports -> ports.stream().map( port -> port.operatorId ) )
                    .distinct()
                    .map( flow::getOperator )
-                   .map( operatorDef -> getPipelineOrFail( operatorDef, 0 ) )
-                   .collect( Collectors.toList() );
+                   .map( operatorDef -> getPipelineOrFail( operatorDef, 0 ) ).collect( toList() );
     }
 
     private Pipeline getPipelineOrFail ( final OperatorDef operator )
@@ -631,51 +633,6 @@ public class SupervisorImpl implements Supervisor
         }
     }
 
-
-    private class TaskRunner implements Runnable
-    {
-
-        @Override
-        public void run ()
-        {
-            try
-            {
-                while ( true )
-                {
-                    final Runnable task = queue.poll( 1, TimeUnit.SECONDS );
-                    if ( task != null )
-                    {
-                        try
-                        {
-                            task.run();
-                        }
-                        catch ( Exception e )
-                        {
-                            shutdownGracefully( e );
-                        }
-                    }
-
-                    if ( status == SHUT_DOWN )
-                    {
-                        break;
-                    }
-                }
-
-                if ( queue.size() > 0 )
-                {
-                    LOGGER.error( "There are {} missed tasks in supervisor queue!", queue.size() );
-                    queue.clear();
-                }
-            }
-            catch ( InterruptedException e )
-            {
-                LOGGER.error( "Supervisor thread is interrupted" );
-                Thread.currentThread().interrupt();
-            }
-        }
-
-    }
-
     private void setShutDownStatus ()
     {
         synchronized ( monitor )
@@ -693,6 +650,60 @@ public class SupervisorImpl implements Supervisor
                 LOGGER.error( "Cleared {} pending tasks because of task failure", remaining );
             }
         }
+    }
+
+
+    private class TaskRunner implements Runnable
+    {
+
+        private long lastReportTime = 0;
+
+        @Override
+        public void run ()
+        {
+            try
+            {
+                while ( true )
+                {
+                    final Runnable task = queue.poll( 1, SECONDS );
+                    if ( task != null )
+                    {
+                        try
+                        {
+                            task.run();
+                        }
+                        catch ( Exception e )
+                        {
+                            shutdownGracefully( e );
+                        }
+                    }
+
+                    if ( status == SHUT_DOWN )
+                    {
+                        break;
+                    }
+
+                    final long now = System.currentTimeMillis();
+                    if ( ( now - lastReportTime ) > HEARTBEAT_LOG_PERIOD )
+                    {
+                        LOGGER.info( "Supervisor is up..." );
+                        lastReportTime = now;
+                    }
+                }
+
+                if ( queue.size() > 0 )
+                {
+                    LOGGER.error( "There are {} missed tasks in supervisor queue!", queue.size() );
+                    queue.clear();
+                }
+            }
+            catch ( InterruptedException e )
+            {
+                LOGGER.error( "Supervisor thread is interrupted" );
+                Thread.currentThread().interrupt();
+            }
+        }
+
     }
 
 }

@@ -8,7 +8,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 import javax.inject.Singleton;
 
 import com.google.common.base.Charsets;
@@ -23,6 +22,7 @@ import cs.bilkent.zanza.flow.FlowDef;
 import cs.bilkent.zanza.flow.OperatorDef;
 import cs.bilkent.zanza.flow.Port;
 import cs.bilkent.zanza.operator.spec.OperatorType;
+import static java.util.stream.Collectors.toList;
 
 @Singleton
 public class InteractiveRegionConfigFactory implements RegionConfigFactory
@@ -62,8 +62,7 @@ public class InteractiveRegionConfigFactory implements RegionConfigFactory
                                                    .splitToList( br.readLine() )
                                                    .stream()
                                                    .map( String::trim )
-                                                   .map( Integer::valueOf )
-                                                   .collect( Collectors.toList() );
+                                                   .map( Integer::valueOf ).collect( toList() );
 
                     validatePipelineStartIndices( operators, pipelineStartIndices );
                 }

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.concurrent.Future;
 import javax.inject.Inject;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.zanza.engine.exception.InitializationException;
 import cs.bilkent.zanza.engine.region.RegionConfig;
 import cs.bilkent.zanza.engine.region.RegionConfigFactory;
@@ -36,12 +37,30 @@ public class ZanzaEngine
     {
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
         final List<RegionConfig> regionConfigs = regionConfigFactory.createRegionConfigs( flow, regions );
+        failIfMissingRegionConfigExists( regions, regionConfigs );
         supervisor.start( flow, regionConfigs );
     }
 
     public Future<Void> shutdown ()
     {
         return supervisor.shutdown();
+    }
+
+    private void failIfMissingRegionConfigExists ( final List<RegionDef> regions, final List<RegionConfig> regionConfigs )
+    {
+        checkArgument( regions != null );
+        checkArgument( regionConfigs != null );
+        checkArgument( regions.size() == regionConfigs.size(),
+                       "mismatching regions size %s and region configs size %s",
+                       regions.size(),
+                       regionConfigs.size() );
+        for ( final RegionDef region : regions )
+        {
+            checkArgument( regionConfigs.stream()
+                                        .filter( regionConfig -> region.equals( regionConfig.getRegionDef() ) )
+                                        .findFirst()
+                                        .isPresent(), "no region config found for region: %s", region );
+        }
     }
 
 }

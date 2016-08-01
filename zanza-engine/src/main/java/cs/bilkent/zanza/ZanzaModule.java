@@ -28,9 +28,17 @@ public class ZanzaModule extends AbstractModule
 
     private final ZanzaConfig config;
 
+    private final RegionConfigFactory regionConfigFactory;
+
     public ZanzaModule ( final ZanzaConfig config )
     {
+        this( config, null );
+    }
+
+    public ZanzaModule ( final ZanzaConfig config, final RegionConfigFactory regionConfigFactory )
+    {
         this.config = config;
+        this.regionConfigFactory = regionConfigFactory;
     }
 
     @Override
@@ -44,7 +52,14 @@ public class ZanzaModule extends AbstractModule
         bind( Supervisor.class ).to( SupervisorImpl.class );
         bind( PartitionKeyFunctionFactory.class ).to( PartitionKeyFunctionFactoryImpl.class );
         bind( PipelineManager.class ).to( PipelineManagerImpl.class );
-        bind( RegionConfigFactory.class ).to( InteractiveRegionConfigFactory.class );
+        if ( regionConfigFactory != null )
+        {
+            bind( RegionConfigFactory.class ).toInstance( regionConfigFactory );
+        }
+        else
+        {
+            bind( RegionConfigFactory.class ).to( InteractiveRegionConfigFactory.class );
+        }
         bind( ZanzaConfig.class ).toInstance( config );
         bind( ThreadGroup.class ).annotatedWith( Names.named( "ZanzaThreadGroup" ) ).toInstance( new ThreadGroup( "Zanza" ) );
     }
