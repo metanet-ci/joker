@@ -16,7 +16,7 @@ import cs.bilkent.zanza.operator.kvstore.KVStore;
 public enum OperatorType
 {
     /**
-     * The engine creates a single instance of an operator defined as {@code STATELESS}
+     * The engine may create multiple instances of a {@code STATELESS} operator as it sees fit.
      * <p>
      * The engine does not provide any state manipulation capabilities to an operator defined as {@code STATELESS}.
      * No {@link KVStore} implementation is given to the {@link Operator#invoke(InvocationContext)} for an invocation.
