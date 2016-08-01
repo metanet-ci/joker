@@ -63,10 +63,10 @@ public class OperatorRuntimeSchemaBuilderTest extends ZanzaAbstractTest
     public void shouldBuildOperatorRuntimeSchema ()
     {
         final OperatorRuntimeSchemaBuilder builder = new OperatorRuntimeSchemaBuilder( 2, 2 );
-        builder.getInputPortSchemaBuilder( 0 ).addField( "field1", int.class );
-        builder.getInputPortSchemaBuilder( 1 ).addField( "field2", double.class );
-        builder.getOutputPortSchemaBuilder( 0 ).addField( "field3", long.class );
-        builder.getOutputPortSchemaBuilder( 1 ).addField( "field4", float.class );
+        builder.addInputField( 0, "field1", int.class )
+               .addInputField( 1, "field2", double.class )
+               .addOutputField( 0, "field3", long.class )
+               .addOutputField( 1, "field4", float.class );
 
         final OperatorRuntimeSchema schema = builder.build();
 

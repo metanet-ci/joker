@@ -65,6 +65,18 @@ public final class OperatorRuntimeSchemaBuilder
         return getOrCreate( outputSchemaBuilders, portIndex );
     }
 
+    public OperatorRuntimeSchemaBuilder addInputField ( final int portIndex, final String fieldName, final Class<?> type )
+    {
+        getOrCreate( inputSchemaBuilders, portIndex ).addField( fieldName, type );
+        return this;
+    }
+
+    public OperatorRuntimeSchemaBuilder addOutputField ( final int portIndex, final String fieldName, final Class<?> type )
+    {
+        getOrCreate( outputSchemaBuilders, portIndex ).addField( fieldName, type );
+        return this;
+    }
+
     public OperatorRuntimeSchema build ()
     {
         final PortRuntimeSchema[] inputSchemas = new PortRuntimeSchema[ inputSchemaBuilders.length ];

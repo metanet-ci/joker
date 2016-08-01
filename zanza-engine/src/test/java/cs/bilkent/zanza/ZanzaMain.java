@@ -50,8 +50,7 @@ public class ZanzaMain
                           (Function<Tuple, Tuple>) tuple -> new Tuple( "field1", tuple.get( "field1" ) ) );
 
         final OperatorRuntimeSchemaBuilder mapperSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        mapperSchema.getInputPortSchemaBuilder( 0 ).addField( "field1", Integer.class );
-        mapperSchema.getOutputPortSchemaBuilder( 0 ).addField( "field1", Integer.class );
+        mapperSchema.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field1", Integer.class );
 
         final OperatorDef mapper = OperatorDefBuilder.newInstance( "mapper", MapperOperator.class )
                                                      .setConfig( mapperConfig )
@@ -67,7 +66,7 @@ public class ZanzaMain
                                                                                              + tuple2.getInteger( "field1" ) ) );
 
         final OperatorRuntimeSchemaBuilder windowSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        windowSchema.getInputPortSchemaBuilder( 0 ).addField( "field1", Integer.class );
+        windowSchema.addInputField( 0, "field1", Integer.class );
 
         final OperatorDef window = OperatorDefBuilder.newInstance( "window", TupleCountBasedWindowReducerOperator.class )
                                                      .setConfig( windowConfig )
@@ -76,8 +75,8 @@ public class ZanzaMain
                                                      .build();
 
         final OperatorRuntimeSchemaBuilder consoleAppenderSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        consoleAppenderSchema.getInputPortSchemaBuilder( 0 ).addField( "field1", Integer.class );
-        consoleAppenderSchema.getOutputPortSchemaBuilder( 0 ).addField( "field1", Integer.class );
+        consoleAppenderSchema.addInputField( 0, "field1", Integer.class );
+        consoleAppenderSchema.addOutputField( 0, "field1", Integer.class );
 
         final OperatorDef consoleAppender = OperatorDefBuilder.newInstance( "consoleAppender", ConsoleAppenderOperator.class ).build();
 

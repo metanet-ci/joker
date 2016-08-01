@@ -7,7 +7,6 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import cs.bilkent.zanza.engine.region.RegionConfig;
 import cs.bilkent.zanza.engine.region.RegionConfigFactory;
 import cs.bilkent.zanza.engine.region.RegionDef;
 import cs.bilkent.zanza.engine.region.RegionDefFormer;
@@ -51,8 +50,7 @@ public class InteractiveRegionConfigFactoryMain
                           (Function<Tuple, Tuple>) tuple -> new Tuple( "field1", tuple.get( "field1" ) ) );
 
         final OperatorRuntimeSchemaBuilder mapperSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        mapperSchema.getInputPortSchemaBuilder( 0 ).addField( "field1", Integer.class );
-        mapperSchema.getOutputPortSchemaBuilder( 0 ).addField( "field1", Integer.class );
+        mapperSchema.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field1", Integer.class );
 
         final OperatorDef mapper = OperatorDefBuilder.newInstance( "mapper", MapperOperator.class )
                                                      .setConfig( mapperConfig )
@@ -68,7 +66,7 @@ public class InteractiveRegionConfigFactoryMain
                                                                                              + tuple2.getInteger( "field1" ) ) );
 
         final OperatorRuntimeSchemaBuilder windowSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        windowSchema.getInputPortSchemaBuilder( 0 ).addField( "field1", Integer.class );
+        windowSchema.addInputField( 0, "field1", Integer.class );
 
         final OperatorDef window = OperatorDefBuilder.newInstance( "window", TupleCountBasedWindowReducerOperator.class )
                                                      .setConfig( windowConfig )
@@ -85,8 +83,7 @@ public class InteractiveRegionConfigFactoryMain
 
         final List<RegionDef> regions = regionFormer.createRegions( flow );
 
-        final List<RegionConfig> regionConfigs = regionConfigFactory.createRegionConfigs( flow, regions );
-
+        regionConfigFactory.createRegionConfigs( flow, regions );
     }
 
 }

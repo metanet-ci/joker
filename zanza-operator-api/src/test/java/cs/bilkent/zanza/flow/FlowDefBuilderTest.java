@@ -309,7 +309,7 @@ public class FlowDefBuilderTest extends ZanzaAbstractTest
     public void shouldNotConnectPortsWithMismatchingSchemas ()
     {
         final OperatorRuntimeSchemaBuilder targetSchemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        targetSchemaBuilder.getInputPortSchemaBuilder( 0 ).addField( "field1", Integer.class );
+        targetSchemaBuilder.addInputField( 0, "field1", Integer.class );
 
         builder.add( OperatorDefBuilder.newInstance( "op1", StatefulOperatorWithFixedPortCounts.class ) );
         builder.add( OperatorDefBuilder.newInstance( "op2", StatefulOperatorWithFixedPortCounts.class )
@@ -323,8 +323,8 @@ public class FlowDefBuilderTest extends ZanzaAbstractTest
     {
         final OperatorRuntimeSchemaBuilder sourceSchemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
         final OperatorRuntimeSchemaBuilder targetSchemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        sourceSchemaBuilder.getOutputPortSchemaBuilder( 0 ).addField( "field1", Integer.class );
-        targetSchemaBuilder.getInputPortSchemaBuilder( 0 ).addField( "field1", Number.class );
+        sourceSchemaBuilder.addOutputField( 0, "field1", Integer.class );
+        targetSchemaBuilder.addInputField( 0, "field1", Number.class );
 
         builder.add( OperatorDefBuilder.newInstance( "op1", StatefulOperatorWithFixedPortCounts.class )
                                        .setExtendingSchema( sourceSchemaBuilder.build() ) );
@@ -339,8 +339,8 @@ public class FlowDefBuilderTest extends ZanzaAbstractTest
     {
         final OperatorRuntimeSchemaBuilder sourceSchemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
         final OperatorRuntimeSchemaBuilder targetSchemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        sourceSchemaBuilder.getOutputPortSchemaBuilder( 0 ).addField( "field1", Number.class );
-        targetSchemaBuilder.getInputPortSchemaBuilder( 0 ).addField( "field1", Integer.class );
+        sourceSchemaBuilder.addOutputField( 0, "field1", Number.class );
+        targetSchemaBuilder.addInputField( 0, "field1", Integer.class );
 
         builder.add( OperatorDefBuilder.newInstance( "op1", StatefulOperatorWithFixedPortCounts.class )
                                        .setExtendingSchema( sourceSchemaBuilder.build() ) );

@@ -73,7 +73,7 @@ public class RegionDefFormerImplAllRegionsTest extends ZanzaAbstractTest
                                                         .setPartitionFieldNames( singletonList( "f" ) )
                                                         .build();
         final OperatorRuntimeSchemaBuilder mapperSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        mapperSchema.getInputPortSchemaBuilder( 0 ).addField( "f", Integer.class );
+        mapperSchema.addInputField( 0, "f", Integer.class );
         final OperatorDef operator2 = OperatorDefBuilder.newInstance( "o2", MapperOperator.class )
                                                         .setExtendingSchema( mapperSchema )
                                                         .build();

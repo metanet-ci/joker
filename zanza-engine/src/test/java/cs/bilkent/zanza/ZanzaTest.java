@@ -94,9 +94,12 @@ public class ZanzaTest extends ZanzaAbstractTest
                                                       .build();
 
         final OperatorRuntimeSchemaBuilder joinSchema = new OperatorRuntimeSchemaBuilder( 2, 1 );
-        joinSchema.getInputPortSchemaBuilder( 0 ).addField( "key", Integer.class ).addField( "value", Integer.class );
-        joinSchema.getInputPortSchemaBuilder( 1 ).addField( "key", Integer.class ).addField( "value", Integer.class );
-        joinSchema.getOutputPortSchemaBuilder( 0 ).addField( "key", Integer.class ).addField( "value", Integer.class );
+        joinSchema.addInputField( 0, "key", Integer.class )
+                  .addInputField( 0, "value", Integer.class )
+                  .addInputField( 1, "key", Integer.class )
+                  .addInputField( 1, "value", Integer.class )
+                  .addOutputField( 0, "key", Integer.class )
+                  .addOutputField( 0, "value", Integer.class );
 
         final OperatorDef join = OperatorDefBuilder.newInstance( "joiner", JoinOperator.class )
                                                    .setExtendingSchema( joinSchema )
@@ -104,8 +107,10 @@ public class ZanzaTest extends ZanzaAbstractTest
                                                    .build();
 
         final OperatorRuntimeSchemaBuilder summerSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        summerSchema.getInputPortSchemaBuilder( 0 ).addField( "key", Integer.class ).addField( "value", Integer.class );
-        summerSchema.getOutputPortSchemaBuilder( 0 ).addField( "key", Integer.class ).addField( "sum", Integer.class );
+        summerSchema.addInputField( 0, "key", Integer.class )
+                    .addInputField( 0, "value", Integer.class )
+                    .addOutputField( 0, "key", Integer.class )
+                    .addOutputField( 0, "sum", Integer.class );
 
         final OperatorDef summer = OperatorDefBuilder.newInstance( "summer", SummerOperator.class )
                                                      .setExtendingSchema( summerSchema )
@@ -122,8 +127,10 @@ public class ZanzaTest extends ZanzaAbstractTest
         } );
 
         final OperatorRuntimeSchemaBuilder multiplierSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        multiplierSchema.getInputPortSchemaBuilder( 0 ).addField( "key", Integer.class ).addField( "sum", Integer.class );
-        multiplierSchema.getOutputPortSchemaBuilder( 0 ).addField( "key", Integer.class ).addField( "mult", Integer.class );
+        multiplierSchema.addInputField( 0, "key", Integer.class )
+                        .addInputField( 0, "sum", Integer.class )
+                        .addOutputField( 0, "key", Integer.class )
+                        .addOutputField( 0, "mult", Integer.class );
 
         final OperatorDef multiplier = OperatorDefBuilder.newInstance( "multiplier", MapperOperator.class )
                                                          .setConfig( multiplierConfig )
@@ -134,7 +141,7 @@ public class ZanzaTest extends ZanzaAbstractTest
         collectorConfig.set( CONSUMER_FUNCTION_CONFIG_PARAMETER, valueCollector );
 
         final OperatorRuntimeSchemaBuilder foreachSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        foreachSchema.getInputPortSchemaBuilder( 0 ).addField( "key", Integer.class ).addField( "mult", Integer.class );
+        foreachSchema.addInputField( 0, "key", Integer.class ).addInputField( 0, "mult", Integer.class );
 
         final OperatorDef collector = OperatorDefBuilder.newInstance( "collector", ForEachOperator.class )
                                                         .setConfig( collectorConfig )

@@ -37,15 +37,13 @@ public class BargainDiscoveryFlowTest extends ZanzaAbstractTest
         cvwapConfig.set( MAPPER_CONFIG_PARAMETER, new CVWAPFunction() );
 
         final OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        schemaBuilder.getInputPortSchemaBuilder( 0 )
-                     .addField( TICKER_SYMBOL_FIELD, String.class )
-                     .addField( SINGLE_VOLUME_FIELD, Double.class )
-                     .addField( SINGLE_VWAP_FIELD, Double.class )
-                     .addField( TIMESTAMP_FIELD, Long.class );
-        schemaBuilder.getOutputPortSchemaBuilder( 0 )
-                     .addField( TICKER_SYMBOL_FIELD, String.class )
-                     .addField( CVWAP_FIELD, Double.class )
-                     .addField( TIMESTAMP_FIELD, Long.class );
+        schemaBuilder.addInputField( 0, TICKER_SYMBOL_FIELD, String.class )
+                     .addInputField( 0, SINGLE_VOLUME_FIELD, Double.class )
+                     .addInputField( 0, SINGLE_VWAP_FIELD, Double.class )
+                     .addInputField( 0, TIMESTAMP_FIELD, Long.class )
+                     .addOutputField( 0, TICKER_SYMBOL_FIELD, String.class )
+                     .addOutputField( 0, CVWAP_FIELD, Double.class )
+                     .addOutputField( 0, TIMESTAMP_FIELD, Long.class );
 
         flowBuilder.add( OperatorDefBuilder.newInstance( "cvwap", MapperOperator.class )
                                            .setConfig( cvwapConfig )

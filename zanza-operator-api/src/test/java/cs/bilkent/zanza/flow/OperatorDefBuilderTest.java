@@ -146,7 +146,7 @@ public class OperatorDefBuilderTest extends ZanzaAbstractTest
     public void shouldNotExtendExactPortSchema ()
     {
         final OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        schemaBuilder.getInputPortSchemaBuilder( DEFAULT_PORT_INDEX ).addField( "field3", boolean.class );
+        schemaBuilder.addInputField( 0, "field3", boolean.class );
         OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema.class )
                           .setExtendingSchema( schemaBuilder.build() )
                           .build();
@@ -156,7 +156,7 @@ public class OperatorDefBuilderTest extends ZanzaAbstractTest
     public void shouldNotExtendWithExceedingInputPortRuntimeSchema ()
     {
         final OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( 2, 1 );
-        schemaBuilder.getInputPortSchemaBuilder( DEFAULT_PORT_INDEX ).addField( "field3", boolean.class );
+        schemaBuilder.addInputField( 0, "field3", boolean.class );
         OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema.class )
                           .setExtendingSchema( schemaBuilder.build() )
                           .build();
@@ -166,7 +166,7 @@ public class OperatorDefBuilderTest extends ZanzaAbstractTest
     public void shouldNotExtendWithExceedingOutputPortRuntimeSchema ()
     {
         final OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 2 );
-        schemaBuilder.getInputPortSchemaBuilder( DEFAULT_PORT_INDEX ).addField( "field3", boolean.class );
+        schemaBuilder.addInputField( 0, "field3", boolean.class );
         OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema.class )
                           .setExtendingSchema( schemaBuilder.build() )
                           .build();
@@ -176,7 +176,7 @@ public class OperatorDefBuilderTest extends ZanzaAbstractTest
     public void shouldNotExtendSchemaWithDuplicateInputField ()
     {
         final OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        schemaBuilder.getInputPortSchemaBuilder( DEFAULT_PORT_INDEX ).addField( "field1", boolean.class );
+        schemaBuilder.addInputField( 0, "field1", boolean.class );
         OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema.class )
                           .setExtendingSchema( schemaBuilder.build() )
                           .build();
@@ -233,7 +233,7 @@ public class OperatorDefBuilderTest extends ZanzaAbstractTest
     public void shouldNotSetPartitionFieldNameWithDifferentTypesOnInputPorts ()
     {
         final OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( 2, 1 );
-        schemaBuilder.getInputPortSchemaBuilder( 1 ).addField( "field1", long.class );
+        schemaBuilder.addInputField( 1, "field1", long.class );
         OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorWithBaseInputPortSchema.class )
                           .setExtendingSchema( schemaBuilder )
                           .setPartitionFieldNames( singletonList( "field1" ) );
@@ -243,7 +243,7 @@ public class OperatorDefBuilderTest extends ZanzaAbstractTest
     public void shouldSetPartitionFieldNameExistOnAllInputPorts ()
     {
         final OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( 2, 1 );
-        schemaBuilder.getInputPortSchemaBuilder( 1 ).addField( "field1", int.class );
+        schemaBuilder.addInputField( 1, "field1", int.class );
         OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorWithBaseInputPortSchema.class )
                           .setExtendingSchema( schemaBuilder )
                           .setPartitionFieldNames( singletonList( "field1" ) );

@@ -284,12 +284,11 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
     public void test_partitionedStatefulRegion_singlePipeline_singleReplica ()
     {
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 3, 1 );
-        operatorRuntimeSchemaBuilder0.getInputPortSchemaBuilder( 0 ).addField( "field1", Integer.class );
-        operatorRuntimeSchemaBuilder0.getOutputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
+        operatorRuntimeSchemaBuilder0.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field2", Integer.class );
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder1 = new OperatorRuntimeSchemaBuilder( 2, 1 );
-        operatorRuntimeSchemaBuilder1.getInputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
-        operatorRuntimeSchemaBuilder1.getInputPortSchemaBuilder( 1 ).addField( "field2", Integer.class );
-        operatorRuntimeSchemaBuilder1.getOutputPortSchemaBuilder( 0 ).addField( "field3", Integer.class );
+        operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class )
+                                     .addInputField( 1, "field2", Integer.class )
+                                     .addOutputField( 0, "field3", Integer.class );
         final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithSingleInputOutputPortCount.class )
                                                            .setExtendingSchema( operatorRuntimeSchemaBuilder0 )
                                                            .build();
@@ -327,12 +326,11 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
     public void test_release_partitionedStatefulRegion_singlePipeline_singleReplica ()
     {
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 3, 1 );
-        operatorRuntimeSchemaBuilder0.getInputPortSchemaBuilder( 0 ).addField( "field1", Integer.class );
-        operatorRuntimeSchemaBuilder0.getOutputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
+        operatorRuntimeSchemaBuilder0.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field2", Integer.class );
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder1 = new OperatorRuntimeSchemaBuilder( 2, 1 );
-        operatorRuntimeSchemaBuilder1.getInputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
-        operatorRuntimeSchemaBuilder1.getInputPortSchemaBuilder( 1 ).addField( "field2", Integer.class );
-        operatorRuntimeSchemaBuilder1.getOutputPortSchemaBuilder( 0 ).addField( "field3", Integer.class );
+        operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class )
+                                     .addInputField( 1, "field2", Integer.class )
+                                     .addOutputField( 0, "field3", Integer.class );
         final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithSingleInputOutputPortCount.class )
                                                            .setExtendingSchema( operatorRuntimeSchemaBuilder0 )
                                                            .build();
@@ -371,12 +369,11 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
     public void test_partitionedStatefulRegion_singlePipeline_multiReplica ()
     {
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 3, 1 );
-        operatorRuntimeSchemaBuilder0.getInputPortSchemaBuilder( 0 ).addField( "field1", Integer.class );
-        operatorRuntimeSchemaBuilder0.getOutputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
+        operatorRuntimeSchemaBuilder0.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field2", Integer.class );
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder1 = new OperatorRuntimeSchemaBuilder( 2, 1 );
-        operatorRuntimeSchemaBuilder1.getInputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
-        operatorRuntimeSchemaBuilder1.getInputPortSchemaBuilder( 1 ).addField( "field2", Integer.class );
-        operatorRuntimeSchemaBuilder1.getOutputPortSchemaBuilder( 0 ).addField( "field3", Integer.class );
+        operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class )
+                                     .addInputField( 1, "field2", Integer.class )
+                                     .addOutputField( 0, "field3", Integer.class );
         final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithSingleInputOutputPortCount.class )
                                                            .setExtendingSchema( operatorRuntimeSchemaBuilder0 )
                                                            .build();
@@ -426,15 +423,13 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
     public void test_partitionedStatefulRegion_singlePipeline_singleReplica_withStatelessOperatorFirst ()
     {
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 3, 1 );
-        operatorRuntimeSchemaBuilder0.getInputPortSchemaBuilder( 0 ).addField( "field1", Integer.class );
-        operatorRuntimeSchemaBuilder0.getOutputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
+        operatorRuntimeSchemaBuilder0.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field2", Integer.class );
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder1 = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        operatorRuntimeSchemaBuilder1.getInputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
-        operatorRuntimeSchemaBuilder1.getOutputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
+        operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class ).addOutputField( 0, "field2", Integer.class );
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder2 = new OperatorRuntimeSchemaBuilder( 2, 1 );
-        operatorRuntimeSchemaBuilder2.getInputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
-        operatorRuntimeSchemaBuilder2.getInputPortSchemaBuilder( 1 ).addField( "field2", Integer.class );
-        operatorRuntimeSchemaBuilder2.getOutputPortSchemaBuilder( 0 ).addField( "field3", Integer.class );
+        operatorRuntimeSchemaBuilder2.addInputField( 0, "field2", Integer.class )
+                                     .addInputField( 1, "field2", Integer.class )
+                                     .addOutputField( 0, "field3", Integer.class );
         final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithSingleInputOutputPortCount.class )
                                                            .setExtendingSchema( operatorRuntimeSchemaBuilder0 )
                                                            .build();
@@ -487,15 +482,13 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
     public void test_partitionedStatefulRegion_singlePipeline_multiReplica_withStatelessOperatorFirst ()
     {
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 3, 1 );
-        operatorRuntimeSchemaBuilder0.getInputPortSchemaBuilder( 0 ).addField( "field1", Integer.class );
-        operatorRuntimeSchemaBuilder0.getOutputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
+        operatorRuntimeSchemaBuilder0.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field2", Integer.class );
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder1 = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        operatorRuntimeSchemaBuilder1.getInputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
-        operatorRuntimeSchemaBuilder1.getOutputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
+        operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class ).addOutputField( 0, "field2", Integer.class );
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder2 = new OperatorRuntimeSchemaBuilder( 2, 1 );
-        operatorRuntimeSchemaBuilder2.getInputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
-        operatorRuntimeSchemaBuilder2.getInputPortSchemaBuilder( 1 ).addField( "field2", Integer.class );
-        operatorRuntimeSchemaBuilder2.getOutputPortSchemaBuilder( 0 ).addField( "field3", Integer.class );
+        operatorRuntimeSchemaBuilder2.addInputField( 0, "field2", Integer.class )
+                                     .addInputField( 1, "field2", Integer.class )
+                                     .addOutputField( 0, "field3", Integer.class );
         final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithSingleInputOutputPortCount.class )
                                                            .setExtendingSchema( operatorRuntimeSchemaBuilder0 )
                                                            .build();
@@ -569,15 +562,13 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
     public void test_release_partitionedStatefulRegion_singlePipeline_multiReplica_withStatelessOperatorFirst ()
     {
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 3, 1 );
-        operatorRuntimeSchemaBuilder0.getInputPortSchemaBuilder( 0 ).addField( "field1", Integer.class );
-        operatorRuntimeSchemaBuilder0.getOutputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
+        operatorRuntimeSchemaBuilder0.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field2", Integer.class );
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder1 = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        operatorRuntimeSchemaBuilder1.getInputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
-        operatorRuntimeSchemaBuilder1.getOutputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
+        operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class ).addOutputField( 0, "field2", Integer.class );
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder2 = new OperatorRuntimeSchemaBuilder( 2, 1 );
-        operatorRuntimeSchemaBuilder2.getInputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
-        operatorRuntimeSchemaBuilder2.getInputPortSchemaBuilder( 1 ).addField( "field2", Integer.class );
-        operatorRuntimeSchemaBuilder2.getOutputPortSchemaBuilder( 0 ).addField( "field3", Integer.class );
+        operatorRuntimeSchemaBuilder2.addInputField( 0, "field2", Integer.class )
+                                     .addInputField( 1, "field2", Integer.class )
+                                     .addOutputField( 0, "field3", Integer.class );
         final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithSingleInputOutputPortCount.class )
                                                            .setExtendingSchema( operatorRuntimeSchemaBuilder0 )
                                                            .build();
@@ -626,18 +617,15 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
     public void test_partitionedStatefulRegion_twoPipelines_singleReplica_withStatelessOperatorFirst ()
     {
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 3, 1 );
-        operatorRuntimeSchemaBuilder0.getInputPortSchemaBuilder( 0 ).addField( "field1", Integer.class );
-        operatorRuntimeSchemaBuilder0.getOutputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
+        operatorRuntimeSchemaBuilder0.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field2", Integer.class );
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder1 = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        operatorRuntimeSchemaBuilder1.getInputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
-        operatorRuntimeSchemaBuilder1.getOutputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
+        operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class ).addOutputField( 0, "field2", Integer.class );
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder2 = new OperatorRuntimeSchemaBuilder( 2, 1 );
-        operatorRuntimeSchemaBuilder2.getInputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
-        operatorRuntimeSchemaBuilder2.getInputPortSchemaBuilder( 1 ).addField( "field2", Integer.class );
-        operatorRuntimeSchemaBuilder2.getOutputPortSchemaBuilder( 0 ).addField( "field3", Integer.class );
+        operatorRuntimeSchemaBuilder2.addInputField( 0, "field2", Integer.class )
+                                     .addInputField( 1, "field2", Integer.class )
+                                     .addOutputField( 0, "field3", Integer.class );
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder3 = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        operatorRuntimeSchemaBuilder3.getInputPortSchemaBuilder( 0 ).addField( "field3", Integer.class );
-        operatorRuntimeSchemaBuilder3.getOutputPortSchemaBuilder( 0 ).addField( "field3", Integer.class );
+        operatorRuntimeSchemaBuilder3.addInputField( 0, "field3", Integer.class ).addOutputField( 0, "field3", Integer.class );
         final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithSingleInputOutputPortCount.class )
                                                            .setExtendingSchema( operatorRuntimeSchemaBuilder0 )
                                                            .build();
@@ -706,18 +694,15 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
     public void test_partitionedStatefulRegion_threePipeline_singleReplica_withStatelessOperatorFirst ()
     {
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 3, 1 );
-        operatorRuntimeSchemaBuilder0.getInputPortSchemaBuilder( 0 ).addField( "field1", Integer.class );
-        operatorRuntimeSchemaBuilder0.getOutputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
+        operatorRuntimeSchemaBuilder0.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field2", Integer.class );
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder1 = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        operatorRuntimeSchemaBuilder1.getInputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
-        operatorRuntimeSchemaBuilder1.getOutputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
+        operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class ).addOutputField( 0, "field2", Integer.class );
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder2 = new OperatorRuntimeSchemaBuilder( 2, 1 );
-        operatorRuntimeSchemaBuilder2.getInputPortSchemaBuilder( 0 ).addField( "field2", Integer.class );
-        operatorRuntimeSchemaBuilder2.getInputPortSchemaBuilder( 1 ).addField( "field2", Integer.class );
-        operatorRuntimeSchemaBuilder2.getOutputPortSchemaBuilder( 0 ).addField( "field3", Integer.class );
+        operatorRuntimeSchemaBuilder2.addInputField( 0, "field2", Integer.class )
+                                     .addInputField( 1, "field2", Integer.class )
+                                     .addOutputField( 0, "field3", Integer.class );
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder3 = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        operatorRuntimeSchemaBuilder3.getInputPortSchemaBuilder( 0 ).addField( "field3", Integer.class );
-        operatorRuntimeSchemaBuilder3.getOutputPortSchemaBuilder( 0 ).addField( "field3", Integer.class );
+        operatorRuntimeSchemaBuilder3.addInputField( 0, "field3", Integer.class ).addOutputField( 0, "field3", Integer.class );
         final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithSingleInputOutputPortCount.class )
                                                            .setExtendingSchema( operatorRuntimeSchemaBuilder0 )
                                                            .build();
