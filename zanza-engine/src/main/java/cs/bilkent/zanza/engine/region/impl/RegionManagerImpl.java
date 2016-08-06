@@ -54,6 +54,7 @@ public class RegionManagerImpl implements RegionManager
 
     private static final Logger LOGGER = LoggerFactory.getLogger( RegionManagerImpl.class );
 
+
     private final ZanzaConfig config;
 
     private final KVStoreContextManager kvStoreContextManager;
@@ -245,7 +246,7 @@ public class RegionManagerImpl implements RegionManager
 
     private void checkPipelineStartIndices ( final RegionConfig regionConfig )
     {
-        final int operatorCount = regionConfig.getRegionDef().getOperators().size();
+        final int operatorCount = regionConfig.getRegionDef().getOperatorCount();
         int j = -1;
         final List<Integer> pipelineStartIndices = regionConfig.getPipelineStartIndices();
         for ( int i : pipelineStartIndices )

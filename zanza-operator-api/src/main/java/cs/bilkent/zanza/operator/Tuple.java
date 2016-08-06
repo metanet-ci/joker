@@ -13,8 +13,6 @@ import static java.util.Collections.unmodifiableMap;
 /**
  * The tuple is the main data structure to manipulate data in Zanza.
  * A tuple is a mapping of keys to values where each value can be any type.
- * <p>
- * TODO Serializable, Iterable ???
  */
 public final class Tuple implements Fields<String>
 {

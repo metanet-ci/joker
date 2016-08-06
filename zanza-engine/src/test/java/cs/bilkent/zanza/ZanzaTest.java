@@ -201,7 +201,7 @@ public class ZanzaTest extends ZanzaAbstractTest
             for ( int i = 0; i < regions.size(); i++ )
             {
                 final RegionDef region = regions.get( i );
-                final int operatorCount = region.getOperators().size();
+                final int operatorCount = region.getOperatorCount();
                 final List<Integer> pipelineStartIndices = operatorCount == 1 ? singletonList( 0 ) : asList( 0, operatorCount / 2 );
                 final int replicaCount = region.getRegionType() == PARTITIONED_STATEFUL ? this.replicaCount : 1;
                 final RegionConfig regionConfig = new RegionConfig( i, region, pipelineStartIndices, replicaCount );

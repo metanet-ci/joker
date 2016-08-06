@@ -38,6 +38,21 @@ public class RegionDef
         return operators;
     }
 
+    public int getOperatorCount ()
+    {
+        return operators.size();
+    }
+
+    public OperatorDef getFirstOperator ()
+    {
+        return operators.get( 0 );
+    }
+
+    public OperatorDef getLastOperator ()
+    {
+        return operators.get( operators.size() - 1 );
+    }
+
     @Override
     public String toString ()
     {

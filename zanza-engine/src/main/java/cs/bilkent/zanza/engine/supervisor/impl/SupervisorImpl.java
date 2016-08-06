@@ -397,7 +397,6 @@ public class SupervisorImpl implements Supervisor
         {
             final PipelineReplicaRunner runner = pipeline.getPipelineReplicaRunner( i );
             runner.updatePipelineUpstreamContext();
-            // TODO handle future object
         }
     }
 

@@ -8,12 +8,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.google.common.base.Strings;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static cs.bilkent.zanza.flow.Port.DEFAULT_PORT_INDEX;
 import cs.bilkent.zanza.operator.schema.runtime.OperatorRuntimeSchema;
 
@@ -94,12 +94,12 @@ public final class FlowDefBuilder
 
     private void failIfEmptyOperatorId ( final String operatorId )
     {
-        checkArgument( !Strings.isNullOrEmpty( operatorId ), "operator id must be non-empty!" );
+        checkArgument( !isNullOrEmpty( operatorId ), "operator id must be non-empty!" );
     }
 
     private void failIfNonExistingOperatorId ( final String operatorId )
     {
-        checkArgument( operators.containsKey( operatorId ), "Non-existing operator id!" );
+        checkArgument( operators.containsKey( operatorId ), "Non-existing operator id! {}", operatorId );
     }
 
     private void failIfInvalidPort ( final int validPortCount, final int port )

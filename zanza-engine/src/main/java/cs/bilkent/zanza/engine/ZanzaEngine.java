@@ -12,6 +12,7 @@ import cs.bilkent.zanza.engine.region.RegionConfigFactory;
 import cs.bilkent.zanza.engine.region.RegionDef;
 import cs.bilkent.zanza.engine.region.RegionDefFormer;
 import cs.bilkent.zanza.engine.supervisor.impl.SupervisorImpl;
+import static cs.bilkent.zanza.engine.util.RegionUtil.sortTopologically;
 import cs.bilkent.zanza.flow.FlowDef;
 
 public class ZanzaEngine
@@ -36,7 +37,8 @@ public class ZanzaEngine
     public void start ( final FlowDef flow ) throws InitializationException
     {
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
-        final List<RegionConfig> regionConfigs = regionConfigFactory.createRegionConfigs( flow, regions );
+        final List<RegionDef> sorted = sortTopologically( flow.getOperatorsMap(), flow.getAllConnections(), regions );
+        final List<RegionConfig> regionConfigs = regionConfigFactory.createRegionConfigs( flow, sorted );
         failIfMissingRegionConfigExists( regions, regionConfigs );
         supervisor.start( flow, regionConfigs );
     }

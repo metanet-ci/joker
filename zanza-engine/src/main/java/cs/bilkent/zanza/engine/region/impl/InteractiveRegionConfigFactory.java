@@ -4,9 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import javax.inject.Singleton;
 
@@ -18,9 +16,9 @@ import cs.bilkent.zanza.engine.exception.InitializationException;
 import cs.bilkent.zanza.engine.region.RegionConfig;
 import cs.bilkent.zanza.engine.region.RegionConfigFactory;
 import cs.bilkent.zanza.engine.region.RegionDef;
+import static cs.bilkent.zanza.engine.util.RegionUtil.sortTopologically;
 import cs.bilkent.zanza.flow.FlowDef;
 import cs.bilkent.zanza.flow.OperatorDef;
-import cs.bilkent.zanza.flow.Port;
 import cs.bilkent.zanza.operator.spec.OperatorType;
 import static java.util.stream.Collectors.toList;
 
@@ -29,6 +27,7 @@ public class InteractiveRegionConfigFactory implements RegionConfigFactory
 {
 
     private static final int MAX_REPLICA_COUNT = 16;
+
 
     @Override
     public List<RegionConfig> createRegionConfigs ( final FlowDef flow, final List<RegionDef> regions )
@@ -39,7 +38,7 @@ public class InteractiveRegionConfigFactory implements RegionConfigFactory
             final List<RegionConfig> regionConfigs = new ArrayList<>( regions.size() );
 
             int regionId = 0;
-            for ( RegionDef region : getRegionsBFSOrdered( flow, regions ) )
+            for ( RegionDef region : sortTopologically( flow.getOperatorsMap(), flow.getAllConnections(), regions ) )
             {
                 System.out.println( "####+####+####+####+####+####+####+####+####+####" );
                 System.out.println( "REGION: " + regionId + " with type: " + region.getRegionType() );
@@ -107,54 +106,6 @@ public class InteractiveRegionConfigFactory implements RegionConfigFactory
             checkArgument( startIndex > i, "invalid pipeline start indices: ", pipelineStartIndices );
             i = startIndex;
         }
-    }
-
-    // TODO return regions topologically sorted
-    private List<RegionDef> getRegionsBFSOrdered ( final FlowDef flow, final List<RegionDef> regions )
-    {
-        final List<RegionDef> curr = new LinkedList<>();
-        final List<RegionDef> ordered = new LinkedList<>();
-
-        for ( OperatorDef operator : flow.getOperatorsWithNoInputPorts() )
-        {
-            curr.add( getRegion( regions, operator ) );
-        }
-
-        while ( !curr.isEmpty() )
-        {
-            final RegionDef region = curr.remove( 0 );
-            if ( !ordered.contains( region ) )
-            {
-                ordered.add( region );
-
-                final List<OperatorDef> operators = region.getOperators();
-                final OperatorDef lastOperator = operators.get( operators.size() - 1 );
-                for ( Collection<Port> c : flow.getDownstreamConnections( lastOperator.id() ).values() )
-                {
-                    for ( Port p : c )
-                    {
-                        final OperatorDef downstreamOperator = flow.getOperator( p.operatorId );
-                        final RegionDef downstreamRegion = getRegion( regions, downstreamOperator );
-                        curr.add( downstreamRegion );
-                    }
-
-                }
-            }
-        }
-        return ordered;
-    }
-
-    private RegionDef getRegion ( final List<RegionDef> regions, final OperatorDef operator )
-    {
-        for ( RegionDef region : regions )
-        {
-            if ( region.getOperators().get( 0 ).equals( operator ) )
-            {
-                return region;
-            }
-        }
-
-        throw new IllegalStateException( "No region found for operator " + operator.id() );
     }
 
 }

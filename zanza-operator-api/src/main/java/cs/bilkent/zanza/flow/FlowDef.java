@@ -13,6 +13,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -42,7 +43,12 @@ public final class FlowDef
 
     public Collection<OperatorDef> getOperators ()
     {
-        return operators.values();
+        return new ArrayList<>( operators.values() );
+    }
+
+    public Map<String, OperatorDef> getOperatorsMap ()
+    {
+        return new HashMap<>( operators );
     }
 
     public Collection<OperatorDef> getOperatorsWithNoInputPorts ()
@@ -97,7 +103,12 @@ public final class FlowDef
 
     public Collection<Entry<Port, Port>> getAllConnections ()
     {
-        return connections.entries();
+        return new ArrayList<>( connections.entries() );
+    }
+
+    public Multimap<Port, Port> getConnectionsMap ()
+    {
+        return HashMultimap.create( connections );
     }
 
     public Map<Port, Collection<Port>> getUpstreamConnections ( final String operatorId )

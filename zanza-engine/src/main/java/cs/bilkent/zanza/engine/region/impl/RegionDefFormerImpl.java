@@ -58,7 +58,7 @@ public class RegionDefFormerImpl implements RegionDefFormer
 
     List<RegionDef> createRegions ( final List<OperatorDef> operatorSequence )
     {
-        LOGGER.info( "Creating regions for operator sequence: " + operatorSequence.stream().map( OperatorDef::id ).collect( toList() ) );
+        LOGGER.debug( "Creating regions for operator sequence: " + operatorSequence.stream().map( OperatorDef::id ).collect( toList() ) );
         final List<RegionDef> regions = new ArrayList<>();
 
         OperatorType regionType = null;
@@ -67,7 +67,7 @@ public class RegionDefFormerImpl implements RegionDefFormer
 
         for ( OperatorDef currentOperator : operatorSequence )
         {
-            LOGGER.info( "current operator={}", currentOperator.id() );
+            LOGGER.debug( "current operator={}", currentOperator.id() );
 
             final OperatorType operatorType = currentOperator.operatorType();
 
@@ -169,12 +169,12 @@ public class RegionDefFormerImpl implements RegionDefFormer
         while ( ( operator = removeRandomOperator( sequenceStartOperators ) ) != null )
         {
             processedSequenceStartOperators.add( operator );
-            LOGGER.info( "Starting new sequence with operator={}", operator.id() );
+            LOGGER.debug( "Starting new sequence with operator={}", operator.id() );
 
             while ( true )
             {
                 currentOperatorSequence.add( operator );
-                LOGGER.info( "Adding operator={} to current sequence", operator.id() );
+                LOGGER.debug( "Adding operator={} to current sequence", operator.id() );
 
                 final Collection<OperatorDef> downstreamOperators = getDownstreamOperators( flow, operator );
                 final OperatorDef downstreamOperator = getSingleDownstreamOperatorWithSingleUpstreamOperator( flow, downstreamOperators );
@@ -188,9 +188,9 @@ public class RegionDefFormerImpl implements RegionDefFormer
                     sequenceStartOperators.addAll( downstreamOperators );
                     sequences.add( currentOperatorSequence );
 
-                    LOGGER.info( "Sequence Completed! Sequence={}. New sequence starts={}",
-                                 getOperatorIds( currentOperatorSequence ).collect( toList() ),
-                                 getOperatorIds( downstreamOperators ).collect( toList() ) );
+                    LOGGER.debug( "Sequence Completed! Sequence={}. New sequence starts={}",
+                                  getOperatorIds( currentOperatorSequence ).collect( toList() ),
+                                  getOperatorIds( downstreamOperators ).collect( toList() ) );
                     currentOperatorSequence = new ArrayList<>();
                     break;
                 }
