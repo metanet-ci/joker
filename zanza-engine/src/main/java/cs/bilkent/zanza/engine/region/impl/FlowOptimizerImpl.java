@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.zanza.engine.region.RegionDef;
 import static cs.bilkent.zanza.engine.util.RegionUtil.getRegion;
 import static cs.bilkent.zanza.engine.util.RegionUtil.sortTopologically;
@@ -52,6 +53,10 @@ public class FlowOptimizerImpl
 
                 if ( region.getRegionType() == PARTITIONED_STATEFUL )
                 {
+                    checkArgument( upstreamRegion.getRegionType() != STATELESS,
+                                   "Invalid upstream %s for downstream %s",
+                                   upstreamRegion,
+                                   region );
                     LOGGER.debug( "Will not merge downstream {} with upstream {} with single downstream",
                                   region.getRegionType(),
                                   upstreamRegion.getRegionType() );
