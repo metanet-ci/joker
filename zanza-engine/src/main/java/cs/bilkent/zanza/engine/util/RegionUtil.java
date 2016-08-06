@@ -26,7 +26,7 @@ public class RegionUtil
 
         for ( OperatorDef o : getOperatorsWithNoInputPorts( operators, connectionsMap ) )
         {
-            curr.add( getRegion( regions, o ) );
+            curr.add( getRegionByFirstOperator( regions, o ) );
         }
 
         while ( curr.size() > 0 )
@@ -53,7 +53,7 @@ public class RegionUtil
                 final String downstreamOperatorId = e.getValue().operatorId;
                 if ( !checkIfIncomingConnectionExists( connections, downstreamOperatorId ) )
                 {
-                    curr.add( getRegion( regions, operators.get( downstreamOperatorId ) ) );
+                    curr.add( getRegionByFirstOperator( regions, operators.get( downstreamOperatorId ) ) );
                 }
             }
         }
@@ -87,11 +87,24 @@ public class RegionUtil
         return false;
     }
 
-    public static RegionDef getRegion ( final List<RegionDef> regions, final OperatorDef operator )
+    public static RegionDef getRegionByFirstOperator ( final List<RegionDef> regions, final OperatorDef operator )
     {
         for ( RegionDef region : regions )
         {
             if ( region.getFirstOperator().equals( operator ) )
+            {
+                return region;
+            }
+        }
+
+        throw new IllegalStateException( "No region found for operator " + operator.id() );
+    }
+
+    public static RegionDef getRegionByLastOperator ( final List<RegionDef> regions, final OperatorDef operator )
+    {
+        for ( RegionDef region : regions )
+        {
+            if ( region.getLastOperator().equals( operator ) )
             {
                 return region;
             }

@@ -13,7 +13,7 @@ import com.google.common.collect.Multimap;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.zanza.engine.region.RegionDef;
-import static cs.bilkent.zanza.engine.util.RegionUtil.getRegion;
+import static cs.bilkent.zanza.engine.util.RegionUtil.getRegionByLastOperator;
 import static cs.bilkent.zanza.engine.util.RegionUtil.sortTopologically;
 import cs.bilkent.zanza.flow.OperatorDef;
 import cs.bilkent.zanza.flow.Port;
@@ -49,7 +49,7 @@ public class FlowOptimizerImpl
             final List<OperatorDef> upstreamOperators = getUpstreamOperators( operators, connections, firstOperator.id() );
             if ( upstreamOperators.size() == 1 )
             {
-                final RegionDef upstreamRegion = getRegion( regions, upstreamOperators.get( 0 ) );
+                final RegionDef upstreamRegion = getRegionByLastOperator( regions, upstreamOperators.get( 0 ) );
 
                 if ( region.getRegionType() == PARTITIONED_STATEFUL )
                 {

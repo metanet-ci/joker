@@ -109,6 +109,36 @@ public class FlowOptimizerImplTest extends ZanzaAbstractTest
     }
 
     @Test
+    public void test_mergeMultipleStatefulAndStatelessRegions ()
+    {
+        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator.class ).build();
+        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator.class ).build();
+        final OperatorDef stateful3 = OperatorDefBuilder.newInstance( "stateful3", StatefulOperator.class ).build();
+        final OperatorDef stateless1 = OperatorDefBuilder.newInstance( "stateless1", StatelessOperator.class ).build();
+        final OperatorDef stateless2 = OperatorDefBuilder.newInstance( "stateless2", StatelessOperator.class ).build();
+
+        final FlowDef flow = new FlowDefBuilder().add( stateful1 )
+                                                 .add( stateful2 )
+                                                 .add( stateful3 )
+                                                 .add( stateless1 )
+                                                 .add( stateless2 )
+                                                 .connect( "stateful1", "stateless1" )
+                                                 .connect( "stateless1", "stateful2" )
+                                                 .connect( "stateful2", "stateless2" )
+                                                 .connect( "stateless2", "stateful3" )
+                                                 .build();
+
+        final List<RegionDef> regions = regionDefFormer.createRegions( flow );
+
+        flowOptimizer.mergeRegions( flow.getOperatorsMap(), flow.getConnectionsMap(), regions );
+
+        assertEquals( 1, regions.size() );
+        final RegionDef region = regions.get( 0 );
+        assertEquals( STATEFUL, region.getRegionType() );
+        assertEquals( asList( stateful1, stateless1, stateful2, stateless2, stateful3 ), region.getOperators() );
+    }
+
+    @Test
     public void test_mergeStatefulAndStatefulRegions ()
     {
         final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator.class ).build();
