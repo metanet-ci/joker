@@ -29,7 +29,7 @@ import static org.hamcrest.Matchers.hasSize;
 public class RegionFormerImplRegionDefTest extends ZanzaAbstractTest
 {
 
-    private final RegionDefFormerImpl regionFormer = new RegionDefFormerImpl();
+    private final RegionDefFormerImpl regionFormer = new RegionDefFormerImpl( new IdGenerator() );
 
     @Test
     public void test_STATELESS ()

@@ -99,7 +99,7 @@ public final class FlowDefBuilder
 
     private void failIfNonExistingOperatorId ( final String operatorId )
     {
-        checkArgument( operators.containsKey( operatorId ), "Non-existing operator id! {}", operatorId );
+        checkArgument( operators.containsKey( operatorId ), "Non-existing operator id! %s", operatorId );
     }
 
     private void failIfInvalidPort ( final int validPortCount, final int port )

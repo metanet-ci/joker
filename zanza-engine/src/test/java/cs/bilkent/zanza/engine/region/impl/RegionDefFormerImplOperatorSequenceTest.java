@@ -22,7 +22,7 @@ import static org.junit.Assert.assertTrue;
 public class RegionDefFormerImplOperatorSequenceTest extends ZanzaAbstractTest
 {
 
-    private final RegionDefFormerImpl regionFormer = new RegionDefFormerImpl();
+    private final RegionDefFormerImpl regionFormer = new RegionDefFormerImpl( new IdGenerator() );
 
     private final FlowDefBuilder flowBuilder = new FlowDefBuilder();
 

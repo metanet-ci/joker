@@ -5,6 +5,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import javax.annotation.concurrent.NotThreadSafe;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,21 +15,175 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import cs.bilkent.zanza.engine.config.FlowDeploymentConfig;
+import cs.bilkent.zanza.engine.config.ZanzaConfig;
+import cs.bilkent.zanza.engine.region.FlowDeploymentDef;
+import cs.bilkent.zanza.engine.region.FlowDeploymentDef.RegionGroup;
+import cs.bilkent.zanza.engine.region.FlowDeploymentDefFormer;
 import cs.bilkent.zanza.engine.region.RegionDef;
 import static cs.bilkent.zanza.engine.util.RegionUtil.getRegionByLastOperator;
 import static cs.bilkent.zanza.engine.util.RegionUtil.sortTopologically;
+import cs.bilkent.zanza.flow.FlowDef;
+import cs.bilkent.zanza.flow.FlowDefBuilder;
 import cs.bilkent.zanza.flow.OperatorDef;
 import cs.bilkent.zanza.flow.Port;
 import cs.bilkent.zanza.operator.spec.OperatorType;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
+import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 
-public class FlowOptimizerImpl
+@NotThreadSafe
+@Singleton
+public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
 {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger( FlowOptimizerImpl.class );
+    private static final Logger LOGGER = LoggerFactory.getLogger( FlowDeploymentDefFormerImpl.class );
 
+
+    private final FlowDeploymentConfig flowDeploymentConfig;
+
+    private final IdGenerator idGenerator;
+
+    @Inject
+    public FlowDeploymentDefFormerImpl ( final ZanzaConfig zanzaConfig, final IdGenerator idGenerator )
+    {
+        this.flowDeploymentConfig = zanzaConfig.getFlowDeploymentConfig();
+        this.idGenerator = idGenerator;
+    }
+
+    @Override
+    public FlowDeploymentDef createFlowDeploymentDef ( final FlowDef flow, final List<RegionDef> regions )
+    {
+        final Map<String, OperatorDef> operators = flow.getOperatorsMap();
+        final Multimap<Port, Port> connections = flow.getConnectionsMap();
+        final List<RegionDef> regionsToDeploy = new ArrayList<>( regions );
+
+        if ( flowDeploymentConfig.isDuplicateStatelessRegionsEnabled() )
+        {
+            LOGGER.debug( "Duplicating {} regions", STATELESS );
+            duplicateStatelessRegions( operators, connections, regionsToDeploy );
+        }
+
+        if ( flowDeploymentConfig.isMergeStatelessRegionsWithStatefulRegionsEnabled() )
+        {
+            LOGGER.debug( "Merging regions" );
+            mergeRegions( operators, connections, regionsToDeploy );
+        }
+
+        final List<RegionGroup> regionGroups;
+        if ( flowDeploymentConfig.isPairStatelessRegionsWithPartitionedStatefulRegionsEnabled() )
+        {
+            LOGGER.debug( "Pairing {} regions with {} regions", STATELESS, PARTITIONED_STATEFUL );
+            regionGroups = pairStatelessRegionsWithPartitionedStatefulRegions( operators, connections, regionsToDeploy );
+        }
+        else
+        {
+            regionGroups = new ArrayList<>();
+            for ( RegionDef region : regionsToDeploy )
+            {
+                regionGroups.add( new RegionGroup( singletonList( region ) ) );
+            }
+        }
+
+        return new FlowDeploymentDef( createFlow( operators, connections ), regionsToDeploy, regionGroups );
+    }
+
+    private FlowDef createFlow ( final Map<String, OperatorDef> operators, final Multimap<Port, Port> connections )
+    {
+        final FlowDefBuilder flowDefBuilder = new FlowDefBuilder();
+
+        for ( OperatorDef operator : operators.values() )
+        {
+            flowDefBuilder.add( operator );
+        }
+
+        for ( Entry<Port, Port> e : connections.entries() )
+        {
+            flowDefBuilder.connect( e.getKey().operatorId, e.getKey().portIndex, e.getValue().operatorId, e.getValue().portIndex );
+        }
+
+        return flowDefBuilder.build();
+    }
+
+    List<RegionGroup> pairStatelessRegionsWithPartitionedStatefulRegions ( final Map<String, OperatorDef> operators,
+                                                                           final Multimap<Port, Port> connections,
+                                                                           final List<RegionDef> regions )
+    {
+        final List<List<RegionDef>> regionGroups = new ArrayList<>();
+        for ( RegionDef region : sortTopologically( operators, connections.entries(), regions ) )
+        {
+            if ( region.getRegionType() != STATELESS )
+            {
+                addSingletonRegionGroup( regionGroups, region );
+            }
+            else
+            {
+                final List<OperatorDef> upstreamOperators = getUpstreamOperators( operators, connections, region.getFirstOperator().id() );
+                if ( upstreamOperators.size() == 1 )
+                {
+                    final RegionDef upstreamRegion = getRegionByLastOperator( regions, upstreamOperators.get( 0 ) );
+                    final OperatorType upstreamRegionType = upstreamRegion.getRegionType();
+                    if ( upstreamRegionType == STATEFUL )
+                    {
+                        addSingletonRegionGroup( regionGroups, region );
+                    }
+                    else if ( upstreamRegionType == PARTITIONED_STATEFUL )
+                    {
+                        boolean added = false;
+                        for ( List<RegionDef> regionGroup : regionGroups )
+                        {
+                            if ( regionGroup.get( 0 ).equals( upstreamRegion ) )
+                            {
+                                LOGGER.debug( "Adding {} to region group {}", region, regionGroup );
+                                regionGroup.add( region );
+                                added = true;
+                                break;
+                            }
+                        }
+                        checkArgument( added, "Cannot find region group of upstream {} of {}", upstreamRegion, region );
+                    }
+                    else if ( upstreamRegionType == STATELESS )
+                    {
+                        boolean newGroup = true;
+                        for ( List<RegionDef> regionGroup : regionGroups )
+                        {
+                            if ( regionGroup.get( 0 ).getRegionType() == PARTITIONED_STATEFUL && regionGroup.contains( region ) )
+                            {
+                                LOGGER.debug( "Adding {} to region group {}", region, regionGroup );
+                                regionGroup.add( region );
+                                newGroup = false;
+                                break;
+                            }
+                        }
+                        if ( newGroup )
+                        {
+                            addSingletonRegionGroup( regionGroups, region );
+                        }
+                    }
+                    else
+                    {
+                        throw new IllegalStateException( "Invalid region type: " + upstreamRegionType );
+                    }
+                }
+                else
+                {
+                    addSingletonRegionGroup( regionGroups, region );
+                }
+            }
+        }
+
+        return regionGroups.stream().map( RegionGroup::new ).collect( toList() );
+    }
+
+    private void addSingletonRegionGroup ( final List<List<RegionDef>> regionGroups, final RegionDef region )
+    {
+        LOGGER.debug( "Adding region group for {}", region );
+        final List<RegionDef> l = new ArrayList<>();
+        l.add( region );
+        regionGroups.add( l );
+    }
 
     void mergeRegions ( final Map<String, OperatorDef> operators, final Multimap<Port, Port> connections, final List<RegionDef> regions )
     {
@@ -92,7 +249,10 @@ public class FlowOptimizerImpl
                     LOGGER.debug( "Downstream {} is appended to Upstream {}. New region is {}", region, upstreamRegion, newRegionType );
                     final List<OperatorDef> regionOperators = new ArrayList<>( upstreamRegion.getOperators() );
                     regionOperators.addAll( region.getOperators() );
-                    final RegionDef newRegion = new RegionDef( newRegionType, upstreamRegion.getPartitionFieldNames(), regionOperators );
+                    final RegionDef newRegion = new RegionDef( idGenerator.nextId(),
+                                                               newRegionType,
+                                                               upstreamRegion.getPartitionFieldNames(),
+                                                               regionOperators );
                     regions.remove( region );
                     regions.remove( upstreamRegion );
                     regions.add( newRegion );
@@ -199,7 +359,10 @@ public class FlowOptimizerImpl
                     LOGGER.debug( "Operator {} is duplicated with id {}", o.id(), duplicateOperatorId );
                 }
 
-                final RegionDef regionDuplicate = new RegionDef( STATELESS, region.getPartitionFieldNames(), duplicateOperators );
+                final RegionDef regionDuplicate = new RegionDef( idGenerator.nextId(),
+                                                                 STATELESS,
+                                                                 region.getPartitionFieldNames(),
+                                                                 duplicateOperators );
                 optimizedRegions.add( regionDuplicate );
 
                 final OperatorDef upstreamOperator = upstreamOperators.get( duplicateIndex );

@@ -7,6 +7,9 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import cs.bilkent.zanza.engine.config.ZanzaConfig;
+import cs.bilkent.zanza.engine.region.FlowDeploymentDef;
+import cs.bilkent.zanza.engine.region.FlowDeploymentDefFormer;
 import cs.bilkent.zanza.engine.region.RegionConfigFactory;
 import cs.bilkent.zanza.engine.region.RegionDef;
 import cs.bilkent.zanza.engine.region.RegionDefFormer;
@@ -27,8 +30,11 @@ public class InteractiveRegionConfigFactoryMain
 
     public static void main ( String[] args )
     {
-        final RegionDefFormer regionFormer = new RegionDefFormerImpl();
-        final RegionConfigFactory regionConfigFactory = new InteractiveRegionConfigFactory();
+        final IdGenerator idGenerator = new IdGenerator();
+        final RegionDefFormer regionFormer = new RegionDefFormerImpl( idGenerator );
+        final ZanzaConfig zanzaConfig = new ZanzaConfig();
+        final FlowDeploymentDefFormer flowDeploymentDefFormer = new FlowDeploymentDefFormerImpl( zanzaConfig, idGenerator );
+        final RegionConfigFactory regionConfigFactory = new InteractiveRegionConfigFactory( zanzaConfig );
 
         final OperatorConfig beaconConfig = new OperatorConfig();
         beaconConfig.set( BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER, 10 );
@@ -82,8 +88,9 @@ public class InteractiveRegionConfigFactoryMain
                                                  .build();
 
         final List<RegionDef> regions = regionFormer.createRegions( flow );
+        final FlowDeploymentDef flowDeployment = flowDeploymentDefFormer.createFlowDeploymentDef( flow, regions );
 
-        regionConfigFactory.createRegionConfigs( flow, regions );
+        regionConfigFactory.createRegionConfigs( flowDeployment );
     }
 
 }

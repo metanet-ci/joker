@@ -9,6 +9,8 @@ import org.junit.Test;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
+import cs.bilkent.zanza.engine.config.ZanzaConfig;
+import cs.bilkent.zanza.engine.region.FlowDeploymentDef.RegionGroup;
 import cs.bilkent.zanza.engine.region.RegionDef;
 import cs.bilkent.zanza.flow.FlowDef;
 import cs.bilkent.zanza.flow.FlowDefBuilder;
@@ -33,12 +35,121 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class FlowOptimizerImplTest extends ZanzaAbstractTest
+public class FlowDeploymentDefFormerImplTest extends ZanzaAbstractTest
 {
 
-    private final RegionDefFormerImpl regionDefFormer = new RegionDefFormerImpl();
+    private final IdGenerator idGenerator = new IdGenerator();
 
-    private final FlowOptimizerImpl flowOptimizer = new FlowOptimizerImpl();
+    private final RegionDefFormerImpl regionDefFormer = new RegionDefFormerImpl( idGenerator );
+
+    private final FlowDeploymentDefFormerImpl flowOptimizer = new FlowDeploymentDefFormerImpl( new ZanzaConfig(), idGenerator );
+
+    @Test
+    public void test_pairStatelessRegionsWithPartitionedStatefulRegions_withoutPartitionedStatefulRegion ()
+    {
+        final OperatorDef stateless1 = OperatorDefBuilder.newInstance( "stateless1", StatelessOperator.class ).build();
+        final OperatorDef stateless2 = OperatorDefBuilder.newInstance( "stateless2", StatelessOperator.class ).build();
+        final OperatorDef stateless3 = OperatorDefBuilder.newInstance( "stateless3", StatelessOperator.class ).build();
+        final OperatorDef stateless4 = OperatorDefBuilder.newInstance( "stateless4", StatelessOperator.class ).build();
+        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator.class ).build();
+
+        final FlowDef flow = new FlowDefBuilder().add( stateless1 )
+                                                 .add( stateless2 )
+                                                 .add( stateless3 )
+                                                 .add( stateless4 )
+                                                 .add( stateful1 )
+                                                 .connect( "stateless1", "stateless2" )
+                                                 .connect( "stateful1", "stateless2" )
+                                                 .connect( "stateless2", "stateless3" )
+                                                 .connect( "stateless2", "stateless4" )
+                                                 .build();
+
+        final List<RegionDef> regions = regionDefFormer.createRegions( flow );
+        final List<RegionDef> regionsToAssert = new ArrayList<>( regions );
+
+        final List<RegionGroup> regionGroups = flowOptimizer.pairStatelessRegionsWithPartitionedStatefulRegions( flow.getOperatorsMap(),
+                                                                                                                 flow.getConnectionsMap(),
+                                                                                                                 regions );
+        assertEquals( regionGroups.size(), regions.size() );
+
+        for ( RegionGroup regionGroup : regionGroups )
+        {
+            final List<RegionDef> r = regionGroup.getRegions();
+            assertEquals( 1, r.size() );
+            assertTrue( regionsToAssert.remove( r.get( 0 ) ) );
+        }
+
+        assertTrue( regionsToAssert.isEmpty() );
+    }
+
+    @Test
+    public void test_pairStatelessRegionsWithPartitionedStatefulRegions_withPartitionedStatefulRegion ()
+    {
+        final OperatorRuntimeSchemaBuilder schema = new OperatorRuntimeSchemaBuilder( 1, 1 );
+        schema.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field1", Integer.class );
+
+        final OperatorDef partitionedStateful = OperatorDefBuilder.newInstance( "partitionedStateful", PartitionedStatefulOperator.class )
+                                                                  .setExtendingSchema( schema )
+                                                                  .setPartitionFieldNames( singletonList( "field1" ) )
+                                                                  .build();
+
+        final OperatorDef stateless1 = OperatorDefBuilder.newInstance( "stateless1", StatelessOperator.class )
+                                                         .setExtendingSchema( schema )
+                                                         .build();
+        final OperatorDef stateless2 = OperatorDefBuilder.newInstance( "stateless2", StatelessOperator.class )
+                                                         .setExtendingSchema( schema )
+                                                         .build();
+        final OperatorDef stateless3 = OperatorDefBuilder.newInstance( "stateless3", StatelessOperator.class )
+                                                         .setExtendingSchema( schema )
+                                                         .build();
+        final OperatorDef stateless4 = OperatorDefBuilder.newInstance( "stateless4", StatelessOperator.class )
+                                                         .setExtendingSchema( schema )
+                                                         .build();
+        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator.class )
+                                                        .setExtendingSchema( schema )
+                                                        .build();
+        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator.class )
+                                                        .setExtendingSchema( schema )
+                                                        .build();
+
+        final FlowDef flow = new FlowDefBuilder().add( partitionedStateful )
+                                                 .add( stateless1 )
+                                                 .add( stateless2 )
+                                                 .add( stateless3 )
+                                                 .add( stateless4 )
+                                                 .add( stateful1 )
+                                                 .add( stateful2 )
+                                                 .connect( "stateless1", "partitionedStateful" )
+                                                 .connect( "stateless2", "partitionedStateful" )
+                                                 .connect( "partitionedStateful", "stateless3" )
+                                                 .connect( "partitionedStateful", "stateful1" )
+                                                 .connect( "stateless3", "stateless4" )
+                                                 .connect( "stateless4", "stateful2" )
+                                                 .build();
+
+        final List<RegionDef> regions = regionDefFormer.createRegions( flow );
+        final List<RegionDef> regionsToAssert = new ArrayList<>( regions );
+
+        final List<RegionGroup> regionGroups = flowOptimizer.pairStatelessRegionsWithPartitionedStatefulRegions( flow.getOperatorsMap(),
+                                                                                                                 flow.getConnectionsMap(),
+                                                                                                                 regions );
+
+        assertEquals( 5, regionGroups.size() );
+        for ( RegionGroup regionGroup : regionGroups )
+        {
+            final List<RegionDef> r = regionGroup.getRegions();
+            if ( r.size() == 1 )
+            {
+                assertTrue( regionsToAssert.remove( r.get( 0 ) ) );
+            }
+            else if ( r.size() == 3 )
+            {
+                assertEquals( r.get( 0 ).getFirstOperator(), partitionedStateful );
+                assertEquals( r.get( 1 ).getFirstOperator(), stateless3 );
+                assertEquals( r.get( 2 ).getFirstOperator(), stateless4 );
+            }
+        }
+    }
 
     @Test
     public void test_mergeStatelessAndStatefulRegions ()
@@ -198,10 +309,10 @@ public class FlowOptimizerImplTest extends ZanzaAbstractTest
                                                  .build();
 
         final List<RegionDef> regions = new ArrayList<>();
-        regions.add( new RegionDef( PARTITIONED_STATEFUL,
+        regions.add( new RegionDef( 0, PARTITIONED_STATEFUL,
                                     partitionedStateful.partitionFieldNames(),
                                     singletonList( partitionedStateful ) ) );
-        regions.add( new RegionDef( STATELESS, emptyList(), singletonList( stateless ) ) );
+        regions.add( new RegionDef( 1, STATELESS, emptyList(), singletonList( stateless ) ) );
 
         flowOptimizer.mergeRegions( flow.getOperatorsMap(), flow.getConnectionsMap(), regions );
 

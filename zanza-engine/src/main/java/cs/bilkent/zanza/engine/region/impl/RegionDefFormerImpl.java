@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 import javax.annotation.concurrent.NotThreadSafe;
+import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import org.slf4j.Logger;
@@ -38,11 +39,14 @@ public class RegionDefFormerImpl implements RegionDefFormer
     private static final Logger LOGGER = LoggerFactory.getLogger( RegionDefFormerImpl.class );
 
 
-    public RegionDefFormerImpl ()
+    private final IdGenerator idGenerator;
+
+    @Inject
+    public RegionDefFormerImpl ( final IdGenerator idGenerator )
     {
+        this.idGenerator = idGenerator;
     }
 
-    // TODO return regions topologically sorted
     @Override
     public List<RegionDef> createRegions ( final FlowDef flow )
     {
@@ -75,13 +79,16 @@ public class RegionDefFormerImpl implements RegionDefFormer
             {
                 if ( regionType != null ) // finalize current region
                 {
-                    regions.add( new RegionDef( regionType, regionPartitionFieldNames, regionOperators ) );
+                    regions.add( new RegionDef( idGenerator.nextId(), regionType, regionPartitionFieldNames, regionOperators ) );
                     regionType = null;
                     regionPartitionFieldNames = new ArrayList<>();
                     regionOperators = new ArrayList<>();
                 }
 
-                regions.add( new RegionDef( STATEFUL, emptyList(), singletonList( currentOperator ) ) ); // add operator as a region
+                regions.add( new RegionDef( idGenerator.nextId(),
+                                            STATEFUL,
+                                            emptyList(),
+                                            singletonList( currentOperator ) ) ); // add operator as a region
             }
             else if ( operatorType == STATELESS )
             {
@@ -104,7 +111,10 @@ public class RegionDefFormerImpl implements RegionDefFormer
                 {
                     if ( !currentOperator.partitionFieldNames().containsAll( regionPartitionFieldNames ) )
                     {
-                        regions.add( new RegionDef( PARTITIONED_STATEFUL, regionPartitionFieldNames, regionOperators ) );
+                        regions.add( new RegionDef( idGenerator.nextId(),
+                                                    PARTITIONED_STATEFUL,
+                                                    regionPartitionFieldNames,
+                                                    regionOperators ) );
                         regionPartitionFieldNames = new ArrayList<>( currentOperator.partitionFieldNames() );
                         regionOperators = new ArrayList<>();
                     }
@@ -132,7 +142,7 @@ public class RegionDefFormerImpl implements RegionDefFormer
 
                     if ( !regionOperators.isEmpty() )
                     {
-                        regions.add( new RegionDef( STATELESS, emptyList(), regionOperators ) );
+                        regions.add( new RegionDef( idGenerator.nextId(), STATELESS, emptyList(), regionOperators ) );
                     }
 
                     regionType = PARTITIONED_STATEFUL;
@@ -150,7 +160,7 @@ public class RegionDefFormerImpl implements RegionDefFormer
 
         if ( regionType != null )
         {
-            regions.add( new RegionDef( regionType, regionPartitionFieldNames, regionOperators ) );
+            regions.add( new RegionDef( idGenerator.nextId(), regionType, regionPartitionFieldNames, regionOperators ) );
         }
 
         return regions;

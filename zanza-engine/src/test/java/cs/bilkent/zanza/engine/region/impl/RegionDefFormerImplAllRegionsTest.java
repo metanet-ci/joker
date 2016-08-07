@@ -36,7 +36,7 @@ import static org.junit.Assert.fail;
 public class RegionDefFormerImplAllRegionsTest extends ZanzaAbstractTest
 {
 
-    private final RegionDefFormerImpl regionFormer = new RegionDefFormerImpl();
+    private final RegionDefFormerImpl regionFormer = new RegionDefFormerImpl( new IdGenerator() );
 
     private final FlowDefBuilder flowBuilder = new FlowDefBuilder();
 

@@ -9,18 +9,15 @@ import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 public class RegionConfig
 {
 
-    private final int regionId;
-
     private final RegionDef regionDef;
 
     private final int replicaCount;
 
     private final List<Integer> pipelineStartIndices;
 
-    public RegionConfig ( final int regionId, final RegionDef regionDef, final List<Integer> pipelineStartIndices, final int replicaCount )
+    public RegionConfig ( final RegionDef regionDef, final List<Integer> pipelineStartIndices, final int replicaCount )
     {
         checkArgument( ( regionDef.getRegionType() == PARTITIONED_STATEFUL && replicaCount > 0 ) || replicaCount == 1 );
-        this.regionId = regionId;
         this.regionDef = regionDef;
         this.replicaCount = replicaCount;
         this.pipelineStartIndices = pipelineStartIndices;
@@ -28,7 +25,7 @@ public class RegionConfig
 
     public int getRegionId ()
     {
-        return regionId;
+        return regionDef.getRegionId();
     }
 
     public RegionDef getRegionDef ()
@@ -65,7 +62,7 @@ public class RegionConfig
     @Override
     public String toString ()
     {
-        return "RegionConfig{" + "regionId=" + regionId + ", regionDef=" + regionDef + ", replicaCount=" + replicaCount
+        return "RegionConfig{" + "regionDef=" + regionDef + ", replicaCount=" + replicaCount
                + ", pipelineStartIndices=" + pipelineStartIndices + '}';
     }
 

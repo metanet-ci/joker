@@ -62,6 +62,8 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
 
     private TupleQueueContextManagerImpl tupleQueueContextManager;
 
+    private final RegionDefFormerImpl regionDefFormer = new RegionDefFormerImpl( new IdGenerator() );
+
     @Before
     public void init ()
     {
@@ -81,9 +83,9 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
 
         final FlowDef flow = new FlowDefBuilder().add( operatorDef0 ).add( operatorDef1 ).connect( "op0", "op1" ).build();
 
-        final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
+        final List<RegionDef> regionDefs = regionDefFormer.createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 0 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, singletonList( 0 ), 1 );
+        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 1 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
         assertNotNull( region );
@@ -92,7 +94,7 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
         final PipelineReplica pipeline = pipelines[ 0 ];
         assertEmptyTupleQueueContext( pipeline, operatorDef0.inputPortCount() );
 
-        assertStatelessPipelineWithNoInput( 1, 0, 0, operatorDef0, operatorDef1, pipeline );
+        assertStatelessPipelineWithNoInput( regionDef.getRegionId(), 0, 0, operatorDef0, operatorDef1, pipeline );
     }
 
     @Test
@@ -104,9 +106,9 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
 
         final FlowDef flow = new FlowDefBuilder().add( operatorDef0 ).add( operatorDef1 ).connect( "op0", "op1" ).build();
 
-        final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
+        final List<RegionDef> regionDefs = regionDefFormer.createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 0 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, asList( 0, 1 ), 1 );
+        final RegionConfig regionConfig = new RegionConfig( regionDef, asList( 0, 1 ), 1 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
         assertNotNull( region );
@@ -117,8 +119,8 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
         assertEmptyTupleQueueContext( pipeline0, operatorDef0.inputPortCount() );
         assertDefaultTupleQueueContext( pipeline1, operatorDef1.inputPortCount() );
 
-        assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 0 ), pipeline0.id() );
-        assertEquals( new PipelineReplicaId( new PipelineId( 1, 1 ), 0 ), pipeline1.id() );
+        assertEquals( new PipelineReplicaId( new PipelineId( regionDef.getRegionId(), 0 ), 0 ), pipeline0.id() );
+        assertEquals( new PipelineReplicaId( new PipelineId( regionDef.getRegionId(), 1 ), 0 ), pipeline1.id() );
         assertEquals( 1, pipeline0.getOperatorCount() );
         assertEquals( 1, pipeline1.getOperatorCount() );
         final OperatorReplica operatorReplica0 = pipeline0.getOperator( 0 );
@@ -144,9 +146,9 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
 
         final FlowDef flow = new FlowDefBuilder().add( operatorDef0 ).add( operatorDef1 ).connect( "op0", "op1" ).build();
 
-        final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
+        final List<RegionDef> regionDefs = regionDefFormer.createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 0 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, asList( 0, 1 ), 1 );
+        final RegionConfig regionConfig = new RegionConfig( regionDef, asList( 0, 1 ), 1 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
 
@@ -196,9 +198,9 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
                                                  .connect( "op1", "op2" )
                                                  .build();
 
-        final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
+        final List<RegionDef> regionDefs = regionDefFormer.createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, singletonList( 0 ), 1 );
+        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 1 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
         assertNotNull( region );
@@ -233,9 +235,9 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
 
         final FlowDef flow = new FlowDefBuilder().add( operatorDef0 ).add( operatorDef1 ).connect( "op0", "op1" ).build();
 
-        final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
+        final List<RegionDef> regionDefs = regionDefFormer.createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, singletonList( 0 ), 1 );
+        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 1 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
         assertNotNull( region );
@@ -265,9 +267,9 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
 
         final FlowDef flow = new FlowDefBuilder().add( operatorDef0 ).add( operatorDef1 ).connect( "op0", "op1" ).build();
 
-        final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
+        final List<RegionDef> regionDefs = regionDefFormer.createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, singletonList( 0 ), 1 );
+        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 1 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
 
@@ -300,9 +302,9 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
 
         final FlowDef flow = new FlowDefBuilder().add( operatorDef0 ).add( operatorDef1 ).connect( "op0", "op1" ).build();
 
-        final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
+        final List<RegionDef> regionDefs = regionDefFormer.createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, singletonList( 0 ), 1 );
+        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 1 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
         assertNotNull( region );
@@ -342,9 +344,9 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
 
         final FlowDef flow = new FlowDefBuilder().add( operatorDef0 ).add( operatorDef1 ).connect( "op0", "op1" ).build();
 
-        final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
+        final List<RegionDef> regionDefs = regionDefFormer.createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, singletonList( 0 ), 1 );
+        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 1 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
 
@@ -385,9 +387,9 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
 
         final FlowDef flow = new FlowDefBuilder().add( operatorDef0 ).add( operatorDef1 ).connect( "op0", "op1" ).build();
 
-        final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
+        final List<RegionDef> regionDefs = regionDefFormer.createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, singletonList( 0 ), 2 );
+        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 2 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
         assertNotNull( region );
@@ -449,9 +451,9 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
                                                  .connect( "op1", "op2" )
                                                  .build();
 
-        final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
+        final List<RegionDef> regionDefs = regionDefFormer.createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, singletonList( 0 ), 1 );
+        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 1 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
         assertNotNull( region );
@@ -508,9 +510,9 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
                                                  .connect( "op1", "op2" )
                                                  .build();
 
-        final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
+        final List<RegionDef> regionDefs = regionDefFormer.createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, singletonList( 0 ), 2 );
+        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 2 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
         assertNotNull( region );
@@ -588,9 +590,9 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
                                                  .connect( "op1", "op2" )
                                                  .build();
 
-        final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
+        final List<RegionDef> regionDefs = regionDefFormer.createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, singletonList( 0 ), 2 );
+        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 2 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
 
@@ -650,9 +652,9 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
                                                  .connect( "op2", "op3" )
                                                  .build();
 
-        final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
+        final List<RegionDef> regionDefs = regionDefFormer.createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, asList( 0, 1 ), 1 );
+        final RegionConfig regionConfig = new RegionConfig( regionDef, asList( 0, 1 ), 1 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
         assertNotNull( region );
@@ -727,9 +729,9 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
                                                  .connect( "op2", "op3" )
                                                  .build();
 
-        final List<RegionDef> regionDefs = new RegionDefFormerImpl().createRegions( flow );
+        final List<RegionDef> regionDefs = regionDefFormer.createRegions( flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( 1, regionDef, asList( 0, 1, 2 ), 1 );
+        final RegionConfig regionConfig = new RegionConfig( regionDef, asList( 0, 1, 2 ), 1 );
 
         final Region region = regionManager.createRegion( flow, regionConfig );
         assertNotNull( region );

@@ -78,8 +78,8 @@ public class SupervisorImplFlowLifecycleTest extends ZanzaAbstractTest
 
         final FlowDef flowDef = new FlowDefBuilder().add( operatorDef1 ).add( operatorDef2 ).connect( "op1", "op2" ).build();
         final List<RegionDef> regions = regionDefFormer.createRegions( flowDef );
-        final RegionConfig regionConfig1 = new RegionConfig( 0, regions.get( 0 ), singletonList( 0 ), 1 );
-        final RegionConfig regionConfig2 = new RegionConfig( 1, regions.get( 1 ), singletonList( 0 ), 1 );
+        final RegionConfig regionConfig1 = new RegionConfig( regions.get( 0 ), singletonList( 0 ), 1 );
+        final RegionConfig regionConfig2 = new RegionConfig( regions.get( 1 ), singletonList( 0 ), 1 );
 
         supervisor.start( flowDef, Arrays.asList( regionConfig1, regionConfig2 ) );
 
@@ -115,11 +115,10 @@ public class SupervisorImplFlowLifecycleTest extends ZanzaAbstractTest
                                                     .build();
         final List<RegionDef> regions = regionDefFormer.createRegions( flowDef );
         final List<RegionConfig> regionConfigs = new ArrayList<>();
-        int i = 0;
         for ( RegionDef region : regions )
         {
             final int replicaCount = region.getRegionType() == PARTITIONED_STATEFUL ? 4 : 1;
-            regionConfigs.add( new RegionConfig( i++, region, singletonList( 0 ), replicaCount ) );
+            regionConfigs.add( new RegionConfig( region, singletonList( 0 ), replicaCount ) );
         }
 
         supervisor.start( flowDef, regionConfigs );
@@ -136,8 +135,8 @@ public class SupervisorImplFlowLifecycleTest extends ZanzaAbstractTest
 
         final FlowDef flowDef = new FlowDefBuilder().add( operatorDef1 ).add( operatorDef2 ).connect( "op1", "op2" ).build();
         final List<RegionDef> regions = regionDefFormer.createRegions( flowDef );
-        final RegionConfig regionConfig1 = new RegionConfig( 0, regions.get( 0 ), singletonList( 0 ), 1 );
-        final RegionConfig regionConfig2 = new RegionConfig( 1, regions.get( 1 ), singletonList( 0 ), 1 );
+        final RegionConfig regionConfig1 = new RegionConfig( regions.get( 0 ), singletonList( 0 ), 1 );
+        final RegionConfig regionConfig2 = new RegionConfig( regions.get( 1 ), singletonList( 0 ), 1 );
 
         try
         {
@@ -161,8 +160,8 @@ public class SupervisorImplFlowLifecycleTest extends ZanzaAbstractTest
 
         final FlowDef flowDef = new FlowDefBuilder().add( operatorDef1 ).add( operatorDef2 ).connect( "op1", "op2" ).build();
         final List<RegionDef> regions = regionDefFormer.createRegions( flowDef );
-        final RegionConfig regionConfig1 = new RegionConfig( 0, regions.get( 0 ), singletonList( 0 ), 1 );
-        final RegionConfig regionConfig2 = new RegionConfig( 1, regions.get( 1 ), singletonList( 0 ), 1 );
+        final RegionConfig regionConfig1 = new RegionConfig( regions.get( 0 ), singletonList( 0 ), 1 );
+        final RegionConfig regionConfig2 = new RegionConfig( regions.get( 1 ), singletonList( 0 ), 1 );
 
         supervisor.start( flowDef, Arrays.asList( regionConfig1, regionConfig2 ) );
         assertTrueEventually( () -> assertEquals( FlowStatus.SHUT_DOWN, supervisor.getStatus() ) );
@@ -179,8 +178,8 @@ public class SupervisorImplFlowLifecycleTest extends ZanzaAbstractTest
 
         final FlowDef flowDef = new FlowDefBuilder().add( operatorDef1 ).add( operatorDef2 ).connect( "op1", "op2" ).build();
         final List<RegionDef> regions = regionDefFormer.createRegions( flowDef );
-        final RegionConfig regionConfig1 = new RegionConfig( 0, regions.get( 0 ), singletonList( 0 ), 1 );
-        final RegionConfig regionConfig2 = new RegionConfig( 1, regions.get( 1 ), singletonList( 0 ), 1 );
+        final RegionConfig regionConfig1 = new RegionConfig( regions.get( 0 ), singletonList( 0 ), 1 );
+        final RegionConfig regionConfig2 = new RegionConfig( regions.get( 1 ), singletonList( 0 ), 1 );
 
         supervisor.start( flowDef, Arrays.asList( regionConfig1, regionConfig2 ) );
 

@@ -14,9 +14,11 @@ import org.junit.Test;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import cs.bilkent.zanza.Zanza.ZanzaBuilder;
+import cs.bilkent.zanza.engine.config.ZanzaConfig;
+import cs.bilkent.zanza.engine.region.FlowDeploymentDef.RegionGroup;
 import cs.bilkent.zanza.engine.region.RegionConfig;
-import cs.bilkent.zanza.engine.region.RegionConfigFactory;
 import cs.bilkent.zanza.engine.region.RegionDef;
+import cs.bilkent.zanza.engine.region.impl.AbstractRegionConfigFactory;
 import cs.bilkent.zanza.flow.FlowDef;
 import cs.bilkent.zanza.flow.FlowDefBuilder;
 import cs.bilkent.zanza.flow.OperatorDef;
@@ -161,9 +163,10 @@ public class ZanzaTest extends ZanzaAbstractTest
                                                  .connect( "multiplier", "collector" )
                                                  .build();
 
-        final Zanza zanza = new ZanzaBuilder().setRegionConfigFactory( new StaticRegionConfigFactory(
-                PARTITIONED_STATEFUL_REGION_REPLICA_COUNT ) )
-                                              .build();
+        final ZanzaConfig zanzaConfig = new ZanzaConfig();
+        final StaticRegionConfigFactory regionConfigFactory = new StaticRegionConfigFactory( zanzaConfig,
+                                                                                             PARTITIONED_STATEFUL_REGION_REPLICA_COUNT );
+        final Zanza zanza = new ZanzaBuilder().setRegionConfigFactory( regionConfigFactory ).setZanzaConfig( zanzaConfig ).build();
 
         zanza.start( flow );
 
@@ -184,34 +187,38 @@ public class ZanzaTest extends ZanzaAbstractTest
         }
     }
 
-    static class StaticRegionConfigFactory implements RegionConfigFactory
+    static class StaticRegionConfigFactory extends AbstractRegionConfigFactory
     {
 
         private final int replicaCount;
 
-        public StaticRegionConfigFactory ( final int replicaCount )
+        public StaticRegionConfigFactory ( final ZanzaConfig zanzaConfig, final int replicaCount )
         {
+            super( zanzaConfig );
             this.replicaCount = replicaCount;
         }
 
         @Override
-        public List<RegionConfig> createRegionConfigs ( final FlowDef flow, final List<RegionDef> regions )
+        protected List<RegionConfig> createRegionConfigs ( final RegionGroup regionGroup )
         {
+            final List<RegionDef> regions = regionGroup.getRegions();
+            final int replicaCount = regions.get( 0 ).getRegionType() == PARTITIONED_STATEFUL ? this.replicaCount : 1;
+            final List<List<Integer>> pipelineStartIndicesList = new ArrayList<>();
+            for ( RegionDef region : regions )
+            {
+                final int operatorCount = region.getOperatorCount();
+                final List<Integer> pipelineStartIndices = operatorCount == 1 ? singletonList( 0 ) : asList( 0, operatorCount / 2 );
+                pipelineStartIndicesList.add( pipelineStartIndices );
+            }
+
             final List<RegionConfig> regionConfigs = new ArrayList<>( regions.size() );
             for ( int i = 0; i < regions.size(); i++ )
             {
-                final RegionDef region = regions.get( i );
-                final int operatorCount = region.getOperatorCount();
-                final List<Integer> pipelineStartIndices = operatorCount == 1 ? singletonList( 0 ) : asList( 0, operatorCount / 2 );
-                final int replicaCount = region.getRegionType() == PARTITIONED_STATEFUL ? this.replicaCount : 1;
-                final RegionConfig regionConfig = new RegionConfig( i, region, pipelineStartIndices, replicaCount );
-                System.out.println( "Region is configured: " + regionConfig );
-                regionConfigs.add( regionConfig );
+                regionConfigs.add( new RegionConfig( regions.get( 0 ), pipelineStartIndicesList.get( i ), replicaCount ) );
             }
 
             return regionConfigs;
         }
-
     }
 
 
