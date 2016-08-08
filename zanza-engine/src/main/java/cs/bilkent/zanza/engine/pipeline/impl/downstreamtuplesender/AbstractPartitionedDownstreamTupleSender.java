@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Future;
+import java.util.function.Supplier;
 
 import cs.bilkent.zanza.engine.partition.PartitionKeyFunction;
 import static cs.bilkent.zanza.engine.partition.PartitionUtil.getPartitionId;
@@ -12,7 +13,7 @@ import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.operator.Tuple;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 
-public abstract class AbstractPartitionedDownstreamTupleSender implements DownstreamTupleSender
+public abstract class AbstractPartitionedDownstreamTupleSender implements DownstreamTupleSender, Supplier<TupleQueueContext[]>
 {
 
     private final int partitionCount;
@@ -42,6 +43,11 @@ public abstract class AbstractPartitionedDownstreamTupleSender implements Downst
         {
             tupleLists[ i ] = new ArrayList<>();
         }
+    }
+
+    public final TupleQueueContext[] get ()
+    {
+        return tupleQueueContexts;
     }
 
     protected final Future<Void> send ( final TuplesImpl input, final int sourcePortIndex, final int destinationPortIndex )

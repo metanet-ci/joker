@@ -232,6 +232,66 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
     }
 
     @Test
+    public void test_statelessRegion_singlePipeline_multiReplica_withInputConnection ()
+    {
+        final Class<StatelessOperatorWithSingleInputOutputPortCount> operatorClazz = StatelessOperatorWithSingleInputOutputPortCount.class;
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithSingleInputOutputPortCount.class )
+                                                           .build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", operatorClazz ).build();
+        final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", operatorClazz ).build();
+
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef0 )
+                                                 .add( operatorDef1 )
+                                                 .add( operatorDef2 )
+                                                 .connect( "op0", "op1" )
+                                                 .connect( "op1", "op2" )
+                                                 .build();
+
+        final List<RegionDef> regionDefs = regionDefFormer.createRegions( flow );
+        final RegionDef regionDef = regionDefs.get( 1 );
+        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 2 );
+
+        final Region region = regionManager.createRegion( flow, regionConfig );
+        assertNotNull( region );
+        final PipelineReplica[] pipelineReplicas0 = region.getReplicaPipelines( 0 );
+        final PipelineReplica[] pipelineReplicas1 = region.getReplicaPipelines( 1 );
+        assertEquals( 1, pipelineReplicas0.length );
+        assertEquals( 1, pipelineReplicas1.length );
+        final PipelineReplica pipelineReplica0 = pipelineReplicas0[ 0 ];
+        final PipelineReplica pipelineReplica1 = pipelineReplicas1[ 0 ];
+        assertDefaultTupleQueueContext( pipelineReplica0, operatorDef1.inputPortCount() );
+        assertDefaultTupleQueueContext( pipelineReplica1, operatorDef1.inputPortCount() );
+
+        assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 0 ), pipelineReplica0.id() );
+        assertEquals( 2, pipelineReplica0.getOperatorCount() );
+        assertEquals( 2, pipelineReplica1.getOperatorCount() );
+        final OperatorReplica operatorReplica0_1 = pipelineReplica0.getOperator( 0 );
+        final OperatorReplica operatorReplica0_2 = pipelineReplica0.getOperator( 1 );
+        final OperatorReplica operatorReplica1_1 = pipelineReplica1.getOperator( 0 );
+        final OperatorReplica operatorReplica1_2 = pipelineReplica1.getOperator( 1 );
+        assertOperatorDef( operatorReplica0_1, operatorDef1 );
+        assertOperatorDef( operatorReplica0_2, operatorDef2 );
+        assertOperatorDef( operatorReplica1_1, operatorDef1 );
+        assertOperatorDef( operatorReplica1_2, operatorDef2 );
+        assertDefaultTupleQueueContext( operatorReplica0_1, operatorDef1.inputPortCount(), MULTI_THREADED );
+        assertDefaultTupleQueueContext( operatorReplica0_2, operatorDef2.inputPortCount(), SINGLE_THREADED );
+        assertDefaultTupleQueueContext( operatorReplica1_1, operatorDef1.inputPortCount(), MULTI_THREADED );
+        assertDefaultTupleQueueContext( operatorReplica1_2, operatorDef2.inputPortCount(), SINGLE_THREADED );
+        assertEmptyKVStoreContext( operatorReplica0_1 );
+        assertEmptyKVStoreContext( operatorReplica0_2 );
+        assertEmptyKVStoreContext( operatorReplica1_1 );
+        assertEmptyKVStoreContext( operatorReplica1_2 );
+        assertBlockingTupleQueueDrainerPool( operatorReplica0_1 );
+        assertNonBlockingTupleQueueDrainerPool( operatorReplica0_2 );
+        assertBlockingTupleQueueDrainerPool( operatorReplica1_1 );
+        assertNonBlockingTupleQueueDrainerPool( operatorReplica1_2 );
+        assertCachedTuplesImplSupplier( operatorReplica0_1 );
+        assertNonCachedTuplesImplSupplier( operatorReplica0_2 );
+        assertCachedTuplesImplSupplier( operatorReplica1_1 );
+        assertNonCachedTuplesImplSupplier( operatorReplica1_2 );
+    }
+
+    @Test
     public void test_statefulRegion_singlePipeline_singleReplica ()
     {
         final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatelessOperatorWithSingleInputOutputPortCount.class )

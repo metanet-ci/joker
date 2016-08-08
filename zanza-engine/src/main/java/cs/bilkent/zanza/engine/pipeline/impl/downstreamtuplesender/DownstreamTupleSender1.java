@@ -1,12 +1,13 @@
 package cs.bilkent.zanza.engine.pipeline.impl.downstreamtuplesender;
 
 import java.util.concurrent.Future;
+import java.util.function.Supplier;
 
 import cs.bilkent.zanza.engine.pipeline.DownstreamTupleSender;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 
-public class DownstreamTupleSender1 implements DownstreamTupleSender
+public class DownstreamTupleSender1 implements DownstreamTupleSender, Supplier<TupleQueueContext>
 {
 
     private final int sourcePortIndex;
@@ -27,6 +28,12 @@ public class DownstreamTupleSender1 implements DownstreamTupleSender
     {
         tupleQueueContext.offer( destinationPortIndex, tuples.getTuples( sourcePortIndex ) );
         return null;
+    }
+
+    @Override
+    public TupleQueueContext get ()
+    {
+        return tupleQueueContext;
     }
 
 }

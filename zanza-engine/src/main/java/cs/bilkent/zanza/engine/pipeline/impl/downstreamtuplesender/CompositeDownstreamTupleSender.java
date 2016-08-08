@@ -30,4 +30,9 @@ public class CompositeDownstreamTupleSender implements DownstreamTupleSender
         return null;
     }
 
+    public DownstreamTupleSender[] getDownstreamTupleSenders ()
+    {
+        return Arrays.copyOf( senders, senders.length );
+    }
+
 }

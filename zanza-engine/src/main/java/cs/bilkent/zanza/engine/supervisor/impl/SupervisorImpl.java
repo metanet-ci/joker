@@ -39,6 +39,7 @@ import cs.bilkent.zanza.engine.pipeline.SupervisorNotifier;
 import cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus;
 import static cs.bilkent.zanza.engine.pipeline.UpstreamConnectionStatus.NO_CONNECTION;
 import cs.bilkent.zanza.engine.pipeline.UpstreamContext;
+import cs.bilkent.zanza.engine.region.FlowDeploymentDef;
 import cs.bilkent.zanza.engine.region.RegionConfig;
 import cs.bilkent.zanza.engine.supervisor.Supervisor;
 import static cs.bilkent.zanza.engine.supervisor.impl.SupervisorImpl.FlowStatus.INITIAL;
@@ -48,7 +49,6 @@ import static cs.bilkent.zanza.engine.supervisor.impl.SupervisorImpl.FlowStatus.
 import static cs.bilkent.zanza.engine.supervisor.impl.SupervisorImpl.FlowStatus.SHUT_DOWN;
 import cs.bilkent.zanza.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.zanza.engine.tuplequeue.impl.context.DefaultTupleQueueContext;
-import cs.bilkent.zanza.flow.FlowDef;
 import cs.bilkent.zanza.flow.OperatorDef;
 import cs.bilkent.zanza.flow.Port;
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
@@ -82,7 +82,7 @@ public class SupervisorImpl implements Supervisor
     private volatile FlowStatus status = INITIAL;
 
     @GuardedBy( "monitor" )
-    private FlowDef flow;
+    private FlowDeploymentDef flowDeployment;
 
     @GuardedBy( "monitor" )
     private final Map<PipelineId, Pipeline> pipelines = new ConcurrentHashMap<>();
@@ -110,22 +110,22 @@ public class SupervisorImpl implements Supervisor
         return status;
     }
 
-    public void start ( final FlowDef flow, final List<RegionConfig> regionConfigs ) throws InitializationException
+    public void start ( final FlowDeploymentDef flowDeployment, final List<RegionConfig> regionConfigs ) throws InitializationException
     {
         synchronized ( monitor )
         {
-            doStart( flow, regionConfigs );
+            doStart( flowDeployment, regionConfigs );
         }
         supervisorThread.start();
     }
 
-    private void doStart ( final FlowDef flow, final List<RegionConfig> regionConfigs ) throws InitializationException
+    private void doStart ( final FlowDeploymentDef flowDeployment, final List<RegionConfig> regionConfigs ) throws InitializationException
     {
         try
         {
             checkState( status == INITIAL, "cannot start since status is %s", status );
-            this.flow = flow;
-            final List<Pipeline> pipelines = pipelineManager.createPipelines( this, flow, regionConfigs );
+            this.flowDeployment = flowDeployment;
+            final List<Pipeline> pipelines = pipelineManager.createPipelines( this, flowDeployment.getFlow(), regionConfigs );
             initPipelineReplicas( pipelines );
             for ( Pipeline pipeline : pipelines )
             {
@@ -262,7 +262,7 @@ public class SupervisorImpl implements Supervisor
         for ( Pipeline pipeline : pipelines.values() )
         {
             final OperatorDef operatorDef = pipeline.getFirstOperatorDef();
-            if ( flow.getUpstreamConnections( operatorDef.id() ).isEmpty() )
+            if ( flowDeployment.getFlow().getUpstreamConnections( operatorDef.id() ).isEmpty() )
             {
                 handlePipelineUpstreamUpdated( pipeline, new UpstreamContext( 1, new UpstreamConnectionStatus[] {} ) );
             }
@@ -427,7 +427,7 @@ public class SupervisorImpl implements Supervisor
     {
         final OperatorDef firstOperator = pipeline.getFirstOperatorDef();
         final UpstreamConnectionStatus[] statuses = new UpstreamConnectionStatus[ firstOperator.inputPortCount() ];
-        for ( Entry<Port, Collection<Port>> entry : flow.getUpstreamConnections( firstOperator.id() ).entrySet() )
+        for ( Entry<Port, Collection<Port>> entry : flowDeployment.getFlow().getUpstreamConnections( firstOperator.id() ).entrySet() )
         {
             final Collection<Port> upstreamPorts = entry.getValue();
             final UpstreamConnectionStatus status;
@@ -438,7 +438,8 @@ public class SupervisorImpl implements Supervisor
             else
             {
                 final List<Pair<OperatorDef, Pipeline>> upstream = upstreamPorts.stream()
-                                                                                .map( port -> flow.getOperator( port.operatorId ) )
+                                                                                .map( port -> flowDeployment.getFlow()
+                                                                                                            .getOperator( port.operatorId ) )
                                                                                 .map( operator -> Pair.of( operator,
                                                                                                            getPipelineOrFail( operator ) ) )
                                                                                 .collect( toList() );
@@ -471,12 +472,15 @@ public class SupervisorImpl implements Supervisor
 
     private Collection<Pipeline> getDownstreamPipelines ( final Pipeline upstreamPipeline )
     {
-        return flow.getDownstreamConnections( upstreamPipeline.getLastOperatorDef().id() )
-                   .values()
-                   .stream()
-                   .flatMap( ports -> ports.stream().map( port -> port.operatorId ) )
-                   .distinct()
-                   .map( flow::getOperator ).map( operatorDef -> getPipelineOrFail( operatorDef, 0 ) ).collect( toList() );
+        return flowDeployment.getFlow()
+                             .getDownstreamConnections( upstreamPipeline.getLastOperatorDef().id() )
+                             .values()
+                             .stream()
+                             .flatMap( ports -> ports.stream().map( port -> port.operatorId ) )
+                             .distinct()
+                             .map( flowDeployment.getFlow()::getOperator )
+                             .map( operatorDef -> getPipelineOrFail( operatorDef, 0 ) )
+                             .collect( toList() );
     }
 
     private Pipeline getPipelineOrFail ( final OperatorDef operator )

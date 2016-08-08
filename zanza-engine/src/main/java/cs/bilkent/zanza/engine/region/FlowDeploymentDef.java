@@ -1,7 +1,9 @@
 package cs.bilkent.zanza.engine.region;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.zanza.flow.FlowDef;
@@ -15,6 +17,13 @@ public class FlowDeploymentDef
     private final List<RegionDef> regions;
 
     private final List<RegionGroup> regionGroups;
+
+    public FlowDeploymentDef ( final FlowDef flow, final List<RegionDef> regions )
+    {
+        this( flow,
+              regions,
+              regions.stream().map( region -> new RegionGroup( Collections.singletonList( region ) ) ).collect( Collectors.toList() ) );
+    }
 
     public FlowDeploymentDef ( final FlowDef flow, final List<RegionDef> regions, final List<RegionGroup> regionGroups )
     {

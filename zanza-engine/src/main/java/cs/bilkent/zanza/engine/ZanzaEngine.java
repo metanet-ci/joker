@@ -42,7 +42,7 @@ public class ZanzaEngine
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
         final FlowDeploymentDef flowDeployment = flowDeploymentDefFormer.createFlowDeploymentDef( flow, regions );
         final List<RegionConfig> regionConfigs = regionConfigFactory.createRegionConfigs( flowDeployment );
-        supervisor.start( flowDeployment.getFlow(), regionConfigs );
+        supervisor.start( flowDeployment, regionConfigs );
     }
 
     public Future<Void> shutdown ()

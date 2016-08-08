@@ -31,7 +31,6 @@ import cs.bilkent.zanza.operator.spec.OperatorType;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
-import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 
 @NotThreadSafe
@@ -72,22 +71,18 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
             mergeRegions( operators, connections, regionsToDeploy );
         }
 
-        final List<RegionGroup> regionGroups;
         if ( flowDeploymentConfig.isPairStatelessRegionsWithPartitionedStatefulRegionsEnabled() )
         {
             LOGGER.debug( "Pairing {} regions with {} regions", STATELESS, PARTITIONED_STATEFUL );
-            regionGroups = pairStatelessRegionsWithPartitionedStatefulRegions( operators, connections, regionsToDeploy );
+            final List<RegionGroup> regionGroups = pairStatelessRegionsWithPartitionedStatefulRegions( operators,
+                                                                                                       connections,
+                                                                                                       regionsToDeploy );
+            return new FlowDeploymentDef( createFlow( operators, connections ), regionsToDeploy, regionGroups );
         }
         else
         {
-            regionGroups = new ArrayList<>();
-            for ( RegionDef region : regionsToDeploy )
-            {
-                regionGroups.add( new RegionGroup( singletonList( region ) ) );
-            }
+            return new FlowDeploymentDef( createFlow( operators, connections ), regionsToDeploy );
         }
-
-        return new FlowDeploymentDef( createFlow( operators, connections ), regionsToDeploy, regionGroups );
     }
 
     private FlowDef createFlow ( final Map<String, OperatorDef> operators, final Multimap<Port, Port> connections )
@@ -370,13 +365,12 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
                 {
                     if ( e.getValue().operatorId.equals( upstreamOperator.id() ) )
                     {
-                        final Port duplicatedDestinationPort = new Port( duplicateOperators.get( 0 ).id(), e.getKey().portIndex );
-                        connections.put( e.getValue(), duplicatedDestinationPort );
-                        LOGGER.debug( "Connection <{}, {}> is duplicated as <{}, {}>",
+                        final Port duplicateDestinationPort = new Port( duplicateOperators.get( 0 ).id(), e.getKey().portIndex );
+                        connections.put( e.getValue(), duplicateDestinationPort );
+                        LOGGER.debug( "Connection < {} , {} > is duplicated as < {} , {} >",
                                       e.getValue(),
                                       e.getKey(),
-                                      e.getValue(),
-                                      duplicatedDestinationPort );
+                                      e.getValue(), duplicateDestinationPort );
                     }
                 }
 
@@ -387,17 +381,27 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
 
                     for ( Entry<Port, Port> e : downstreamConnections.get( originalOperator.id() ).entries() )
                     {
-                        connections.put( new Port( duplicateOperator.id(), e.getKey().portIndex ),
-                                         new Port( duplicateOperators.get( i + 1 ).id(), e.getValue().portIndex ) );
-                        LOGGER.debug( "Connection <{}, {}> is duplicated as <{}, {}>" );
+                        final Port sourcePort = new Port( duplicateOperator.id(), e.getKey().portIndex );
+                        final Port destinationPort = new Port( duplicateOperators.get( i + 1 ).id(), e.getValue().portIndex );
+                        connections.put( sourcePort, destinationPort );
+                        LOGGER.debug( "Connection < {} , {} > is duplicated as < {} , {} >",
+                                      e.getKey(),
+                                      e.getValue(),
+                                      sourcePort,
+                                      destinationPort );
                     }
                 }
 
                 for ( Entry<Port, Port> e : downstreamConnections.get( region.getLastOperator().id() ).entries() )
                 {
                     final OperatorDef duplicateOperator = duplicateOperators.get( duplicateOperators.size() - 1 );
-                    connections.put( new Port( duplicateOperator.id(), e.getKey().portIndex ), e.getValue() );
-                    LOGGER.debug( "Connection <{}, {}> is duplicated as <{}, {}>" );
+                    final Port duplicateSourcePort = new Port( duplicateOperator.id(), e.getKey().portIndex );
+                    connections.put( duplicateSourcePort, e.getValue() );
+                    LOGGER.debug( "Connection < {} , {} > is duplicated as < {} , {} >",
+                                  e.getKey(),
+                                  e.getValue(),
+                                  duplicateSourcePort,
+                                  e.getValue() );
                 }
             }
 

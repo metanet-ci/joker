@@ -4,7 +4,7 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.zanza.flow.OperatorDef;
-import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
+import static cs.bilkent.zanza.operator.spec.OperatorType.STATEFUL;
 
 public class RegionConfig
 {
@@ -17,7 +17,7 @@ public class RegionConfig
 
     public RegionConfig ( final RegionDef regionDef, final List<Integer> pipelineStartIndices, final int replicaCount )
     {
-        checkArgument( ( regionDef.getRegionType() == PARTITIONED_STATEFUL && replicaCount > 0 ) || replicaCount == 1 );
+        checkArgument( ( regionDef.getRegionType() == STATEFUL && replicaCount == 1 ) || replicaCount > 0 );
         this.regionDef = regionDef;
         this.replicaCount = replicaCount;
         this.pipelineStartIndices = pipelineStartIndices;

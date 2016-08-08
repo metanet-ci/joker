@@ -37,6 +37,7 @@ import static cs.bilkent.zanza.operator.scheduling.ScheduleWhenTuplesAvailable.s
 import cs.bilkent.zanza.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.zanza.operator.spec.OperatorSpec;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
+import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.zanza.operators.BeaconOperator;
 import static cs.bilkent.zanza.operators.BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER;
 import static cs.bilkent.zanza.operators.BeaconOperator.TUPLE_GENERATOR_CONFIG_PARAMETER;
@@ -187,6 +188,207 @@ public class ZanzaTest extends ZanzaAbstractTest
         }
     }
 
+    @Test
+    public void testEndToEndSystemWithStaticFlowOptimization () throws InterruptedException, ExecutionException, TimeoutException
+    {
+
+        final ValueGenerator valueGenerator1 = new ValueGenerator( KEY_RANGE, VALUE_RANGE );
+        final ValueGenerator valueGenerator2 = new ValueGenerator( KEY_RANGE, VALUE_RANGE );
+        final ValueCollector valueCollector1 = new ValueCollector( KEY_RANGE );
+        final ValueCollector valueCollector2 = new ValueCollector( KEY_RANGE );
+        final ValueCollector valueCollector3 = new ValueCollector( KEY_RANGE );
+        final ValueCollector valueCollector4 = new ValueCollector( KEY_RANGE );
+
+        final OperatorConfig beacon1Config = new OperatorConfig();
+        beacon1Config.set( TUPLE_GENERATOR_CONFIG_PARAMETER, valueGenerator1 );
+        beacon1Config.set( TUPLE_COUNT_CONFIG_PARAMETER, 2 );
+
+        final OperatorRuntimeSchemaBuilder beacon1Schema = new OperatorRuntimeSchemaBuilder( 0, 1 );
+        beacon1Schema.getOutputPortSchemaBuilder( 0 ).addField( "key", Integer.class ).addField( "value", Integer.class );
+
+        final OperatorDef beacon1 = OperatorDefBuilder.newInstance( "beacon1", BeaconOperator.class )
+                                                      .setConfig( beacon1Config )
+                                                      .setExtendingSchema( beacon1Schema )
+                                                      .build();
+
+        final OperatorConfig beacon2Config = new OperatorConfig();
+        beacon2Config.set( TUPLE_GENERATOR_CONFIG_PARAMETER, valueGenerator2 );
+        beacon2Config.set( TUPLE_COUNT_CONFIG_PARAMETER, 3 );
+
+        final OperatorRuntimeSchemaBuilder beacon2Schema = new OperatorRuntimeSchemaBuilder( 0, 1 );
+        beacon2Schema.getOutputPortSchemaBuilder( 0 ).addField( "key", Integer.class ).addField( "value", Integer.class );
+
+        final OperatorDef beacon2 = OperatorDefBuilder.newInstance( "beacon2", BeaconOperator.class )
+                                                      .setConfig( beacon2Config )
+                                                      .setExtendingSchema( beacon2Schema )
+                                                      .build();
+
+        final OperatorRuntimeSchemaBuilder joinSchema = new OperatorRuntimeSchemaBuilder( 2, 1 );
+        joinSchema.addInputField( 0, "key", Integer.class )
+                  .addInputField( 0, "value", Integer.class )
+                  .addInputField( 1, "key", Integer.class )
+                  .addInputField( 1, "value", Integer.class )
+                  .addOutputField( 0, "key", Integer.class )
+                  .addOutputField( 0, "value", Integer.class );
+
+        final OperatorDef join = OperatorDefBuilder.newInstance( "joiner", JoinOperator.class )
+                                                   .setExtendingSchema( joinSchema )
+                                                   .setPartitionFieldNames( singletonList( "key" ) )
+                                                   .build();
+
+        final OperatorRuntimeSchemaBuilder summerSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
+        summerSchema.addInputField( 0, "key", Integer.class )
+                    .addInputField( 0, "value", Integer.class )
+                    .addOutputField( 0, "key", Integer.class )
+                    .addOutputField( 0, "sum", Integer.class );
+
+        final OperatorDef summer = OperatorDefBuilder.newInstance( "summer", SummerOperator.class )
+                                                     .setExtendingSchema( summerSchema )
+                                                     .setPartitionFieldNames( singletonList( "key" ) )
+                                                     .build();
+
+        final OperatorConfig multiplierConfig = new OperatorConfig();
+        multiplierConfig.set( MAPPER_CONFIG_PARAMETER, (Function<Tuple, Tuple>) input ->
+        {
+            final Tuple output = new Tuple();
+            output.set( "key", input.get( "key" ) );
+            output.set( "mult", MULTIPLIER_VALUE * input.getInteger( "sum" ) );
+            return output;
+        } );
+
+        final OperatorRuntimeSchemaBuilder multiplierSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
+        multiplierSchema.addInputField( 0, "key", Integer.class )
+                        .addInputField( 0, "sum", Integer.class )
+                        .addOutputField( 0, "key", Integer.class )
+                        .addOutputField( 0, "mult", Integer.class );
+
+        final OperatorDef multiplier = OperatorDefBuilder.newInstance( "multiplier", MapperOperator.class )
+                                                         .setConfig( multiplierConfig )
+                                                         .setExtendingSchema( multiplierSchema )
+                                                         .build();
+
+        final OperatorConfig collectorConfig1 = new OperatorConfig();
+        collectorConfig1.set( CONSUMER_FUNCTION_CONFIG_PARAMETER, valueCollector1 );
+
+        final OperatorRuntimeSchemaBuilder foreachSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
+        foreachSchema.addInputField( 0, "key", Integer.class )
+                     .addInputField( 0, "mult", Integer.class )
+                     .addOutputField( 0, "key", Integer.class )
+                     .addOutputField( 0, "mult", Integer.class );
+
+        final OperatorDef collector1 = OperatorDefBuilder.newInstance( "collector1", ForEachOperator.class )
+                                                         .setConfig( collectorConfig1 )
+                                                         .setExtendingSchema( foreachSchema )
+                                                         .build();
+
+        final OperatorDef valuePasserStateless1 = OperatorDefBuilder.newInstance( "valuePasserStateless1", ValuePasserOperator.class )
+                                                                    .setExtendingSchema( foreachSchema )
+                                                                    .build();
+
+        final OperatorConfig collectorConfig2 = new OperatorConfig();
+        collectorConfig2.set( CONSUMER_FUNCTION_CONFIG_PARAMETER, valueCollector2 );
+
+        final OperatorDef collector2 = OperatorDefBuilder.newInstance( "collector2", ForEachOperator.class )
+                                                         .setConfig( collectorConfig2 )
+                                                         .setExtendingSchema( foreachSchema )
+                                                         .build();
+
+        final OperatorConfig collectorConfig3 = new OperatorConfig();
+        collectorConfig3.set( CONSUMER_FUNCTION_CONFIG_PARAMETER, valueCollector3 );
+
+        final OperatorDef collector3 = OperatorDefBuilder.newInstance( "collector3", ForEachOperator.class )
+                                                         .setConfig( collectorConfig3 )
+                                                         .setExtendingSchema( foreachSchema )
+                                                         .build();
+
+        final OperatorConfig valuePasserStatefulConfig = new OperatorConfig();
+        valuePasserStatefulConfig.set( CONSUMER_FUNCTION_CONFIG_PARAMETER, (Consumer<Tuple>) tuple ->
+        {
+        } );
+
+        final OperatorDef valuePasserStateful1 = OperatorDefBuilder.newInstance( "valuePasserStateful1", ForEachOperator.class )
+                                                                   .setConfig( valuePasserStatefulConfig )
+                                                                   .setExtendingSchema( foreachSchema )
+                                                                   .build();
+
+        final OperatorDef valuePasserStateful2 = OperatorDefBuilder.newInstance( "valuePasserStateful2", ForEachOperator.class )
+                                                                   .setConfig( valuePasserStatefulConfig )
+                                                                   .setExtendingSchema( foreachSchema )
+                                                                   .build();
+
+        final OperatorDef valuePasserStateless2 = OperatorDefBuilder.newInstance( "valuePasserStateless2", ValuePasserOperator.class )
+                                                                    .setExtendingSchema( foreachSchema )
+                                                                    .build();
+
+        final OperatorConfig collectorConfig4 = new OperatorConfig();
+        collectorConfig4.set( CONSUMER_FUNCTION_CONFIG_PARAMETER, valueCollector4 );
+
+        final OperatorDef collector4 = OperatorDefBuilder.newInstance( "collector4", ForEachOperator.class )
+                                                         .setConfig( collectorConfig4 )
+                                                         .setExtendingSchema( foreachSchema )
+                                                         .build();
+
+        final FlowDef flow = new FlowDefBuilder().add( beacon1 )
+                                                 .add( beacon2 )
+                                                 .add( join )
+                                                 .add( summer )
+                                                 .add( multiplier )
+                                                 .add( collector1 )
+                                                 .add( valuePasserStateless1 )
+                                                 .add( collector2 )
+                                                 .add( collector3 )
+                                                 .add( valuePasserStateful1 )
+                                                 .add( valuePasserStateful2 )
+                                                 .add( valuePasserStateless2 )
+                                                 .add( collector4 )
+                                                 .connect( "beacon1", "joiner", 0 )
+                                                 .connect( "beacon2", "joiner", 1 )
+                                                 .connect( "joiner", "summer" )
+                                                 .connect( "summer", "multiplier" )
+                                                 .connect( "multiplier", "collector1" )
+                                                 .connect( "multiplier", "valuePasserStateless1" )
+                                                 .connect( "valuePasserStateless1", "collector2" )
+                                                 .connect( "valuePasserStateless1", "collector3" )
+                                                 .connect( "multiplier", "valuePasserStateful1" )
+                                                 .connect( "multiplier", "valuePasserStateful2" )
+                                                 .connect( "valuePasserStateful1", "valuePasserStateless2" )
+                                                 .connect( "valuePasserStateful2", "valuePasserStateless2" )
+                                                 .connect( "valuePasserStateless2", "collector4" )
+                                                 .build();
+
+        final ZanzaConfig zanzaConfig = new ZanzaConfig();
+        final StaticRegionConfigFactory regionConfigFactory = new StaticRegionConfigFactory( zanzaConfig,
+                                                                                             PARTITIONED_STATEFUL_REGION_REPLICA_COUNT );
+        final Zanza zanza = new ZanzaBuilder().setRegionConfigFactory( regionConfigFactory ).setZanzaConfig( zanzaConfig ).build();
+
+        zanza.start( flow );
+
+        sleepUninterruptibly( 30, SECONDS );
+
+        zanza.shutdown().get( 2, MINUTES );
+
+        System.out.println( "Value generator 1 is invoked " + valueGenerator1.invocationCount.get() + " times." );
+        System.out.println( "Value generator 2 is invoked " + valueGenerator2.invocationCount.get() + " times." );
+        System.out.println( "Collector1 is invoked " + valueCollector1.invocationCount.get() + " times." );
+        System.out.println( "Collector2 is invoked " + valueCollector2.invocationCount.get() + " times." );
+        System.out.println( "Collector3 is invoked " + valueCollector3.invocationCount.get() + " times." );
+        System.out.println( "Collector4 is invoked " + valueCollector4.invocationCount.get() + " times." );
+
+        for ( int i = 0; i < valueCollector1.values.length(); i++ )
+        {
+            final int expected = ( valueGenerator1.generatedValues[ i ].intValue() + valueGenerator2.generatedValues[ i ].intValue() )
+                                 * MULTIPLIER_VALUE;
+            final int actual1 = valueCollector1.values.get( i );
+            final int actual2 = valueCollector2.values.get( i );
+            final int actual3 = valueCollector3.values.get( i );
+            final int actual4 = valueCollector4.values.get( i );
+            assertEquals( expected, actual1 );
+            assertEquals( expected, actual2 );
+            assertEquals( expected, actual3 );
+            assertEquals( expected, actual4 );
+        }
+    }
+
     static class StaticRegionConfigFactory extends AbstractRegionConfigFactory
     {
 
@@ -214,7 +416,7 @@ public class ZanzaTest extends ZanzaAbstractTest
             final List<RegionConfig> regionConfigs = new ArrayList<>( regions.size() );
             for ( int i = 0; i < regions.size(); i++ )
             {
-                regionConfigs.add( new RegionConfig( regions.get( 0 ), pipelineStartIndicesList.get( i ), replicaCount ) );
+                regionConfigs.add( new RegionConfig( regions.get( i ), pipelineStartIndicesList.get( i ), replicaCount ) );
             }
 
             return regionConfigs;
@@ -347,6 +549,27 @@ public class ZanzaTest extends ZanzaAbstractTest
                 result.set( "sum", newSum );
                 output.add( result );
             }
+        }
+
+    }
+
+
+    @OperatorSpec( inputPortCount = 1, outputPortCount = 1, type = STATELESS )
+    public static class ValuePasserOperator implements Operator
+    {
+
+        @Override
+        public SchedulingStrategy init ( final InitializationContext context )
+        {
+            return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
+        }
+
+        @Override
+        public void invoke ( final InvocationContext invocationContext )
+        {
+            final Tuples input = invocationContext.getInput();
+            final Tuples output = invocationContext.getOutput();
+            input.getTuplesByDefaultPort().forEach( output::add );
         }
 
     }

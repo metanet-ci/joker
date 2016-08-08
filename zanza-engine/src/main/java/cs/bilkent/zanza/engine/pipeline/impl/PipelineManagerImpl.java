@@ -63,6 +63,8 @@ import cs.bilkent.zanza.flow.OperatorDef;
 import cs.bilkent.zanza.flow.Port;
 import cs.bilkent.zanza.operator.impl.TuplesImpl;
 import static cs.bilkent.zanza.operator.spec.OperatorType.PARTITIONED_STATEFUL;
+import static cs.bilkent.zanza.operator.spec.OperatorType.STATEFUL;
+import static cs.bilkent.zanza.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.zanza.utils.Pair;
 import static java.lang.Math.min;
 
@@ -293,85 +295,92 @@ public class PipelineManagerImpl implements PipelineManager
                      lastOperator.id(),
                      connectionsByOperatorId );
 
-        if ( connectionsByOperatorId.size() == 1 )
+        for ( int replicaIndex = 0; replicaIndex < pipeline.getReplicaCount(); replicaIndex++ )
         {
-            final Entry<String, List<Pair<Integer, Integer>>> e = connectionsByOperatorId.entrySet().iterator().next();
-            final String downstreamOperatorId = e.getKey();
-            final List<Pair<Integer, Integer>> pairs = e.getValue();
-            final int j = min( pairs.size(), DOWNSTREAM_TUPLE_SENDER_CONSTRUCTOR_COUNT );
-            final OperatorDef downstreamOperator = flow.getOperator( downstreamOperatorId );
-            final Pipeline downstreamPipeline = getPipeline( downstreamOperator, 0 );
-            if ( pipeline.getId().regionId == downstreamPipeline.getId().regionId )
+            final DownstreamTupleSender[] senders = new DownstreamTupleSender[ connectionsByOperatorId.size() ];
+            int i = 0;
+            for ( Entry<String, List<Pair<Integer, Integer>>> e : connectionsByOperatorId.entrySet() )
             {
+                final String downstreamOperatorId = e.getKey();
+                final List<Pair<Integer, Integer>> pairs = e.getValue();
+                final OperatorDef downstreamOperator = flow.getOperator( downstreamOperatorId );
+                final Pipeline downstreamPipeline = getPipeline( downstreamOperator, 0 );
+                final RegionDef downstreamRegionDef = downstreamPipeline.getRegionDef();
                 final TupleQueueContext[] pipelineTupleQueueContexts = getPipelineTupleQueueContexts( downstreamOperator );
-                for ( int replicaIndex = 0; replicaIndex < pipeline.getReplicaCount(); replicaIndex++ )
+                final int j = min( pairs.size(), DOWNSTREAM_TUPLE_SENDER_CONSTRUCTOR_COUNT );
+
+                if ( pipeline.getId().regionId == downstreamPipeline.getId().regionId )
                 {
                     final TupleQueueContext pipelineTupleQueueContext = pipelineTupleQueueContexts[ replicaIndex ];
-                    final DownstreamTupleSender sender = defaultDownstreamTupleSenderConstructors[ j ].apply( pairs,
-                                                                                                              pipelineTupleQueueContext );
-                    pipeline.setDownstreamTupleSender( replicaIndex, sender );
-                    LOGGER.info( "Created {} for Pipeline {}, replica index {} with downstream Pipeline {} within same region",
-                                 sender.getClass().getSimpleName(),
-                                 pipeline.getId(),
-                                 replicaIndex,
-                                 downstreamPipeline.getId() );
+                    senders[ i ] = defaultDownstreamTupleSenderConstructors[ j ].apply( pairs, pipelineTupleQueueContext );
+                }
+                else if ( downstreamRegionDef.getRegionType() == PARTITIONED_STATEFUL )
+                {
+                    final int[] partitionDistribution = getPartitionDistribution( downstreamOperator );
+                    final PartitionKeyFunction partitionKeyFunction = partitionKeyFunctionFactory.createPartitionKeyFunction(
+                            downstreamRegionDef.getPartitionFieldNames() );
+                    senders[ i ] = partitionedDownstreamTupleSenderConstructors[ j ].apply( pairs,
+                                                                                            partitionService.getPartitionCount(),
+                                                                                            partitionDistribution,
+                                                                                            pipelineTupleQueueContexts,
+                                                                                            partitionKeyFunction );
+                }
+                else if ( downstreamRegionDef.getRegionType() == STATELESS )
+                {
+                    TupleQueueContext pipelineTupleQueueContext = null;
+                    if ( pipeline.getReplicaCount() == downstreamPipeline.getReplicaCount() )
+                    {
+                        pipelineTupleQueueContext = pipelineTupleQueueContexts[ replicaIndex ];
+                    }
+                    else if ( downstreamPipeline.getReplicaCount() == 1 )
+                    {
+                        pipelineTupleQueueContext = pipelineTupleQueueContexts[ 0 ];
+
+                    }
+
+                    if ( pipelineTupleQueueContext != null )
+                    {
+                        senders[ i ] = defaultDownstreamTupleSenderConstructors[ j ].apply( pairs, pipelineTupleQueueContext );
+                    }
+                    else
+                    {
+                        throw new IllegalStateException( "incompatible replica counts! pipeline: " + pipeline.getId() + " replica count: "
+                                                         + pipeline.getReplicaCount() + " downstream pipeline: "
+                                                         + downstreamPipeline.getId() + " downstream pipeline replica count: "
+                                                         + downstreamPipeline.getReplicaCount() );
+                    }
+                }
+                else if ( downstreamRegionDef.getRegionType() == STATEFUL )
+                {
+                    final int l = pipelineTupleQueueContexts.length;
+                    checkState( l == 1, "Operator %s can not have %s replicas", downstreamOperatorId, l );
+                    final TupleQueueContext pipelineTupleQueueContext = pipelineTupleQueueContexts[ 0 ];
+                    senders[ i ] = defaultDownstreamTupleSenderConstructors[ j ].apply( pairs, pipelineTupleQueueContext );
+                }
+                else
+                {
+                    throw new IllegalStateException( "invalid region type: " + downstreamRegionDef.getRegionType() );
                 }
 
-                return;
+                i++;
             }
-        }
 
-        final DownstreamTupleSender[] senders = new DownstreamTupleSender[ connectionsByOperatorId.size() ];
-        int i = 0;
-        for ( Entry<String, List<Pair<Integer, Integer>>> e : connectionsByOperatorId.entrySet() )
-        {
-            final String downstreamOperatorId = e.getKey();
-            final List<Pair<Integer, Integer>> pairs = e.getValue();
-            final OperatorDef downstreamOperator = flow.getOperator( downstreamOperatorId );
-            final Pipeline downstreamPipeline = getPipeline( downstreamOperator, 0 );
-            final RegionDef downstreamRegionDef = downstreamPipeline.getRegionDef();
-            final TupleQueueContext[] pipelineTupleQueueContexts = getPipelineTupleQueueContexts( downstreamOperator );
-            final int j = min( pairs.size(), DOWNSTREAM_TUPLE_SENDER_CONSTRUCTOR_COUNT );
-            if ( downstreamRegionDef.getRegionType() == PARTITIONED_STATEFUL )
+            DownstreamTupleSender sender;
+            if ( i == 0 )
             {
-                final int[] partitionDistribution = getPartitionDistribution( downstreamOperator );
-                final PartitionKeyFunction partitionKeyFunction = partitionKeyFunctionFactory.createPartitionKeyFunction(
-                        downstreamRegionDef.getPartitionFieldNames() );
-                senders[ i ] = partitionedDownstreamTupleSenderConstructors[ j ].apply( pairs,
-                                                                                        partitionService.getPartitionCount(),
-                                                                                        partitionDistribution,
-                                                                                        pipelineTupleQueueContexts,
-                                                                                        partitionKeyFunction );
+                sender = new NopDownstreamTupleSender();
+            }
+            else if ( i == 1 )
+            {
+                sender = senders[ 0 ];
             }
             else
             {
-                final int l = pipelineTupleQueueContexts.length;
-                checkState( l == 1, "Operator %s can not have %s replicas", downstreamOperatorId, l );
-                final TupleQueueContext pipelineTupleQueueContext = pipelineTupleQueueContexts[ 0 ];
-                senders[ i ] = defaultDownstreamTupleSenderConstructors[ j ].apply( pairs, pipelineTupleQueueContext );
+                sender = new CompositeDownstreamTupleSender( senders );
             }
 
-            i++;
-        }
+            LOGGER.info( "Created {} for Pipeline {} replica index {}", sender.getClass().getSimpleName(), pipeline.getId(), replicaIndex );
 
-        DownstreamTupleSender sender;
-        if ( i == 0 )
-        {
-            sender = new NopDownstreamTupleSender();
-        }
-        else if ( i == 1 )
-        {
-            sender = senders[ 0 ];
-        }
-        else
-        {
-            sender = new CompositeDownstreamTupleSender( senders );
-        }
-
-        LOGGER.info( "Created {} for Pipeline {}", sender.getClass().getSimpleName(), pipeline.getId() );
-
-        for ( int replicaIndex = 0; replicaIndex < pipeline.getReplicaCount(); replicaIndex++ )
-        {
             pipeline.setDownstreamTupleSender( replicaIndex, sender );
         }
     }

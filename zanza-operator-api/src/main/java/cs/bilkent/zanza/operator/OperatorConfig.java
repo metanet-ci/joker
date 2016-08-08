@@ -89,4 +89,9 @@ public final class OperatorConfig implements Fields<String>
         return Collections.unmodifiableSet( this.values.keySet() );
     }
 
+    @Override
+    public String toString ()
+    {
+        return "OperatorConfig{" + values + '}';
+    }
 }
