@@ -476,8 +476,7 @@ public class SupervisorImpl implements Supervisor
                    .stream()
                    .flatMap( ports -> ports.stream().map( port -> port.operatorId ) )
                    .distinct()
-                   .map( flow::getOperator )
-                   .map( operatorDef -> getPipelineOrFail( operatorDef, 0 ) ).collect( toList() );
+                   .map( flow::getOperator ).map( operatorDef -> getPipelineOrFail( operatorDef, 0 ) ).collect( toList() );
     }
 
     private Pipeline getPipelineOrFail ( final OperatorDef operator )

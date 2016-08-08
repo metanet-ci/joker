@@ -439,9 +439,8 @@ public class RegionManagerImpl implements RegionManager
             }
             else
             {
-                LOGGER.info( "Creating {} for pipeline tuple queue context of regionId={} as pipeline has no input port",
-                             EmptyTupleQueueContext.class.getSimpleName(),
-                             regionId );
+                LOGGER.info( "Creating {} for pipeline tuple queue context of regionId={} as first operator is {}",
+                             EmptyTupleQueueContext.class.getSimpleName(), regionId, firstOperatorDef.operatorType() );
                 return new EmptyTupleQueueContext( firstOperatorDef.id(), firstOperatorDef.inputPortCount() );
             }
         }

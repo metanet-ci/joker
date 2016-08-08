@@ -23,6 +23,7 @@ import cs.bilkent.zanza.engine.pipeline.PipelineReplica;
 import cs.bilkent.zanza.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.zanza.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
 import cs.bilkent.zanza.engine.pipeline.impl.tuplesupplier.NonCachedTuplesImplSupplier;
+import cs.bilkent.zanza.engine.region.FlowDeploymentDef;
 import cs.bilkent.zanza.engine.region.Region;
 import cs.bilkent.zanza.engine.region.RegionConfig;
 import cs.bilkent.zanza.engine.region.RegionDef;
@@ -62,12 +63,17 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
 
     private TupleQueueContextManagerImpl tupleQueueContextManager;
 
-    private final RegionDefFormerImpl regionDefFormer = new RegionDefFormerImpl( new IdGenerator() );
+    private final ZanzaConfig config = new ZanzaConfig();
+
+    private final IdGenerator idGenerator = new IdGenerator();
+
+    private final RegionDefFormerImpl regionDefFormer = new RegionDefFormerImpl( idGenerator );
+
+    private final FlowDeploymentDefFormerImpl flowDeploymentDefFormer = new FlowDeploymentDefFormerImpl( config, idGenerator );
 
     @Before
     public void init ()
     {
-        final ZanzaConfig config = new ZanzaConfig();
         final PartitionService partitionService = new PartitionServiceImpl( config );
         kvStoreContextManager = new KVStoreContextManagerImpl( partitionService );
         tupleQueueContextManager = new TupleQueueContextManagerImpl( config, partitionService, new PartitionKeyFunctionFactoryImpl() );
@@ -258,7 +264,80 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
     }
 
     @Test
+    public void test_statefulRegion_singlePipeline_singleReplica_withStatelessOperator ()
+    {
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatelessOperatorWithSingleInputOutputPortCount.class )
+                                                           .build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatefulOperatorWithSingleInputOutputPortCount.class )
+                                                           .build();
+
+        final FlowDef initialFlow = new FlowDefBuilder().add( operatorDef0 ).add( operatorDef1 ).connect( "op0", "op1" ).build();
+
+        final FlowDeploymentDef flowDeployment = flowDeploymentDefFormer.createFlowDeploymentDef( initialFlow,
+                                                                                                  regionDefFormer.createRegions(
+                                                                                                          initialFlow ) );
+
+        final FlowDef flow = flowDeployment.getFlow();
+        final List<RegionDef> regionDefs = flowDeployment.getRegions();
+        final RegionDef regionDef = regionDefs.get( 0 );
+        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 1 );
+
+        final Region region = regionManager.createRegion( flow, regionConfig );
+        assertNotNull( region );
+        final PipelineReplica[] pipelines = region.getReplicaPipelines( 0 );
+        assertEquals( 1, pipelines.length );
+        final PipelineReplica pipeline = pipelines[ 0 ];
+        assertEmptyTupleQueueContext( pipeline, operatorDef1.inputPortCount() );
+
+        assertEquals( 2, pipeline.getOperatorCount() );
+
+        final OperatorReplica operator0 = pipeline.getOperator( 0 );
+        assertOperatorDef( operator0, operatorDef0 );
+        assertEmptyTupleQueueContext( operator0 );
+        assertEmptyKVStoreContext( operator0 );
+        assertBlockingTupleQueueDrainerPool( operator0 );
+        assertCachedTuplesImplSupplier( operator0 );
+
+        final OperatorReplica operator1 = pipeline.getOperator( 1 );
+        assertOperatorDef( operator1, operatorDef1 );
+        assertDefaultTupleQueueContext( operator1, operatorDef1.inputPortCount(), SINGLE_THREADED );
+        assertDefaultKVStoreContext( operator1 );
+        assertNonBlockingTupleQueueDrainerPool( operator1 );
+        assertNonCachedTuplesImplSupplier( operator1 );
+    }
+
+    @Test
     public void test_release_statefulRegion_singlePipeline_singleReplica ()
+    {
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatelessOperatorWithSingleInputOutputPortCount.class )
+                                                           .build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatefulOperatorWithSingleInputOutputPortCount.class )
+                                                           .build();
+
+        final FlowDef initialFlow = new FlowDefBuilder().add( operatorDef0 ).add( operatorDef1 ).connect( "op0", "op1" ).build();
+
+        final FlowDeploymentDef flowDeployment = flowDeploymentDefFormer.createFlowDeploymentDef( initialFlow,
+                                                                                                  regionDefFormer.createRegions(
+                                                                                                          initialFlow ) );
+
+        final FlowDef flow = flowDeployment.getFlow();
+        final List<RegionDef> regionDefs = flowDeployment.getRegions();
+        final RegionDef regionDef = regionDefs.get( 0 );
+        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 1 );
+
+        final Region region = regionManager.createRegion( flow, regionConfig );
+
+        assertNotNull( tupleQueueContextManager.getDefaultTupleQueueContext( region.getRegionId(), 0, operatorDef1 ) );
+        assertNotNull( kvStoreContextManager.getDefaultKVStoreContext( region.getRegionId(), operatorDef1.id() ) );
+
+        regionManager.releaseRegion( region.getRegionId() );
+
+        assertNull( tupleQueueContextManager.getDefaultTupleQueueContext( region.getRegionId(), 0, operatorDef1 ) );
+        assertNull( kvStoreContextManager.getDefaultKVStoreContext( region.getRegionId(), operatorDef1.id() ) );
+    }
+
+    @Test
+    public void test_release_statefulRegion_singlePipeline_singleReplica_withStatelessOperator ()
     {
         final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatelessOperatorWithSingleInputOutputPortCount.class )
                                                            .build();
@@ -282,10 +361,11 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
         assertNull( kvStoreContextManager.getDefaultKVStoreContext( region.getRegionId(), operatorDef1.id() ) );
     }
 
+
     @Test
     public void test_partitionedStatefulRegion_singlePipeline_singleReplica ()
     {
-        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 3, 1 );
+        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 1, 1 );
         operatorRuntimeSchemaBuilder0.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field2", Integer.class );
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder1 = new OperatorRuntimeSchemaBuilder( 2, 1 );
         operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class )
@@ -327,7 +407,7 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
     @Test
     public void test_release_partitionedStatefulRegion_singlePipeline_singleReplica ()
     {
-        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 3, 1 );
+        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 1, 1 );
         operatorRuntimeSchemaBuilder0.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field2", Integer.class );
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder1 = new OperatorRuntimeSchemaBuilder( 2, 1 );
         operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class )
@@ -370,7 +450,7 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
     @Test
     public void test_partitionedStatefulRegion_singlePipeline_multiReplica ()
     {
-        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 3, 1 );
+        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 1, 1 );
         operatorRuntimeSchemaBuilder0.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field2", Integer.class );
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder1 = new OperatorRuntimeSchemaBuilder( 2, 1 );
         operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class )
@@ -424,7 +504,7 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
     @Test
     public void test_partitionedStatefulRegion_singlePipeline_singleReplica_withStatelessOperatorFirst ()
     {
-        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 3, 1 );
+        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 1, 1 );
         operatorRuntimeSchemaBuilder0.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field2", Integer.class );
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder1 = new OperatorRuntimeSchemaBuilder( 1, 1 );
         operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class ).addOutputField( 0, "field2", Integer.class );
@@ -483,7 +563,7 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
     @Test
     public void test_partitionedStatefulRegion_singlePipeline_multiReplica_withStatelessOperatorFirst ()
     {
-        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 3, 1 );
+        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 1, 1 );
         operatorRuntimeSchemaBuilder0.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field2", Integer.class );
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder1 = new OperatorRuntimeSchemaBuilder( 1, 1 );
         operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class ).addOutputField( 0, "field2", Integer.class );
@@ -563,7 +643,7 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
     @Test
     public void test_release_partitionedStatefulRegion_singlePipeline_multiReplica_withStatelessOperatorFirst ()
     {
-        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 3, 1 );
+        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 1, 1 );
         operatorRuntimeSchemaBuilder0.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field2", Integer.class );
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder1 = new OperatorRuntimeSchemaBuilder( 1, 1 );
         operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class ).addOutputField( 0, "field2", Integer.class );
@@ -618,7 +698,7 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
     @Test
     public void test_partitionedStatefulRegion_twoPipelines_singleReplica_withStatelessOperatorFirst ()
     {
-        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 3, 1 );
+        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 1, 1 );
         operatorRuntimeSchemaBuilder0.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field2", Integer.class );
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder1 = new OperatorRuntimeSchemaBuilder( 1, 1 );
         operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class ).addOutputField( 0, "field2", Integer.class );
@@ -695,7 +775,7 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
     @Test
     public void test_partitionedStatefulRegion_threePipeline_singleReplica_withStatelessOperatorFirst ()
     {
-        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 3, 1 );
+        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 1, 1 );
         operatorRuntimeSchemaBuilder0.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field2", Integer.class );
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder1 = new OperatorRuntimeSchemaBuilder( 1, 1 );
         operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class ).addOutputField( 0, "field2", Integer.class );
@@ -874,7 +954,7 @@ public class RegionManagerImplTest extends ZanzaAbstractTest
     }
 
 
-    @OperatorSpec( type = OperatorType.STATEFUL, inputPortCount = 3, outputPortCount = 1 )
+    @OperatorSpec( type = OperatorType.STATEFUL, inputPortCount = 1, outputPortCount = 1 )
     private static class StatefulOperatorWithSingleInputOutputPortCount extends NopOperator
     {
 

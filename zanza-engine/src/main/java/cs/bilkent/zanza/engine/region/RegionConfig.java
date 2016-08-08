@@ -62,8 +62,8 @@ public class RegionConfig
     @Override
     public String toString ()
     {
-        return "RegionConfig{" + "regionDef=" + regionDef + ", replicaCount=" + replicaCount
-               + ", pipelineStartIndices=" + pipelineStartIndices + '}';
+        return "RegionConfig{" + "regionDef=" + regionDef + ", replicaCount=" + replicaCount + ", pipelineStartIndices="
+               + pipelineStartIndices + '}';
     }
 
 }

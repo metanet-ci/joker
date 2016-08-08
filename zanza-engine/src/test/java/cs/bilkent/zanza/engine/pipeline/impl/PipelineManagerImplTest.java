@@ -243,7 +243,8 @@ public class PipelineManagerImplTest extends ZanzaAbstractTest
         final RegionDef statelessRegionDef = findRegion( regions, STATELESS );
 
         final List<RegionDef> statefulRegionDefs = regions.stream()
-                                                          .filter( regionDef -> regionDef.getRegionType() == STATEFUL ).collect( toList() );
+                                                          .filter( regionDef -> regionDef.getRegionType() == STATEFUL )
+                                                          .collect( toList() );
 
         final RegionDef statefulRegionDef1 = statefulRegionDefs.get( 0 ), statefulRegionDef2 = statefulRegionDefs.get( 1 );
 
