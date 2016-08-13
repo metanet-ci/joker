@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import cs.bilkent.joker.flow.OperatorDef;
+import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.spec.OperatorType;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static java.util.Collections.unmodifiableList;

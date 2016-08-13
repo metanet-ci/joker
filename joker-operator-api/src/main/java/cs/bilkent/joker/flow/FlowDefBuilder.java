@@ -15,6 +15,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
+import cs.bilkent.joker.operator.OperatorDef;
+import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
 
 

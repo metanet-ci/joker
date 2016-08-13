@@ -35,13 +35,6 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldPut ()
-    {
-        kvStore.set( "field", "value" );
-        assertThat( kvStore.put( "field", "value2" ), equalTo( "value" ) );
-    }
-
-    @Test
     public void shouldRemove ()
     {
         kvStore.set( "field", "value" );
@@ -92,7 +85,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     @Test
     public void shouldContainExistingField ()
     {
-        kvStore.put( "field", "value" );
+        kvStore.set( "field", "value" );
         assertTrue( kvStore.contains( "field" ) );
     }
 
@@ -105,7 +98,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingObject ()
     {
-        kvStore.put( "field", "value" );
+        kvStore.set( "field", "value" );
         assertThat( kvStore.getObject( "field" ), equalTo( "value" ) );
     }
 
@@ -118,7 +111,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingObjectOrDefault ()
     {
-        kvStore.put( "field", "value" );
+        kvStore.set( "field", "value" );
         assertThat( kvStore.getObjectOrDefault( "field", "value2" ), equalTo( "value" ) );
     }
 
@@ -131,7 +124,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingString ()
     {
-        kvStore.put( "field", "value" );
+        kvStore.set( "field", "value" );
         assertThat( kvStore.getString( "field" ), equalTo( "value" ) );
     }
 
@@ -144,7 +137,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingStringOrDefault ()
     {
-        kvStore.put( "field", "value" );
+        kvStore.set( "field", "value" );
         assertThat( kvStore.getStringOrDefault( "field", "value2" ), equalTo( "value" ) );
     }
 
@@ -157,7 +150,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingInteger ()
     {
-        kvStore.put( "field", 1 );
+        kvStore.set( "field", 1 );
         assertThat( kvStore.getInteger( "field" ), equalTo( 1 ) );
     }
 
@@ -170,7 +163,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingIntegerOrDefault ()
     {
-        kvStore.put( "field", 1 );
+        kvStore.set( "field", 1 );
         assertThat( kvStore.getIntegerOrDefault( "field", 2 ), equalTo( 1 ) );
     }
 
@@ -183,7 +176,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingLong ()
     {
-        kvStore.put( "field", 1L );
+        kvStore.set( "field", 1L );
         assertThat( kvStore.getLong( "field" ), equalTo( 1L ) );
     }
 
@@ -196,7 +189,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingLongOrDefault ()
     {
-        kvStore.put( "field", 1L );
+        kvStore.set( "field", 1L );
         assertThat( kvStore.getLongOrDefault( "field", 2L ), equalTo( 1L ) );
     }
 
@@ -209,7 +202,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingBoolean ()
     {
-        kvStore.put( "field", Boolean.TRUE );
+        kvStore.set( "field", Boolean.TRUE );
         assertTrue( kvStore.getBoolean( "field" ) );
     }
 
@@ -222,7 +215,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingBooleanOrDefault ()
     {
-        kvStore.put( "field", Boolean.TRUE );
+        kvStore.set( "field", Boolean.TRUE );
         assertTrue( kvStore.getBooleanOrDefault( "field", Boolean.FALSE ) );
     }
 
@@ -236,7 +229,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     public void shouldGetGetExistingShort ()
     {
         final short val = 1;
-        kvStore.put( "field", val );
+        kvStore.set( "field", val );
         assertThat( kvStore.getShort( "field" ), equalTo( val ) );
     }
 
@@ -251,7 +244,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     {
         final short val = 1;
         final short other = 2;
-        kvStore.put( "field", val );
+        kvStore.set( "field", val );
         assertThat( kvStore.getShortOrDefault( "field", other ), equalTo( val ) );
     }
 
@@ -266,7 +259,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     public void shouldGetExistingByte ()
     {
         final byte val = 1;
-        kvStore.put( "field", val );
+        kvStore.set( "field", val );
         assertThat( kvStore.getByte( "field" ), equalTo( val ) );
     }
 
@@ -281,7 +274,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     {
         final byte val = 1;
         final byte other = 1;
-        kvStore.put( "field", val );
+        kvStore.set( "field", val );
         assertThat( kvStore.getByteOrDefault( "field", other ), equalTo( val ) );
     }
 
@@ -295,7 +288,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingDouble ()
     {
-        kvStore.put( "field", 1d );
+        kvStore.set( "field", 1d );
         assertThat( kvStore.getDouble( "field" ), equalTo( 1d ) );
     }
 
@@ -308,7 +301,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingDoubleOrDefault ()
     {
-        kvStore.put( "field", 1d );
+        kvStore.set( "field", 1d );
         assertThat( kvStore.getDoubleOrDefault( "field", 2d ), equalTo( 1d ) );
     }
 
@@ -321,7 +314,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingFloat ()
     {
-        kvStore.put( "field", 1f );
+        kvStore.set( "field", 1f );
         assertThat( kvStore.getFloat( "field" ), equalTo( 1f ) );
     }
 
@@ -334,7 +327,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingFloatOrDefault ()
     {
-        kvStore.put( "field", 1f );
+        kvStore.set( "field", 1f );
         assertThat( kvStore.getFloatOrDefault( "field", 2f ), equalTo( 1f ) );
     }
 
@@ -348,7 +341,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     public void shouldGetExistingBinary ()
     {
         final byte[] val = new byte[] { 1 };
-        kvStore.put( "field", val );
+        kvStore.set( "field", val );
         assertThat( kvStore.getBinary( "field" ), equalTo( val ) );
     }
 
@@ -356,7 +349,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     public void shouldGetExistingBinaryOrDefault ()
     {
         final byte[] val = new byte[] { 1 };
-        kvStore.put( "field", val );
+        kvStore.set( "field", val );
         assertThat( kvStore.getBinaryOrDefault( "field", new byte[] {} ), equalTo( val ) );
     }
 
@@ -404,7 +397,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     public void shouldGetExistingCollection ()
     {
         final Collection<Integer> value = makeArrayList();
-        kvStore.put( "field", value );
+        kvStore.set( "field", value );
         assertThat( kvStore.getCollection( "field" ), equalTo( value ) );
     }
 
@@ -418,7 +411,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     public void shouldGetExistingCollectionOrDefault ()
     {
         final Collection<Integer> value = makeArrayList();
-        kvStore.put( "field", value );
+        kvStore.set( "field", value );
         assertThat( kvStore.getCollectionOrDefault( "field", Collections.emptyList() ), equalTo( value ) );
     }
 
@@ -433,7 +426,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     public void shouldGetExistingCollectionOrEmpty ()
     {
         final Collection<Integer> value = makeArrayList();
-        kvStore.put( "field", value );
+        kvStore.set( "field", value );
         assertThat( kvStore.getCollectionOrEmpty( "field" ), equalTo( value ) );
     }
 
@@ -447,7 +440,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     public void shouldGetExistingList ()
     {
         final List<Integer> value = makeArrayList();
-        kvStore.put( "field", value );
+        kvStore.set( "field", value );
         assertThat( kvStore.getList( "field" ), equalTo( value ) );
     }
 
@@ -461,7 +454,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     public void shouldGetExistingListOrDefault ()
     {
         final List<Integer> value = makeArrayList();
-        kvStore.put( "field", value );
+        kvStore.set( "field", value );
         assertThat( kvStore.getListOrDefault( "field", Collections.emptyList() ), equalTo( value ) );
     }
 
@@ -476,7 +469,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     public void shouldGetExistingListOrEmpty ()
     {
         final List<Integer> value = makeArrayList();
-        kvStore.put( "field", value );
+        kvStore.set( "field", value );
         assertThat( kvStore.getListOrEmpty( "field" ), equalTo( value ) );
     }
 
@@ -490,7 +483,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     public void shouldGetExistingSet ()
     {
         final Set<Integer> value = makeHashSet();
-        kvStore.put( "field", value );
+        kvStore.set( "field", value );
         assertThat( kvStore.getSet( "field" ), equalTo( value ) );
     }
 
@@ -504,7 +497,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     public void shouldGetExistingSetOrDefault ()
     {
         final Set<Integer> value = makeHashSet();
-        kvStore.put( "field", value );
+        kvStore.set( "field", value );
         assertThat( kvStore.getSetOrDefault( "field", Collections.emptySet() ), equalTo( value ) );
     }
 
@@ -519,7 +512,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     public void shouldGetExistingSetOrEmpty ()
     {
         final Set<Integer> value = makeHashSet();
-        kvStore.put( "field", value );
+        kvStore.set( "field", value );
         assertThat( kvStore.getSetOrEmpty( "field" ), equalTo( value ) );
     }
 
@@ -533,7 +526,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     public void shouldGetExistingMap ()
     {
         final Map<Integer, Integer> value = makeHashMap();
-        kvStore.put( "field", value );
+        kvStore.set( "field", value );
         assertThat( kvStore.getMap( "field" ), equalTo( value ) );
     }
 
@@ -547,7 +540,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     public void shouldGetExistingMapOrDefault ()
     {
         final Map<Integer, Integer> value = makeHashMap();
-        kvStore.put( "field", value );
+        kvStore.set( "field", value );
         assertThat( kvStore.getMapOrDefault( "field", Collections.emptyMap() ), equalTo( value ) );
     }
 
@@ -562,7 +555,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     public void shouldGetExistingMapOrEmpty ()
     {
         final Map<Integer, Integer> value = makeHashMap();
-        kvStore.put( "field", value );
+        kvStore.set( "field", value );
         assertThat( kvStore.getMapOrEmpty( "field" ), equalTo( value ) );
     }
 
@@ -575,7 +568,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     @Test
     public void shouldClearKeys ()
     {
-        kvStore.put( "field", 1 );
+        kvStore.set( "field", 1 );
         kvStore.clear();
         assertNull( kvStore.get( "field" ) );
     }
@@ -583,7 +576,7 @@ public class InMemoryKvStoreTest extends AbstractJokerTest
     @Test
     public void shouldFailToGetSize ()
     {
-        kvStore.put( "field", 1 );
+        kvStore.set( "field", 1 );
         assertThat( kvStore.size(), equalTo( 1 ) );
     }
 

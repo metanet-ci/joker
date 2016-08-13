@@ -27,6 +27,16 @@ public final class OperatorRuntimeSchema
         this.outputSchemas = unmodifiableList( new ArrayList<>( outputSchemas ) );
     }
 
+    public int getInputPortCount ()
+    {
+        return inputSchemas.size();
+    }
+
+    public int getOutputPortCount ()
+    {
+        return outputSchemas.size();
+    }
+
     public PortRuntimeSchema getInputSchema ( final int portIndex )
     {
         return inputSchemas.get( portIndex );

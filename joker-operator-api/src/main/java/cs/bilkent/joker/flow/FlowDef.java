@@ -19,6 +19,7 @@ import com.google.common.collect.Multimap;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Multimaps.unmodifiableMultimap;
+import cs.bilkent.joker.operator.OperatorDef;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.stream.Collectors.toList;
 

@@ -9,7 +9,7 @@ import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETING;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.RUNNING;
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
-import cs.bilkent.joker.flow.OperatorDef;
+import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 
 public class Pipeline

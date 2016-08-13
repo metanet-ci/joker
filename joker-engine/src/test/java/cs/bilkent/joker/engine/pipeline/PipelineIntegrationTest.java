@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
+import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -41,12 +41,12 @@ import cs.bilkent.joker.engine.tuplequeue.impl.context.PartitionedTupleQueueCont
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool.BlockingTupleQueueDrainerPool;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool.NonBlockingTupleQueueDrainerPool;
 import cs.bilkent.joker.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
-import cs.bilkent.joker.flow.OperatorDef;
-import cs.bilkent.joker.flow.OperatorDefBuilder;
 import cs.bilkent.joker.operator.InitializationContext;
 import cs.bilkent.joker.operator.InvocationContext;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
+import cs.bilkent.joker.operator.OperatorDef;
+import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.Tuples;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -110,7 +110,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     public void testPipelineWithSingleOperator () throws ExecutionException, InterruptedException
     {
         final OperatorConfig mapperOperatorConfig = new OperatorConfig();
-        final Function<Tuple, Tuple> multiplyBy2 = tuple -> new Tuple( "val", 2 * tuple.getIntegerValueOrDefault( "val", 0 ) );
+        final BiConsumer<Tuple, Tuple> multiplyBy2 = ( input, output ) -> output.set( "val",
+                                                                                      2 * input.getIntegerValueOrDefault( "val", 0 ) );
         mapperOperatorConfig.set( MapperOperator.MAPPER_CONFIG_PARAMETER, multiplyBy2 );
         final OperatorDef mapperOperatorDef = OperatorDefBuilder.newInstance( "map", MapperOperator.class )
                                                                 .setConfig( mapperOperatorConfig )
@@ -159,7 +160,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final List<Tuple> tuples = tupleCollector.tupleQueues[ 0 ].pollTuplesAtLeast( 1 );
         for ( int i = 0; i < tupleCount; i++ )
         {
-            final Tuple expected = multiplyBy2.apply( new Tuple( "val", initialVal + i ) );
+            final Tuple expected = new Tuple();
+            multiplyBy2.accept( new Tuple( "val", initialVal + i ), expected );
             assertEquals( expected, tuples.get( i ) );
         }
 
@@ -173,7 +175,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     public void testPipelineWithMultipleOperators_pipelineUpstreamClosed () throws ExecutionException, InterruptedException
     {
         final OperatorConfig mapperOperatorConfig = new OperatorConfig();
-        final Function<Tuple, Tuple> add1 = tuple -> new Tuple( "val", 1 + tuple.getIntegerValueOrDefault( "val", -1 ) );
+        final BiConsumer<Tuple, Tuple> add1 = ( input, output ) -> output.set( "val", 1 + input.getIntegerValueOrDefault( "val", -1 ) );
         mapperOperatorConfig.set( MapperOperator.MAPPER_CONFIG_PARAMETER, add1 );
         final OperatorDef mapperOperatorDef = OperatorDefBuilder.newInstance( "map", MapperOperator.class )
                                                                 .setConfig( mapperOperatorConfig )
@@ -252,7 +254,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final List<Tuple> tuples = tupleCollector.tupleQueues[ 0 ].pollTuplesAtLeast( 1 );
         for ( int i = 0; i < evenValCount; i++ )
         {
-            final Tuple expected = add1.apply( new Tuple( "val", initialVal + ( i * 2 ) ) );
+            final Tuple expected = new Tuple();
+            add1.accept( new Tuple( "val", initialVal + ( i * 2 ) ), expected );
             if ( filterEvenVals.test( expected ) )
             {
                 assertEquals( expected, tuples.get( i ) );
@@ -384,7 +387,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         supervisor.inputPortIndices.put( pipelineReplicaId2, 0 );
 
         final OperatorConfig mapperOperatorConfig = new OperatorConfig();
-        final Function<Tuple, Tuple> add1 = tuple -> new Tuple( "val", 1 + tuple.getIntegerValueOrDefault( "val", -1 ) );
+        final BiConsumer<Tuple, Tuple> add1 = ( input, output ) -> output.set( "val", 1 + input.getIntegerValueOrDefault( "val", -1 ) );
         mapperOperatorConfig.set( MapperOperator.MAPPER_CONFIG_PARAMETER, add1 );
         final OperatorDef mapperOperatorDef = OperatorDefBuilder.newInstance( "map", MapperOperator.class )
                                                                 .setConfig( mapperOperatorConfig )
@@ -482,7 +485,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final List<Tuple> tuples = tupleCollector2.tupleQueues[ 0 ].pollTuplesAtLeast( 1 );
         for ( int i = 0; i < evenValCount; i++ )
         {
-            final Tuple expected = add1.apply( new Tuple( "val", initialVal + ( i * 2 ) ) );
+            final Tuple expected = new Tuple();
+            add1.accept( new Tuple( "val", initialVal + ( i * 2 ) ), expected );
             if ( filterEvenVals.test( expected ) )
             {
                 assertEquals( expected, tuples.get( i ) );

@@ -14,6 +14,7 @@ import cs.bilkent.joker.operator.schema.annotation.OperatorSchema;
 import cs.bilkent.joker.operator.schema.annotation.PortSchema;
 import static cs.bilkent.joker.operator.schema.annotation.PortSchemaScope.EXACT_FIELD_SET;
 import cs.bilkent.joker.operator.schema.annotation.SchemaField;
+import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 
@@ -41,6 +42,8 @@ public class ExponentialMovingAverageAggregationOperator implements Operator
     static final String TUPLE_COUNT_FIELD = "count";
 
 
+    private TupleSchema outputSchema;
+
     private double weight;
 
     private String fieldName;
@@ -48,6 +51,8 @@ public class ExponentialMovingAverageAggregationOperator implements Operator
     @Override
     public SchedulingStrategy init ( final InitializationContext context )
     {
+        this.outputSchema = context.getOutputPortSchema( 0 );
+
         final OperatorConfig config = context.getConfig();
         this.weight = config.getOrFail( WEIGHT_CONFIG_PARAMETER );
         this.fieldName = config.getOrFail( FIELD_NAME_CONFIG_PARAMETER );
@@ -71,7 +76,7 @@ public class ExponentialMovingAverageAggregationOperator implements Operator
         {
             final double tupleValue = tuple.getDoubleValueOrDefault( fieldName, 0d );
             value = ( tupleCount++ == 0 ) ? tupleValue : ( weight * tupleValue + ( 1 - weight ) * value );
-            final Tuple avgTuple = new Tuple();
+            final Tuple avgTuple = new Tuple( outputSchema );
             avgTuple.set( VALUE_FIELD, value );
 
             output.add( avgTuple );

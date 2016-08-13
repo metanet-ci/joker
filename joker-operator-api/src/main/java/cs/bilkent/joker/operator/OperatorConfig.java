@@ -1,8 +1,6 @@
 package cs.bilkent.joker.operator;
 
 
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -51,14 +49,6 @@ public final class OperatorConfig implements Fields<String>
         this.values.put( key, value );
     }
 
-    @SuppressWarnings( "unchecked" )
-    @Override
-    public <T> T put ( final String key, final T value )
-    {
-        checkArgument( value != null, "value can't be null!" );
-        return (T) this.values.put( key, value );
-    }
-
     @Override
     public Object remove ( final String key )
     {
@@ -84,14 +74,9 @@ public final class OperatorConfig implements Fields<String>
     }
 
     @Override
-    public Collection<String> keys ()
-    {
-        return Collections.unmodifiableSet( this.values.keySet() );
-    }
-
-    @Override
     public String toString ()
     {
         return "OperatorConfig{" + values + '}';
     }
+
 }

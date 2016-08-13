@@ -1,9 +1,12 @@
 package cs.bilkent.joker.operators;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
 import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SUCCESS;
+import cs.bilkent.joker.operator.OperatorDef;
+import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.InitializationContextImpl;
 import cs.bilkent.joker.operator.impl.InvocationContextImpl;
@@ -28,7 +31,7 @@ import static org.junit.Assert.assertTrue;
 public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJokerTest
 {
 
-    private final ExponentialMovingAverageAggregationOperator operator = new ExponentialMovingAverageAggregationOperator();
+    private ExponentialMovingAverageAggregationOperator operator;
 
     private final InitializationContextImpl initContext = new InitializationContextImpl();
 
@@ -39,6 +42,14 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
     private final KVStore kvStore = new InMemoryKVStore();
 
     private final InvocationContextImpl invocationContext = new InvocationContextImpl( SUCCESS, input, output, kvStore );
+
+    @Before
+    public void init () throws InstantiationException, IllegalAccessException
+    {
+        final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "op", ExponentialMovingAverageAggregationOperator.class ).build();
+        operator = (ExponentialMovingAverageAggregationOperator) operatorDef.createOperator();
+        initContext.setRuntimeSchema( operatorDef.schema() );
+    }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithNoTupleCount ()

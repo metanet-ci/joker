@@ -37,12 +37,6 @@ public class KeyDecoratedKVStore implements KVStore
     }
 
     @Override
-    public <T> T put ( final Object key, final T value )
-    {
-        return kvStore.put( Pair.of( prefix, key ), value );
-    }
-
-    @Override
     public Object remove ( final Object key )
     {
         return kvStore.remove( Pair.of( prefix, key ) );

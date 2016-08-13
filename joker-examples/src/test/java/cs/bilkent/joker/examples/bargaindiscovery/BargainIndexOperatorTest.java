@@ -1,5 +1,6 @@
 package cs.bilkent.joker.examples.bargaindiscovery;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import static cs.bilkent.joker.examples.bargaindiscovery.BargainIndexOperator.ASKED_SIZE_FIELD;
@@ -10,13 +11,17 @@ import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.
 import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.TIMESTAMP_FIELD;
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
 import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SUCCESS;
+import cs.bilkent.joker.operator.OperatorDef;
+import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.operator.impl.InitializationContextImpl;
 import cs.bilkent.joker.operator.impl.InvocationContextImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.operator.kvstore.impl.InMemoryKVStore;
 import cs.bilkent.joker.operator.kvstore.impl.KeyDecoratedKVStore;
 import cs.bilkent.joker.testutils.AbstractJokerTest;
+import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -25,7 +30,7 @@ public class BargainIndexOperatorTest extends AbstractJokerTest
 
     private static final String TUPLE_PARTITION_KEY = "key1";
 
-    private final BargainIndexOperator operator = new BargainIndexOperator();
+    private BargainIndexOperator operator;
 
     private final TuplesImpl input = new TuplesImpl( 2 );
 
@@ -35,6 +40,17 @@ public class BargainIndexOperatorTest extends AbstractJokerTest
 
     private final InvocationContextImpl invocationContext = new InvocationContextImpl( SUCCESS, input, output, kvStore );
 
+    @Before
+    public void init () throws InstantiationException, IllegalAccessException
+    {
+        final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "op", BargainIndexOperator.class )
+                                                          .setPartitionFieldNames( singletonList( TICKER_SYMBOL_FIELD ) )
+                                                          .build();
+        operator = (BargainIndexOperator) operatorDef.createOperator();
+        final InitializationContextImpl initContext = new InitializationContextImpl();
+        initContext.setRuntimeSchema( operatorDef.schema() );
+        operator.init( initContext );
+    }
 
     @Test
     public void shouldReturnNoOutputWithQuoteButNoVWAP ()

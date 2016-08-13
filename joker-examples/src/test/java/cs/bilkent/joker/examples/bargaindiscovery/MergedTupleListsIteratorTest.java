@@ -92,7 +92,9 @@ public class MergedTupleListsIteratorTest extends AbstractJokerTest
     @Test
     public void test5 ()
     {
-        final Tuple val1Left = new Tuple( val1.asMap() );
+        final Tuple val1Left = new Tuple();
+        val1.consumeEntries( val1Left::set );
+
         assertVals( new MergedTupleListsIterator( singletonList( val1Left ), singletonList( val1 ), COMPARATOR ), val1Left, val1 );
     }
 

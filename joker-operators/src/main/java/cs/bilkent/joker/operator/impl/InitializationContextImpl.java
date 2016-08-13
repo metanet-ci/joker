@@ -6,6 +6,7 @@ import java.util.List;
 import cs.bilkent.joker.operator.InitializationContext;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
+import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import static java.util.Collections.emptyList;
 
 
@@ -76,9 +77,15 @@ public class InitializationContextImpl implements InitializationContext
     }
 
     @Override
-    public OperatorRuntimeSchema getRuntimeSchema ()
+    public TupleSchema getInputPortSchema ( final int portIndex )
     {
-        return runtimeSchema;
+        return runtimeSchema.getInputSchema( portIndex );
+    }
+
+    @Override
+    public TupleSchema getOutputPortSchema ( final int portIndex )
+    {
+        return runtimeSchema.getOutputSchema( portIndex );
     }
 
     @Override
@@ -122,4 +129,5 @@ public class InitializationContextImpl implements InitializationContext
     {
         this.upstreamConnectionStatuses = Arrays.copyOf( upstreamConnectionStatuses, upstreamConnectionStatuses.length );
     }
+
 }

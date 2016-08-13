@@ -1,5 +1,6 @@
 package cs.bilkent.joker.examples.bargaindiscovery;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.SINGLE_VOLUME_FIELD;
@@ -16,6 +17,8 @@ import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.
 import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.WINDOW_SIZE_CONfIG_PARAMETER;
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
 import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SUCCESS;
+import cs.bilkent.joker.operator.OperatorDef;
+import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.InitializationContextImpl;
 import cs.bilkent.joker.operator.impl.InvocationContextImpl;
@@ -34,7 +37,7 @@ public class VWAPAggregatorOperatorTest extends AbstractJokerTest
 
     private static final String TUPLE_PARTITION_KEY = "key1";
 
-    private final VWAPAggregatorOperator operator = new VWAPAggregatorOperator();
+    private VWAPAggregatorOperator operator;
 
     private final InitializationContextImpl initContext = new InitializationContextImpl();
 
@@ -45,6 +48,18 @@ public class VWAPAggregatorOperatorTest extends AbstractJokerTest
     private final KVStore kvStore = new KeyDecoratedKVStore( TUPLE_PARTITION_KEY, new InMemoryKVStore() );
 
     private final InvocationContextImpl invocationContext = new InvocationContextImpl( SUCCESS, input, output, kvStore );
+
+
+    @Before
+    public void init () throws InstantiationException, IllegalAccessException
+    {
+        final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "op", VWAPAggregatorOperator.class )
+                                                          .setPartitionFieldNames( singletonList( TICKER_SYMBOL_FIELD ) )
+                                                          .build();
+
+        operator = (VWAPAggregatorOperator) operatorDef.createOperator();
+        initContext.setRuntimeSchema( operatorDef.schema() );
+    }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailToInitWithNoWindowSize ()

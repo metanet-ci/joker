@@ -51,7 +51,6 @@ public abstract class AbstractJokerTest
 
     };
 
-
     public static Thread spawnThread ( final Runnable runnable )
     {
         final Thread thread = new Thread( runnable );

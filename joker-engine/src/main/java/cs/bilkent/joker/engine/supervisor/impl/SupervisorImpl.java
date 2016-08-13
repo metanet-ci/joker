@@ -49,8 +49,8 @@ import static cs.bilkent.joker.engine.supervisor.impl.SupervisorImpl.FlowStatus.
 import static cs.bilkent.joker.engine.supervisor.impl.SupervisorImpl.FlowStatus.SHUT_DOWN;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.joker.engine.tuplequeue.impl.context.DefaultTupleQueueContext;
-import cs.bilkent.joker.flow.OperatorDef;
 import cs.bilkent.joker.flow.Port;
+import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.utils.Pair;
 import static java.util.Collections.reverse;
@@ -233,7 +233,8 @@ public class SupervisorImpl implements Supervisor
                 if ( shutdownFuture == null )
                 {
                     shutdownFuture = new CompletableFuture<>();
-                    assert queue.offer( this::triggerShutdown );
+                    final boolean result = queue.offer( this::triggerShutdown );
+                    assert result : "offer failed for trigger shutdown";
                 }
 
                 future = shutdownFuture;
@@ -284,7 +285,8 @@ public class SupervisorImpl implements Supervisor
         {
             if ( status == SHUTTING_DOWN )
             {
-                assert queue.offer( () -> doNotifyPipelineReplicaCompleted( id ) );
+                final boolean result = queue.offer( () -> doNotifyPipelineReplicaCompleted( id ) );
+                assert result : "offer failed for notify pipeline replica " + id + " completed";
             }
             else
             {
@@ -301,7 +303,8 @@ public class SupervisorImpl implements Supervisor
         {
             if ( status == RUNNING || status == SHUTTING_DOWN )
             {
-                assert queue.offer( () -> doNotifyPipelineReplicaFailed( id, failure ) );
+                final boolean result = queue.offer( () -> doNotifyPipelineReplicaFailed( id, failure ) );
+                assert result : "offer failed for notify pipeline replica " + id + " failed: " + failure;
             }
             else
             {

@@ -56,7 +56,7 @@ public class KVStoreContextManagerImplTest extends AbstractJokerTest
     {
         final KVStoreContext kvStoreContext = kvStoreManager.createDefaultKVStoreContext( REGION_ID, "op1" );
         final KVStore kvStore = kvStoreContext.getKVStore( null );
-        kvStore.put( "key", "value" );
+        kvStore.set( "key", "value" );
         assertTrue( kvStoreManager.releaseDefaultKVStoreContext( REGION_ID, "op1" ) );
         assertThat( kvStore.size(), equalTo( 0 ) );
         assertNull( kvStoreManager.getKVStores( REGION_ID, "op1" ) );
@@ -67,7 +67,7 @@ public class KVStoreContextManagerImplTest extends AbstractJokerTest
     {
         final KVStoreContext kvStoreContext = kvStoreManager.createPartitionedKVStoreContexts( REGION_ID, 1, "op1" )[ 0 ];
         final KeyDecoratedKVStore kvStore = (KeyDecoratedKVStore) kvStoreContext.getKVStore( "key" );
-        kvStore.put( "key", "value" );
+        kvStore.set( "key", "value" );
         assertTrue( kvStoreManager.releasePartitionedKVStoreContext( REGION_ID, "op1" ) );
         assertThat( kvStore.getKvStore().size(), equalTo( 0 ) );
         assertNull( kvStoreManager.getKVStores( REGION_ID, "op1" ) );

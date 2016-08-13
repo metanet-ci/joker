@@ -13,6 +13,7 @@ import cs.bilkent.joker.operator.schema.annotation.PortSchema;
 import static cs.bilkent.joker.operator.schema.annotation.PortSchemaScope.EXACT_FIELD_SET;
 import static cs.bilkent.joker.operator.schema.annotation.PortSchemaScope.EXTENDABLE_FIELD_SET;
 import cs.bilkent.joker.operator.schema.annotation.SchemaField;
+import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 
@@ -56,11 +57,14 @@ public class VWAPAggregatorOperator implements Operator
 
     private int slideFactor;
 
+    private TupleSchema outputSchema;
+
     @Override
     public SchedulingStrategy init ( final InitializationContext context )
     {
         this.windowSize = context.getConfig().getOrFail( WINDOW_SIZE_CONfIG_PARAMETER );
         this.slideFactor = context.getConfig().getOrDefault( SLIDE_FACTOR_CONfIG_PARAMETER, 1 );
+        this.outputSchema = context.getOutputPortSchema( 0 );
 
         return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
     }
@@ -135,7 +139,7 @@ public class VWAPAggregatorOperator implements Operator
 
     private Tuple createOutputTuple ( final String tickerSymbol, final long timestamp, final double vwapSum, final double volumeSum )
     {
-        final Tuple tuple = new Tuple();
+        final Tuple tuple = new Tuple( outputSchema );
         tuple.set( TICKER_SYMBOL_FIELD, tickerSymbol );
         tuple.set( TIMESTAMP_FIELD, timestamp );
 

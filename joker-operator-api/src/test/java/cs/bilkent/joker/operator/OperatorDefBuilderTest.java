@@ -1,4 +1,4 @@
-package cs.bilkent.joker.flow;
+package cs.bilkent.joker.operator;
 
 import java.util.List;
 
@@ -17,6 +17,7 @@ import static cs.bilkent.joker.operator.schema.annotation.PortSchemaScope.EXACT_
 import static cs.bilkent.joker.operator.schema.annotation.PortSchemaScope.EXTENDABLE_FIELD_SET;
 import cs.bilkent.joker.operator.schema.annotation.SchemaField;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
+import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.joker.operator.schema.runtime.PortRuntimeSchema;
 import cs.bilkent.joker.operator.schema.runtime.RuntimeSchemaField;
 import cs.bilkent.joker.operator.spec.OperatorSpec;

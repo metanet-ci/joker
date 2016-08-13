@@ -4,8 +4,7 @@ package cs.bilkent.joker.operator;
 import java.util.List;
 
 import cs.bilkent.joker.flow.FlowDef;
-import cs.bilkent.joker.operator.schema.annotation.OperatorSchema;
-import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
+import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 
 
 /**
@@ -58,15 +57,9 @@ public interface InitializationContext
         return !isInputPortOpen( portIndex );
     }
 
-    /**
-     * Schema of the operator that has been built in the run time. It is the combination of the schema given in {@link OperatorSchema}
-     * with the {@link Operator} class and given in {@link OperatorRuntimeSchema} during the {@link FlowDef} composition
-     *
-     * @return schema of the operator that has been built in the run time. It is the combination of the schema given in
-     * {@link OperatorSchema}
-     * with the {@link Operator} class and given in {@link OperatorRuntimeSchema} during the {@link FlowDef} composition
-     */
-    OperatorRuntimeSchema getRuntimeSchema ();
+    TupleSchema getInputPortSchema ( int portIndex );
+
+    TupleSchema getOutputPortSchema ( int portIndex );
 
     /**
      * Names of the fields which are used for partitioning the {@link Tuple} instances for the {@link Operator}

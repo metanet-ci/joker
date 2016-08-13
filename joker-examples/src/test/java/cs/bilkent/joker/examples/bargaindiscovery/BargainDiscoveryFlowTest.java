@@ -9,9 +9,9 @@ import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.
 import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.TIMESTAMP_FIELD;
 import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.WINDOW_SIZE_CONfIG_PARAMETER;
 import cs.bilkent.joker.flow.FlowDefBuilder;
-import cs.bilkent.joker.flow.OperatorDefBuilder;
-import cs.bilkent.joker.flow.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.joker.operator.OperatorConfig;
+import cs.bilkent.joker.operator.OperatorDefBuilder;
+import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.joker.operators.MapperOperator;
 import static cs.bilkent.joker.operators.MapperOperator.MAPPER_CONFIG_PARAMETER;
 import cs.bilkent.joker.testutils.AbstractJokerTest;

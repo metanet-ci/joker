@@ -1,6 +1,8 @@
 package cs.bilkent.joker.operators;
 
-import java.util.function.BiFunction;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
 import cs.bilkent.joker.operator.InitializationContext;
@@ -16,6 +18,7 @@ import cs.bilkent.joker.operator.schema.annotation.OperatorSchema;
 import cs.bilkent.joker.operator.schema.annotation.PortSchema;
 import static cs.bilkent.joker.operator.schema.annotation.PortSchemaScope.EXTENDABLE_FIELD_SET;
 import cs.bilkent.joker.operator.schema.annotation.SchemaField;
+import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 
@@ -30,7 +33,7 @@ public class TupleCountBasedWindowReducerOperator implements Operator
 
     public static final String REDUCER_CONFIG_PARAMETER = "reducer";
 
-    public static final String INITIAL_VALUE_CONFIG_PARAMETER = "initialValue";
+    public static final String ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER = "accumulatorInitializer";
 
     public static final String WINDOW_FIELD = "window";
 
@@ -41,20 +44,31 @@ public class TupleCountBasedWindowReducerOperator implements Operator
     static final String TUPLE_COUNT_FIELD = "count";
 
 
-    private BiFunction<Tuple, Tuple, Tuple> reducerFunc;
+    private BiConsumer<Tuple, Tuple> reducer;
 
     private int tupleCount;
 
-    private Tuple initialValue;
+    private TupleSchema outputSchema;
+
+    private Consumer<Tuple> accumulatorInitializer;
+
+    private Supplier<Tuple> accumulatorSupplier;
 
     @Override
     public SchedulingStrategy init ( final InitializationContext context )
     {
         final OperatorConfig config = context.getConfig();
 
-        this.reducerFunc = config.getOrFail( REDUCER_CONFIG_PARAMETER );
+        this.reducer = config.getOrFail( REDUCER_CONFIG_PARAMETER );
         this.tupleCount = config.getOrFail( TUPLE_COUNT_CONFIG_PARAMETER );
-        this.initialValue = config.get( INITIAL_VALUE_CONFIG_PARAMETER );
+        this.accumulatorInitializer = config.getOrFail( ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER );
+        this.accumulatorSupplier = () ->
+        {
+            final Tuple accumulator = new Tuple( outputSchema );
+            accumulatorInitializer.accept( accumulator );
+            return accumulator;
+        };
+        this.outputSchema = context.getOutputPortSchema( 0 );
 
         return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
     }
@@ -70,11 +84,11 @@ public class TupleCountBasedWindowReducerOperator implements Operator
         final Tuple window = kvStore.getOrDefault( CURRENT_WINDOW_KEY, Tuple::new );
         int currentTupleCount = window.getIntegerOrDefault( TUPLE_COUNT_FIELD, 0 );
         int windowCount = window.getIntegerOrDefault( WINDOW_FIELD, 0 );
-        Tuple accumulator = kvStore.getOrDefault( ACCUMULATOR_TUPLE_KEY, initialValue );
+        Tuple accumulator = kvStore.getOrDefault( ACCUMULATOR_TUPLE_KEY, accumulatorSupplier );
 
         for ( Tuple tuple : input.getTuplesByDefaultPort() )
         {
-            accumulator = accumulator == null ? tuple : reducerFunc.apply( accumulator, tuple );
+            reducer.accept( accumulator, tuple );
 
             if ( ++currentTupleCount == tupleCount )
             {
@@ -82,7 +96,7 @@ public class TupleCountBasedWindowReducerOperator implements Operator
                 accumulator.set( WINDOW_FIELD, windowCount++ );
 
                 output.add( accumulator );
-                accumulator = initialValue;
+                accumulator = accumulatorSupplier.get();
             }
         }
 
@@ -90,14 +104,7 @@ public class TupleCountBasedWindowReducerOperator implements Operator
         window.set( TUPLE_COUNT_FIELD, currentTupleCount );
 
         kvStore.set( CURRENT_WINDOW_KEY, window );
-        if ( accumulator != null )
-        {
-            kvStore.set( ACCUMULATOR_TUPLE_KEY, accumulator );
-        }
-        else
-        {
-            kvStore.remove( ACCUMULATOR_TUPLE_KEY );
-        }
+        kvStore.set( ACCUMULATOR_TUPLE_KEY, accumulator );
     }
 
 }

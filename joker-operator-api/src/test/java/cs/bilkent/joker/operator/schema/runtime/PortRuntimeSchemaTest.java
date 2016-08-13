@@ -1,8 +1,7 @@
-package cs.bilkent.joker.flow;
+package cs.bilkent.joker.operator.schema.runtime;
 
 import org.junit.Test;
 
-import cs.bilkent.joker.operator.schema.runtime.PortRuntimeSchema;
 import cs.bilkent.joker.testutils.AbstractJokerTest;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -11,9 +10,9 @@ import static org.junit.Assert.assertTrue;
 public class PortRuntimeSchemaTest extends AbstractJokerTest
 {
 
-    private final PortRuntimeSchemaBuilder sourceSchemaBuilder = new PortRuntimeSchemaBuilder( 0 );
+    private final PortRuntimeSchemaBuilder sourceSchemaBuilder = new PortRuntimeSchemaBuilder();
 
-    private final PortRuntimeSchemaBuilder targetSchemaBuilder = new PortRuntimeSchemaBuilder( 0 );
+    private final PortRuntimeSchemaBuilder targetSchemaBuilder = new PortRuntimeSchemaBuilder();
 
     @Test
     public void shouldNotBeCompatibleWithMissingFields ()

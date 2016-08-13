@@ -21,6 +21,7 @@ import cs.bilkent.joker.operator.schema.annotation.PortSchema;
 import static cs.bilkent.joker.operator.schema.annotation.PortSchemaScope.EXACT_FIELD_SET;
 import static cs.bilkent.joker.operator.schema.annotation.PortSchemaScope.EXTENDABLE_FIELD_SET;
 import cs.bilkent.joker.operator.schema.annotation.SchemaField;
+import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
 import cs.bilkent.joker.operator.spec.OperatorType;
 
@@ -45,10 +46,14 @@ public class BargainIndexOperator implements Operator
 
     static final String BARGAIN_INDEX_FIELD = "bargainindex";
 
+
+    private TupleSchema outputSchema;
+
     @Override
     public SchedulingStrategy init ( final InitializationContext context )
     {
-        return scheduleWhenTuplesAvailableOnAny( 1, 0, 1 );
+        outputSchema = context.getOutputPortSchema( 0 );
+        return scheduleWhenTuplesAvailableOnAny( 2, 1, 0, 1 );
     }
 
     @Override
@@ -96,7 +101,7 @@ public class BargainIndexOperator implements Operator
             final int askedSize = quote.getInteger( ASKED_SIZE_FIELD );
             final double bargainIndex = Math.exp( cvwap - askedTickerSymbolPrice ) * askedSize;
 
-            final Tuple outputTuple = new Tuple();
+            final Tuple outputTuple = new Tuple( outputSchema );
             outputTuple.set( BARGAIN_INDEX_FIELD, bargainIndex );
 
             return outputTuple;

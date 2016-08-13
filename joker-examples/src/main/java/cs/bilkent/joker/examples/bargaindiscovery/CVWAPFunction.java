@@ -1,6 +1,6 @@
 package cs.bilkent.joker.examples.bargaindiscovery;
 
-import java.util.function.Function;
+import java.util.function.BiConsumer;
 
 import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.SINGLE_VOLUME_FIELD;
 import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.SINGLE_VWAP_FIELD;
@@ -8,20 +8,18 @@ import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.
 import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.TIMESTAMP_FIELD;
 import cs.bilkent.joker.operator.Tuple;
 
-public class CVWAPFunction implements Function<Tuple, Tuple>
+public class CVWAPFunction implements BiConsumer<Tuple, Tuple>
 {
 
     public static final String CVWAP_FIELD = "cvwap";
 
     @Override
-    public Tuple apply ( final Tuple tuple )
+    public void accept ( final Tuple input, final Tuple output )
     {
-        final Tuple vwapTuple = new Tuple( TICKER_SYMBOL_FIELD, tuple.getString( TICKER_SYMBOL_FIELD ) );
-        vwapTuple.set( TIMESTAMP_FIELD, tuple.get( TIMESTAMP_FIELD ) );
+        output.set( TICKER_SYMBOL_FIELD, input.getString( TICKER_SYMBOL_FIELD ) );
+        output.set( TIMESTAMP_FIELD, input.get( TIMESTAMP_FIELD ) );
 
-        final double cvwap = ( tuple.getDouble( SINGLE_VWAP_FIELD ) / tuple.getDouble( SINGLE_VOLUME_FIELD ) ) * 100d;
-        vwapTuple.set( CVWAP_FIELD, cvwap );
-
-        return vwapTuple;
+        final double cvwap = ( input.getDouble( SINGLE_VWAP_FIELD ) / input.getDouble( SINGLE_VOLUME_FIELD ) ) * 100d;
+        output.set( CVWAP_FIELD, cvwap );
     }
 }

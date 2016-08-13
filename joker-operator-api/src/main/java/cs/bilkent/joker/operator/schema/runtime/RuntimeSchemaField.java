@@ -22,6 +22,16 @@ public final class RuntimeSchemaField
         this.type = type;
     }
 
+    public String getName ()
+    {
+        return name;
+    }
+
+    public Class<?> getType ()
+    {
+        return type;
+    }
+
     /**
      * Checks if this field has same name with other field and its type is a sub-class of other field or not
      *

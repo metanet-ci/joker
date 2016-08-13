@@ -7,8 +7,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceArray;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 import org.junit.Test;
 
@@ -21,13 +21,12 @@ import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.region.impl.AbstractRegionConfigFactory;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
-import cs.bilkent.joker.flow.OperatorDef;
-import cs.bilkent.joker.flow.OperatorDefBuilder;
-import cs.bilkent.joker.flow.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.joker.operator.InitializationContext;
 import cs.bilkent.joker.operator.InvocationContext;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
+import cs.bilkent.joker.operator.OperatorDef;
+import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.Tuples;
 import cs.bilkent.joker.operator.kvstore.KVStore;
@@ -35,12 +34,14 @@ import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.T
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAll;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
+import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
+import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.joker.operators.BeaconOperator;
 import static cs.bilkent.joker.operators.BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER;
-import static cs.bilkent.joker.operators.BeaconOperator.TUPLE_GENERATOR_CONFIG_PARAMETER;
+import static cs.bilkent.joker.operators.BeaconOperator.TUPLE_POPULATOR_CONFIG_PARAMETER;
 import cs.bilkent.joker.operators.ForEachOperator;
 import static cs.bilkent.joker.operators.ForEachOperator.CONSUMER_FUNCTION_CONFIG_PARAMETER;
 import cs.bilkent.joker.operators.MapperOperator;
@@ -67,13 +68,12 @@ public class JokerTest extends AbstractJokerTest
     @Test
     public void testEndToEndSystem () throws InterruptedException, ExecutionException, TimeoutException
     {
-
         final ValueGenerator valueGenerator1 = new ValueGenerator( KEY_RANGE, VALUE_RANGE );
         final ValueGenerator valueGenerator2 = new ValueGenerator( KEY_RANGE, VALUE_RANGE );
         final ValueCollector valueCollector = new ValueCollector( KEY_RANGE );
 
         final OperatorConfig beacon1Config = new OperatorConfig();
-        beacon1Config.set( TUPLE_GENERATOR_CONFIG_PARAMETER, valueGenerator1 );
+        beacon1Config.set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator1 );
         beacon1Config.set( TUPLE_COUNT_CONFIG_PARAMETER, 2 );
 
         final OperatorRuntimeSchemaBuilder beacon1Schema = new OperatorRuntimeSchemaBuilder( 0, 1 );
@@ -85,7 +85,7 @@ public class JokerTest extends AbstractJokerTest
                                                       .build();
 
         final OperatorConfig beacon2Config = new OperatorConfig();
-        beacon2Config.set( TUPLE_GENERATOR_CONFIG_PARAMETER, valueGenerator2 );
+        beacon2Config.set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator2 );
         beacon2Config.set( TUPLE_COUNT_CONFIG_PARAMETER, 3 );
 
         final OperatorRuntimeSchemaBuilder beacon2Schema = new OperatorRuntimeSchemaBuilder( 0, 1 );
@@ -121,12 +121,10 @@ public class JokerTest extends AbstractJokerTest
                                                      .build();
 
         final OperatorConfig multiplierConfig = new OperatorConfig();
-        multiplierConfig.set( MAPPER_CONFIG_PARAMETER, (Function<Tuple, Tuple>) input ->
+        multiplierConfig.set( MAPPER_CONFIG_PARAMETER, (BiConsumer<Tuple, Tuple>) ( input, output ) ->
         {
-            final Tuple output = new Tuple();
             output.set( "key", input.get( "key" ) );
             output.set( "mult", MULTIPLIER_VALUE * input.getInteger( "sum" ) );
-            return output;
         } );
 
         final OperatorRuntimeSchemaBuilder multiplierSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
@@ -191,7 +189,6 @@ public class JokerTest extends AbstractJokerTest
     @Test
     public void testEndToEndSystemWithStaticFlowOptimization () throws InterruptedException, ExecutionException, TimeoutException
     {
-
         final ValueGenerator valueGenerator1 = new ValueGenerator( KEY_RANGE, VALUE_RANGE );
         final ValueGenerator valueGenerator2 = new ValueGenerator( KEY_RANGE, VALUE_RANGE );
         final ValueCollector valueCollector1 = new ValueCollector( KEY_RANGE );
@@ -200,7 +197,7 @@ public class JokerTest extends AbstractJokerTest
         final ValueCollector valueCollector4 = new ValueCollector( KEY_RANGE );
 
         final OperatorConfig beacon1Config = new OperatorConfig();
-        beacon1Config.set( TUPLE_GENERATOR_CONFIG_PARAMETER, valueGenerator1 );
+        beacon1Config.set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator1 );
         beacon1Config.set( TUPLE_COUNT_CONFIG_PARAMETER, 2 );
 
         final OperatorRuntimeSchemaBuilder beacon1Schema = new OperatorRuntimeSchemaBuilder( 0, 1 );
@@ -212,7 +209,7 @@ public class JokerTest extends AbstractJokerTest
                                                       .build();
 
         final OperatorConfig beacon2Config = new OperatorConfig();
-        beacon2Config.set( TUPLE_GENERATOR_CONFIG_PARAMETER, valueGenerator2 );
+        beacon2Config.set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator2 );
         beacon2Config.set( TUPLE_COUNT_CONFIG_PARAMETER, 3 );
 
         final OperatorRuntimeSchemaBuilder beacon2Schema = new OperatorRuntimeSchemaBuilder( 0, 1 );
@@ -248,12 +245,10 @@ public class JokerTest extends AbstractJokerTest
                                                      .build();
 
         final OperatorConfig multiplierConfig = new OperatorConfig();
-        multiplierConfig.set( MAPPER_CONFIG_PARAMETER, (Function<Tuple, Tuple>) input ->
+        multiplierConfig.set( MAPPER_CONFIG_PARAMETER, (BiConsumer<Tuple, Tuple>) ( input, output ) ->
         {
-            final Tuple output = new Tuple();
             output.set( "key", input.get( "key" ) );
             output.set( "mult", MULTIPLIER_VALUE * input.getInteger( "sum" ) );
-            return output;
         } );
 
         final OperatorRuntimeSchemaBuilder multiplierSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
@@ -424,8 +419,10 @@ public class JokerTest extends AbstractJokerTest
     }
 
 
-    static class ValueGenerator implements Function<Random, Tuple>
+    static class ValueGenerator implements Consumer<Tuple>
     {
+
+        static final Random RANDOM = new Random();
 
         private final int keyRange;
 
@@ -447,13 +444,13 @@ public class JokerTest extends AbstractJokerTest
         }
 
         @Override
-        public Tuple apply ( final Random random )
+        public void accept ( final Tuple tuple )
         {
             sleepUninterruptibly( 1, MICROSECONDS );
             invocationCount.incrementAndGet();
 
-            final int key = random.nextInt( keyRange );
-            final int value = random.nextInt( valueRange ) + 1;
+            final int key = RANDOM.nextInt( keyRange );
+            final int value = RANDOM.nextInt( valueRange ) + 1;
 
             final AtomicInteger valueHolder = generatedValues[ key ];
             int existing;
@@ -462,10 +459,8 @@ public class JokerTest extends AbstractJokerTest
                 existing = valueHolder.get();
             } while ( !valueHolder.compareAndSet( existing, existing + value ) );
 
-            final Tuple tuple = new Tuple();
             tuple.set( "key", key );
             tuple.set( "value", value );
-            return tuple;
         }
 
     }
@@ -523,9 +518,12 @@ public class JokerTest extends AbstractJokerTest
     public static class SummerOperator implements Operator
     {
 
+        private TupleSchema outputSchema;
+
         @Override
         public SchedulingStrategy init ( final InitializationContext context )
         {
+            outputSchema = context.getOutputPortSchema( 0 );
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
 
@@ -544,7 +542,7 @@ public class JokerTest extends AbstractJokerTest
 
                 kvStore.set( key, newSum );
 
-                final Tuple result = new Tuple();
+                final Tuple result = new Tuple( outputSchema );
                 result.set( "key", key );
                 result.set( "sum", newSum );
                 output.add( result );

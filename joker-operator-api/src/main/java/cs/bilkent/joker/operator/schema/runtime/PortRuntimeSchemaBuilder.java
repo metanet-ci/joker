@@ -1,4 +1,4 @@
-package cs.bilkent.joker.flow;
+package cs.bilkent.joker.operator.schema.runtime;
 
 
 import java.util.ArrayList;
@@ -8,33 +8,25 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.operator.schema.annotation.PortSchemaScope;
 import static cs.bilkent.joker.operator.schema.annotation.PortSchemaScope.EXTENDABLE_FIELD_SET;
-import cs.bilkent.joker.operator.schema.runtime.PortRuntimeSchema;
-import cs.bilkent.joker.operator.schema.runtime.RuntimeSchemaField;
 
 
 public final class PortRuntimeSchemaBuilder
 {
 
-    private final int portIndex;
-
     private final PortSchemaScope scope;
 
     private final List<RuntimeSchemaField> fields;
 
-    PortRuntimeSchemaBuilder ( final int portIndex )
+    PortRuntimeSchemaBuilder ()
     {
-        checkArgument( portIndex >= 0, "port index must be non negative" );
-        this.portIndex = portIndex;
         this.scope = EXTENDABLE_FIELD_SET;
         this.fields = new ArrayList<>();
     }
 
-    PortRuntimeSchemaBuilder ( final int portIndex, final PortSchemaScope scope, final List<RuntimeSchemaField> fields )
+    PortRuntimeSchemaBuilder ( final PortSchemaScope scope, final List<RuntimeSchemaField> fields )
     {
-        checkArgument( portIndex >= 0, "port index must be non negative" );
         checkArgument( scope != null, "scope can't be null" );
         checkArgument( fields != null, "fields can't be null" );
-        this.portIndex = portIndex;
         this.scope = scope;
         this.fields = new ArrayList<>();
         this.fields.addAll( fields );
@@ -52,18 +44,11 @@ public final class PortRuntimeSchemaBuilder
     public PortRuntimeSchemaBuilder addField ( final RuntimeSchemaField field )
     {
         checkArgument( field != null, "field must be provided" );
-        checkState( scope == EXTENDABLE_FIELD_SET,
-                    "port schema of port index: " + portIndex + "  with " + EXTENDABLE_FIELD_SET + " can't be modified" );
-        checkState( fields.stream().noneMatch( f -> f.name.equals( field.name ) ),
-                    field.name + " already exists in port schema of port index: " + portIndex );
+        checkState( scope == EXTENDABLE_FIELD_SET, "port schema with " + EXTENDABLE_FIELD_SET + " can't be modified" );
+        checkState( fields.stream().noneMatch( f -> f.name.equals( field.name ) ), field.name + " already exists in port schema" );
         fields.add( field );
 
         return this;
-    }
-
-    public int getPortIndex ()
-    {
-        return portIndex;
     }
 
     public List<RuntimeSchemaField> getFields ()
@@ -73,7 +58,7 @@ public final class PortRuntimeSchemaBuilder
 
     public PortRuntimeSchema build ()
     {
-        return new PortRuntimeSchema( portIndex, fields );
+        return new PortRuntimeSchema( fields );
     }
 
 }

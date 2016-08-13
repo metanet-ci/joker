@@ -10,8 +10,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import cs.bilkent.joker.engine.region.RegionDef;
-import cs.bilkent.joker.flow.OperatorDef;
 import cs.bilkent.joker.flow.Port;
+import cs.bilkent.joker.operator.OperatorDef;
 
 public class RegionUtil
 {

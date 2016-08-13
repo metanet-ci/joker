@@ -1,4 +1,4 @@
-package cs.bilkent.joker.flow;
+package cs.bilkent.joker.operator;
 
 
 import java.util.Arrays;
@@ -9,13 +9,13 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static cs.bilkent.joker.flow.Port.DYNAMIC_PORT_COUNT;
-import cs.bilkent.joker.operator.Operator;
-import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.schema.annotation.OperatorSchema;
 import cs.bilkent.joker.operator.schema.annotation.PortSchema;
 import cs.bilkent.joker.operator.schema.annotation.SchemaField;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
+import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.joker.operator.schema.runtime.PortRuntimeSchema;
+import cs.bilkent.joker.operator.schema.runtime.PortRuntimeSchemaBuilder;
 import cs.bilkent.joker.operator.schema.runtime.RuntimeSchemaField;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
 import cs.bilkent.joker.operator.spec.OperatorType;
@@ -193,8 +193,16 @@ public final class OperatorDefBuilder
         failIfExtendingSchemaPortSchemaSizesMismatch( extendingSchema.getOutputSchemas().size(), this.outputPortCount );
         if ( this.schema != null )
         {
-            extendingSchema.getInputSchemas().forEach( s -> failIfExtendingSchemaContainsDuplicateField( s, this.schema.inputs() ) );
-            extendingSchema.getOutputSchemas().forEach( s -> failIfExtendingSchemaContainsDuplicateField( s, this.schema.outputs() ) );
+            for ( int portIndex = 0; portIndex < extendingSchema.getInputPortCount(); portIndex++ )
+            {
+                failIfExtendingSchemaContainsDuplicateField( portIndex, extendingSchema.getInputSchema( portIndex ), this.schema.inputs() );
+            }
+            for ( int portIndex = 0; portIndex < extendingSchema.getOutputPortCount(); portIndex++ )
+            {
+                failIfExtendingSchemaContainsDuplicateField( portIndex,
+                                                             extendingSchema.getOutputSchema( portIndex ),
+                                                             this.schema.outputs() );
+            }
         }
         this.extendingSchema = extendingSchema;
         return this;
@@ -235,13 +243,14 @@ public final class OperatorDefBuilder
         checkArgument( schemaSize <= portCount, "number of port schemas in extending schema exceeds port count of operator" );
     }
 
-    private void failIfExtendingSchemaContainsDuplicateField ( final PortRuntimeSchema runtimeSchema, final PortSchema[] portSchemas )
+    private void failIfExtendingSchemaContainsDuplicateField ( final int portIndex,
+                                                               final PortRuntimeSchema runtimeSchema,
+                                                               final PortSchema[] portSchemas )
     {
         if ( portSchemas != null )
         {
             final List<String> runtimeSchemaFieldNames = runtimeSchema.getFields().stream().map( field -> field.name ).collect( toList() );
-            final boolean duplicate = Arrays.stream( portSchemas )
-                                            .filter( portSchema -> portSchema.portIndex() == runtimeSchema.getPortIndex() )
+            final boolean duplicate = Arrays.stream( portSchemas ).filter( portSchema -> portSchema.portIndex() == portIndex )
                                             .flatMap( portSchema -> Arrays.stream( portSchema.fields() ).map( SchemaField::name ) )
                                             .anyMatch( runtimeSchemaFieldNames::contains );
             checkArgument( !duplicate, runtimeSchema + " contains duplicate fields with OperatorSchema" );
@@ -345,9 +354,10 @@ public final class OperatorDefBuilder
     private void addToSchema ( final List<PortRuntimeSchema> portSchemas,
                                final Function<Integer, PortRuntimeSchemaBuilder> portSchemaBuilderProvider )
     {
-        for ( PortRuntimeSchema portSchema : portSchemas )
+        for ( int portIndex = 0; portIndex < portSchemas.size(); portIndex++ )
         {
-            final PortRuntimeSchemaBuilder portSchemaBuilder = portSchemaBuilderProvider.apply( portSchema.getPortIndex() );
+            final PortRuntimeSchema portSchema = portSchemas.get( portIndex );
+            final PortRuntimeSchemaBuilder portSchemaBuilder = portSchemaBuilderProvider.apply( portIndex );
             for ( RuntimeSchemaField schemaField : portSchema.getFields() )
             {
                 portSchemaBuilder.addField( schemaField.name, schemaField.type );

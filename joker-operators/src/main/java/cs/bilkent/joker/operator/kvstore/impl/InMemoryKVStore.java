@@ -37,14 +37,6 @@ public class InMemoryKVStore implements KVStore
         values.put( key, value );
     }
 
-    @SuppressWarnings( "unchecked" )
-    @Override
-    public <T> T put ( final Object key, final T value )
-    {
-        checkArgument( value != null, "value can't be null" );
-        return (T) values.put( key, value );
-    }
-
     @Override
     public Object remove ( final Object key )
     {

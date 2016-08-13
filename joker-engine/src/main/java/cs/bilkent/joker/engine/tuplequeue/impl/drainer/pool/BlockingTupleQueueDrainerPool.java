@@ -11,8 +11,8 @@ import cs.bilkent.joker.engine.tuplequeue.impl.drainer.BlockingMultiPortConjunct
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.BlockingMultiPortDisjunctiveDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.BlockingSinglePortDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
-import cs.bilkent.joker.flow.OperatorDef;
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
+import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST_BUT_SAME_ON_ALL_PORTS;

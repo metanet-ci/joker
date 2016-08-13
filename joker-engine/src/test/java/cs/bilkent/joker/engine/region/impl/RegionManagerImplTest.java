@@ -36,13 +36,13 @@ import cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool.BlockingTupleQueueDr
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool.NonBlockingTupleQueueDrainerPool;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
-import cs.bilkent.joker.flow.OperatorDef;
-import cs.bilkent.joker.flow.OperatorDefBuilder;
-import cs.bilkent.joker.flow.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.joker.operator.InitializationContext;
 import cs.bilkent.joker.operator.InvocationContext;
 import cs.bilkent.joker.operator.Operator;
+import cs.bilkent.joker.operator.OperatorDef;
+import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
+import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
 import cs.bilkent.joker.operator.spec.OperatorType;
 import cs.bilkent.joker.testutils.AbstractJokerTest;

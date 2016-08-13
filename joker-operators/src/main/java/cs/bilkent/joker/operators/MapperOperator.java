@@ -1,6 +1,6 @@
 package cs.bilkent.joker.operators;
 
-import java.util.function.Function;
+import java.util.function.BiConsumer;
 
 import cs.bilkent.joker.operator.InitializationContext;
 import cs.bilkent.joker.operator.InvocationContext;
@@ -10,6 +10,7 @@ import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.Tuples;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
+import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 
@@ -28,7 +29,9 @@ public class MapperOperator implements Operator
     public static final int DEFAULT_TUPLE_COUNT_CONFIG_VALUE = 1;
 
 
-    private Function<Tuple, Tuple> mapper;
+    private BiConsumer<Tuple, Tuple> mapper;
+
+    private TupleSchema outputSchema;
 
     @Override
     public SchedulingStrategy init ( final InitializationContext context )
@@ -36,6 +39,7 @@ public class MapperOperator implements Operator
         final OperatorConfig config = context.getConfig();
 
         this.mapper = config.getOrFail( MAPPER_CONFIG_PARAMETER );
+        this.outputSchema = context.getOutputPortSchema( 0 );
         final int tupleCount = config.getIntegerOrDefault( TUPLE_COUNT_CONFIG_PARAMETER, DEFAULT_TUPLE_COUNT_CONFIG_VALUE );
         return scheduleWhenTuplesAvailableOnDefaultPort( tupleCount );
     }
@@ -46,7 +50,12 @@ public class MapperOperator implements Operator
         final Tuples input = invocationContext.getInput();
         final Tuples output = invocationContext.getOutput();
 
-        input.getTuplesByDefaultPort().stream().map( mapper ).forEach( output::add );
+        for ( Tuple tuple : input.getTuplesByDefaultPort() )
+        {
+            final Tuple mapped = new Tuple( outputSchema );
+            mapper.accept( tuple, mapped );
+            output.add( mapped );
+        }
     }
 
 }

@@ -7,8 +7,8 @@ import org.junit.Test;
 
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
-import cs.bilkent.joker.flow.OperatorDef;
-import cs.bilkent.joker.flow.OperatorDefBuilder;
+import cs.bilkent.joker.operator.OperatorDef;
+import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operators.MapperOperator;
 import cs.bilkent.joker.testutils.AbstractJokerTest;
 import static java.util.Arrays.asList;

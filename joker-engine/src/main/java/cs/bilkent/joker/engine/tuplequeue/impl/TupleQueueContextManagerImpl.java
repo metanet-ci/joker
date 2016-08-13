@@ -26,7 +26,7 @@ import cs.bilkent.joker.engine.tuplequeue.impl.context.DefaultTupleQueueContext;
 import cs.bilkent.joker.engine.tuplequeue.impl.context.PartitionedTupleQueueContext;
 import cs.bilkent.joker.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
-import cs.bilkent.joker.flow.OperatorDef;
+import cs.bilkent.joker.operator.OperatorDef;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import cs.bilkent.joker.utils.Pair;
 import cs.bilkent.joker.utils.Triple;

@@ -19,7 +19,7 @@ import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineRep
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
-import cs.bilkent.joker.flow.OperatorDef;
+import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.testutils.AbstractJokerTest;

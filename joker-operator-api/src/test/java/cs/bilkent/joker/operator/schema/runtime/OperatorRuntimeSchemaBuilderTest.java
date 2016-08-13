@@ -1,4 +1,4 @@
-package cs.bilkent.joker.flow;
+package cs.bilkent.joker.operator.schema.runtime;
 
 import org.junit.Test;
 
@@ -7,9 +7,6 @@ import cs.bilkent.joker.operator.schema.annotation.PortSchema;
 import static cs.bilkent.joker.operator.schema.annotation.PortSchemaScope.EXACT_FIELD_SET;
 import static cs.bilkent.joker.operator.schema.annotation.PortSchemaScope.EXTENDABLE_FIELD_SET;
 import cs.bilkent.joker.operator.schema.annotation.SchemaField;
-import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
-import cs.bilkent.joker.operator.schema.runtime.PortRuntimeSchema;
-import cs.bilkent.joker.operator.schema.runtime.RuntimeSchemaField;
 import cs.bilkent.joker.testutils.AbstractJokerTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;

@@ -3,7 +3,7 @@ package cs.bilkent.joker.engine.region;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import cs.bilkent.joker.flow.OperatorDef;
+import cs.bilkent.joker.operator.OperatorDef;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 
 public class RegionConfig

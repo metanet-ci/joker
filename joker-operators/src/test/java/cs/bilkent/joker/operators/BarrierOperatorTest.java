@@ -14,6 +14,7 @@ import cs.bilkent.joker.operator.impl.InvocationContextImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
+import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
 import static cs.bilkent.joker.operators.BarrierOperator.MERGE_POLICY_CONfIG_PARAMETER;
 import cs.bilkent.joker.operators.BarrierOperator.TupleValueMergePolicy;
 import static cs.bilkent.joker.operators.BarrierOperator.TupleValueMergePolicy.KEEP_EXISTING_VALUE;
@@ -34,6 +35,8 @@ public class BarrierOperatorTest extends AbstractJokerTest
 
     private final int[] inputPorts = new int[] { 0, 1, 2 };
 
+    private final OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( inputPorts.length, 1 );
+
     private final TuplesImpl input = new TuplesImpl( 3 );
 
     private final TuplesImpl output = new TuplesImpl( 3 );
@@ -44,6 +47,7 @@ public class BarrierOperatorTest extends AbstractJokerTest
     public void init ()
     {
         initContext.setInputPortCount( inputPorts.length );
+        initContext.setRuntimeSchema( schemaBuilder.build() );
     }
 
     @Test( expected = IllegalArgumentException.class )

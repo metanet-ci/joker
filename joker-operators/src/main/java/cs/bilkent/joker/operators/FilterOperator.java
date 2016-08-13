@@ -46,7 +46,13 @@ public class FilterOperator implements Operator
         final Tuples input = invocationContext.getInput();
         final Tuples output = invocationContext.getOutput();
 
-        input.getTuplesByDefaultPort().stream().filter( predicate ).forEach( output::add );
+        for ( Tuple tuple : input.getTuplesByDefaultPort() )
+        {
+            if ( predicate.test( tuple ) )
+            {
+                output.add( tuple );
+            }
+        }
     }
 
 }

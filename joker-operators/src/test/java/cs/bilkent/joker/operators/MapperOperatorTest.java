@@ -1,8 +1,9 @@
 package cs.bilkent.joker.operators;
 
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.BiConsumer;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
@@ -16,6 +17,8 @@ import cs.bilkent.joker.operator.impl.InvocationContextImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
+import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
+import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
 import static cs.bilkent.joker.operators.MapperOperator.MAPPER_CONFIG_PARAMETER;
 import static cs.bilkent.joker.operators.MapperOperator.TUPLE_COUNT_CONFIG_PARAMETER;
 import cs.bilkent.joker.testutils.AbstractJokerTest;
@@ -32,11 +35,19 @@ public class MapperOperatorTest extends AbstractJokerTest
 
     private final InitializationContextImpl initContext = new InitializationContextImpl();
 
+    private final OperatorRuntimeSchema runtimeSchema = new OperatorRuntimeSchemaBuilder( 1, 1 ).build();
+
     private final TuplesImpl input = new TuplesImpl( 1 );
 
     private final TuplesImpl output = new TuplesImpl( 1 );
 
     private final InvocationContextImpl invocationContext = new InvocationContextImpl( SUCCESS, input, output );
+
+    @Before
+    public void init ()
+    {
+        initContext.setRuntimeSchema( runtimeSchema );
+    }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithNoMapper ()
@@ -47,7 +58,10 @@ public class MapperOperatorTest extends AbstractJokerTest
     @Test
     public void shouldInitializeWithMapper ()
     {
-        final Function<Tuple, Tuple> mapper = tuple -> tuple;
+        final BiConsumer<Tuple, Tuple> mapper = ( input, output ) ->
+        {
+            input.consumeEntries( output::set );
+        };
         initContext.getConfig().set( MAPPER_CONFIG_PARAMETER, mapper );
 
         final SchedulingStrategy strategy = operator.init( initContext );
@@ -58,7 +72,10 @@ public class MapperOperatorTest extends AbstractJokerTest
     @Test
     public void shouldInitializeWithInvalidMapper ()
     {
-        final Function<String, String> mapper = str -> str;
+        final BiConsumer<String, String> mapper = ( s, s2 ) ->
+        {
+
+        };
         initContext.getConfig().set( MAPPER_CONFIG_PARAMETER, mapper );
 
         final SchedulingStrategy strategy = operator.init( initContext );
@@ -69,7 +86,10 @@ public class MapperOperatorTest extends AbstractJokerTest
     @Test
     public void shouldInitializeWithTupleCount ()
     {
-        final Function<String, String> mapper = str -> str;
+        final BiConsumer<Tuple, Tuple> mapper = ( input, output ) ->
+        {
+            input.consumeEntries( output::set );
+        };
         final int tupleCount = 5;
         initContext.getConfig().set( MAPPER_CONFIG_PARAMETER, mapper );
         initContext.getConfig().set( TUPLE_COUNT_CONFIG_PARAMETER, tupleCount );
@@ -109,7 +129,10 @@ public class MapperOperatorTest extends AbstractJokerTest
 
     private void shouldNotMapWitHInvalidMapperFor ( final InvocationReason invocationReason )
     {
-        final Function<String, String> mapper = str -> str;
+        final BiConsumer<String, String> mapper = ( s1, s2 ) ->
+        {
+
+        };
         initContext.getConfig().set( MAPPER_CONFIG_PARAMETER, mapper );
 
         operator.init( initContext );
@@ -152,12 +175,7 @@ public class MapperOperatorTest extends AbstractJokerTest
 
     private void initializeOperatorWithMultipleBy2Mapper ()
     {
-        final Function<Tuple, Tuple> mapper = input ->
-        {
-            Tuple output = new Tuple();
-            output.set( "count", input.getInteger( "count" ) * 2 );
-            return output;
-        };
+        final BiConsumer<Tuple, Tuple> mapper = ( input1, output1 ) -> output1.set( "count", input1.getInteger( "count" ) * 2 );
 
         initContext.getConfig().set( MAPPER_CONFIG_PARAMETER, mapper );
         operator.init( initContext );

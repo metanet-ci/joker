@@ -1,8 +1,6 @@
 package cs.bilkent.joker.operators;
 
-import java.util.Random;
-import java.util.function.Function;
-import java.util.stream.IntStream;
+import java.util.function.Consumer;
 
 import cs.bilkent.joker.operator.InitializationContext;
 import cs.bilkent.joker.operator.InvocationContext;
@@ -12,6 +10,7 @@ import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.Tuples;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
+import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 
@@ -23,24 +22,25 @@ import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 public class BeaconOperator implements Operator
 {
 
-    public static final String TUPLE_GENERATOR_CONFIG_PARAMETER = "tupleGenerator";
+    public static final String TUPLE_POPULATOR_CONFIG_PARAMETER = "tuplePopulator";
 
     public static final String TUPLE_COUNT_CONFIG_PARAMETER = "tupleCount";
 
 
-    private Function<Random, Tuple> tupleGeneratorFunc;
-
-    private Random random = new Random();
+    private Consumer<Tuple> tuplePopulatorFunc;
 
     private int tupleCount;
+
+    private TupleSchema outputSchema;
 
     @Override
     public SchedulingStrategy init ( final InitializationContext context )
     {
         final OperatorConfig config = context.getConfig();
 
-        this.tupleGeneratorFunc = config.getOrFail( TUPLE_GENERATOR_CONFIG_PARAMETER );
+        this.tuplePopulatorFunc = config.getOrFail( TUPLE_POPULATOR_CONFIG_PARAMETER );
         this.tupleCount = config.getOrFail( TUPLE_COUNT_CONFIG_PARAMETER );
+        this.outputSchema = context.getOutputPortSchema( 0 );
 
         return ScheduleWhenAvailable.INSTANCE;
     }
@@ -50,6 +50,12 @@ public class BeaconOperator implements Operator
     {
         final Tuples output = invocationContext.getOutput();
 
-        IntStream.range( 0, tupleCount ).mapToObj( ( c ) -> tupleGeneratorFunc.apply( random ) ).forEach( output::add );
+        for ( int i = 0; i < tupleCount; i++ )
+        {
+            final Tuple tuple = new Tuple( outputSchema );
+            tuplePopulatorFunc.accept( tuple );
+            output.add( tuple );
+        }
     }
+
 }

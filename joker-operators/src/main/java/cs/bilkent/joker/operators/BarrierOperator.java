@@ -1,7 +1,6 @@
 package cs.bilkent.joker.operators;
 
-import java.util.Map;
-import java.util.function.BinaryOperator;
+import java.util.function.BiConsumer;
 import java.util.stream.IntStream;
 
 import cs.bilkent.joker.operator.InitializationContext;
@@ -13,6 +12,7 @@ import cs.bilkent.joker.operator.Tuples;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST_BUT_SAME_ON_ALL_PORTS;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAll;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
+import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 
@@ -33,55 +33,13 @@ public class BarrierOperator implements Operator
     }
 
 
-    private static class TupleMerger implements BinaryOperator<Tuple>
-    {
-
-        private final TupleValueMergePolicy mergePolicy;
-
-        TupleMerger ( final TupleValueMergePolicy mergePolicy )
-        {
-            this.mergePolicy = mergePolicy;
-        }
-
-        // modifies first parameter
-        @Override
-        public Tuple apply ( final Tuple tuple1, final Tuple tuple2 )
-        {
-            for ( Map.Entry<String, Object> tuple2KeyValue : tuple2.asMap().entrySet() )
-            {
-                final String tuple2Key = tuple2KeyValue.getKey();
-                final Object tuple1Value = tuple1.get( tuple2Key );
-                if ( tuple1Value != null )
-                {
-                    final Object finalValue;
-                    switch ( mergePolicy )
-                    {
-                        case KEEP_EXISTING_VALUE:
-                            finalValue = tuple1Value;
-                            break;
-                        case OVERWRITE_WITH_NEW_VALUE:
-                            finalValue = tuple2KeyValue.getValue();
-                            break;
-                        default:
-                            throw new IllegalStateException( "invalid merge policy!" );
-                    }
-
-                    tuple1.put( tuple2Key, finalValue );
-                }
-                else
-                {
-                    tuple1.put( tuple2Key, tuple2KeyValue.getValue() );
-                }
-            }
-
-            return tuple1;
-        }
-    }
-
-
     private int inputPortCount;
 
-    private BinaryOperator<Tuple> tupleMergeFunc;
+    private TupleValueMergePolicy mergePolicy;
+
+    private EntryMerger entryMerger;
+
+    private TupleSchema outputSchema;
 
     @Override
     public SchedulingStrategy init ( final InitializationContext context )
@@ -89,8 +47,9 @@ public class BarrierOperator implements Operator
         final OperatorConfig config = context.getConfig();
         this.inputPortCount = context.getInputPortCount();
 
-        final TupleValueMergePolicy mergePolicy = config.getOrFail( MERGE_POLICY_CONfIG_PARAMETER );
-        this.tupleMergeFunc = new TupleMerger( mergePolicy );
+        this.mergePolicy = config.getOrFail( MERGE_POLICY_CONfIG_PARAMETER );
+        this.entryMerger = new EntryMerger( mergePolicy );
+        this.outputSchema = context.getOutputPortSchema( 0 );
 
         final int[] inputPorts = IntStream.range( 0, inputPortCount ).toArray();
         return scheduleWhenTuplesAvailableOnAll( AT_LEAST_BUT_SAME_ON_ALL_PORTS, context.getInputPortCount(), 1, inputPorts );
@@ -117,11 +76,12 @@ public class BarrierOperator implements Operator
 
         for ( int i = 0; i < tupleCount; i++ )
         {
-            Tuple prev = new Tuple();
+            final Tuple prev = new Tuple( outputSchema );
+            entryMerger.target = prev;
             for ( int j = 0; j < inputPortCount; j++ )
             {
                 final Tuple tuple = input.getTupleOrFail( j, i );
-                prev = tupleMergeFunc.apply( prev, tuple );
+                tuple.consumeEntries( entryMerger );
             }
 
             output.add( prev );
@@ -155,6 +115,48 @@ public class BarrierOperator implements Operator
         }
 
         return tupleCount;
+    }
+
+
+    private static class EntryMerger implements BiConsumer<String, Object>
+    {
+
+        private final TupleValueMergePolicy mergePolicy;
+
+        public EntryMerger ( final TupleValueMergePolicy mergePolicy )
+        {
+            this.mergePolicy = mergePolicy;
+        }
+
+        private Tuple target;
+
+        @Override
+        public void accept ( final String sourceKey, final Object sourceValue )
+        {
+            final Object targetValue = target.get( sourceKey );
+            if ( targetValue != null )
+            {
+                final Object finalValue;
+                switch ( mergePolicy )
+                {
+                    case KEEP_EXISTING_VALUE:
+                        finalValue = targetValue;
+                        break;
+                    case OVERWRITE_WITH_NEW_VALUE:
+                        finalValue = sourceValue;
+                        break;
+                    default:
+                        throw new IllegalStateException( "invalid merge policy!" );
+                }
+
+                target.set( sourceKey, finalValue );
+            }
+            else
+            {
+                target.set( sourceKey, sourceValue );
+            }
+        }
+
     }
 
 }

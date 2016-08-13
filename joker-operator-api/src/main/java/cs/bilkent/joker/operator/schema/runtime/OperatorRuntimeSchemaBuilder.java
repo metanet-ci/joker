@@ -1,4 +1,4 @@
-package cs.bilkent.joker.flow;
+package cs.bilkent.joker.operator.schema.runtime;
 
 
 import java.util.Arrays;
@@ -7,9 +7,6 @@ import java.util.List;
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.operator.schema.annotation.OperatorSchema;
 import cs.bilkent.joker.operator.schema.annotation.PortSchema;
-import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
-import cs.bilkent.joker.operator.schema.runtime.PortRuntimeSchema;
-import cs.bilkent.joker.operator.schema.runtime.RuntimeSchemaField;
 import static java.util.stream.Collectors.toList;
 
 
@@ -28,7 +25,7 @@ public final class OperatorRuntimeSchemaBuilder
         this.outputSchemaBuilders = new PortRuntimeSchemaBuilder[ outputPortCount ];
     }
 
-    OperatorRuntimeSchemaBuilder ( final int inputPortCount, final int outputPortCount, final OperatorSchema operatorSchema )
+    public OperatorRuntimeSchemaBuilder ( final int inputPortCount, final int outputPortCount, final OperatorSchema operatorSchema )
     {
         checkArgument( inputPortCount >= 0, "input port count must be non-negative" );
         checkArgument( outputPortCount >= 0, "output port count must be non-negative" );
@@ -50,7 +47,7 @@ public final class OperatorRuntimeSchemaBuilder
             final List<RuntimeSchemaField> fields = Arrays.stream( portSchema.fields() )
                                                           .map( f -> new RuntimeSchemaField( f.name(), f.type() ) )
                                                           .collect( toList() );
-            final PortRuntimeSchemaBuilder builder = new PortRuntimeSchemaBuilder( portIndex, portSchema.scope(), fields );
+            final PortRuntimeSchemaBuilder builder = new PortRuntimeSchemaBuilder( portSchema.scope(), fields );
             builders[ portIndex ] = builder;
         }
     }
@@ -104,7 +101,7 @@ public final class OperatorRuntimeSchemaBuilder
         PortRuntimeSchemaBuilder builder = builders[ portIndex ];
         if ( builder == null )
         {
-            builder = new PortRuntimeSchemaBuilder( portIndex );
+            builder = new PortRuntimeSchemaBuilder();
             builders[ portIndex ] = builder;
         }
 

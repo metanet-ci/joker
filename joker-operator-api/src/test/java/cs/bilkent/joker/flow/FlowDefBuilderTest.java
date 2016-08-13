@@ -8,7 +8,9 @@ import org.junit.Test;
 import cs.bilkent.joker.operator.InitializationContext;
 import cs.bilkent.joker.operator.InvocationContext;
 import cs.bilkent.joker.operator.Operator;
+import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
+import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
@@ -379,48 +381,48 @@ public class FlowDefBuilderTest extends AbstractJokerTest
         builder.build();
     }
 
-    static class OperatorWithNoSpec extends NopOperator
+    public static class OperatorWithNoSpec extends NopOperator
     {
 
     }
 
 
     @OperatorSpec( type = STATELESS )
-    static class StatelessOperatorWithDynamicPortCounts extends NopOperator
+    public static class StatelessOperatorWithDynamicPortCounts extends NopOperator
     {
 
     }
 
 
     @OperatorSpec( type = STATEFUL, inputPortCount = SPEC_INPUT_PORT_COUNT, outputPortCount = SPEC_OUTPUT_PORT_COUNT )
-    static class StatefulOperatorWithFixedPortCounts extends NopOperator
+    public static class StatefulOperatorWithFixedPortCounts extends NopOperator
     {
 
     }
 
 
     @OperatorSpec( type = STATEFUL )
-    private static class StatefulOperatorWithDynamicPortCounts extends NopOperator
+    public static class StatefulOperatorWithDynamicPortCounts extends NopOperator
     {
 
     }
 
 
     @OperatorSpec( type = STATEFUL, inputPortCount = INVALID_PORT_COUNT, outputPortCount = SPEC_OUTPUT_PORT_COUNT )
-    static class StatefulOperatorWithInvalidInputPortCount extends NopOperator
+    public static class StatefulOperatorWithInvalidInputPortCount extends NopOperator
     {
 
     }
 
 
     @OperatorSpec( type = STATEFUL, inputPortCount = SPEC_INPUT_PORT_COUNT, outputPortCount = INVALID_PORT_COUNT )
-    static class StatefulOperatorWithInvalidOutputPortCount extends NopOperator
+    public static class StatefulOperatorWithInvalidOutputPortCount extends NopOperator
     {
 
     }
 
 
-    static class NopOperator implements Operator
+    public static class NopOperator implements Operator
     {
 
         @Override

@@ -19,7 +19,7 @@ import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.region.FlowDeploymentDef.RegionGroup;
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
-import cs.bilkent.joker.flow.OperatorDef;
+import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.spec.OperatorType;
 import static java.util.stream.Collectors.toList;
 

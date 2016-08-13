@@ -59,21 +59,6 @@ public interface Fields<K>
     <T> void set ( K key, T value );
 
     /**
-     * Associates a value with the given key and returns the previous value associated with the same key, {@code NULL} otherwise.
-     * {@code NULL} is forbidden for both {@code key} and {@code value}.
-     *
-     * @param key
-     *         the key to associate the value
-     * @param value
-     *         the value to associate with the given key
-     * @param <T>
-     *         type of the given value
-     *
-     * @return the previous value associated with the given key if it exists, {@code NULL} otherwise
-     */
-    <T> T put ( K key, T value );
-
-    /**
      * Deletes the value associated with the given key if it exists, and returns the value or {@code NULL} if it doesn't exist.
      * {@code NULL} is forbidden for {@code key}
      *
@@ -108,14 +93,6 @@ public interface Fields<K>
      * @return number of the keys
      */
     int size ();
-
-    /**
-     * Returns immutable collection of keys.
-     * Optional to implement. May throw {@code java.lang.UnsupportedOperationException}
-     *
-     * @return immutable collection of keys if implemented, throws {@code java.lang.UnsupportedOperationException} otherwise
-     */
-    Collection<K> keys ();
 
     /**
      * Returns the associated value of the given key, or throws {@link IllegalArgumentException} if the key is not present
@@ -474,4 +451,5 @@ public interface Fields<K>
         final Map<K2, V> map = getMap( key );
         return map != null ? map : new HashMap<>();
     }
+
 }
