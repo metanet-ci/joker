@@ -69,9 +69,15 @@ public class PipelineReplicaTest extends AbstractJokerTest
                                         new OperatorReplica[] { operator0, operator1, operator2 },
                                         upstreamTupleQueueContext );
 
-        upstreamInput1.add( new Tuple( "k1", "v1" ) );
-        upstreamInput2.add( new Tuple( "k2", "v2" ) );
-        output.add( new Tuple( "k3", "v3" ) );
+        final Tuple input1 = new Tuple();
+        input1.set( "k1", "v1" );
+        upstreamInput1.add( input1 );
+        final Tuple input2 = new Tuple();
+        input2.set( "k2", "v2" );
+        upstreamInput2.add( input2 );
+        final Tuple output1 = new Tuple();
+        output1.set( "k3", "v3" );
+        output.add( output1 );
     }
 
     @Test

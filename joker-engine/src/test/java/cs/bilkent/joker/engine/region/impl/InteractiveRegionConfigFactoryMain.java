@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
@@ -22,8 +21,12 @@ import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.joker.operators.BeaconOperator;
+import static cs.bilkent.joker.operators.BeaconOperator.TUPLE_POPULATOR_CONFIG_PARAMETER;
 import cs.bilkent.joker.operators.MapperOperator;
+import static cs.bilkent.joker.operators.MapperOperator.MAPPER_CONFIG_PARAMETER;
 import cs.bilkent.joker.operators.TupleCountBasedWindowReducerOperator;
+import static cs.bilkent.joker.operators.TupleCountBasedWindowReducerOperator.ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER;
+import static cs.bilkent.joker.operators.TupleCountBasedWindowReducerOperator.REDUCER_CONFIG_PARAMETER;
 import static java.util.Collections.singletonList;
 
 public class InteractiveRegionConfigFactoryMain
@@ -40,7 +43,7 @@ public class InteractiveRegionConfigFactoryMain
 
         final OperatorConfig beaconConfig = new OperatorConfig();
         beaconConfig.set( BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER, 10 );
-        beaconConfig.set( BeaconOperator.TUPLE_POPULATOR_CONFIG_PARAMETER, (Consumer<Tuple>) tuple ->
+        beaconConfig.set( TUPLE_POPULATOR_CONFIG_PARAMETER, (Consumer<Tuple>) tuple ->
         {
             sleepUninterruptibly( 1 + random.nextInt( 100 ), TimeUnit.MILLISECONDS );
             tuple.set( "field1", random.nextInt( 1000 ) );
@@ -54,7 +57,7 @@ public class InteractiveRegionConfigFactoryMain
                                                      .build();
 
         final OperatorConfig mapperConfig = new OperatorConfig();
-        mapperConfig.set( MapperOperator.MAPPER_CONFIG_PARAMETER,
+        mapperConfig.set( MAPPER_CONFIG_PARAMETER,
                           (BiConsumer<Tuple, Tuple>) ( input, output ) -> output.set( "field1", input.get( "field1" ) ) );
 
         final OperatorRuntimeSchemaBuilder mapperSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
@@ -66,12 +69,11 @@ public class InteractiveRegionConfigFactoryMain
                                                      .build();
 
         final OperatorConfig windowConfig = new OperatorConfig();
-        windowConfig.set( TupleCountBasedWindowReducerOperator.ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER, new Tuple( "field1", 0 ) );
+        windowConfig.set( ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER, (Consumer<Tuple>) tuple -> tuple.set( "field1", 0 ) );
         windowConfig.set( TupleCountBasedWindowReducerOperator.TUPLE_COUNT_CONFIG_PARAMETER, 1 );
-        windowConfig.set( TupleCountBasedWindowReducerOperator.REDUCER_CONFIG_PARAMETER,
-                          (BiFunction<Tuple, Tuple, Tuple>) ( tuple1, tuple2 ) -> new Tuple( "field1",
-                                                                                             tuple1.getInteger( "field1" )
-                                                                                             + tuple2.getInteger( "field1" ) ) );
+        windowConfig.set( REDUCER_CONFIG_PARAMETER,
+                          (BiConsumer<Tuple, Tuple>) ( acc, val ) -> acc.set( "field1",
+                                                                              acc.getInteger( "field1" ) + val.getInteger( "field1" ) ) );
 
         final OperatorRuntimeSchemaBuilder windowSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
         windowSchema.addInputField( 0, "field1", Integer.class );

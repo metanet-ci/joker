@@ -65,7 +65,9 @@ import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.joker.operators.FilterOperator;
+import static cs.bilkent.joker.operators.FilterOperator.PREDICATE_CONFIG_PARAMETER;
 import cs.bilkent.joker.operators.MapperOperator;
+import static cs.bilkent.joker.operators.MapperOperator.MAPPER_CONFIG_PARAMETER;
 import cs.bilkent.joker.testutils.AbstractJokerTest;
 import cs.bilkent.joker.utils.Pair;
 import static java.util.Collections.singletonList;
@@ -112,7 +114,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final OperatorConfig mapperOperatorConfig = new OperatorConfig();
         final BiConsumer<Tuple, Tuple> multiplyBy2 = ( input, output ) -> output.set( "val",
                                                                                       2 * input.getIntegerValueOrDefault( "val", 0 ) );
-        mapperOperatorConfig.set( MapperOperator.MAPPER_CONFIG_PARAMETER, multiplyBy2 );
+        mapperOperatorConfig.set( MAPPER_CONFIG_PARAMETER, multiplyBy2 );
         final OperatorDef mapperOperatorDef = OperatorDefBuilder.newInstance( "map", MapperOperator.class )
                                                                 .setConfig( mapperOperatorConfig )
                                                                 .build();
@@ -153,7 +155,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final int tupleCount = 200;
         for ( int i = 0; i < tupleCount; i++ )
         {
-            tupleQueueContext.offer( 0, singletonList( new Tuple( "val", initialVal + i ) ) );
+            final Tuple tuple = new Tuple();
+            tuple.set( "val", initialVal + i );
+            tupleQueueContext.offer( 0, singletonList( tuple ) );
         }
 
         assertTrueEventually( () -> assertEquals( tupleCount, tupleCollector.tupleQueues[ 0 ].size() ) );
@@ -161,7 +165,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         for ( int i = 0; i < tupleCount; i++ )
         {
             final Tuple expected = new Tuple();
-            multiplyBy2.accept( new Tuple( "val", initialVal + i ), expected );
+            final Tuple t = new Tuple();
+            t.set( "val", initialVal + i );
+            multiplyBy2.accept( t, expected );
             assertEquals( expected, tuples.get( i ) );
         }
 
@@ -176,7 +182,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     {
         final OperatorConfig mapperOperatorConfig = new OperatorConfig();
         final BiConsumer<Tuple, Tuple> add1 = ( input, output ) -> output.set( "val", 1 + input.getIntegerValueOrDefault( "val", -1 ) );
-        mapperOperatorConfig.set( MapperOperator.MAPPER_CONFIG_PARAMETER, add1 );
+        mapperOperatorConfig.set( MAPPER_CONFIG_PARAMETER, add1 );
         final OperatorDef mapperOperatorDef = OperatorDefBuilder.newInstance( "map", MapperOperator.class )
                                                                 .setConfig( mapperOperatorConfig )
                                                                 .build();
@@ -198,7 +204,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final OperatorConfig filterOperatorConfig = new OperatorConfig();
         final Predicate<Tuple> filterEvenVals = tuple -> tuple.getInteger( "val" ) % 2 == 0;
-        filterOperatorConfig.set( FilterOperator.PREDICATE_CONFIG_PARAMETER, filterEvenVals );
+        filterOperatorConfig.set( PREDICATE_CONFIG_PARAMETER, filterEvenVals );
         final OperatorDef filterOperatorDef = OperatorDefBuilder.newInstance( "filter", FilterOperator.class )
                                                                 .setConfig( filterOperatorConfig )
                                                                 .build();
@@ -245,7 +251,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         for ( int i = 0; i < tupleCount; i++ )
         {
             final int value = initialVal + i;
-            final Tuple tuple = new Tuple( "val", value );
+            final Tuple tuple = new Tuple();
+            tuple.set( "val", value );
             mapperTupleQueueContext.offer( 0, singletonList( tuple ) );
         }
 
@@ -255,7 +262,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         for ( int i = 0; i < evenValCount; i++ )
         {
             final Tuple expected = new Tuple();
-            add1.accept( new Tuple( "val", initialVal + ( i * 2 ) ), expected );
+            final Tuple t = new Tuple();
+            t.set( "val", initialVal + ( i * 2 ) );
+            add1.accept( t, expected );
             if ( filterEvenVals.test( expected ) )
             {
                 assertEquals( expected, tuples.get( i ) );
@@ -388,7 +397,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final OperatorConfig mapperOperatorConfig = new OperatorConfig();
         final BiConsumer<Tuple, Tuple> add1 = ( input, output ) -> output.set( "val", 1 + input.getIntegerValueOrDefault( "val", -1 ) );
-        mapperOperatorConfig.set( MapperOperator.MAPPER_CONFIG_PARAMETER, add1 );
+        mapperOperatorConfig.set( MAPPER_CONFIG_PARAMETER, add1 );
         final OperatorDef mapperOperatorDef = OperatorDefBuilder.newInstance( "map", MapperOperator.class )
                                                                 .setConfig( mapperOperatorConfig )
                                                                 .build();
@@ -418,7 +427,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final OperatorConfig filterOperatorConfig = new OperatorConfig();
         final Predicate<Tuple> filterEvenVals = tuple -> tuple.getInteger( "val" ) % 2 == 0;
-        filterOperatorConfig.set( FilterOperator.PREDICATE_CONFIG_PARAMETER, filterEvenVals );
+        filterOperatorConfig.set( PREDICATE_CONFIG_PARAMETER, filterEvenVals );
         final OperatorDef filterOperatorDef = OperatorDefBuilder.newInstance( "filter", FilterOperator.class )
                                                                 .setConfig( filterOperatorConfig )
                                                                 .build();
@@ -476,7 +485,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         for ( int i = 0; i < tupleCount; i++ )
         {
             final int value = initialVal + i;
-            final Tuple tuple = new Tuple( "val", value );
+            final Tuple tuple = new Tuple();
+            tuple.set( "val", value );
             mapperTupleQueueContext.offer( 0, singletonList( tuple ) );
         }
 
@@ -486,7 +496,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         for ( int i = 0; i < evenValCount; i++ )
         {
             final Tuple expected = new Tuple();
-            add1.accept( new Tuple( "val", initialVal + ( i * 2 ) ), expected );
+            final Tuple t = new Tuple();
+            t.set( "val", initialVal + ( i * 2 ) );
+            add1.accept( t, expected );
             if ( filterEvenVals.test( expected ) )
             {
                 assertEquals( expected, tuples.get( i ) );
@@ -939,7 +951,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                 for ( int i = 0; i < batchCount; i++ )
                 {
                     final int val = increment ? ++count : --count;
-                    output.add( new Tuple( "val", val ) );
+                    final Tuple t = new Tuple();
+                    t.set( "val", val );
+                    output.add( t );
                 }
             }
             else

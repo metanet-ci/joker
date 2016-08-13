@@ -84,7 +84,9 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
         setConfig();
 
         operator.init( initContext );
-        input.add( new Tuple( "val", 10 ) );
+        final Tuple tuple = new Tuple();
+        tuple.set( "val", 10 );
+        input.add( tuple );
 
         operator.invoke( invocationContext );
 
@@ -101,7 +103,9 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
         setCurrentAvgInKVStore( 0, 5 );
 
         operator.init( initContext );
-        input.add( new Tuple( "val", 10 ) );
+        final Tuple tuple = new Tuple();
+        tuple.set( "val", 10 );
+        input.add( tuple );
 
         operator.invoke( invocationContext );
 
@@ -118,7 +122,9 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
         setCurrentAvgInKVStore( 3, 6 );
 
         operator.init( initContext );
-        input.add( new Tuple( "val", 4 ) );
+        final Tuple val = new Tuple();
+        val.set( "val", 4 );
+        input.add( val );
 
         operator.invoke( invocationContext );
 
@@ -140,7 +146,9 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
         setCurrentAvgInKVStore( 4, 10 );
 
         operator.init( initContext );
-        input.add( new Tuple( "val", 5 ) );
+        final Tuple t = new Tuple();
+        t.set( "val", 5 );
+        input.add( t );
         operator.invoke( invocationContext );
 
         assertThat( output.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
@@ -161,8 +169,12 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
         setCurrentAvgInKVStore( 3, 6 );
 
         operator.init( initContext );
-        input.add( new Tuple( "val", 4 ) );
-        input.add( new Tuple( "val", 7 ) );
+        final Tuple t1 = new Tuple();
+        t1.set( "val", 4 );
+        input.add( t1 );
+        final Tuple t2 = new Tuple();
+        t2.set( "val", 7 );
+        input.add( t2 );
 
         operator.invoke( invocationContext );
 

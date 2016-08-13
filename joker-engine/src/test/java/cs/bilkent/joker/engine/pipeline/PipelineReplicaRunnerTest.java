@@ -245,9 +245,13 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
     public void shouldCompleteRunningAfterPipelineCompletesItself ()
     {
         final TuplesImpl output1 = new TuplesImpl( inputOutputPortCount );
-        output1.add( new Tuple( "k1", "v1" ) );
+        final Tuple t1 = new Tuple();
+        t1.set( "k1", "v1" );
+        output1.add( t1 );
         final TuplesImpl output2 = new TuplesImpl( inputOutputPortCount );
-        output2.add( new Tuple( "k2", "v2" ) );
+        final Tuple t2 = new Tuple();
+        t2.set( "k2", "v2" );
+        output2.add( t2 );
 
         when( operator.invoke( anyObject(), anyObject() ) ).thenReturn( output1, output2 );
 

@@ -54,19 +54,27 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
                                                           : upstreamContext;
 
         final TuplesImpl operatorInput = new TuplesImpl( inputPortCount );
-        operatorInput.add( new Tuple( "f1", "val1" ) );
+        final Tuple t1 = new Tuple();
+        t1.set( "f1", "val1" );
+        operatorInput.add( t1 );
         when( drainer.getResult() ).thenReturn( operatorInput );
 
         final TuplesImpl expectedOutput = new TuplesImpl( outputPortCount );
-        expectedOutput.add( new Tuple( "f1", "val3" ) );
+        final Tuple t2 = new Tuple();
+        t2.set( "f1", "val3" );
+        expectedOutput.add( t2 );
         when( outputSupplier.get() ).thenReturn( expectedOutput );
 
         final TuplesImpl upstreamInput = new TuplesImpl( inputPortCount );
-        upstreamInput.add( new Tuple( "f1", "val1" ) );
+        final Tuple t3 = new Tuple();
+        t3.set( "f1", "val1" );
+        upstreamInput.add( t3 );
 
         final TuplesImpl output = operatorReplica.invoke( upstreamInput, invocationUpstreamContext );
 
-        verify( queue ).offer( 0, singletonList( new Tuple( "f1", "val1" ) ) );
+        final Tuple expected = new Tuple();
+        expected.set( "f1", "val1" );
+        verify( queue ).offer( 0, singletonList( expected ) );
         verify( queue ).drain( drainer );
         assertOperatorInvocation();
 
@@ -90,10 +98,14 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
         when( drainer.getResult() ).thenReturn( new TuplesImpl( inputPortCount ) );
 
         final TuplesImpl upstreamInput = new TuplesImpl( inputPortCount );
-        upstreamInput.add( new Tuple( "f1", "val1" ) );
+        final Tuple t1 = new Tuple();
+        t1.set( "f1", "val1" );
+        upstreamInput.add( t1 );
         final TuplesImpl output = operatorReplica.invoke( upstreamInput, upstreamContext );
 
-        verify( queue ).offer( 0, singletonList( new Tuple( "f1", "val1" ) ) );
+        final Tuple expected = new Tuple();
+        expected.set( "f1", "val1" );
+        verify( queue ).offer( 0, singletonList( expected ) );
         verify( queue ).drain( drainer );
         assertNoOperatorInvocation();
         verify( drainerPool, never() ).release( drainer );
@@ -116,10 +128,14 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
         when( drainer.getResult() ).thenReturn( new TuplesImpl( inputPortCount ) );
 
         final TuplesImpl upstreamInput = new TuplesImpl( inputPortCount );
-        upstreamInput.add( new Tuple( "f1", "val1" ) );
+        final Tuple t1 = new Tuple();
+        t1.set( "f1", "val1" );
+        upstreamInput.add( t1 );
         final TuplesImpl output = operatorReplica.invoke( upstreamInput, invocationUpstreamContext );
 
-        verify( queue ).offer( 0, singletonList( new Tuple( "f1", "val1" ) ) );
+        final Tuple expected = new Tuple();
+        expected.set( "f1", "val1" );
+        verify( queue ).offer( 0, singletonList( expected ) );
         verify( queue ).drain( drainer );
         verify( kvStoreContext ).getKVStore( null );
         verify( operator ).invoke( invocationContext );
@@ -150,14 +166,20 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
         when( drainer.getResult() ).thenReturn( input );
 
         final TuplesImpl expectedOutput = new TuplesImpl( outputPortCount );
-        expectedOutput.add( new Tuple( "f1", "val3" ) );
+        final Tuple t1 = new Tuple();
+        t1.set( "f1", "val3" );
+        expectedOutput.add( t1 );
         when( outputSupplier.get() ).thenReturn( expectedOutput );
 
         final TuplesImpl upstreamInput = new TuplesImpl( inputPortCount );
-        upstreamInput.add( new Tuple( "f1", "val1" ) );
+        final Tuple t2 = new Tuple();
+        t2.set( "f1", "val1" );
+        upstreamInput.add( t2 );
         final TuplesImpl output = operatorReplica.invoke( upstreamInput, invocationUpstreamContext );
 
-        verify( queue ).offer( 0, singletonList( new Tuple( "f1", "val1" ) ) );
+        final Tuple expected = new Tuple();
+        expected.set( "f1", "val1" );
+        verify( queue ).offer( 0, singletonList( expected ) );
         verify( queue ).drain( drainer );
         verify( kvStoreContext ).getKVStore( null );
         verify( operator ).invoke( invocationContext );

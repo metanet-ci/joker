@@ -60,7 +60,8 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
                                                                                                      tupleQueueContexts,
                                                                                                      partitionKeyFunction );
 
-        final Tuple tuple = new Tuple( "key", "val" );
+        final Tuple tuple = new Tuple();
+        tuple.set( "key", "val" );
         tuples.add( 1, tuple );
         final int replicaIndex = 3;
         when( partitionKeyFunction.getPartitionHash( tuple ) ).thenReturn( replicaIndex );
@@ -82,9 +83,11 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
                                                                                                      tupleQueueContexts,
                                                                                                      partitionKeyFunction );
 
-        final Tuple tuple1 = new Tuple( "key1", "val" );
+        final Tuple tuple1 = new Tuple();
+        tuple1.set( "key1", "val" );
         tuples.add( 1, tuple1 );
-        final Tuple tuple2 = new Tuple( "key2", "val" );
+        final Tuple tuple2 = new Tuple();
+        tuple2.set( "key2", "val" );
         tuples.add( 3, tuple2 );
         final int replicaIndex1 = 3, replicaIndex2 = 1;
         when( partitionKeyFunction.getPartitionHash( tuple1 ) ).thenReturn( replicaIndex1 );
@@ -110,11 +113,14 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
                                                                                                      tupleQueueContexts,
                                                                                                      partitionKeyFunction );
 
-        final Tuple tuple1 = new Tuple( "key1", "val" );
+        final Tuple tuple1 = new Tuple();
+        tuple1.set( "key1", "val" );
         tuples.add( 1, tuple1 );
-        final Tuple tuple2 = new Tuple( "key2", "val" );
+        final Tuple tuple2 = new Tuple();
+        tuple2.set( "key2", "val" );
         tuples.add( 3, tuple2 );
-        final Tuple tuple3 = new Tuple( "key3", "val" );
+        final Tuple tuple3 = new Tuple();
+        tuple3.set( "key3", "val" );
         tuples.add( 5, tuple3 );
         final int replicaIndex1 = 3, replicaIndex2 = 1, replicaIndex3 = 0;
         when( partitionKeyFunction.getPartitionHash( tuple1 ) ).thenReturn( replicaIndex1 );
@@ -144,13 +150,17 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
                                                                                                      tupleQueueContexts,
                                                                                                      partitionKeyFunction );
 
-        final Tuple tuple1 = new Tuple( "key1", "val" );
+        final Tuple tuple1 = new Tuple();
+        tuple1.set( "key1", "val" );
         tuples.add( 1, tuple1 );
-        final Tuple tuple2 = new Tuple( "key2", "val" );
+        final Tuple tuple2 = new Tuple();
+        tuple2.set( "key2", "val" );
         tuples.add( 3, tuple2 );
-        final Tuple tuple3 = new Tuple( "key3", "val" );
+        final Tuple tuple3 = new Tuple();
+        tuple3.set( "key3", "val" );
         tuples.add( 5, tuple3 );
-        final Tuple tuple4 = new Tuple( "key4", "val" );
+        final Tuple tuple4 = new Tuple();
+        tuple4.set( "key4", "val" );
         tuples.add( 7, tuple4 );
         final int replicaIndex1 = 3, replicaIndex2 = 1, replicaIndex3 = 0, replicaIndex4 = 2;
         when( partitionKeyFunction.getPartitionHash( tuple1 ) ).thenReturn( replicaIndex1 );
@@ -176,15 +186,20 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
                                                                                                      tupleQueueContexts,
                                                                                                      partitionKeyFunction );
 
-        final Tuple tuple1 = new Tuple( "key1", "val" );
+        final Tuple tuple1 = new Tuple();
+        tuple1.set( "key1", "val" );
         tuples.add( 1, tuple1 );
-        final Tuple tuple2 = new Tuple( "key2", "val" );
+        final Tuple tuple2 = new Tuple();
+        tuple2.set( "key2", "val" );
         tuples.add( 3, tuple2 );
-        final Tuple tuple3 = new Tuple( "key3", "val" );
+        final Tuple tuple3 = new Tuple();
+        tuple3.set( "key3", "val" );
         tuples.add( 5, tuple3 );
-        final Tuple tuple4 = new Tuple( "key4", "val" );
+        final Tuple tuple4 = new Tuple();
+        tuple4.set( "key4", "val" );
         tuples.add( 7, tuple4 );
-        final Tuple tuple5 = new Tuple( "key5", "val" );
+        final Tuple tuple5 = new Tuple();
+        tuple5.set( "key5", "val" );
         tuples.add( 9, tuple5 );
         final int replicaIndex1 = 3, replicaIndex2 = 1, replicaIndex3 = 0, replicaIndex4 = 2, replicaIndex5 = 3;
         when( partitionKeyFunction.getPartitionHash( tuple1 ) ).thenReturn( replicaIndex1 );

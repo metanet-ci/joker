@@ -127,7 +127,9 @@ public class DefaultTupleQueueContextTest extends AbstractJokerTest
             for ( int tupleIndex = 1; tupleIndex <= tupleCount; tupleIndex++ )
             {
                 final String key = portIndex + "-" + tupleIndex;
-                input.add( portIndex, new Tuple( key, key ) );
+                final Tuple t = new Tuple();
+                t.set( key, key );
+                input.add( portIndex, t );
             }
         }
         return input;
@@ -149,7 +151,9 @@ public class DefaultTupleQueueContextTest extends AbstractJokerTest
                 assertNotNull( tuple );
 
                 final String key = portIndex + "-" + tupleIndex;
-                assertThat( tuple, equalTo( new Tuple( key, key ) ) );
+                final Tuple expected = new Tuple();
+                expected.set( key, key );
+                assertThat( tuple, equalTo( expected ) );
             }
         }
     }

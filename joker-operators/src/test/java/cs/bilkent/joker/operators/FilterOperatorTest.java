@@ -77,16 +77,24 @@ public class FilterOperatorTest extends AbstractJokerTest
     @Test
     public void shouldFilterMultipleTuplesForSuccessfulInvocation ()
     {
-        input.add( new Tuple( "count", -1 ) );
-        input.add( new Tuple( "count", 1 ) );
+        final Tuple tuple1 = new Tuple();
+        tuple1.set( "count", -1 );
+        input.add( tuple1 );
+        final Tuple tuple2 = new Tuple();
+        tuple2.set( "count", 1 );
+        input.add( tuple2 );
         shouldFilterTuplesWithPositiveCount( invocationContext );
     }
 
     @Test
     public void shouldFilterMultipleTuplesForErroneousInvocation ()
     {
-        input.add( new Tuple( "count", -1 ) );
-        input.add( new Tuple( "count", 1 ) );
+        final Tuple tuple1 = new Tuple();
+        tuple1.set( "count", -1 );
+        input.add( tuple1 );
+        final Tuple tuple2 = new Tuple();
+        tuple2.set( "count", 1 );
+        input.add( tuple2 );
         invocationContext.setReason( SHUTDOWN );
         shouldFilterTuplesWithPositiveCount( invocationContext );
     }

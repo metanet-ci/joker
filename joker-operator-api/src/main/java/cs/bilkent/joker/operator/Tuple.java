@@ -71,14 +71,6 @@ public final class Tuple implements Fields<String>
         }
     }
 
-    public Tuple ( final String key, final Object value )
-    {
-        checkArgument( value != null, "value can't be null" );
-        this.schema = EMPTY_SCHEMA;
-        this.values = new ArrayList<>();
-        values.add( new SimpleEntry<>( key, value ) );
-    }
-
     @SuppressWarnings( "unchecked" )
     @Override
     public <T> T get ( final String key )

@@ -79,20 +79,26 @@ public class OperatorReplicaRunningStatusTest extends AbstractOperatorReplicaInv
         when( drainer.getResult() ).thenReturn( operatorInput );
 
         final TuplesImpl expectedOutput = new TuplesImpl( outputPortCount );
-        expectedOutput.add( new Tuple( "f1", "val3" ) );
+        final Tuple tuple = new Tuple();
+        tuple.set( "f1", "val3" );
+        expectedOutput.add( tuple );
         when( outputSupplier.get() ).thenReturn( expectedOutput );
 
         final TuplesImpl upstreamInput = new TuplesImpl( inputPortCount );
         if ( inputPortCount > 0 )
         {
-            upstreamInput.add( new Tuple( "f1", "val1" ) );
+            final Tuple t = new Tuple();
+            t.set( "f1", "val1" );
+            upstreamInput.add( t );
         }
 
         final TuplesImpl output = operatorReplica.invoke( upstreamInput, upstreamContext );
 
         if ( inputPortCount > 0 )
         {
-            verify( queue ).offer( 0, singletonList( new Tuple( "f1", "val1" ) ) );
+            final Tuple expected = new Tuple();
+            expected.set( "f1", "val1" );
+            verify( queue ).offer( 0, singletonList( expected ) );
         }
         else
         {
@@ -126,7 +132,9 @@ public class OperatorReplicaRunningStatusTest extends AbstractOperatorReplicaInv
         when( drainer.getResult() ).thenReturn( operatorInput );
 
         final TuplesImpl expectedOutput = new TuplesImpl( outputPortCount );
-        expectedOutput.add( new Tuple( "f1", "val3" ) );
+        final Tuple tuple = new Tuple();
+        tuple.set( "f1", "val3" );
+        expectedOutput.add( tuple );
         when( outputSupplier.get() ).thenReturn( expectedOutput );
 
         final TuplesImpl upstreamInput = new TuplesImpl( inputPortCount );
@@ -156,11 +164,15 @@ public class OperatorReplicaRunningStatusTest extends AbstractOperatorReplicaInv
         initializeOperatorReplica( inputPortCount, outputPortCount, initializationStrategy );
 
         final TuplesImpl upstreamInput = new TuplesImpl( inputPortCount );
-        upstreamInput.add( new Tuple( "f1", "val1" ) );
+        final Tuple tuple = new Tuple();
+        tuple.set( "f1", "val1" );
+        upstreamInput.add( tuple );
         final UpstreamContext upstreamContext = newUpstreamContextInstance( 0, inputPortCount, ACTIVE );
         final TuplesImpl output = operatorReplica.invoke( upstreamInput, upstreamContext );
 
-        verify( queue ).offer( 0, singletonList( new Tuple( "f1", "val1" ) ) );
+        final Tuple expected = new Tuple();
+        expected.set( "f1", "val1" );
+        verify( queue ).offer( 0, singletonList( expected ) );
         verify( queue ).drain( drainer );
         verify( drainer ).reset();
         assertNoOperatorInvocation();
@@ -183,14 +195,20 @@ public class OperatorReplicaRunningStatusTest extends AbstractOperatorReplicaInv
         final UpstreamContext newUpstreamContext = new UpstreamContext( 1, new UpstreamConnectionStatus[] { ACTIVE, CLOSED } );
 
         final TuplesImpl operatorInput = new TuplesImpl( inputPortCount );
-        operatorInput.add( new Tuple( "f1", "val2" ) );
+        final Tuple t1 = new Tuple();
+        t1.set( "f1", "val2" );
+        operatorInput.add( t1 );
         when( drainer.getResult() ).thenReturn( null, operatorInput );
 
         final TuplesImpl upstreamInput = new TuplesImpl( inputPortCount );
-        upstreamInput.add( new Tuple( "f1", "val1" ) );
+        final Tuple t2 = new Tuple();
+        t2.set( "f1", "val1" );
+        upstreamInput.add( t2 );
         final TuplesImpl output = operatorReplica.invoke( upstreamInput, newUpstreamContext );
 
-        verify( queue ).offer( 0, singletonList( new Tuple( "f1", "val1" ) ) );
+        final Tuple expected = new Tuple();
+        expected.set( "f1", "val1" );
+        verify( queue ).offer( 0, singletonList( expected ) );
         verify( queue ).drain( drainer );
         verify( drainer ).reset();
         assertNoOperatorInvocation();
@@ -212,14 +230,20 @@ public class OperatorReplicaRunningStatusTest extends AbstractOperatorReplicaInv
         final UpstreamContext newUpstreamContext = new UpstreamContext( 1, new UpstreamConnectionStatus[] { ACTIVE, CLOSED } );
 
         final TuplesImpl operatorInput = new TuplesImpl( inputPortCount );
-        operatorInput.add( new Tuple( "f1", "val2" ) );
+        final Tuple t1 = new Tuple();
+        t1.set( "f1", "val2" );
+        operatorInput.add( t1 );
         when( drainer.getResult() ).thenReturn( null, operatorInput );
 
         final TuplesImpl upstreamInput = new TuplesImpl( inputPortCount );
-        upstreamInput.add( new Tuple( "f1", "val1" ) );
+        final Tuple t2 = new Tuple();
+        t2.set( "f1", "val1" );
+        upstreamInput.add( t2 );
         final TuplesImpl output = operatorReplica.invoke( upstreamInput, newUpstreamContext );
 
-        verify( queue ).offer( 0, singletonList( new Tuple( "f1", "val1" ) ) );
+        final Tuple expected = new Tuple();
+        expected.set( "f1", "val1" );
+        verify( queue ).offer( 0, singletonList( expected ) );
         verify( queue, times( 2 ) ).drain( drainer );
         assertOperatorInvocation();
         verify( drainerPool ).release( drainer );

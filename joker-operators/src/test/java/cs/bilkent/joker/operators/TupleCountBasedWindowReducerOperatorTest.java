@@ -111,7 +111,9 @@ public class TupleCountBasedWindowReducerOperatorTest extends AbstractJokerTest
         initContext.getConfig().set( ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER, createAccumulatorInitializer( 2 ) );
         operator.init( initContext );
 
-        input.add( new Tuple( "count", 1 ) );
+        final Tuple tuple = new Tuple();
+        tuple.set( "count", 1 );
+        input.add( tuple );
 
         operator.invoke( invocationContext );
 
@@ -128,8 +130,12 @@ public class TupleCountBasedWindowReducerOperatorTest extends AbstractJokerTest
         initContext.getConfig().set( ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER, createAccumulatorInitializer( 3 ) );
         operator.init( initContext );
 
-        input.add( new Tuple( "count", 1 ) );
-        input.add( new Tuple( "count", 2 ) );
+        final Tuple tuple1 = new Tuple();
+        tuple1.set( "count", 1 );
+        input.add( tuple1 );
+        final Tuple tuple2 = new Tuple();
+        tuple2.set( "count", 2 );
+        input.add( tuple2 );
 
         operator.invoke( invocationContext );
 
@@ -147,9 +153,15 @@ public class TupleCountBasedWindowReducerOperatorTest extends AbstractJokerTest
         initContext.getConfig().set( ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER, createAccumulatorInitializer( 4 ) );
         operator.init( initContext );
 
-        input.add( new Tuple( "count", 1 ) );
-        input.add( new Tuple( "count", 2 ) );
-        input.add( new Tuple( "count", 3 ) );
+        final Tuple tuple1 = new Tuple();
+        tuple1.set( "count", 1 );
+        input.add( tuple1 );
+        final Tuple tuple2 = new Tuple();
+        tuple2.set( "count", 2 );
+        input.add( tuple2 );
+        final Tuple tuple3 = new Tuple();
+        tuple3.set( "count", 3 );
+        input.add( tuple3 );
 
         operator.invoke( invocationContext );
 

@@ -80,7 +80,9 @@ public class BarrierOperatorTest extends AbstractJokerTest
         invocationContext.setReason( SHUTDOWN );
 
         populateTuplesWithUniqueFields( input );
-        input.add( new Tuple( "field0", 0 ) );
+        final Tuple tuple = new Tuple();
+        tuple.set( "field0", 0 );
+        input.add( tuple );
 
         operator.invoke( invocationContext );
         final Tuple outputTuple = output.getTupleOrFail( 0, 0 );
@@ -123,7 +125,8 @@ public class BarrierOperatorTest extends AbstractJokerTest
 
         IntStream.of( inputPorts ).forEach( portIndex ->
                                             {
-                                                final Tuple tuple = new Tuple( "count", portIndex );
+                                                final Tuple tuple = new Tuple();
+                                                tuple.set( "count", portIndex );
                                                 input.add( portIndex, tuple );
                                             } );
 
@@ -141,10 +144,13 @@ public class BarrierOperatorTest extends AbstractJokerTest
 
         IntStream.of( inputPorts ).forEach( portIndex ->
                                             {
-                                                final Tuple tuple = new Tuple( "count", portIndex );
+                                                final Tuple tuple = new Tuple();
+                                                tuple.set( "count", portIndex );
                                                 input.add( portIndex, tuple );
                                             } );
-        input.add( new Tuple( "count", -1 ) );
+        final Tuple tuple = new Tuple();
+        tuple.set( "count", -1 );
+        input.add( tuple );
 
         operator.invoke( invocationContext );
     }
@@ -177,7 +183,8 @@ public class BarrierOperatorTest extends AbstractJokerTest
     {
         IntStream.of( inputPorts ).forEach( portIndex ->
                                             {
-                                                final Tuple tuple = new Tuple( "field" + portIndex, portIndex );
+                                                final Tuple tuple = new Tuple();
+                                                tuple.set( "field" + portIndex, portIndex );
                                                 input.add( portIndex, tuple );
                                             } );
     }

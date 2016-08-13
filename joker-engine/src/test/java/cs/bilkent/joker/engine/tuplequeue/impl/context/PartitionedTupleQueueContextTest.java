@@ -48,7 +48,9 @@ public class PartitionedTupleQueueContextTest extends AbstractJokerTest
     @Test
     public void testOfferedTuplesDrained ()
     {
-        final List<Tuple> tuples = singletonList( new Tuple( PARTITION_KEY_FIELD, "key1" ) );
+        final Tuple tuple = new Tuple();
+        tuple.set( PARTITION_KEY_FIELD, "key1" );
+        final List<Tuple> tuples = singletonList( tuple );
         tupleQueueContext.offer( 0, tuples );
 
         final NonBlockingMultiPortDisjunctiveDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( INPUT_PORT_COUNT, 100 );
@@ -61,7 +63,9 @@ public class PartitionedTupleQueueContextTest extends AbstractJokerTest
     public void testOfferedTuplesDrainedGreedilyWithGreedyPreparation ()
     {
         tupleQueueContext.setTupleCounts( new int[] { 2, 2 }, ANY_PORT );
-        final List<Tuple> tuples = singletonList( new Tuple( PARTITION_KEY_FIELD, "key1" ) );
+        final Tuple tuple = new Tuple();
+        tuple.set( PARTITION_KEY_FIELD, "key1" );
+        final List<Tuple> tuples = singletonList( tuple );
         tupleQueueContext.offer( 0, tuples );
         tupleQueueContext.prepareGreedyDraining();
 
@@ -74,7 +78,9 @@ public class PartitionedTupleQueueContextTest extends AbstractJokerTest
     public void testOfferedTuplesNotDrainedGreedilyWithoutGreedyPreparation ()
     {
         tupleQueueContext.setTupleCounts( new int[] { 2, 2 }, ANY_PORT );
-        final List<Tuple> tuples = singletonList( new Tuple( PARTITION_KEY_FIELD, "key1" ) );
+        final Tuple tuple = new Tuple();
+        tuple.set( PARTITION_KEY_FIELD, "key1" );
+        final List<Tuple> tuples = singletonList( tuple );
         tupleQueueContext.offer( 0, tuples );
 
         final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT );
@@ -85,7 +91,9 @@ public class PartitionedTupleQueueContextTest extends AbstractJokerTest
     @Test
     public void testOfferedTuplesDrainedGreedilyWithoutGreedyPreparation ()
     {
-        final List<Tuple> tuples = singletonList( new Tuple( PARTITION_KEY_FIELD, "key1" ) );
+        final Tuple tuple = new Tuple();
+        tuple.set( PARTITION_KEY_FIELD, "key1" );
+        final List<Tuple> tuples = singletonList( tuple );
         tupleQueueContext.offer( 0, tuples );
 
         final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT );

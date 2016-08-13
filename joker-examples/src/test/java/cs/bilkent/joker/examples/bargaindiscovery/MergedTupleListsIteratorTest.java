@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import cs.bilkent.joker.operator.Tuple;
@@ -20,12 +21,27 @@ public class MergedTupleListsIteratorTest extends AbstractJokerTest
 {
 
     private final static String FIELD_NAME = "val";
+
     public static final Comparator<Tuple> COMPARATOR = ( left, right ) -> left.getInteger( FIELD_NAME )
                                                                               .compareTo( right.getInteger( FIELD_NAME ) );
-    private Tuple val1 = new Tuple( FIELD_NAME, 1 );
-    private Tuple val2 = new Tuple( FIELD_NAME, 2 );
-    private Tuple val3 = new Tuple( FIELD_NAME, 3 );
-    private Tuple val4 = new Tuple( FIELD_NAME, 4 );
+
+
+    private final Tuple val1 = new Tuple();
+
+    private final Tuple val2 = new Tuple();
+
+    private final Tuple val3 = new Tuple();
+
+    private final Tuple val4 = new Tuple();
+
+    @Before
+    public void init ()
+    {
+        val1.set( FIELD_NAME, 1 );
+        val2.set( FIELD_NAME, 2 );
+        val3.set( FIELD_NAME, 3 );
+        val4.set( FIELD_NAME, 4 );
+    }
 
     @Test( expected = NoSuchElementException.class )
     public void shouldHaveNoNextValueWithEmptyContent ()

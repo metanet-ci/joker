@@ -264,7 +264,9 @@ public class MultiThreadedTupleQueueTest extends AbstractJokerTest
 
     private Tuple newTuple ( final int val )
     {
-        return new Tuple( "k", val );
+        final Tuple tuple = new Tuple();
+        tuple.set( "k", val );
+        return tuple;
     }
 
     private void assertQueueContent ( final int size )
@@ -272,7 +274,9 @@ public class MultiThreadedTupleQueueTest extends AbstractJokerTest
         final List<Tuple> expected = new ArrayList<>( size );
         for ( int i = 1; i <= size; i++ )
         {
-            expected.add( new Tuple( "k", i ) );
+            final Tuple tuple = new Tuple();
+            tuple.set( "k", i );
+            expected.add( tuple );
         }
 
         assertEquals( size, queue.size() );

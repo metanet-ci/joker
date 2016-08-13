@@ -53,8 +53,10 @@ public class ConsoleAppenderOperatorTest extends AbstractJokerTest
     {
         operator.init( initContext );
 
-        final Tuple tuple1 = new Tuple( "k1", "v1" );
-        final Tuple tuple2 = new Tuple( "k2", "v2" );
+        final Tuple tuple1 = new Tuple();
+        tuple1.set( "k1", "v1" );
+        final Tuple tuple2 = new Tuple();
+        tuple2.set( "k2", "v2" );
         final TuplesImpl input = new TuplesImpl( 1 );
         input.add( tuple1 );
         input.add( tuple2 );
@@ -73,8 +75,10 @@ public class ConsoleAppenderOperatorTest extends AbstractJokerTest
         initContext.getConfig().set( TO_STRING_FUNCTION_CONFIG_PARAMETER, toStringFunc );
         operator.init( initContext );
 
-        final Tuple tuple1 = new Tuple( "k1", "v1" );
-        final Tuple tuple2 = new Tuple( "k2", "v2" );
+        final Tuple tuple1 = new Tuple();
+        tuple1.set( "k1", "v1" );
+        final Tuple tuple2 = new Tuple();
+        tuple2.set( "k2", "v2" );
         final TuplesImpl input = new TuplesImpl( 1 );
         input.add( tuple1 );
         input.add( tuple2 );

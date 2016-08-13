@@ -58,10 +58,7 @@ public class MapperOperatorTest extends AbstractJokerTest
     @Test
     public void shouldInitializeWithMapper ()
     {
-        final BiConsumer<Tuple, Tuple> mapper = ( input, output ) ->
-        {
-            input.consumeEntries( output::set );
-        };
+        final BiConsumer<Tuple, Tuple> mapper = ( input, output ) -> input.consumeEntries( output::set );
         initContext.getConfig().set( MAPPER_CONFIG_PARAMETER, mapper );
 
         final SchedulingStrategy strategy = operator.init( initContext );
@@ -86,10 +83,7 @@ public class MapperOperatorTest extends AbstractJokerTest
     @Test
     public void shouldInitializeWithTupleCount ()
     {
-        final BiConsumer<Tuple, Tuple> mapper = ( input, output ) ->
-        {
-            input.consumeEntries( output::set );
-        };
+        final BiConsumer<Tuple, Tuple> mapper = ( input, output ) -> input.consumeEntries( output::set );
         final int tupleCount = 5;
         initContext.getConfig().set( MAPPER_CONFIG_PARAMETER, mapper );
         initContext.getConfig().set( TUPLE_COUNT_CONFIG_PARAMETER, tupleCount );
@@ -102,7 +96,9 @@ public class MapperOperatorTest extends AbstractJokerTest
     @Test
     public void shouldMapSingleTupleForSuccessfulInvocation ()
     {
-        input.add( new Tuple( "count", 5 ) );
+        final Tuple tuple = new Tuple();
+        tuple.set( "count", 5 );
+        input.add( tuple );
 
         shouldMultiplyCountValuesBy2( invocationContext );
     }
@@ -110,7 +106,9 @@ public class MapperOperatorTest extends AbstractJokerTest
     @Test
     public void shouldMapSingleTupleForErroneousInvocation ()
     {
-        input.add( new Tuple( "count", 5 ) );
+        final Tuple tuple = new Tuple();
+        tuple.set( "count", 5 );
+        input.add( tuple );
         invocationContext.setReason( SHUTDOWN );
         shouldMultiplyCountValuesBy2( invocationContext );
     }
@@ -136,7 +134,9 @@ public class MapperOperatorTest extends AbstractJokerTest
         initContext.getConfig().set( MAPPER_CONFIG_PARAMETER, mapper );
 
         operator.init( initContext );
-        input.add( new Tuple( "count", 5 ) );
+        final Tuple tuple = new Tuple();
+        tuple.set( "count", 5 );
+        input.add( tuple );
         invocationContext.setReason( invocationReason );
         operator.invoke( invocationContext );
     }
@@ -144,16 +144,24 @@ public class MapperOperatorTest extends AbstractJokerTest
     @Test
     public void shouldMapMultipleTuplesForSuccessfulInvocation ()
     {
-        input.add( new Tuple( "count", 5 ) );
-        input.add( new Tuple( "count", 10 ) );
+        final Tuple tuple1 = new Tuple();
+        tuple1.set( "count", 5 );
+        input.add( tuple1 );
+        final Tuple tuple2 = new Tuple();
+        tuple2.set( "count", 10 );
+        input.add( tuple2 );
         shouldMultiplyCountValuesBy2( invocationContext );
     }
 
     @Test
     public void shouldMapMultipleTuplesForErroneousInvocation ()
     {
-        input.add( new Tuple( "count", 5 ) );
-        input.add( new Tuple( "count", 10 ) );
+        final Tuple tuple1 = new Tuple();
+        tuple1.set( "count", 5 );
+        input.add( tuple1 );
+        final Tuple tuple2 = new Tuple();
+        tuple2.set( "count", 10 );
+        input.add( tuple2 );
         shouldMultiplyCountValuesBy2( invocationContext );
     }
 
