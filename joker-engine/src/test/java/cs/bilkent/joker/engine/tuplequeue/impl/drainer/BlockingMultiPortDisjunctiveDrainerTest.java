@@ -10,6 +10,7 @@ import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount;
 import cs.bilkent.joker.testutils.AbstractJokerTest;
 import static java.util.Arrays.asList;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;
@@ -21,7 +22,8 @@ public class BlockingMultiPortDisjunctiveDrainerTest extends AbstractJokerTest
 
     private final BlockingMultiPortDisjunctiveDrainer drainer = new BlockingMultiPortDisjunctiveDrainer( 2,
                                                                                                          Integer.MAX_VALUE,
-                                                                                                         TIMEOUT_IN_MILLIS );
+                                                                                                         TIMEOUT_IN_MILLIS,
+                                                                                                         MILLISECONDS );
 
     @Test
     public void test_TupleAvailabilityByCount_AT_LEAST_allQueuesSatisfiesAlready ()

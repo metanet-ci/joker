@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -54,7 +55,7 @@ public class SingleThreadedTupleQueue implements TupleQueue
     }
 
     @Override
-    public boolean tryOfferTuple ( final Tuple tuple, final long timeoutInMillis )
+    public boolean tryOfferTuple ( final Tuple tuple, final long timeout, final TimeUnit unit )
     {
         offerTuple( tuple );
         return true;
@@ -73,7 +74,7 @@ public class SingleThreadedTupleQueue implements TupleQueue
     }
 
     @Override
-    public int tryOfferTuples ( final List<Tuple> tuples, final long timeoutInMillis )
+    public int tryOfferTuples ( final List<Tuple> tuples, final long timeout, final TimeUnit unit )
     {
         offerTuples( tuples );
         return tuples.size();
@@ -92,19 +93,19 @@ public class SingleThreadedTupleQueue implements TupleQueue
     }
 
     @Override
+    public List<Tuple> pollTuples ( final int count, final long timeout, final TimeUnit unit )
+    {
+        return doPollTuples( count, null );
+    }
+
+    @Override
     public void pollTuples ( final int count, final List<Tuple> tuples )
     {
         doPollTuples( count, tuples );
     }
 
     @Override
-    public List<Tuple> pollTuples ( final int count, final long timeoutInMillis )
-    {
-        return doPollTuples( count, null );
-    }
-
-    @Override
-    public void pollTuples ( final int count, final long timeoutInMillis, final List<Tuple> tuples )
+    public void pollTuples ( final int count, final List<Tuple> tuples, final long timeout, final TimeUnit unit )
     {
         doPollTuples( count, tuples );
     }
@@ -138,13 +139,32 @@ public class SingleThreadedTupleQueue implements TupleQueue
     }
 
     @Override
+    public List<Tuple> pollTuplesAtLeast ( final int count, final long timeout, final TimeUnit unit )
+    {
+        return doPollTuplesAtLeast( count, Integer.MAX_VALUE, null );
+    }
+
+    @Override
     public List<Tuple> pollTuplesAtLeast ( final int count, final int limit )
     {
         return doPollTuplesAtLeast( count, limit, null );
     }
 
     @Override
+    public List<Tuple> pollTuplesAtLeast ( final int count, final int limit, final long timeout, final TimeUnit unit )
+    {
+        checkArgument( limit >= count );
+        return doPollTuplesAtLeast( count, limit, null );
+    }
+
+    @Override
     public void pollTuplesAtLeast ( final int count, final List<Tuple> tuples )
+    {
+        doPollTuplesAtLeast( count, Integer.MAX_VALUE, tuples );
+    }
+
+    @Override
+    public void pollTuplesAtLeast ( final int count, final List<Tuple> tuples, final long timeout, final TimeUnit unit )
     {
         doPollTuplesAtLeast( count, Integer.MAX_VALUE, tuples );
     }
@@ -156,26 +176,7 @@ public class SingleThreadedTupleQueue implements TupleQueue
     }
 
     @Override
-    public List<Tuple> pollTuplesAtLeast ( final int count, final long timeoutInMillis )
-    {
-        return doPollTuplesAtLeast( count, Integer.MAX_VALUE, null );
-    }
-
-    @Override
-    public List<Tuple> pollTuplesAtLeast ( final int count, final int limit, final long timeoutInMillis )
-    {
-        checkArgument( limit >= count );
-        return doPollTuplesAtLeast( count, limit, null );
-    }
-
-    @Override
-    public void pollTuplesAtLeast ( final int count, final long timeoutInMillis, final List<Tuple> tuples )
-    {
-        doPollTuplesAtLeast( count, Integer.MAX_VALUE, tuples );
-    }
-
-    @Override
-    public void pollTuplesAtLeast ( final int count, final int limit, final long timeoutInMillis, final List<Tuple> tuples )
+    public void pollTuplesAtLeast ( final int count, final int limit, final List<Tuple> tuples, final long timeout, final TimeUnit unit )
     {
         checkArgument( limit >= count );
         doPollTuplesAtLeast( count, limit, tuples );
@@ -212,7 +213,7 @@ public class SingleThreadedTupleQueue implements TupleQueue
     }
 
     @Override
-    public boolean awaitMinimumSize ( final int expectedSize, final long timeoutInMillis )
+    public boolean awaitMinimumSize ( final int expectedSize, final long timeout, final TimeUnit unit )
     {
         return queue.size() >= expectedSize;
     }

@@ -2,6 +2,7 @@ package cs.bilkent.joker.engine.tuplequeue.impl.context;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -116,7 +117,7 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
     }
 
     @Override
-    public int tryOffer ( final int portIndex, final List<Tuple> tuples, final long timeoutInMillis )
+    public int tryOffer ( final int portIndex, final List<Tuple> tuples, final long timeout, final TimeUnit unit )
     {
         if ( tuples == null )
         {

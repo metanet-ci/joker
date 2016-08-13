@@ -14,6 +14,7 @@ import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.T
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.EXACT;
 import cs.bilkent.joker.testutils.AbstractJokerTest;
 import static java.util.Arrays.asList;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;
@@ -26,7 +27,7 @@ public class BlockingSinglePortDrainerTest extends AbstractJokerTest
 
     private static final long TIMEOUT_IN_MILLIS = 5000;
 
-    private final BlockingSinglePortDrainer drainer = new BlockingSinglePortDrainer( Integer.MAX_VALUE, TIMEOUT_IN_MILLIS );
+    private final BlockingSinglePortDrainer drainer = new BlockingSinglePortDrainer( Integer.MAX_VALUE, TIMEOUT_IN_MILLIS, MILLISECONDS );
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithNullTupleQueues ()

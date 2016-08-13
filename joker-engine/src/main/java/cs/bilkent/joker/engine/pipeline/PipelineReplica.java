@@ -99,14 +99,16 @@ public class PipelineReplica
         if ( upstreamInputPortCount == 1 )
         {
             final BlockingSinglePortDrainer drainer = new BlockingSinglePortDrainer( tupleQueueDrainerConfig.getMaxBatchSize(),
-                                                                                     tupleQueueDrainerConfig.getDrainTimeoutInMillis() );
+                                                                                     tupleQueueDrainerConfig.getDrainTimeout(),
+                                                                                     tupleQueueDrainerConfig.getDrainTimeoutTimeUnit() );
             drainer.setParameters( AT_LEAST, 0 );
             return drainer;
         }
 
         final MultiPortDrainer drainer = new BlockingMultiPortDisjunctiveDrainer( upstreamInputPortCount,
                                                                                   tupleQueueDrainerConfig.getMaxBatchSize(),
-                                                                                  tupleQueueDrainerConfig.getDrainTimeoutInMillis() );
+                                                                                  tupleQueueDrainerConfig.getDrainTimeout(),
+                                                                                  tupleQueueDrainerConfig.getDrainTimeoutTimeUnit() );
         for ( int i = 0; i < upstreamInputPortCount; i++ )
         {
             upstreamInputPorts[ i ] = i;

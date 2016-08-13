@@ -1,16 +1,21 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.drainer;
 
+import java.util.concurrent.TimeUnit;
+
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
 
 public class BlockingMultiPortConjunctiveDrainer extends MultiPortDrainer
 {
 
-    private final long timeoutInMillisPerQueue;
+    private final long timeoutPerQueue;
 
-    public BlockingMultiPortConjunctiveDrainer ( final int inputPortCount, final int maxBatchSize, final long timeoutInMillis )
+    private final TimeUnit unit;
+
+    public BlockingMultiPortConjunctiveDrainer ( final int inputPortCount, final int maxBatchSize, final long timeout, final TimeUnit unit )
     {
         super( inputPortCount, maxBatchSize );
-        this.timeoutInMillisPerQueue = inputPortCount > 0 ? (long) Math.ceil( ( (double) timeoutInMillis ) / inputPortCount ) : 0;
+        this.timeoutPerQueue = inputPortCount > 0 ? (long) Math.ceil( ( (double) timeout ) / inputPortCount ) : 0;
+        this.unit = unit;
     }
 
     @Override
@@ -21,7 +26,7 @@ public class BlockingMultiPortConjunctiveDrainer extends MultiPortDrainer
         {
             final int portIndex = tupleCounts[ i ];
             final int tupleCount = tupleCounts[ i + 1 ];
-            if ( tupleCount == 0 || tupleQueues[ portIndex ].awaitMinimumSize( tupleCount, timeoutInMillisPerQueue ) )
+            if ( tupleCount == 0 || tupleQueues[ portIndex ].awaitMinimumSize( tupleCount, timeoutPerQueue, unit ) )
             {
                 satisfied++;
             }

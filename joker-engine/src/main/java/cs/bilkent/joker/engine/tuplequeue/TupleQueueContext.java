@@ -1,6 +1,7 @@
 package cs.bilkent.joker.engine.tuplequeue;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort;
@@ -33,12 +34,10 @@ public interface TupleQueueContext
      *         port index to offer the tuples
      * @param tuples
      *         tuples to be offered
-     * @param timeoutInMillis
-     *         duration in milliseconds in which tuple offering is attempted
      *
      * @return number of tuples successfully offered
      */
-    int tryOffer ( int portIndex, List<Tuple> tuples, long timeoutInMillis );
+    int tryOffer ( int portIndex, List<Tuple> tuples, long timeout, TimeUnit unit );
 
     /**
      * Offers given tuples into the queue without checking the available queue capacity.

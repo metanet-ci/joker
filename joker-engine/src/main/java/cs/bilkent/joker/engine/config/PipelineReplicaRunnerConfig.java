@@ -1,5 +1,7 @@
 package cs.bilkent.joker.engine.config;
 
+import java.util.concurrent.TimeUnit;
+
 import com.typesafe.config.Config;
 
 public class PipelineReplicaRunnerConfig
@@ -7,20 +9,30 @@ public class PipelineReplicaRunnerConfig
 
     static final String CONFIG_NAME = "pipelineReplicaRunner";
 
-    static final String RUNNER_WAIT_TIME_IN_MILLIS = "runnerWaitTimeInMillis";
+    static final String RUNNER_WAIT_TIMEOUT = "runnerWaitTimeout";
+
+    static final String RUNNER_WAIT_TIMEOUT_UNIT = "runnerWaitTimeoutUnit";
 
 
-    public final long waitTimeoutInMillis;
+    private final long waitTimeout;
+
+    private final TimeUnit waitTimeoutUnit;
 
     PipelineReplicaRunnerConfig ( Config parentConfig )
     {
         final Config config = parentConfig.getConfig( CONFIG_NAME );
-        waitTimeoutInMillis = config.getLong( RUNNER_WAIT_TIME_IN_MILLIS );
+        this.waitTimeout = config.getLong( RUNNER_WAIT_TIMEOUT );
+        this.waitTimeoutUnit = TimeUnit.valueOf( config.getString( RUNNER_WAIT_TIMEOUT_UNIT ) );
     }
 
-    public long getWaitTimeoutInMillis ()
+    public long getWaitTimeout ()
     {
-        return waitTimeoutInMillis;
+        return waitTimeout;
+    }
+
+    public TimeUnit getWaitTimeoutUnit ()
+    {
+        return waitTimeoutUnit;
     }
 
 }

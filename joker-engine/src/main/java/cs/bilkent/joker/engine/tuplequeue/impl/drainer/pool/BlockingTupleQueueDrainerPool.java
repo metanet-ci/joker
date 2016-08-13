@@ -1,10 +1,12 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool;
 
+import java.util.concurrent.TimeUnit;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.config.JokerConfig;
+import cs.bilkent.joker.engine.config.TupleQueueDrainerConfig;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainerPool;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.BlockingMultiPortConjunctiveDrainer;
@@ -43,17 +45,19 @@ public class BlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
         this.operatorId = operatorDef.id();
         this.inputPortCount = operatorDef.inputPortCount();
 
-        final int maxBatchSize = config.getTupleQueueDrainerConfig().getMaxBatchSize();
-        final long timeoutInMillis = config.getTupleQueueDrainerConfig().getDrainTimeoutInMillis();
+        final TupleQueueDrainerConfig tupleQueueDrainerConfig = config.getTupleQueueDrainerConfig();
+        final int maxBatchSize = tupleQueueDrainerConfig.getMaxBatchSize();
+        final long timeout = tupleQueueDrainerConfig.getDrainTimeout();
+        final TimeUnit unit = tupleQueueDrainerConfig.getDrainTimeoutTimeUnit();
 
         if ( inputPortCount == 1 )
         {
-            this.singlePortDrainer = new BlockingSinglePortDrainer( maxBatchSize, timeoutInMillis );
+            this.singlePortDrainer = new BlockingSinglePortDrainer( maxBatchSize, timeout, unit );
         }
         else if ( inputPortCount > 1 )
         {
-            this.multiPortConjunctiveDrainer = new BlockingMultiPortConjunctiveDrainer( inputPortCount, maxBatchSize, timeoutInMillis );
-            this.multiPortDisjunctiveDrainer = new BlockingMultiPortDisjunctiveDrainer( inputPortCount, maxBatchSize, timeoutInMillis );
+            this.multiPortConjunctiveDrainer = new BlockingMultiPortConjunctiveDrainer( inputPortCount, maxBatchSize, timeout, unit );
+            this.multiPortDisjunctiveDrainer = new BlockingMultiPortDisjunctiveDrainer( inputPortCount, maxBatchSize, timeout, unit );
         }
 
         this.greedyDrainer = new GreedyDrainer( inputPortCount );

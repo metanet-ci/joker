@@ -2,7 +2,6 @@ package cs.bilkent.joker.engine.tuplequeue.impl.queue;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
@@ -13,6 +12,7 @@ import cs.bilkent.joker.testutils.AbstractJokerTest;
 import static java.lang.Thread.State.TIMED_WAITING;
 import static java.lang.Thread.State.WAITING;
 import static java.util.Arrays.asList;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -67,7 +67,7 @@ public class MultiThreadedTupleQueueTest extends AbstractJokerTest
 
         final Thread thread = spawnThread( increaseCapacity( Thread.currentThread(), 4 ) );
 
-        final boolean result = queue.tryOfferTuple( newTuple( 4 ), Integer.MAX_VALUE );
+        final boolean result = queue.tryOfferTuple( newTuple( 4 ), Integer.MAX_VALUE, MILLISECONDS );
 
         assertTrue( result );
         assertQueueContent( 4 );
@@ -82,7 +82,7 @@ public class MultiThreadedTupleQueueTest extends AbstractJokerTest
         queue.offerTuple( newTuple( 2 ) );
         queue.offerTuple( newTuple( 3 ) );
 
-        final boolean result = queue.tryOfferTuple( newTuple( 4 ), 500 );
+        final boolean result = queue.tryOfferTuple( newTuple( 4 ), 500, MILLISECONDS );
 
         assertFalse( result );
         assertQueueContent( 3 );
@@ -91,7 +91,7 @@ public class MultiThreadedTupleQueueTest extends AbstractJokerTest
     @Test
     public void shouldTryOfferTuples ()
     {
-        final int offered = queue.tryOfferTuples( asList( newTuple( 1 ), newTuple( 2 ) ), TIMEOUT_IN_MILLIS );
+        final int offered = queue.tryOfferTuples( asList( newTuple( 1 ), newTuple( 2 ) ), TIMEOUT_IN_MILLIS, MILLISECONDS );
 
         assertEquals( 2, offered );
         assertQueueContent( 2 );
@@ -104,7 +104,9 @@ public class MultiThreadedTupleQueueTest extends AbstractJokerTest
         queue.offerTuple( newTuple( 2 ) );
         final Thread thread = spawnThread( increaseCapacity( Thread.currentThread(), 4 ) );
 
-        final int offeredCount = queue.tryOfferTuples( asList( newTuple( 3 ), newTuple( 4 ), newTuple( 5 ) ), TIMEOUT_IN_MILLIS );
+        final int offeredCount = queue.tryOfferTuples( asList( newTuple( 3 ), newTuple( 4 ), newTuple( 5 ) ),
+                                                       TIMEOUT_IN_MILLIS,
+                                                       MILLISECONDS );
 
         assertEquals( 2, offeredCount );
         assertQueueContent( 4 );
@@ -119,7 +121,9 @@ public class MultiThreadedTupleQueueTest extends AbstractJokerTest
         queue.offerTuple( newTuple( 2 ) );
         final Thread thread = spawnThread( increaseCapacity( Thread.currentThread(), 5 ) );
 
-        final int offeredCount = queue.tryOfferTuples( asList( newTuple( 3 ), newTuple( 4 ), newTuple( 5 ) ), TIMEOUT_IN_MILLIS );
+        final int offeredCount = queue.tryOfferTuples( asList( newTuple( 3 ), newTuple( 4 ), newTuple( 5 ) ),
+                                                       TIMEOUT_IN_MILLIS,
+                                                       MILLISECONDS );
 
         assertEquals( 3, offeredCount );
         assertQueueContent( 5 );
@@ -159,7 +163,7 @@ public class MultiThreadedTupleQueueTest extends AbstractJokerTest
     public void shouldAwaitSizeWithTimeoutSucceedWhenExpectedSizeIsAlreadyAvailable ()
     {
         queue.offerTuples( asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ) ) );
-        assertTrue( queue.awaitMinimumSize( 3, TIMEOUT_IN_MILLIS ) );
+        assertTrue( queue.awaitMinimumSize( 3, TIMEOUT_IN_MILLIS, MILLISECONDS ) );
     }
 
     @Test
@@ -168,7 +172,7 @@ public class MultiThreadedTupleQueueTest extends AbstractJokerTest
         final Thread thread = spawnThread( offerTuples( Thread.currentThread(),
                                                         queue,
                                                         asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ) ) ) );
-        assertTrue( queue.awaitMinimumSize( 3, TIMEOUT_IN_MILLIS ) );
+        assertTrue( queue.awaitMinimumSize( 3, TIMEOUT_IN_MILLIS, MILLISECONDS ) );
 
         thread.join();
     }
@@ -192,7 +196,7 @@ public class MultiThreadedTupleQueueTest extends AbstractJokerTest
         queue.disableCapacityCheck();
         queue.offerTuples( asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ), newTuple( 4 ) ) );
         queue.enableCapacityCheck();
-        assertFalse( queue.tryOfferTuple( newTuple( 5 ), 1000 ) );
+        assertFalse( queue.tryOfferTuple( newTuple( 5 ), 1000, MILLISECONDS ) );
     }
 
     @Test
@@ -289,7 +293,7 @@ public class MultiThreadedTupleQueueTest extends AbstractJokerTest
         {
             while ( !( testThread.getState() == WAITING || testThread.getState() == TIMED_WAITING ) )
             {
-                sleepUninterruptibly( 1, TimeUnit.MILLISECONDS );
+                sleepUninterruptibly( 1, MILLISECONDS );
             }
 
             queue.ensureCapacity( newCapacity );
@@ -302,7 +306,7 @@ public class MultiThreadedTupleQueueTest extends AbstractJokerTest
         {
             while ( !( testThread.getState() == WAITING || testThread.getState() == TIMED_WAITING ) )
             {
-                sleepUninterruptibly( 1, TimeUnit.MILLISECONDS );
+                sleepUninterruptibly( 1, MILLISECONDS );
             }
 
             queue.offerTuples( tuples );

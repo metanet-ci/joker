@@ -16,6 +16,7 @@ import cs.bilkent.joker.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.testutils.AbstractJokerTest;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static junit.framework.TestCase.assertNotNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -109,7 +110,7 @@ public class DefaultTupleQueueContextTest extends AbstractJokerTest
         for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
         {
             final List<Tuple> tuples = input.getTuples( portIndex );
-            final int count = context.tryOffer( portIndex, tuples, TIMEOUT_IN_MILLIS );
+            final int count = context.tryOffer( portIndex, tuples, TIMEOUT_IN_MILLIS, MILLISECONDS );
             assertEquals( count, tuples.size() );
         }
 

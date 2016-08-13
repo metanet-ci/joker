@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.annotation.concurrent.GuardedBy;
@@ -121,9 +122,9 @@ public class MultiThreadedTupleQueue implements TupleQueue
     }
 
     @Override
-    public boolean tryOfferTuple ( final Tuple tuple, final long timeoutInMillis )
+    public boolean tryOfferTuple ( final Tuple tuple, final long timeout, final TimeUnit unit )
     {
-        return doOfferTuple( tuple, timeoutInMillis * 1_000_000 );
+        return doOfferTuple( tuple, unit.toNanos( timeout ) );
     }
 
     @Override
@@ -179,9 +180,9 @@ public class MultiThreadedTupleQueue implements TupleQueue
     }
 
     @Override
-    public int tryOfferTuples ( final List<Tuple> tuples, final long timeoutInMillis )
+    public int tryOfferTuples ( final List<Tuple> tuples, final long timeout, final TimeUnit unit )
     {
-        return doOfferTuples( tuples, timeoutInMillis * 1_000_000 );
+        return doOfferTuples( tuples, unit.toNanos( timeout ) );
     }
 
     @Override
@@ -264,21 +265,21 @@ public class MultiThreadedTupleQueue implements TupleQueue
     }
 
     @Override
+    public List<Tuple> pollTuples ( final int count, final long timeout, final TimeUnit unit )
+    {
+        return doPollTuples( count, unit.toNanos( timeout ), null );
+    }
+
+    @Override
     public void pollTuples ( final int count, final List<Tuple> tuples )
     {
         doPollTuples( count, Long.MAX_VALUE, tuples );
     }
 
     @Override
-    public List<Tuple> pollTuples ( final int count, final long timeoutInMillis )
+    public void pollTuples ( final int count, final List<Tuple> tuples, final long timeout, final TimeUnit unit )
     {
-        return doPollTuples( count, timeoutInMillis * 1_000_000, null );
-    }
-
-    @Override
-    public void pollTuples ( final int count, final long timeoutInMillis, final List<Tuple> tuples )
-    {
-        doPollTuples( count, timeoutInMillis * 1_000_000, tuples );
+        doPollTuples( count, unit.toNanos( timeout ), tuples );
     }
 
     private List<Tuple> doPollTuples ( final int count, final long timeoutInNanos, List<Tuple> tuples )
@@ -332,15 +333,34 @@ public class MultiThreadedTupleQueue implements TupleQueue
     }
 
     @Override
+    public List<Tuple> pollTuplesAtLeast ( final int count, final long timeout, final TimeUnit unit )
+    {
+        return doPollTuplesAtLeast( count, Integer.MAX_VALUE, unit.toNanos( timeout ), null );
+    }
+
+    @Override
     public List<Tuple> pollTuplesAtLeast ( final int count, final int limit )
     {
         return doPollTuplesAtLeast( count, limit, Long.MAX_VALUE, null );
     }
 
     @Override
+    public List<Tuple> pollTuplesAtLeast ( final int count, final int limit, final long timeout, final TimeUnit unit )
+    {
+        checkArgument( limit >= count );
+        return doPollTuplesAtLeast( count, limit, unit.toNanos( timeout ), null );
+    }
+
+    @Override
     public void pollTuplesAtLeast ( final int count, final List<Tuple> tuples )
     {
         doPollTuplesAtLeast( count, Integer.MAX_VALUE, Long.MAX_VALUE, tuples );
+    }
+
+    @Override
+    public void pollTuplesAtLeast ( final int count, final List<Tuple> tuples, final long timeout, final TimeUnit unit )
+    {
+        doPollTuplesAtLeast( count, Integer.MAX_VALUE, unit.toNanos( timeout ), tuples );
     }
 
     @Override
@@ -351,28 +371,9 @@ public class MultiThreadedTupleQueue implements TupleQueue
     }
 
     @Override
-    public List<Tuple> pollTuplesAtLeast ( final int count, final long timeoutInMillis )
+    public void pollTuplesAtLeast ( final int count, final int limit, final List<Tuple> tuples, final long timeout, final TimeUnit unit )
     {
-        return doPollTuplesAtLeast( count, Integer.MAX_VALUE, timeoutInMillis * 1_000_000, null );
-    }
-
-    @Override
-    public List<Tuple> pollTuplesAtLeast ( final int count, final int limit, final long timeoutInMillis )
-    {
-        checkArgument( limit >= count );
-        return doPollTuplesAtLeast( count, limit, timeoutInMillis * 1_000_000, null );
-    }
-
-    @Override
-    public void pollTuplesAtLeast ( final int count, final long timeoutInMillis, final List<Tuple> tuples )
-    {
-        doPollTuplesAtLeast( count, Integer.MAX_VALUE, timeoutInMillis * 1_000_000, tuples );
-    }
-
-    @Override
-    public void pollTuplesAtLeast ( final int count, final int limit, final long timeoutInMillis, final List<Tuple> tuples )
-    {
-        doPollTuplesAtLeast( count, limit, timeoutInMillis * 1_000_000, tuples );
+        doPollTuplesAtLeast( count, limit, unit.toNanos( timeout ), tuples );
     }
 
     private List<Tuple> doPollTuplesAtLeast ( final int count, int limit, final long timeoutInNanos, List<Tuple> tuples )
@@ -428,9 +429,9 @@ public class MultiThreadedTupleQueue implements TupleQueue
     }
 
     @Override
-    public boolean awaitMinimumSize ( final int expectedSize, final long timeoutInMillis )
+    public boolean awaitMinimumSize ( final int expectedSize, final long timeout, final TimeUnit unit )
     {
-        return doAwaitMinimumSize( expectedSize, timeoutInMillis * 1_000_000 );
+        return doAwaitMinimumSize( expectedSize, unit.toNanos( timeout ) );
     }
 
     private boolean doAwaitMinimumSize ( final int expectedSize, final long timeoutInNanos )

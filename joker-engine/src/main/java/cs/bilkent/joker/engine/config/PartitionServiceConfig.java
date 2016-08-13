@@ -15,7 +15,7 @@ public class PartitionServiceConfig
     PartitionServiceConfig ( Config parentConfig )
     {
         final Config config = parentConfig.getConfig( CONFIG_NAME );
-        partitionCount = config.getInt( PARTITION_COUNT );
+        this.partitionCount = config.getInt( PARTITION_COUNT );
     }
 
     public int getPartitionCount ()

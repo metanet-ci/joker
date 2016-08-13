@@ -1,6 +1,7 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.context;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
@@ -67,7 +68,7 @@ public class DefaultTupleQueueContext implements TupleQueueContext
     }
 
     @Override
-    public int tryOffer ( final int portIndex, final List<Tuple> tuples, final long timeoutInMillis )
+    public int tryOffer ( final int portIndex, final List<Tuple> tuples, final long timeout, final TimeUnit unit )
     {
         if ( tuples == null )
         {
@@ -78,7 +79,7 @@ public class DefaultTupleQueueContext implements TupleQueueContext
 
         if ( tupleQueues != null )
         {
-            return tupleQueues[ portIndex ].tryOfferTuples( tuples, timeoutInMillis );
+            return tupleQueues[ portIndex ].tryOfferTuples( tuples, timeout, unit );
         }
 
         return -1;

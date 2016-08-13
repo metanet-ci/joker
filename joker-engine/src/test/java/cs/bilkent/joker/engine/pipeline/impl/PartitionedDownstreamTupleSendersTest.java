@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
@@ -241,7 +242,7 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
         }
 
         @Override
-        public int tryOffer ( final int portIndex, final List<Tuple> tuples, final long timeoutInMillis )
+        public int tryOffer ( final int portIndex, final List<Tuple> tuples, final long timeout, final TimeUnit unit )
         {
             return 0;
         }

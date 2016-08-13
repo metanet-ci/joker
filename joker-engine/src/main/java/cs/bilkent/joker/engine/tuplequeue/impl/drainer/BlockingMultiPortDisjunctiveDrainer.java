@@ -1,5 +1,7 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.drainer;
 
+import java.util.concurrent.TimeUnit;
+
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount;
 
@@ -7,14 +9,17 @@ import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAva
 public class BlockingMultiPortDisjunctiveDrainer extends MultiPortDrainer
 {
 
-    private final long timeoutInMillisPerQueue;
+    private final long timeoutPerQueue;
+
+    private final TimeUnit unit;
 
     private final int[] tupleCountsBuffer;
 
-    public BlockingMultiPortDisjunctiveDrainer ( final int inputPortCount, final int maxBatchSize, final long timeoutInMillis )
+    public BlockingMultiPortDisjunctiveDrainer ( final int inputPortCount, final int maxBatchSize, final long timeout, final TimeUnit unit )
     {
         super( inputPortCount, maxBatchSize );
-        this.timeoutInMillisPerQueue = inputPortCount > 0 ? (long) Math.ceil( ( (double) timeoutInMillis ) / inputPortCount ) : 0;
+        this.timeoutPerQueue = inputPortCount > 0 ? (long) Math.ceil( ( (double) timeout ) / inputPortCount ) : 0;
+        this.unit = unit;
         this.tupleCountsBuffer = new int[ inputPortCount * 2 ];
     }
 
@@ -36,7 +41,7 @@ public class BlockingMultiPortDisjunctiveDrainer extends MultiPortDrainer
             final TupleQueue tupleQueue = tupleQueues[ portIndex ];
             if ( notFound )
             {
-                if ( tupleQueue.awaitMinimumSize( tupleCount, timeoutInMillisPerQueue ) )
+                if ( tupleQueue.awaitMinimumSize( tupleCount, timeoutPerQueue, unit ) )
                 {
                     tupleCountsBuffer[ tupleCountIndex ] = tupleCount;
                     notFound = false;

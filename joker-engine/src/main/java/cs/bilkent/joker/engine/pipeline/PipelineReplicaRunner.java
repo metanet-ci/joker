@@ -3,6 +3,7 @@ package cs.bilkent.joker.engine.pipeline;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +46,9 @@ public class PipelineReplicaRunner implements Runnable
 
     private final PipelineReplicaId id;
 
-    private final long waitTimeoutInMillis;
+    private final long waitTimeout;
+
+    private final TimeUnit waitTimeoutUnit;
 
     private final Supervisor supervisor;
 
@@ -70,7 +73,8 @@ public class PipelineReplicaRunner implements Runnable
         this.config = config;
         this.pipeline = pipeline;
         this.id = pipeline.id();
-        this.waitTimeoutInMillis = config.getPipelineReplicaRunnerConfig().waitTimeoutInMillis;
+        this.waitTimeout = config.getPipelineReplicaRunnerConfig().getWaitTimeout();
+        this.waitTimeoutUnit = config.getPipelineReplicaRunnerConfig().getWaitTimeoutUnit();
         this.supervisor = supervisor;
         this.supervisorNotifier = supervisorNotifier;
         this.downstreamTupleSender = downstreamTupleSender;
@@ -345,7 +349,7 @@ public class PipelineReplicaRunner implements Runnable
                     awaitDownstreamTuplesFuture();
                     synchronized ( monitor )
                     {
-                        monitor.wait( waitTimeoutInMillis );
+                        monitor.wait( waitTimeout );
                     }
                     continue;
                 }

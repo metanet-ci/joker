@@ -1,6 +1,7 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.drainer;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
@@ -17,7 +18,9 @@ public class BlockingSinglePortDrainer implements TupleQueueDrainer
 
     private final int maxBatchSize;
 
-    private final long timeoutInMillis;
+    private final long timeout;
+
+    private final TimeUnit unit;
 
     private int tupleCount;
 
@@ -31,10 +34,11 @@ public class BlockingSinglePortDrainer implements TupleQueueDrainer
 
     private Object key;
 
-    public BlockingSinglePortDrainer ( final int maxBatchSize, final long timeoutInMillis )
+    public BlockingSinglePortDrainer ( final int maxBatchSize, final long timeout, final TimeUnit unit )
     {
         this.maxBatchSize = maxBatchSize;
-        this.timeoutInMillis = timeoutInMillis;
+        this.timeout = timeout;
+        this.unit = unit;
         this.tuples = buffer.getTuplesModifiable( DEFAULT_PORT_INDEX );
     }
 
@@ -55,11 +59,11 @@ public class BlockingSinglePortDrainer implements TupleQueueDrainer
         final TupleQueue tupleQueue = tupleQueues[ 0 ];
         if ( tupleAvailabilityByCount == EXACT )
         {
-            tupleQueue.pollTuples( tupleCount, timeoutInMillis, tuples );
+            tupleQueue.pollTuples( tupleCount, tuples, timeout, unit );
         }
         else
         {
-            tupleQueue.pollTuplesAtLeast( tupleCount, max( tupleCount, maxBatchSize ), timeoutInMillis, tuples );
+            tupleQueue.pollTuplesAtLeast( tupleCount, max( tupleCount, maxBatchSize ), tuples, timeout, unit );
         }
 
         if ( !tuples.isEmpty() )
