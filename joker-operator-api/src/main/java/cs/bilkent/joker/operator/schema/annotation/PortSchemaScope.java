@@ -1,0 +1,25 @@
+package cs.bilkent.joker.operator.schema.annotation;
+
+
+import cs.bilkent.joker.flow.FlowDef;
+
+
+/**
+ * Enum to define scope of the fields given in a {@link PortSchema} instance.
+ */
+public enum PortSchemaScope
+{
+
+    /**
+     * All of the {@link SchemaField} instances for the port schema is defined in design time and no more
+     * fields can be added to the port schema while composing the {@link FlowDef}.
+     */
+    EXACT_FIELD_SET,
+
+    /**
+     * There might be some fields defined in design time for the port schema. Additionally, there might be
+     * some additional fields that can be added to the port schema while composing the {@link FlowDef}.
+     */
+    EXTENDABLE_FIELD_SET
+
+}

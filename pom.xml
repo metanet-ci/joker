@@ -5,17 +5,17 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>cs.bilkent</groupId>
-    <artifactId>zanza</artifactId>
+    <artifactId>joker</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>zanza</name>
+    <name>joker</name>
 
     <modules>
-        <module>zanza-operator-api</module>
-        <module>zanza-operators</module>
-        <module>zanza-engine</module>
-        <module>zanza-examples</module>
-        <module>zanza-test-utils</module>
+        <module>joker-operator-api</module>
+        <module>joker-operators</module>
+        <module>joker-engine</module>
+        <module>joker-examples</module>
+        <module>joker-test-utils</module>
     </modules>
 
     <properties>

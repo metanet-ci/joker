@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+<project
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+        xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>cs.bilkent</groupId>
+        <artifactId>joker</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <properties>
+        <typesafe.config.version>1.3.0</typesafe.config.version>
+        <guice.version>4.0</guice.version>
+        <pcj.version>4.1.0</pcj.version>
+    </properties>
+
+    <artifactId>joker-engine</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <name>joker-engine</name>
+    <url>http://maven.apache.org</url>
+
+    <dependencies>
+        <dependency>
+            <groupId>cs.bilkent</groupId>
+            <artifactId>joker-operator-api</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>cs.bilkent</groupId>
+            <artifactId>joker-operators</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>cs.bilkent</groupId>
+            <artifactId>joker-test-utils</artifactId>
+            <scope>test</scope>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.typesafe</groupId>
+            <artifactId>config</artifactId>
+            <version>${typesafe.config.version}</version>
+        </dependency>
+
+        <!-- DI dependencies -->
+
+        <dependency>
+            <groupId>com.google.inject</groupId>
+            <artifactId>guice</artifactId>
+            <version>${guice.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>icm.edu.pl</groupId>
+            <artifactId>pcj</artifactId>
+            <version>${pcj.version}</version>
+        </dependency>
+    </dependencies>
+
+</project>

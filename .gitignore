@@ -15,5 +15,5 @@ atlassian-ide-plugin.xml
 performance*.log
 .surefire-*
 bin/
-zanza-paper/output/
-zanza-paper/text/paper.log
+joker-paper/output/
+joker-paper/text/paper.log
