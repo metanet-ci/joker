@@ -8,7 +8,7 @@ import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.Tuples;
-import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount;
+import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
@@ -26,7 +26,7 @@ public class ForEachOperator implements Operator
 
     public static final String CONSUMER_FUNCTION_CONFIG_PARAMETER = "consumer";
 
-    public static final String EXACT_TUPLE_COUNT_CONFIG_PARAMETER = "tupleCount";
+    public static final String TUPLE_COUNT_CONFIG_PARAMETER = "tupleCount";
 
     public static final int DEFAULT_TUPLE_COUNT_CONFIG_VALUE = 1;
 
@@ -39,11 +39,10 @@ public class ForEachOperator implements Operator
         final OperatorConfig config = context.getConfig();
 
         this.consumerFunc = config.getOrFail( CONSUMER_FUNCTION_CONFIG_PARAMETER );
-        final int tupleCount = config.getIntegerOrDefault( EXACT_TUPLE_COUNT_CONFIG_PARAMETER, DEFAULT_TUPLE_COUNT_CONFIG_VALUE );
+        final int tupleCount = config.getIntegerOrDefault( TUPLE_COUNT_CONFIG_PARAMETER, DEFAULT_TUPLE_COUNT_CONFIG_VALUE );
 
-        return tupleCount > 0
-               ? scheduleWhenTuplesAvailableOnDefaultPort( TupleAvailabilityByCount.EXACT, tupleCount )
-               : scheduleWhenTuplesAvailableOnDefaultPort( 1 );
+        return tupleCount > 0 ? scheduleWhenTuplesAvailableOnDefaultPort( AT_LEAST, tupleCount )
+                              : scheduleWhenTuplesAvailableOnDefaultPort( 1 );
     }
 
 
