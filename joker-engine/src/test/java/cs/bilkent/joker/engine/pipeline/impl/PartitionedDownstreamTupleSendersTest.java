@@ -278,12 +278,6 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
         }
 
         @Override
-        public void prepareGreedyDraining ()
-        {
-
-        }
-
-        @Override
         public void enableCapacityCheck ( final int portIndex )
         {
 

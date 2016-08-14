@@ -37,6 +37,7 @@ import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.operator.scheduling.ScheduleNever;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
+import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ANY_PORT;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 
 /**
@@ -262,7 +263,7 @@ public class OperatorReplica
                 setStatus( COMPLETING );
                 completionReason = INPUT_PORT_CLOSED;
                 setNewSchedulingStrategy( ScheduleWhenAvailable.INSTANCE );
-                queue.prepareGreedyDraining();
+                setQueueTupleCountsForGreedyDraining();
                 input = drainQueueAndGetResult();
                 if ( input != null && input.isNonEmpty() )
                 {
@@ -298,6 +299,13 @@ public class OperatorReplica
         }
 
         return output;
+    }
+
+    private void setQueueTupleCountsForGreedyDraining ()
+    {
+        final int[] tupleCounts = new int[ operatorDef.inputPortCount() ];
+        Arrays.fill( tupleCounts, 1 );
+        queue.setTupleCounts( tupleCounts, ANY_PORT );
     }
 
     private void offer ( final TuplesImpl input )

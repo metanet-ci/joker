@@ -63,8 +63,6 @@ public interface TupleQueueContext
 
     void setTupleCounts ( int[] tupleCounts, TupleAvailabilityByPort tupleAvailabilityByPort );
 
-    void prepareGreedyDraining ();
-
     void enableCapacityCheck ( final int portIndex );
 
     void disableCapacityCheck ( final int portIndex );

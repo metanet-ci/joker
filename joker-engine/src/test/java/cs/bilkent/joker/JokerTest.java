@@ -74,7 +74,7 @@ public class JokerTest extends AbstractJokerTest
 
         final OperatorConfig beacon1Config = new OperatorConfig();
         beacon1Config.set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator1 );
-        beacon1Config.set( TUPLE_COUNT_CONFIG_PARAMETER, 2 );
+        beacon1Config.set( TUPLE_COUNT_CONFIG_PARAMETER, 10 );
 
         final OperatorRuntimeSchemaBuilder beacon1Schema = new OperatorRuntimeSchemaBuilder( 0, 1 );
         beacon1Schema.getOutputPortSchemaBuilder( 0 ).addField( "key", Integer.class ).addField( "value", Integer.class );
@@ -86,7 +86,7 @@ public class JokerTest extends AbstractJokerTest
 
         final OperatorConfig beacon2Config = new OperatorConfig();
         beacon2Config.set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator2 );
-        beacon2Config.set( TUPLE_COUNT_CONFIG_PARAMETER, 3 );
+        beacon2Config.set( TUPLE_COUNT_CONFIG_PARAMETER, 5 );
 
         final OperatorRuntimeSchemaBuilder beacon2Schema = new OperatorRuntimeSchemaBuilder( 0, 1 );
         beacon2Schema.getOutputPortSchemaBuilder( 0 ).addField( "key", Integer.class ).addField( "value", Integer.class );
@@ -182,7 +182,7 @@ public class JokerTest extends AbstractJokerTest
             final int expected = ( valueGenerator1.generatedValues[ i ].intValue() + valueGenerator2.generatedValues[ i ].intValue() )
                                  * MULTIPLIER_VALUE;
             final int actual = valueCollector.values.get( i );
-            assertEquals( expected, actual );
+            assertEquals( "i: " + i + " expected: " + expected + " actual: " + actual, expected, actual );
         }
     }
 
@@ -485,7 +485,14 @@ public class JokerTest extends AbstractJokerTest
         @Override
         public void accept ( final Tuple tuple )
         {
-            values.set( tuple.getInteger( "key" ), tuple.getInteger( "mult" ) );
+            final Integer key = tuple.getInteger( "key" );
+            final Integer newVal = tuple.getInteger( "mult" );
+            final Integer curr = values.get( key );
+            if ( curr > newVal )
+            {
+                System.err.println( "ERR! key: " + key + " curr: " + curr + " new: " + newVal );
+            }
+            values.set( key, newVal );
             invocationCount.incrementAndGet();
         }
 

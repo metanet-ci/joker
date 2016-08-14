@@ -191,23 +191,17 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
                      tupleAvailabilityByPort,
                      operatorId );
 
+        drainablePartitions.clear();
+
         for ( TupleQueueContainer container : tupleQueueContainers )
         {
             if ( container != null )
             {
-                container.setTupleCounts( tupleCounts, tupleAvailabilityByPort );
+                if ( container.setTupleCounts( tupleCounts, tupleAvailabilityByPort ) )
+                {
+                    drainablePartitions.add( container.getPartitionId() );
+                }
             }
-        }
-    }
-
-    @Override
-    public void prepareGreedyDraining ()
-    {
-        LOGGER.info( "Operator:{} prepares greedy draining for partitions: {}", operatorId, ownedPartitions );
-
-        for ( final int partitionId : ownedPartitions )
-        {
-            drainablePartitions.add( partitionId );
         }
     }
 

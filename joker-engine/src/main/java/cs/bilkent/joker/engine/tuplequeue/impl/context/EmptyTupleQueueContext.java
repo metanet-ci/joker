@@ -82,12 +82,6 @@ public class EmptyTupleQueueContext implements TupleQueueContext
     }
 
     @Override
-    public void prepareGreedyDraining ()
-    {
-
-    }
-
-    @Override
     public void enableCapacityCheck ( final int portIndex )
     {
 

@@ -120,8 +120,22 @@ public class DefaultTupleQueueContext implements TupleQueueContext
     {
         LOGGER.info( "Clearing tuple queues of operator: {}", operatorId );
 
-        for ( TupleQueue tupleQueue : tupleQueues )
+        for ( int portIndex = 0; portIndex < tupleQueues.length; portIndex++ )
         {
+            final TupleQueue tupleQueue = tupleQueues[ portIndex ];
+            final int size = tupleQueue.size();
+            if ( size > 1 )
+            {
+                if ( LOGGER.isDebugEnabled() )
+                {
+                    final List<Tuple> tuples = tupleQueue.pollTuplesAtLeast( 1 );
+                    LOGGER.warn( "Tuple queue {} of operator: {} has {} tuples before clear: {}", portIndex, operatorId, size, tuples );
+                }
+                else
+                {
+                    LOGGER.warn( "Tuple queue {} of operator: {} has {} tuples before clear", portIndex, operatorId, size );
+                }
+            }
             tupleQueue.clear();
         }
     }
@@ -136,12 +150,6 @@ public class DefaultTupleQueueContext implements TupleQueueContext
                 tupleQueues[ portIndex ].ensureCapacity( tupleCounts[ portIndex ] );
             }
         }
-    }
-
-    @Override
-    public void prepareGreedyDraining ()
-    {
-
     }
 
     @Override

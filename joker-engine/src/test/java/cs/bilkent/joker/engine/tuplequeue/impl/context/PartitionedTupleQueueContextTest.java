@@ -60,14 +60,14 @@ public class PartitionedTupleQueueContextTest extends AbstractJokerTest
     }
 
     @Test
-    public void testOfferedTuplesDrainedGreedilyWithGreedyPreparation ()
+    public void testOfferedTuplesDrainedGreedilyWhenTupleCountsUpdated ()
     {
         tupleQueueContext.setTupleCounts( new int[] { 2, 2 }, ANY_PORT );
         final Tuple tuple = new Tuple();
         tuple.set( PARTITION_KEY_FIELD, "key1" );
         final List<Tuple> tuples = singletonList( tuple );
         tupleQueueContext.offer( 0, tuples );
-        tupleQueueContext.prepareGreedyDraining();
+        tupleQueueContext.setTupleCounts( new int[] { 1, 1 }, ANY_PORT );
 
         final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT );
         tupleQueueContext.drain( drainer );
@@ -75,7 +75,7 @@ public class PartitionedTupleQueueContextTest extends AbstractJokerTest
     }
 
     @Test
-    public void testOfferedTuplesNotDrainedGreedilyWithoutGreedyPreparation ()
+    public void testOfferedTuplesNotDrainedGreedilyWhenTupleCountsNotUpdated ()
     {
         tupleQueueContext.setTupleCounts( new int[] { 2, 2 }, ANY_PORT );
         final Tuple tuple = new Tuple();
@@ -89,7 +89,7 @@ public class PartitionedTupleQueueContextTest extends AbstractJokerTest
     }
 
     @Test
-    public void testOfferedTuplesDrainedGreedilyWithoutGreedyPreparation ()
+    public void testOfferedTuplesDrainedGreedilyWhenTupleCountsNotUpdated ()
     {
         final Tuple tuple = new Tuple();
         tuple.set( PARTITION_KEY_FIELD, "key1" );

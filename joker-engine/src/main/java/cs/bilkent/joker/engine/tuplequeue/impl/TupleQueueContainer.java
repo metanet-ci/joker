@@ -2,6 +2,7 @@ package cs.bilkent.joker.engine.tuplequeue.impl;
 
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Function;
@@ -140,6 +141,38 @@ public class TupleQueueContainer
     {
         LOGGER.info( "Clearing partitioned tuple queues of operator: {} partitionId={}", operatorId, partitionId );
 
+        for ( Map.Entry<Object, TupleQueue[]> e : tupleQueuesByKeys.entrySet() )
+        {
+            final TupleQueue[] tupleQueues = e.getValue();
+            for ( int portIndex = 0; portIndex < tupleQueues.length; portIndex++ )
+            {
+                final TupleQueue tupleQueue = tupleQueues[ portIndex ];
+                final int size = tupleQueue.size();
+                if ( size > 0 )
+                {
+                    if ( LOGGER.isDebugEnabled() )
+                    {
+                        final List<Tuple> tuples = tupleQueue.pollTuplesAtLeast( 1 );
+                        LOGGER.warn( "Tuple queue {} of operator: {} for key: {} has {} tuples before clear: {}",
+                                     portIndex,
+                                     operatorId,
+                                     e.getKey(),
+                                     size,
+                                     tuples );
+                    }
+                    else
+                    {
+                        LOGGER.warn( "Tuple queue {} of operator: {} for key: {} has {} tuples before clear",
+                                     portIndex,
+                                     operatorId,
+                                     e.getKey(),
+                                     size );
+                    }
+                }
+                tupleQueue.clear();
+            }
+        }
+
         for ( TupleQueue[] tupleQueues : tupleQueuesByKeys.values() )
         {
             for ( TupleQueue tupleQueue : tupleQueues )
@@ -152,7 +185,7 @@ public class TupleQueueContainer
         drainableKeys.clear();
     }
 
-    public void setTupleCounts ( final int[] tupleCounts, final TupleAvailabilityByPort tupleAvailabilityByPort )
+    public boolean setTupleCounts ( final int[] tupleCounts, final TupleAvailabilityByPort tupleAvailabilityByPort )
     {
         checkArgument( inputPortCount == tupleCounts.length,
                        "mismatching input port counts for tuple queue container of operator: %s operator input port count: %s, arg: %s",
@@ -174,6 +207,8 @@ public class TupleQueueContainer
                 drainableKeys.add( e.getKey() );
             }
         }
+
+        return !drainableKeys.isEmpty();
     }
 
     private boolean addToDrainableKeys ( final Object key, final TupleQueue[] tupleQueues )
