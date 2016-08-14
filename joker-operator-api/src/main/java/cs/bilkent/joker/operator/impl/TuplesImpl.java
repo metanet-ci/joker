@@ -23,7 +23,7 @@ public final class TuplesImpl implements Tuples
 
     private static final String INITIAL_CAPACITY_SYS_PARAM = "cs.bilkent.joker.TuplesImpl.INITIAL_CAPACITY";
 
-    private static final int DEFAULT_INITIAL_CAPACITY = 16;
+    private static final int DEFAULT_INITIAL_CAPACITY = 8;
 
     static
     {
