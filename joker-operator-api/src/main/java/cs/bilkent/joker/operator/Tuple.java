@@ -23,6 +23,38 @@ import static cs.bilkent.joker.operator.schema.runtime.TupleSchema.FIELD_NOT_FOU
 public final class Tuple implements Fields<String>
 {
 
+    private static final String INITIAL_CAPACITY_SYS_PARAM = "cs.bilkent.joker.Tuple.EMPTY_SCHEMA_INITIAL_CAPACITY";
+
+    private static final int DEFAULT_EMPTY_SCHEMA_INITIAL_CAPACITY = 2;
+
+    static
+    {
+        int sysArg = -1;
+        try
+        {
+            String val = System.getProperty( INITIAL_CAPACITY_SYS_PARAM );
+            if ( val != null )
+            {
+                val = val.trim();
+                if ( val.length() > 0 )
+                {
+                    sysArg = Integer.parseInt( val );
+                    System.out.println( "Static initialization: " + Tuple.class.getSimpleName() + " initial capacity is set to " + sysArg );
+                }
+            }
+        }
+        catch ( Exception e )
+        {
+            System.err.println( "Static initialization: " + Tuple.class.getSimpleName() + " initial capacity failed " );
+            e.printStackTrace();
+        }
+
+        EMPTY_SCHEMA_INITIAL_CAPACITY = sysArg != -1 ? sysArg : DEFAULT_EMPTY_SCHEMA_INITIAL_CAPACITY;
+    }
+
+    private static final int EMPTY_SCHEMA_INITIAL_CAPACITY;
+
+
     private static final TupleSchema EMPTY_SCHEMA = new TupleSchema()
     {
         @Override
@@ -58,13 +90,13 @@ public final class Tuple implements Fields<String>
     public Tuple ()
     {
         this.schema = EMPTY_SCHEMA;
-        this.values = new ArrayList<>();
+        this.values = new ArrayList<>( EMPTY_SCHEMA_INITIAL_CAPACITY );
     }
 
     public Tuple ( TupleSchema schema )
     {
         this.schema = schema;
-        this.values = new ArrayList<>();
+        this.values = new ArrayList<>( schema.getFieldCount() );
         for ( int i = 0; i < schema.getFieldCount(); i++ )
         {
             this.values.add( null );
