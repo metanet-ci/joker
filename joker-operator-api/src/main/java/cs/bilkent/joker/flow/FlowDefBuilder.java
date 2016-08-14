@@ -1,6 +1,7 @@
 package cs.bilkent.joker.flow;
 
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -8,12 +9,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Strings.isNullOrEmpty;
+import static cs.bilkent.joker.com.google.common.base.Preconditions.checkArgument;
+import static cs.bilkent.joker.com.google.common.base.Preconditions.checkState;
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
@@ -25,7 +22,7 @@ public final class FlowDefBuilder
 
     private final Map<String, OperatorDef> operators = new LinkedHashMap<>();
 
-    private final Multimap<Port, Port> connections = HashMultimap.create();
+    private final Map<Port, Set<Port>> connections = new HashMap<>();
 
     private boolean built;
 
@@ -85,7 +82,8 @@ public final class FlowDefBuilder
 
         final Port source = new Port( sourceOperatorId, sourcePort );
         final Port target = new Port( destinationOperatorId, destinationPort );
-        connections.put( source, target );
+        final Set<Port> downstream = connections.computeIfAbsent( source, port -> new HashSet<>() );
+        downstream.add( target );
         return this;
     }
 
@@ -96,7 +94,7 @@ public final class FlowDefBuilder
 
     private void failIfEmptyOperatorId ( final String operatorId )
     {
-        checkArgument( !isNullOrEmpty( operatorId ), "operator id must be non-empty!" );
+        checkArgument( operatorId != null && operatorId.length() > 0, "operator id must be non-empty!" );
     }
 
     private void failIfNonExistingOperatorId ( final String operatorId )
@@ -125,11 +123,14 @@ public final class FlowDefBuilder
                            destinationOperatorId );
             if ( visited.add( current ) )
             {
-                for ( Entry<Port, Port> e : connections.entries() )
+                for ( Entry<Port, Set<Port>> e : connections.entrySet() )
                 {
-                    if ( e.getKey().operatorId.equals( current ) )
+                    for ( Port p : e.getValue() )
                     {
-                        toVisit.add( e.getValue().operatorId );
+                        if ( e.getKey().operatorId.equals( current ) )
+                        {
+                            toVisit.add( p.operatorId );
+                        }
                     }
                 }
             }

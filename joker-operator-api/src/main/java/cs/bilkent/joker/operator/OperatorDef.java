@@ -4,7 +4,7 @@ package cs.bilkent.joker.operator;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static cs.bilkent.joker.com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
 import cs.bilkent.joker.operator.spec.OperatorType;
 import static java.util.Collections.emptyList;

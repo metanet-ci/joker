@@ -1,8 +1,7 @@
 package cs.bilkent.joker.operator.schema.runtime;
 
 
-import static com.google.common.base.Preconditions.checkArgument;
-
+import static cs.bilkent.joker.com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Runtime representation of {@link RuntimeSchemaField}

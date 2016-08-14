@@ -5,9 +5,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Strings.isNullOrEmpty;
+import static cs.bilkent.joker.com.google.common.base.Preconditions.checkArgument;
+import static cs.bilkent.joker.com.google.common.base.Preconditions.checkState;
 import static cs.bilkent.joker.flow.Port.DYNAMIC_PORT_COUNT;
 import cs.bilkent.joker.operator.schema.annotation.OperatorSchema;
 import cs.bilkent.joker.operator.schema.annotation.PortSchema;
@@ -335,7 +334,7 @@ public final class OperatorDefBuilder
 
     private static void failIfEmptyOperatorId ( final String operatorId )
     {
-        checkArgument( !isNullOrEmpty( operatorId ), "operator id must be non-empty!" );
+        checkArgument( operatorId != null && operatorId.length() > 0, "operator id must be non-empty!" );
     }
 
     private OperatorRuntimeSchema buildOperatorRuntimeSchema ()

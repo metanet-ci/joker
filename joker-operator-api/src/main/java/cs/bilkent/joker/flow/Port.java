@@ -1,8 +1,7 @@
 package cs.bilkent.joker.flow;
 
 
-import static com.google.common.base.Preconditions.checkArgument;
-
+import static cs.bilkent.joker.com.google.common.base.Preconditions.checkArgument;
 
 public final class Port
 {

@@ -1,13 +1,14 @@
 package cs.bilkent.joker.engine.region.impl;
 
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.junit.Test;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.region.FlowDeploymentDef.RegionGroup;
@@ -68,7 +69,7 @@ public class FlowDeploymentDefFormerImplTest extends AbstractJokerTest
         final List<RegionDef> regionsToAssert = new ArrayList<>( regions );
 
         final List<RegionGroup> regionGroups = flowOptimizer.pairStatelessRegionsWithPartitionedStatefulRegions( flow.getOperatorsMap(),
-                                                                                                                 flow.getConnectionsMap(),
+                                                                                                                 flow.getConnections(),
                                                                                                                  regions );
         assertEquals( regionGroups.size(), regions.size() );
 
@@ -131,7 +132,7 @@ public class FlowDeploymentDefFormerImplTest extends AbstractJokerTest
         final List<RegionDef> regionsToAssert = new ArrayList<>( regions );
 
         final List<RegionGroup> regionGroups = flowOptimizer.pairStatelessRegionsWithPartitionedStatefulRegions( flow.getOperatorsMap(),
-                                                                                                                 flow.getConnectionsMap(),
+                                                                                                                 flow.getConnections(),
                                                                                                                  regions );
 
         assertEquals( 5, regionGroups.size() );
@@ -161,7 +162,7 @@ public class FlowDeploymentDefFormerImplTest extends AbstractJokerTest
 
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
 
-        flowOptimizer.mergeRegions( flow.getOperatorsMap(), flow.getConnectionsMap(), regions );
+        flowOptimizer.mergeRegions( flow.getOperatorsMap(), flow.getConnections(), regions );
 
         assertEquals( 1, regions.size() );
         final RegionDef region = regions.get( 0 );
@@ -179,7 +180,7 @@ public class FlowDeploymentDefFormerImplTest extends AbstractJokerTest
 
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
 
-        flowOptimizer.mergeRegions( flow.getOperatorsMap(), flow.getConnectionsMap(), regions );
+        flowOptimizer.mergeRegions( flow.getOperatorsMap(), flow.getConnections(), regions );
 
         assertEquals( 1, regions.size() );
         final RegionDef region = regions.get( 0 );
@@ -204,7 +205,7 @@ public class FlowDeploymentDefFormerImplTest extends AbstractJokerTest
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
 
         final Map<String, OperatorDef> operators = flow.getOperatorsMap();
-        final Multimap<Port, Port> connections = flow.getConnectionsMap();
+        final Collection<Entry<Port, Port>> connections = flow.getConnections();
         flowOptimizer.duplicateStatelessRegions( operators, connections, regions );
         flowOptimizer.mergeRegions( operators, connections, regions );
 
@@ -241,7 +242,7 @@ public class FlowDeploymentDefFormerImplTest extends AbstractJokerTest
 
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
 
-        flowOptimizer.mergeRegions( flow.getOperatorsMap(), flow.getConnectionsMap(), regions );
+        flowOptimizer.mergeRegions( flow.getOperatorsMap(), flow.getConnections(), regions );
 
         assertEquals( 1, regions.size() );
         final RegionDef region = regions.get( 0 );
@@ -259,7 +260,7 @@ public class FlowDeploymentDefFormerImplTest extends AbstractJokerTest
 
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
 
-        flowOptimizer.mergeRegions( flow.getOperatorsMap(), flow.getConnectionsMap(), regions );
+        flowOptimizer.mergeRegions( flow.getOperatorsMap(), flow.getConnections(), regions );
 
         assertEquals( 1, regions.size() );
         final RegionDef region = regions.get( 0 );
@@ -277,7 +278,7 @@ public class FlowDeploymentDefFormerImplTest extends AbstractJokerTest
 
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
 
-        flowOptimizer.mergeRegions( flow.getOperatorsMap(), flow.getConnectionsMap(), regions );
+        flowOptimizer.mergeRegions( flow.getOperatorsMap(), flow.getConnections(), regions );
 
         assertEquals( 1, regions.size() );
         final RegionDef region = regions.get( 0 );
@@ -315,7 +316,7 @@ public class FlowDeploymentDefFormerImplTest extends AbstractJokerTest
                                     singletonList( partitionedStateful ) ) );
         regions.add( new RegionDef( 1, STATELESS, emptyList(), singletonList( stateless ) ) );
 
-        flowOptimizer.mergeRegions( flow.getOperatorsMap(), flow.getConnectionsMap(), regions );
+        flowOptimizer.mergeRegions( flow.getOperatorsMap(), flow.getConnections(), regions );
 
         assertEquals( 1, regions.size() );
         final RegionDef region = regions.get( 0 );
@@ -358,7 +359,7 @@ public class FlowDeploymentDefFormerImplTest extends AbstractJokerTest
 
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
         final Map<String, OperatorDef> operators = flow.getOperatorsMap();
-        final Multimap<Port, Port> connections = flow.getConnectionsMap();
+        final Collection<Entry<Port, Port>> connections = flow.getConnections();
         flowOptimizer.duplicateStatelessRegions( operators, connections, regions );
         flowOptimizer.mergeRegions( operators, connections, regions );
 
@@ -400,7 +401,7 @@ public class FlowDeploymentDefFormerImplTest extends AbstractJokerTest
                                                  .build();
 
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
-        final Multimap<Port, Port> connections = flow.getConnectionsMap();
+        final Collection<Entry<Port, Port>> connections = flow.getConnections();
 
         final Map<String, OperatorDef> operators = flow.getOperatorsMap();
         flowOptimizer.duplicateStatelessRegions( operators, connections, regions );
@@ -443,27 +444,22 @@ public class FlowDeploymentDefFormerImplTest extends AbstractJokerTest
                                                  .build();
 
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
-        final Multimap<Port, Port> connectionsMap = HashMultimap.create();
-
-        for ( Map.Entry<Port, Port> e : flow.getAllConnections() )
-        {
-            connectionsMap.put( e.getKey(), e.getValue() );
-        }
+        final Collection<Entry<Port, Port>> connections = new HashSet<>( flow.getConnections() );
 
         final Map<String, OperatorDef> operators = flow.getOperatorsMap();
-        flowOptimizer.duplicateStatelessRegions( operators, connectionsMap, regions );
+        flowOptimizer.duplicateStatelessRegions( operators, connections, regions );
 
         final List<RegionDef> statelessRegions = regions.stream().filter( r -> r.getRegionType() == STATELESS ).collect( toList() );
         assertEquals( 4, statelessRegions.size() );
-        assertStatelessRegions( stateless1, stateless2, stateless3, operators, connectionsMap, statelessRegions, true );
-        assertStatelessRegions( stateless4, stateless5, operators, connectionsMap, statelessRegions );
+        assertStatelessRegions( stateless1, stateless2, stateless3, operators, connections, statelessRegions, true );
+        assertStatelessRegions( stateless4, stateless5, operators, connections, statelessRegions );
     }
 
     private void assertStatelessRegions ( final OperatorDef stateless1,
                                           final OperatorDef stateless2,
                                           final OperatorDef stateless3,
                                           final Map<String, OperatorDef> optimizedOperators,
-                                          final Multimap<Port, Port> optimizedConnections,
+                                          final Collection<Entry<Port, Port>> optimizedConnections,
                                           final List<RegionDef> statelessRegions,
                                           final boolean expectedNonMatchingStatelessRegion )
     {
@@ -490,8 +486,8 @@ public class FlowDeploymentDefFormerImplTest extends AbstractJokerTest
             assertTrue( optimizedOperators.containsKey( optimizedStateless2.id() ) );
             assertTrue( optimizedOperators.containsKey( optimizedStateless3.id() ) );
 
-            final Collection<Port> stateful1DownstreamConnections = optimizedConnections.get( new Port( "stateful1", 0 ) );
-            final Collection<Port> stateful2DownstreamConnections = optimizedConnections.get( new Port( "stateful2", 0 ) );
+            final Collection<Port> stateful1DownstreamConnections = getDownstream( optimizedConnections, new Port( "stateful1", 0 ) );
+            final Collection<Port> stateful2DownstreamConnections = getDownstream( optimizedConnections, new Port( "stateful2", 0 ) );
             assertEquals( 1, stateful1DownstreamConnections.size() );
             assertEquals( 1, stateful2DownstreamConnections.size() );
             final Port stateful1DownstreamPort = stateful1DownstreamConnections.iterator().next();
@@ -508,12 +504,14 @@ public class FlowDeploymentDefFormerImplTest extends AbstractJokerTest
                 }
             }
 
-            assertTrue( optimizedConnections.containsEntry( new Port( optimizedStateless1.id(), 0 ),
-                                                            new Port( optimizedStateless2.id(), 0 ) ) );
-            assertTrue( optimizedConnections.containsEntry( new Port( optimizedStateless2.id(), 0 ),
-                                                            new Port( optimizedStateless3.id(), 0 ) ) );
-            assertTrue( optimizedConnections.containsEntry( new Port( optimizedStateless3.id(), 0 ), new Port( "stateful3", 0 ) ) );
-            assertTrue( optimizedConnections.containsEntry( new Port( optimizedStateless3.id(), 0 ), new Port( "stateful4", 0 ) ) );
+            assertTrue( optimizedConnections.contains( new SimpleEntry<>( new Port( optimizedStateless1.id(), 0 ),
+                                                                          new Port( optimizedStateless2.id(), 0 ) ) ) );
+            assertTrue( optimizedConnections.contains( new SimpleEntry<>( new Port( optimizedStateless2.id(), 0 ),
+                                                                          new Port( optimizedStateless3.id(), 0 ) ) ) );
+            assertTrue( optimizedConnections.contains( new SimpleEntry<>( new Port( optimizedStateless3.id(), 0 ),
+                                                                          new Port( "stateful3", 0 ) ) ) );
+            assertTrue( optimizedConnections.contains( new SimpleEntry<>( new Port( optimizedStateless3.id(), 0 ),
+                                                                          new Port( "stateful4", 0 ) ) ) );
         }
 
         assertTrue( stateful1ConnectionExists );
@@ -524,10 +522,24 @@ public class FlowDeploymentDefFormerImplTest extends AbstractJokerTest
         assertFalse( optimizedOperators.containsKey( stateless3.id() ) );
     }
 
+    private Collection<Port> getDownstream ( final Collection<Entry<Port, Port>> connections, final Port upstream )
+    {
+        final Collection<Port> downstream = new ArrayList<>();
+        for ( Entry<Port, Port> e : connections )
+        {
+            if ( e.getKey().equals( upstream ) )
+            {
+                downstream.add( e.getValue() );
+            }
+        }
+
+        return downstream;
+    }
+
     private void assertStatelessRegions ( final OperatorDef stateless1,
                                           final OperatorDef stateless2,
                                           final Map<String, OperatorDef> optimizedOperators,
-                                          final Multimap<Port, Port> optimizedConnections,
+                                          final Collection<Entry<Port, Port>> optimizedConnections,
                                           final List<RegionDef> statelessRegions )
     {
         for ( RegionDef region : statelessRegions )
@@ -548,8 +560,8 @@ public class FlowDeploymentDefFormerImplTest extends AbstractJokerTest
             assertTrue( optimizedOperators.containsKey( optimizedStateless1.id() ) );
             assertTrue( optimizedOperators.containsKey( optimizedStateless2.id() ) );
 
-            assertTrue( optimizedConnections.containsEntry( new Port( optimizedStateless1.id(), 0 ),
-                                                            new Port( optimizedStateless2.id(), 0 ) ) );
+            assertTrue( optimizedConnections.contains( new SimpleEntry<>( new Port( optimizedStateless1.id(), 0 ),
+                                                                          new Port( optimizedStateless2.id(), 0 ) ) ) );
         }
 
         assertFalse( optimizedOperators.containsKey( stateless1.id() ) );

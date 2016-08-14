@@ -4,7 +4,7 @@ package cs.bilkent.joker.operator;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static cs.bilkent.joker.com.google.common.base.Preconditions.checkArgument;
 
 
 /**

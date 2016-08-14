@@ -1,6 +1,8 @@
 package cs.bilkent.joker.engine.region.impl;
 
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,7 +58,7 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
     public FlowDeploymentDef createFlowDeploymentDef ( final FlowDef flow, final List<RegionDef> regions )
     {
         final Map<String, OperatorDef> operators = flow.getOperatorsMap();
-        final Multimap<Port, Port> connections = flow.getConnectionsMap();
+        final Collection<Entry<Port, Port>> connections = flow.getConnections();
         final List<RegionDef> regionsToDeploy = new ArrayList<>( regions );
 
         if ( flowDeploymentConfig.isDuplicateStatelessRegionsEnabled() )
@@ -85,7 +87,7 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
         }
     }
 
-    private FlowDef createFlow ( final Map<String, OperatorDef> operators, final Multimap<Port, Port> connections )
+    private FlowDef createFlow ( final Map<String, OperatorDef> operators, final Collection<Entry<Port, Port>> connections )
     {
         final FlowDefBuilder flowDefBuilder = new FlowDefBuilder();
 
@@ -94,7 +96,7 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
             flowDefBuilder.add( operator );
         }
 
-        for ( Entry<Port, Port> e : connections.entries() )
+        for ( Entry<Port, Port> e : connections )
         {
             flowDefBuilder.connect( e.getKey().operatorId, e.getKey().portIndex, e.getValue().operatorId, e.getValue().portIndex );
         }
@@ -103,11 +105,11 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
     }
 
     List<RegionGroup> pairStatelessRegionsWithPartitionedStatefulRegions ( final Map<String, OperatorDef> operators,
-                                                                           final Multimap<Port, Port> connections,
+                                                                           final Collection<Entry<Port, Port>> connections,
                                                                            final List<RegionDef> regions )
     {
         final List<List<RegionDef>> regionGroups = new ArrayList<>();
-        for ( RegionDef region : sortTopologically( operators, connections.entries(), regions ) )
+        for ( RegionDef region : sortTopologically( operators, connections, regions ) )
         {
             if ( region.getRegionType() != STATELESS )
             {
@@ -180,7 +182,9 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
         regionGroups.add( l );
     }
 
-    void mergeRegions ( final Map<String, OperatorDef> operators, final Multimap<Port, Port> connections, final List<RegionDef> regions )
+    void mergeRegions ( final Map<String, OperatorDef> operators,
+                        final Collection<Entry<Port, Port>> connections,
+                        final List<RegionDef> regions )
     {
         int before, after = regions.size();
         do
@@ -191,8 +195,7 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
         } while ( before != after );
     }
 
-    private void attemptToMergeRegions ( final Map<String, OperatorDef> operators,
-                                         final Multimap<Port, Port> connections,
+    private void attemptToMergeRegions ( final Map<String, OperatorDef> operators, final Collection<Entry<Port, Port>> connections,
                                          final List<RegionDef> regions )
     {
         for ( RegionDef region : regions )
@@ -263,8 +266,7 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
         }
     }
 
-    void duplicateStatelessRegions ( final Map<String, OperatorDef> operators,
-                                     final Multimap<Port, Port> connections,
+    void duplicateStatelessRegions ( final Map<String, OperatorDef> operators, final Collection<Entry<Port, Port>> connections,
                                      final List<RegionDef> regions )
     {
         boolean optimized;
@@ -272,7 +274,7 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
         {
             optimized = false;
 
-            for ( RegionDef region : sortTopologically( operators, connections.entries(), regions ) )
+            for ( RegionDef region : sortTopologically( operators, connections, regions ) )
             {
                 if ( optimized )
                 {
@@ -289,8 +291,7 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
         } while ( optimized );
     }
 
-    private boolean duplicateStatelessRegion ( final Map<String, OperatorDef> operators,
-                                               final Multimap<Port, Port> connections,
+    private boolean duplicateStatelessRegion ( final Map<String, OperatorDef> operators, final Collection<Entry<Port, Port>> connections,
                                                final List<RegionDef> optimizedRegions,
                                                final RegionDef region )
     {
@@ -318,7 +319,7 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
             for ( Entry<Port, Port> e : upstreamConnections.entries() )
             {
                 LOGGER.debug( "Removing upstream connection <{}, {}>", e.getValue(), e.getKey() );
-                connections.remove( e.getValue(), e.getKey() );
+                connections.remove( new SimpleEntry<>( e.getValue(), e.getKey() ) );
             }
             final Map<String, Multimap<Port, Port>> downstreamConnections = new HashMap<>();
 
@@ -329,7 +330,7 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
                 for ( Entry<Port, Port> e : d.entries() )
                 {
                     LOGGER.debug( "Removing downstream connection <{}, {}>", e.getKey(), e.getValue() );
-                    connections.remove( e.getKey(), e.getValue() );
+                    connections.remove( new SimpleEntry<>( e.getKey(), e.getValue() ) );
                 }
             }
 
@@ -366,7 +367,7 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
                     if ( e.getValue().operatorId.equals( upstreamOperator.id() ) )
                     {
                         final Port duplicateDestinationPort = new Port( duplicateOperators.get( 0 ).id(), e.getKey().portIndex );
-                        connections.put( e.getValue(), duplicateDestinationPort );
+                        connections.add( new SimpleEntry<>( e.getValue(), duplicateDestinationPort ) );
                         LOGGER.debug( "Connection < {} , {} > is duplicated as < {} , {} >",
                                       e.getValue(),
                                       e.getKey(),
@@ -384,7 +385,7 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
                     {
                         final Port sourcePort = new Port( duplicateOperator.id(), e.getKey().portIndex );
                         final Port destinationPort = new Port( duplicateOperators.get( i + 1 ).id(), e.getValue().portIndex );
-                        connections.put( sourcePort, destinationPort );
+                        connections.add( new SimpleEntry<>( sourcePort, destinationPort ) );
                         LOGGER.debug( "Connection < {} , {} > is duplicated as < {} , {} >",
                                       e.getKey(),
                                       e.getValue(),
@@ -397,7 +398,7 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
                 {
                     final OperatorDef duplicateOperator = duplicateOperators.get( duplicateOperators.size() - 1 );
                     final Port duplicateSourcePort = new Port( duplicateOperator.id(), e.getKey().portIndex );
-                    connections.put( duplicateSourcePort, e.getValue() );
+                    connections.add( new SimpleEntry<>( duplicateSourcePort, e.getValue() ) );
                     LOGGER.debug( "Connection < {} , {} > is duplicated as < {} , {} >",
                                   e.getKey(),
                                   e.getValue(),
@@ -418,7 +419,7 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
     }
 
     private List<OperatorDef> getUpstreamOperators ( final Map<String, OperatorDef> operators,
-                                                     final Multimap<Port, Port> connections,
+                                                     final Collection<Entry<Port, Port>> connections,
                                                      final String operatorId )
     {
         final List<OperatorDef> upstream = new ArrayList<>();
@@ -435,7 +436,7 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
     }
 
     private List<OperatorDef> getDownstreamOperators ( final Map<String, OperatorDef> operators,
-                                                       final Multimap<Port, Port> connections,
+                                                       final Collection<Entry<Port, Port>> connections,
                                                        final String operatorId )
     {
         final List<OperatorDef> downstream = new ArrayList<>();
@@ -451,10 +452,10 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
         return downstream;
     }
 
-    private Multimap<Port, Port> getUpstreamConnections ( final Multimap<Port, Port> connections, final String operatorId )
+    private Multimap<Port, Port> getUpstreamConnections ( final Collection<Entry<Port, Port>> connections, final String operatorId )
     {
         final Multimap<Port, Port> upstream = HashMultimap.create();
-        for ( Entry<Port, Port> e : connections.entries() )
+        for ( Entry<Port, Port> e : connections )
         {
             if ( e.getValue().operatorId.equals( operatorId ) )
             {
@@ -465,10 +466,10 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
         return upstream;
     }
 
-    private Multimap<Port, Port> getDownstreamConnections ( final Multimap<Port, Port> connections, final String operatorId )
+    private Multimap<Port, Port> getDownstreamConnections ( final Collection<Entry<Port, Port>> connections, final String operatorId )
     {
         final Multimap<Port, Port> downstream = HashMultimap.create();
-        for ( Entry<Port, Port> e : connections.entries() )
+        for ( Entry<Port, Port> e : connections )
         {
             if ( e.getKey().operatorId.equals( operatorId ) )
             {

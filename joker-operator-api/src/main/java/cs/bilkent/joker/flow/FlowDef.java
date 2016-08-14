@@ -1,6 +1,7 @@
 package cs.bilkent.joker.flow;
 
 
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -13,12 +14,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Multimaps.unmodifiableMultimap;
+import static cs.bilkent.joker.com.google.common.base.Preconditions.checkArgument;
+import static cs.bilkent.joker.com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.operator.OperatorDef;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.stream.Collectors.toList;
@@ -28,13 +25,13 @@ public final class FlowDef
 {
     private final Map<String, OperatorDef> operators;
 
-    private final Multimap<Port, Port> connections;
+    private final Map<Port, Set<Port>> connections;
 
-    public FlowDef ( final Map<String, OperatorDef> operators, final Multimap<Port, Port> connections )
+    public FlowDef ( final Map<String, OperatorDef> operators, final Map<Port, Set<Port>> connections )
     {
         validateFlowDef( operators, connections );
         this.operators = unmodifiableMap( operators );
-        this.connections = unmodifiableMultimap( connections );
+        this.connections = unmodifiableMap( connections );
     }
 
     public OperatorDef getOperator ( final String operatorId )
@@ -55,16 +52,19 @@ public final class FlowDef
     public Collection<OperatorDef> getOperatorsWithNoInputPorts ()
     {
         final Set<OperatorDef> result = new HashSet<>( operators.values() );
-        for ( Port targetPort : connections.values() )
+        for ( Entry<Port, Set<Port>> e : connections.entrySet() )
         {
-            final OperatorDef operatorToExclude = operators.get( targetPort.operatorId );
-            result.remove( operatorToExclude );
+            for ( Port targetPort : e.getValue() )
+            {
+                final OperatorDef operatorToExclude = operators.get( targetPort.operatorId );
+                result.remove( operatorToExclude );
+            }
         }
 
         return result;
     }
 
-    private void validateFlowDef ( final Map<String, OperatorDef> operators, final Multimap<Port, Port> connections )
+    private void validateFlowDef ( final Map<String, OperatorDef> operators, final Map<Port, Set<Port>> connections )
     {
         checkArgument( operators != null, "operators cannot be null" );
         checkArgument( connections != null, "connections cannot be null" );
@@ -72,7 +72,7 @@ public final class FlowDef
         failIfMultipleIndependentDAGs( operators, connections );
     }
 
-    private void failIfMultipleIndependentDAGs ( final Map<String, OperatorDef> operators, final Multimap<Port, Port> connections )
+    private void failIfMultipleIndependentDAGs ( final Map<String, OperatorDef> operators, final Map<Port, Set<Port>> connections )
     {
         final Set<String> visited = new HashSet<>();
         final Set<String> toVisit = new HashSet<>();
@@ -85,15 +85,18 @@ public final class FlowDef
 
             if ( visited.add( current ) )
             {
-                for ( Entry<Port, Port> e : connections.entries() )
+                for ( Entry<Port, Set<Port>> e : connections.entrySet() )
                 {
-                    if ( e.getKey().operatorId.equals( current ) )
+                    for ( Port p : e.getValue() )
                     {
-                        toVisit.add( e.getValue().operatorId );
-                    }
-                    else if ( e.getValue().operatorId.equals( current ) )
-                    {
-                        toVisit.add( e.getKey().operatorId );
+                        if ( e.getKey().operatorId.equals( current ) )
+                        {
+                            toVisit.add( p.operatorId );
+                        }
+                        else if ( p.operatorId.equals( current ) )
+                        {
+                            toVisit.add( e.getKey().operatorId );
+                        }
                     }
                 }
             }
@@ -102,24 +105,31 @@ public final class FlowDef
         checkState( operators.size() == visited.size(), "there are multiple DAGs in the flow!" );
     }
 
-    public Collection<Entry<Port, Port>> getAllConnections ()
+    public Collection<Entry<Port, Port>> getConnections ()
     {
-        return new ArrayList<>( connections.entries() );
-    }
+        final Collection<Entry<Port, Port>> c = new HashSet<>();
+        for ( Entry<Port, Set<Port>> e : connections.entrySet() )
+        {
+            for ( Port p : e.getValue() )
+            {
+                c.add( new SimpleEntry<>( e.getKey(), p ) );
+            }
+        }
 
-    public Multimap<Port, Port> getConnectionsMap ()
-    {
-        return HashMultimap.create( connections );
+        return c;
     }
 
     public Map<Port, Collection<Port>> getUpstreamConnections ( final String operatorId )
     {
         final Map<Port, Collection<Port>> upstream = new HashMap<>();
-        for ( Entry<Port, Port> e : connections.entries() )
+        for ( Entry<Port, Set<Port>> e : connections.entrySet() )
         {
-            if ( e.getValue().operatorId.equals( operatorId ) )
+            for ( Port p : e.getValue() )
             {
-                upstream.computeIfAbsent( e.getValue(), port -> new ArrayList<>() ).add( e.getKey() );
+                if ( p.operatorId.equals( operatorId ) )
+                {
+                    upstream.computeIfAbsent( p, port -> new ArrayList<>() ).add( e.getKey() );
+                }
             }
         }
 
@@ -164,7 +174,7 @@ public final class FlowDef
     private Stream<Port> getConnectionsStream ( final Predicate<Entry<Port, Port>> predicate,
                                                 final Function<Entry<Port, Port>, Port> mapper )
     {
-        return connections.entries().stream().filter( predicate ).map( mapper );
+        return getConnections().stream().filter( predicate ).map( mapper );
     }
 
 }

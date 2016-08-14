@@ -3,13 +3,11 @@ package cs.bilkent.joker.operator.schema.runtime;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import cs.bilkent.joker.operator.schema.annotation.PortSchema;
-import static gnu.trove.impl.Constants.DEFAULT_CAPACITY;
-import static gnu.trove.impl.Constants.DEFAULT_LOAD_FACTOR;
-import gnu.trove.map.TObjectIntMap;
-import gnu.trove.map.hash.TObjectIntHashMap;
 import static java.util.Collections.unmodifiableList;
 
 
@@ -21,7 +19,7 @@ public final class PortRuntimeSchema implements TupleSchema
 
     private final List<RuntimeSchemaField> fields;
 
-    private final TObjectIntMap<String> fieldIndices = new TObjectIntHashMap<>( DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, FIELD_NOT_FOUND );
+    private final Map<String, Integer> fieldIndices = new HashMap<>();
 
     public PortRuntimeSchema ( final List<RuntimeSchemaField> fields )
     {
@@ -49,7 +47,8 @@ public final class PortRuntimeSchema implements TupleSchema
     @Override
     public int getFieldIndex ( final String fieldName )
     {
-        return fieldIndices.get( fieldName );
+        final Integer index = fieldIndices.get( fieldName );
+        return index != null ? index : FIELD_NOT_FOUND;
     }
 
     @Override
