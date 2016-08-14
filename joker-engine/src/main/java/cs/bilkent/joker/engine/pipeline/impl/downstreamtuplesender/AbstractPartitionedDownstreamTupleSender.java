@@ -47,7 +47,7 @@ public abstract class AbstractPartitionedDownstreamTupleSender implements Downst
 
     public final TupleQueueContext[] get ()
     {
-        return tupleQueueContexts;
+        return Arrays.copyOf( tupleQueueContexts, tupleQueueContexts.length );
     }
 
     protected final Future<Void> send ( final TuplesImpl input, final int sourcePortIndex, final int destinationPortIndex )

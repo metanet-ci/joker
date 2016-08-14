@@ -2,7 +2,6 @@ package cs.bilkent.joker.flow;
 
 
 import java.util.AbstractMap.SimpleEntry;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,7 +40,7 @@ public final class FlowDef
 
     public Collection<OperatorDef> getOperators ()
     {
-        return new ArrayList<>( operators.values() );
+        return new HashSet<>( operators.values() );
     }
 
     public Map<String, OperatorDef> getOperatorsMap ()
@@ -128,7 +127,7 @@ public final class FlowDef
             {
                 if ( p.operatorId.equals( operatorId ) )
                 {
-                    upstream.computeIfAbsent( p, port -> new ArrayList<>() ).add( e.getKey() );
+                    upstream.computeIfAbsent( p, port -> new HashSet<>() ).add( e.getKey() );
                 }
             }
         }
@@ -145,11 +144,12 @@ public final class FlowDef
     {
         final Map<Port, Collection<Port>> downstream = new HashMap<>();
 
-        for ( Port upstream : connections.keySet() )
+        for ( Entry<Port, Set<Port>> e : connections.entrySet() )
         {
+            final Port upstream = e.getKey();
             if ( upstream.operatorId.equals( operatorId ) )
             {
-                downstream.put( upstream, new ArrayList<>( connections.get( upstream ) ) );
+                downstream.put( upstream, new HashSet<>( e.getValue() ) );
             }
         }
 
