@@ -25,7 +25,9 @@ import static java.lang.System.nanoTime;
 public class MultiThreadedTupleQueue implements TupleQueue
 {
 
-    private static Logger LOGGER = LoggerFactory.getLogger( MultiThreadedTupleQueue.class );
+    private static final Logger LOGGER = LoggerFactory.getLogger( MultiThreadedTupleQueue.class );
+
+    private static final int NO_CAPACITY_CHECK = Integer.MAX_VALUE;
 
 
     private final ReentrantLock lock = new ReentrantLock();
@@ -37,9 +39,7 @@ public class MultiThreadedTupleQueue implements TupleQueue
     @GuardedBy( "monitor" )
     private final Queue<Tuple> queue;
 
-    private int capacity;
-
-    private boolean capacityCheckEnabled;
+    private int effectiveCapacity, capacity;
 
     public MultiThreadedTupleQueue ( final int initialCapacity )
     {
@@ -51,18 +51,24 @@ public class MultiThreadedTupleQueue implements TupleQueue
         checkArgument( initialCapacity > 0 );
         this.queue = new ArrayDeque<>( initialCapacity );
         this.capacity = initialCapacity;
-        this.capacityCheckEnabled = capacityCheckEnabled;
+        this.effectiveCapacity = capacityCheckEnabled ? initialCapacity : NO_CAPACITY_CHECK;
     }
 
     @Override
     public void ensureCapacity ( final int newCapacity )
     {
+        checkArgument( newCapacity > 0 && newCapacity != NO_CAPACITY_CHECK );
+
         lock.lock();
         try
         {
             if ( newCapacity > capacity )
             {
                 capacity = newCapacity;
+                if ( isCapacityCheckEnabled() )
+                {
+                    effectiveCapacity = newCapacity;
+                }
                 fullCondition.signalAll();
             }
         }
@@ -78,7 +84,7 @@ public class MultiThreadedTupleQueue implements TupleQueue
         lock.lock();
         try
         {
-            capacityCheckEnabled = true;
+            effectiveCapacity = capacity;
         }
         finally
         {
@@ -92,7 +98,7 @@ public class MultiThreadedTupleQueue implements TupleQueue
         lock.lock();
         try
         {
-            capacityCheckEnabled = false;
+            effectiveCapacity = NO_CAPACITY_CHECK;
             fullCondition.signalAll();
         }
         finally
@@ -107,7 +113,7 @@ public class MultiThreadedTupleQueue implements TupleQueue
         lock.lock();
         try
         {
-            return capacityCheckEnabled;
+            return effectiveCapacity != NO_CAPACITY_CHECK;
         }
         finally
         {
@@ -225,7 +231,7 @@ public class MultiThreadedTupleQueue implements TupleQueue
                 }
 
                 int k = i;
-                if ( availableCapacity == Integer.MAX_VALUE )
+                if ( availableCapacity == NO_CAPACITY_CHECK )
                 {
                     i = j;
                 }
@@ -290,10 +296,7 @@ public class MultiThreadedTupleQueue implements TupleQueue
         lock.lock();
         try
         {
-            if ( capacityCheckEnabled )
-            {
-                checkArgument( capacity >= count );
-            }
+            // checkArgument( effectiveCapacity >= count );
 
             while ( queue.size() < count )
             {
@@ -384,10 +387,7 @@ public class MultiThreadedTupleQueue implements TupleQueue
         lock.lock();
         try
         {
-            if ( capacityCheckEnabled )
-            {
-                checkArgument( capacity >= count );
-            }
+            // checkArgument( effectiveCapacity >= count );
 
             while ( queue.size() < count )
             {
@@ -505,13 +505,7 @@ public class MultiThreadedTupleQueue implements TupleQueue
 
     private int availableCapacity ()
     {
-        if ( capacityCheckEnabled )
-        {
-            final int availableCapacity = capacity - queue.size();
-            return max( availableCapacity, 0 );
-        }
-
-        return Integer.MAX_VALUE;
+        return max( ( effectiveCapacity - queue.size() ), 0 );
     }
 
 }
