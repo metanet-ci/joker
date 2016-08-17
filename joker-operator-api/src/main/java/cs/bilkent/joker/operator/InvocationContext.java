@@ -13,17 +13,17 @@ public interface InvocationContext
 {
 
     /**
-     * Returns the tuples available for being processed by the operator.
-     * Once the invocation of {@link Operator#invoke(InvocationContext)} method is completed, these tuples will be considered as processed.
+     * Returns the tuples available for processing. Once the invocation of {@link Operator#invoke(InvocationContext)} method is completed,
+     * these tuples will be considered as processed.
      *
      * @return the tuples available for being processed by the operator
      */
     Tuples getInput ();
 
     /**
-     * Returns the {@link Tuples} object into which the tuples produced by the invocation will be added
+     * Returns the {@link Tuples} object which will be used for collecting the tuples produced by the invocation
      *
-     * @return the {@link Tuples} object into which the tuples produced by the invocation will be added
+     * @return the {@link Tuples} object which will be used for collecting the tuples produced by the invocation
      */
     Tuples getOutput ();
 
@@ -35,10 +35,10 @@ public interface InvocationContext
     InvocationReason getReason ();
 
     /**
-     * Indicates that the invocation is done with respect to the last provided {@link SchedulingStrategy}.
-     * If it is false, it means that the invocation is done without the provided {@link SchedulingStrategy} has met
+     * Indicates that the invocation is done with respect to the {@link SchedulingStrategy} returned from {@link Operator#shutdown()}.
+     * If it is {@code false}, it means that the invocation is done although the provided {@link SchedulingStrategy} has not satisfied.
      *
-     * @return true if the invocation is done with respect to the last provided {@link SchedulingStrategy}, false otherwise
+     * @return {@code true} if the invocation is done with respect to the given {@link SchedulingStrategy}, {@code false} otherwise
      */
     default boolean isSuccessfulInvocation ()
     {
@@ -49,7 +49,7 @@ public interface InvocationContext
      * Indicates that the invocation is done due to a special action in the system. Possible reasons are such that
      * shutdown request may be received by the system or an upstream operator may be completed its run.
      *
-     * @return true if the invocation is done due to a special action in the system.
+     * @return {@code true} if the invocation is done due to a special action in the system.
      */
     default boolean isErroneousInvocation ()
     {
@@ -57,22 +57,22 @@ public interface InvocationContext
     }
 
     /**
-     * Returns true if the input port specified with the port index is connected to an upstream operator
+     * Returns {@code true} if the input port specified with the port index is connected to an upstream operator
      *
      * @param portIndex
-     *         to check the input port
+     *         to check if the given input port has an upstream operator or not
      *
-     * @return true if the input port specified with the port index is connected to an upstream operator
+     * @return {@code true} if the input port specified with the port index is connected to an upstream operator
      */
     boolean isInputPortOpen ( int portIndex );
 
     /**
-     * Returns true if the input port specified with the port index is not connected to an upstream operator
+     * Returns {@code true} if the input port specified with the port index is not connected to an upstream operator
      *
      * @param portIndex
-     *         to check the input port
+     *         to check if the given input port has an upstream operator or not
      *
-     * @return true if the input port specified with the port index is not connected to an upstream operator
+     * @return {@code true} if the input port specified with the port index is not connected to an upstream operator
      */
     default boolean isInputPortClosed ( int portIndex )
     {
@@ -80,11 +80,11 @@ public interface InvocationContext
     }
 
     /**
-     * Returns the {@link KVStore} that can be used within only the particular invocation for only {@link OperatorType#PARTITIONED_STATEFUL}
+     * Returns the {@link KVStore} that can be used for only the current invocation of {@link OperatorType#PARTITIONED_STATEFUL}
      * and {@link OperatorType#STATEFUL} operators.
      * <p>
      * Different {@link KVStore} objects can be given for different invocations. Therefore, {@link KVStore} objects must not be stored
-     * as a local field and only the {@link KVStore} object provided by the {@link InvocationContext} must be used within the invocation.
+     * as a local field and only the {@link KVStore} object provided by {@link InvocationContext} for the current invocation must be used.
      *
      * @return the {@link KVStore} that can be used within only the particular invocation for only {@link OperatorType#PARTITIONED_STATEFUL}
      * and {@link OperatorType#STATEFUL} operators.

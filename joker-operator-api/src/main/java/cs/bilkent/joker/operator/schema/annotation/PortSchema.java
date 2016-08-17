@@ -8,7 +8,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 
 /**
- * Annotation to define schema of an input / output port of an operator at design time.
+ * Annotation to define the schema of an input / output port of an operator at design time.
  */
 @Retention( RUNTIME )
 public @interface PortSchema

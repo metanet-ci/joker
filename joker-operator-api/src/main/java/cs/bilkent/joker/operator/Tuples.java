@@ -4,6 +4,9 @@ import java.util.List;
 
 import cs.bilkent.joker.flow.Port;
 
+/**
+ * Contains {@link Tuple} objects collected for multiple ports of an operator.
+ */
 public interface Tuples
 {
 

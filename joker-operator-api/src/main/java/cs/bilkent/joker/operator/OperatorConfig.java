@@ -8,7 +8,7 @@ import static cs.bilkent.joker.com.google.common.base.Preconditions.checkArgumen
 
 
 /**
- * Contains all the configuration information that can be used by an operator. Users can provide operator specific
+ * Contains all the configuration information that can be used by an operator implementation. Users can provide operator specific
  * configuration parameters using this class.
  */
 public final class OperatorConfig implements Fields<String>

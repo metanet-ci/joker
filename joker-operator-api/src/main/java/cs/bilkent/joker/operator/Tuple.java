@@ -17,8 +17,13 @@ import static cs.bilkent.joker.operator.schema.runtime.TupleSchema.FIELD_NOT_FOU
 
 
 /**
- * The tuple is the main data structure to manipulate data in Joker.
- * A tuple is a mapping of keys to values where each value can be any type.
+ * {@code Tuple} is the main data structure to manipulate data in Joker. A tuple is a mapping of keys to values
+ * where each value can be any type. Tuples are partially-schemaful, which means that they can specify the fields that are guaranteed
+ * to exist, using {@link TupleSchema} objects, and they can also contain additional arbitrary fields.
+ * If a {@code Tuple} object is created to be sent to an output port of an operator, corresponding {@link TupleSchema} object,
+ * which can be accessed via {@link InitializationContext#getOutputPortSchema(int)} method, should be provided to the tuple. If not
+ * specified, an empty schema will be used by default. It is recommended to specify schema objects properly as they will decrease
+ * memory overhead of the tuples and make field accesses in constant time.
  */
 public final class Tuple implements Fields<String>
 {
@@ -93,7 +98,7 @@ public final class Tuple implements Fields<String>
         this.values = new ArrayList<>( EMPTY_SCHEMA_INITIAL_CAPACITY );
     }
 
-    public Tuple ( TupleSchema schema )
+    public Tuple ( final TupleSchema schema )
     {
         this.schema = schema;
         this.values = new ArrayList<>( schema.getFieldCount() );

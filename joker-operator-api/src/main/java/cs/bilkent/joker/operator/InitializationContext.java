@@ -8,15 +8,15 @@ import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 
 
 /**
- * Contains information about configuration and initialization of an operator
+ * Contains information about configuration and initialization state of an operator
  */
 public interface InitializationContext
 {
 
     /**
-     * ID of the operator instance given during building the {@link FlowDef}
+     * ID of the operator instance given during building the {@link OperatorDef}
      *
-     * @return id of the operator instance given during building the {@link FlowDef}
+     * @return id of the operator instance given during building the {@link OperatorDef}
      */
     String getId ();
 
@@ -35,30 +35,47 @@ public interface InitializationContext
     int getOutputPortCount ();
 
     /**
-     * Returns true if the input port specified with the port index is connected to an upstream operator
+     * Returns {@code true} if the input port specified with the port index is connected to an active upstream operator
      *
      * @param portIndex
      *         to check the input port
      *
-     * @return true if the input port specified with the port index is connected to an upstream operator
+     * @return {@code true} if the input port specified with the port index is connected to an active upstream operator
      */
     boolean isInputPortOpen ( int portIndex );
 
     /**
-     * Returns true if the input port specified with the port index is not connected to an upstream operator
+     * Returns {@code true} if the input port specified with the port index has no active upstream operator
      *
      * @param portIndex
-     *         to check the input port
+     *         to check status of the input port
      *
-     * @return true if the input port specified with the port index is not connected to an upstream operator
+     * @return {@code true} if the input port specified with the port index has no active upstream operator
      */
     default boolean isInputPortClosed ( int portIndex )
     {
         return !isInputPortOpen( portIndex );
     }
 
+    /**
+     * Returns schema of the tuples received via the specified input port of an operator
+     *
+     * @param portIndex
+     *         to access the {@link TupleSchema}
+     *
+     * @return schema of the tuples received via the specified input port of an operator
+     */
     TupleSchema getInputPortSchema ( int portIndex );
 
+    /**
+     * Returns schema of the tuples created by an operator instance for an output port. Please keep in mind that tuple schemas should be
+     * provided to the output tuples for more efficient processing
+     *
+     * @param portIndex
+     *         to access the {@link TupleSchema}
+     *
+     * @return schema of the tuples created by an operator instance for an output port
+     */
     TupleSchema getOutputPortSchema ( int portIndex );
 
     /**

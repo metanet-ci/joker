@@ -11,19 +11,49 @@ import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.T
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ALL_PORTS;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ANY_PORT;
 
-
+/**
+ * Specifies how an operator should be invoked based on number of tuples that pile up in its input tuple queues.
+ */
 public final class ScheduleWhenTuplesAvailable implements SchedulingStrategy
 {
 
+    /**
+     * Specifies which input ports should satisfy the given tuple count requirement.
+     */
     public enum TupleAvailabilityByPort
     {
-        ALL_PORTS, ANY_PORT
+        /**
+         * All input ports of an operator must satisfy given tuple counts for an invocation.
+         */
+        ALL_PORTS,
+
+        /**
+         * An operator can be invoked when at least tuple count requirement of a single input is satisfied.
+         */
+        ANY_PORT
     }
 
 
+    /**
+     * Specifies how many input tuples can be given for invocations of an operator
+     */
     public enum TupleAvailabilityByCount
     {
-        EXACT, AT_LEAST, AT_LEAST_BUT_SAME_ON_ALL_PORTS
+        /**
+         * Invocations are done with exact tuple counts specified by the given scheduling strategy.
+         */
+        EXACT,
+
+        /**
+         * Invocations are done with tuple counts that can be greater than or equal to the given tuple count.
+         */
+        AT_LEAST,
+
+        /**
+         * Invocations are done with tuple counts that can be greater than or equal to the given tuple count, but there will be same
+         * number of tuples for each input port.
+         */
+        AT_LEAST_BUT_SAME_ON_ALL_PORTS
     }
 
     public static ScheduleWhenTuplesAvailable scheduleWhenTuplesAvailableOnAll ( final TupleAvailabilityByCount tupleAvailabilityByCount,

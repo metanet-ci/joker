@@ -12,8 +12,8 @@ import cs.bilkent.joker.operator.Operator;
 
 
 /**
- * Defines specifications of the {@link Operator} that will be used by the Engine to create,
- * instantiate an operator, and use it for processing the tuples.
+ * Defines type and input / output port counts of {@link Operator} implementations. The runtime engine utilizes given {@link OperatorSpec}
+ * annotations to understand computational requirements of the operators, and to provide necessary capabilities.
  * <p>
  * {@code OperatorSpec} annotation is mandatory for the operators.
  *
@@ -27,27 +27,27 @@ public @interface OperatorSpec
 {
 
     /**
-     * Returns type of the operator that defines its state-related characteristics
+     * Specifies type of the operator that defines its state-related characteristics
      *
      * @return type of the operator that defines its state-related characteristics
      */
     OperatorType type ();
 
     /**
-     * Returns the number of input ports that an operator uses during processing tuples.
-     * If not defined within the operator class, it must be provided while composing the {@link FlowDef}
+     * Specifies number of input ports of an operator at design time.
+     * If not defined within this annotation, it must be given at runtime while composing the {@link FlowDef}.
      *
-     * @return the number of input ports that an operator uses during processing tuples
+     * @return the number of input ports of an operator at design time
      *
      * @see FlowDef
      */
     int inputPortCount () default DYNAMIC_PORT_COUNT;
 
     /**
-     * Returns the number of output ports that an operator produces tuples during the processing.
-     * If not defined within the operator class, it must be provided while composing the {@link FlowDef}
+     * Returns the number of output ports of an operator at design time.
+     * If not defined within this annotation, it must be given at runtime while composing the {@link FlowDef}.
      *
-     * @return the number of output ports that an operator produces tuples during the processing
+     * @return the number of output ports of an operator at design time
      *
      * @see FlowDef
      */
