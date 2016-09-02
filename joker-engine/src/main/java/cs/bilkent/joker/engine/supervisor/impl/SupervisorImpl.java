@@ -26,6 +26,12 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import cs.bilkent.joker.engine.FlowStatus;
+import static cs.bilkent.joker.engine.FlowStatus.INITIAL;
+import static cs.bilkent.joker.engine.FlowStatus.INITIALIZATION_FAILED;
+import static cs.bilkent.joker.engine.FlowStatus.RUNNING;
+import static cs.bilkent.joker.engine.FlowStatus.SHUTTING_DOWN;
+import static cs.bilkent.joker.engine.FlowStatus.SHUT_DOWN;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETING;
@@ -42,11 +48,6 @@ import cs.bilkent.joker.engine.pipeline.UpstreamContext;
 import cs.bilkent.joker.engine.region.FlowDeploymentDef;
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
-import static cs.bilkent.joker.engine.supervisor.impl.SupervisorImpl.FlowStatus.INITIAL;
-import static cs.bilkent.joker.engine.supervisor.impl.SupervisorImpl.FlowStatus.INITIALIZATION_FAILED;
-import static cs.bilkent.joker.engine.supervisor.impl.SupervisorImpl.FlowStatus.RUNNING;
-import static cs.bilkent.joker.engine.supervisor.impl.SupervisorImpl.FlowStatus.SHUTTING_DOWN;
-import static cs.bilkent.joker.engine.supervisor.impl.SupervisorImpl.FlowStatus.SHUT_DOWN;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.joker.engine.tuplequeue.impl.context.DefaultTupleQueueContext;
 import cs.bilkent.joker.flow.Port;
@@ -65,12 +66,6 @@ public class SupervisorImpl implements Supervisor
     private static final Logger LOGGER = LoggerFactory.getLogger( SupervisorImpl.class );
 
     private static final long HEARTBEAT_LOG_PERIOD = SECONDS.toMillis( 15 );
-
-
-    enum FlowStatus
-    {
-        INITIAL, RUNNING, INITIALIZATION_FAILED, SHUTTING_DOWN, SHUT_DOWN
-    }
 
 
     private final Object monitor = new Object();

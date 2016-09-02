@@ -1,5 +1,7 @@
 package cs.bilkent.joker;
 
+import java.util.UUID;
+
 import com.google.inject.AbstractModule;
 import com.google.inject.name.Names;
 
@@ -29,19 +31,37 @@ import cs.bilkent.joker.engine.tuplequeue.impl.TupleQueueContextManagerImpl;
 public class JokerModule extends AbstractModule
 {
 
+    private Object jokerId;
+
     private final JokerConfig config;
 
     private final RegionConfigFactory regionConfigFactory;
 
     public JokerModule ( final JokerConfig config )
     {
-        this( config, null );
+        this( UUID.randomUUID().toString(), config, null );
     }
 
-    public JokerModule ( final JokerConfig config, final RegionConfigFactory regionConfigFactory )
+    public JokerModule ( final Object jokerId, final JokerConfig config, final RegionConfigFactory regionConfigFactory )
     {
+        this.jokerId = jokerId;
         this.config = config;
         this.regionConfigFactory = regionConfigFactory;
+    }
+
+    public Object getJokerId ()
+    {
+        return jokerId;
+    }
+
+    public JokerConfig getConfig ()
+    {
+        return config;
+    }
+
+    public RegionConfigFactory getRegionConfigFactory ()
+    {
+        return regionConfigFactory;
     }
 
     @Override
@@ -67,6 +87,7 @@ public class JokerModule extends AbstractModule
         bind( JokerConfig.class ).toInstance( config );
         bind( ThreadGroup.class ).annotatedWith( Names.named( "jokerThreadGroup" ) ).toInstance( new ThreadGroup( "Joker" ) );
         bind( IdGenerator.class ).toInstance( new IdGenerator() );
+        bind( Object.class ).annotatedWith( Names.named( "jokerId" ) ).toInstance( jokerId );
     }
 
 }

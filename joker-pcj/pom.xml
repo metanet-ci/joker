@@ -12,25 +12,18 @@
     </parent>
 
     <properties>
-        <typesafe.config.version>1.3.0</typesafe.config.version>
-        <guice.version>4.0</guice.version>
+        <pcj.version>4.1.0</pcj.version>
     </properties>
 
-    <artifactId>joker-engine</artifactId>
+    <artifactId>joker-pcj</artifactId>
     <version>1.0-SNAPSHOT</version>
-    <name>joker-engine</name>
+    <name>joker-pcj</name>
     <url>http://maven.apache.org</url>
 
     <dependencies>
         <dependency>
             <groupId>cs.bilkent</groupId>
-            <artifactId>joker-operator-api</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-
-        <dependency>
-            <groupId>cs.bilkent</groupId>
-            <artifactId>joker-operators</artifactId>
+            <artifactId>joker-engine</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
 
@@ -42,15 +35,9 @@
         </dependency>
 
         <dependency>
-            <groupId>com.typesafe</groupId>
-            <artifactId>config</artifactId>
-            <version>${typesafe.config.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.inject</groupId>
-            <artifactId>guice</artifactId>
-            <version>${guice.version}</version>
+            <groupId>icm.edu.pl</groupId>
+            <artifactId>pcj</artifactId>
+            <version>${pcj.version}</version>
         </dependency>
     </dependencies>
 

@@ -46,6 +46,11 @@ public class JokerEngine
         supervisor.start( flowDeployment, regionConfigs );
     }
 
+    public FlowStatus getStatus ()
+    {
+        return supervisor.getStatus();
+    }
+
     public Future<Void> shutdown ()
     {
         return supervisor.shutdown();

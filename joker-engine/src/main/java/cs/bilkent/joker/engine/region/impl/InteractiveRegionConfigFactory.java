@@ -45,14 +45,7 @@ public class InteractiveRegionConfigFactory extends AbstractRegionConfigFactory
     @Override
     public void destroy ()
     {
-        try
-        {
-            br.close();
-        }
-        catch ( IOException e )
-        {
-            throw new InitializationException( "destroy failed", e );
-        }
+        br = null;
     }
 
     @Override

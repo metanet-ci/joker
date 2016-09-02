@@ -14,6 +14,7 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 
 import cs.bilkent.joker.JokerModule;
+import cs.bilkent.joker.engine.FlowStatus;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus;
@@ -28,7 +29,6 @@ import cs.bilkent.joker.engine.region.FlowDeploymentDef;
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
-import cs.bilkent.joker.engine.supervisor.impl.SupervisorImpl.FlowStatus;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
 import cs.bilkent.joker.operator.InitializationContext;

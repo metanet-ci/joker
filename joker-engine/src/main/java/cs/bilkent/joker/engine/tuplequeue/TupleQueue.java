@@ -221,7 +221,8 @@ public interface TupleQueue
     /**
      * Polls tuples from the queue with the number greater than or equal to the given count, and less than or equal to the given limit
      * into the provided list. It may block if the queue has no enough number of tuples within the given timeout duration
-     *  @param count
+     *
+     * @param count
      *         exact number of tuples to be polled from the queue
      * @param limit
      *         maximum number of tuples to be polled from the queue

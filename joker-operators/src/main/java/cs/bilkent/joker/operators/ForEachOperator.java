@@ -41,8 +41,9 @@ public class ForEachOperator implements Operator
         this.consumerFunc = config.getOrFail( CONSUMER_FUNCTION_CONFIG_PARAMETER );
         final int tupleCount = config.getIntegerOrDefault( TUPLE_COUNT_CONFIG_PARAMETER, DEFAULT_TUPLE_COUNT_CONFIG_VALUE );
 
-        return tupleCount > 0 ? scheduleWhenTuplesAvailableOnDefaultPort( AT_LEAST, tupleCount )
-                              : scheduleWhenTuplesAvailableOnDefaultPort( 1 );
+        return tupleCount > 0
+               ? scheduleWhenTuplesAvailableOnDefaultPort( AT_LEAST, tupleCount )
+               : scheduleWhenTuplesAvailableOnDefaultPort( 1 );
     }
 
 

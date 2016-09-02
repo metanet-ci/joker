@@ -1,5 +1,6 @@
 package cs.bilkent.joker;
 
+import java.util.UUID;
 import java.util.concurrent.Future;
 
 import com.google.inject.Guice;
@@ -7,6 +8,7 @@ import com.google.inject.Injector;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import cs.bilkent.joker.engine.FlowStatus;
 import cs.bilkent.joker.engine.JokerEngine;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.region.RegionConfigFactory;
@@ -26,18 +28,23 @@ public class Joker
 
     public Joker ( final JokerConfig config )
     {
-        this( config, null );
+        this( UUID.randomUUID().toString(), config, null );
     }
 
-    private Joker ( final JokerConfig config, final RegionConfigFactory regionConfigFactory )
+    private Joker ( final Object jokerId, final JokerConfig config, final RegionConfigFactory regionConfigFactory )
     {
-        this.injector = Guice.createInjector( new JokerModule( config, regionConfigFactory ) );
+        this.injector = Guice.createInjector( new JokerModule( jokerId, config, regionConfigFactory ) );
         this.engine = injector.getInstance( JokerEngine.class );
     }
 
     public void run ( final FlowDef flow )
     {
         engine.run( flow );
+    }
+
+    public FlowStatus getStatus ()
+    {
+        return engine.getStatus();
     }
 
     public Future<Void> shutdown ()
@@ -47,6 +54,8 @@ public class Joker
 
     public static class JokerBuilder
     {
+
+        private Object jokerId = UUID.randomUUID().toString();
 
         private JokerConfig jokerConfig = new JokerConfig();
 
@@ -79,11 +88,18 @@ public class Joker
             return this;
         }
 
+        public JokerBuilder setJokerId ( final Object jokerId )
+        {
+            checkArgument( jokerId != null );
+            this.jokerId = jokerId;
+            return this;
+        }
+
         public Joker build ()
         {
             checkState( !built, "Joker is already built!" );
             built = true;
-            return new Joker( jokerConfig, regionConfigFactory );
+            return new Joker( jokerId, jokerConfig, regionConfigFactory );
         }
 
     }
