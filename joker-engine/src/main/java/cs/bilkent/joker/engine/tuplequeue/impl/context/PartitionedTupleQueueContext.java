@@ -1,6 +1,5 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.context;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -15,14 +14,17 @@ import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.TupleQueueContainer;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort;
-import gnu.trove.iterator.TIntIterator;
-import gnu.trove.set.hash.TIntHashSet;
+import static java.util.Arrays.copyOf;
+import static java.util.Arrays.fill;
 
 
 public class PartitionedTupleQueueContext implements TupleQueueContext
 {
 
     private static final Logger LOGGER = LoggerFactory.getLogger( PartitionedTupleQueueContext.class );
+
+    private static final int NON_DRAINABLE = -1;
+
 
     private final String operatorId;
 
@@ -36,7 +38,16 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
 
     private final int[] ownedPartitions;
 
-    private final TIntHashSet drainablePartitions = new TIntHashSet();
+    // TODO maintain an array instead of this. array would work fine since partitions are bounded by partition count.
+    // TODO same method with randomly-selectable hashmap solution
+
+    private final int[] drainIndices;
+
+    private final int[] drainablePartitions;
+
+    private int drainablePartitionCount;
+
+    private int nextDrainIndex;
 
     public PartitionedTupleQueueContext ( final String operatorId,
                                           final int inputPortCount,
@@ -66,7 +77,7 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
         this.inputPortCount = inputPortCount;
         this.partitionCount = partitionCount;
         this.partitionKeyFunction = partitionKeyFunction;
-        this.tupleQueueContainers = Arrays.copyOf( tupleQueueContainers, partitionCount );
+        this.tupleQueueContainers = copyOf( tupleQueueContainers, partitionCount );
         int ownedPartitionCount = 0;
         for ( int i = 0; i < partitionCount; i++ )
         {
@@ -87,6 +98,9 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
                 ownedPartitions[ j++ ] = i;
             }
         }
+        this.drainIndices = new int[ partitionCount ];
+        this.drainablePartitions = new int[ ownedPartitionCount ];
+        clearDrainIndices();
     }
 
     @Override
@@ -111,7 +125,7 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
             final boolean drainable = tupleQueueContainers[ partitionId ].offer( portIndex, tuple, partitionKey );
             if ( drainable )
             {
-                drainablePartitions.add( partitionId );
+                markDrainablePartition( partitionId );
             }
         }
     }
@@ -138,7 +152,7 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
             final boolean drainable = tupleQueueContainers[ partitionId ].forceOffer( portIndex, tuple, partitionKey );
             if ( drainable )
             {
-                drainablePartitions.add( partitionId );
+                markDrainablePartition( partitionId );
             }
         }
     }
@@ -146,21 +160,43 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
     @Override
     public void drain ( final TupleQueueDrainer drainer )
     {
-        final TIntIterator it = drainablePartitions.iterator();
-        while ( it.hasNext() )
+        while ( drainablePartitionCount > 0 )
         {
-            final int partitionId = it.next();
+            final int partitionId = drainablePartitions[ nextDrainIndex ];
             tupleQueueContainers[ partitionId ].drain( drainer );
 
             if ( drainer.getResult() != null )
             {
+                nextDrainIndex = ( nextDrainIndex + 1 ) % drainablePartitionCount;
                 return;
             }
             else
             {
-                it.remove();
+                unmarkNonDrainablePartition( partitionId );
             }
         }
+    }
+
+    private void markDrainablePartition ( final int partitionId )
+    {
+        if ( drainIndices[ partitionId ] == NON_DRAINABLE )
+        {
+            drainIndices[ partitionId ] = drainablePartitionCount;
+            drainablePartitions[ drainablePartitionCount++ ] = partitionId;
+            if ( nextDrainIndex == NON_DRAINABLE )
+            {
+                nextDrainIndex = 0;
+            }
+        }
+    }
+
+    private void unmarkNonDrainablePartition ( final int partitionId )
+    {
+        final int anotherDrainablePartition = drainablePartitions[ --drainablePartitionCount ];
+        drainablePartitions[ nextDrainIndex ] = anotherDrainablePartition;
+        drainIndices[ partitionId ] = NON_DRAINABLE;
+        drainIndices[ anotherDrainablePartition ] = nextDrainIndex;
+        nextDrainIndex = drainablePartitionCount == 0 ? NON_DRAINABLE : ( nextDrainIndex + 1 ) % drainablePartitionCount;
     }
 
     @Override
@@ -181,6 +217,15 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
                 container.clear();
             }
         }
+
+        clearDrainIndices();
+    }
+
+    private void clearDrainIndices ()
+    {
+        fill( drainIndices, NON_DRAINABLE );
+        fill( drainablePartitions, NON_DRAINABLE );
+        drainablePartitionCount = 0;
     }
 
     @Override
@@ -191,7 +236,7 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
                      tupleAvailabilityByPort,
                      operatorId );
 
-        drainablePartitions.clear();
+        clearDrainIndices();
 
         for ( TupleQueueContainer container : tupleQueueContainers )
         {
@@ -199,7 +244,7 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
             {
                 if ( container.setTupleCounts( tupleCounts, tupleAvailabilityByPort ) )
                 {
-                    drainablePartitions.add( container.getPartitionId() );
+                    markDrainablePartition( container.getPartitionId() );
                 }
             }
         }
