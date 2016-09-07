@@ -36,11 +36,6 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
 
     private final TupleQueueContainer[] tupleQueueContainers;
 
-    private final int[] ownedPartitions;
-
-    // TODO maintain an array instead of this. array would work fine since partitions are bounded by partition count.
-    // TODO same method with randomly-selectable hashmap solution
-
     private final int[] drainIndices;
 
     private final int[] drainablePartitions;
@@ -88,14 +83,6 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
             else
             {
                 this.tupleQueueContainers[ i ] = null;
-            }
-        }
-        this.ownedPartitions = new int[ ownedPartitionCount ];
-        for ( int i = 0, j = 0; i < partitionCount; i++ )
-        {
-            if ( partitions[ i ] == replicaIndex )
-            {
-                ownedPartitions[ j++ ] = i;
             }
         }
         this.drainIndices = new int[ partitionCount ];
