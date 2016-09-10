@@ -42,7 +42,7 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
 
     private int drainablePartitionCount;
 
-    private int nextDrainIndex;
+    private int nextDrainIndex = NON_DRAINABLE;
 
     private int drainableKeyCount;
 
@@ -225,6 +225,7 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
     {
         fill( drainIndices, NON_DRAINABLE );
         fill( drainablePartitions, NON_DRAINABLE );
+        nextDrainIndex = NON_DRAINABLE;
         drainablePartitionCount = 0;
         drainableKeyCount = 0;
     }

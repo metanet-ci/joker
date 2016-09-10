@@ -180,14 +180,6 @@ public class TupleQueueContainer
             }
         }
 
-        for ( TupleQueue[] tupleQueues : tupleQueuesByKeys.values() )
-        {
-            for ( TupleQueue tupleQueue : tupleQueues )
-            {
-                tupleQueue.clear();
-            }
-        }
-
         tupleQueuesByKeys.clear();
         final int drainableKeyCount = drainableKeys.size();
         drainableKeys.clear();
