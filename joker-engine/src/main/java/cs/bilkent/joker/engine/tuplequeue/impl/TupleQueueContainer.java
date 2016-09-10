@@ -96,8 +96,9 @@ public class TupleQueueContainer
         return addToDrainableKeys( key, tupleQueues );
     }
 
-    public void drain ( final TupleQueueDrainer drainer )
+    public int drain ( final TupleQueueDrainer drainer )
     {
+        int nonDrainableKeyCount = 0;
         if ( drainer instanceof GreedyDrainer )
         {
             final Iterator<Object> it = tupleQueuesByKeys.keySet().iterator();
@@ -109,11 +110,14 @@ public class TupleQueueContainer
                 if ( drainer.getResult().isEmpty() )
                 {
                     it.remove();
-                    drainableKeys.remove( key );
+                    if ( drainableKeys.remove( key ) )
+                    {
+                        nonDrainableKeyCount++;
+                    }
                 }
                 else
                 {
-                    return;
+                    return nonDrainableKeyCount;
                 }
             }
 
@@ -132,12 +136,15 @@ public class TupleQueueContainer
                 if ( !checkIfDrainable( tupleQueues ) )
                 {
                     it.remove();
+                    nonDrainableKeyCount++;
                 }
             }
         }
+
+        return nonDrainableKeyCount;
     }
 
-    public void clear ()
+    public int clear ()
     {
         LOGGER.info( "Clearing partitioned tuple queues of operator: {} partitionId={}", operatorId, partitionId );
 
@@ -182,10 +189,13 @@ public class TupleQueueContainer
         }
 
         tupleQueuesByKeys.clear();
+        final int drainableKeyCount = drainableKeys.size();
         drainableKeys.clear();
+
+        return drainableKeyCount;
     }
 
-    public boolean setTupleCounts ( final int[] tupleCounts, final TupleAvailabilityByPort tupleAvailabilityByPort )
+    public int setTupleCounts ( final int[] tupleCounts, final TupleAvailabilityByPort tupleAvailabilityByPort )
     {
         checkArgument( inputPortCount == tupleCounts.length,
                        "mismatching input port counts for tuple queue container of operator: %s operator input port count: %s, arg: %s",
@@ -193,7 +203,7 @@ public class TupleQueueContainer
                        inputPortCount,
                        tupleCounts.length );
         checkArgument( tupleAvailabilityByPort == ANY_PORT || tupleAvailabilityByPort == ALL_PORTS,
-                       "invalid 5s:%s for tuple queue container of operator: %s operator",
+                       "invalid %s:%s for tuple queue container of operator: %s operator",
                        TupleAvailabilityByPort.class,
                        tupleAvailabilityByPort,
                        operatorId );
@@ -208,14 +218,14 @@ public class TupleQueueContainer
             }
         }
 
-        return !drainableKeys.isEmpty();
+        return drainableKeys.size();
     }
 
     private boolean addToDrainableKeys ( final Object key, final TupleQueue[] tupleQueues )
     {
         if ( drainableKeys.contains( key ) )
         {
-            return true;
+            return false;
         }
 
         if ( checkIfDrainable( tupleQueues ) )

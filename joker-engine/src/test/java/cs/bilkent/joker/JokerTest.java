@@ -30,8 +30,8 @@ import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.Tuples;
 import cs.bilkent.joker.operator.kvstore.KVStore;
-import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST_BUT_SAME_ON_ALL_PORTS;
-import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAll;
+import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
+import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAny;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
@@ -70,7 +70,7 @@ public class JokerTest extends AbstractJokerTest
     {
         final ValueGenerator valueGenerator1 = new ValueGenerator( KEY_RANGE, VALUE_RANGE );
         final ValueGenerator valueGenerator2 = new ValueGenerator( KEY_RANGE, VALUE_RANGE );
-        final ValueCollector valueCollector = new ValueCollector( KEY_RANGE );
+        final ValueCollector valueCollector = new ValueCollector( "valueCollector", KEY_RANGE );
 
         final OperatorConfig beacon1Config = new OperatorConfig();
         beacon1Config.set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator1 );
@@ -191,10 +191,10 @@ public class JokerTest extends AbstractJokerTest
     {
         final ValueGenerator valueGenerator1 = new ValueGenerator( KEY_RANGE, VALUE_RANGE );
         final ValueGenerator valueGenerator2 = new ValueGenerator( KEY_RANGE, VALUE_RANGE );
-        final ValueCollector valueCollector1 = new ValueCollector( KEY_RANGE );
-        final ValueCollector valueCollector2 = new ValueCollector( KEY_RANGE );
-        final ValueCollector valueCollector3 = new ValueCollector( KEY_RANGE );
-        final ValueCollector valueCollector4 = new ValueCollector( KEY_RANGE );
+        final ValueCollector valueCollector1 = new ValueCollector( "valueCollector1", KEY_RANGE );
+        final ValueCollector valueCollector2 = new ValueCollector( "valueCollector2", KEY_RANGE );
+        final ValueCollector valueCollector3 = new ValueCollector( "valueCollector3", KEY_RANGE );
+        final ValueCollector valueCollector4 = new ValueCollector( "valueCollector4", KEY_RANGE );
 
         final OperatorConfig beacon1Config = new OperatorConfig();
         beacon1Config.set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator1 );
@@ -473,8 +473,11 @@ public class JokerTest extends AbstractJokerTest
 
         private final AtomicInteger invocationCount = new AtomicInteger();
 
-        public ValueCollector ( final int keyRange )
+        private final String name;
+
+        public ValueCollector ( final String name, final int keyRange )
         {
+            this.name = name;
             this.values = new AtomicReferenceArray<>( keyRange );
             for ( int i = 0; i < keyRange; i++ )
             {
@@ -485,15 +488,17 @@ public class JokerTest extends AbstractJokerTest
         @Override
         public void accept ( final Tuple tuple )
         {
+            invocationCount.incrementAndGet();
+
             final Integer key = tuple.getInteger( "key" );
             final Integer newVal = tuple.getInteger( "mult" );
             final Integer curr = values.get( key );
             if ( curr > newVal )
             {
-                System.err.println( "ERR! key: " + key + " curr: " + curr + " new: " + newVal );
+                //                System.err.println( "ERR in " + name + "! key: " + key + " curr: " + curr + " new: " + newVal );
+                return;
             }
             values.set( key, newVal );
-            invocationCount.incrementAndGet();
         }
 
     }
@@ -506,7 +511,7 @@ public class JokerTest extends AbstractJokerTest
         @Override
         public SchedulingStrategy init ( final InitializationContext context )
         {
-            return scheduleWhenTuplesAvailableOnAll( AT_LEAST_BUT_SAME_ON_ALL_PORTS, 2, 1, 0, 1 );
+            return scheduleWhenTuplesAvailableOnAny( AT_LEAST, 2, 1, 0, 1 );
         }
 
         @Override
