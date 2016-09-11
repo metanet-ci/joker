@@ -53,7 +53,7 @@ public class OperatorReplica
 
     private static final Logger LOGGER = LoggerFactory.getLogger( OperatorReplica.class );
 
-    private static final int AGGRESSIVE_INVOCATION_MASK = 31;
+    private static final int OVERLOADED_INVOCATION_MASK = 31;
 
 
     private final String operatorName;
@@ -332,7 +332,7 @@ public class OperatorReplica
 
     private boolean shouldCheckQueueOverload ()
     {
-        return ( invocationCount++ & AGGRESSIVE_INVOCATION_MASK ) == 0;
+        return ( invocationCount++ & OVERLOADED_INVOCATION_MASK ) == 0;
     }
 
     private void setQueueTupleCountsForGreedyDraining ()
