@@ -69,4 +69,6 @@ public interface TupleQueueContext
 
     boolean isCapacityCheckEnabled ( final int portIndex );
 
+    boolean isOverloaded ();
+
 }

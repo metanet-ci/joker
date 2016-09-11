@@ -83,7 +83,11 @@ public class DefaultTupleQueueContextTest extends AbstractJokerTest
                                  final ThreadingPreference threadingPreference,
                                  final int tupleCount )
     {
-        final TupleQueueContext context = new DefaultTupleQueueContext( "op1", inputPortCount, threadingPreference, tupleQueueConstructor );
+        final TupleQueueContext context = new DefaultTupleQueueContext( "op1",
+                                                                        inputPortCount,
+                                                                        threadingPreference,
+                                                                        tupleQueueConstructor,
+                                                                        Integer.MAX_VALUE );
 
         final TuplesImpl input = addTuples( inputPortCount, tupleCount );
 
@@ -103,7 +107,11 @@ public class DefaultTupleQueueContextTest extends AbstractJokerTest
                                     final ThreadingPreference threadingPreference,
                                     final int tupleCount )
     {
-        final TupleQueueContext context = new DefaultTupleQueueContext( "op1", inputPortCount, threadingPreference, tupleQueueConstructor );
+        final TupleQueueContext context = new DefaultTupleQueueContext( "op1",
+                                                                        inputPortCount,
+                                                                        threadingPreference,
+                                                                        tupleQueueConstructor,
+                                                                        Integer.MAX_VALUE );
 
         final TuplesImpl input = addTuples( inputPortCount, tupleCount );
 

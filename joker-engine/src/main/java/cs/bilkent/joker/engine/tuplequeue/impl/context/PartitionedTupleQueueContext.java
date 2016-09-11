@@ -40,6 +40,8 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
 
     private final int[] drainablePartitions;
 
+    private final int maxDrainableKeyCount;
+
     private int drainablePartitionCount;
 
     private int nextDrainIndex = NON_DRAINABLE;
@@ -52,7 +54,8 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
                                           final int replicaIndex,
                                           final PartitionKeyFunction partitionKeyFunction,
                                           final TupleQueueContainer[] tupleQueueContainers,
-                                          final int[] partitions )
+                                          final int[] partitions,
+                                          final int maxDrainableKeyCount )
     {
         checkArgument( partitionCount == tupleQueueContainers.length,
                        "mismatching partition count %s and tuple queue container count %s partitioned tuple queue context of for operator"
@@ -75,6 +78,7 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
         this.partitionCount = partitionCount;
         this.partitionKeyFunction = partitionKeyFunction;
         this.tupleQueueContainers = copyOf( tupleQueueContainers, partitionCount );
+        this.maxDrainableKeyCount = maxDrainableKeyCount;
         int ownedPartitionCount = 0;
         for ( int i = 0; i < partitionCount; i++ )
         {
@@ -269,6 +273,22 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
     public boolean isCapacityCheckEnabled ( final int portIndex )
     {
         return false;
+    }
+
+    @Override
+    public boolean isOverloaded ()
+    {
+        return drainableKeyCount >= maxDrainableKeyCount;
+    }
+
+    int getDrainableKeyCount ()
+    {
+        return drainableKeyCount;
+    }
+
+    boolean isPartitionDrainable ( final int partitionId )
+    {
+        return drainablePartitions[ partitionId ] != NON_DRAINABLE;
     }
 
 }

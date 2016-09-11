@@ -39,7 +39,7 @@ import cs.bilkent.joker.utils.Pair;
 public class PipelineReplica
 {
 
-    private static Logger LOGGER = LoggerFactory.getLogger( PipelineReplica.class );
+    private static final Logger LOGGER = LoggerFactory.getLogger( PipelineReplica.class );
 
 
     private final JokerConfig config;
@@ -199,10 +199,10 @@ public class PipelineReplica
     {
         if ( operator.getStatus() != RUNNING )
         {
-            LOGGER.error( "{} can not update drainer parameters as {} is in {} status",
-                          id,
-                          operator.getOperatorName(),
-                          operator.getStatus() );
+            LOGGER.warn( "{} can not update drainer parameters as {} is in {} status",
+                         id,
+                         operator.getOperatorName(),
+                         operator.getStatus() );
             return;
         }
 

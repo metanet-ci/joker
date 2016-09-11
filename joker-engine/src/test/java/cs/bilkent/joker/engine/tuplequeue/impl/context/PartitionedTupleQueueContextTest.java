@@ -25,6 +25,8 @@ public class PartitionedTupleQueueContextTest extends AbstractJokerTest
 
     private static final int INPUT_PORT_COUNT = 2;
 
+    private static final int PARTITION_COUNT = 1;
+
     private static final String PARTITION_KEY_FIELD = "key";
 
 
@@ -37,12 +39,10 @@ public class PartitionedTupleQueueContextTest extends AbstractJokerTest
 
         final TupleQueueContainer container = new TupleQueueContainer( "op1", INPUT_PORT_COUNT, 0, tupleQueueConstructor );
         tupleQueueContext = new PartitionedTupleQueueContext( "op1",
-                                                              INPUT_PORT_COUNT,
-                                                              1,
+                                                              INPUT_PORT_COUNT, PARTITION_COUNT,
                                                               0,
                                                               new PartitionKeyFunction1( singletonList( PARTITION_KEY_FIELD ) ),
-                                                              new TupleQueueContainer[] { container },
-                                                              new int[] { 0 } );
+                                                              new TupleQueueContainer[] { container }, new int[] { 0 }, Integer.MAX_VALUE );
     }
 
     @Test
@@ -55,7 +55,10 @@ public class PartitionedTupleQueueContextTest extends AbstractJokerTest
 
         final NonBlockingMultiPortDisjunctiveDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( INPUT_PORT_COUNT, 100 );
         drainer.setParameters( AT_LEAST, new int[] { 0, 1 }, new int[] { 1, 1 } );
+
+        assertEquals( 1, tupleQueueContext.getDrainableKeyCount() );
         tupleQueueContext.drain( drainer );
+        assertEquals( 0, tupleQueueContext.getDrainableKeyCount() );
         assertEquals( tuples, drainer.getResult().getTuples( 0 ) );
     }
 
@@ -67,13 +70,17 @@ public class PartitionedTupleQueueContextTest extends AbstractJokerTest
         tuple.set( PARTITION_KEY_FIELD, "key1" );
         final List<Tuple> tuples = singletonList( tuple );
         tupleQueueContext.offer( 0, tuples );
+        assertEquals( 0, tupleQueueContext.getDrainableKeyCount() );
         tupleQueueContext.setTupleCounts( new int[] { 1, 1 }, ANY_PORT );
+        assertEquals( 1, tupleQueueContext.getDrainableKeyCount() );
 
         final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT );
         tupleQueueContext.drain( drainer );
+        assertEquals( 0, tupleQueueContext.getDrainableKeyCount() );
         assertEquals( tuples, drainer.getResult().getTuples( 0 ) );
     }
 
+    // tuple counts are not satisfied.
     @Test
     public void testOfferedTuplesNotDrainedGreedilyWhenTupleCountsNotUpdated ()
     {
@@ -88,6 +95,7 @@ public class PartitionedTupleQueueContextTest extends AbstractJokerTest
         assertNull( drainer.getResult() );
     }
 
+    // tuple counts are already satisfied.
     @Test
     public void testOfferedTuplesDrainedGreedilyWhenTupleCountsNotUpdated ()
     {

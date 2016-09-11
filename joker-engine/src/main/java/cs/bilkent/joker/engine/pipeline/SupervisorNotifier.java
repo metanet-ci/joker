@@ -9,7 +9,7 @@ import cs.bilkent.joker.engine.supervisor.Supervisor;
 public class SupervisorNotifier implements OperatorReplicaListener
 {
 
-    private final static Logger LOGGER = LoggerFactory.getLogger( SupervisorNotifier.class );
+    private static final Logger LOGGER = LoggerFactory.getLogger( SupervisorNotifier.class );
 
 
     private final Supervisor supervisor;

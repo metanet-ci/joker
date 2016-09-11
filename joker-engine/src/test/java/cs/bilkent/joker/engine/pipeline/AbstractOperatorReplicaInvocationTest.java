@@ -80,6 +80,7 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
         when( drainerPool.acquire( any( SchedulingStrategy.class ) ) ).thenReturn( drainer );
         when( drainer.getKey() ).thenReturn( key );
         when( kvStoreContext.getKVStore( key ) ).thenReturn( kvStore );
+        when( queue.isUnderloaded() ).thenReturn( true );
     }
 
     protected void initializeOperatorReplica ( final int inputPortCount,

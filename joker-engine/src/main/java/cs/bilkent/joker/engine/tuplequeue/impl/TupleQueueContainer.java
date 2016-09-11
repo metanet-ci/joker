@@ -106,18 +106,19 @@ public class TupleQueueContainer
             {
                 final Object key = it.next();
                 final TupleQueue[] tupleQueues = getTupleQueues( key );
+
                 drainer.drain( key, tupleQueues );
-                if ( drainer.getResult().isEmpty() )
+                it.remove();
+
+                if ( drainableKeys.remove( key ) )
                 {
-                    it.remove();
-                    if ( drainableKeys.remove( key ) )
-                    {
-                        nonDrainableKeyCount++;
-                    }
+                    nonDrainableKeyCount++;
                 }
-                else
+
+                if ( !drainer.getResult().isEmpty() )
                 {
                     return nonDrainableKeyCount;
+
                 }
             }
 

@@ -7,9 +7,11 @@ import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.config.ThreadingPreference;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
+import static cs.bilkent.joker.engine.config.ThreadingPreference.SINGLE_THREADED;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
@@ -28,13 +30,20 @@ public class DefaultTupleQueueContext implements TupleQueueContext
 
     private final ThreadingPreference threadingPreference;
 
+    private final int maxQueueSize;
+
     public DefaultTupleQueueContext ( final String operatorId,
                                       final int inputPortCount,
                                       final ThreadingPreference threadingPreference,
-                                      final Function<Boolean, TupleQueue> tupleQueueConstructor
+                                      final Function<Boolean, TupleQueue> tupleQueueConstructor,
+                                      final int maxQueueSize
 
     )
     {
+        checkArgument( inputPortCount >= 0 );
+        checkArgument( threadingPreference != null );
+        checkArgument( tupleQueueConstructor != null );
+        checkArgument( maxQueueSize > 0 );
         this.operatorId = operatorId;
         this.threadingPreference = threadingPreference;
         this.tupleQueues = new TupleQueue[ inputPortCount ];
@@ -42,6 +51,7 @@ public class DefaultTupleQueueContext implements TupleQueueContext
         {
             this.tupleQueues[ portIndex ] = tupleQueueConstructor.apply( true );
         }
+        this.maxQueueSize = threadingPreference == SINGLE_THREADED ? maxQueueSize : Integer.MAX_VALUE;
     }
 
     @Override
@@ -177,6 +187,25 @@ public class DefaultTupleQueueContext implements TupleQueueContext
                     "Cannot check if capacity enabled for single threaded tuple queue of operator %s",
                     operatorId );
         return tupleQueues[ portIndex ].isCapacityCheckEnabled();
+    }
+
+    @Override
+    public boolean isOverloaded ()
+    {
+        if ( threadingPreference == MULTI_THREADED )
+        {
+            return false;
+        }
+
+        for ( int i = 0; i < tupleQueues.length; i++ )
+        {
+            if ( tupleQueues[ i ].size() >= maxQueueSize )
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public ThreadingPreference getThreadingPreference ()

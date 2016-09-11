@@ -16,6 +16,7 @@ import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.config.ThreadingPreference;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.SINGLE_THREADED;
+import cs.bilkent.joker.engine.config.TupleQueueManagerConfig;
 import cs.bilkent.joker.engine.partition.PartitionKeyFunction;
 import cs.bilkent.joker.engine.partition.PartitionKeyFunctionFactory;
 import cs.bilkent.joker.engine.partition.PartitionService;
@@ -43,7 +44,7 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
 
     private final PartitionKeyFunctionFactory partitionKeyFunctionFactory;
 
-    private final int initialTupleQueueCapacity;
+    private final TupleQueueManagerConfig tupleQueueManagerConfig;
 
     private final Map<Triple<Integer, Integer, String>, TupleQueueContext> singleTupleQueueContexts = new HashMap<>();
 
@@ -59,7 +60,7 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
     {
         this.partitionService = partitionService;
         this.partitionKeyFunctionFactory = partitionKeyFunctionFactory;
-        this.initialTupleQueueCapacity = jokerConfig.getTupleQueueManagerConfig().getTupleQueueInitialSize();
+        this.tupleQueueManagerConfig = jokerConfig.getTupleQueueManagerConfig();
     }
 
     @Override
@@ -87,8 +88,7 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
                        replicaIndex,
                        operatorDef.id() );
 
-        final Function<Boolean, TupleQueue> tupleQueueConstructor = getTupleQueueConstructor( threadingPreference,
-                                                                                              initialTupleQueueCapacity );
+        final Function<Boolean, TupleQueue> tupleQueueConstructor = getTupleQueueConstructor( threadingPreference );
         final String operatorId = operatorDef.id();
         final int inputPortCount = operatorDef.inputPortCount();
 
@@ -98,7 +98,11 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
                          regionId,
                          replicaIndex,
                          operatorId );
-            return new DefaultTupleQueueContext( operatorId, inputPortCount, threadingPreference, tupleQueueConstructor );
+            return new DefaultTupleQueueContext( operatorId,
+                                                 inputPortCount,
+                                                 threadingPreference,
+                                                 tupleQueueConstructor,
+                                                 tupleQueueManagerConfig.getMaxSingleThreadedTupleQueueSize() );
         };
 
         return singleTupleQueueContexts.computeIfAbsent( Triple.of( regionId, replicaIndex, operatorId ), c );
@@ -120,7 +124,7 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
                        regionId,
                        operatorDef.id() );
         checkArgument( replicaCount > 0, "invalid replica count %s ! regionId %s operatorId %s", replicaCount, regionId, operatorDef.id() );
-        final Function<Boolean, TupleQueue> tupleQueueConstructor = getTupleQueueConstructor( SINGLE_THREADED, initialTupleQueueCapacity );
+        final Function<Boolean, TupleQueue> tupleQueueConstructor = getTupleQueueConstructor( SINGLE_THREADED );
         final String operatorId = operatorDef.id();
         final int inputPortCount = operatorDef.inputPortCount();
 
@@ -142,7 +146,8 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
                                                                                        replicaIndex,
                                                                                        partitionKeyExtractor,
                                                                                        containers,
-                                                                                       partitions );
+                                                                                       partitions,
+                                                                                       tupleQueueManagerConfig.getMaxDrainableKeyCount() );
             }
 
             LOGGER.info( "created partitioned tuple queue context for regionId={} replicaCount={} operatorId={}",
@@ -161,12 +166,12 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
         return partitionedTupleQueueContexts.get( Pair.of( regionId, operatorDef.id() ) );
     }
 
-    private Function<Boolean, TupleQueue> getTupleQueueConstructor ( final ThreadingPreference threadingPreference,
-                                                                     final int queueCapacity )
+    private Function<Boolean, TupleQueue> getTupleQueueConstructor ( final ThreadingPreference threadingPreference )
     {
         return threadingPreference == SINGLE_THREADED
-               ? ( capacityCheckEnabled ) -> new SingleThreadedTupleQueue( queueCapacity )
-               : ( capacityCheckEnabled ) -> new MultiThreadedTupleQueue( queueCapacity, capacityCheckEnabled );
+               ? ( capacityCheckEnabled ) -> new SingleThreadedTupleQueue( tupleQueueManagerConfig.getTupleQueueInitialSize() )
+               : ( capacityCheckEnabled ) -> new MultiThreadedTupleQueue( tupleQueueManagerConfig.getTupleQueueInitialSize(),
+                                                                          capacityCheckEnabled );
     }
 
     @Override

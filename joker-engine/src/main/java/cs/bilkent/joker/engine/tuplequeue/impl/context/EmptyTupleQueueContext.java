@@ -99,4 +99,10 @@ public class EmptyTupleQueueContext implements TupleQueueContext
         return false;
     }
 
+    @Override
+    public boolean isOverloaded ()
+    {
+        return false;
+    }
+
 }
