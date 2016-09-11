@@ -118,7 +118,6 @@ public class TupleQueueContainer
                 if ( !drainer.getResult().isEmpty() )
                 {
                     return nonDrainableKeyCount;
-
                 }
             }
 
