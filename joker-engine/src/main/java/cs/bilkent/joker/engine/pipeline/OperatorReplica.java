@@ -286,6 +286,10 @@ public class OperatorReplica
                     {
                         output = invokeOperator( INPUT_PORT_CLOSED, input, output, drainer.getKey() );
                     }
+                    else
+                    {
+                        invoked = false;
+                    }
                 }
                 else
                 {
