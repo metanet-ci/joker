@@ -262,11 +262,11 @@ public class PipelineReplica
 
     public TuplesImpl invoke ()
     {
-        UpstreamContext upstreamContext = this.pipelineUpstreamContext;
+        OperatorReplica operator;
         drainUpstreamTupleQueueContext();
         TuplesImpl tuples = upstreamDrainer.getResult();
+        UpstreamContext upstreamContext = this.pipelineUpstreamContext;
 
-        OperatorReplica operator;
         this.noBlockOnUpstreamTupleQueueContext = false;
         for ( int i = 0; i < operatorCount; i++ )
         {
