@@ -49,7 +49,6 @@ import static cs.bilkent.joker.operators.MapperOperator.MAPPER_CONFIG_PARAMETER;
 import cs.bilkent.joker.testutils.AbstractJokerTest;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 
@@ -445,7 +444,7 @@ public class JokerTest extends AbstractJokerTest
         @Override
         public void accept ( final Tuple tuple )
         {
-            sleepUninterruptibly( 1, MICROSECONDS );
+            //            sleepUninterruptibly( 1, MICROSECONDS );
             invocationCount.incrementAndGet();
 
             final int key = RANDOM.nextInt( keyRange );
