@@ -94,8 +94,6 @@ public class OperatorReplica
 
     private int operatorInvocationCount;
 
-    private boolean invokedOnLastAttempt;
-
     public OperatorReplica ( final PipelineReplicaId pipelineReplicaId,
                              final OperatorDef operatorDef,
                              final TupleQueueContext queue,
@@ -234,7 +232,6 @@ public class OperatorReplica
      */
     public TuplesImpl invoke ( final TuplesImpl upstreamInput, final UpstreamContext upstreamContext )
     {
-        invokedOnLastAttempt = false;
         if ( status == COMPLETED )
         {
             return null;
@@ -369,7 +366,6 @@ public class OperatorReplica
         invocationContext.setInvocationParameters( reason, input, invocationOutput, kvStore );
         operator.invoke( invocationContext );
         drainer.reset();
-        invokedOnLastAttempt = true;
         operatorInvocationCount++;
 
         return invocationOutput;
@@ -561,11 +557,6 @@ public class OperatorReplica
     public UpstreamContext getSelfUpstreamContext ()
     {
         return selfUpstreamContext;
-    }
-
-    public boolean isInvokedOnLastAttempt ()
-    {
-        return invokedOnLastAttempt;
     }
 
 }

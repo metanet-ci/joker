@@ -137,16 +137,14 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                               new OperatorReplica[] { operator },
                                                               new EmptyTupleQueueContext( "map", mapperOperatorDef.inputPortCount() ) );
         final Supervisor supervisor = mock( Supervisor.class );
-        final SupervisorNotifier supervisorNotifier = new SupervisorNotifier( supervisor, pipeline );
+        final PipelineReplicaCompletionTracker pipelineReplicaCompletionTracker = new PipelineReplicaCompletionTracker( pipeline );
 
-        pipeline.init( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ), supervisorNotifier );
+        pipeline.init( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ), pipelineReplicaCompletionTracker );
 
         final TupleCollectorDownstreamTupleSender tupleCollector = new TupleCollectorDownstreamTupleSender( mapperOperatorDef
                                                                                                                     .outputPortCount() );
         final PipelineReplicaRunner runner = new PipelineReplicaRunner( jokerConfig,
-                                                                        pipeline,
-                                                                        supervisor,
-                                                                        supervisorNotifier,
+                                                                        pipeline, supervisor, pipelineReplicaCompletionTracker,
                                                                         tupleCollector );
 
         final Thread runnerThread = spawnThread( runner );
@@ -230,17 +228,15 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                               new EmptyTupleQueueContext( "map", mapperOperatorDef.inputPortCount() ) );
 
         final Supervisor supervisor = mock( Supervisor.class );
-        final SupervisorNotifier supervisorNotifier = new SupervisorNotifier( supervisor, pipeline );
+        final PipelineReplicaCompletionTracker pipelineReplicaCompletionTracker = new PipelineReplicaCompletionTracker( pipeline );
 
-        pipeline.init( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ), supervisorNotifier );
+        pipeline.init( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ), pipelineReplicaCompletionTracker );
 
         final TupleCollectorDownstreamTupleSender tupleCollector = new TupleCollectorDownstreamTupleSender( filterOperatorDef
                                                                                                                     .outputPortCount() );
 
         final PipelineReplicaRunner runner = new PipelineReplicaRunner( jokerConfig,
-                                                                        pipeline,
-                                                                        supervisor,
-                                                                        supervisorNotifier,
+                                                                        pipeline, supervisor, pipelineReplicaCompletionTracker,
                                                                         tupleCollector );
 
         final Thread runnerThread = spawnThread( runner );
@@ -353,14 +349,12 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                           generatorOperatorDef.inputPortCount() ) );
 
         final Supervisor supervisor = mock( Supervisor.class );
-        final SupervisorNotifier supervisorNotifier = new SupervisorNotifier( supervisor, pipeline );
+        final PipelineReplicaCompletionTracker pipelineReplicaCompletionTracker = new PipelineReplicaCompletionTracker( pipeline );
 
-        pipeline.init( new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ), supervisorNotifier );
+        pipeline.init( new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ), pipelineReplicaCompletionTracker );
 
         final PipelineReplicaRunner runner = new PipelineReplicaRunner( jokerConfig,
-                                                                        pipeline,
-                                                                        supervisor,
-                                                                        supervisorNotifier,
+                                                                        pipeline, supervisor, pipelineReplicaCompletionTracker,
                                                                         mock( DownstreamTupleSender.class ) );
 
         final Thread runnerThread = spawnThread( runner );
@@ -421,9 +415,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                pipelineReplicaId1,
                                                                new OperatorReplica[] { mapperOperator },
                                                                new EmptyTupleQueueContext( "map", mapperOperatorDef.inputPortCount() ) );
-        final SupervisorNotifier supervisorNotifier1 = new SupervisorNotifier( supervisor, pipeline1 );
+        final PipelineReplicaCompletionTracker pipelineReplicaCompletionTracker1 = new PipelineReplicaCompletionTracker( pipeline1 );
 
-        pipeline1.init( supervisor.upstreamContexts.get( pipelineReplicaId1 ), supervisorNotifier1 );
+        pipeline1.init( supervisor.upstreamContexts.get( pipelineReplicaId1 ), pipelineReplicaCompletionTracker1 );
 
         final OperatorConfig filterOperatorConfig = new OperatorConfig();
         final Predicate<Tuple> filterEvenVals = tuple -> tuple.getInteger( "val" ) % 2 == 0;
@@ -454,23 +448,19 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                pipelineReplicaId2,
                                                                new OperatorReplica[] { filterOperator },
                                                                new EmptyTupleQueueContext( "filter", filterOperatorDef.inputPortCount() ) );
-        final SupervisorNotifier supervisorNotifier2 = new SupervisorNotifier( supervisor, pipeline2 );
+        final PipelineReplicaCompletionTracker pipelineReplicaCompletionTracker2 = new PipelineReplicaCompletionTracker( pipeline2 );
 
-        pipeline2.init( supervisor.upstreamContexts.get( pipelineReplicaId2 ), supervisorNotifier2 );
+        pipeline2.init( supervisor.upstreamContexts.get( pipelineReplicaId2 ), pipelineReplicaCompletionTracker2 );
 
         final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig,
-                                                                         pipeline1,
-                                                                         supervisor,
-                                                                         supervisorNotifier1,
+                                                                         pipeline1, supervisor, pipelineReplicaCompletionTracker1,
                                                                          tupleSender );
 
         final TupleCollectorDownstreamTupleSender tupleCollector2 = new TupleCollectorDownstreamTupleSender( filterOperatorDef
                                                                                                                      .outputPortCount() );
 
         final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( jokerConfig,
-                                                                         pipeline2,
-                                                                         supervisor,
-                                                                         supervisorNotifier2,
+                                                                         pipeline2, supervisor, pipelineReplicaCompletionTracker2,
                                                                          tupleCollector2 );
 
         supervisor.targetPipelineReplicaId = pipelineReplicaId2;
@@ -552,8 +542,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                new EmptyTupleQueueContext( "generator1",
                                                                                            generatorOperatorDef1.inputPortCount() ) );
 
-        final SupervisorNotifier supervisorNotifier1 = new SupervisorNotifier( supervisor, pipeline1 );
-        pipeline1.init( supervisor.upstreamContexts.get( pipelineReplicaId1 ), supervisorNotifier1 );
+        final PipelineReplicaCompletionTracker pipelineReplicaCompletionTracker1 = new PipelineReplicaCompletionTracker( pipeline1 );
+        pipeline1.init( supervisor.upstreamContexts.get( pipelineReplicaId1 ), pipelineReplicaCompletionTracker1 );
 
         final OperatorConfig generatorOperatorConfig2 = new OperatorConfig();
         generatorOperatorConfig2.set( "batchCount", batchCount );
@@ -582,9 +572,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                new OperatorReplica[] { generatorOperator2 },
                                                                new EmptyTupleQueueContext( "generator2",
                                                                                            generatorOperatorDef2.inputPortCount() ) );
-        final SupervisorNotifier supervisorNotifier2 = new SupervisorNotifier( supervisor, pipeline2 );
+        final PipelineReplicaCompletionTracker pipelineReplicaCompletionTracker2 = new PipelineReplicaCompletionTracker( pipeline2 );
 
-        pipeline2.init( supervisor.upstreamContexts.get( pipelineReplicaId2 ), supervisorNotifier2 );
+        pipeline2.init( supervisor.upstreamContexts.get( pipelineReplicaId2 ), pipelineReplicaCompletionTracker2 );
 
         final OperatorConfig sinkOperatorConfig = new OperatorConfig();
         final OperatorDef sinkOperatorDef = OperatorDefBuilder.newInstance( "sink", ValueSinkOperator.class )
@@ -656,26 +646,20 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                pipelineReplicaId3,
                                                                new OperatorReplica[] { sinkOperator, passerOperator, stateOperator },
                                                                new EmptyTupleQueueContext( "sink", sinkOperatorDef.inputPortCount() ) );
-        final SupervisorNotifier supervisorNotifier3 = new SupervisorNotifier( supervisor, pipeline3 );
+        final PipelineReplicaCompletionTracker pipelineReplicaCompletionTracker3 = new PipelineReplicaCompletionTracker( pipeline3 );
 
-        pipeline3.init( supervisor.upstreamContexts.get( pipelineReplicaId3 ), supervisorNotifier3 );
+        pipeline3.init( supervisor.upstreamContexts.get( pipelineReplicaId3 ), pipelineReplicaCompletionTracker3 );
 
         final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig,
-                                                                         pipeline1,
-                                                                         supervisor,
-                                                                         supervisorNotifier1,
+                                                                         pipeline1, supervisor, pipelineReplicaCompletionTracker1,
                                                                          new DownstreamTupleSenderImpl( sinkTupleQueueContext,
                                                                                                         new Pair[] { Pair.of( 0, 0 ) } ) );
         final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( jokerConfig,
-                                                                         pipeline2,
-                                                                         supervisor,
-                                                                         supervisorNotifier2,
+                                                                         pipeline2, supervisor, pipelineReplicaCompletionTracker2,
                                                                          new DownstreamTupleSenderImpl( sinkTupleQueueContext,
                                                                                                         new Pair[] { Pair.of( 0, 1 ) } ) );
         final PipelineReplicaRunner runner3 = new PipelineReplicaRunner( jokerConfig,
-                                                                         pipeline3,
-                                                                         supervisor,
-                                                                         supervisorNotifier3,
+                                                                         pipeline3, supervisor, pipelineReplicaCompletionTracker3,
                                                                          new DownstreamTupleSenderImpl( null, new Pair[] {} ) );
 
         supervisor.targetPipelineReplicaId = pipelineReplicaId3;
@@ -796,9 +780,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                new OperatorReplica[] { generatorOperator, passerOperator },
                                                                new EmptyTupleQueueContext( "generator",
                                                                                            generatorOperatorDef.inputPortCount() ) );
-        final SupervisorNotifier supervisorNotifier1 = new SupervisorNotifier( supervisor, pipeline1 );
+        final PipelineReplicaCompletionTracker pipelineReplicaCompletionTracker1 = new PipelineReplicaCompletionTracker( pipeline1 );
 
-        pipeline1.init( supervisor.upstreamContexts.get( pipelineReplicaId1 ), supervisorNotifier1 );
+        pipeline1.init( supervisor.upstreamContexts.get( pipelineReplicaId1 ), pipelineReplicaCompletionTracker1 );
 
         final PipelineReplica pipeline2 = new PipelineReplica( jokerConfig,
                                                                pipelineReplicaId2,
@@ -808,21 +792,17 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                                                         stateOperatorDef,
                                                                                                                         MULTI_THREADED ) );
 
-        final SupervisorNotifier supervisorNotifier2 = new SupervisorNotifier( supervisor, pipeline2 );
+        final PipelineReplicaCompletionTracker pipelineReplicaCompletionTracker2 = new PipelineReplicaCompletionTracker( pipeline2 );
 
-        pipeline2.init( supervisor.upstreamContexts.get( pipelineReplicaId2 ), supervisorNotifier2 );
+        pipeline2.init( supervisor.upstreamContexts.get( pipelineReplicaId2 ), pipelineReplicaCompletionTracker2 );
 
         final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig,
-                                                                         pipeline1,
-                                                                         supervisor,
-                                                                         supervisorNotifier1,
+                                                                         pipeline1, supervisor, pipelineReplicaCompletionTracker1,
                                                                          new DownstreamTupleSenderImpl(
                                                                                  pipeline2.getUpstreamTupleQueueContext(),
                                                                                                         new Pair[] { Pair.of( 0, 0 ) } ) );
         final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( jokerConfig,
-                                                                         pipeline2,
-                                                                         supervisor,
-                                                                         supervisorNotifier2,
+                                                                         pipeline2, supervisor, pipelineReplicaCompletionTracker2,
                                                                          mock( DownstreamTupleSender.class ) );
 
         supervisor.targetPipelineReplicaId = pipelineReplicaId2;

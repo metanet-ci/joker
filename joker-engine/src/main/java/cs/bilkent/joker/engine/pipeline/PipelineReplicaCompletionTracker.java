@@ -4,15 +4,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETED;
-import cs.bilkent.joker.engine.supervisor.Supervisor;
 
-public class SupervisorNotifier implements OperatorReplicaListener
+public class PipelineReplicaCompletionTracker implements OperatorReplicaListener
 {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger( SupervisorNotifier.class );
+    private static final Logger LOGGER = LoggerFactory.getLogger( PipelineReplicaCompletionTracker.class );
 
-
-    private final Supervisor supervisor;
 
     private final PipelineReplicaId pipelineReplicaId;
 
@@ -20,9 +17,8 @@ public class SupervisorNotifier implements OperatorReplicaListener
 
     private int completedOperatorCount;
 
-    public SupervisorNotifier ( final Supervisor supervisor, final PipelineReplica pipelineReplica )
+    public PipelineReplicaCompletionTracker ( final PipelineReplica pipelineReplica )
     {
-        this.supervisor = supervisor;
         this.pipelineReplicaId = pipelineReplica.id();
         this.operatorCount = pipelineReplica.getOperatorCount();
     }
@@ -45,14 +41,10 @@ public class SupervisorNotifier implements OperatorReplicaListener
             return;
         }
 
+        LOGGER.info( "{}:{} is completed", pipelineReplicaId, operatorId );
         if ( ++completedOperatorCount == operatorCount )
         {
-            LOGGER.info( "{} is completed as {} is completed lastly", pipelineReplicaId, operatorId );
-            supervisor.notifyPipelineReplicaCompleted( pipelineReplicaId );
-        }
-        else
-        {
-            LOGGER.info( "{}:{} is completed", pipelineReplicaId, operatorId );
+            LOGGER.info( "{} will complete as last operator: {} is completed.", pipelineReplicaId, operatorId );
         }
     }
 

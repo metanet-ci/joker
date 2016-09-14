@@ -3,11 +3,11 @@ package cs.bilkent.joker.engine.pipeline;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerCommandType.PAUSE;
@@ -46,13 +46,11 @@ public class PipelineReplicaRunner implements Runnable
 
     private final PipelineReplicaId id;
 
-    private final long waitTimeout;
-
-    private final TimeUnit waitTimeoutUnit;
+    private final long waitTimeoutInMillis;
 
     private final Supervisor supervisor;
 
-    private final SupervisorNotifier supervisorNotifier;
+    private final PipelineReplicaCompletionTracker pipelineReplicaCompletionTracker;
 
 
     private DownstreamTupleSender downstreamTupleSender;
@@ -66,23 +64,21 @@ public class PipelineReplicaRunner implements Runnable
 
     public PipelineReplicaRunner ( final JokerConfig config,
                                    final PipelineReplica pipeline,
-                                   final Supervisor supervisor,
-                                   final SupervisorNotifier supervisorNotifier,
+                                   final Supervisor supervisor, final PipelineReplicaCompletionTracker pipelineReplicaCompletionTracker,
                                    final DownstreamTupleSender downstreamTupleSender )
     {
         this.config = config;
         this.pipeline = pipeline;
         this.id = pipeline.id();
-        this.waitTimeout = config.getPipelineReplicaRunnerConfig().getWaitTimeout();
-        this.waitTimeoutUnit = config.getPipelineReplicaRunnerConfig().getWaitTimeoutUnit();
+        this.waitTimeoutInMillis = config.getPipelineReplicaRunnerConfig().getWaitTimeoutInMillis();
         this.supervisor = supervisor;
-        this.supervisorNotifier = supervisorNotifier;
+        this.pipelineReplicaCompletionTracker = pipelineReplicaCompletionTracker;
         this.downstreamTupleSender = downstreamTupleSender;
     }
 
-    public SupervisorNotifier getSupervisorNotifier ()
+    public PipelineReplicaCompletionTracker getPipelineReplicaCompletionTracker ()
     {
-        return supervisorNotifier;
+        return pipelineReplicaCompletionTracker;
     }
 
     public PipelineReplicaRunnerStatus getStatus ()
@@ -349,13 +345,12 @@ public class PipelineReplicaRunner implements Runnable
                     awaitDownstreamTuplesFuture();
                     synchronized ( monitor )
                     {
-                        monitor.wait( waitTimeout );
+                        monitor.wait( waitTimeoutInMillis );
                     }
                     continue;
                 }
                 else if ( status == COMPLETED )
                 {
-                    awaitDownstreamTuplesFuture();
                     completeRun();
                     break;
                 }
@@ -367,7 +362,7 @@ public class PipelineReplicaRunner implements Runnable
                     downstreamTuplesFuture = downstreamTupleSender.send( output );
                 }
 
-                if ( supervisorNotifier.isPipelineCompleted() )
+                if ( pipelineReplicaCompletionTracker.isPipelineCompleted() )
                 {
                     LOGGER.info( "All operators of Pipeline {} are completed.", id );
                     completeRun();
@@ -377,9 +372,7 @@ public class PipelineReplicaRunner implements Runnable
         }
         catch ( Exception e )
         {
-            LOGGER.error( "{}: runner failed", id );
-            supervisor.notifyPipelineReplicaFailed( id, e );
-            completeRun();
+            completeRunWithFailure( e );
         }
 
         if ( status == COMPLETED )
@@ -402,6 +395,7 @@ public class PipelineReplicaRunner implements Runnable
             synchronized ( monitor )
             {
                 final UpstreamContext pipelineUpstreamContext = supervisor.getUpstreamContext( id );
+                checkNotNull( pipelineUpstreamContext, "Pipeline %s has null upstream context!", pipeline.id() );
                 final PipelineReplicaRunnerCommandType commandType = command.type;
                 if ( commandType == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
                 {
@@ -495,6 +489,8 @@ public class PipelineReplicaRunner implements Runnable
         awaitDownstreamTuplesFuture();
         LOGGER.info( "{}: all downstream tuples are sent", id );
 
+        supervisor.notifyPipelineReplicaCompleted( pipeline.id() );
+
         synchronized ( monitor )
         {
             final PipelineReplicaRunnerCommand command = this.command;
@@ -511,6 +507,25 @@ public class PipelineReplicaRunner implements Runnable
                     LOGGER.warn( "{}: completing command with type: {} exceptionally", id, type );
                     command.completeExceptionally( new IllegalStateException( id + " completed running!" ) );
                 }
+                this.command = null;
+            }
+            this.status = COMPLETED;
+        }
+    }
+
+    private void completeRunWithFailure ( final Exception e )
+    {
+        LOGGER.error( "{}: runner failed", id );
+        supervisor.notifyPipelineReplicaFailed( id, e );
+
+        synchronized ( monitor )
+        {
+            final PipelineReplicaRunnerCommand command = this.command;
+            if ( command != null )
+            {
+                final PipelineReplicaRunnerCommandType type = command.type;
+                LOGGER.error( id + ": completing command with type: " + type + " exceptionally", e );
+                command.completeExceptionally( new IllegalStateException( id + " completed running! ", e ) );
                 this.command = null;
             }
             this.status = COMPLETED;
