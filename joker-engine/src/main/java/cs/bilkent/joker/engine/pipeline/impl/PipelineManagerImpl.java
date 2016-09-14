@@ -34,8 +34,8 @@ import cs.bilkent.joker.engine.pipeline.Pipeline;
 import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineManager;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
+import cs.bilkent.joker.engine.pipeline.PipelineReplicaCompletionTracker;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner;
-import cs.bilkent.joker.engine.pipeline.SupervisorNotifier;
 import cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
@@ -537,11 +537,12 @@ public class PipelineManagerImpl implements PipelineManager
             for ( int replicaIndex = 0; replicaIndex < pipeline.getReplicaCount(); replicaIndex++ )
             {
                 final PipelineReplica pipelineReplica = pipeline.getPipelineReplica( replicaIndex );
-                final SupervisorNotifier supervisorNotifier = new SupervisorNotifier( supervisor, pipelineReplica );
+                final PipelineReplicaCompletionTracker pipelineReplicaCompletionTracker = new PipelineReplicaCompletionTracker(
+                        pipelineReplica );
                 final PipelineReplicaRunner runner = new PipelineReplicaRunner( jokerConfig,
                                                                                 pipelineReplica,
                                                                                 supervisor,
-                                                                                supervisorNotifier,
+                                                                                pipelineReplicaCompletionTracker,
                                                                                 pipeline.getDownstreamTupleSender( replicaIndex ) );
                 pipeline.setPipelineReplicaRunner( replicaIndex, runner );
                 LOGGER.info( "Created runner for pipeline replica: {}", pipelineReplica.id() );

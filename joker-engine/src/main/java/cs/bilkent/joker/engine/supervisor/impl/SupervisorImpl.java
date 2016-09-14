@@ -39,9 +39,9 @@ import cs.bilkent.joker.engine.pipeline.Pipeline;
 import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineManager;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
+import cs.bilkent.joker.engine.pipeline.PipelineReplicaCompletionTracker;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner;
-import cs.bilkent.joker.engine.pipeline.SupervisorNotifier;
 import cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.NO_CONNECTION;
 import cs.bilkent.joker.engine.pipeline.UpstreamContext;
@@ -147,9 +147,10 @@ public class SupervisorImpl implements Supervisor
                 for ( int replicaIndex = 0; replicaIndex < pipeline.getReplicaCount(); replicaIndex++ )
                 {
                     final PipelineReplica pipelineReplica = pipeline.getPipelineReplica( replicaIndex );
-                    final SupervisorNotifier supervisorNotifier = pipeline.getPipelineReplicaRunner( replicaIndex ).getSupervisorNotifier();
+                    final PipelineReplicaCompletionTracker pipelineReplicaCompletionTracker = pipeline.getPipelineReplicaRunner(
+                            replicaIndex ).getPipelineReplicaCompletionTracker();
                     LOGGER.info( "Initializing Replica {} of Pipeline {}", replicaIndex, pipeline.getId() );
-                    pipelineReplica.init( upstreamContext, supervisorNotifier );
+                    pipelineReplica.init( upstreamContext, pipelineReplicaCompletionTracker );
                     pipelineReplicas.add( pipelineReplica );
                 }
 
@@ -372,7 +373,7 @@ public class SupervisorImpl implements Supervisor
             pipeline.setPipelineCompleting();
         }
 
-        notifyPipelineReplicaRunners( pipeline );
+        notifyPipelineReplicaRunners( pipeline, upstreamContext );
     }
 
     private boolean checkAllPipelinesCompleted ()
@@ -388,9 +389,9 @@ public class SupervisorImpl implements Supervisor
         return true;
     }
 
-    private void notifyPipelineReplicaRunners ( final Pipeline pipeline )
+    private void notifyPipelineReplicaRunners ( final Pipeline pipeline, final UpstreamContext upstreamContext )
     {
-        LOGGER.info( "Notifying runners about new upstream context of Pipeline {}", pipeline.getId() );
+        LOGGER.info( "Notifying runners about new {} of Pipeline {}", upstreamContext, pipeline.getId() );
         for ( int i = 0; i < pipeline.getReplicaCount(); i++ )
         {
             final PipelineReplicaRunner runner = pipeline.getPipelineReplicaRunner( i );

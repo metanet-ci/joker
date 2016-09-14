@@ -1,7 +1,6 @@
 package cs.bilkent.joker.engine.pipeline;
 
 import java.util.Arrays;
-import java.util.function.Consumer;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.slf4j.Logger;
@@ -23,6 +22,7 @@ import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.context.EmptyTupleQueueContext;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.BlockingMultiPortDisjunctiveDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.BlockingSinglePortDrainer;
+import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.MultiPortDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.NopDrainer;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -56,19 +56,11 @@ public class PipelineReplica
 
     private final int[] upstreamInputPorts;
 
-    private final int[] blockingUpstreamTupleCounts;
-
-    private final int[] nonBlockingUpstreamTupleCounts;
-
-    private final TupleQueueDrainer upstreamDrainer;
-
-    private final Consumer<TupleQueueDrainer> upstreamDrainerParameterSetter;
+    private TupleQueueDrainer upstreamDrainer;
 
     private OperatorReplicaStatus status = INITIAL;
 
     private UpstreamContext pipelineUpstreamContext;
-
-    private boolean noBlockOnUpstreamTupleQueueContext;
 
     public PipelineReplica ( final JokerConfig config,
                              final PipelineReplicaId id,
@@ -82,10 +74,7 @@ public class PipelineReplica
         this.upstreamTupleQueueContext = upstreamTupleQueueContext;
         this.upstreamInputPortCount = operators[ 0 ].getOperatorDef().inputPortCount();
         this.upstreamInputPorts = new int[ upstreamInputPortCount ];
-        this.blockingUpstreamTupleCounts = new int[ upstreamInputPortCount ];
-        this.nonBlockingUpstreamTupleCounts = new int[ upstreamInputPortCount ];
         this.upstreamDrainer = createUpstreamDrainer();
-        this.upstreamDrainerParameterSetter = createUpstreamDrainerParameterSetter();
     }
 
     private TupleQueueDrainer createUpstreamDrainer ()
@@ -96,54 +85,31 @@ public class PipelineReplica
         }
 
         final TupleQueueDrainerConfig tupleQueueDrainerConfig = config.getTupleQueueDrainerConfig();
+        final int maxBatchSize = tupleQueueDrainerConfig.getPartitionedStatefulPipelineDrainerMaxBatchSize();
         if ( upstreamInputPortCount == 1 )
         {
-            final BlockingSinglePortDrainer drainer = new BlockingSinglePortDrainer( tupleQueueDrainerConfig.getMaxBatchSize(),
-                                                                                     tupleQueueDrainerConfig.getDrainTimeout(),
-                                                                                     tupleQueueDrainerConfig.getDrainTimeoutTimeUnit() );
-            drainer.setParameters( AT_LEAST, 0 );
-            return drainer;
+            final BlockingSinglePortDrainer blockingDrainer = new BlockingSinglePortDrainer( maxBatchSize,
+                                                                                             tupleQueueDrainerConfig.getDrainTimeout(),
+                                                                                             tupleQueueDrainerConfig
+                                                                                                     .getDrainTimeoutTimeUnit() );
+            blockingDrainer.setParameters( AT_LEAST, 1 );
+            return blockingDrainer;
         }
 
-        final MultiPortDrainer drainer = new BlockingMultiPortDisjunctiveDrainer( upstreamInputPortCount,
-                                                                                  tupleQueueDrainerConfig.getMaxBatchSize(),
-                                                                                  tupleQueueDrainerConfig.getDrainTimeout(),
-                                                                                  tupleQueueDrainerConfig.getDrainTimeoutTimeUnit() );
         for ( int i = 0; i < upstreamInputPortCount; i++ )
         {
             upstreamInputPorts[ i ] = i;
         }
-        Arrays.fill( blockingUpstreamTupleCounts, 1 );
-        Arrays.fill( nonBlockingUpstreamTupleCounts, 0 );
-        drainer.setParameters( AT_LEAST, upstreamInputPorts, nonBlockingUpstreamTupleCounts );
-        return drainer;
-    }
+        final int[] blockingTupleCounts = new int[ upstreamInputPortCount ];
+        Arrays.fill( blockingTupleCounts, 1 );
 
-    private Consumer<TupleQueueDrainer> createUpstreamDrainerParameterSetter ()
-    {
-        if ( upstreamTupleQueueContext instanceof EmptyTupleQueueContext )
-        {
-            return drainer ->
-            {
-            };
-        }
-
-        if ( upstreamInputPortCount == 1 )
-        {
-            return drainer ->
-            {
-                final BlockingSinglePortDrainer b = (BlockingSinglePortDrainer) drainer;
-                final int count = noBlockOnUpstreamTupleQueueContext ? 0 : 1;
-                b.setParameters( AT_LEAST, count );
-            };
-        }
-
-        return drainer ->
-        {
-            final MultiPortDrainer multiPortDrainer = (MultiPortDrainer) upstreamDrainer;
-            final int[] tupleCounts = noBlockOnUpstreamTupleQueueContext ? nonBlockingUpstreamTupleCounts : blockingUpstreamTupleCounts;
-            multiPortDrainer.setParameters( AT_LEAST, upstreamInputPorts, tupleCounts );
-        };
+        final MultiPortDrainer blockingDrainer = new BlockingMultiPortDisjunctiveDrainer( upstreamInputPortCount,
+                                                                                          maxBatchSize,
+                                                                                          tupleQueueDrainerConfig.getDrainTimeout(),
+                                                                                          tupleQueueDrainerConfig.getDrainTimeoutTimeUnit
+                                                                                                                          () );
+        blockingDrainer.setParameters( AT_LEAST, upstreamInputPorts, blockingTupleCounts );
+        return blockingDrainer;
     }
 
     public SchedulingStrategy[] init ( final UpstreamContext upstreamContext, final OperatorReplicaListener operatorReplicaListener )
@@ -179,18 +145,30 @@ public class PipelineReplica
     public void setPipelineUpstreamContext ( final UpstreamContext pipelineUpstreamContext )
     {
         this.pipelineUpstreamContext = pipelineUpstreamContext;
-        if ( upstreamInputPortCount > 1 )
+        if ( upstreamTupleQueueContext instanceof EmptyTupleQueueContext )
         {
-            final OperatorReplica operator = operators[ 0 ];
-            final SchedulingStrategy schedulingStrategy = operator.getSchedulingStrategy();
-            if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
+            if ( upstreamInputPortCount > 1 )
             {
-                updateUpstreamInputPortDrainOrder( operator, (ScheduleWhenTuplesAvailable) schedulingStrategy );
+                final OperatorReplica operator = operators[ 0 ];
+                final SchedulingStrategy schedulingStrategy = operator.getSchedulingStrategy();
+                if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
+                {
+                    updateUpstreamInputPortDrainOrder( operator, (ScheduleWhenTuplesAvailable) schedulingStrategy );
+                }
+                else
+                {
+                    LOGGER.info( "{} is not updating drainer parameters because {}", id, schedulingStrategy );
+                }
             }
-            else
-            {
-                LOGGER.info( "{} is not updating drainer parameters because {}", id, schedulingStrategy );
-            }
+        }
+        else if ( pipelineUpstreamContext.getVersion() > 0 && !( upstreamDrainer instanceof GreedyDrainer ) )
+        {
+            upstreamDrainer = new GreedyDrainer( upstreamInputPortCount );
+            LOGGER.info( "{} is switching to {} because of new {}", id, GreedyDrainer.class.getSimpleName(), pipelineUpstreamContext );
+        }
+        else
+        {
+            LOGGER.info( "{} handled new {}", id, pipelineUpstreamContext );
         }
     }
 
@@ -263,28 +241,20 @@ public class PipelineReplica
     public TuplesImpl invoke ()
     {
         OperatorReplica operator;
-        drainUpstreamTupleQueueContext();
+        upstreamTupleQueueContext.drain( upstreamDrainer );
         TuplesImpl tuples = upstreamDrainer.getResult();
         UpstreamContext upstreamContext = this.pipelineUpstreamContext;
 
-        this.noBlockOnUpstreamTupleQueueContext = false;
         for ( int i = 0; i < operatorCount; i++ )
         {
             operator = operators[ i ];
             tuples = operator.invoke( tuples, upstreamContext );
-            noBlockOnUpstreamTupleQueueContext |= operator.isInvokedOnLastAttempt();
             upstreamContext = operator.getSelfUpstreamContext();
         }
 
         upstreamDrainer.reset();
 
         return tuples;
-    }
-
-    private void drainUpstreamTupleQueueContext ()
-    {
-        upstreamDrainerParameterSetter.accept( upstreamDrainer );
-        upstreamTupleQueueContext.drain( upstreamDrainer );
     }
 
     public void shutdown ()

@@ -31,7 +31,7 @@ import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.Tuples;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
-import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAny;
+import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAll;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
@@ -50,7 +50,6 @@ import cs.bilkent.joker.testutils.AbstractJokerTest;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 
@@ -74,7 +73,7 @@ public class JokerTest extends AbstractJokerTest
 
         final OperatorConfig beacon1Config = new OperatorConfig();
         beacon1Config.set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator1 );
-        beacon1Config.set( TUPLE_COUNT_CONFIG_PARAMETER, 10 );
+        beacon1Config.set( TUPLE_COUNT_CONFIG_PARAMETER, 20 );
 
         final OperatorRuntimeSchemaBuilder beacon1Schema = new OperatorRuntimeSchemaBuilder( 0, 1 );
         beacon1Schema.getOutputPortSchemaBuilder( 0 ).addField( "key", Integer.class ).addField( "value", Integer.class );
@@ -86,7 +85,7 @@ public class JokerTest extends AbstractJokerTest
 
         final OperatorConfig beacon2Config = new OperatorConfig();
         beacon2Config.set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator2 );
-        beacon2Config.set( TUPLE_COUNT_CONFIG_PARAMETER, 5 );
+        beacon2Config.set( TUPLE_COUNT_CONFIG_PARAMETER, 10 );
 
         final OperatorRuntimeSchemaBuilder beacon2Schema = new OperatorRuntimeSchemaBuilder( 0, 1 );
         beacon2Schema.getOutputPortSchemaBuilder( 0 ).addField( "key", Integer.class ).addField( "value", Integer.class );
@@ -171,7 +170,7 @@ public class JokerTest extends AbstractJokerTest
 
         sleepUninterruptibly( 30, SECONDS );
 
-        joker.shutdown().get( 2, MINUTES );
+        joker.shutdown().get( 30, SECONDS );
 
         System.out.println( "Value generator 1 is invoked " + valueGenerator1.invocationCount.get() + " times." );
         System.out.println( "Value generator 2 is invoked " + valueGenerator2.invocationCount.get() + " times." );
@@ -360,7 +359,7 @@ public class JokerTest extends AbstractJokerTest
 
         sleepUninterruptibly( 30, SECONDS );
 
-        joker.shutdown().get( 2, MINUTES );
+        joker.shutdown().get( 30, SECONDS );
 
         System.out.println( "Value generator 1 is invoked " + valueGenerator1.invocationCount.get() + " times." );
         System.out.println( "Value generator 2 is invoked " + valueGenerator2.invocationCount.get() + " times." );
@@ -511,7 +510,7 @@ public class JokerTest extends AbstractJokerTest
         @Override
         public SchedulingStrategy init ( final InitializationContext context )
         {
-            return scheduleWhenTuplesAvailableOnAny( AT_LEAST, 2, 1, 0, 1 );
+            return scheduleWhenTuplesAvailableOnAll( AT_LEAST, 2, 1, 0, 1 );
         }
 
         @Override
