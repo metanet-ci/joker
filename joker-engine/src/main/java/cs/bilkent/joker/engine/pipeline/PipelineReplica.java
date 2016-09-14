@@ -145,7 +145,7 @@ public class PipelineReplica
     public void setPipelineUpstreamContext ( final UpstreamContext pipelineUpstreamContext )
     {
         this.pipelineUpstreamContext = pipelineUpstreamContext;
-        if ( upstreamTupleQueueContext instanceof EmptyTupleQueueContext )
+        if ( upstreamTupleQueueContext instanceof EmptyTupleQueueContext || pipelineUpstreamContext.getVersion() == 0 )
         {
             if ( upstreamInputPortCount > 1 )
             {
