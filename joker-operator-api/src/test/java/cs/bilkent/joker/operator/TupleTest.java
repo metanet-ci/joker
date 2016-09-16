@@ -462,7 +462,7 @@ public class TupleTest extends AbstractJokerTest
     }
 
     @Test
-    public void testSetWithIndex ()
+    public void testSetWithSchemaIndex ()
     {
         final List<RuntimeSchemaField> fields = new ArrayList<>();
         fields.add( new RuntimeSchemaField( "intField", Integer.class ) );
@@ -485,7 +485,7 @@ public class TupleTest extends AbstractJokerTest
     }
 
     @Test
-    public void testSetIncompatibleValueWithIndex ()
+    public void testSetIncompatibleValueWithSchemaIndex ()
     {
         final List<RuntimeSchemaField> fields = new ArrayList<>();
         fields.add( new RuntimeSchemaField( "intField", Integer.class ) );
