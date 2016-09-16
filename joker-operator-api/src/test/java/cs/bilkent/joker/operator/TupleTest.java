@@ -430,6 +430,110 @@ public class TupleTest extends AbstractJokerTest
     }
 
     @Test
+    public void testGetAtSchemaIndex ()
+    {
+        final List<RuntimeSchemaField> fields = new ArrayList<>();
+        fields.add( new RuntimeSchemaField( "intField", Integer.class ) );
+        fields.add( new RuntimeSchemaField( "doubleField", Double.class ) );
+        fields.add( new RuntimeSchemaField( "stringField", String.class ) );
+        final PortRuntimeSchema schema = new PortRuntimeSchema( fields );
+        final Tuple tuple = new Tuple( schema );
+
+        tuple.set( "schemalessField", 10 );
+        tuple.set( "intField", 5 );
+        tuple.set( "doubleField", 1.5 );
+        tuple.set( "stringField", "str" );
+
+        final int intIndex = tuple.getSchema().getFieldIndex( "intField" );
+        final int doubleIndex = tuple.getSchema().getFieldIndex( "doubleField" );
+        final int stringIndex = tuple.getSchema().getFieldIndex( "stringField" );
+
+        assertThat( tuple.getAtSchemaIndex( intIndex ), equalTo( 5 ) );
+        assertThat( tuple.getAtSchemaIndex( doubleIndex ), equalTo( 1.5 ) );
+        assertThat( tuple.getAtSchemaIndex( stringIndex ), equalTo( "str" ) );
+    }
+
+    @Test( expected = IllegalArgumentException.class )
+    public void shouldNotGetAtSchemaIndexWithInvalidValue ()
+    {
+        final Tuple tuple = new Tuple();
+
+        tuple.getAtSchemaIndex( 0 );
+    }
+
+    @Test
+    public void testSetWithIndex ()
+    {
+        final List<RuntimeSchemaField> fields = new ArrayList<>();
+        fields.add( new RuntimeSchemaField( "intField", Integer.class ) );
+        fields.add( new RuntimeSchemaField( "doubleField", Double.class ) );
+        fields.add( new RuntimeSchemaField( "stringField", String.class ) );
+        final PortRuntimeSchema schema = new PortRuntimeSchema( fields );
+        final Tuple tuple = new Tuple( schema );
+
+        final int intIndex = tuple.getSchema().getFieldIndex( "intField" );
+        final int doubleIndex = tuple.getSchema().getFieldIndex( "doubleField" );
+        final int stringIndex = tuple.getSchema().getFieldIndex( "stringField" );
+
+        tuple.setAtSchemaIndex( intIndex, 5 );
+        tuple.setAtSchemaIndex( doubleIndex, 1.5 );
+        tuple.setAtSchemaIndex( stringIndex, "str" );
+
+        assertThat( tuple.get( "intField" ), equalTo( 5 ) );
+        assertThat( tuple.get( "doubleField" ), equalTo( 1.5 ) );
+        assertThat( tuple.get( "stringField" ), equalTo( "str" ) );
+    }
+
+    @Test
+    public void testSetIncompatibleValueWithIndex ()
+    {
+        final List<RuntimeSchemaField> fields = new ArrayList<>();
+        fields.add( new RuntimeSchemaField( "intField", Integer.class ) );
+        final PortRuntimeSchema schema = new PortRuntimeSchema( fields );
+        final Tuple tuple = new Tuple( schema );
+
+        final int intIndex = tuple.getSchema().getFieldIndex( "intField" );
+
+        tuple.setAtSchemaIndex( intIndex, "val" );
+
+        assertThat( tuple.get( "intField" ), equalTo( "val" ) );
+    }
+
+    @Test
+    public void testSetWithSchemafulTuple ()
+    {
+        final List<RuntimeSchemaField> fields = new ArrayList<>();
+        fields.add( new RuntimeSchemaField( "intField", Integer.class ) );
+        fields.add( new RuntimeSchemaField( "doubleField", Double.class ) );
+        fields.add( new RuntimeSchemaField( "stringField", String.class ) );
+        final PortRuntimeSchema schema = new PortRuntimeSchema( fields );
+        final Tuple tuple = new Tuple( schema );
+
+        tuple.set( "schemalessField", 10 );
+        tuple.set( "intField", 5 );
+        tuple.set( "doubleField", 1.5 );
+        tuple.set( "stringField", "str" );
+
+        assertThat( tuple.get( "schemalessField" ), equalTo( 10 ) );
+        assertThat( tuple.get( "intField" ), equalTo( 5 ) );
+        assertThat( tuple.get( "doubleField" ), equalTo( 1.5 ) );
+        assertThat( tuple.get( "stringField" ), equalTo( "str" ) );
+    }
+
+    @Test
+    public void testSetIncompatibleValueToSchemaField ()
+    {
+        final List<RuntimeSchemaField> fields = new ArrayList<>();
+        fields.add( new RuntimeSchemaField( "intField", Integer.class ) );
+        final PortRuntimeSchema schema = new PortRuntimeSchema( fields );
+        final Tuple tuple = new Tuple( schema );
+
+        tuple.set( "intField", "val" );
+
+        assertThat( tuple.get( "intField" ), equalTo( "val" ) );
+    }
+
+    @Test
     public void testContainsWithSchemafulTuple ()
     {
         final List<RuntimeSchemaField> fields = new ArrayList<>();

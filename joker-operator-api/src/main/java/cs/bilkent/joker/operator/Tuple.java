@@ -130,6 +130,12 @@ public final class Tuple implements Fields<String>
         return null;
     }
 
+    public <T> T getAtSchemaIndex ( final int i )
+    {
+        checkArgument( i >= 0 && i < schema.getFieldCount(), "invalid index" );
+        return (T) values.get( i );
+    }
+
     @Override
     public boolean contains ( final String key )
     {
@@ -175,6 +181,12 @@ public final class Tuple implements Fields<String>
 
             values.add( new SimpleEntry<>( key, value ) );
         }
+    }
+
+    public void setAtSchemaIndex ( final int i, final Object value )
+    {
+        checkArgument( i >= 0 && i < schema.getFieldCount(), "invalid index" );
+        values.set( i, value );
     }
 
     @Override
