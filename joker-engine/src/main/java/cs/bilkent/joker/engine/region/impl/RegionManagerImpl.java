@@ -87,14 +87,14 @@ public class RegionManagerImpl implements RegionManager
 
         final PipelineReplica[][] pipelineReplicas = new PipelineReplica[ pipelineCount ][ replicaCount ];
 
-        for ( int pipelineId = 0; pipelineId < pipelineCount; pipelineId++ )
+        for ( int pipelineIndex = 0; pipelineIndex < pipelineCount; pipelineIndex++ )
         {
-            final OperatorDef[] operatorDefs = regionConfig.getOperatorDefs( pipelineId );
+            final int pipelineId = regionConfig.getPipelineStartIndex( pipelineIndex );
+            final OperatorDef[] operatorDefs = regionConfig.getOperatorDefsByPipelineIndex( pipelineIndex );
             final int operatorCount = operatorDefs.length;
             final OperatorReplica[][] operatorReplicas = new OperatorReplica[ replicaCount ][ operatorCount ];
-            LOGGER.info( "Initializing pipeline instance for regionId={} pipelineId={} with {} operators",
-                         regionId,
-                         pipelineId,
+            LOGGER.info( "Initializing pipeline instance for regionId={} pipelineIndex={} with {} operators",
+                         regionId, pipelineIndex,
                          operatorCount );
 
             final PipelineReplicaId[] pipelineReplicaIds = createPipelineReplicaIds( regionId, replicaCount, pipelineId );
@@ -133,23 +133,23 @@ public class RegionManagerImpl implements RegionManager
 
             for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
             {
-                LOGGER.info( "Creating pipeline instance for regionId={} replicaIndex={} pipelineId={}",
+                LOGGER.info( "Creating pipeline instance for regionId={} replicaIndex={} pipelineIndex={} pipelineId={}",
                              regionId,
-                             replicaIndex,
+                             replicaIndex, pipelineIndex,
                              pipelineId );
                 final OperatorReplica[] pipelineOperatorReplicas = operatorReplicas[ replicaIndex ];
                 final OperatorType regionType =
-                        pipelineId == 0 ? regionConfig.getRegionDef().getRegionType() : operatorDefs[ 0 ].operatorType();
+                        pipelineIndex == 0 ? regionConfig.getRegionDef().getRegionType() : operatorDefs[ 0 ].operatorType();
                 final TupleQueueContext pipelineTupleQueueContext = createPipelineTupleQueueContext( flow,
                                                                                                      regionId,
                                                                                                      replicaIndex,
                                                                                                      regionType,
                                                                                                      pipelineOperatorReplicas );
 
-                pipelineReplicas[ pipelineId ][ replicaIndex ] = new PipelineReplica( config,
-                                                                                      pipelineReplicaIds[ replicaIndex ],
-                                                                                      pipelineOperatorReplicas,
-                                                                                      pipelineTupleQueueContext );
+                pipelineReplicas[ pipelineIndex ][ replicaIndex ] = new PipelineReplica( config,
+                                                                                         pipelineReplicaIds[ replicaIndex ],
+                                                                                         pipelineOperatorReplicas,
+                                                                                         pipelineTupleQueueContext );
             }
         }
 
@@ -168,9 +168,9 @@ public class RegionManagerImpl implements RegionManager
         final int replicaCount = regionConfig.getReplicaCount();
         final int pipelineCount = regionConfig.getPipelineStartIndices().size();
 
-        for ( int pipelineId = 0; pipelineId < pipelineCount; pipelineId++ )
+        for ( int pipelineIndex = 0; pipelineIndex < pipelineCount; pipelineIndex++ )
         {
-            final PipelineReplica[] pipelineReplicas = region.getPipelineReplicas( pipelineId );
+            final PipelineReplica[] pipelineReplicas = region.getPipelineReplicas( pipelineIndex );
             for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
             {
                 final PipelineReplica pipelineReplica = pipelineReplicas[ replicaIndex ];
@@ -179,7 +179,7 @@ public class RegionManagerImpl implements RegionManager
                 if ( selfUpstreamTupleQueueContext instanceof DefaultTupleQueueContext )
                 {
                     LOGGER.info( "Releasing default tuple queue context of pipeline {}", pipelineReplica.id() );
-                    final OperatorDef[] operatorDefs = regionConfig.getOperatorDefs( pipelineId );
+                    final OperatorDef[] operatorDefs = regionConfig.getOperatorDefsByPipelineIndex( pipelineIndex );
                     final String operatorId = operatorDefs[ 0 ].id();
                     checkState( tupleQueueContextManager.releaseDefaultTupleQueueContext( regionId, replicaIndex, operatorId ),
                                 "Cannot release default tuple queue context of regionId=%s replicaIndex=%s operator=%s",

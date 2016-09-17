@@ -233,7 +233,6 @@ public class PipelineManagerImpl implements PipelineManager
     @Override
     public List<Pipeline> createPipelines ( final Supervisor supervisor, final FlowDef flow, final List<RegionConfig> regionConfigs )
     {
-        createPipelines( regionConfigs );
         createPipelineReplicas( flow, regionConfigs );
         createDownstreamTupleSenders( flow );
         createUpstreamContexts( flow );
@@ -262,37 +261,26 @@ public class PipelineManagerImpl implements PipelineManager
         }
     }
 
-    private void createPipelines ( final Collection<RegionConfig> regionConfigs )
+    private void createPipelineReplicas ( final FlowDef flow, final Collection<RegionConfig> regionConfigs )
     {
-        final List<RegionConfig> l = new ArrayList<>( regionConfigs );
-        Collections.sort( l, ( r1, r2 ) -> Integer.compare( r1.getRegionId(), r2.getRegionId() ) );
-
-        for ( RegionConfig regionConfig : l )
+        for ( RegionConfig regionConfig : regionConfigs )
         {
             LOGGER.info( "Initializing regionId={} with {} pipelines ( {} ) and {} replicas",
                          regionConfig.getRegionId(),
                          regionConfig.getPipelineCount(),
                          regionConfig.getPipelineStartIndices(),
                          regionConfig.getReplicaCount() );
-            for ( int pipelineId = 0; pipelineId < regionConfig.getPipelineCount(); pipelineId++ )
-            {
-                final PipelineId id = new PipelineId( regionConfig.getRegionId(), pipelineId );
-                final Pipeline prev = pipelines.put( id, new Pipeline( id, regionConfig ) );
-                checkState( prev == null, "there are multiple pipelines with same id: %s", id );
-            }
-        }
-    }
 
-    private void createPipelineReplicas ( final FlowDef flow, final Collection<RegionConfig> regionConfigs )
-    {
-        for ( RegionConfig regionConfig : regionConfigs )
-        {
             final Region region = regionManager.createRegion( flow, regionConfig );
-            for ( int pipelineId = 0; pipelineId < regionConfig.getPipelineCount(); pipelineId++ )
+            for ( int pipelineIndex = 0; pipelineIndex < regionConfig.getPipelineCount(); pipelineIndex++ )
             {
-                final PipelineReplica[] pipelineReplicas = region.getPipelineReplicas( pipelineId );
-                final PipelineId id = new PipelineId( regionConfig.getRegionId(), pipelineId );
-                final Pipeline pipeline = pipelines.get( id );
+                final PipelineReplica[] pipelineReplicas = region.getPipelineReplicas( pipelineIndex );
+
+                final PipelineId pipelineId = pipelineReplicas[ 0 ].id().pipelineId;
+                final Pipeline pipeline = new Pipeline( pipelineId, regionConfig );
+
+                checkState( pipelines.put( pipelineId, pipeline ) == null, "there are multiple pipelines with same id: %s", pipelineId );
+
                 for ( int replicaIndex = 0; replicaIndex < pipeline.getReplicaCount(); replicaIndex++ )
                 {
                     pipeline.setPipelineReplica( replicaIndex, pipelineReplicas[ replicaIndex ] );

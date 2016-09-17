@@ -57,7 +57,7 @@ public class Pipeline
 
     public OperatorDef getOperatorDef ( int operatorIndex )
     {
-        return regionConfig.getOperatorDefs( id.pipelineId )[ operatorIndex ];
+        return regionConfig.getOperatorDefsByPipelineId( id.pipelineId )[ operatorIndex ];
     }
 
     public OperatorDef getFirstOperatorDef ()
@@ -67,13 +67,13 @@ public class Pipeline
 
     public OperatorDef getLastOperatorDef ()
     {
-        final OperatorDef[] operatorDefs = regionConfig.getOperatorDefs( id.pipelineId );
-        return regionConfig.getOperatorDefs( id.pipelineId )[ operatorDefs.length - 1 ];
+        final OperatorDef[] operatorDefs = regionConfig.getOperatorDefsByPipelineId( id.pipelineId );
+        return regionConfig.getOperatorDefsByPipelineId( id.pipelineId )[ operatorDefs.length - 1 ];
     }
 
     public int getOperatorCount ()
     {
-        return regionConfig.getOperatorDefs( id.pipelineId ).length;
+        return regionConfig.getOperatorDefsByPipelineId( id.pipelineId ).length;
     }
 
     public OperatorReplicaStatus getPipelineStatus ()
@@ -106,7 +106,7 @@ public class Pipeline
 
     public int getOperatorIndex ( final OperatorDef operator )
     {
-        final OperatorDef[] operatorDefs = regionConfig.getOperatorDefs( id.pipelineId );
+        final OperatorDef[] operatorDefs = regionConfig.getOperatorDefsByPipelineId( id.pipelineId );
         for ( int i = 0; i < operatorDefs.length; i++ )
         {
             if ( operatorDefs[ i ].equals( operator ) )

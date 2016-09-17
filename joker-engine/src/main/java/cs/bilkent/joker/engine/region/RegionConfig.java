@@ -48,10 +48,28 @@ public class RegionConfig
         return pipelineStartIndices;
     }
 
-    public OperatorDef[] getOperatorDefs ( final int pipelineId )
+    public int getPipelineStartIndex ( final int pipelineIndex )
+    {
+        return pipelineStartIndices.get( pipelineIndex );
+    }
+
+    public OperatorDef[] getOperatorDefsByPipelineId ( final int pipelineId )
+    {
+        for ( int pipelineIndex = 0; pipelineIndex < pipelineStartIndices.size(); pipelineIndex++ )
+        {
+            if ( pipelineStartIndices.get( pipelineIndex ) == pipelineId )
+            {
+                return getOperatorDefsByPipelineIndex( pipelineIndex );
+            }
+        }
+
+        throw new IllegalArgumentException( "invalid pipeline id: " + pipelineId );
+    }
+
+    public OperatorDef[] getOperatorDefsByPipelineIndex ( final int pipelineIndex )
     {
         final List<OperatorDef> operators = regionDef.getOperators();
-        final int startIndex = pipelineStartIndices.get( pipelineId );
+        final int startIndex = pipelineStartIndices.get( pipelineIndex );
         final int endIndex = startIndex + 1 < pipelineStartIndices.size() ? pipelineStartIndices.get( startIndex + 1 ) : operators.size();
         final List<OperatorDef> operatorDefs = operators.subList( startIndex, endIndex );
         final OperatorDef[] operatorDefsArr = new OperatorDef[ operatorDefs.size() ];

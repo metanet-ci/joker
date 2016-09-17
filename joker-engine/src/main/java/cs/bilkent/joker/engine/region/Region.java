@@ -42,9 +42,9 @@ public class Region
         return p;
     }
 
-    public PipelineReplica[] getPipelineReplicas ( final int pipelineId )
+    public PipelineReplica[] getPipelineReplicas ( final int pipelineIndex )
     {
-        return pipelines[ pipelineId ];
+        return pipelines[ pipelineIndex ];
     }
 
 }

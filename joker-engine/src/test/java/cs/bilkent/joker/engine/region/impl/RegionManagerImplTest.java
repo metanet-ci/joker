@@ -100,7 +100,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final PipelineReplica pipeline = pipelines[ 0 ];
         assertEmptyTupleQueueContext( pipeline, operatorDef0.inputPortCount() );
 
-        assertStatelessPipelineWithNoInput( regionDef.getRegionId(), 0, 0, operatorDef0, operatorDef1, pipeline );
+        assertStatelessPipelineWithNoInput( regionDef.getRegionId(), 0, 0, pipeline, operatorDef0, operatorDef1 );
     }
 
     @Test
@@ -123,7 +123,9 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final PipelineReplica pipeline0 = pipelines[ 0 ];
         final PipelineReplica pipeline1 = pipelines[ 1 ];
         assertEmptyTupleQueueContext( pipeline0, operatorDef0.inputPortCount() );
+        assertEmptyPipelineSelfTupleQueueContext( pipeline0 );
         assertDefaultTupleQueueContext( pipeline1, operatorDef1.inputPortCount() );
+        assertEmptyPipelineSelfTupleQueueContext( pipeline1 );
 
         assertEquals( new PipelineReplicaId( new PipelineId( regionDef.getRegionId(), 0 ), 0 ), pipeline0.id() );
         assertEquals( new PipelineReplicaId( new PipelineId( regionDef.getRegionId(), 1 ), 0 ), pipeline1.id() );
@@ -167,15 +169,13 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
     private void assertStatelessPipelineWithNoInput ( final int regionId,
                                                       final int replicaIndex,
-                                                      final int pipelineId,
-                                                      final OperatorDef operatorDef0,
-                                                      final OperatorDef operatorDef1,
-                                                      final PipelineReplica pipelineReplica0 )
+                                                      final int pipelineId, final PipelineReplica pipelineReplica,
+                                                      final OperatorDef operatorDef0, final OperatorDef operatorDef1 )
     {
-        assertEquals( new PipelineReplicaId( new PipelineId( regionId, pipelineId ), replicaIndex ), pipelineReplica0.id() );
-        assertEquals( 2, pipelineReplica0.getOperatorCount() );
-        final OperatorReplica operatorReplica0 = pipelineReplica0.getOperator( 0 );
-        final OperatorReplica operatorReplica1 = pipelineReplica0.getOperator( 1 );
+        assertEquals( new PipelineReplicaId( new PipelineId( regionId, pipelineId ), replicaIndex ), pipelineReplica.id() );
+        assertEquals( 2, pipelineReplica.getOperatorCount() );
+        final OperatorReplica operatorReplica0 = pipelineReplica.getOperator( 0 );
+        final OperatorReplica operatorReplica1 = pipelineReplica.getOperator( 1 );
         assertOperatorDef( operatorReplica0, operatorDef0 );
         assertOperatorDef( operatorReplica1, operatorDef1 );
         assertEmptyTupleQueueContext( operatorReplica0 );
@@ -214,6 +214,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertEquals( 1, pipelines.length );
         final PipelineReplica pipeline = pipelines[ 0 ];
         assertDefaultTupleQueueContext( pipeline, operatorDef1.inputPortCount() );
+        assertEmptyPipelineSelfTupleQueueContext( pipeline );
 
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 0 ), pipeline.id() );
         assertEquals( 2, pipeline.getOperatorCount() );
@@ -260,7 +261,9 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final PipelineReplica pipelineReplica0 = pipelineReplicas0[ 0 ];
         final PipelineReplica pipelineReplica1 = pipelineReplicas1[ 0 ];
         assertDefaultTupleQueueContext( pipelineReplica0, operatorDef1.inputPortCount() );
+        assertEmptyPipelineSelfTupleQueueContext( pipelineReplica0 );
         assertDefaultTupleQueueContext( pipelineReplica1, operatorDef1.inputPortCount() );
+        assertEmptyPipelineSelfTupleQueueContext( pipelineReplica1 );
 
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 0 ), pipelineReplica0.id() );
         assertEquals( 2, pipelineReplica0.getOperatorCount() );
@@ -311,6 +314,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertEquals( 1, pipelines.length );
         final PipelineReplica pipeline = pipelines[ 0 ];
         assertDefaultTupleQueueContext( pipeline, operatorDef1.inputPortCount() );
+        assertEmptyPipelineSelfTupleQueueContext( pipeline );
 
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 0 ), pipeline.id() );
         assertEquals( 1, pipeline.getOperatorCount() );
@@ -348,6 +352,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertEquals( 1, pipelines.length );
         final PipelineReplica pipeline = pipelines[ 0 ];
         assertEmptyTupleQueueContext( pipeline, operatorDef1.inputPortCount() );
+        assertEmptyPipelineSelfTupleQueueContext( pipeline );
 
         assertEquals( 2, pipeline.getOperatorCount() );
 
@@ -452,6 +457,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertEquals( 1, pipelines.length );
         final PipelineReplica pipeline = pipelines[ 0 ];
         assertDefaultTupleQueueContext( pipeline, operatorDef1.inputPortCount() );
+        assertDefaultPipelineSelfTupleQueueContext( pipeline );
 
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 0 ), pipeline.id() );
         assertEquals( 1, pipeline.getOperatorCount() );
@@ -540,7 +546,9 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final PipelineReplica pipelineReplica0 = pipelines0[ 0 ];
         final PipelineReplica pipelineReplica1 = pipelines1[ 0 ];
         assertDefaultTupleQueueContext( pipelineReplica0, operatorDef1.inputPortCount() );
+        assertDefaultPipelineSelfTupleQueueContext( pipelineReplica0 );
         assertDefaultTupleQueueContext( pipelineReplica1, operatorDef1.inputPortCount() );
+        assertDefaultPipelineSelfTupleQueueContext( pipelineReplica1 );
 
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 0 ), pipelineReplica0.id() );
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 1 ), pipelineReplica1.id() );
@@ -601,6 +609,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertEquals( 1, pipelines.length );
         final PipelineReplica pipeline = pipelines[ 0 ];
         assertDefaultTupleQueueContext( pipeline, operatorDef1.inputPortCount() );
+        assertEmptyPipelineSelfTupleQueueContext( pipeline );
 
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 0 ), pipeline.id() );
         assertEquals( 2, pipeline.getOperatorCount() );
@@ -663,7 +672,9 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final PipelineReplica pipelineReplica0 = pipelinesReplica0[ 0 ];
         final PipelineReplica pipelineReplica1 = pipelinesReplica1[ 0 ];
         assertDefaultTupleQueueContext( pipelineReplica0, operatorDef1.inputPortCount() );
+        assertEmptyPipelineSelfTupleQueueContext( pipelineReplica0 );
         assertDefaultTupleQueueContext( pipelineReplica1, operatorDef1.inputPortCount() );
+        assertEmptyPipelineSelfTupleQueueContext( pipelineReplica1 );
         assertFalse( pipelineReplica0.getUpstreamTupleQueueContext() == pipelineReplica1.getUpstreamTupleQueueContext() );
 
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 0 ), pipelineReplica0.id() );
@@ -803,7 +814,9 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final PipelineReplica pipeline0 = pipelines[ 0 ];
         final PipelineReplica pipeline1 = pipelines[ 1 ];
         assertDefaultTupleQueueContext( pipeline0, operatorDef1.inputPortCount() );
+        assertEmptyPipelineSelfTupleQueueContext( pipeline0 );
         assertDefaultTupleQueueContext( pipeline1, operatorDef2.inputPortCount() );
+        assertDefaultPipelineSelfTupleQueueContext( pipeline1 );
 
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 0 ), pipeline0.id() );
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 1 ), 0 ), pipeline1.id() );
@@ -829,6 +842,85 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertDefaultTupleQueueContext( operatorReplica3, operatorDef3.inputPortCount(), SINGLE_THREADED );
         assertEmptyKVStoreContext( operatorReplica3 );
         assertNonBlockingTupleQueueDrainerPool( operatorReplica3 );
+        assertNonCachedTuplesImplSupplier( operatorReplica3 );
+    }
+
+    @Test
+    public void test_partitionedStatefulRegion_twoPipelines_singleReplica_bothPipelinesStartWithStatelessOperator ()
+    {
+        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 1, 1 );
+        operatorRuntimeSchemaBuilder0.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field2", Integer.class );
+        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder1 = new OperatorRuntimeSchemaBuilder( 1, 1 );
+        operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class ).addOutputField( 0, "field2", Integer.class );
+        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder2 = new OperatorRuntimeSchemaBuilder( 2, 1 );
+        operatorRuntimeSchemaBuilder2.addInputField( 0, "field2", Integer.class )
+                                     .addInputField( 1, "field2", Integer.class )
+                                     .addOutputField( 0, "field3", Integer.class );
+        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder3 = new OperatorRuntimeSchemaBuilder( 1, 1 );
+        operatorRuntimeSchemaBuilder3.addInputField( 0, "field3", Integer.class ).addOutputField( 0, "field3", Integer.class );
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithSingleInputOutputPortCount.class )
+                                                           .setExtendingSchema( operatorRuntimeSchemaBuilder0 )
+                                                           .build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithSingleInputOutputPortCount.class )
+                                                           .setExtendingSchema( operatorRuntimeSchemaBuilder1 )
+                                                           .build();
+        final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2",
+                                                                         PartitionedStatefulOperatorWithSingleInputOutputPortCount.class )
+                                                           .setExtendingSchema( operatorRuntimeSchemaBuilder2 )
+                                                           .setPartitionFieldNames( singletonList( "field2" ) )
+                                                           .build();
+        final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessOperatorWithSingleInputOutputPortCount.class )
+                                                           .setExtendingSchema( operatorRuntimeSchemaBuilder3 )
+                                                           .build();
+
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef0 )
+                                                 .add( operatorDef1 )
+                                                 .add( operatorDef2 )
+                                                 .add( operatorDef3 )
+                                                 .connect( "op0", "op1" )
+                                                 .connect( "op1", "op2" )
+                                                 .connect( "op2", "op3" )
+                                                 .build();
+
+        final List<RegionDef> regionDefs = regionDefFormer.createRegions( flow );
+        final RegionDef regionDef = regionDefs.get( 1 );
+        final RegionConfig regionConfig = new RegionConfig( regionDef, asList( 0, 2 ), 1 );
+
+        final Region region = regionManager.createRegion( flow, regionConfig );
+        assertNotNull( region );
+        final PipelineReplica[] pipelines = region.getReplicaPipelines( 0 );
+        assertEquals( 2, pipelines.length );
+        final PipelineReplica pipeline0 = pipelines[ 0 ];
+        final PipelineReplica pipeline1 = pipelines[ 1 ];
+        assertDefaultTupleQueueContext( pipeline0, operatorDef1.inputPortCount() );
+        assertEmptyPipelineSelfTupleQueueContext( pipeline0 );
+        assertDefaultTupleQueueContext( pipeline1, operatorDef3.inputPortCount() );
+        assertEmptyPipelineSelfTupleQueueContext( pipeline0 );
+
+        assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 0 ), pipeline0.id() );
+        assertEquals( new PipelineReplicaId( new PipelineId( 1, 2 ), 0 ), pipeline1.id() );
+        assertEquals( 2, pipeline0.getOperatorCount() );
+        assertEquals( 1, pipeline1.getOperatorCount() );
+
+        final OperatorReplica operatorReplica1 = pipeline0.getOperator( 0 );
+        assertOperatorDef( operatorReplica1, operatorDef1 );
+        assertDefaultTupleQueueContext( operatorReplica1, operatorDef1.inputPortCount(), MULTI_THREADED );
+        assertEmptyKVStoreContext( operatorReplica1 );
+        assertBlockingTupleQueueDrainerPool( operatorReplica1 );
+        assertCachedTuplesImplSupplier( operatorReplica1 );
+
+        final OperatorReplica operatorReplica2 = pipeline0.getOperator( 1 );
+        assertOperatorDef( operatorReplica2, operatorDef2 );
+        assertPartitionedTupleQueueContext( operatorReplica2 );
+        assertPartitionedKVStoreContext( operatorReplica2 );
+        assertNonBlockingTupleQueueDrainerPool( operatorReplica2 );
+        assertNonCachedTuplesImplSupplier( operatorReplica2 );
+
+        final OperatorReplica operatorReplica3 = pipeline1.getOperator( 0 );
+        assertOperatorDef( operatorReplica3, operatorDef3 );
+        assertDefaultTupleQueueContext( operatorReplica3, operatorDef3.inputPortCount(), MULTI_THREADED );
+        assertEmptyKVStoreContext( operatorReplica3 );
+        assertBlockingTupleQueueDrainerPool( operatorReplica3 );
         assertNonCachedTuplesImplSupplier( operatorReplica3 );
     }
 
@@ -881,11 +973,11 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final PipelineReplica pipeline1 = pipelines[ 1 ];
         final PipelineReplica pipeline2 = pipelines[ 2 ];
         assertDefaultTupleQueueContext( pipeline0, operatorDef1.inputPortCount() );
-        assertTrue( pipeline0.getSelfUpstreamTupleQueueContext() instanceof EmptyTupleQueueContext );
+        assertEmptyPipelineSelfTupleQueueContext( pipeline0 );
         assertDefaultTupleQueueContext( pipeline1, operatorDef2.inputPortCount() );
-        assertTrue( pipeline1.getSelfUpstreamTupleQueueContext() instanceof DefaultTupleQueueContext );
+        assertDefaultPipelineSelfTupleQueueContext( pipeline1 );
         assertDefaultTupleQueueContext( pipeline2, operatorDef3.inputPortCount() );
-        assertTrue( pipeline2.getSelfUpstreamTupleQueueContext() instanceof EmptyTupleQueueContext );
+        assertEmptyPipelineSelfTupleQueueContext( pipeline2 );
 
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 0 ), 0 ), pipeline0.id() );
         assertEquals( new PipelineReplicaId( new PipelineId( 1, 1 ), 0 ), pipeline1.id() );
@@ -914,6 +1006,17 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertEmptyKVStoreContext( operatorReplica3 );
         assertBlockingTupleQueueDrainerPool( operatorReplica3 );
         assertNonCachedTuplesImplSupplier( operatorReplica3 );
+    }
+
+    private void assertDefaultPipelineSelfTupleQueueContext ( final PipelineReplica pipeline )
+    {
+        assertTrue( pipeline.getSelfUpstreamTupleQueueContext() instanceof DefaultTupleQueueContext );
+    }
+
+
+    private void assertEmptyPipelineSelfTupleQueueContext ( final PipelineReplica pipeline )
+    {
+        assertTrue( pipeline.getSelfUpstreamTupleQueueContext() instanceof EmptyTupleQueueContext );
     }
 
     private void assertEmptyTupleQueueContext ( final PipelineReplica pipeline, final int inputPortCount )
