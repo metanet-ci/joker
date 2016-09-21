@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -37,7 +36,7 @@ public class MultiThreadedTupleQueue implements TupleQueue
     private final Condition fullCondition = lock.newCondition();
 
     @GuardedBy( "monitor" )
-    private final Queue<Tuple> queue;
+    private final ArrayDeque<Tuple> queue;
 
     private int effectiveCapacity, capacity;
 
@@ -488,6 +487,11 @@ public class MultiThreadedTupleQueue implements TupleQueue
         {
             lock.unlock();
         }
+    }
+
+    public SingleThreadedTupleQueue toSingleThreadedTupleQueue ()
+    {
+        return new SingleThreadedTupleQueue( this.queue );
     }
 
     private void awaitInNanos ( final Condition condition, final long durationInNanos )

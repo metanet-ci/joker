@@ -1,7 +1,7 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.context;
 
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -35,7 +35,7 @@ public class PartitionedTupleQueueContextTest extends AbstractJokerTest
     @Before
     public void init ()
     {
-        final Function<Boolean, TupleQueue> tupleQueueConstructor = capacityCheckEnabled -> new SingleThreadedTupleQueue( 10 );
+        final BiFunction<Integer, Boolean, TupleQueue> tupleQueueConstructor = ( portIndex, capacityCheckEnabled ) -> new SingleThreadedTupleQueue( 10 );
 
         final TupleQueueContainer container = new TupleQueueContainer( "op1", INPUT_PORT_COUNT, 0, tupleQueueConstructor );
         tupleQueueContext = new PartitionedTupleQueueContext( "op1",

@@ -35,13 +35,13 @@ public @interface OperatorSchema
      *
      * @return input schemas of an operator.
      */
-    PortSchema[] inputs ();
+    PortSchema[] inputs () default {};
 
     /**
      * Output schemas of an operator. It is not necessary to define schemas for all of the output ports of an operator.
      *
      * @return output schemas of an operator.
      */
-    PortSchema[] outputs ();
+    PortSchema[] outputs () default {};
 
 }

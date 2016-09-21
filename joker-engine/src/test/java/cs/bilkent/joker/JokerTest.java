@@ -169,7 +169,7 @@ public class JokerTest extends AbstractJokerTest
 
         sleepUninterruptibly( 30, SECONDS );
 
-        joker.shutdown().get( 30, SECONDS );
+        joker.shutdown().get( 60, SECONDS );
 
         System.out.println( "Value generator 1 is invoked " + valueGenerator1.invocationCount.get() + " times." );
         System.out.println( "Value generator 2 is invoked " + valueGenerator2.invocationCount.get() + " times." );
@@ -358,7 +358,7 @@ public class JokerTest extends AbstractJokerTest
 
         sleepUninterruptibly( 30, SECONDS );
 
-        joker.shutdown().get( 30, SECONDS );
+        joker.shutdown().get( 60, SECONDS );
 
         System.out.println( "Value generator 1 is invoked " + valueGenerator1.invocationCount.get() + " times." );
         System.out.println( "Value generator 2 is invoked " + valueGenerator2.invocationCount.get() + " times." );

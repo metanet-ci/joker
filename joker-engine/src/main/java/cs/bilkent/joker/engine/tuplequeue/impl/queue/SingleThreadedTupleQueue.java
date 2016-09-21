@@ -18,6 +18,11 @@ public class SingleThreadedTupleQueue implements TupleQueue
 
     private final ArrayDeque<Tuple> queue;
 
+    SingleThreadedTupleQueue ( final ArrayDeque<Tuple> queue )
+    {
+        this.queue = queue;
+    }
+
     public SingleThreadedTupleQueue ( final int initialCapacity )
     {
         checkArgument( initialCapacity > 0 );

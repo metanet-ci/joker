@@ -9,4 +9,6 @@ public interface TupleQueueDrainerPool
 
     void release ( TupleQueueDrainer drainer );
 
+    void reset ();
+
 }

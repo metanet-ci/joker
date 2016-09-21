@@ -398,21 +398,21 @@ public class OperatorDefBuilderTest extends AbstractJokerTest
 
 
     @OperatorSpec( type = PARTITIONED_STATEFUL, inputPortCount = 2, outputPortCount = 1 )
-    @OperatorSchema( inputs = { @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = EXTENDABLE_FIELD_SET, fields = { @SchemaField( name = "field1", type = int.class ) } ) }, outputs = {} )
+    @OperatorSchema( inputs = { @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = EXTENDABLE_FIELD_SET, fields = { @SchemaField( name = "field1", type = int.class ) } ) } )
     public static class PartitionedStatefulOperatorWithBaseInputPortSchema extends NopOperator
     {
     }
 
 
     @OperatorSpec( type = STATELESS, outputPortCount = 1 )
-    @OperatorSchema( inputs = { @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = EXACT_FIELD_SET, fields = {} ) }, outputs = {} )
+    @OperatorSchema( inputs = { @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = EXACT_FIELD_SET, fields = {} ) } )
     public static class OperatorWithNoInputPortCountButInputSchema extends NopOperator
     {
     }
 
 
     @OperatorSpec( type = STATELESS, inputPortCount = 1 )
-    @OperatorSchema( inputs = {}, outputs = { @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = EXACT_FIELD_SET, fields = {} ) } )
+    @OperatorSchema( outputs = { @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = EXACT_FIELD_SET, fields = {} ) } )
     public static class OperatorWithNoOutputPortCountButOutputSchema extends NopOperator
     {
     }
@@ -420,43 +420,43 @@ public class OperatorDefBuilderTest extends AbstractJokerTest
 
     @OperatorSpec( type = STATELESS, inputPortCount = 1 )
     @OperatorSchema( inputs = { @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = EXACT_FIELD_SET, fields = {} ),
-                                @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = EXACT_FIELD_SET, fields = {} ) }, outputs = {} )
+                                @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = EXACT_FIELD_SET, fields = {} ) } )
     public static class OperatorWithDuplicateInputPortSchema extends NopOperator
     {
     }
 
 
     @OperatorSpec( type = STATELESS, outputPortCount = 1 )
-    @OperatorSchema( inputs = {}, outputs = { @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = EXACT_FIELD_SET, fields = {} ),
-                                              @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = EXACT_FIELD_SET, fields = {} ) } )
+    @OperatorSchema( outputs = { @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = EXACT_FIELD_SET, fields = {} ),
+                                 @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = EXACT_FIELD_SET, fields = {} ) } )
     public static class OperatorWithDuplicateOutputPortSchema extends NopOperator
     {
     }
 
 
     @OperatorSpec( type = STATELESS, inputPortCount = 1 )
-    @OperatorSchema( inputs = { @PortSchema( portIndex = -1, scope = EXACT_FIELD_SET, fields = {} ) }, outputs = {} )
+    @OperatorSchema( inputs = { @PortSchema( portIndex = -1, scope = EXACT_FIELD_SET, fields = {} ) } )
     public static class OperatorWithNegativeInputPortSchema extends NopOperator
     {
     }
 
 
     @OperatorSpec( type = STATELESS, outputPortCount = 1 )
-    @OperatorSchema( inputs = {}, outputs = { @PortSchema( portIndex = -1, scope = EXACT_FIELD_SET, fields = {} ) } )
+    @OperatorSchema( outputs = { @PortSchema( portIndex = -1, scope = EXACT_FIELD_SET, fields = {} ) } )
     public static class OperatorWithNegativeOutputPortSchema extends NopOperator
     {
     }
 
 
     @OperatorSpec( type = STATELESS, inputPortCount = 1 )
-    @OperatorSchema( inputs = { @PortSchema( portIndex = 1, scope = EXACT_FIELD_SET, fields = {} ) }, outputs = {} )
+    @OperatorSchema( inputs = { @PortSchema( portIndex = 1, scope = EXACT_FIELD_SET, fields = {} ) } )
     public static class OperatorWithExceedingInputPortSchema extends NopOperator
     {
     }
 
 
     @OperatorSpec( type = STATELESS, outputPortCount = 1 )
-    @OperatorSchema( inputs = {}, outputs = { @PortSchema( portIndex = 1, scope = EXACT_FIELD_SET, fields = {} ) } )
+    @OperatorSchema( outputs = { @PortSchema( portIndex = 1, scope = EXACT_FIELD_SET, fields = {} ) } )
     public static class OperatorWithExceedingOutputPortSchema extends NopOperator
     {
     }

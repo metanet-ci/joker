@@ -3,6 +3,7 @@ package cs.bilkent.joker.engine.tuplequeue.impl;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.inject.Inject;
@@ -12,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.config.ThreadingPreference;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
@@ -46,7 +48,7 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
 
     private final TupleQueueManagerConfig tupleQueueManagerConfig;
 
-    private final Map<Triple<Integer, Integer, String>, TupleQueueContext> singleTupleQueueContexts = new HashMap<>();
+    private final Map<Triple<Integer, Integer, String>, DefaultTupleQueueContext> singleTupleQueueContexts = new HashMap<>();
 
     private final Map<Pair<Integer, String>, PartitionedTupleQueueContext[]> partitionedTupleQueueContexts = new HashMap<>();
 
@@ -88,11 +90,11 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
                        replicaIndex,
                        operatorDef.id() );
 
-        final Function<Boolean, TupleQueue> tupleQueueConstructor = getTupleQueueConstructor( threadingPreference );
+        final BiFunction<Integer, Boolean, TupleQueue> tupleQueueConstructor = getTupleQueueConstructor( threadingPreference );
         final String operatorId = operatorDef.id();
         final int inputPortCount = operatorDef.inputPortCount();
 
-        final Function<Triple<Integer, Integer, String>, TupleQueueContext> c = t ->
+        final Function<Triple<Integer, Integer, String>, DefaultTupleQueueContext> c = t ->
         {
             LOGGER.info( "created single tuple queue context for regionId={} replicaIndex={} operatorId={}",
                          regionId,
@@ -124,7 +126,7 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
                        regionId,
                        operatorDef.id() );
         checkArgument( replicaCount > 0, "invalid replica count %s ! regionId %s operatorId %s", replicaCount, regionId, operatorDef.id() );
-        final Function<Boolean, TupleQueue> tupleQueueConstructor = getTupleQueueConstructor( SINGLE_THREADED );
+        final BiFunction<Integer, Boolean, TupleQueue> tupleQueueConstructor = getTupleQueueConstructor( SINGLE_THREADED );
         final String operatorId = operatorDef.id();
         final int inputPortCount = operatorDef.inputPortCount();
 
@@ -166,12 +168,12 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
         return partitionedTupleQueueContexts.get( Pair.of( regionId, operatorDef.id() ) );
     }
 
-    private Function<Boolean, TupleQueue> getTupleQueueConstructor ( final ThreadingPreference threadingPreference )
+    private BiFunction<Integer, Boolean, TupleQueue> getTupleQueueConstructor ( final ThreadingPreference threadingPreference )
     {
         return threadingPreference == SINGLE_THREADED
-               ? ( capacityCheckEnabled ) -> new SingleThreadedTupleQueue( tupleQueueManagerConfig.getTupleQueueInitialSize() )
-               : ( capacityCheckEnabled ) -> new MultiThreadedTupleQueue( tupleQueueManagerConfig.getTupleQueueInitialSize(),
-                                                                          capacityCheckEnabled );
+               ? ( portIndex, capacityCheckEnabled ) -> new SingleThreadedTupleQueue( tupleQueueManagerConfig.getTupleQueueInitialSize() )
+               : ( portIndex, capacityCheckEnabled ) -> new MultiThreadedTupleQueue( tupleQueueManagerConfig.getTupleQueueInitialSize(),
+                                                                                     capacityCheckEnabled );
     }
 
     @Override
@@ -205,10 +207,52 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
         return false;
     }
 
+    @Override
+    public TupleQueueContext convertToSingleThreaded ( final int regionId, final int replicaIndex, final String operatorId )
+    {
+        final Triple<Integer, Integer, String> tupleQueueId = Triple.of( regionId, replicaIndex, operatorId );
+        final DefaultTupleQueueContext tupleQueueContext = singleTupleQueueContexts.remove( tupleQueueId );
+        checkArgument( tupleQueueContext != null,
+                       "No tuple queue context found to convert to single threaded for regionId=%s replicaIndex=%s operatorId=%s",
+                       regionId,
+                       replicaIndex,
+                       operatorId );
+        checkState( tupleQueueContext.getThreadingPreference() == MULTI_THREADED,
+                    "tuple queue context is not %s for regionId=%s replicaIndex=%s operatorId=%s",
+                    MULTI_THREADED,
+                    regionId,
+                    replicaIndex,
+                    operatorId );
+
+        final BiFunction<Integer, Boolean, TupleQueue> tupleQueueConstructor = ( portIndex, capacityCheckEnabled ) ->
+        {
+            final TupleQueue q = tupleQueueContext.getTupleQueue( portIndex );
+            final MultiThreadedTupleQueue tupleQueue = (MultiThreadedTupleQueue) q;
+            return tupleQueue.toSingleThreadedTupleQueue();
+        };
+
+        final DefaultTupleQueueContext newTupleQueueContext = new DefaultTupleQueueContext( operatorId,
+                                                                                            tupleQueueContext.getInputPortCount(),
+                                                                                            SINGLE_THREADED,
+                                                                                            tupleQueueConstructor,
+                                                                                            tupleQueueManagerConfig
+                                                                                                    .getMaxSingleThreadedTupleQueueSize() );
+
+        singleTupleQueueContexts.put( tupleQueueId, newTupleQueueContext );
+        LOGGER.info( "{} default tuple queue context is converted to {} for regionId={} replicaIndex={} operatorId={}",
+                     MULTI_THREADED,
+                     SINGLE_THREADED,
+                     regionId,
+                     replicaIndex,
+                     operatorId );
+
+        return newTupleQueueContext;
+    }
+
     private TupleQueueContainer[] getOrCreateTupleQueueContainers ( final String operatorId,
                                                                     final int inputPortCount,
                                                                     final int partitionCount,
-                                                                    final Function<Boolean, TupleQueue> tupleQueueConstructor )
+                                                                    final BiFunction<Integer, Boolean, TupleQueue> tupleQueueConstructor )
     {
         return tupleQueueContainersByOperatorId.computeIfAbsent( operatorId, s ->
         {

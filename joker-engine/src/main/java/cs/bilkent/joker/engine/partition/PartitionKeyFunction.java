@@ -5,8 +5,8 @@ import cs.bilkent.joker.operator.Tuple;
 public interface PartitionKeyFunction
 {
 
-    Object getPartitionKey ( final Tuple tuple );
+    Object getPartitionKey ( Tuple tuple );
 
-    int getPartitionHash ( final Tuple tuple );
+    int getPartitionHash ( Tuple tuple );
 
 }

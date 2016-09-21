@@ -1,5 +1,6 @@
 package cs.bilkent.joker.engine.region.impl;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,7 @@ import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.NonCachedTuplesImplSu
 import cs.bilkent.joker.engine.region.Region;
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionManager;
+import cs.bilkent.joker.engine.region.RegionTransformer;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueContextManager;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainerPool;
@@ -46,6 +48,9 @@ import cs.bilkent.joker.operator.spec.OperatorType;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
+import static java.lang.Integer.compare;
+import static java.util.Collections.sort;
+import static java.util.stream.Collectors.toList;
 
 @Singleton
 @NotThreadSafe
@@ -61,27 +66,32 @@ public class RegionManagerImpl implements RegionManager
 
     private final TupleQueueContextManager tupleQueueContextManager;
 
+    private final RegionTransformer regionTransformer;
+
     private final Map<Integer, Region> regions = new HashMap<>();
 
     @Inject
     public RegionManagerImpl ( final JokerConfig config,
                                final KVStoreContextManager kvStoreContextManager,
-                               final TupleQueueContextManager tupleQueueContextManager )
+                               final TupleQueueContextManager tupleQueueContextManager,
+                               final RegionTransformer regionTransformer )
     {
         this.config = config;
         this.kvStoreContextManager = kvStoreContextManager;
         this.tupleQueueContextManager = tupleQueueContextManager;
+        this.regionTransformer = regionTransformer;
     }
 
     @Override
     public Region createRegion ( final FlowDef flow, final RegionConfig regionConfig )
     {
         checkState( !regions.containsKey( regionConfig.getRegionId() ), "Region %s is already created!", regionConfig.getRegionId() );
-        checkPipelineStartIndices( regionConfig );
 
         final int regionId = regionConfig.getRegionId();
         final int replicaCount = regionConfig.getReplicaCount();
         final int pipelineCount = regionConfig.getPipelineStartIndices().size();
+
+        checkPipelineStartIndices( regionId, regionConfig.getRegionDef().getOperatorCount(), regionConfig.getPipelineStartIndices() );
 
         LOGGER.info( "Creating components for regionId={} pipelineCount={} replicaCount={}", regionId, pipelineCount, replicaCount );
 
@@ -93,8 +103,7 @@ public class RegionManagerImpl implements RegionManager
             final OperatorDef[] operatorDefs = regionConfig.getOperatorDefsByPipelineIndex( pipelineIndex );
             final int operatorCount = operatorDefs.length;
             final OperatorReplica[][] operatorReplicas = new OperatorReplica[ replicaCount ][ operatorCount ];
-            LOGGER.info( "Initializing pipeline instance for regionId={} pipelineIndex={} with {} operators",
-                         regionId, pipelineIndex,
+            LOGGER.info( "Initializing pipeline instance for regionId={} pipelineIndex={} with {} operators", regionId, pipelineIndex,
                          operatorCount );
 
             final PipelineReplicaId[] pipelineReplicaIds = createPipelineReplicaIds( regionId, replicaCount, pipelineId );
@@ -134,8 +143,7 @@ public class RegionManagerImpl implements RegionManager
             for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
             {
                 LOGGER.info( "Creating pipeline instance for regionId={} replicaIndex={} pipelineIndex={} pipelineId={}",
-                             regionId,
-                             replicaIndex, pipelineIndex,
+                             regionId, replicaIndex, pipelineIndex,
                              pipelineId );
                 final OperatorReplica[] pipelineOperatorReplicas = operatorReplicas[ replicaIndex ];
                 final OperatorType regionType =
@@ -156,6 +164,50 @@ public class RegionManagerImpl implements RegionManager
         final Region region = new Region( regionConfig, pipelineReplicas );
         regions.put( regionId, region );
         return region;
+    }
+
+    @Override
+    public Region mergePipelines ( final int regionId, final List<PipelineId> pipelineIdsToMerge )
+    {
+        final Region region = regions.remove( regionId );
+        checkArgument( region != null, "invalid regionId=%s", regionId );
+
+        final List<Integer> startIndicesToMerge = getMergeablePipelineStartIndices( pipelineIdsToMerge );
+        final Region newRegion = regionTransformer.mergePipelines( region, startIndicesToMerge );
+        regions.put( regionId, newRegion );
+        return newRegion;
+    }
+
+    private List<Integer> getMergeablePipelineStartIndices ( final List<PipelineId> pipelineIds )
+    {
+        checkArgument( pipelineIds != null && pipelineIds.size() > 1 );
+
+        final List<PipelineId> pipelineIdsSorted = new ArrayList<>( pipelineIds );
+        sort( pipelineIdsSorted, ( o1, o2 ) ->
+        {
+            final int c = compare( o1.regionId, o2.regionId );
+            return c != 0 ? c : compare( o1.pipelineId, o2.pipelineId );
+        } );
+
+        checkArgument( pipelineIdsSorted.get( 0 ).regionId == pipelineIdsSorted.get( pipelineIdsSorted.size() - 1 ).regionId,
+                       "multiple region ids in %s",
+                       pipelineIds );
+        checkArgument( pipelineIdsSorted.stream().map( id -> id.pipelineId ).distinct().count() == pipelineIds.size(),
+                       "duplicate pipeline ids in %s",
+                       pipelineIds );
+
+        final Region region = regions.get( pipelineIdsSorted.get( 0 ).regionId );
+        final List<Integer> startIndicesToMerge = pipelineIdsSorted.stream().map( p -> p.pipelineId ).collect( toList() );
+        final RegionConfig regionConfig = region.getConfig();
+
+        if ( !regionTransformer.checkPipelineStartIndicesToMerge( regionConfig, startIndicesToMerge ) )
+        {
+            throw new IllegalArgumentException( "invalid pipeline start indices to merge: " + startIndicesToMerge
+                                                + " current pipeline start indices: " + regionConfig.getPipelineStartIndices()
+                                                + " regionId=" + region.getRegionId() );
+        }
+
+        return startIndicesToMerge;
     }
 
     @Override
@@ -244,19 +296,14 @@ public class RegionManagerImpl implements RegionManager
         }
     }
 
-    private void checkPipelineStartIndices ( final RegionConfig regionConfig )
+    private void checkPipelineStartIndices ( final int regionId, final int operatorCount, final List<Integer> pipelineStartIndices )
     {
-        final int operatorCount = regionConfig.getRegionDef().getOperatorCount();
         int j = -1;
-        final List<Integer> pipelineStartIndices = regionConfig.getPipelineStartIndices();
         for ( int i : pipelineStartIndices )
         {
-            checkArgument( i > j, "invalid pipeline indices: %s for region %s", pipelineStartIndices, regionConfig.getRegionId() );
+            checkArgument( i > j, "invalid pipeline indices: %s for region %s", pipelineStartIndices, regionId );
             j = i;
-            checkArgument( i < operatorCount,
-                           "invalid pipeline indices: %s for region %s",
-                           pipelineStartIndices,
-                           regionConfig.getRegionId() );
+            checkArgument( i < operatorCount, "invalid pipeline indices: %s for region %s", pipelineStartIndices, regionId );
         }
     }
 

@@ -1,16 +1,34 @@
 package cs.bilkent.joker.engine.region;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.spec.OperatorType;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
+import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
+import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import static java.util.Collections.unmodifiableList;
+import static java.util.Collections.unmodifiableMap;
 
 public class RegionDef
 {
+
+    public static final Map<OperatorType, Set<OperatorType>> REGION_OPERATOR_TYPES;
+
+    static
+    {
+        final Map<OperatorType, Set<OperatorType>> m = new HashMap<>();
+        m.put( STATELESS, EnumSet.of( STATELESS ) );
+        m.put( PARTITIONED_STATEFUL, EnumSet.of( PARTITIONED_STATEFUL, STATELESS ) );
+        m.put( STATEFUL, EnumSet.of( STATEFUL, STATELESS ) );
+        REGION_OPERATOR_TYPES = unmodifiableMap( m );
+    }
 
     private final int regionId;
 
@@ -31,10 +49,25 @@ public class RegionDef
                        regionType,
                        partitionFieldNames );
         checkArgument( operators != null && operators.size() > 0, "no operators!" );
+        checkOperatorTypes( regionType, operators );
         this.regionId = regionId;
         this.regionType = regionType;
         this.partitionFieldNames = unmodifiableList( new ArrayList<>( partitionFieldNames ) );
         this.operators = unmodifiableList( new ArrayList<>( operators ) );
+    }
+
+    private void checkOperatorTypes ( final OperatorType regionType, final List<OperatorDef> operators )
+    {
+        final Set<OperatorType> allowedOperatorTypes = REGION_OPERATOR_TYPES.get( regionType );
+        for ( OperatorDef operator : operators )
+        {
+            checkArgument( allowedOperatorTypes.contains( operator.operatorType() ),
+                           "%s Operator: %s is not allowed in %s region. Allowed operator types: %s",
+                           operator.operatorType(),
+                           operator.id(),
+                           regionType,
+                           allowedOperatorTypes );
+        }
     }
 
     public int getRegionId ()

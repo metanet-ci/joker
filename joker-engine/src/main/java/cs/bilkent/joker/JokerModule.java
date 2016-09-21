@@ -18,11 +18,13 @@ import cs.bilkent.joker.engine.region.FlowDeploymentDefFormer;
 import cs.bilkent.joker.engine.region.RegionConfigFactory;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
 import cs.bilkent.joker.engine.region.RegionManager;
+import cs.bilkent.joker.engine.region.RegionTransformer;
 import cs.bilkent.joker.engine.region.impl.FlowDeploymentDefFormerImpl;
 import cs.bilkent.joker.engine.region.impl.IdGenerator;
 import cs.bilkent.joker.engine.region.impl.InteractiveRegionConfigFactory;
 import cs.bilkent.joker.engine.region.impl.RegionDefFormerImpl;
 import cs.bilkent.joker.engine.region.impl.RegionManagerImpl;
+import cs.bilkent.joker.engine.region.impl.RegionTransformerImpl;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import cs.bilkent.joker.engine.supervisor.impl.SupervisorImpl;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueContextManager;
@@ -76,6 +78,7 @@ public class JokerModule extends AbstractModule
         bind( PartitionKeyFunctionFactory.class ).to( PartitionKeyFunctionFactoryImpl.class );
         bind( PipelineManager.class ).to( PipelineManagerImpl.class );
         bind( FlowDeploymentDefFormer.class ).to( FlowDeploymentDefFormerImpl.class );
+        bind( RegionTransformer.class ).to( RegionTransformerImpl.class );
         if ( regionConfigFactory != null )
         {
             bind( RegionConfigFactory.class ).toInstance( regionConfigFactory );

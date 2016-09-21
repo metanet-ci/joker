@@ -15,6 +15,6 @@ public interface RegionConfigFactory
 
     }
 
-    List<RegionConfig> createRegionConfigs ( final FlowDeploymentDef flowDeployment );
+    List<RegionConfig> createRegionConfigs ( FlowDeploymentDef flowDeployment );
 
 }

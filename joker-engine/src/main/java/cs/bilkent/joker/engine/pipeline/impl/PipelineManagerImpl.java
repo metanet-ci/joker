@@ -2,7 +2,6 @@ package cs.bilkent.joker.engine.pipeline.impl;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -66,7 +65,9 @@ import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.joker.utils.Pair;
+import static java.lang.Integer.compare;
 import static java.lang.Math.min;
+import static java.util.Collections.sort;
 
 public class PipelineManagerImpl implements PipelineManager
 {
@@ -411,7 +412,7 @@ public class PipelineManagerImpl implements PipelineManager
         }
 
         final List<String> downstreamOperatorIdsSorted = new ArrayList<>( downstreamOperatorIds );
-        Collections.sort( downstreamOperatorIdsSorted );
+        sort( downstreamOperatorIdsSorted );
 
         for ( String downstreamOperatorId : downstreamOperatorIdsSorted )
         {
@@ -428,10 +429,10 @@ public class PipelineManagerImpl implements PipelineManager
 
         for ( List<Pair<Integer, Integer>> pairs : result.values() )
         {
-            Collections.sort( pairs, ( p1, p2 ) ->
+            sort( pairs, ( p1, p2 ) ->
             {
-                final int r = Integer.compare( p1._1, p2._1 );
-                return r == 0 ? Integer.compare( p1._2, p2._2 ) : r;
+                final int r = compare( p1._1, p2._1 );
+                return r == 0 ? compare( p1._2, p2._2 ) : r;
             } );
         }
 
@@ -525,12 +526,11 @@ public class PipelineManagerImpl implements PipelineManager
             for ( int replicaIndex = 0; replicaIndex < pipeline.getReplicaCount(); replicaIndex++ )
             {
                 final PipelineReplica pipelineReplica = pipeline.getPipelineReplica( replicaIndex );
-                final PipelineReplicaCompletionTracker pipelineReplicaCompletionTracker = new PipelineReplicaCompletionTracker(
-                        pipelineReplica );
+                final PipelineReplicaCompletionTracker tracker = new PipelineReplicaCompletionTracker( pipelineReplica.id(),
+                                                                                                       pipelineReplica.getOperatorCount() );
                 final PipelineReplicaRunner runner = new PipelineReplicaRunner( jokerConfig,
                                                                                 pipelineReplica,
-                                                                                supervisor,
-                                                                                pipelineReplicaCompletionTracker,
+                                                                                supervisor, tracker,
                                                                                 pipeline.getDownstreamTupleSender( replicaIndex ) );
                 pipeline.setPipelineReplicaRunner( replicaIndex, runner );
                 LOGGER.info( "Created runner for pipeline replica: {}", pipelineReplica.id() );

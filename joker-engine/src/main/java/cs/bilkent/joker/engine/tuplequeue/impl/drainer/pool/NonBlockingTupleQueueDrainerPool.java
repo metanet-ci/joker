@@ -121,4 +121,15 @@ public class NonBlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
         active.reset();
         active = null;
     }
+
+    @Override
+    public void reset ()
+    {
+        if ( active != null )
+        {
+            active.reset();
+        }
+        active = null;
+    }
+
 }

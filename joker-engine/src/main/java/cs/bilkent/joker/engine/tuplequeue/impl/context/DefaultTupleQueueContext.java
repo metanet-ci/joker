@@ -2,7 +2,7 @@ package cs.bilkent.joker.engine.tuplequeue.impl.context;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +35,7 @@ public class DefaultTupleQueueContext implements TupleQueueContext
     public DefaultTupleQueueContext ( final String operatorId,
                                       final int inputPortCount,
                                       final ThreadingPreference threadingPreference,
-                                      final Function<Boolean, TupleQueue> tupleQueueConstructor,
+                                      final BiFunction<Integer, Boolean, TupleQueue> tupleQueueConstructor,
                                       final int maxQueueSize
 
     )
@@ -49,7 +49,7 @@ public class DefaultTupleQueueContext implements TupleQueueContext
         this.tupleQueues = new TupleQueue[ inputPortCount ];
         for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
         {
-            this.tupleQueues[ portIndex ] = tupleQueueConstructor.apply( true );
+            this.tupleQueues[ portIndex ] = tupleQueueConstructor.apply( portIndex, true );
         }
         this.maxQueueSize = threadingPreference == SINGLE_THREADED ? maxQueueSize : Integer.MAX_VALUE;
     }
@@ -211,6 +211,11 @@ public class DefaultTupleQueueContext implements TupleQueueContext
     public ThreadingPreference getThreadingPreference ()
     {
         return threadingPreference;
+    }
+
+    public TupleQueue getTupleQueue ( final int portIndex )
+    {
+        return tupleQueues[ portIndex ];
     }
 
 }

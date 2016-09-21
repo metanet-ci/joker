@@ -443,7 +443,7 @@ public class PipelineManagerImplTest extends AbstractJokerTest
     }
 
     @OperatorSpec( type = STATEFUL, inputPortCount = 0, outputPortCount = 1 )
-    @OperatorSchema( inputs = {}, outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = Integer.class ) } ) } )
+    @OperatorSchema( outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = Integer.class ) } ) } )
     public static class StatefulOperatorInput0Output1 implements Operator
     {
 

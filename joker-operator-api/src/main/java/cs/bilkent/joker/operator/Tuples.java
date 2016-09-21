@@ -18,7 +18,7 @@ public interface Tuples
      *
      * @see Port#DEFAULT_PORT_INDEX
      */
-    void add ( final Tuple tuple );
+    void add ( Tuple tuple );
 
     /**
      * Adds the tuples to the default port.
@@ -28,7 +28,7 @@ public interface Tuples
      *
      * @see Port#DEFAULT_PORT_INDEX
      */
-    void addAll ( final List<Tuple> tuples );
+    void addAll ( List<Tuple> tuples );
 
     /**
      * Adds the tuple to the port specified by the port index.
@@ -38,7 +38,7 @@ public interface Tuples
      * @param tuple
      *         tuple to add to the specified port
      */
-    void add ( final int portIndex, final Tuple tuple );
+    void add ( int portIndex, Tuple tuple );
 
     /**
      * Adds the tuples to the port specified by the port index.
@@ -48,7 +48,7 @@ public interface Tuples
      * @param tuplesToAdd
      *         tuples to add to the specified port
      */
-    void addAll ( final int portIndex, final List<Tuple> tuplesToAdd );
+    void addAll ( int portIndex, List<Tuple> tuplesToAdd );
 
     /**
      * Returns the tuples added to the given port index.
@@ -58,7 +58,7 @@ public interface Tuples
      *
      * @return the tuples added to the given port index
      */
-    List<Tuple> getTuples ( final int portIndex );
+    List<Tuple> getTuples ( int portIndex );
 
     /**
      * Returns the tuple added to the given port index with the given tuple index, or null if no tuple exists with the given indices.
@@ -70,7 +70,7 @@ public interface Tuples
      *
      * @return the tuple added to the given port index with the given tuple index if exists, null otherwise
      */
-    Tuple getTupleOrNull ( final int portIndex, final int tupleIndex );
+    Tuple getTupleOrNull ( int portIndex, int tupleIndex );
 
     /**
      * Returns the tuple added to the given port index with the given tuple index.
@@ -123,7 +123,7 @@ public interface Tuples
      *
      * @return the number of tuples that are added to the given port.
      */
-    int getTupleCount ( final int portIndex );
+    int getTupleCount ( int portIndex );
 
     /**
      * Returns the number of ports that include a tuple

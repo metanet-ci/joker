@@ -2,7 +2,6 @@ package cs.bilkent.joker.engine.region.impl;
 
 import java.util.List;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import cs.bilkent.joker.engine.config.JokerConfig;
@@ -27,6 +26,7 @@ import cs.bilkent.joker.engine.region.FlowDeploymentDef;
 import cs.bilkent.joker.engine.region.Region;
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
+import cs.bilkent.joker.engine.region.RegionTransformer;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.joker.engine.tuplequeue.impl.TupleQueueContextManagerImpl;
 import cs.bilkent.joker.engine.tuplequeue.impl.context.DefaultTupleQueueContext;
@@ -57,11 +57,6 @@ import static org.junit.Assert.assertTrue;
 public class RegionManagerImplTest extends AbstractJokerTest
 {
 
-    private RegionManagerImpl regionManager;
-
-    private KVStoreContextManagerImpl kvStoreContextManager;
-
-    private TupleQueueContextManagerImpl tupleQueueContextManager;
 
     private final JokerConfig config = new JokerConfig();
 
@@ -71,14 +66,22 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
     private final FlowDeploymentDefFormerImpl flowDeploymentDefFormer = new FlowDeploymentDefFormerImpl( config, idGenerator );
 
-    @Before
-    public void init ()
-    {
-        final PartitionService partitionService = new PartitionServiceImpl( config );
-        kvStoreContextManager = new KVStoreContextManagerImpl( partitionService );
-        tupleQueueContextManager = new TupleQueueContextManagerImpl( config, partitionService, new PartitionKeyFunctionFactoryImpl() );
-        regionManager = new RegionManagerImpl( config, kvStoreContextManager, tupleQueueContextManager );
-    }
+    private final PartitionService partitionService = new PartitionServiceImpl( config );
+
+    private final KVStoreContextManagerImpl kvStoreContextManager = new KVStoreContextManagerImpl( partitionService );
+
+    private final TupleQueueContextManagerImpl tupleQueueContextManager = new TupleQueueContextManagerImpl( config,
+                                                                                                            partitionService,
+                                                                                                            new PartitionKeyFunctionFactoryImpl() );
+
+    private final RegionTransformer regionTransformer = new RegionTransformerImpl( config, tupleQueueContextManager );
+
+    private final RegionManagerImpl regionManager = new RegionManagerImpl( config,
+                                                                           kvStoreContextManager,
+                                                                           tupleQueueContextManager,
+                                                                           regionTransformer );
+
+
 
     @Test
     public void test_statelessRegion_singlePipeline_singleReplica_noInputConnection ()
@@ -169,8 +172,10 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
     private void assertStatelessPipelineWithNoInput ( final int regionId,
                                                       final int replicaIndex,
-                                                      final int pipelineId, final PipelineReplica pipelineReplica,
-                                                      final OperatorDef operatorDef0, final OperatorDef operatorDef1 )
+                                                      final int pipelineId,
+                                                      final PipelineReplica pipelineReplica,
+                                                      final OperatorDef operatorDef0,
+                                                      final OperatorDef operatorDef1 )
     {
         assertEquals( new PipelineReplicaId( new PipelineId( regionId, pipelineId ), replicaIndex ), pipelineReplica.id() );
         assertEquals( 2, pipelineReplica.getOperatorCount() );
@@ -1104,21 +1109,21 @@ public class RegionManagerImplTest extends AbstractJokerTest
     }
 
     @OperatorSpec( type = OperatorType.STATELESS, inputPortCount = 1, outputPortCount = 1 )
-    private static class StatelessOperatorWithSingleInputOutputPortCount extends NopOperator
+    static class StatelessOperatorWithSingleInputOutputPortCount extends NopOperator
     {
 
     }
 
 
     @OperatorSpec( type = OperatorType.PARTITIONED_STATEFUL, inputPortCount = 2, outputPortCount = 1 )
-    private static class PartitionedStatefulOperatorWithSingleInputOutputPortCount extends NopOperator
+    static class PartitionedStatefulOperatorWithSingleInputOutputPortCount extends NopOperator
     {
 
     }
 
 
     @OperatorSpec( type = OperatorType.STATEFUL, inputPortCount = 1, outputPortCount = 1 )
-    private static class StatefulOperatorWithSingleInputOutputPortCount extends NopOperator
+    static class StatefulOperatorWithSingleInputOutputPortCount extends NopOperator
     {
 
     }
@@ -1138,6 +1143,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         {
 
         }
+
     }
 
 }

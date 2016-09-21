@@ -17,7 +17,7 @@ public class RegionConfig
 
     public RegionConfig ( final RegionDef regionDef, final List<Integer> pipelineStartIndices, final int replicaCount )
     {
-        checkArgument( ( regionDef.getRegionType() == STATEFUL && replicaCount == 1 ) || replicaCount > 0 );
+        checkArgument( regionDef.getRegionType() == STATEFUL ? replicaCount == 1 : replicaCount > 0 );
         this.regionDef = regionDef;
         this.replicaCount = replicaCount;
         this.pipelineStartIndices = pipelineStartIndices;
@@ -53,6 +53,19 @@ public class RegionConfig
         return pipelineStartIndices.get( pipelineIndex );
     }
 
+    public int getPipelineIndex ( final int pipelineId )
+    {
+        for ( int pipelineIndex = 0; pipelineIndex < pipelineStartIndices.size(); pipelineIndex++ )
+        {
+            if ( pipelineStartIndices.get( pipelineIndex ) == pipelineId )
+            {
+                return pipelineIndex;
+            }
+        }
+
+        throw new IllegalArgumentException( "invalid pipeline id: " + pipelineId );
+    }
+
     public OperatorDef[] getOperatorDefsByPipelineId ( final int pipelineId )
     {
         for ( int pipelineIndex = 0; pipelineIndex < pipelineStartIndices.size(); pipelineIndex++ )
@@ -66,15 +79,26 @@ public class RegionConfig
         throw new IllegalArgumentException( "invalid pipeline id: " + pipelineId );
     }
 
+    public int getOperatorCountByPipelineId ( final int pipelineId )
+    {
+        return getOperatorDefsByPipelineId( pipelineId ).length;
+    }
+
     public OperatorDef[] getOperatorDefsByPipelineIndex ( final int pipelineIndex )
     {
         final List<OperatorDef> operators = regionDef.getOperators();
         final int startIndex = pipelineStartIndices.get( pipelineIndex );
-        final int endIndex = startIndex + 1 < pipelineStartIndices.size() ? pipelineStartIndices.get( startIndex + 1 ) : operators.size();
+        final int endIndex =
+                pipelineIndex + 1 < pipelineStartIndices.size() ? pipelineStartIndices.get( pipelineIndex + 1 ) : operators.size();
         final List<OperatorDef> operatorDefs = operators.subList( startIndex, endIndex );
         final OperatorDef[] operatorDefsArr = new OperatorDef[ operatorDefs.size() ];
         operatorDefs.toArray( operatorDefsArr );
         return operatorDefsArr;
+    }
+
+    public int getOperatorCountByPipelineIndex ( final int pipelineIndex )
+    {
+        return getOperatorDefsByPipelineIndex( pipelineIndex ).length;
     }
 
     @Override

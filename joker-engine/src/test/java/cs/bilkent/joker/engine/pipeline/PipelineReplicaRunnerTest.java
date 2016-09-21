@@ -79,6 +79,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
         when( operatorDef.outputPortCount() ).thenReturn( inputOutputPortCount );
         final JokerConfig config = new JokerConfig();
         pipeline = new PipelineReplica( config, id, new OperatorReplica[] { operator }, mock( TupleQueueContext.class ) );
+        pipeline.init( upstreamContext, pipelineReplicaCompletionTracker );
         runner = new PipelineReplicaRunner( config, pipeline, supervisor, pipelineReplicaCompletionTracker, downstreamTupleSender );
 
         thread = new Thread( runner );

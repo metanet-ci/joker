@@ -1,7 +1,7 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.context;
 
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import org.junit.Test;
 
@@ -78,7 +78,7 @@ public class DefaultTupleQueueContextTest extends AbstractJokerTest
     }
 
 
-    private void testAddTuples ( final Function<Boolean, TupleQueue> tupleQueueConstructor,
+    private void testAddTuples ( final BiFunction<Integer, Boolean, TupleQueue> tupleQueueConstructor,
                                  final int inputPortCount,
                                  final ThreadingPreference threadingPreference,
                                  final int tupleCount )
@@ -102,7 +102,7 @@ public class DefaultTupleQueueContextTest extends AbstractJokerTest
         assertTuples( inputPortCount, tupleCount, drainer );
     }
 
-    private void testTryAddTuples ( final Function<Boolean, TupleQueue> tupleQueueConstructor,
+    private void testTryAddTuples ( final BiFunction<Integer, Boolean, TupleQueue> tupleQueueConstructor,
                                     final int inputPortCount,
                                     final ThreadingPreference threadingPreference,
                                     final int tupleCount )
@@ -167,14 +167,14 @@ public class DefaultTupleQueueContextTest extends AbstractJokerTest
         }
     }
 
-    private Function<Boolean, TupleQueue> getSingleThreadedTupleQueueConstructor ()
+    private BiFunction<Integer, Boolean, TupleQueue> getSingleThreadedTupleQueueConstructor ()
     {
-        return ( capacityCheckEnabled ) -> new SingleThreadedTupleQueue( TUPLE_QUEUE_SIZE );
+        return ( portIndex, capacityCheckEnabled ) -> new SingleThreadedTupleQueue( TUPLE_QUEUE_SIZE );
     }
 
-    private Function<Boolean, TupleQueue> getMultiThreadedTupleQueueConstructor ( final int queueSize )
+    private BiFunction<Integer, Boolean, TupleQueue> getMultiThreadedTupleQueueConstructor ( final int queueSize )
     {
-        return ( capacityCheckEnabled ) -> new MultiThreadedTupleQueue( queueSize, capacityCheckEnabled );
+        return ( portIndex, capacityCheckEnabled ) -> new MultiThreadedTupleQueue( queueSize, capacityCheckEnabled );
     }
 
 }

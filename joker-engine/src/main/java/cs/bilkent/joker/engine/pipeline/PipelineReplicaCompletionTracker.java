@@ -17,10 +17,10 @@ public class PipelineReplicaCompletionTracker implements OperatorReplicaListener
 
     private int completedOperatorCount;
 
-    public PipelineReplicaCompletionTracker ( final PipelineReplica pipelineReplica )
+    public PipelineReplicaCompletionTracker ( final PipelineReplicaId pipelineReplicaId, final int operatorCount )
     {
-        this.pipelineReplicaId = pipelineReplica.id();
-        this.operatorCount = pipelineReplica.getOperatorCount();
+        this.pipelineReplicaId = pipelineReplicaId;
+        this.operatorCount = operatorCount;
     }
 
     @Override

@@ -56,6 +56,8 @@ public class OperatorReplica
     private static final int OVERLOADED_INVOCATION_MASK = 31;
 
 
+    private final PipelineReplicaId pipelineReplicaId;
+
     private final String operatorName;
 
     private final OperatorDef operatorDef;
@@ -112,6 +114,7 @@ public class OperatorReplica
                              final Supplier<TuplesImpl> outputSupplier,
                              final InvocationContextImpl invocationContext )
     {
+        this.pipelineReplicaId = pipelineReplicaId;
         this.operatorName = pipelineReplicaId.toString() + ".Operator<" + operatorDef.id() + ">";
         this.queue = queue;
         this.operatorDef = operatorDef;
@@ -179,6 +182,11 @@ public class OperatorReplica
         this.schedulingStrategy = schedulingStrategy;
         initialSchedulingStrategy = this.schedulingStrategy;
         drainer = drainerPool.acquire( this.schedulingStrategy );
+        setQueueTupleCounts( schedulingStrategy );
+    }
+
+    private void setQueueTupleCounts ( final SchedulingStrategy schedulingStrategy )
+    {
         if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
         {
             final ScheduleWhenTuplesAvailable ss = (ScheduleWhenTuplesAvailable) schedulingStrategy;
@@ -477,6 +485,38 @@ public class OperatorReplica
             operator = null;
             drainer = null;
         }
+    }
+
+    public OperatorReplica duplicate ( final PipelineReplicaId pipelineReplicaId,
+                                       final TupleQueueContext queue,
+                                       final TupleQueueDrainerPool drainerPool,
+                                       final Supplier<TuplesImpl> outputSupplier )
+    {
+        checkState( this.status == RUNNING,
+                    "cannot duplicate %s to %s because status is %s",
+                    this.operatorName,
+                    pipelineReplicaId,
+                    this.status );
+
+        final OperatorReplica duplicate = new OperatorReplica( pipelineReplicaId,
+                                                               this.operatorDef,
+                                                               queue,
+                                                               this.kvStoreContext,
+                                                               drainerPool,
+                                                               outputSupplier );
+
+        duplicate.status = this.status;
+        duplicate.upstreamContext = this.upstreamContext;
+        duplicate.selfUpstreamContext = this.selfUpstreamContext;
+        duplicate.operator = this.operator;
+        duplicate.initialSchedulingStrategy = this.initialSchedulingStrategy;
+        duplicate.schedulingStrategy = this.schedulingStrategy;
+        drainerPool.reset();
+        duplicate.drainer = drainerPool.acquire( duplicate.schedulingStrategy );
+
+        LOGGER.info( "{} is duplicated to {}", this.operatorName, duplicate.operatorName );
+
+        return duplicate;
     }
 
     public OperatorDef getOperatorDef ()

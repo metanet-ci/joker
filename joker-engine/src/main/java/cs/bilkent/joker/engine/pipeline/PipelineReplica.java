@@ -1,6 +1,7 @@
 package cs.bilkent.joker.engine.pipeline;
 
 import java.util.Arrays;
+import java.util.List;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.slf4j.Logger;
@@ -31,6 +32,7 @@ import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.T
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import cs.bilkent.joker.utils.Pair;
+import static java.util.stream.Collectors.toList;
 
 /**
  * Manages runtime state of a pipeline defined by the system for a {@link RegionDef} and provides methods for operator invocation.
@@ -74,7 +76,38 @@ public class PipelineReplica
         this.upstreamTupleQueueContext = upstreamTupleQueueContext;
         this.upstreamInputPortCount = operators[ 0 ].getOperatorDef().inputPortCount();
         this.upstreamInputPorts = new int[ upstreamInputPortCount ];
+    }
+
+    public SchedulingStrategy[] init ( final UpstreamContext upstreamContext, final OperatorReplicaListener operatorReplicaListener )
+    {
+        checkState( status == INITIAL, "Cannot initialize PipelineReplica %s as it is in %s state", id, status );
+        checkArgument( upstreamContext != null, "Cannot initialize PipelineReplica %s as upstream context is null", id );
+
         this.upstreamDrainer = createUpstreamDrainer();
+
+        SchedulingStrategy[] schedulingStrategies = new SchedulingStrategy[ operatorCount ];
+        UpstreamContext uc = upstreamContext;
+        for ( int i = 0; i < operatorCount; i++ )
+        {
+            try
+            {
+                final OperatorReplica operator = operators[ i ];
+                schedulingStrategies[ i ] = operator.init( uc, operatorReplicaListener );
+                uc = operator.getSelfUpstreamContext();
+            }
+            catch ( InitializationException e )
+            {
+                shutdownOperators();
+                status = INITIALIZATION_FAILED;
+                throw e;
+            }
+        }
+
+        setPipelineUpstreamContext( upstreamContext );
+
+        status = RUNNING;
+
+        return schedulingStrategies;
     }
 
     private TupleQueueDrainer createUpstreamDrainer ()
@@ -110,36 +143,6 @@ public class PipelineReplica
                                                                                                                           () );
         blockingDrainer.setParameters( AT_LEAST, upstreamInputPorts, blockingTupleCounts );
         return blockingDrainer;
-    }
-
-    public SchedulingStrategy[] init ( final UpstreamContext upstreamContext, final OperatorReplicaListener operatorReplicaListener )
-    {
-        checkState( status == INITIAL, "Cannot initialize PipelineReplica %s as it is in %s state", id, status );
-        checkArgument( upstreamContext != null, "Cannot initialize PipelineReplica %s as upstream context is null", id );
-
-        SchedulingStrategy[] schedulingStrategies = new SchedulingStrategy[ operatorCount ];
-        UpstreamContext uc = upstreamContext;
-        for ( int i = 0; i < operatorCount; i++ )
-        {
-            try
-            {
-                final OperatorReplica operator = operators[ i ];
-                schedulingStrategies[ i ] = operator.init( uc, operatorReplicaListener );
-                uc = operator.getSelfUpstreamContext();
-            }
-            catch ( InitializationException e )
-            {
-                shutdownOperators();
-                status = INITIALIZATION_FAILED;
-                throw e;
-            }
-        }
-
-        setPipelineUpstreamContext( upstreamContext );
-
-        status = RUNNING;
-
-        return schedulingStrategies;
     }
 
     public void setPipelineUpstreamContext ( final UpstreamContext pipelineUpstreamContext )
@@ -288,6 +291,22 @@ public class PipelineReplica
         }
     }
 
+    public PipelineReplica duplicate ( final OperatorReplica[] operators )
+    {
+        checkState( this.status == RUNNING, "Cannot duplicate pipeline replica %s because in %s status", this.id, this.status );
+
+        final PipelineReplica duplicate = new PipelineReplica( this.config, this.id, operators, this.upstreamTupleQueueContext );
+        duplicate.status = this.status;
+        duplicate.upstreamDrainer = this.upstreamDrainer;
+        duplicate.pipelineUpstreamContext = this.pipelineUpstreamContext;
+
+        final List<String> operatorNames = Arrays.stream( operators ).map( o -> o.getOperatorDef().id() ).collect( toList() );
+
+        LOGGER.info( "Pipeline {} is duplicated with {} operators: {}", this.id, operators.length, operatorNames );
+
+        return duplicate;
+    }
+
     public PipelineReplicaId id ()
     {
         return id;
@@ -301,6 +320,11 @@ public class PipelineReplica
     public OperatorReplica getOperator ( final int index )
     {
         return operators[ index ];
+    }
+
+    public OperatorReplica[] getOperators ()
+    {
+        return Arrays.copyOf( operators, operators.length );
     }
 
 }
