@@ -62,8 +62,21 @@ public class SupervisorImpl implements Supervisor
     {
         synchronized ( monitor )
         {
-            pipelineManager.start( this, flowDeployment, regionConfigs );
+            try
+            {
+                pipelineManager.start( this, flowDeployment, regionConfigs );
+            }
+            catch ( InitializationException e )
+            {
+                if ( e.getCause() instanceof InterruptedException )
+                {
+                    Thread.currentThread().interrupt();
+                }
+                LOGGER.error( "Flow start failed", e );
+                throw e;
+            }
         }
+
         supervisorThread.start();
     }
 
@@ -71,8 +84,7 @@ public class SupervisorImpl implements Supervisor
     {
         synchronized ( monitor )
         {
-            final FlowStatus status = pipelineManager.getFlowStatus();
-            checkState( status != FlowStatus.INITIAL, "cannot shutdown since still {}", FlowStatus.INITIAL );
+            checkState( isInitialized(), "cannot shutdown since {}", pipelineManager.getFlowStatus() );
 
             if ( shutdownFuture == null )
             {
@@ -86,6 +98,12 @@ public class SupervisorImpl implements Supervisor
         }
     }
 
+    private boolean isInitialized ()
+    {
+        final FlowStatus status = pipelineManager.getFlowStatus();
+        return !( status == FlowStatus.INITIAL || status == FlowStatus.INITIALIZATION_FAILED );
+    }
+
     @Override
     public UpstreamContext getUpstreamContext ( final PipelineReplicaId id )
     {
@@ -97,10 +115,7 @@ public class SupervisorImpl implements Supervisor
     {
         synchronized ( monitor )
         {
-            checkState( pipelineManager.getFlowStatus() != FlowStatus.INITIAL,
-                        "cannot notify pipeline replica {} completed since still {}",
-                        id,
-                        FlowStatus.INITIAL );
+            checkState( isInitialized(), "cannot notify pipeline replica {} completed since {}", id, pipelineManager.getFlowStatus() );
             checkState( shutdownFuture != null, "cannot notify pipeline replica {} completed since shutdown is not triggered", id );
 
             if ( !shutdownFuture.isDone() )
@@ -121,11 +136,9 @@ public class SupervisorImpl implements Supervisor
     {
         synchronized ( monitor )
         {
-            checkState( pipelineManager.getFlowStatus() != FlowStatus.INITIAL,
-                        "cannot notify pipeline replica {} failed with {} since still {}",
+            checkState( isInitialized(), "cannot notify pipeline replica {} failed with {} since {}",
                         id,
-                        failure,
-                        FlowStatus.INITIAL );
+                        failure, pipelineManager.getFlowStatus() );
 
             if ( shutdownFuture == null || !shutdownFuture.isDone() )
             {
