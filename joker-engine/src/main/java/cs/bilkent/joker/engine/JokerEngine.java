@@ -48,7 +48,7 @@ public class JokerEngine
 
     public FlowStatus getStatus ()
     {
-        return supervisor.getStatus();
+        return supervisor.getFlowStatus();
     }
 
     public Future<Void> shutdown ()

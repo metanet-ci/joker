@@ -86,7 +86,7 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
 
         supervisor.start( flowDeployment, Arrays.asList( regionConfig1, regionConfig2 ) );
 
-        for ( Pipeline pipeline : pipelineManager.getPipelines().values() )
+        for ( Pipeline pipeline : pipelineManager.getPipelines() )
         {
             for ( int replicaIndex = 0; replicaIndex < pipeline.getReplicaCount(); replicaIndex++ )
             {
@@ -173,7 +173,7 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
         final FlowDeploymentDef flowDeployment = new FlowDeploymentDef( flowDef, regions );
 
         supervisor.start( flowDeployment, Arrays.asList( regionConfig1, regionConfig2 ) );
-        assertTrueEventually( () -> assertEquals( FlowStatus.SHUT_DOWN, supervisor.getStatus() ) );
+        assertTrueEventually( () -> assertEquals( FlowStatus.SHUT_DOWN, supervisor.getFlowStatus() ) );
 
         supervisor.shutdown().get( 30, TimeUnit.SECONDS );
     }

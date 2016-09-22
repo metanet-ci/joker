@@ -67,7 +67,7 @@ public class PipelineManagerImplTest extends AbstractJokerTest
 
     private RegionDefFormer regionDefFormer;
 
-    private PipelineManager pipelineManager;
+    private PipelineManagerImpl pipelineManager;
 
     private Supervisor supervisor;
 
@@ -76,7 +76,7 @@ public class PipelineManagerImplTest extends AbstractJokerTest
     {
         final Injector injector = Guice.createInjector( new JokerModule( jokerConfig ) );
         regionDefFormer = injector.getInstance( RegionDefFormer.class );
-        pipelineManager = injector.getInstance( PipelineManager.class );
+        pipelineManager = (PipelineManagerImpl) injector.getInstance( PipelineManager.class );
         supervisor = injector.getInstance( Supervisor.class );
     }
 

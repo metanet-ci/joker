@@ -2,15 +2,24 @@ package cs.bilkent.joker.engine.pipeline;
 
 import java.util.List;
 
+import cs.bilkent.joker.engine.FlowStatus;
+import cs.bilkent.joker.engine.region.FlowDeploymentDef;
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
-import cs.bilkent.joker.flow.FlowDef;
 
 public interface PipelineManager
 {
 
-    List<Pipeline> createPipelines ( Supervisor supervisor, FlowDef flow, List<RegionConfig> regionConfigs );
+    void start ( final Supervisor supervisor, final FlowDeploymentDef flowDeployment, final List<RegionConfig> regionConfigs );
 
-    void shutdown ();
+    void triggerShutdown ();
+
+    UpstreamContext getUpstreamContext ( final PipelineReplicaId id );
+
+    boolean notifyPipelineReplicaCompleted ( final PipelineReplicaId id );
+
+    void notifyPipelineReplicaFailed ( final PipelineReplicaId id, final Throwable failure );
+
+    FlowStatus getFlowStatus ();
 
 }
