@@ -178,8 +178,11 @@ public class SupervisorImpl implements Supervisor
     {
         synchronized ( monitor )
         {
-            checkState( isInitialized(), "cannot notify pipeline replica %s failed with %s since %s",
-                        id, failure, pipelineManager.getFlowStatus() );
+            checkState( isInitialized(),
+                        "cannot notify pipeline replica %s failed with %s since %s",
+                        id,
+                        failure,
+                        pipelineManager.getFlowStatus() );
 
             if ( shutdownFuture == null || !shutdownFuture.isDone() )
             {

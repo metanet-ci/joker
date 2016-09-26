@@ -39,10 +39,13 @@ public class PartitionedTupleQueueContextTest extends AbstractJokerTest
 
         final TupleQueueContainer container = new TupleQueueContainer( "op1", INPUT_PORT_COUNT, 0, tupleQueueConstructor );
         tupleQueueContext = new PartitionedTupleQueueContext( "op1",
-                                                              INPUT_PORT_COUNT, PARTITION_COUNT,
+                                                              INPUT_PORT_COUNT,
+                                                              PARTITION_COUNT,
                                                               0,
                                                               new PartitionKeyFunction1( singletonList( PARTITION_KEY_FIELD ) ),
-                                                              new TupleQueueContainer[] { container }, new int[] { 0 }, Integer.MAX_VALUE );
+                                                              new TupleQueueContainer[] { container },
+                                                              new int[] { 0 },
+                                                              Integer.MAX_VALUE );
     }
 
     @Test

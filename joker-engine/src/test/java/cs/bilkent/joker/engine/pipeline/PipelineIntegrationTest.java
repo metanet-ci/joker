@@ -440,18 +440,12 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         pipeline2.init( supervisor.upstreamContexts.get( pipelineReplicaId2 ) );
 
-        final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig,
-                                                                         pipeline1,
-                                                                         supervisor,
-                                                                         tupleSender );
+        final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig, pipeline1, supervisor, tupleSender );
 
         final TupleCollectorDownstreamTupleSender tupleCollector2 = new TupleCollectorDownstreamTupleSender( filterOperatorDef
                                                                                                                      .outputPortCount() );
 
-        final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( jokerConfig,
-                                                                         pipeline2,
-                                                                         supervisor,
-                                                                         tupleCollector2 );
+        final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( jokerConfig, pipeline2, supervisor, tupleCollector2 );
 
         supervisor.targetPipelineReplicaId = pipelineReplicaId2;
         supervisor.runner = runner2;

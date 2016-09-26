@@ -82,7 +82,6 @@ public class RegionManagerImplTest extends AbstractJokerTest
                                                                            regionTransformer );
 
 
-
     @Test
     public void test_statelessRegion_singlePipeline_singleReplica_noInputConnection ()
     {

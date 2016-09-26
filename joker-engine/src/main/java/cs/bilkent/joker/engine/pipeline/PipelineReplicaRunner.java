@@ -59,8 +59,7 @@ public class PipelineReplicaRunner implements Runnable
     private volatile PipelineReplicaRunnerCommand command;
 
 
-    public PipelineReplicaRunner ( final JokerConfig config,
-                                   final PipelineReplica pipeline, final Supervisor supervisor,
+    public PipelineReplicaRunner ( final JokerConfig config, final PipelineReplica pipeline, final Supervisor supervisor,
                                    final DownstreamTupleSender downstreamTupleSender )
     {
         this.config = config;
