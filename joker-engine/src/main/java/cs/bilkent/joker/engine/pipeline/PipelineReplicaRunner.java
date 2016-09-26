@@ -50,9 +50,6 @@ public class PipelineReplicaRunner implements Runnable
 
     private final Supervisor supervisor;
 
-    private final PipelineReplicaCompletionTracker pipelineReplicaCompletionTracker;
-
-
     private DownstreamTupleSender downstreamTupleSender;
 
     private Future<Void> downstreamTuplesFuture;
@@ -63,8 +60,7 @@ public class PipelineReplicaRunner implements Runnable
 
 
     public PipelineReplicaRunner ( final JokerConfig config,
-                                   final PipelineReplica pipeline,
-                                   final Supervisor supervisor, final PipelineReplicaCompletionTracker pipelineReplicaCompletionTracker,
+                                   final PipelineReplica pipeline, final Supervisor supervisor,
                                    final DownstreamTupleSender downstreamTupleSender )
     {
         this.config = config;
@@ -72,13 +68,7 @@ public class PipelineReplicaRunner implements Runnable
         this.id = pipeline.id();
         this.waitTimeoutInMillis = config.getPipelineReplicaRunnerConfig().getWaitTimeoutInMillis();
         this.supervisor = supervisor;
-        this.pipelineReplicaCompletionTracker = pipelineReplicaCompletionTracker;
         this.downstreamTupleSender = downstreamTupleSender;
-    }
-
-    public PipelineReplicaCompletionTracker getPipelineReplicaCompletionTracker ()
-    {
-        return pipelineReplicaCompletionTracker;
     }
 
     public PipelineReplicaRunnerStatus getStatus ()
@@ -362,7 +352,7 @@ public class PipelineReplicaRunner implements Runnable
                     downstreamTuplesFuture = downstreamTupleSender.send( output );
                 }
 
-                if ( pipelineReplicaCompletionTracker.isPipelineCompleted() )
+                if ( pipeline.isCompleted() )
                 {
                     LOGGER.info( "All operators of Pipeline {} are completed.", id );
                     completeRun();
@@ -489,7 +479,10 @@ public class PipelineReplicaRunner implements Runnable
         awaitDownstreamTuplesFuture();
         LOGGER.info( "{}: all downstream tuples are sent", id );
 
-        supervisor.notifyPipelineReplicaCompleted( pipeline.id() );
+        if ( pipeline.isCompleted() )
+        {
+            supervisor.notifyPipelineReplicaCompleted( pipeline.id() );
+        }
 
         synchronized ( monitor )
         {
@@ -515,7 +508,7 @@ public class PipelineReplicaRunner implements Runnable
 
     private void completeRunWithFailure ( final Exception e )
     {
-        LOGGER.error( "{}: runner failed", id );
+        LOGGER.error( id + ": runner failed", e );
         supervisor.notifyPipelineReplicaFailed( id, e );
 
         synchronized ( monitor )

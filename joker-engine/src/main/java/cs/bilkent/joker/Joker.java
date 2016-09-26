@@ -1,5 +1,6 @@
 package cs.bilkent.joker;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Future;
 
@@ -11,6 +12,7 @@ import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.FlowStatus;
 import cs.bilkent.joker.engine.JokerEngine;
 import cs.bilkent.joker.engine.config.JokerConfig;
+import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.region.RegionConfigFactory;
 import cs.bilkent.joker.flow.FlowDef;
 
@@ -45,6 +47,11 @@ public class Joker
     public FlowStatus getStatus ()
     {
         return engine.getStatus();
+    }
+
+    public Future<Void> mergePipelines ( final List<PipelineId> pipelineIds )
+    {
+        return engine.mergePipelines( pipelineIds );
     }
 
     public Future<Void> shutdown ()

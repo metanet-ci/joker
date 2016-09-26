@@ -88,7 +88,9 @@ public class OperatorReplica
 
     private TupleQueueDrainer drainer;
 
-    private OperatorReplicaListener listener;
+    private OperatorReplicaListener listener = ( operatorId, status1 ) ->
+    {
+    };
 
     private int invocationCount;
 
@@ -130,15 +132,11 @@ public class OperatorReplica
      * it moves the status to {@link OperatorReplicaStatus#INITIALIZATION_FAILED} and propagates the exception to the caller after
      * wrapping it with {@link InitializationException}.
      */
-    public SchedulingStrategy init ( final UpstreamContext upstreamContext, final OperatorReplicaListener listener )
+    public SchedulingStrategy init ( final UpstreamContext upstreamContext )
     {
         checkState( status == INITIAL, "Cannot initialize Operator %s as it is in %s state", operatorName, status );
         try
         {
-            this.listener = listener != null ? listener : ( operatorId, status1 ) ->
-            {
-            };
-
             operator = operatorDef.createOperator();
             checkState( operator != null, "Operator %s implementation can not be null", operatorName );
             setUpstreamContext( upstreamContext );
@@ -448,12 +446,9 @@ public class OperatorReplica
      */
     public void shutdown ()
     {
-        if ( status == INITIAL )
-        {
-            LOGGER.info( "{} ignoring shutdown request since not initialized", operatorName );
-            return;
-        }
-        else if ( status == SHUT_DOWN )
+        checkState( status != INITIAL, "cannot shutdown %s since it is in %s status", operatorName, INITIAL );
+
+        if ( status == SHUT_DOWN )
         {
             LOGGER.info( "{} ignoring shutdown request since already shut down", operatorName );
             return;
@@ -517,6 +512,12 @@ public class OperatorReplica
         LOGGER.info( "{} is duplicated to {}", this.operatorName, duplicate.operatorName );
 
         return duplicate;
+    }
+
+    public void setOperatorReplicaListener ( final OperatorReplicaListener listener )
+    {
+        checkArgument( listener != null, "cannot set null operator replica listener to %s", operatorName );
+        this.listener = listener;
     }
 
     public OperatorDef getOperatorDef ()

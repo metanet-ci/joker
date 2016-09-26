@@ -12,7 +12,7 @@ import com.google.inject.Injector;
 import cs.bilkent.joker.JokerModule;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
-import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.RUNNING;
+import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIAL;
 import cs.bilkent.joker.engine.pipeline.Pipeline;
 import cs.bilkent.joker.engine.pipeline.PipelineManager;
 import cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus;
@@ -89,13 +89,13 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
         final RegionConfig regionConfig = new RegionConfig( regions.get( 0 ), singletonList( 0 ), 1 );
 
-        final List<Pipeline> pipelines = pipelineManager.createPipelines( supervisor, flow, singletonList( regionConfig ) );
+        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, singletonList( regionConfig ) );
 
         assertEquals( 1, pipelines.size() );
 
         final Pipeline pipeline = pipelines.get( 0 );
         assertEquals( 0, pipeline.getOperatorIndex( operatorDef ) );
-        assertEquals( RUNNING, pipeline.getPipelineStatus() );
+        assertEquals( INITIAL, pipeline.getPipelineStatus() );
 
         assertNotNull( pipeline.getPipelineReplica( 0 ) );
         assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ), pipeline.getUpstreamContext() );
@@ -116,7 +116,7 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         final RegionDef statefulRegionDef = findRegion( regions, STATEFUL );
         final RegionConfig regionConfig1 = new RegionConfig( partitionedStatefulRegionDef, singletonList( 0 ), 2 );
         final RegionConfig regionConfig2 = new RegionConfig( statefulRegionDef, singletonList( 0 ), 1 );
-        final List<Pipeline> pipelines = pipelineManager.createPipelines( supervisor, flow, asList( regionConfig1, regionConfig2 ) );
+        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, asList( regionConfig1, regionConfig2 ) );
 
         assertEquals( 2, pipelines.size() );
 
@@ -128,8 +128,10 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         assertNotEquals( pipeline1.getPipelineReplica( 0 ), pipeline1.getPipelineReplica( 1 ) );
         assertTrue( pipeline1.getDownstreamTupleSender( 0 ) instanceof DownstreamTupleSender1 );
         assertTrue( pipeline1.getDownstreamTupleSender( 1 ) instanceof DownstreamTupleSender1 );
+        assertEquals( INITIAL, pipeline1.getPipelineStatus() );
 
         final Pipeline pipeline2 = pipelines.get( 1 );
+        assertEquals( INITIAL, pipeline2.getPipelineStatus() );
         assertEquals( ( (Supplier<TupleQueueContext>) pipeline1.getDownstreamTupleSender( 0 ) ).get(),
                       pipeline2.getPipelineReplica( 0 ).getUpstreamTupleQueueContext() );
         assertEquals( ( (Supplier<TupleQueueContext>) pipeline1.getDownstreamTupleSender( 1 ) ).get(),
@@ -159,9 +161,7 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         final RegionConfig regionConfig1 = new RegionConfig( partitionedStatefulRegionDef, singletonList( 0 ), 2 );
         final RegionConfig regionConfig2 = new RegionConfig( statefulRegionDef, singletonList( 0 ), 1 );
         final RegionConfig regionConfig3 = new RegionConfig( statelessRegionDef, singletonList( 0 ), 2 );
-        final List<Pipeline> pipelines = pipelineManager.createPipelines( supervisor,
-                                                                          flow,
-                                                                          asList( regionConfig1, regionConfig2, regionConfig3 ) );
+        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, asList( regionConfig1, regionConfig2, regionConfig3 ) );
 
         assertEquals( 3, pipelines.size() );
 
@@ -169,11 +169,16 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         final Pipeline pipeline2 = pipelines.get( 1 );
         final Pipeline pipeline3 = pipelines.get( 2 );
 
+        assertEquals( INITIAL, pipeline1.getPipelineStatus() );
+        assertEquals( INITIAL, pipeline2.getPipelineStatus() );
+        assertEquals( INITIAL, pipeline3.getPipelineStatus() );
+
         assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { NO_CONNECTION, NO_CONNECTION } ),
                       pipeline1.getUpstreamContext() );
         assertEquals( partitionedStatefulRegionDef, pipeline1.getRegionDef() );
         assertEquals( 0, pipeline1.getOperatorIndex( operatorDef1 ) );
         assertNotEquals( pipeline1.getPipelineReplica( 0 ), pipeline1.getPipelineReplica( 1 ) );
+
         assertTrue( pipeline1.getDownstreamTupleSender( 0 ) instanceof CompositeDownstreamTupleSender );
         assertTrue( pipeline1.getDownstreamTupleSender( 1 ) instanceof CompositeDownstreamTupleSender );
         final DownstreamTupleSender[] senders0 = ( (CompositeDownstreamTupleSender) pipeline1.getDownstreamTupleSender( 0 ) )
@@ -241,13 +246,17 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         final RegionConfig regionConfig1 = new RegionConfig( statefulRegionDef, singletonList( 0 ), 1 );
         final RegionConfig regionConfig2 = new RegionConfig( partitionedStatefulRegionDef, asList( 0, 1 ), 2 );
 
-        final List<Pipeline> pipelines = pipelineManager.createPipelines( supervisor, flow, asList( regionConfig1, regionConfig2 ) );
+        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, asList( regionConfig1, regionConfig2 ) );
 
         assertEquals( 3, pipelines.size() );
 
         final Pipeline pipeline1 = pipelines.get( 0 );
         final Pipeline pipeline2 = pipelines.get( 1 );
         final Pipeline pipeline3 = pipelines.get( 2 );
+
+        assertEquals( INITIAL, pipeline1.getPipelineStatus() );
+        assertEquals( INITIAL, pipeline2.getPipelineStatus() );
+        assertEquals( INITIAL, pipeline3.getPipelineStatus() );
 
         assertEquals( statefulRegionDef, pipeline1.getRegionDef() );
         assertEquals( 0, pipeline1.getOperatorIndex( operatorDef1 ) );
@@ -298,13 +307,17 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         final RegionConfig regionConfig1 = new RegionConfig( statefulRegionDef, singletonList( 0 ), 1 );
         final RegionConfig regionConfig2 = new RegionConfig( partitionedStatefulRegionDef, asList( 0, 1 ), 2 );
 
-        final List<Pipeline> pipelines = pipelineManager.createPipelines( supervisor, flow, asList( regionConfig1, regionConfig2 ) );
+        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, asList( regionConfig1, regionConfig2 ) );
 
         assertEquals( 3, pipelines.size() );
 
         final Pipeline pipeline1 = pipelines.get( 0 );
         final Pipeline pipeline2 = pipelines.get( 1 );
         final Pipeline pipeline3 = pipelines.get( 2 );
+
+        assertEquals( INITIAL, pipeline1.getPipelineStatus() );
+        assertEquals( INITIAL, pipeline2.getPipelineStatus() );
+        assertEquals( INITIAL, pipeline3.getPipelineStatus() );
 
         assertEquals( statefulRegionDef, pipeline1.getRegionDef() );
         assertEquals( 0, pipeline1.getOperatorIndex( operatorDef1 ) );
@@ -360,13 +373,15 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         final RegionConfig regionConfig2 = new RegionConfig( statefulRegionDef2, singletonList( 0 ), 1 );
         final RegionConfig regionConfig3 = new RegionConfig( statelessRegionDef, singletonList( 0 ), 1 );
 
-        final List<Pipeline> pipelines = pipelineManager.createPipelines( supervisor,
-                                                                          flow,
-                                                                          asList( regionConfig1, regionConfig2, regionConfig3 ) );
+        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, asList( regionConfig1, regionConfig2, regionConfig3 ) );
 
         final Pipeline pipeline1 = pipelines.get( 0 );
         final Pipeline pipeline2 = pipelines.get( 1 );
         final Pipeline pipeline3 = pipelines.get( 2 );
+
+        assertEquals( INITIAL, pipeline1.getPipelineStatus() );
+        assertEquals( INITIAL, pipeline2.getPipelineStatus() );
+        assertEquals( INITIAL, pipeline3.getPipelineStatus() );
 
         assertEquals( statefulRegionDef1, pipeline1.getRegionDef() );
         assertEquals( 0, pipeline1.getOperatorIndex( statefulRegionDef1.getOperators().get( 0 ) ) );
@@ -414,13 +429,15 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         final RegionConfig regionConfig2 = new RegionConfig( statelessRegionDef, singletonList( 0 ), 1 );
         final RegionConfig regionConfig3 = new RegionConfig( partitionedStatefulRegionDef, singletonList( 0 ), 1 );
 
-        final List<Pipeline> pipelines = pipelineManager.createPipelines( supervisor,
-                                                                          flow,
-                                                                          asList( regionConfig1, regionConfig2, regionConfig3 ) );
+        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, asList( regionConfig1, regionConfig2, regionConfig3 ) );
 
         final Pipeline pipeline1 = pipelines.get( 0 );
         final Pipeline pipeline2 = pipelines.get( 1 );
         final Pipeline pipeline3 = pipelines.get( 2 );
+
+        assertEquals( INITIAL, pipeline1.getPipelineStatus() );
+        assertEquals( INITIAL, pipeline2.getPipelineStatus() );
+        assertEquals( INITIAL, pipeline3.getPipelineStatus() );
 
         assertEquals( statefulRegionDef, pipeline1.getRegionDef() );
         assertEquals( 0, pipeline1.getOperatorIndex( statefulRegionDef.getOperators().get( 0 ) ) );

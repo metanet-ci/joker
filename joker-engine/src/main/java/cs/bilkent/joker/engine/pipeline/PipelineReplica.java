@@ -58,6 +58,8 @@ public class PipelineReplica
 
     private final int[] upstreamInputPorts;
 
+    private final PipelineReplicaCompletionTracker pipelineReplicaCompletionTracker;
+
     private TupleQueueDrainer upstreamDrainer;
 
     private OperatorReplicaStatus status = INITIAL;
@@ -76,9 +78,14 @@ public class PipelineReplica
         this.upstreamTupleQueueContext = upstreamTupleQueueContext;
         this.upstreamInputPortCount = operators[ 0 ].getOperatorDef().inputPortCount();
         this.upstreamInputPorts = new int[ upstreamInputPortCount ];
+        this.pipelineReplicaCompletionTracker = new PipelineReplicaCompletionTracker( id, operators.length );
+        for ( OperatorReplica operator : operators )
+        {
+            operator.setOperatorReplicaListener( this.pipelineReplicaCompletionTracker );
+        }
     }
 
-    public SchedulingStrategy[] init ( final UpstreamContext upstreamContext, final OperatorReplicaListener operatorReplicaListener )
+    public SchedulingStrategy[] init ( final UpstreamContext upstreamContext )
     {
         checkState( status == INITIAL, "Cannot initialize PipelineReplica %s as it is in %s state", id, status );
         checkArgument( upstreamContext != null, "Cannot initialize PipelineReplica %s as upstream context is null", id );
@@ -92,7 +99,7 @@ public class PipelineReplica
             try
             {
                 final OperatorReplica operator = operators[ i ];
-                schedulingStrategies[ i ] = operator.init( uc, operatorReplicaListener );
+                schedulingStrategies[ i ] = operator.init( uc );
                 uc = operator.getSelfUpstreamContext();
             }
             catch ( InitializationException e )
@@ -273,6 +280,7 @@ public class PipelineReplica
                     status );
         shutdownOperators();
         status = SHUT_DOWN;
+        LOGGER.info( "Pipeline Replica {} is shut down", id );
     }
 
     private void shutdownOperators ()
@@ -325,6 +333,21 @@ public class PipelineReplica
     public OperatorReplica[] getOperators ()
     {
         return Arrays.copyOf( operators, operators.length );
+    }
+
+    public boolean isCompleted ()
+    {
+        return pipelineReplicaCompletionTracker.isPipelineCompleted();
+    }
+
+    public PipelineReplicaCompletionTracker getPipelineReplicaCompletionTracker ()
+    {
+        return pipelineReplicaCompletionTracker;
+    }
+
+    public OperatorReplicaStatus getStatus ()
+    {
+        return status;
     }
 
 }

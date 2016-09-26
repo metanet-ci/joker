@@ -3,9 +3,11 @@ package cs.bilkent.joker;
 import java.util.UUID;
 
 import com.google.inject.AbstractModule;
-import com.google.inject.name.Names;
 
+import static com.google.inject.name.Names.named;
 import cs.bilkent.joker.engine.config.JokerConfig;
+import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_ID;
+import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_THREAD_GROUP_NAME;
 import cs.bilkent.joker.engine.kvstore.KVStoreContextManager;
 import cs.bilkent.joker.engine.kvstore.impl.KVStoreContextManagerImpl;
 import cs.bilkent.joker.engine.partition.PartitionKeyFunctionFactory;
@@ -88,9 +90,9 @@ public class JokerModule extends AbstractModule
             bind( RegionConfigFactory.class ).to( InteractiveRegionConfigFactory.class );
         }
         bind( JokerConfig.class ).toInstance( config );
-        bind( ThreadGroup.class ).annotatedWith( Names.named( "jokerThreadGroup" ) ).toInstance( new ThreadGroup( "Joker" ) );
+        bind( ThreadGroup.class ).annotatedWith( named( JOKER_THREAD_GROUP_NAME ) ).toInstance( new ThreadGroup( "Joker" ) );
         bind( IdGenerator.class ).toInstance( new IdGenerator() );
-        bind( Object.class ).annotatedWith( Names.named( "jokerId" ) ).toInstance( jokerId );
+        bind( Object.class ).annotatedWith( named( JOKER_ID ) ).toInstance( jokerId );
     }
 
 }

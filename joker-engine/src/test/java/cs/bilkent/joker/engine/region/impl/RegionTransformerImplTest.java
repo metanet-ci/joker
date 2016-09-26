@@ -12,7 +12,6 @@ import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.PartitionServiceImpl;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyFunctionFactoryImpl;
 import cs.bilkent.joker.engine.pipeline.OperatorReplica;
-import cs.bilkent.joker.engine.pipeline.OperatorReplicaListener;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
 import cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus;
 import cs.bilkent.joker.engine.pipeline.UpstreamContext;
@@ -56,7 +55,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 public class RegionTransformerImplTest extends AbstractJokerTest
 {
@@ -412,7 +410,7 @@ public class RegionTransformerImplTest extends AbstractJokerTest
             UpstreamContext uc = new UpstreamContext( 0, statuses );
             for ( PipelineReplica pipelineReplica : region.getReplicaPipelines( replicaIndex ) )
             {
-                pipelineReplica.init( uc, mock( OperatorReplicaListener.class ) );
+                pipelineReplica.init( uc );
                 uc = pipelineReplica.getOperator( pipelineReplica.getOperatorCount() - 1 ).getSelfUpstreamContext();
             }
         }

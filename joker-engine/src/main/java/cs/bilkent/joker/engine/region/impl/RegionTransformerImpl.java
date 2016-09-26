@@ -278,8 +278,8 @@ public class RegionTransformerImpl implements RegionTransformer
             }
             else
             {
-                // TODO
-                throw new IllegalStateException();
+                throw new IllegalStateException( "It is not expected to have " + firstOperator.getQueue() + " for first operator "
+                                                 + firstOperator.getOperatorName() + " of PipelineReplica " + pipelineReplica.id() );
             }
         }
         else

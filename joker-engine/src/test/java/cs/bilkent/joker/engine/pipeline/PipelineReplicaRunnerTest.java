@@ -51,9 +51,6 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
     private Supervisor supervisor;
 
     @Mock
-    private PipelineReplicaCompletionTracker pipelineReplicaCompletionTracker;
-
-    @Mock
     private UpstreamContext upstreamContext;
 
     @Mock
@@ -79,8 +76,8 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
         when( operatorDef.outputPortCount() ).thenReturn( inputOutputPortCount );
         final JokerConfig config = new JokerConfig();
         pipeline = new PipelineReplica( config, id, new OperatorReplica[] { operator }, mock( TupleQueueContext.class ) );
-        pipeline.init( upstreamContext, pipelineReplicaCompletionTracker );
-        runner = new PipelineReplicaRunner( config, pipeline, supervisor, pipelineReplicaCompletionTracker, downstreamTupleSender );
+        pipeline.init( upstreamContext );
+        runner = new PipelineReplicaRunner( config, pipeline, supervisor, downstreamTupleSender );
 
         thread = new Thread( runner );
 
@@ -153,7 +150,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
     {
         thread.start();
 
-        when( pipelineReplicaCompletionTracker.isPipelineCompleted() ).thenReturn( true );
+        pipeline.getPipelineReplicaCompletionTracker().onStatusChange( operatorDef.id(), OperatorReplicaStatus.COMPLETED );
 
         assertTrueEventually( () -> assertEquals( runner.getStatus(), COMPLETED ) );
 
@@ -183,7 +180,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
     {
         thread.start();
 
-        when( pipelineReplicaCompletionTracker.isPipelineCompleted() ).thenReturn( true );
+        pipeline.getPipelineReplicaCompletionTracker().onStatusChange( operatorDef.id(), OperatorReplicaStatus.COMPLETED );
 
         assertTrueEventually( () -> assertEquals( runner.getStatus(), COMPLETED ) );
 
@@ -209,7 +206,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
 
         reset( supervisor );
 
-        when( pipelineReplicaCompletionTracker.isPipelineCompleted() ).thenReturn( true );
+        pipeline.getPipelineReplicaCompletionTracker().onStatusChange( operatorDef.id(), OperatorReplicaStatus.COMPLETED );
 
         invocationStartLatch.await( 2, TimeUnit.MINUTES );
         invocationDoneLatch.countDown();
@@ -232,7 +229,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
 
         final CompletableFuture<Boolean> future = runner.updatePipelineUpstreamContext();
         assertTrueEventually( () -> verify( supervisor, times( 2 ) ).getUpstreamContext( id ) );
-        when( pipelineReplicaCompletionTracker.isPipelineCompleted() ).thenReturn( true );
+        pipeline.getPipelineReplicaCompletionTracker().onStatusChange( operatorDef.id(), OperatorReplicaStatus.COMPLETED );
         assertTrue( future.get() );
 
         assertThat( runner.getPipelineUpstreamContext(), equalTo( upstreamContext ) );
@@ -263,7 +260,8 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
         thread.start();
 
         sleepUninterruptibly( 1, SECONDS );
-        when( pipelineReplicaCompletionTracker.isPipelineCompleted() ).thenReturn( true );
+
+        pipeline.getPipelineReplicaCompletionTracker().onStatusChange( operatorDef.id(), OperatorReplicaStatus.COMPLETED );
 
         assertTrueEventually( () -> assertEquals( runner.getStatus(), COMPLETED ), 10 );
         verify( downstreamTupleSender, atLeastOnce() ).send( output1 );

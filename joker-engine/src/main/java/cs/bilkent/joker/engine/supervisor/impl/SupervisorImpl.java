@@ -16,7 +16,10 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.FlowStatus;
 import static cs.bilkent.joker.engine.FlowStatus.SHUT_DOWN;
+import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_THREAD_GROUP_NAME;
 import cs.bilkent.joker.engine.exception.InitializationException;
+import cs.bilkent.joker.engine.exception.JokerException;
+import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineManager;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.joker.engine.pipeline.UpstreamContext;
@@ -47,7 +50,7 @@ public class SupervisorImpl implements Supervisor
 
 
     @Inject
-    public SupervisorImpl ( final PipelineManager pipelineManager, @Named( "jokerThreadGroup" ) final ThreadGroup jokerThreadGroup )
+    public SupervisorImpl ( final PipelineManager pipelineManager, @Named( JOKER_THREAD_GROUP_NAME ) final ThreadGroup jokerThreadGroup )
     {
         this.pipelineManager = pipelineManager;
         this.supervisorThread = new Thread( jokerThreadGroup, new TaskRunner(), jokerThreadGroup.getName() + "-Supervisor" );
@@ -84,7 +87,7 @@ public class SupervisorImpl implements Supervisor
     {
         synchronized ( monitor )
         {
-            checkState( isInitialized(), "cannot shutdown since {}", pipelineManager.getFlowStatus() );
+            checkState( isInitialized(), "cannot shutdown since %s", pipelineManager.getFlowStatus() );
 
             if ( shutdownFuture == null )
             {
@@ -95,6 +98,45 @@ public class SupervisorImpl implements Supervisor
             }
 
             return shutdownFuture;
+        }
+    }
+
+    public Future<Void> mergePipelines ( final List<PipelineId> pipelineIdsToMerge )
+    {
+        final CompletableFuture<Void> future = new CompletableFuture<>();
+        synchronized ( monitor )
+        {
+            checkState( isInitialized() && ( shutdownFuture == null ),
+                        "cannot merge pipelines %s since %s and shutdown future is %s",
+                        pipelineIdsToMerge,
+                        pipelineManager.getFlowStatus(),
+                        shutdownFuture );
+
+            final boolean result = queue.offer( () -> doMergePipelines( future, pipelineIdsToMerge ) );
+            assert result : "offer failed for merge pipelines " + pipelineIdsToMerge;
+            LOGGER.info( "merge pipelines {} task offered", pipelineIdsToMerge );
+        }
+
+        return future;
+    }
+
+    private void doMergePipelines ( final CompletableFuture<Void> future, final List<PipelineId> pipelineIdsToMerge )
+    {
+        try
+        {
+            pipelineManager.mergePipelines( this, pipelineIdsToMerge );
+            future.complete( null );
+        }
+        catch ( IllegalArgumentException e )
+        {
+            LOGGER.error( "Merge pipelines {} failed", e );
+            future.completeExceptionally( e );
+        }
+        catch ( JokerException e )
+        {
+            LOGGER.error( "Merge pipelines {} failed", e );
+            future.completeExceptionally( e );
+            throw e;
         }
     }
 
@@ -115,8 +157,8 @@ public class SupervisorImpl implements Supervisor
     {
         synchronized ( monitor )
         {
-            checkState( isInitialized(), "cannot notify pipeline replica {} completed since {}", id, pipelineManager.getFlowStatus() );
-            checkState( shutdownFuture != null, "cannot notify pipeline replica {} completed since shutdown is not triggered", id );
+            checkState( isInitialized(), "cannot notify pipeline replica %s completed since %s", id, pipelineManager.getFlowStatus() );
+            checkState( shutdownFuture != null, "cannot notify pipeline replica %s completed since shutdown is not triggered", id );
 
             if ( !shutdownFuture.isDone() )
             {
@@ -136,9 +178,8 @@ public class SupervisorImpl implements Supervisor
     {
         synchronized ( monitor )
         {
-            checkState( isInitialized(), "cannot notify pipeline replica {} failed with {} since {}",
-                        id,
-                        failure, pipelineManager.getFlowStatus() );
+            checkState( isInitialized(), "cannot notify pipeline replica %s failed with %s since %s",
+                        id, failure, pipelineManager.getFlowStatus() );
 
             if ( shutdownFuture == null || !shutdownFuture.isDone() )
             {
@@ -155,7 +196,7 @@ public class SupervisorImpl implements Supervisor
 
     private void doNotifyPipelineReplicaCompleted ( final PipelineReplicaId id )
     {
-        if ( pipelineManager.notifyPipelineReplicaCompleted( id ) )
+        if ( pipelineManager.handlePipelineReplicaCompleted( id ) )
         {
             completeShutdown( null );
         }
@@ -163,7 +204,7 @@ public class SupervisorImpl implements Supervisor
 
     private void doNotifyPipelineReplicaFailed ( final PipelineReplicaId id, final Throwable failure )
     {
-        pipelineManager.notifyPipelineReplicaFailed( id, failure );
+        pipelineManager.handlePipelineReplicaFailed( id, failure );
         completeShutdown( failure );
     }
 

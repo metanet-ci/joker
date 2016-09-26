@@ -6,6 +6,7 @@ import java.util.concurrent.Future;
 import javax.inject.Inject;
 
 import cs.bilkent.joker.engine.exception.InitializationException;
+import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.region.FlowDeploymentDef;
 import cs.bilkent.joker.engine.region.FlowDeploymentDefFormer;
 import cs.bilkent.joker.engine.region.RegionConfig;
@@ -54,6 +55,11 @@ public class JokerEngine
     public Future<Void> shutdown ()
     {
         return supervisor.shutdown();
+    }
+
+    public Future<Void> mergePipelines ( final List<PipelineId> pipelineIds )
+    {
+        return supervisor.mergePipelines( pipelineIds );
     }
 
 }

@@ -66,6 +66,11 @@ public class RegionConfig
         throw new IllegalArgumentException( "invalid pipeline id: " + pipelineId );
     }
 
+    public OperatorDef getOperatorDefByPipelineId ( final int pipelineId, final int operatorIndex )
+    {
+        return getOperatorDefsByPipelineIndex( pipelineId )[ operatorIndex ];
+    }
+
     public OperatorDef[] getOperatorDefsByPipelineId ( final int pipelineId )
     {
         for ( int pipelineIndex = 0; pipelineIndex < pipelineStartIndices.size(); pipelineIndex++ )

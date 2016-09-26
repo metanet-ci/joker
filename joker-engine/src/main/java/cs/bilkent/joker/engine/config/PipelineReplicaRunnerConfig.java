@@ -12,8 +12,7 @@ public class PipelineReplicaRunnerConfig
 
     private final long waitTimeoutInMillis;
 
-
-    PipelineReplicaRunnerConfig ( Config parentConfig )
+    PipelineReplicaRunnerConfig ( final Config parentConfig )
     {
         final Config config = parentConfig.getConfig( CONFIG_NAME );
         this.waitTimeoutInMillis = config.getLong( RUNNER_WAIT_TIMEOUT );

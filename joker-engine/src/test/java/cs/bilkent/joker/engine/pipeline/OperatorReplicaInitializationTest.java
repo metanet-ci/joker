@@ -125,7 +125,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
 
         when( operator.init( any( InitializationContext.class ) ) ).thenReturn( schedulingStrategy );
 
-        operatorReplica.init( upstreamContext, null );
+        operatorReplica.init( upstreamContext );
 
         assertThat( operatorReplica.getStatus(), equalTo( RUNNING ) );
         assertThat( operatorReplica.getInitialSchedulingStrategy(), equalTo( schedulingStrategy ) );
@@ -146,7 +146,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
 
         try
         {
-            operatorReplica.init( newUpstreamContextInstance( 0, 1, ACTIVE ), null );
+            operatorReplica.init( newUpstreamContextInstance( 0, 1, ACTIVE ) );
             fail();
         }
         catch ( InitializationException expected )
@@ -213,7 +213,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
 
         try
         {
-            operatorReplica.init( upstreamContext, null );
+            operatorReplica.init( upstreamContext );
             fail();
         }
         catch ( InitializationException expected )
@@ -232,7 +232,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
 
         try
         {
-            operatorReplica.init( validUpstreamContext, null );
+            operatorReplica.init( validUpstreamContext );
             fail();
         }
         catch ( InitializationException expected )

@@ -86,22 +86,22 @@ public class PipelineReplicaTest extends AbstractJokerTest
         when( operator0.getSelfUpstreamContext() ).thenReturn( upstreamContext1 );
         when( operator1.getSelfUpstreamContext() ).thenReturn( upstreamContext2 );
 
-        pipeline.init( upstreamContext0, null );
+        pipeline.init( upstreamContext0 );
 
-        verify( operator0 ).init( upstreamContext0, null );
-        verify( operator1 ).init( upstreamContext1, null );
-        verify( operator2 ).init( upstreamContext2, null );
+        verify( operator0 ).init( upstreamContext0 );
+        verify( operator1 ).init( upstreamContext1 );
+        verify( operator2 ).init( upstreamContext2 );
     }
 
     @Test
     public void shouldShutdownInitializedOperatorsWhenAnOperatorFailsToInit ()
     {
         when( operator0.getSelfUpstreamContext() ).thenReturn( upstreamContext1 );
-        doThrow( new InitializationException( "" ) ).when( operator1 ).init( upstreamContext1, null );
+        doThrow( new InitializationException( "" ) ).when( operator1 ).init( upstreamContext1 );
 
         try
         {
-            pipeline.init( upstreamContext0, null );
+            pipeline.init( upstreamContext0 );
             fail();
         }
         catch ( InitializationException expected )
@@ -109,11 +109,11 @@ public class PipelineReplicaTest extends AbstractJokerTest
 
         }
 
-        verify( operator0 ).init( upstreamContext0, null );
+        verify( operator0 ).init( upstreamContext0 );
         verify( operator0 ).shutdown();
-        verify( operator1 ).init( upstreamContext1, null );
+        verify( operator1 ).init( upstreamContext1 );
         verify( operator1 ).shutdown();
-        verify( operator2, never() ).init( anyObject(), anyObject() );
+        verify( operator2, never() ).init( anyObject() );
     }
 
     @Test
@@ -121,7 +121,7 @@ public class PipelineReplicaTest extends AbstractJokerTest
     {
         when( operator0.getSelfUpstreamContext() ).thenReturn( upstreamContext1 );
         when( operator1.getSelfUpstreamContext() ).thenReturn( upstreamContext2 );
-        pipeline.init( upstreamContext0, null );
+        pipeline.init( upstreamContext0 );
         pipeline.shutdown();
 
         verify( operator0 ).shutdown();
@@ -134,7 +134,7 @@ public class PipelineReplicaTest extends AbstractJokerTest
     {
         when( operator0.getSelfUpstreamContext() ).thenReturn( upstreamContext1 );
         when( operator1.getSelfUpstreamContext() ).thenReturn( upstreamContext2 );
-        pipeline.init( upstreamContext0, null );
+        pipeline.init( upstreamContext0 );
         pipeline.shutdown();
         pipeline.shutdown();
 
@@ -148,7 +148,7 @@ public class PipelineReplicaTest extends AbstractJokerTest
     {
         when( operator0.getSelfUpstreamContext() ).thenReturn( upstreamContext1 );
         when( operator1.getSelfUpstreamContext() ).thenReturn( upstreamContext2 );
-        pipeline.init( upstreamContext0, null );
+        pipeline.init( upstreamContext0 );
 
         final UpstreamContext upstreamContext0New = new UpstreamContext( 1, new UpstreamConnectionStatus[] { CLOSED } );
         pipeline.setPipelineUpstreamContext( upstreamContext0New );
@@ -162,7 +162,7 @@ public class PipelineReplicaTest extends AbstractJokerTest
     {
         when( operator0.getSelfUpstreamContext() ).thenReturn( upstreamContext1 );
         when( operator1.getSelfUpstreamContext() ).thenReturn( upstreamContext2 );
-        pipeline.init( upstreamContext0, null );
+        pipeline.init( upstreamContext0 );
 
         when( operator0.invoke( null, upstreamContext0 ) ).thenReturn( upstreamInput1 );
         when( operator1.invoke( upstreamInput1, upstreamContext1 ) ).thenReturn( upstreamInput2 );

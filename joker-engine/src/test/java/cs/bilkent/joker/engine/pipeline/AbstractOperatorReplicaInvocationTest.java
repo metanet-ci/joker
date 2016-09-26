@@ -90,7 +90,7 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
         mockOperatorInitializationSchedulingStrategy( schedulingStrategy );
 
         initializationUpstreamContext = newUpstreamContextInstance( 0, inputPortCount, ACTIVE );
-        operatorReplica.init( initializationUpstreamContext, null );
+        operatorReplica.init( initializationUpstreamContext );
     }
 
     protected void mockOperatorDef ( final int inputPortCount, final int outputPortCount )

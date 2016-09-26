@@ -8,6 +8,11 @@ public class JokerConfig
 
     public static final String ENGINE_CONFIG_NAME = "joker.engine";
 
+    public static final String JOKER_THREAD_GROUP_NAME = "jokerThreadGroup";
+
+    public static final String JOKER_ID = "jokerId";
+
+
     private final Config config;
 
     private final TupleQueueManagerConfig tupleQueueManagerConfig;
@@ -19,6 +24,8 @@ public class JokerConfig
     private final PartitionServiceConfig partitionServiceConfig;
 
     private final FlowDeploymentConfig flowDeploymentConfig;
+
+    private final PipelineManagerConfig pipelineManagerConfig;
 
     public JokerConfig ()
     {
@@ -34,6 +41,7 @@ public class JokerConfig
         this.pipelineReplicaRunnerConfig = new PipelineReplicaRunnerConfig( engineConfig );
         this.partitionServiceConfig = new PartitionServiceConfig( engineConfig );
         this.flowDeploymentConfig = new FlowDeploymentConfig( engineConfig );
+        this.pipelineManagerConfig = new PipelineManagerConfig( engineConfig );
     }
 
     public Config getRootConfig ()
@@ -64,6 +72,11 @@ public class JokerConfig
     public FlowDeploymentConfig getFlowDeploymentConfig ()
     {
         return flowDeploymentConfig;
+    }
+
+    public PipelineManagerConfig getPipelineManagerConfig ()
+    {
+        return pipelineManagerConfig;
     }
 
 }

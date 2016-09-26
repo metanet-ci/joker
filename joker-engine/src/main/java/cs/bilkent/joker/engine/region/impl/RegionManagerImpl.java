@@ -143,7 +143,9 @@ public class RegionManagerImpl implements RegionManager
             for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
             {
                 LOGGER.info( "Creating pipeline instance for regionId={} replicaIndex={} pipelineIndex={} pipelineId={}",
-                             regionId, replicaIndex, pipelineIndex,
+                             regionId,
+                             replicaIndex,
+                             pipelineIndex,
                              pipelineId );
                 final OperatorReplica[] pipelineOperatorReplicas = operatorReplicas[ replicaIndex ];
                 final OperatorType regionType =
@@ -167,18 +169,7 @@ public class RegionManagerImpl implements RegionManager
     }
 
     @Override
-    public Region mergePipelines ( final int regionId, final List<PipelineId> pipelineIdsToMerge )
-    {
-        final Region region = regions.remove( regionId );
-        checkArgument( region != null, "invalid regionId=%s", regionId );
-
-        final List<Integer> startIndicesToMerge = getMergeablePipelineStartIndices( pipelineIdsToMerge );
-        final Region newRegion = regionTransformer.mergePipelines( region, startIndicesToMerge );
-        regions.put( regionId, newRegion );
-        return newRegion;
-    }
-
-    private List<Integer> getMergeablePipelineStartIndices ( final List<PipelineId> pipelineIds )
+    public List<PipelineId> getMergeablePipelineIds ( final List<PipelineId> pipelineIds )
     {
         checkArgument( pipelineIds != null && pipelineIds.size() > 1 );
 
@@ -197,6 +188,30 @@ public class RegionManagerImpl implements RegionManager
                        pipelineIds );
 
         final Region region = regions.get( pipelineIdsSorted.get( 0 ).regionId );
+        checkArgument( region != null, "no region found for %s", pipelineIds );
+
+        return pipelineIdsSorted;
+    }
+
+    @Override
+    public Region mergePipelines ( final List<PipelineId> pipelineIdsToMerge )
+    {
+        final List<Integer> startIndicesToMerge = getMergeablePipelineStartIndices( pipelineIdsToMerge );
+        final int regionId = pipelineIdsToMerge.get( 0 ).regionId;
+
+        final Region region = regions.remove( regionId );
+        checkArgument( region != null, "invalid regionId=%s", regionId );
+
+        final Region newRegion = regionTransformer.mergePipelines( region, startIndicesToMerge );
+        regions.put( regionId, newRegion );
+        return newRegion;
+    }
+
+    private List<Integer> getMergeablePipelineStartIndices ( final List<PipelineId> pipelineIds )
+    {
+        final List<PipelineId> pipelineIdsSorted = getMergeablePipelineIds( pipelineIds );
+        final Region region = regions.get( pipelineIds.get( 0 ).regionId );
+
         final List<Integer> startIndicesToMerge = pipelineIdsSorted.stream().map( p -> p.pipelineId ).collect( toList() );
         final RegionConfig regionConfig = region.getConfig();
 

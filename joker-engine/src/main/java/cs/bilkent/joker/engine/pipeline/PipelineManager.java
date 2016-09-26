@@ -10,15 +10,17 @@ import cs.bilkent.joker.engine.supervisor.Supervisor;
 public interface PipelineManager
 {
 
-    void start ( final Supervisor supervisor, final FlowDeploymentDef flowDeployment, final List<RegionConfig> regionConfigs );
+    void start ( Supervisor supervisor, FlowDeploymentDef flowDeployment, List<RegionConfig> regionConfigs );
 
     void triggerShutdown ();
 
-    UpstreamContext getUpstreamContext ( final PipelineReplicaId id );
+    void mergePipelines ( Supervisor supervisor, List<PipelineId> pipelineIds );
 
-    boolean notifyPipelineReplicaCompleted ( final PipelineReplicaId id );
+    UpstreamContext getUpstreamContext ( PipelineReplicaId id );
 
-    void notifyPipelineReplicaFailed ( final PipelineReplicaId id, final Throwable failure );
+    boolean handlePipelineReplicaCompleted ( PipelineReplicaId id );
+
+    void handlePipelineReplicaFailed ( PipelineReplicaId id, Throwable failure );
 
     FlowStatus getFlowStatus ();
 

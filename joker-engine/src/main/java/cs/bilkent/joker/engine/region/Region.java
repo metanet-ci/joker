@@ -2,6 +2,7 @@ package cs.bilkent.joker.engine.region;
 
 import java.util.Arrays;
 
+import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
 
 public class Region
@@ -45,6 +46,19 @@ public class Region
     public PipelineReplica[] getPipelineReplicas ( final int pipelineIndex )
     {
         return pipelines[ pipelineIndex ];
+    }
+
+    public PipelineReplica[] getPipelineReplicasByPipelineId ( final PipelineId pipelineId )
+    {
+        for ( int i = 0; i < config.getPipelineCount(); i++ )
+        {
+            if ( pipelines[ i ][ 0 ].id().pipelineId.equals( pipelineId ) )
+            {
+                return Arrays.copyOf( pipelines[ i ], config.getReplicaCount() );
+            }
+        }
+
+        throw new IllegalArgumentException( "Invalid pipeline id: " + pipelineId );
     }
 
 }

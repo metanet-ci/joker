@@ -2,7 +2,6 @@ package cs.bilkent.joker.engine.pipeline.impl;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -10,10 +9,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -29,9 +25,10 @@ import com.google.common.collect.Multimap;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.FlowStatus;
-import static cs.bilkent.joker.engine.FlowStatus.SHUTTING_DOWN;
 import cs.bilkent.joker.engine.config.JokerConfig;
+import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_THREAD_GROUP_NAME;
 import cs.bilkent.joker.engine.exception.InitializationException;
+import cs.bilkent.joker.engine.exception.JokerException;
 import cs.bilkent.joker.engine.partition.PartitionKeyFunction;
 import cs.bilkent.joker.engine.partition.PartitionKeyFunctionFactory;
 import cs.bilkent.joker.engine.partition.PartitionService;
@@ -44,9 +41,7 @@ import cs.bilkent.joker.engine.pipeline.Pipeline;
 import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineManager;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
-import cs.bilkent.joker.engine.pipeline.PipelineReplicaCompletionTracker;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
-import cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner;
 import cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
@@ -70,7 +65,6 @@ import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.region.RegionManager;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
-import cs.bilkent.joker.engine.tuplequeue.impl.context.DefaultTupleQueueContext;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.Port;
 import cs.bilkent.joker.operator.OperatorDef;
@@ -115,8 +109,6 @@ public class PipelineManagerImpl implements PipelineManager
 
     private final Map<PipelineId, Pipeline> pipelines = new ConcurrentHashMap<>();
 
-    private final Map<PipelineId, Thread[]> pipelineThreads = new HashMap<>();
-
     private volatile FlowStatus status = FlowStatus.INITIAL;
 
     @Inject
@@ -124,7 +116,7 @@ public class PipelineManagerImpl implements PipelineManager
                                  final RegionManager regionManager,
                                  final PartitionService partitionService,
                                  final PartitionKeyFunctionFactory partitionKeyFunctionFactory,
-                                 @Named( "jokerThreadGroup" ) final ThreadGroup jokerThreadGroup )
+                                 @Named( JOKER_THREAD_GROUP_NAME ) final ThreadGroup jokerThreadGroup )
     {
         this.jokerConfig = jokerConfig;
         this.regionManager = regionManager;
@@ -259,12 +251,12 @@ public class PipelineManagerImpl implements PipelineManager
         return new ArrayList<>( pipelines.values() );
     }
 
-    List<Pipeline> createPipelines ( final Supervisor supervisor, final FlowDef flow, final List<RegionConfig> regionConfigs )
+    List<Pipeline> createPipelines ( final FlowDef flow, final List<RegionConfig> regionConfigs )
     {
-        final List<Pipeline> pipelines = createPipelineReplicas( flow, regionConfigs );
+        final List<Pipeline> pipelines = createRegions( flow, regionConfigs );
         createDownstreamTupleSenders( flow );
         createUpstreamContexts( flow );
-        createPipelineReplicaRunners( supervisor );
+
         return pipelines;
     }
 
@@ -273,12 +265,12 @@ public class PipelineManagerImpl implements PipelineManager
     {
         try
         {
-            checkState( status == FlowStatus.INITIAL, "cannot start since status is %s", status );
+            checkState( status == FlowStatus.INITIAL, "cannot startPipelineReplicaRunnerThreads since status is %s", status );
             checkState( this.flowDeployment == null, "Flow deployment is already done!" );
             this.flowDeployment = flowDeployment;
-            createPipelines( supervisor, flowDeployment.getFlow(), regionConfigs );
-            initPipelineReplicas();
-            startPipelineReplicaRunnerThreads();
+            createPipelines( flowDeployment.getFlow(), regionConfigs );
+            initPipelines();
+            createPipelineReplicaRunners( supervisor );
             status = FlowStatus.RUNNING;
         }
         catch ( Exception e )
@@ -288,84 +280,38 @@ public class PipelineManagerImpl implements PipelineManager
         }
     }
 
-    private void initPipelineReplicas ()
+    private void initPipelines ()
     {
-        final List<PipelineReplica> pipelineReplicas = new ArrayList<>();
+        final List<Pipeline> initialized = new ArrayList<>();
         try
         {
             for ( Pipeline pipeline : pipelines.values() )
             {
-                final UpstreamContext upstreamContext = pipeline.getUpstreamContext();
-                for ( int replicaIndex = 0; replicaIndex < pipeline.getReplicaCount(); replicaIndex++ )
-                {
-                    final PipelineReplica pipelineReplica = pipeline.getPipelineReplica( replicaIndex );
-                    final PipelineReplicaCompletionTracker tracker = pipeline.getPipelineReplicaRunner( replicaIndex )
-                                                                             .getPipelineReplicaCompletionTracker();
-                    LOGGER.info( "Initializing Replica {} of Pipeline {}", replicaIndex, pipeline.getId() );
-                    pipelineReplica.init( upstreamContext, tracker );
-                    pipelineReplicas.add( pipelineReplica );
-                }
-
-                final SchedulingStrategy initialSchedulingStrategy = pipeline.getPipelineReplica( 0 )
-                                                                             .getOperator( 0 )
-                                                                             .getInitialSchedulingStrategy();
-                for ( int replicaIndex = 1; replicaIndex < pipeline.getReplicaCount(); replicaIndex++ )
-                {
-                    checkState( initialSchedulingStrategy.equals( pipeline.getPipelineReplica( replicaIndex )
-                                                                          .getOperator( 0 )
-                                                                          .getInitialSchedulingStrategy() ),
-                                "Pipeline %s Replica %s has different Scheduling Strategy: %s than 0th Replica's Scheduling Strategy: ",
-                                pipeline.getId(),
-                                replicaIndex,
-                                initialSchedulingStrategy );
-                }
-                pipeline.setInitialSchedulingStrategy( initialSchedulingStrategy );
+                initialized.add( pipeline );
+                pipeline.init();
             }
         }
         catch ( Exception e1 )
         {
             LOGGER.error( "Pipeline initialization failed.", e1 );
-            reverse( pipelineReplicas );
-            LOGGER.error( "Shutting down {} pipeline replicas.", pipelineReplicas.size() );
-            for ( PipelineReplica p : pipelineReplicas )
+            reverse( initialized );
+            LOGGER.error( "Shutting down {} pipelines.", initialized.size() );
+            for ( Pipeline pipeline : initialized )
             {
                 try
                 {
-                    LOGGER.info( "Shutting down Pipeline Replica {}", p.id() );
-                    p.shutdown();
+                    LOGGER.info( "Shutting down Pipeline {}", pipeline.getId() );
+                    pipeline.shutdown();
                 }
                 catch ( Exception e2 )
                 {
-                    LOGGER.error( "Shutdown of Pipeline " + p.id() + " failed", e2 );
+                    LOGGER.error( "Shutdown of Pipeline " + pipeline.getId() + " failed", e2 );
                 }
             }
 
             releaseRegions();
 
             throw e1;
-        }
-    }
-
-    private void startPipelineReplicaRunnerThreads ()
-    {
-        for ( Pipeline pipeline : pipelines.values() )
-        {
-            final int replicaCount = pipeline.getReplicaCount();
-            final Thread[] threads = pipelineThreads.computeIfAbsent( pipeline.getId(), ( pipelineId ) -> new Thread[ replicaCount ] );
-            for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
-            {
-                LOGGER.info( "Starting thread for Pipeline {} Replica {}", pipeline.getId(), replicaIndex );
-                final String threadName = jokerThreadGroup.getName() + "-" + pipeline.getPipelineReplica( replicaIndex ).id();
-                threads[ replicaIndex ] = new Thread( jokerThreadGroup, pipeline.getPipelineReplicaRunner( replicaIndex ), threadName );
-            }
-        }
-
-        for ( Thread[] threads : pipelineThreads.values() )
-        {
-            for ( Thread thread : threads )
-            {
-                thread.start();
-            }
         }
     }
 
@@ -378,27 +324,20 @@ public class PipelineManagerImpl implements PipelineManager
     }
 
     @Override
-    public boolean notifyPipelineReplicaCompleted ( final PipelineReplicaId id )
+    public boolean handlePipelineReplicaCompleted ( final PipelineReplicaId id )
     {
         checkState( status == FlowStatus.SHUTTING_DOWN, "cannot notify Pipeline Replica %s completion since status is %s", id, status );
 
         final Pipeline pipeline = getPipelineOrFail( id.pipelineId );
-        final OperatorReplicaStatus pipelineStatus = pipeline.getPipelineStatus();
-        checkState( pipelineStatus == COMPLETING,
-                    "Pipeline %s can not receive completion notification in %s status",
-                    id.pipelineId,
-                    pipelineStatus );
 
-        LOGGER.info( "Pipeline replica {} is completed.", id );
-
-        if ( pipeline.setPipelineReplicaCompleted( id.replicaIndex ) )
+        if ( pipeline.handlePipelineReplicaCompleted( id.replicaIndex ) )
         {
             for ( Pipeline downstreamPipeline : getDownstreamPipelines( pipeline ) )
             {
                 final UpstreamContext updatedUpstreamContext = getUpdatedUpstreamContext( downstreamPipeline );
                 if ( updatedUpstreamContext != null )
                 {
-                    handlePipelineUpstreamUpdated( downstreamPipeline, updatedUpstreamContext );
+                    downstreamPipeline.handleUpstreamContextUpdated( updatedUpstreamContext );
                 }
                 else
                 {
@@ -476,7 +415,7 @@ public class PipelineManagerImpl implements PipelineManager
                                                                                final OperatorReplicaStatus s = p._2.getPipelineStatus();
                                                                                return s == OperatorReplicaStatus.INITIAL
                                                                                       || s == OperatorReplicaStatus.RUNNING
-                                                                                      || s == COMPLETING;
+                                                                                      || s == OperatorReplicaStatus.COMPLETING;
                                                                            } ).findFirst().isPresent();
                 status = aliveConnPresent ? UpstreamConnectionStatus.ACTIVE : UpstreamConnectionStatus.CLOSED;
             }
@@ -509,46 +448,83 @@ public class PipelineManagerImpl implements PipelineManager
         checkState( status == FlowStatus.RUNNING, "cannot trigger shutdown since status is %s", status );
         LOGGER.info( "Shutdown request is being handled." );
 
-        status = SHUTTING_DOWN;
+        status = FlowStatus.SHUTTING_DOWN;
 
         for ( Pipeline pipeline : pipelines.values() )
         {
             final OperatorDef operatorDef = pipeline.getFirstOperatorDef();
             if ( flowDeployment.getFlow().getUpstreamConnections( operatorDef.id() ).isEmpty() )
             {
-                handlePipelineUpstreamUpdated( pipeline, new UpstreamContext( 1, new UpstreamConnectionStatus[] {} ) );
+                pipeline.handleUpstreamContextUpdated( new UpstreamContext( 1, new UpstreamConnectionStatus[] {} ) );
             }
         }
     }
 
-    private void handlePipelineUpstreamUpdated ( final Pipeline pipeline, final UpstreamContext upstreamContext )
+    @Override
+    public void mergePipelines ( final Supervisor supervisor, final List<PipelineId> pipelineIds )
     {
-        LOGGER.info( "Updating upstream context of Pipeline {} to {}", pipeline.getId(), upstreamContext );
+        checkState( status == FlowStatus.RUNNING, "cannot merge pipelines %s since status is %s", pipelineIds, status );
+        LOGGER.info( "Will try to merge pipelines: {}", pipelineIds );
 
-        final OperatorReplicaStatus pipelineStatus = pipeline.getPipelineStatus();
-        checkState( pipelineStatus == OperatorReplicaStatus.RUNNING || pipelineStatus == OperatorReplicaStatus.COMPLETING,
-                    "Cannot handle updated pipeline upstream since Pipeline %s is in %s status",
-                    pipeline.getId(),
-                    pipelineStatus );
+        final List<PipelineId> mergeablePipelineIds = regionManager.getMergeablePipelineIds( pipelineIds );
+        LOGGER.info( "Mergeable pipeline ids: {}", mergeablePipelineIds );
 
-        pipeline.setUpstreamContext( upstreamContext );
-        if ( pipelineStatus == OperatorReplicaStatus.RUNNING && !upstreamContext.isInvokable( pipeline.getFirstOperatorDef(),
-                                                                                              pipeline.getInitialSchedulingStrategy() ) )
+        final PipelineId firstPipelineId = mergeablePipelineIds.get( 0 );
+        final Pipeline firstPipeline = pipelines.get( firstPipelineId );
+        final SchedulingStrategy initialSchedulingStrategy = firstPipeline.getInitialSchedulingStrategy();
+        final UpstreamContext upstreamContext = firstPipeline.getUpstreamContext();
+
+        releasePipelines( mergeablePipelineIds );
+
+        try
         {
-            LOGGER.info( "Pipeline {} is not invokable anymore. Setting pipeline status to {}", pipeline.getId(), COMPLETING );
-            pipeline.setPipelineCompleting();
-        }
+            final Region region = regionManager.mergePipelines( mergeablePipelineIds );
+            final PipelineReplica[] pipelineReplicas = region.getPipelineReplicasByPipelineId( firstPipelineId );
 
-        notifyPipelineReplicaRunners( pipeline, upstreamContext );
+            final Pipeline pipeline = new Pipeline( firstPipelineId,
+                                                    region.getConfig(),
+                                                    pipelineReplicas,
+                                                    initialSchedulingStrategy,
+                                                    upstreamContext );
+            addPipeline( pipeline );
+            createDownstreamTupleSenders( flowDeployment.getFlow(), pipeline );
+            pipeline.startPipelineReplicaRunners( jokerConfig, supervisor, jokerThreadGroup );
+        }
+        catch ( Exception e )
+        {
+            throw new JokerException( "Failed during merging pipelines: " + pipelineIds, e );
+        }
     }
 
-    private void notifyPipelineReplicaRunners ( final Pipeline pipeline, final UpstreamContext upstreamContext )
+    private void addPipeline ( final Pipeline pipeline )
     {
-        LOGGER.info( "Notifying runners about new {} of Pipeline {}", upstreamContext, pipeline.getId() );
-        for ( int i = 0; i < pipeline.getReplicaCount(); i++ )
+        checkState( this.pipelines.put( pipeline.getId(), pipeline ) == null,
+                    "there are multiple pipelines with same id: %s",
+                    pipeline.getId() );
+    }
+
+    private void releasePipelines ( final List<PipelineId> pipelineIds )
+    {
+        for ( PipelineId pipelineId : pipelineIds )
         {
-            final PipelineReplicaRunner runner = pipeline.getPipelineReplicaRunner( i );
-            runner.updatePipelineUpstreamContext();
+            checkArgument( pipelines.containsKey( pipelineId ), "pipeline not found for pipeline id %s to merge", pipelineId );
+        }
+
+        for ( int i = 0; i < pipelineIds.size(); i++ )
+        {
+            final PipelineId pipelineId = pipelineIds.get( i );
+            LOGGER.info( "Stopping pipeline {}...", pipelineId );
+
+            final Pipeline pipeline = pipelines.get( pipelineId );
+
+            final long runnerStopTimeoutInMillis = jokerConfig.getPipelineManagerConfig().getRunnerStopTimeoutInMillis();
+            final List<Exception> failures = pipeline.stopPipelineReplicaRunners( i > 0, runnerStopTimeoutInMillis );
+            pipelines.remove( pipelineId );
+            LOGGER.info( "Pipeline {} is released...", pipelineId );
+            if ( !failures.isEmpty() )
+            {
+                throw new JokerException( "Failed during stopping pipeline " + pipelineId + " replica runners!" );
+            }
         }
     }
 
@@ -572,7 +548,7 @@ public class PipelineManagerImpl implements PipelineManager
         }
     }
 
-    private List<Pipeline> createPipelineReplicas ( final FlowDef flow, final Collection<RegionConfig> regionConfigs )
+    private List<Pipeline> createRegions ( final FlowDef flow, final Collection<RegionConfig> regionConfigs )
     {
         final List<Pipeline> pipelines = new ArrayList<>();
         for ( RegionConfig regionConfig : regionConfigs )
@@ -587,19 +563,10 @@ public class PipelineManagerImpl implements PipelineManager
             for ( int pipelineIndex = 0; pipelineIndex < regionConfig.getPipelineCount(); pipelineIndex++ )
             {
                 final PipelineReplica[] pipelineReplicas = region.getPipelineReplicas( pipelineIndex );
-
                 final PipelineId pipelineId = pipelineReplicas[ 0 ].id().pipelineId;
-                final Pipeline pipeline = new Pipeline( pipelineId, regionConfig );
-
-                checkState( this.pipelines.put( pipelineId, pipeline ) == null,
-                            "there are multiple pipelines with same id: %s",
-                            pipelineId );
+                final Pipeline pipeline = new Pipeline( pipelineId, regionConfig, pipelineReplicas );
+                addPipeline( pipeline );
                 pipelines.add( pipeline );
-
-                for ( int replicaIndex = 0; replicaIndex < pipeline.getReplicaCount(); replicaIndex++ )
-                {
-                    pipeline.setPipelineReplica( replicaIndex, pipelineReplicas[ replicaIndex ] );
-                }
             }
 
             LOGGER.info( "regionId={} is created", regionConfig.getRegionId() );
@@ -787,69 +754,64 @@ public class PipelineManagerImpl implements PipelineManager
     {
         for ( Pipeline pipeline : pipelines.values() )
         {
-            UpstreamContext upstreamContext;
-            final OperatorDef firstOperator = pipeline.getFirstOperatorDef();
-            if ( firstOperator.inputPortCount() == 0 )
-            {
-                upstreamContext = new UpstreamContext( 0, new UpstreamConnectionStatus[] {} );
-            }
-            else
-            {
-                final UpstreamConnectionStatus[] statuses = new UpstreamConnectionStatus[ firstOperator.inputPortCount() ];
-                final Map<Port, Collection<Port>> upstreamConnections = flow.getUpstreamConnections( firstOperator.id() );
-                for ( int portIndex = 0; portIndex < firstOperator.inputPortCount(); portIndex++ )
-                {
-                    UpstreamConnectionStatus status = CLOSED;
-                    final Collection<Port> upstreamPorts = upstreamConnections.get( new Port( firstOperator.id(), portIndex ) );
-                    if ( upstreamPorts == null || upstreamPorts.isEmpty() )
-                    {
-                        status = NO_CONNECTION;
-                    }
-                    else
-                    {
-                        for ( Port upstreamPort : upstreamPorts )
-                        {
-                            final OperatorDef upstreamOperator = flow.getOperator( upstreamPort.operatorId );
-                            final Pipeline upstreamPipeline = getPipeline( upstreamOperator, -1 );
-                            final int operatorIndex = upstreamPipeline.getOperatorIndex( upstreamOperator );
-                            checkState( ( upstreamPipeline.getOperatorCount() - 1 ) == operatorIndex,
-                                        "Operator %s is supposed to be last operator of pipeline %s but it is on index %s",
-                                        upstreamOperator.id(),
-                                        upstreamPipeline.getId(),
-                                        operatorIndex );
-                            final OperatorReplicaStatus pipelineStatus = upstreamPipeline.getPipelineStatus();
-                            if ( pipelineStatus == INITIAL || pipelineStatus == RUNNING || pipelineStatus == COMPLETING )
-                            {
-                                status = ACTIVE;
-                                break;
-                            }
-                        }
-                    }
-                    statuses[ portIndex ] = status;
-                }
-                upstreamContext = new UpstreamContext( 0, statuses );
-            }
-
+            UpstreamContext upstreamContext = createUpstreamContext( flow, pipeline );
             LOGGER.info( "Created {} for pipeline {}", upstreamContext, pipeline.getId() );
             pipeline.setUpstreamContext( upstreamContext );
         }
+    }
+
+    private UpstreamContext createUpstreamContext ( final FlowDef flow, final Pipeline pipeline )
+    {
+        UpstreamContext upstreamContext;
+        final OperatorDef firstOperator = pipeline.getFirstOperatorDef();
+        if ( firstOperator.inputPortCount() == 0 )
+        {
+            upstreamContext = new UpstreamContext( 0, new UpstreamConnectionStatus[] {} );
+        }
+        else
+        {
+            final UpstreamConnectionStatus[] statuses = new UpstreamConnectionStatus[ firstOperator.inputPortCount() ];
+            final Map<Port, Collection<Port>> upstreamConnections = flow.getUpstreamConnections( firstOperator.id() );
+            for ( int portIndex = 0; portIndex < firstOperator.inputPortCount(); portIndex++ )
+            {
+                UpstreamConnectionStatus status = CLOSED;
+                final Collection<Port> upstreamPorts = upstreamConnections.get( new Port( firstOperator.id(), portIndex ) );
+                if ( upstreamPorts == null || upstreamPorts.isEmpty() )
+                {
+                    status = NO_CONNECTION;
+                }
+                else
+                {
+                    for ( Port upstreamPort : upstreamPorts )
+                    {
+                        final OperatorDef upstreamOperator = flow.getOperator( upstreamPort.operatorId );
+                        final Pipeline upstreamPipeline = getPipeline( upstreamOperator, -1 );
+                        final int operatorIndex = upstreamPipeline.getOperatorIndex( upstreamOperator );
+                        checkState( ( upstreamPipeline.getOperatorCount() - 1 ) == operatorIndex,
+                                    "Operator %s is supposed to be last operator of pipeline %s but it is on index %s",
+                                    upstreamOperator.id(),
+                                    upstreamPipeline.getId(),
+                                    operatorIndex );
+                        final OperatorReplicaStatus pipelineStatus = upstreamPipeline.getPipelineStatus();
+                        if ( pipelineStatus == INITIAL || pipelineStatus == RUNNING || pipelineStatus == COMPLETING )
+                        {
+                            status = ACTIVE;
+                            break;
+                        }
+                    }
+                }
+                statuses[ portIndex ] = status;
+            }
+            upstreamContext = new UpstreamContext( 0, statuses );
+        }
+        return upstreamContext;
     }
 
     private void createPipelineReplicaRunners ( final Supervisor supervisor )
     {
         for ( Pipeline pipeline : pipelines.values() )
         {
-            for ( int replicaIndex = 0; replicaIndex < pipeline.getReplicaCount(); replicaIndex++ )
-            {
-                final PipelineReplica pipelineReplica = pipeline.getPipelineReplica( replicaIndex );
-                final PipelineReplicaCompletionTracker tracker = new PipelineReplicaCompletionTracker( pipelineReplica.id(),
-                                                                                                       pipelineReplica.getOperatorCount() );
-                final PipelineReplicaRunner runner = new PipelineReplicaRunner( jokerConfig,
-                                                                                pipelineReplica, supervisor, tracker,
-                                                                                pipeline.getDownstreamTupleSender( replicaIndex ) );
-                pipeline.setPipelineReplicaRunner( replicaIndex, runner );
-                LOGGER.info( "Created runner for pipeline replica: {}", pipelineReplica.id() );
-            }
+            pipeline.startPipelineReplicaRunners( jokerConfig, supervisor, jokerThreadGroup );
         }
     }
 
@@ -911,96 +873,23 @@ public class PipelineManagerImpl implements PipelineManager
 
     private void stopPipelineReplicaRunners ()
     {
-        final List<Future<Boolean>> futures = new ArrayList<>();
         for ( Pipeline pipeline : pipelines.values() )
         {
-            for ( int replicaIndex = 0; replicaIndex < pipeline.getReplicaCount(); replicaIndex++ )
-            {
-                final PipelineReplica pipelineReplica = pipeline.getPipelineReplica( replicaIndex );
-                final TupleQueueContext upstreamTupleQueueContext = pipelineReplica.getUpstreamTupleQueueContext();
-                if ( upstreamTupleQueueContext instanceof DefaultTupleQueueContext )
-                {
-                    final DefaultTupleQueueContext d = (DefaultTupleQueueContext) upstreamTupleQueueContext;
-                    for ( int portIndex = 0; portIndex < d.getInputPortCount(); portIndex++ )
-                    {
-                        LOGGER.warn( "Pipeline {} upstream tuple queue capacity check is disabled", pipelineReplica.id() );
-                        d.disableCapacityCheck( portIndex );
-                    }
-                }
-
-                final PipelineReplicaRunner pipelineReplicaRunner = pipeline.getPipelineReplicaRunner( replicaIndex );
-                futures.add( pipelineReplicaRunner.stop() );
-            }
+            final long runnerStopTimeoutInMillis = jokerConfig.getPipelineManagerConfig().getRunnerStopTimeoutInMillis();
+            pipeline.stopPipelineReplicaRunners( true, runnerStopTimeoutInMillis );
         }
-
-        for ( Future<Boolean> future : futures )
-        {
-            try
-            {
-                future.get( 2, TimeUnit.MINUTES );
-            }
-            catch ( InterruptedException e )
-            {
-                LOGGER.error( "TaskRunner is interrupted while waiting for pipeline replica runner to stop", e );
-                Thread.currentThread().interrupt();
-            }
-            catch ( ExecutionException e )
-            {
-                LOGGER.error( "Stop pipeline replica runner failed", e );
-            }
-            catch ( TimeoutException e )
-            {
-                LOGGER.error( "Stop pipeline replica runner timed out", e );
-            }
-        }
-    }
-
-    private void awaitPipelineThreads ()
-    {
-        LOGGER.warn( "Joining pipeline threads" );
-
-        for ( Thread[] threads : pipelineThreads.values() )
-        {
-            for ( Thread thread : threads )
-            {
-                try
-                {
-                    thread.join( TimeUnit.MINUTES.toMillis( 2 ) );
-                }
-                catch ( InterruptedException e )
-                {
-                    LOGGER.error( "TaskRunner is interrupted while it is joined to pipeline runner thread", e );
-                    Thread.currentThread().interrupt();
-                }
-            }
-        }
-
-        pipelineThreads.clear();
-
-        LOGGER.warn( "All pipeline threads are finished." );
     }
 
     private void shutdownPipelines ()
     {
         for ( Pipeline pipeline : pipelines.values() )
         {
-            for ( int replicaIndex = 0; replicaIndex < pipeline.getReplicaCount(); replicaIndex++ )
-            {
-                final PipelineReplica replica = pipeline.getPipelineReplica( replicaIndex );
-                try
-                {
-                    replica.shutdown();
-                }
-                catch ( Exception e )
-                {
-                    LOGGER.error( "PipelineReplica " + replica.id() + " releaseRegions failed", e );
-                }
-            }
+            pipeline.shutdown();
         }
     }
 
     @Override
-    public void notifyPipelineReplicaFailed ( final PipelineReplicaId id, final Throwable failure )
+    public void handlePipelineReplicaFailed ( final PipelineReplicaId id, final Throwable failure )
     {
         LOGGER.error( "Pipeline Replica " + id + " failed.", failure );
         shutdownGracefully( failure );
@@ -1028,7 +917,6 @@ public class PipelineManagerImpl implements PipelineManager
             status = FlowStatus.SHUT_DOWN;
 
             stopPipelineReplicaRunners();
-            awaitPipelineThreads();
             shutdownPipelines();
             releaseRegions();
         }
