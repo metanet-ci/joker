@@ -17,7 +17,7 @@ import cs.bilkent.joker.engine.pipeline.Pipeline;
 import cs.bilkent.joker.engine.pipeline.PipelineManager;
 import cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
-import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.NO_CONNECTION;
+import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import cs.bilkent.joker.engine.pipeline.UpstreamContext;
 import cs.bilkent.joker.engine.pipeline.impl.PipelineManagerImpl.NopDownstreamTupleSender;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.CompositeDownstreamTupleSender;
@@ -121,7 +121,7 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         assertEquals( 2, pipelines.size() );
 
         final Pipeline pipeline1 = pipelines.get( 0 );
-        assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { NO_CONNECTION, NO_CONNECTION } ),
+        assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { CLOSED, CLOSED } ),
                       pipeline1.getUpstreamContext() );
         assertEquals( partitionedStatefulRegionDef, pipeline1.getRegionDef() );
         assertEquals( 0, pipeline1.getOperatorIndex( operatorDef1 ) );
@@ -173,7 +173,7 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         assertEquals( INITIAL, pipeline2.getPipelineStatus() );
         assertEquals( INITIAL, pipeline3.getPipelineStatus() );
 
-        assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { NO_CONNECTION, NO_CONNECTION } ),
+        assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { CLOSED, CLOSED } ),
                       pipeline1.getUpstreamContext() );
         assertEquals( partitionedStatefulRegionDef, pipeline1.getRegionDef() );
         assertEquals( 0, pipeline1.getOperatorIndex( operatorDef1 ) );
@@ -265,7 +265,7 @@ public class PipelineManagerImplTest extends AbstractJokerTest
                            new TupleQueueContext[] { pipeline2.getPipelineReplica( 0 ).getUpstreamTupleQueueContext(),
                                                      pipeline2.getPipelineReplica( 1 ).getUpstreamTupleQueueContext() } );
 
-        assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE, NO_CONNECTION } ), pipeline2.getUpstreamContext() );
+        assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE, CLOSED } ), pipeline2.getUpstreamContext() );
         assertEquals( partitionedStatefulRegionDef, pipeline2.getRegionDef() );
         assertEquals( 0, pipeline2.getOperatorIndex( operatorDef2 ) );
         assertFalse( pipeline2.getPipelineReplica( 0 ) == pipeline2.getPipelineReplica( 1 ) );
@@ -337,7 +337,7 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         assertEquals( ( (Supplier<TupleQueueContext>) pipeline2.getDownstreamTupleSender( 1 ) ).get(),
                       pipeline3.getPipelineReplica( 1 ).getUpstreamTupleQueueContext() );
 
-        assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE, NO_CONNECTION } ), pipeline3.getUpstreamContext() );
+        assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE, CLOSED } ), pipeline3.getUpstreamContext() );
         assertEquals( partitionedStatefulRegionDef, pipeline3.getRegionDef() );
         assertEquals( 0, pipeline3.getOperatorIndex( operatorDef3 ) );
         assertFalse( pipeline3.getPipelineReplica( 0 ) == pipeline3.getPipelineReplica( 1 ) );

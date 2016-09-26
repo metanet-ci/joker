@@ -45,7 +45,6 @@ import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
-import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.NO_CONNECTION;
 import cs.bilkent.joker.engine.pipeline.UpstreamContext;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.CompositeDownstreamTupleSender;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.DownstreamTupleSender1;
@@ -398,7 +397,7 @@ public class PipelineManagerImpl implements PipelineManager
             final UpstreamConnectionStatus status;
             if ( upstreamPorts.isEmpty() )
             {
-                status = NO_CONNECTION;
+                status = CLOSED;
             }
             else
             {
@@ -778,7 +777,7 @@ public class PipelineManagerImpl implements PipelineManager
                 final Collection<Port> upstreamPorts = upstreamConnections.get( new Port( firstOperator.id(), portIndex ) );
                 if ( upstreamPorts == null || upstreamPorts.isEmpty() )
                 {
-                    status = NO_CONNECTION;
+                    status = CLOSED;
                 }
                 else
                 {
