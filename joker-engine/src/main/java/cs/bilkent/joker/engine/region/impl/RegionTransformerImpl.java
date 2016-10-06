@@ -13,9 +13,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import cs.bilkent.joker.engine.config.JokerConfig;
+import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
 import cs.bilkent.joker.engine.pipeline.OperatorReplica;
+import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
+import cs.bilkent.joker.engine.pipeline.UpstreamContext;
 import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
 import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.NonCachedTuplesImplSupplier;
 import cs.bilkent.joker.engine.region.Region;
@@ -24,12 +27,17 @@ import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.region.RegionTransformer;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueContextManager;
+import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainerPool;
 import cs.bilkent.joker.engine.tuplequeue.impl.context.DefaultTupleQueueContext;
 import cs.bilkent.joker.engine.tuplequeue.impl.context.EmptyTupleQueueContext;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
+import cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool.BlockingTupleQueueDrainerPool;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool.NonBlockingTupleQueueDrainerPool;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
+import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
+import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
+import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import static java.lang.System.arraycopy;
 
 @Singleton
@@ -83,7 +91,7 @@ public class RegionTransformerImpl implements RegionTransformer
             final OperatorReplica[] newOperatorReplicas = new OperatorReplica[ newOperatorCount ];
             final PipelineReplica[] replicaPipelines = region.getReplicaPipelines( replicaIndex );
             final PipelineReplica firstPipelineReplica = replicaPipelines[ regionConfig.getPipelineIndex( startIndicesToMerge.get( 0 ) ) ];
-            int operatorIndex = duplicateFirstPipeline( firstPipelineReplica, newOperatorReplicas );
+            int operatorIndex = duplicateFirstPipelineToMerge( firstPipelineReplica, newOperatorReplicas );
 
             final PipelineReplicaId pipelineReplicaId = replicaPipelines[ firstPipelineIndex ].id();
 
@@ -149,45 +157,6 @@ public class RegionTransformerImpl implements RegionTransformer
         return true;
     }
 
-    private List<Integer> getPipelineStartIndicesAfterMerge ( final List<Integer> currentStartIndices,
-                                                              final List<Integer> startIndicesToMerge )
-    {
-        final List<Integer> newPipelineStartIndices = new ArrayList<>();
-        final List<Integer> excluded = startIndicesToMerge.subList( 1, startIndicesToMerge.size() );
-        for ( int startIndex : currentStartIndices )
-        {
-            if ( !excluded.contains( startIndex ) )
-            {
-                newPipelineStartIndices.add( startIndex );
-            }
-        }
-        return newPipelineStartIndices;
-    }
-
-    private void copyNonMergedPipelines ( final Region region,
-                                          final List<Integer> startIndicesToMerge,
-                                          final PipelineReplica[][] newPipelineReplicas,
-                                          final int pipelineCountDecrease )
-    {
-        final RegionConfig config = region.getConfig();
-        final List<Integer> currentStartIndices = config.getPipelineStartIndices();
-        final int replicaCount = config.getReplicaCount();
-        final int beforeMergeIndex = currentStartIndices.indexOf( startIndicesToMerge.get( 0 ) );
-        for ( int i = 0; i < beforeMergeIndex; i++ )
-        {
-            LOGGER.info( "copying non-merged pipelineIndex={} of replicaId={}", i, region.getRegionId() );
-            arraycopy( region.getPipelineReplicas( i ), 0, newPipelineReplicas[ i ], 0, replicaCount );
-        }
-
-        final int afterMergeIndex = 1 + currentStartIndices.indexOf( startIndicesToMerge.get( pipelineCountDecrease ) );
-        for ( int i = afterMergeIndex; i < currentStartIndices.size(); i++ )
-        {
-            final int j = i - pipelineCountDecrease;
-            LOGGER.info( "copying non-merged pipelineIndex={} to new pipelineIndex={} of replicaId={}", i, j, region.getRegionId() );
-            arraycopy( region.getPipelineReplicas( i ), 0, newPipelineReplicas[ j ], 0, replicaCount );
-        }
-    }
-
     private int getMergedPipelineOperatorCount ( final RegionConfig regionConfig, final List<Integer> startIndicesToMerge )
     {
         int newOperatorCount = 0;
@@ -198,7 +167,31 @@ public class RegionTransformerImpl implements RegionTransformer
         return newOperatorCount;
     }
 
-    private int duplicateFirstPipeline ( final PipelineReplica pipelineReplica, final OperatorReplica[] newOperatorReplicas )
+    private void copyNonMergedPipelines ( final Region region,
+                                          final List<Integer> startIndicesToMerge,
+                                          final PipelineReplica[][] newPipelineReplicas,
+                                          final int pipelineCountDecrease )
+    {
+        final RegionConfig config = region.getConfig();
+        final List<Integer> currentStartIndices = config.getPipelineStartIndices();
+        final int replicaCount = config.getReplicaCount();
+        final int before = currentStartIndices.indexOf( startIndicesToMerge.get( 0 ) );
+        for ( int i = 0; i < before; i++ )
+        {
+            LOGGER.info( "copying non-merged pipelineIndex={} of replicaId={}", i, region.getRegionId() );
+            arraycopy( region.getPipelineReplicas( i ), 0, newPipelineReplicas[ i ], 0, replicaCount );
+        }
+
+        final int after = 1 + currentStartIndices.indexOf( startIndicesToMerge.get( pipelineCountDecrease ) );
+        for ( int i = after; i < currentStartIndices.size(); i++ )
+        {
+            final int j = i - pipelineCountDecrease;
+            LOGGER.info( "copying non-merged pipelineIndex={} to new pipelineIndex={} of replicaId={}", i, j, region.getRegionId() );
+            arraycopy( region.getPipelineReplicas( i ), 0, newPipelineReplicas[ j ], 0, replicaCount );
+        }
+    }
+
+    private int duplicateFirstPipelineToMerge ( final PipelineReplica pipelineReplica, final OperatorReplica[] newOperatorReplicas )
     {
         int operatorIndex = 0;
         final PipelineReplicaId pipelineReplicaId = pipelineReplica.id();
@@ -219,7 +212,7 @@ public class RegionTransformerImpl implements RegionTransformer
                                                .map( o -> o.getOperatorDef().id() )
                                                .collect( Collectors.toList() );
 
-        LOGGER.info( "Duplicated first pipeline {}. operators: {}", pipelineReplicaId, operatorIds );
+        LOGGER.info( "Duplicated first pipeline {} to merge. operators: {}", pipelineReplicaId, operatorIds );
 
         return operatorIndex;
     }
@@ -274,7 +267,7 @@ public class RegionTransformerImpl implements RegionTransformer
             if ( firstOperator.getQueue() instanceof DefaultTupleQueueContext )
             {
                 final String operatorId = firstOperatorDef.id();
-                firstOperatorQueue = tupleQueueContextManager.convertToSingleThreaded( regionId, replicaIndex, operatorId );
+                firstOperatorQueue = tupleQueueContextManager.switchThreadingPreference( regionId, replicaIndex, operatorId );
             }
             else
             {
@@ -304,6 +297,238 @@ public class RegionTransformerImpl implements RegionTransformer
                                                     : new CachedTuplesImplSupplier( firstOperatorDef.inputPortCount() );
         LOGGER.info( "Duplicating first operator {} of {} to {}", firstOperatorDef.id(), pipelineReplica.id(), newPipelineReplicaId );
         return firstOperator.duplicate( newPipelineReplicaId, firstOperatorQueue, drainerPool, outputSupplier );
+    }
+
+    private List<Integer> getPipelineStartIndicesAfterMerge ( final List<Integer> currentStartIndices,
+                                                              final List<Integer> startIndicesToMerge )
+    {
+        final List<Integer> newPipelineStartIndices = new ArrayList<>();
+        final List<Integer> excluded = startIndicesToMerge.subList( 1, startIndicesToMerge.size() );
+        for ( int startIndex : currentStartIndices )
+        {
+            if ( !excluded.contains( startIndex ) )
+            {
+                newPipelineStartIndices.add( startIndex );
+            }
+        }
+        return newPipelineStartIndices;
+    }
+
+    @Override
+    public Region splitPipeline ( final Region region, final List<Integer> startIndicesToSplit )
+    {
+        final int regionId = region.getRegionId();
+
+        final RegionConfig regionConfig = region.getConfig();
+        final RegionDef regionDef = regionConfig.getRegionDef();
+        LOGGER.info( "Splitting pipelines: {} of regionId={} with pipeline start indices: {}",
+                     startIndicesToSplit,
+                     regionId,
+                     regionConfig.getPipelineStartIndices() );
+
+        if ( !checkPipelineStartIndicesToSplit( regionConfig, startIndicesToSplit ) )
+        {
+            throw new IllegalArgumentException( "invalid pipeline start indices to split: " + startIndicesToSplit
+                                                + " current pipeline start indices: " + regionConfig.getPipelineStartIndices()
+                                                + " regionId=" + regionId );
+        }
+
+        final int replicaCount = regionConfig.getReplicaCount();
+        final int pipelineCountIncrease = startIndicesToSplit.size() - 1;
+        final int newPipelineCount = regionConfig.getPipelineCount() + pipelineCountIncrease;
+        final PipelineReplica[][] newPipelineReplicas = new PipelineReplica[ newPipelineCount ][ replicaCount ];
+        final int firstPipelineIndex = regionConfig.getPipelineIndex( startIndicesToSplit.get( 0 ) );
+
+        copyNonSplitPipelines( region, startIndicesToSplit, newPipelineReplicas, pipelineCountIncrease );
+
+        for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
+        {
+            final PipelineReplica pipelineReplica = region.getReplicaPipelines( replicaIndex )[ firstPipelineIndex ];
+
+            for ( int i = 0; i < startIndicesToSplit.size(); i++ )
+            {
+                final int curr = startIndicesToSplit.get( i );
+                final int newOperatorCount;
+                if ( i < startIndicesToSplit.size() - 1 )
+                {
+                    newOperatorCount = startIndicesToSplit.get( i + 1 ) - curr;
+                }
+                else if ( firstPipelineIndex == regionConfig.getPipelineCount() - 1 )
+                {
+                    newOperatorCount = regionDef.getOperatorCount() - curr;
+                }
+                else
+                {
+                    newOperatorCount = regionConfig.getPipelineStartIndex( firstPipelineIndex + 1 ) - curr;
+                }
+
+                final OperatorReplica[] newOperatorReplicas = new OperatorReplica[ newOperatorCount ];
+                final int operatorIndex = curr - startIndicesToSplit.get( 0 );
+                final PipelineId newPipelineId = new PipelineId( regionId, curr );
+                final PipelineReplicaId newPipelineReplicaId = new PipelineReplicaId( newPipelineId, replicaIndex );
+
+                duplicateSplitPipeline( pipelineReplica, operatorIndex, i > 0, newPipelineReplicaId, newOperatorReplicas );
+
+                final OperatorDef firstOperatorDef = newOperatorReplicas[ 0 ].getOperatorDef();
+
+                final PipelineReplica newPipelineReplica;
+                if ( i == 0 )
+                {
+                    newPipelineReplica = pipelineReplica.duplicate( newOperatorReplicas );
+                }
+                else
+                {
+                    final TupleQueueContext pipelineQueue;
+                    if ( firstOperatorDef.operatorType() == PARTITIONED_STATEFUL )
+                    {
+                        LOGGER.info( "Creating {} for pipeline tuple queue context of regionId={} for pipeline operator={}",
+                                     DefaultTupleQueueContext.class.getSimpleName(),
+                                     regionId,
+                                     firstOperatorDef.id() );
+                        pipelineQueue = tupleQueueContextManager.createDefaultTupleQueueContext( regionId,
+                                                                                                 replicaIndex,
+                                                                                                 firstOperatorDef,
+                                                                                                 MULTI_THREADED );
+                    }
+                    else
+                    {
+                        LOGGER.info( "Creating {} for pipeline tuple queue context of regionId={} as first operator is {}",
+                                     EmptyTupleQueueContext.class.getSimpleName(),
+                                     regionId,
+                                     firstOperatorDef.operatorType() );
+                        pipelineQueue = new EmptyTupleQueueContext( firstOperatorDef.id(), firstOperatorDef.inputPortCount() );
+                    }
+
+                    newPipelineReplica = new PipelineReplica( config, newPipelineReplicaId, newOperatorReplicas, pipelineQueue );
+                    newPipelineReplica.initUpstreamDrainer();
+                    final PipelineReplica prevPipeline = newPipelineReplicas[ firstPipelineIndex + ( i - 1 ) ][ replicaIndex ];
+                    final UpstreamContext upstreamContext = prevPipeline.getOperator( prevPipeline.getOperatorCount() - 1 )
+                                                                        .getSelfUpstreamContext();
+                    newPipelineReplica.setPipelineUpstreamContext( upstreamContext );
+
+                    final List<String> operatorIds = Arrays.stream( newOperatorReplicas )
+                                                           .map( o -> o.getOperatorDef().id() )
+                                                           .collect( Collectors.toList() );
+
+                    LOGGER.info( "Split pipeline {} to split with operators: {}", newPipelineReplicaId, operatorIds );
+                }
+
+                newPipelineReplicas[ firstPipelineIndex + i ][ replicaIndex ] = newPipelineReplica;
+            }
+        }
+
+        final List<Integer> newPipelineStartIndices = getPipelineStartIndicesAfterSplit( regionConfig, startIndicesToSplit );
+        final RegionConfig newRegionConfig = new RegionConfig( regionDef, newPipelineStartIndices, replicaCount );
+        return new Region( newRegionConfig, newPipelineReplicas );
+    }
+
+    @Override
+    public boolean checkPipelineStartIndicesToSplit ( final RegionConfig regionConfig, final List<Integer> pipelineStartIndicesToSplit )
+    {
+        if ( pipelineStartIndicesToSplit.size() < 2 )
+        {
+            return false;
+        }
+
+        final List<Integer> pipelineStartIndices = regionConfig.getPipelineStartIndices();
+
+        int start = pipelineStartIndices.indexOf( pipelineStartIndicesToSplit.get( 0 ) );
+        if ( start < 0 )
+        {
+            return false;
+        }
+
+        final int limit = ( start < pipelineStartIndices.size() - 1 )
+                          ? pipelineStartIndices.get( start + 1 )
+                          : regionConfig.getRegionDef().getOperatorCount();
+
+        for ( int i = 1; i < pipelineStartIndicesToSplit.size(); i++ )
+        {
+            final int index = pipelineStartIndicesToSplit.get( i );
+            if ( index <= pipelineStartIndicesToSplit.get( i - 1 ) || index >= limit )
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private void copyNonSplitPipelines ( final Region region,
+                                         final List<Integer> startIndicesToSplit,
+                                         final PipelineReplica[][] newPipelineReplicas,
+                                         final int pipelineCountIncrease )
+    {
+        final RegionConfig config = region.getConfig();
+        final List<Integer> currentStartIndices = config.getPipelineStartIndices();
+        final int replicaCount = config.getReplicaCount();
+        final int before = currentStartIndices.indexOf( startIndicesToSplit.get( 0 ) );
+        for ( int i = 0; i < before; i++ )
+        {
+            LOGGER.info( "copying non-split pipelineIndex={} of replicaId={}", i, region.getRegionId() );
+            arraycopy( region.getPipelineReplicas( i ), 0, newPipelineReplicas[ i ], 0, replicaCount );
+        }
+
+        final int after = 1 + currentStartIndices.indexOf( startIndicesToSplit.get( 0 ) );
+        for ( int i = after; i < currentStartIndices.size(); i++ )
+        {
+            final int j = i + pipelineCountIncrease;
+            LOGGER.info( "copying non-split pipelineIndex={} to new pipelineIndex={} of replicaId={}", i, j, region.getRegionId() );
+            arraycopy( region.getPipelineReplicas( i ), 0, newPipelineReplicas[ j ], 0, replicaCount );
+        }
+    }
+
+    private void duplicateSplitPipeline ( final PipelineReplica pipelineReplica,
+                                          final int start,
+                                          final boolean switchThreadingPreference,
+                                          final PipelineReplicaId newPipelineReplicaId,
+                                          final OperatorReplica[] newOperatorReplicas )
+    {
+        for ( int i = 0, j = newOperatorReplicas.length; i < j; i++ )
+        {
+            final OperatorReplica operator = pipelineReplica.getOperator( start + i );
+            final OperatorDef operatorDef = operator.getOperatorDef();
+
+            final TupleQueueContext queue;
+            final boolean multiThreaded = i == 0 && ( operatorDef.operatorType() == STATEFUL || operatorDef.operatorType() == STATELESS );
+            if ( switchThreadingPreference && multiThreaded )
+            {
+                queue = tupleQueueContextManager.switchThreadingPreference( newPipelineReplicaId.pipelineId.regionId,
+                                                                            newPipelineReplicaId.replicaIndex,
+                                                                            operatorDef.id() );
+            }
+            else
+            {
+                queue = operator.getQueue();
+            }
+
+            final TupleQueueDrainerPool drainerPool = multiThreaded
+                                                      ? new BlockingTupleQueueDrainerPool( config, operatorDef )
+                                                      : new NonBlockingTupleQueueDrainerPool( config, operatorDef );
+
+            final Supplier<TuplesImpl> outputSupplier = ( i == newOperatorReplicas.length - 1 )
+                                                        ? new NonCachedTuplesImplSupplier( operatorDef.inputPortCount() )
+                                                        : operator.getOutputSupplier();
+
+            newOperatorReplicas[ i ] = operator.duplicate( newPipelineReplicaId, queue, drainerPool, outputSupplier );
+        }
+
+        final List<String> operatorIds = Arrays.stream( newOperatorReplicas )
+                                               .map( o -> o.getOperatorDef().id() )
+                                               .collect( Collectors.toList() );
+
+        LOGGER.info( "Duplicated pipeline {} to split. operators: {}", newPipelineReplicaId, operatorIds );
+    }
+
+    private List<Integer> getPipelineStartIndicesAfterSplit ( final RegionConfig regionConfig, final List<Integer> startIndicesToSplit )
+    {
+        final int firstPipelineIndex = regionConfig.getPipelineIndex( startIndicesToSplit.get( 0 ) );
+        final List<Integer> newPipelineStartIndices = new ArrayList<>( regionConfig.getPipelineStartIndices() );
+        for ( int i = 1; i < startIndicesToSplit.size(); i++ )
+        {
+            newPipelineStartIndices.add( firstPipelineIndex + i, startIndicesToSplit.get( i ) );
+        }
+        return newPipelineStartIndices;
     }
 
 }

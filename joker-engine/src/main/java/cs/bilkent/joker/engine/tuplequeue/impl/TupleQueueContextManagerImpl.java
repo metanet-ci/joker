@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.config.ThreadingPreference;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
@@ -208,7 +207,7 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
     }
 
     @Override
-    public TupleQueueContext convertToSingleThreaded ( final int regionId, final int replicaIndex, final String operatorId )
+    public TupleQueueContext switchThreadingPreference ( final int regionId, final int replicaIndex, final String operatorId )
     {
         final Triple<Integer, Integer, String> tupleQueueId = Triple.of( regionId, replicaIndex, operatorId );
         final DefaultTupleQueueContext tupleQueueContext = singleTupleQueueContexts.remove( tupleQueueId );
@@ -217,31 +216,47 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
                        regionId,
                        replicaIndex,
                        operatorId );
-        checkState( tupleQueueContext.getThreadingPreference() == MULTI_THREADED,
-                    "tuple queue context is not %s for regionId=%s replicaIndex=%s operatorId=%s",
-                    MULTI_THREADED,
-                    regionId,
-                    replicaIndex,
-                    operatorId );
 
-        final BiFunction<Integer, Boolean, TupleQueue> tupleQueueConstructor = ( portIndex, capacityCheckEnabled ) ->
+        final ThreadingPreference threadingPreference = tupleQueueContext.getThreadingPreference(), newThreadingPreference;
+
+        final BiFunction<Integer, Boolean, TupleQueue> tupleQueueConstructor;
+
+        if ( threadingPreference == MULTI_THREADED )
         {
-            final TupleQueue q = tupleQueueContext.getTupleQueue( portIndex );
-            final MultiThreadedTupleQueue tupleQueue = (MultiThreadedTupleQueue) q;
-            return tupleQueue.toSingleThreadedTupleQueue();
-        };
+            newThreadingPreference = SINGLE_THREADED;
+            tupleQueueConstructor = ( portIndex, capacityCheckEnabled ) ->
+            {
+                final TupleQueue q = tupleQueueContext.getTupleQueue( portIndex );
+                final MultiThreadedTupleQueue tupleQueue = (MultiThreadedTupleQueue) q;
+                return tupleQueue.toSingleThreadedTupleQueue();
+            };
+        }
+        else if ( threadingPreference == SINGLE_THREADED )
+        {
+            newThreadingPreference = MULTI_THREADED;
+            tupleQueueConstructor = ( portIndex, capacityCheckEnabled ) ->
+            {
+                final TupleQueue q = tupleQueueContext.getTupleQueue( portIndex );
+                final SingleThreadedTupleQueue tupleQueue = (SingleThreadedTupleQueue) q;
+                return tupleQueue.toMultiThreadedTupleQueue( tupleQueueManagerConfig.getTupleQueueInitialSize() );
+            };
+        }
+        else
+        {
+            throw new IllegalStateException( "regionId=" + regionId + " has invalid threading preference: " + threadingPreference );
+        }
 
         final DefaultTupleQueueContext newTupleQueueContext = new DefaultTupleQueueContext( operatorId,
                                                                                             tupleQueueContext.getInputPortCount(),
-                                                                                            SINGLE_THREADED,
+                                                                                            newThreadingPreference,
                                                                                             tupleQueueConstructor,
                                                                                             tupleQueueManagerConfig
                                                                                                     .getMaxSingleThreadedTupleQueueSize() );
 
         singleTupleQueueContexts.put( tupleQueueId, newTupleQueueContext );
-        LOGGER.info( "{} default tuple queue context is converted to {} for regionId={} replicaIndex={} operatorId={}",
-                     MULTI_THREADED,
-                     SINGLE_THREADED,
+        LOGGER.info( "{} default tuple queue context is switched to {} for regionId={} replicaIndex={} operatorId={}",
+                     threadingPreference,
+                     newThreadingPreference,
                      regionId,
                      replicaIndex,
                      operatorId );

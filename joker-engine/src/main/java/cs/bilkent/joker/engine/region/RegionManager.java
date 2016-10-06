@@ -10,7 +10,7 @@ public interface RegionManager
 
     Region createRegion ( FlowDef flow, RegionConfig regionConfig );
 
-    List<PipelineId> getMergeablePipelineIds ( final List<PipelineId> pipelineIds );
+    List<PipelineId> getMergeablePipelineIds ( List<PipelineId> pipelineIds );
 
     Region mergePipelines ( List<PipelineId> pipelineIdsToMerge );
 

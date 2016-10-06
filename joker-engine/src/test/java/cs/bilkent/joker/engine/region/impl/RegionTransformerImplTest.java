@@ -12,6 +12,7 @@ import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.PartitionServiceImpl;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyFunctionFactoryImpl;
 import cs.bilkent.joker.engine.pipeline.OperatorReplica;
+import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
 import cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus;
 import cs.bilkent.joker.engine.pipeline.UpstreamContext;
@@ -23,6 +24,8 @@ import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.region.RegionTransformer;
 import cs.bilkent.joker.engine.tuplequeue.impl.TupleQueueContextManagerImpl;
 import cs.bilkent.joker.engine.tuplequeue.impl.context.DefaultTupleQueueContext;
+import cs.bilkent.joker.engine.tuplequeue.impl.context.EmptyTupleQueueContext;
+import cs.bilkent.joker.engine.tuplequeue.impl.context.PartitionedTupleQueueContext;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool.BlockingTupleQueueDrainerPool;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool.NonBlockingTupleQueueDrainerPool;
@@ -365,7 +368,198 @@ public class RegionTransformerImplTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldFailWithInvalidPipelineIndicesToMerge ()
+    public void testCheckPipelineStartIndicesToMerge ()
+    {
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef4 = OperatorDefBuilder.newInstance( "op4", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef5 = OperatorDefBuilder.newInstance( "op5", StatelessInput1Output1Operator.class ).build();
+
+        final RegionDef regionDef = new RegionDef( REGION_ID,
+                                                   STATELESS,
+                                                   emptyList(),
+                                                   asList( operatorDef1, operatorDef2, operatorDef3, operatorDef4, operatorDef5 ) );
+
+        final RegionConfig regionConfig = new RegionConfig( regionDef, asList( 0, 2, 3, 4 ), 2 );
+
+        assertFalse( regionTransformer.checkPipelineStartIndicesToMerge( regionConfig, singletonList( 0 ) ) );
+        assertFalse( regionTransformer.checkPipelineStartIndicesToMerge( regionConfig, singletonList( -1 ) ) );
+        assertFalse( regionTransformer.checkPipelineStartIndicesToMerge( regionConfig, asList( 0, 2, 4 ) ) );
+
+        assertTrue( regionTransformer.checkPipelineStartIndicesToMerge( regionConfig, asList( 0, 2 ) ) );
+        assertTrue( regionTransformer.checkPipelineStartIndicesToMerge( regionConfig, asList( 0, 2, 3 ) ) );
+        assertTrue( regionTransformer.checkPipelineStartIndicesToMerge( regionConfig, asList( 0, 2, 3, 4 ) ) );
+        assertTrue( regionTransformer.checkPipelineStartIndicesToMerge( regionConfig, asList( 3, 4 ) ) );
+    }
+
+    @Test
+    public void shouldSplitSinglePipelineOfStatefulRegion ()
+    {
+
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatelessInput0Output1Operator.class ).build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatefulInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatefulInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef4 = OperatorDefBuilder.newInstance( "op4", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef5 = OperatorDefBuilder.newInstance( "op5", StatefulInput1Output1Operator.class ).build();
+
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef0 )
+                                                 .add( operatorDef1 )
+                                                 .add( operatorDef2 )
+                                                 .add( operatorDef3 )
+                                                 .add( operatorDef4 )
+                                                 .add( operatorDef5 )
+                                                 .connect( "op0", "op1" )
+                                                 .connect( "op1", "op2" )
+                                                 .connect( "op2", "op3" )
+                                                 .connect( "op3", "op4" )
+                                                 .connect( "op4", "op5" )
+                                                 .build();
+
+        final RegionDef regionDef = new RegionDef( REGION_ID,
+                                                   STATEFUL,
+                                                   emptyList(),
+                                                   asList( operatorDef1, operatorDef2, operatorDef3, operatorDef4, operatorDef5 ) );
+
+        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 1 );
+        final Region region = regionManager.createRegion( flow, regionConfig );
+        initialize( region );
+
+        final PipelineReplica[] pipelineReplicas = region.getReplicaPipelines( 0 );
+        pipelineReplicas[ 0 ].getOperator( 0 ).getQueue().offer( 0, singletonList( newTuple( "key0", "val0" ) ) );
+        pipelineReplicas[ 0 ].getOperator( 0 ).getKvStoreContext().getKVStore( null ).set( "key0", "val0" );
+        pipelineReplicas[ 0 ].getOperator( 1 ).getQueue().offer( 0, singletonList( newTuple( "key1", "val1" ) ) );
+        pipelineReplicas[ 0 ].getOperator( 2 ).getQueue().offer( 0, singletonList( newTuple( "key2", "val2" ) ) );
+        pipelineReplicas[ 0 ].getOperator( 2 ).getKvStoreContext().getKVStore( null ).set( "key2", "val2" );
+        pipelineReplicas[ 0 ].getOperator( 3 ).getQueue().offer( 0, singletonList( newTuple( "key3", "val3" ) ) );
+        pipelineReplicas[ 0 ].getOperator( 4 ).getQueue().offer( 0, singletonList( newTuple( "key4", "val4" ) ) );
+        pipelineReplicas[ 0 ].getOperator( 4 ).getKvStoreContext().getKVStore( null ).set( "key4", "val4" );
+
+        final Region newRegion = regionTransformer.splitPipeline( region, asList( 0, 2, 4 ) );
+
+        assertThat( newRegion.getConfig().getReplicaCount(), equalTo( 1 ) );
+        assertThat( newRegion.getConfig().getPipelineStartIndices(), equalTo( asList( 0, 2, 4 ) ) );
+
+        final PipelineReplica[] newPipelineReplicas = newRegion.getReplicaPipelines( 0 );
+        final OperatorReplica pipelineOperator0 = newPipelineReplicas[ 0 ].getOperator( 0 );
+        final OperatorReplica pipelineOperator1 = newPipelineReplicas[ 0 ].getOperator( 1 );
+        final OperatorReplica pipelineOperator2 = newPipelineReplicas[ 1 ].getOperator( 0 );
+        final OperatorReplica pipelineOperator3 = newPipelineReplicas[ 1 ].getOperator( 1 );
+        final OperatorReplica pipelineOperator4 = newPipelineReplicas[ 2 ].getOperator( 0 );
+
+        assertThat( singletonList( newTuple( "key0", "val0" ) ), equalTo( drainDefaultPortGreedily( pipelineOperator0 ) ) );
+        assertThat( singletonList( newTuple( "key1", "val1" ) ), equalTo( drainDefaultPortGreedily( pipelineOperator1 ) ) );
+        assertThat( singletonList( newTuple( "key2", "val2" ) ), equalTo( drainDefaultPortGreedily( pipelineOperator2 ) ) );
+        assertThat( singletonList( newTuple( "key3", "val3" ) ), equalTo( drainDefaultPortGreedily( pipelineOperator3 ) ) );
+        assertThat( singletonList( newTuple( "key4", "val4" ) ), equalTo( drainDefaultPortGreedily( pipelineOperator4 ) ) );
+
+        assertThat( newPipelineReplicas[ 0 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 0 ) ) );
+        assertThat( ( (DefaultTupleQueueContext) pipelineOperator0.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
+        assertTrue( pipelineOperator0.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
+        assertThat( pipelineOperator0.getKvStoreContext().getKVStore( null ).get( "key0" ), equalTo( "val0" ) );
+        assertThat( ( (DefaultTupleQueueContext) pipelineOperator1.getQueue() ).getThreadingPreference(), equalTo( SINGLE_THREADED ) );
+        assertTrue( pipelineOperator1.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
+        assertThat( newPipelineReplicas[ 1 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 2 ) ) );
+        assertThat( ( (DefaultTupleQueueContext) pipelineOperator2.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
+        assertTrue( pipelineOperator2.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
+        assertThat( pipelineOperator2.getKvStoreContext().getKVStore( null ).get( "key2" ), equalTo( "val2" ) );
+        assertThat( ( (DefaultTupleQueueContext) pipelineOperator3.getQueue() ).getThreadingPreference(), equalTo( SINGLE_THREADED ) );
+        assertTrue( pipelineOperator3.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
+        assertThat( newPipelineReplicas[ 2 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 4 ) ) );
+        assertThat( ( (DefaultTupleQueueContext) pipelineOperator4.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
+        assertTrue( pipelineOperator4.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
+        assertThat( pipelineOperator4.getKvStoreContext().getKVStore( null ).get( "key4" ), equalTo( "val4" ) );
+    }
+
+    @Test
+    public void shouldSplitSinglePipelineOfPartitionedStatefulRegion ()
+    {
+
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatelessInput0Output1Operator.class ).build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", PartitionedStatefulInput1Output1Operator.class )
+                                                           .setPartitionFieldNames( singletonList( "field" ) )
+                                                           .build();
+        final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", PartitionedStatefulInput1Output1Operator.class )
+                                                           .setPartitionFieldNames( singletonList( "field" ) )
+                                                           .build();
+        final OperatorDef operatorDef4 = OperatorDefBuilder.newInstance( "op4", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef5 = OperatorDefBuilder.newInstance( "op5", PartitionedStatefulInput1Output1Operator.class )
+                                                           .setPartitionFieldNames( singletonList( "field" ) )
+                                                           .build();
+
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef0 )
+                                                 .add( operatorDef1 )
+                                                 .add( operatorDef2 )
+                                                 .add( operatorDef3 )
+                                                 .add( operatorDef4 )
+                                                 .add( operatorDef5 )
+                                                 .connect( "op0", "op1" )
+                                                 .connect( "op1", "op2" )
+                                                 .connect( "op2", "op3" )
+                                                 .connect( "op3", "op4" )
+                                                 .connect( "op4", "op5" )
+                                                 .build();
+
+        final RegionDef regionDef = new RegionDef( REGION_ID,
+                                                   PARTITIONED_STATEFUL,
+                                                   emptyList(),
+                                                   asList( operatorDef1, operatorDef2, operatorDef3, operatorDef4, operatorDef5 ) );
+
+        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 1 );
+        final Region region = regionManager.createRegion( flow, regionConfig );
+        initialize( region );
+
+        final PipelineReplica[] pipelineReplicas = region.getReplicaPipelines( 0 );
+        pipelineReplicas[ 0 ].getSelfUpstreamTupleQueueContext().offer( 0, singletonList( newTuple( "field", "val0" ) ) );
+        pipelineReplicas[ 0 ].getOperator( 1 ).getQueue().offer( 0, singletonList( newTuple( "field", "val1" ) ) );
+        pipelineReplicas[ 0 ].getOperator( 2 ).getQueue().offer( 0, singletonList( newTuple( "field", "val2" ) ) );
+        pipelineReplicas[ 0 ].getOperator( 3 ).getQueue().offer( 0, singletonList( newTuple( "field", "val3" ) ) );
+        pipelineReplicas[ 0 ].getOperator( 4 ).getQueue().offer( 0, singletonList( newTuple( "field", "val4" ) ) );
+
+        final Region newRegion = regionTransformer.splitPipeline( region, asList( 0, 2, 4 ) );
+
+        assertThat( newRegion.getConfig().getReplicaCount(), equalTo( 1 ) );
+        assertThat( newRegion.getConfig().getPipelineStartIndices(), equalTo( asList( 0, 2, 4 ) ) );
+
+        final PipelineReplica[] newPipelineReplicas = newRegion.getReplicaPipelines( 0 );
+        final PipelineReplica newPipelineReplica = newPipelineReplicas[ 0 ];
+        final OperatorReplica pipelineOperator0 = newPipelineReplicas[ 0 ].getOperator( 0 );
+        final OperatorReplica pipelineOperator1 = newPipelineReplicas[ 0 ].getOperator( 1 );
+        final OperatorReplica pipelineOperator2 = newPipelineReplicas[ 1 ].getOperator( 0 );
+        final OperatorReplica pipelineOperator3 = newPipelineReplicas[ 1 ].getOperator( 1 );
+        final OperatorReplica pipelineOperator4 = newPipelineReplicas[ 2 ].getOperator( 0 );
+
+        final GreedyDrainer drainer = new GreedyDrainer( operatorDef1.inputPortCount() );
+        newPipelineReplica.getSelfUpstreamTupleQueueContext().drain( drainer );
+        assertThat( singletonList( newTuple( "field", "val0" ) ), equalTo( drainer.getResult().getTuples( 0 ) ) );
+
+        assertThat( singletonList( newTuple( "field", "val1" ) ), equalTo( drainDefaultPortGreedily( pipelineOperator1 ) ) );
+        assertThat( singletonList( newTuple( "field", "val2" ) ), equalTo( drainDefaultPortGreedily( pipelineOperator2 ) ) );
+        assertThat( singletonList( newTuple( "field", "val3" ) ), equalTo( drainDefaultPortGreedily( pipelineOperator3 ) ) );
+        assertThat( singletonList( newTuple( "field", "val4" ) ), equalTo( drainDefaultPortGreedily( pipelineOperator4 ) ) );
+
+        assertThat( newPipelineReplicas[ 0 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 0 ) ) );
+        assertTrue( newPipelineReplicas[ 0 ].getSelfUpstreamTupleQueueContext() instanceof DefaultTupleQueueContext );
+        assertTrue( pipelineOperator0.getQueue() instanceof PartitionedTupleQueueContext );
+        assertTrue( pipelineOperator0.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
+        assertThat( ( (DefaultTupleQueueContext) pipelineOperator1.getQueue() ).getThreadingPreference(), equalTo( SINGLE_THREADED ) );
+        assertTrue( pipelineOperator1.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
+        assertThat( newPipelineReplicas[ 1 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 2 ) ) );
+        assertTrue( newPipelineReplicas[ 1 ].getSelfUpstreamTupleQueueContext() instanceof DefaultTupleQueueContext );
+        assertTrue( pipelineOperator2.getQueue() instanceof PartitionedTupleQueueContext );
+        assertTrue( pipelineOperator2.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
+        assertThat( ( (DefaultTupleQueueContext) pipelineOperator3.getQueue() ).getThreadingPreference(), equalTo( SINGLE_THREADED ) );
+        assertTrue( pipelineOperator3.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
+        assertThat( newPipelineReplicas[ 2 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 4 ) ) );
+        assertTrue( newPipelineReplicas[ 2 ].getSelfUpstreamTupleQueueContext() instanceof DefaultTupleQueueContext );
+        assertTrue( pipelineOperator4.getQueue() instanceof PartitionedTupleQueueContext );
+        assertTrue( pipelineOperator4.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
+    }
+
+    @Test
+    public void shouldSplitPipelineIntoSingleOperatorPipelines ()
     {
         final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatelessInput0Output1Operator.class ).build();
         final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessInput1Output1Operator.class ).build();
@@ -392,11 +586,158 @@ public class RegionTransformerImplTest extends AbstractJokerTest
                                                    emptyList(),
                                                    asList( operatorDef1, operatorDef2, operatorDef3, operatorDef4, operatorDef5 ) );
 
-        final RegionConfig regionConfig = new RegionConfig( regionDef, asList( 0, 2, 3, 4 ), 2 );
+        final int replicaCount = 2;
+        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), replicaCount );
+        final Region region = regionManager.createRegion( flow, regionConfig );
+        initialize( region );
 
-        assertFalse( regionTransformer.checkPipelineStartIndicesToMerge( regionConfig, singletonList( 0 ) ) );
-        assertFalse( regionTransformer.checkPipelineStartIndicesToMerge( regionConfig, singletonList( -1 ) ) );
-        assertFalse( regionTransformer.checkPipelineStartIndicesToMerge( regionConfig, asList( 0, 2, 4 ) ) );
+        final Region newRegion = regionTransformer.splitPipeline( region, asList( 0, 1, 2, 3, 4 ) );
+
+        for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
+        {
+            final PipelineReplica[] newPipelineReplicas = newRegion.getReplicaPipelines( replicaIndex );
+            final OperatorReplica pipelineOperator0 = newPipelineReplicas[ 0 ].getOperator( 0 );
+            final OperatorReplica pipelineOperator1 = newPipelineReplicas[ 1 ].getOperator( 0 );
+            final OperatorReplica pipelineOperator2 = newPipelineReplicas[ 2 ].getOperator( 0 );
+            final OperatorReplica pipelineOperator3 = newPipelineReplicas[ 3 ].getOperator( 0 );
+            final OperatorReplica pipelineOperator4 = newPipelineReplicas[ 4 ].getOperator( 0 );
+
+            assertThat( newPipelineReplicas[ 0 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 0 ) ) );
+            assertTrue( newPipelineReplicas[ 0 ].getSelfUpstreamTupleQueueContext() instanceof EmptyTupleQueueContext );
+            assertThat( ( (DefaultTupleQueueContext) pipelineOperator0.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
+            assertTrue( pipelineOperator0.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
+            assertTrue( pipelineOperator0.getOutputSupplier() instanceof NonCachedTuplesImplSupplier );
+            assertThat( newPipelineReplicas[ 1 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 1 ) ) );
+            assertTrue( newPipelineReplicas[ 1 ].getSelfUpstreamTupleQueueContext() instanceof EmptyTupleQueueContext );
+            assertThat( ( (DefaultTupleQueueContext) pipelineOperator1.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
+            assertTrue( pipelineOperator1.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
+            assertTrue( pipelineOperator1.getOutputSupplier() instanceof NonCachedTuplesImplSupplier );
+            assertThat( newPipelineReplicas[ 2 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 2 ) ) );
+            assertTrue( newPipelineReplicas[ 2 ].getSelfUpstreamTupleQueueContext() instanceof EmptyTupleQueueContext );
+            assertThat( ( (DefaultTupleQueueContext) pipelineOperator2.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
+            assertTrue( pipelineOperator2.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
+            assertTrue( pipelineOperator2.getOutputSupplier() instanceof NonCachedTuplesImplSupplier );
+            assertThat( newPipelineReplicas[ 3 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 3 ) ) );
+            assertTrue( newPipelineReplicas[ 3 ].getSelfUpstreamTupleQueueContext() instanceof EmptyTupleQueueContext );
+            assertThat( ( (DefaultTupleQueueContext) pipelineOperator3.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
+            assertTrue( pipelineOperator3.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
+            assertTrue( pipelineOperator3.getOutputSupplier() instanceof NonCachedTuplesImplSupplier );
+            assertThat( newPipelineReplicas[ 4 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 4 ) ) );
+            assertTrue( newPipelineReplicas[ 4 ].getSelfUpstreamTupleQueueContext() instanceof EmptyTupleQueueContext );
+            assertThat( ( (DefaultTupleQueueContext) pipelineOperator4.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
+            assertTrue( pipelineOperator4.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
+            assertTrue( pipelineOperator4.getOutputSupplier() instanceof NonCachedTuplesImplSupplier );
+        }
+    }
+
+    @Test
+    public void shouldCopyNonSplitPipelinesAtHeadOfTheRegion ()
+    {
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatelessInput0Output1Operator.class ).build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef4 = OperatorDefBuilder.newInstance( "op4", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef5 = OperatorDefBuilder.newInstance( "op5", StatelessInput1Output1Operator.class ).build();
+
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef0 )
+                                                 .add( operatorDef1 )
+                                                 .add( operatorDef2 )
+                                                 .add( operatorDef3 )
+                                                 .add( operatorDef4 )
+                                                 .add( operatorDef5 )
+                                                 .connect( "op0", "op1" )
+                                                 .connect( "op1", "op2" )
+                                                 .connect( "op2", "op3" )
+                                                 .connect( "op3", "op4" )
+                                                 .connect( "op4", "op5" )
+                                                 .build();
+
+        final RegionDef regionDef = new RegionDef( REGION_ID,
+                                                   STATELESS,
+                                                   emptyList(),
+                                                   asList( operatorDef1, operatorDef2, operatorDef3, operatorDef4, operatorDef5 ) );
+
+        final RegionConfig regionConfig = new RegionConfig( regionDef, asList( 0, 1, 2 ), 2 );
+        final Region region = regionManager.createRegion( flow, regionConfig );
+        initialize( region );
+
+        final Region newRegion = regionTransformer.splitPipeline( region, asList( 2, 4 ) );
+
+        assertThat( newRegion.getPipelineReplicas( 0 ), equalTo( region.getPipelineReplicas( 0 ) ) );
+        assertThat( newRegion.getPipelineReplicas( 1 ), equalTo( region.getPipelineReplicas( 1 ) ) );
+    }
+
+    @Test
+    public void shouldCopyNonSplitPipelinesAtTailOfTheRegion ()
+    {
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatelessInput0Output1Operator.class ).build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef4 = OperatorDefBuilder.newInstance( "op4", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef5 = OperatorDefBuilder.newInstance( "op5", StatelessInput1Output1Operator.class ).build();
+
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef0 )
+                                                 .add( operatorDef1 )
+                                                 .add( operatorDef2 )
+                                                 .add( operatorDef3 )
+                                                 .add( operatorDef4 )
+                                                 .add( operatorDef5 )
+                                                 .connect( "op0", "op1" )
+                                                 .connect( "op1", "op2" )
+                                                 .connect( "op2", "op3" )
+                                                 .connect( "op3", "op4" )
+                                                 .connect( "op4", "op5" )
+                                                 .build();
+
+        final RegionDef regionDef = new RegionDef( REGION_ID,
+                                                   STATELESS,
+                                                   emptyList(),
+                                                   asList( operatorDef1, operatorDef2, operatorDef3, operatorDef4, operatorDef5 ) );
+
+        final RegionConfig regionConfig = new RegionConfig( regionDef, asList( 0, 3, 4 ), 2 );
+        final Region region = regionManager.createRegion( flow, regionConfig );
+        initialize( region );
+
+        final Region newRegion = regionTransformer.splitPipeline( region, asList( 0, 1, 2 ) );
+
+        assertThat( newRegion.getPipelineReplicas( 3 ), equalTo( region.getPipelineReplicas( 1 ) ) );
+        assertThat( newRegion.getPipelineReplicas( 4 ), equalTo( region.getPipelineReplicas( 2 ) ) );
+    }
+
+    @Test
+    public void testCheckPipelineStartIndicesToSplit ()
+    {
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef4 = OperatorDefBuilder.newInstance( "op4", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef5 = OperatorDefBuilder.newInstance( "op5", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef6 = OperatorDefBuilder.newInstance( "op6", StatelessInput1Output1Operator.class ).build();
+
+        final RegionDef regionDef = new RegionDef( REGION_ID,
+                                                   STATELESS,
+                                                   emptyList(),
+                                                   asList( operatorDef0,
+                                                           operatorDef1,
+                                                           operatorDef2,
+                                                           operatorDef3,
+                                                           operatorDef4,
+                                                           operatorDef5,
+                                                           operatorDef6 ) );
+
+        final RegionConfig regionConfig = new RegionConfig( regionDef, asList( 0, 2, 4 ), 2 );
+
+        assertFalse( regionTransformer.checkPipelineStartIndicesToSplit( regionConfig, singletonList( 0 ) ) );
+        assertFalse( regionTransformer.checkPipelineStartIndicesToSplit( regionConfig, singletonList( -1 ) ) );
+        assertFalse( regionTransformer.checkPipelineStartIndicesToSplit( regionConfig, asList( 0, 1, 2 ) ) );
+        assertFalse( regionTransformer.checkPipelineStartIndicesToSplit( regionConfig, asList( 4, 7 ) ) );
+
+        assertTrue( regionTransformer.checkPipelineStartIndicesToSplit( regionConfig, asList( 0, 1 ) ) );
+        assertTrue( regionTransformer.checkPipelineStartIndicesToSplit( regionConfig, asList( 4, 5 ) ) );
+        assertTrue( regionTransformer.checkPipelineStartIndicesToSplit( regionConfig, asList( 4, 5, 6 ) ) );
     }
 
     private void initialize ( final Region region )

@@ -90,7 +90,7 @@ public class PipelineReplica
         checkState( status == INITIAL, "Cannot initialize PipelineReplica %s as it is in %s state", id, status );
         checkArgument( upstreamContext != null, "Cannot initialize PipelineReplica %s as upstream context is null", id );
 
-        this.upstreamDrainer = createUpstreamDrainer();
+        initUpstreamDrainer();
 
         SchedulingStrategy[] schedulingStrategies = new SchedulingStrategy[ operatorCount ];
         UpstreamContext uc = upstreamContext;
@@ -115,6 +115,12 @@ public class PipelineReplica
         status = RUNNING;
 
         return schedulingStrategies;
+    }
+
+    public void initUpstreamDrainer ()
+    {
+        checkState( this.upstreamDrainer == null, "upstream drainer already initialized for %s", id );
+        this.upstreamDrainer = createUpstreamDrainer();
     }
 
     private TupleQueueDrainer createUpstreamDrainer ()
@@ -348,6 +354,14 @@ public class PipelineReplica
     public OperatorReplicaStatus getStatus ()
     {
         return status;
+    }
+
+    @Override
+    public String toString ()
+    {
+        return "PipelineReplica{" + "id=" + id + ", status=" + status + ", upstreamTupleQueueContext="
+               + upstreamTupleQueueContext.getClass().getSimpleName() + ", upstreamDrainer=" + upstreamDrainer.getClass().getSimpleName()
+               + ", pipelineUpstreamContext=" + pipelineUpstreamContext + ", operators=" + Arrays.toString( operators ) + '}';
     }
 
 }

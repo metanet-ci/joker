@@ -45,6 +45,14 @@ public class MultiThreadedTupleQueue implements TupleQueue
         this( initialCapacity, true );
     }
 
+    public MultiThreadedTupleQueue ( final int initialCapacity, ArrayDeque<Tuple> queue )
+    {
+        checkArgument( initialCapacity > 0 );
+        this.queue = queue;
+        this.capacity = initialCapacity;
+        this.effectiveCapacity = initialCapacity;
+    }
+
     public MultiThreadedTupleQueue ( final int initialCapacity, final boolean capacityCheckEnabled )
     {
         checkArgument( initialCapacity > 0 );

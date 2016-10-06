@@ -19,5 +19,5 @@ public interface TupleQueueContextManager
 
     boolean releasePartitionedTupleQueueContexts ( int regionId, String operatorId );
 
-    TupleQueueContext convertToSingleThreaded ( int regionId, int replicaIndex, String operatorId );
+    TupleQueueContext switchThreadingPreference ( int regionId, int replicaIndex, String operatorId );
 }

@@ -600,4 +600,14 @@ public class OperatorReplica
         return selfUpstreamContext;
     }
 
+    @Override
+    public String toString ()
+    {
+        return "OperatorReplica{" + "operatorName='" + operatorName + '\'' + ", operatorType=" + operatorDef.operatorType() + ", queue="
+               + queue.getClass().getSimpleName() + ", drainer=" + drainer.getClass().getSimpleName() + ", status=" + status
+               + ", upstreamContext=" + upstreamContext + ", selfUpstreamContext=" + selfUpstreamContext + ", completionReason="
+               + completionReason + ", initialSchedulingStrategy=" + initialSchedulingStrategy + ", schedulingStrategy="
+               + schedulingStrategy + '}';
+    }
+
 }

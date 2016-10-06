@@ -5,8 +5,12 @@ import java.util.List;
 public interface RegionTransformer
 {
 
-    Region mergePipelines ( final Region region, final List<Integer> startIndicesToMerge );
+    Region mergePipelines ( Region region, List<Integer> startIndicesToMerge );
 
-    boolean checkPipelineStartIndicesToMerge ( final RegionConfig regionConfig, final List<Integer> pipelineStartIndicesToMerge );
+    boolean checkPipelineStartIndicesToMerge ( RegionConfig regionConfig, List<Integer> pipelineStartIndicesToMerge );
+
+    Region splitPipeline ( Region region, List<Integer> indicesToSplit );
+
+    boolean checkPipelineStartIndicesToSplit ( final RegionConfig regionConfig, final List<Integer> pipelineStartIndicesToSplit );
 
 }
