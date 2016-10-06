@@ -85,6 +85,18 @@ public class PipelineReplica
         }
     }
 
+    public PipelineReplica ( final JokerConfig config,
+                             final PipelineReplicaId id,
+                             final OperatorReplica[] operators,
+                             final TupleQueueContext upstreamTupleQueueContext,
+                             final UpstreamContext upstreamContext )
+    {
+        this( config, id, operators, upstreamTupleQueueContext );
+        initUpstreamDrainer();
+        this.status = RUNNING;
+        setPipelineUpstreamContext( upstreamContext );
+    }
+
     public SchedulingStrategy[] init ( final UpstreamContext upstreamContext )
     {
         checkState( status == INITIAL, "Cannot initialize PipelineReplica %s as it is in %s state", id, status );
@@ -117,7 +129,7 @@ public class PipelineReplica
         return schedulingStrategies;
     }
 
-    public void initUpstreamDrainer ()
+    private void initUpstreamDrainer ()
     {
         checkState( this.upstreamDrainer == null, "upstream drainer already initialized for %s", id );
         this.upstreamDrainer = createUpstreamDrainer();
@@ -160,6 +172,11 @@ public class PipelineReplica
 
     public void setPipelineUpstreamContext ( final UpstreamContext pipelineUpstreamContext )
     {
+        if ( pipelineUpstreamContext == this.pipelineUpstreamContext )
+        {
+            return;
+        }
+
         this.pipelineUpstreamContext = pipelineUpstreamContext;
         if ( upstreamTupleQueueContext instanceof EmptyTupleQueueContext || pipelineUpstreamContext.getVersion() == 0 )
         {

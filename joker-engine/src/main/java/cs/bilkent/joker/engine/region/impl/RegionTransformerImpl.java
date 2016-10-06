@@ -381,9 +381,9 @@ public class RegionTransformerImpl implements RegionTransformer
                     final TupleQueueContext pipelineQueue;
                     if ( firstOperatorDef.operatorType() == PARTITIONED_STATEFUL )
                     {
-                        LOGGER.info( "Creating {} for pipeline tuple queue context of regionId={} for pipeline operator={}",
+                        LOGGER.info( "Creating {} for pipeline tuple queue context of regionId={} replicaIndex={} for pipeline operator={}",
                                      DefaultTupleQueueContext.class.getSimpleName(),
-                                     regionId,
+                                     regionId, replicaIndex,
                                      firstOperatorDef.id() );
                         pipelineQueue = tupleQueueContextManager.createDefaultTupleQueueContext( regionId,
                                                                                                  replicaIndex,
@@ -392,19 +392,21 @@ public class RegionTransformerImpl implements RegionTransformer
                     }
                     else
                     {
-                        LOGGER.info( "Creating {} for pipeline tuple queue context of regionId={} as first operator is {}",
+                        LOGGER.info( "Creating {} for pipeline tuple queue context of regionId={} replicaIndex={} as first operator is {}",
                                      EmptyTupleQueueContext.class.getSimpleName(),
-                                     regionId,
+                                     regionId, replicaIndex,
                                      firstOperatorDef.operatorType() );
                         pipelineQueue = new EmptyTupleQueueContext( firstOperatorDef.id(), firstOperatorDef.inputPortCount() );
                     }
 
-                    newPipelineReplica = new PipelineReplica( config, newPipelineReplicaId, newOperatorReplicas, pipelineQueue );
-                    newPipelineReplica.initUpstreamDrainer();
                     final PipelineReplica prevPipeline = newPipelineReplicas[ firstPipelineIndex + ( i - 1 ) ][ replicaIndex ];
                     final UpstreamContext upstreamContext = prevPipeline.getOperator( prevPipeline.getOperatorCount() - 1 )
                                                                         .getSelfUpstreamContext();
-                    newPipelineReplica.setPipelineUpstreamContext( upstreamContext );
+                    newPipelineReplica = new PipelineReplica( config,
+                                                              newPipelineReplicaId,
+                                                              newOperatorReplicas,
+                                                              pipelineQueue,
+                                                              upstreamContext );
 
                     final List<String> operatorIds = Arrays.stream( newOperatorReplicas )
                                                            .map( o -> o.getOperatorDef().id() )
@@ -419,6 +421,10 @@ public class RegionTransformerImpl implements RegionTransformer
 
         final List<Integer> newPipelineStartIndices = getPipelineStartIndicesAfterSplit( regionConfig, startIndicesToSplit );
         final RegionConfig newRegionConfig = new RegionConfig( regionDef, newPipelineStartIndices, replicaCount );
+        LOGGER.info( "new pipeline start indices: {} after split to pipelines: {} for regionId={}",
+                     newPipelineStartIndices,
+                     startIndicesToSplit,
+                     regionId );
         return new Region( newRegionConfig, newPipelineReplicas );
     }
 

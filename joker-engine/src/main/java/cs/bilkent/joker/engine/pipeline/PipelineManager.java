@@ -16,6 +16,8 @@ public interface PipelineManager
 
     void mergePipelines ( Supervisor supervisor, List<PipelineId> pipelineIds );
 
+    void splitPipeline ( Supervisor supervisor, PipelineId pipelineId, List<Integer> pipelineOperatorIndices );
+
     UpstreamContext getUpstreamContext ( PipelineReplicaId id );
 
     boolean handlePipelineReplicaCompleted ( PipelineReplicaId id );

@@ -76,6 +76,7 @@ import cs.bilkent.joker.utils.Pair;
 import static java.lang.Integer.compare;
 import static java.lang.Math.min;
 import static java.util.Collections.reverse;
+import static java.util.Collections.singletonList;
 import static java.util.Collections.sort;
 import static java.util.stream.Collectors.toList;
 
@@ -465,19 +466,18 @@ public class PipelineManagerImpl implements PipelineManager
         checkState( status == FlowStatus.RUNNING, "cannot merge pipelines %s since status is %s", pipelineIds, status );
         LOGGER.info( "Will try to merge pipelines: {}", pipelineIds );
 
-        final List<PipelineId> mergeablePipelineIds = regionManager.getMergeablePipelineIds( pipelineIds );
-        LOGGER.info( "Mergeable pipeline ids: {}", mergeablePipelineIds );
+        regionManager.validatePipelineMergeParameters( pipelineIds );
 
-        final PipelineId firstPipelineId = mergeablePipelineIds.get( 0 );
+        final PipelineId firstPipelineId = pipelineIds.get( 0 );
         final Pipeline firstPipeline = pipelines.get( firstPipelineId );
         final SchedulingStrategy initialSchedulingStrategy = firstPipeline.getInitialSchedulingStrategy();
         final UpstreamContext upstreamContext = firstPipeline.getUpstreamContext();
 
-        releasePipelines( mergeablePipelineIds );
+        releasePipelines( pipelineIds );
 
         try
         {
-            final Region region = regionManager.mergePipelines( mergeablePipelineIds );
+            final Region region = regionManager.mergePipelines( pipelineIds );
             final PipelineReplica[] pipelineReplicas = region.getPipelineReplicasByPipelineId( firstPipelineId );
 
             final Pipeline pipeline = new Pipeline( firstPipelineId,
@@ -492,6 +492,60 @@ public class PipelineManagerImpl implements PipelineManager
         catch ( Exception e )
         {
             throw new JokerException( "Failed during merging pipelines: " + pipelineIds, e );
+        }
+    }
+
+    @Override
+    public void splitPipeline ( final Supervisor supervisor,
+                                final PipelineId pipelineIdToSplit,
+                                final List<Integer> pipelineOperatorIndices )
+    {
+        checkState( status == FlowStatus.RUNNING,
+                    "cannot split pipeline %s into %s since status is %s",
+                    pipelineIdToSplit,
+                    pipelineOperatorIndices,
+                    status );
+        LOGGER.info( "Will try to split pipeline: {} into: {}", pipelineIdToSplit, pipelineOperatorIndices );
+
+        regionManager.validatePipelineSplitParameters( pipelineIdToSplit, pipelineOperatorIndices );
+
+        releasePipelines( singletonList( pipelineIdToSplit ) );
+
+        try
+        {
+            final Region region = regionManager.splitPipeline( pipelineIdToSplit, pipelineOperatorIndices );
+            final List<Pipeline> newPipelines = new ArrayList<>();
+            for ( int pipelineIndex = 0; pipelineIndex < region.getConfig().getPipelineCount(); pipelineIndex++ )
+            {
+                final PipelineReplica[] pipelineReplicas = region.getPipelineReplicas( pipelineIndex );
+                final PipelineReplica pipelineReplica = pipelineReplicas[ 0 ];
+                final PipelineId pipelineId = pipelineReplica.id().pipelineId;
+                if ( !pipelines.containsKey( pipelineId ) )
+                {
+                    final Pipeline pipeline = new Pipeline( pipelineId,
+                                                            region.getConfig(),
+                                                            pipelineReplicas,
+                                                            pipelineReplica.getOperator( 0 ).getInitialSchedulingStrategy(),
+                                                            pipelineReplica.getPipelineUpstreamContext() );
+                    addPipeline( pipeline );
+                    newPipelines.add( pipeline );
+                }
+            }
+
+            for ( Pipeline pipeline : newPipelines )
+            {
+                createDownstreamTupleSenders( flowDeployment.getFlow(), pipeline );
+            }
+
+            for ( Pipeline pipeline : newPipelines )
+            {
+                LOGGER.info( "Starting new pipeline {}", pipeline.getId() );
+                pipeline.startPipelineReplicaRunners( jokerConfig, supervisor, jokerThreadGroup );
+            }
+        }
+        catch ( Exception e )
+        {
+            throw new JokerException( "Failed during splitting pipeline: " + pipelineIdToSplit + " into: " + pipelineOperatorIndices, e );
         }
     }
 

@@ -62,4 +62,9 @@ public class JokerEngine
         return supervisor.mergePipelines( pipelineIds );
     }
 
+    public Future<Void> splitPipeline ( final PipelineId pipelineId, final List<Integer> pipelineOperatorIndices )
+    {
+        return supervisor.splitPipeline( pipelineId, pipelineOperatorIndices );
+    }
+
 }

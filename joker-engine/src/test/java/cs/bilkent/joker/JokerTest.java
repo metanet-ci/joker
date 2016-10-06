@@ -165,6 +165,108 @@ public class JokerTest extends AbstractJokerTest
         }
     }
 
+    @Test
+    public void testEndToEndSystemWithSplittingPipelinesAtRuntime () throws InterruptedException, ExecutionException, TimeoutException
+    {
+        final FlowExample1 flowExample = new FlowExample1();
+        final JokerConfig jokerConfig = new JokerConfig();
+        final StaticRegionConfigFactory2 regionConfigFactory = new StaticRegionConfigFactory2( jokerConfig,
+                                                                                               PARTITIONED_STATEFUL_REGION_REPLICA_COUNT );
+        final Joker joker = new JokerBuilder().setRegionConfigFactory( regionConfigFactory ).setJokerConfig( jokerConfig ).build();
+
+        joker.run( flowExample.flow );
+
+        sleepUninterruptibly( 15, SECONDS );
+
+        joker.splitPipeline( new PipelineId( 1, 0 ), asList( 1, 2 ) ).get( 15, SECONDS );
+
+        sleepUninterruptibly( 15, SECONDS );
+
+        joker.shutdown().get( 60, SECONDS );
+
+        System.out.println( "Value generator 1 is invoked " + flowExample.valueGenerator1.invocationCount.get() + " times." );
+        System.out.println( "Value generator 2 is invoked " + flowExample.valueGenerator2.invocationCount.get() + " times." );
+        System.out.println( "Collector is invoked " + flowExample.valueCollector.invocationCount.get() + " times." );
+
+        for ( int i = 0; i < flowExample.valueCollector.values.length(); i++ )
+        {
+            final int expected = ( flowExample.valueGenerator1.generatedValues[ i ].intValue()
+                                   + flowExample.valueGenerator2.generatedValues[ i ].intValue() ) * MULTIPLIER_VALUE;
+            final int actual = flowExample.valueCollector.values.get( i );
+            assertEquals( "i: " + i + " expected: " + expected + " actual: " + actual, expected, actual );
+        }
+    }
+
+    @Test
+    public void testEndToEndSystemWithSplittingAndMergingPipelinesAtRuntime () throws InterruptedException, ExecutionException,
+                                                                                                  TimeoutException
+    {
+        final FlowExample1 flowExample = new FlowExample1();
+        final JokerConfig jokerConfig = new JokerConfig();
+        final StaticRegionConfigFactory2 regionConfigFactory = new StaticRegionConfigFactory2( jokerConfig,
+                                                                                               PARTITIONED_STATEFUL_REGION_REPLICA_COUNT );
+        final Joker joker = new JokerBuilder().setRegionConfigFactory( regionConfigFactory ).setJokerConfig( jokerConfig ).build();
+
+        joker.run( flowExample.flow );
+
+        sleepUninterruptibly( 15, SECONDS );
+
+        joker.splitPipeline( new PipelineId( 1, 0 ), asList( 1, 2 ) ).get( 15, SECONDS );
+        joker.mergePipelines( asList( new PipelineId( 1, 0 ), new PipelineId( 1, 1 ), new PipelineId( 1, 2 ) ) ).get( 15, SECONDS );
+
+        sleepUninterruptibly( 15, SECONDS );
+
+        joker.shutdown().get( 60, SECONDS );
+
+        System.out.println( "Value generator 1 is invoked " + flowExample.valueGenerator1.invocationCount.get() + " times." );
+        System.out.println( "Value generator 2 is invoked " + flowExample.valueGenerator2.invocationCount.get() + " times." );
+        System.out.println( "Collector is invoked " + flowExample.valueCollector.invocationCount.get() + " times." );
+
+        for ( int i = 0; i < flowExample.valueCollector.values.length(); i++ )
+        {
+            final int expected = ( flowExample.valueGenerator1.generatedValues[ i ].intValue()
+                                   + flowExample.valueGenerator2.generatedValues[ i ].intValue() ) * MULTIPLIER_VALUE;
+            final int actual = flowExample.valueCollector.values.get( i );
+            assertEquals( "i: " + i + " expected: " + expected + " actual: " + actual, expected, actual );
+        }
+    }
+
+    @Test
+    public void testEndToEndSystemWithMergingAndSplittingPipelinesAtRuntime () throws InterruptedException, ExecutionException,
+                                                                                                  TimeoutException
+    {
+        final FlowExample1 flowExample = new FlowExample1();
+        final JokerConfig jokerConfig = new JokerConfig();
+        final StaticRegionConfigFactory regionConfigFactory = new StaticRegionConfigFactory( jokerConfig,
+                                                                                             PARTITIONED_STATEFUL_REGION_REPLICA_COUNT );
+        final Joker joker = new JokerBuilder().setRegionConfigFactory( regionConfigFactory ).setJokerConfig( jokerConfig ).build();
+
+        joker.run( flowExample.flow );
+
+        sleepUninterruptibly( 15, SECONDS );
+
+        final List<PipelineId> pipelineIdsToMerge = asList( new PipelineId( 1, 0 ), new PipelineId( 1, 1 ) );
+
+        joker.mergePipelines( pipelineIdsToMerge ).get( 15, SECONDS );
+        joker.splitPipeline( new PipelineId( 1, 0 ), asList( 1, 2 ) ).get( 15, SECONDS );
+
+        sleepUninterruptibly( 15, SECONDS );
+
+        joker.shutdown().get( 60, SECONDS );
+
+        System.out.println( "Value generator 1 is invoked " + flowExample.valueGenerator1.invocationCount.get() + " times." );
+        System.out.println( "Value generator 2 is invoked " + flowExample.valueGenerator2.invocationCount.get() + " times." );
+        System.out.println( "Collector is invoked " + flowExample.valueCollector.invocationCount.get() + " times." );
+
+        for ( int i = 0; i < flowExample.valueCollector.values.length(); i++ )
+        {
+            final int expected = ( flowExample.valueGenerator1.generatedValues[ i ].intValue()
+                                   + flowExample.valueGenerator2.generatedValues[ i ].intValue() ) * MULTIPLIER_VALUE;
+            final int actual = flowExample.valueCollector.values.get( i );
+            assertEquals( "i: " + i + " expected: " + expected + " actual: " + actual, expected, actual );
+        }
+    }
+
     static class StaticRegionConfigFactory extends AbstractRegionConfigFactory
     {
 
@@ -187,6 +289,39 @@ public class JokerTest extends AbstractJokerTest
                 final int operatorCount = region.getOperatorCount();
                 final List<Integer> pipelineStartIndices = operatorCount == 1 ? singletonList( 0 ) : asList( 0, operatorCount / 2 );
                 pipelineStartIndicesList.add( pipelineStartIndices );
+            }
+
+            final List<RegionConfig> regionConfigs = new ArrayList<>( regions.size() );
+            for ( int i = 0; i < regions.size(); i++ )
+            {
+                regionConfigs.add( new RegionConfig( regions.get( i ), pipelineStartIndicesList.get( i ), replicaCount ) );
+            }
+
+            return regionConfigs;
+        }
+    }
+
+
+    static class StaticRegionConfigFactory2 extends AbstractRegionConfigFactory
+    {
+
+        private final int replicaCount;
+
+        public StaticRegionConfigFactory2 ( final JokerConfig jokerConfig, final int replicaCount )
+        {
+            super( jokerConfig );
+            this.replicaCount = replicaCount;
+        }
+
+        @Override
+        protected List<RegionConfig> createRegionConfigs ( final RegionGroup regionGroup )
+        {
+            final List<RegionDef> regions = regionGroup.getRegions();
+            final int replicaCount = regions.get( 0 ).getRegionType() == PARTITIONED_STATEFUL ? this.replicaCount : 1;
+            final List<List<Integer>> pipelineStartIndicesList = new ArrayList<>();
+            for ( RegionDef region : regions )
+            {
+                pipelineStartIndicesList.add( singletonList( 0 ) );
             }
 
             final List<RegionConfig> regionConfigs = new ArrayList<>( regions.size() );

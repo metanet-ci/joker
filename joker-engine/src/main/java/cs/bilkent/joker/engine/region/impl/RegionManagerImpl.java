@@ -169,7 +169,12 @@ public class RegionManagerImpl implements RegionManager
     }
 
     @Override
-    public List<PipelineId> getMergeablePipelineIds ( final List<PipelineId> pipelineIds )
+    public void validatePipelineMergeParameters ( final List<PipelineId> pipelineIds )
+    {
+        getMergeablePipelineIds( pipelineIds );
+    }
+
+    private List<PipelineId> getMergeablePipelineIds ( final List<PipelineId> pipelineIds )
     {
         checkArgument( pipelineIds != null && pipelineIds.size() > 1 );
 
@@ -200,10 +205,56 @@ public class RegionManagerImpl implements RegionManager
         final int regionId = pipelineIdsToMerge.get( 0 ).regionId;
 
         final Region region = regions.remove( regionId );
-        checkArgument( region != null, "invalid regionId=%s", regionId );
 
         final Region newRegion = regionTransformer.mergePipelines( region, startIndicesToMerge );
         regions.put( regionId, newRegion );
+        return newRegion;
+    }
+
+    @Override
+    public void validatePipelineSplitParameters ( final PipelineId pipelineId, final List<Integer> pipelineOperatorIndicesToSplit )
+    {
+        getPipelineStartIndicesToSplit( pipelineId, pipelineOperatorIndicesToSplit );
+    }
+
+    private List<Integer> getPipelineStartIndicesToSplit ( final PipelineId pipelineId, final List<Integer> pipelineOperatorIndicesToSplit )
+    {
+        checkArgument( pipelineId != null, "pipeline id to split cannot be null" );
+        checkArgument( pipelineOperatorIndicesToSplit != null && pipelineOperatorIndicesToSplit.size() > 1,
+                       "there must be at least 2 operator split indices for Pipeline %s",
+                       pipelineId );
+        final Region region = regions.get( pipelineId.regionId );
+        checkArgument( region != null, "invalid Pipeline %s to split", pipelineId );
+
+        int curr = 0;
+        final int operatorCount = region.getConfig().getOperatorCountByPipelineId( pipelineId.pipelineId );
+        for ( int i = 0; i < pipelineOperatorIndicesToSplit.size(); i++ )
+        {
+            final int p = pipelineOperatorIndicesToSplit.get( i );
+            checkArgument( p > curr && p < operatorCount );
+            curr = p;
+        }
+
+        final List<Integer> pipelineStartIndicesToSplit = new ArrayList<>();
+        pipelineStartIndicesToSplit.add( pipelineId.pipelineId );
+        for ( int i : pipelineOperatorIndicesToSplit )
+        {
+            pipelineStartIndicesToSplit.add( pipelineId.pipelineId + i );
+        }
+
+        return pipelineStartIndicesToSplit;
+    }
+
+    @Override
+    public Region splitPipeline ( final PipelineId pipelineId, final List<Integer> pipelineOperatorIndicesToSplit )
+    {
+        final List<Integer> pipelineStartIndicesToSplit = getPipelineStartIndicesToSplit( pipelineId, pipelineOperatorIndicesToSplit );
+        final int regionId = pipelineId.regionId;
+
+        final Region region = regions.remove( regionId );
+        final Region newRegion = regionTransformer.splitPipeline( region, pipelineStartIndicesToSplit );
+        regions.put( regionId, newRegion );
+
         return newRegion;
     }
 

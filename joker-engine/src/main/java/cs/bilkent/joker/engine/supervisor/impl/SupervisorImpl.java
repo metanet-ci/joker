@@ -120,6 +120,26 @@ public class SupervisorImpl implements Supervisor
         return future;
     }
 
+    public Future<Void> splitPipeline ( final PipelineId pipelineId, final List<Integer> pipelineOperatorIndices )
+    {
+        final CompletableFuture<Void> future = new CompletableFuture<>();
+        synchronized ( monitor )
+        {
+            checkState( isInitialized() && ( shutdownFuture == null ),
+                        "cannot split pipeline %s into %s since %s and shutdown future is %s",
+                        pipelineId,
+                        pipelineOperatorIndices,
+                        pipelineManager.getFlowStatus(),
+                        shutdownFuture );
+
+            final boolean result = queue.offer( () -> doSplitPipeline( future, pipelineId, pipelineOperatorIndices ) );
+            assert result : "offer failed for split pipeline " + pipelineId + " into " + pipelineOperatorIndices;
+            LOGGER.info( "split pipeline {} into {} task offered", pipelineId, pipelineOperatorIndices );
+        }
+
+        return future;
+    }
+
     private void doMergePipelines ( final CompletableFuture<Void> future, final List<PipelineId> pipelineIdsToMerge )
     {
         try
@@ -129,12 +149,34 @@ public class SupervisorImpl implements Supervisor
         }
         catch ( IllegalArgumentException e )
         {
-            LOGGER.error( "Merge pipelines {} failed", e );
+            LOGGER.error( "Merge pipelines " + pipelineIdsToMerge + " failed", e );
             future.completeExceptionally( e );
         }
         catch ( JokerException e )
         {
-            LOGGER.error( "Merge pipelines {} failed", e );
+            LOGGER.error( "Merge pipelines " + pipelineIdsToMerge + " failed", e );
+            future.completeExceptionally( e );
+            throw e;
+        }
+    }
+
+    private void doSplitPipeline ( final CompletableFuture<Void> future,
+                                   final PipelineId pipelineId,
+                                   final List<Integer> pipelineOperatorIndices )
+    {
+        try
+        {
+            pipelineManager.splitPipeline( this, pipelineId, pipelineOperatorIndices );
+            future.complete( null );
+        }
+        catch ( IllegalArgumentException e )
+        {
+            LOGGER.error( "Split pipeline " + pipelineId + " into " + pipelineOperatorIndices + " failed", e );
+            future.completeExceptionally( e );
+        }
+        catch ( JokerException e )
+        {
+            LOGGER.error( "Split pipeline " + pipelineId + " into " + pipelineOperatorIndices + " failed", e );
             future.completeExceptionally( e );
             throw e;
         }

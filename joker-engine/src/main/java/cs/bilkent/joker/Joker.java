@@ -54,6 +54,11 @@ public class Joker
         return engine.mergePipelines( pipelineIds );
     }
 
+    public Future<Void> splitPipeline ( final PipelineId pipelineId, final List<Integer> pipelineOperatorIndices )
+    {
+        return engine.splitPipeline( pipelineId, pipelineOperatorIndices );
+    }
+
     public Future<Void> shutdown ()
     {
         return engine.shutdown();
