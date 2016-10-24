@@ -378,11 +378,14 @@ public class PipelineReplicaRunner implements Runnable
     {
         PipelineReplicaRunnerStatus result = RUNNING;
         final PipelineReplicaRunnerStatus status = this.status;
-        final PipelineReplicaRunnerCommand command = this.command;
+        PipelineReplicaRunnerCommand command = this.command;
         if ( command != null )
         {
             synchronized ( monitor )
             {
+                // we are re-reading the command here because it can be updated by one of the API methods before we acquire the lock
+                command = this.command;
+
                 final UpstreamContext pipelineUpstreamContext = supervisor.getUpstreamContext( id );
                 checkNotNull( pipelineUpstreamContext, "Pipeline %s has null upstream context!", pipeline.id() );
                 final PipelineReplicaRunnerCommandType commandType = command.type;
