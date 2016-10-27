@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -12,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import cs.bilkent.joker.engine.partition.PartitionKey;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
@@ -36,13 +38,13 @@ public class TupleQueueContainer
 
     private final Function<Object, TupleQueue[]> tupleQueuesConstructor;
 
-    private final Map<Object, TupleQueue[]> tupleQueuesByKeys;
+    private final Map<PartitionKey, TupleQueue[]> tupleQueuesByKeys;
+
+    private final Set<PartitionKey> drainableKeys = new THashSet<>();
 
     private int[] tupleCounts;
 
     private TupleAvailabilityByPort tupleAvailabilityByPort;
-
-    private THashSet<Object> drainableKeys = new THashSet<>();
 
     public TupleQueueContainer ( final String operatorId,
                                  final int inputPortCount,
@@ -78,19 +80,19 @@ public class TupleQueueContainer
         return partitionId;
     }
 
-    public TupleQueue[] getTupleQueues ( final Object key )
+    public TupleQueue[] getTupleQueues ( final PartitionKey key )
     {
         return tupleQueuesByKeys.computeIfAbsent( key, this.tupleQueuesConstructor );
     }
 
-    public boolean offer ( final int portIndex, final Tuple tuple, final Object key )
+    public boolean offer ( final int portIndex, final Tuple tuple, final PartitionKey key )
     {
         final TupleQueue[] tupleQueues = getTupleQueues( key );
         tupleQueues[ portIndex ].offerTuple( tuple );
         return addToDrainableKeys( key, tupleQueues );
     }
 
-    public boolean forceOffer ( final int portIndex, final Tuple tuple, final Object key )
+    public boolean forceOffer ( final int portIndex, final Tuple tuple, final PartitionKey key )
     {
         final TupleQueue[] tupleQueues = getTupleQueues( key );
         tupleQueues[ portIndex ].forceOfferTuple( tuple );
@@ -102,10 +104,10 @@ public class TupleQueueContainer
         int nonDrainableKeyCount = 0;
         if ( drainer instanceof GreedyDrainer )
         {
-            final Iterator<Object> it = tupleQueuesByKeys.keySet().iterator();
+            final Iterator<PartitionKey> it = tupleQueuesByKeys.keySet().iterator();
             while ( it.hasNext() )
             {
-                final Object key = it.next();
+                final PartitionKey key = it.next();
                 final TupleQueue[] tupleQueues = getTupleQueues( key );
 
                 drainer.drain( key, tupleQueues );
@@ -127,11 +129,11 @@ public class TupleQueueContainer
         else
         {
             // tuple count based draining
-            final Iterator<Object> it = drainableKeys.iterator();
+            final Iterator<PartitionKey> it = drainableKeys.iterator();
             final boolean drainable = it.hasNext();
             if ( drainable )
             {
-                final Object key = it.next();
+                final PartitionKey key = it.next();
                 final TupleQueue[] tupleQueues = getTupleQueues( key );
                 drainer.drain( key, tupleQueues );
                 if ( !checkIfDrainable( tupleQueues ) )
@@ -149,7 +151,7 @@ public class TupleQueueContainer
     {
         LOGGER.info( "Clearing partitioned tuple queues of operator: {} partitionId={}", operatorId, partitionId );
 
-        for ( Map.Entry<Object, TupleQueue[]> e : tupleQueuesByKeys.entrySet() )
+        for ( Entry<PartitionKey, TupleQueue[]> e : tupleQueuesByKeys.entrySet() )
         {
             final TupleQueue[] tupleQueues = e.getValue();
             for ( int portIndex = 0; portIndex < tupleQueues.length; portIndex++ )
@@ -203,7 +205,7 @@ public class TupleQueueContainer
         this.tupleCounts = Arrays.copyOf( tupleCounts, tupleCounts.length );
         this.tupleAvailabilityByPort = tupleAvailabilityByPort;
         this.drainableKeys.clear();
-        for ( Entry<Object, TupleQueue[]> e : tupleQueuesByKeys.entrySet() )
+        for ( Entry<PartitionKey, TupleQueue[]> e : tupleQueuesByKeys.entrySet() )
         {
             if ( checkIfDrainable( e.getValue() ) )
             {
@@ -214,7 +216,7 @@ public class TupleQueueContainer
         return drainableKeys.size();
     }
 
-    private boolean addToDrainableKeys ( final Object key, final TupleQueue[] tupleQueues )
+    private boolean addToDrainableKeys ( final PartitionKey key, final TupleQueue[] tupleQueues )
     {
         if ( drainableKeys.contains( key ) )
         {

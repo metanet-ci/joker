@@ -21,10 +21,10 @@ import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.joker.engine.pipeline.UpstreamContext;
 import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
 import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.NonCachedTuplesImplSupplier;
+import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.Region;
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
-import cs.bilkent.joker.engine.region.RegionTransformer;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueContextManager;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainerPool;
@@ -42,10 +42,10 @@ import static java.lang.System.arraycopy;
 
 @Singleton
 @NotThreadSafe
-public class RegionTransformerImpl implements RegionTransformer
+public class PipelineTransformerImpl implements PipelineTransformer
 {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger( RegionTransformerImpl.class );
+    private static final Logger LOGGER = LoggerFactory.getLogger( PipelineTransformerImpl.class );
 
 
     private final JokerConfig config;
@@ -53,7 +53,7 @@ public class RegionTransformerImpl implements RegionTransformer
     private final TupleQueueContextManager tupleQueueContextManager;
 
     @Inject
-    public RegionTransformerImpl ( final JokerConfig config, final TupleQueueContextManager tupleQueueContextManager )
+    public PipelineTransformerImpl ( final JokerConfig config, final TupleQueueContextManager tupleQueueContextManager )
     {
         this.config = config;
         this.tupleQueueContextManager = tupleQueueContextManager;

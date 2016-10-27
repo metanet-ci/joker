@@ -15,7 +15,7 @@ import cs.bilkent.joker.engine.kvstore.impl.KVStoreContextManagerImpl;
 import cs.bilkent.joker.engine.kvstore.impl.PartitionedKVStoreContext;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.PartitionServiceImpl;
-import cs.bilkent.joker.engine.partition.impl.PartitionKeyFunctionFactoryImpl;
+import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
 import cs.bilkent.joker.engine.pipeline.OperatorReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
@@ -23,10 +23,10 @@ import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
 import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.NonCachedTuplesImplSupplier;
 import cs.bilkent.joker.engine.region.FlowDeploymentDef;
+import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.Region;
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
-import cs.bilkent.joker.engine.region.RegionTransformer;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.joker.engine.tuplequeue.impl.TupleQueueContextManagerImpl;
 import cs.bilkent.joker.engine.tuplequeue.impl.context.DefaultTupleQueueContext;
@@ -72,14 +72,14 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
     private final TupleQueueContextManagerImpl tupleQueueContextManager = new TupleQueueContextManagerImpl( config,
                                                                                                             partitionService,
-                                                                                                            new PartitionKeyFunctionFactoryImpl() );
+                                                                                                            new PartitionKeyExtractorFactoryImpl() );
 
-    private final RegionTransformer regionTransformer = new RegionTransformerImpl( config, tupleQueueContextManager );
+    private final PipelineTransformer pipelineTransformer = new PipelineTransformerImpl( config, tupleQueueContextManager );
 
     private final RegionManagerImpl regionManager = new RegionManagerImpl( config,
                                                                            kvStoreContextManager,
                                                                            tupleQueueContextManager,
-                                                                           regionTransformer );
+                                                                           pipelineTransformer );
 
 
     @Test

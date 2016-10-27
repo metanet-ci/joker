@@ -302,7 +302,7 @@ public class JokerTest extends AbstractJokerTest
     }
 
 
-    static class StaticRegionConfigFactory2 extends AbstractRegionConfigFactory
+    public static class StaticRegionConfigFactory2 extends AbstractRegionConfigFactory
     {
 
         private final int replicaCount;
@@ -369,11 +369,8 @@ public class JokerTest extends AbstractJokerTest
             final int value = RANDOM.nextInt( valueRange ) + 1;
 
             final AtomicInteger valueHolder = generatedValues[ key ];
-            int existing;
-            do
-            {
-                existing = valueHolder.get();
-            } while ( !valueHolder.compareAndSet( existing, existing + value ) );
+            final int existing = valueHolder.get();
+            valueHolder.set( existing + value );
 
             tuple.set( "key", key );
             tuple.set( "value", value );

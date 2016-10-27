@@ -1,22 +1,62 @@
 package cs.bilkent.joker.engine.partition.impl;
 
-public class PartitionKey3
+import java.util.AbstractList;
+import java.util.List;
+
+import cs.bilkent.joker.engine.partition.PartitionKey;
+import static cs.bilkent.joker.engine.partition.impl.PartitionKeyUtil.hashHead;
+import static cs.bilkent.joker.engine.partition.impl.PartitionKeyUtil.hashTail;
+
+public class PartitionKey3 extends AbstractList<Object> implements PartitionKey
 {
+
+    private final Object val0;
 
     private final Object val1;
 
     private final Object val2;
 
-    private final Object val3;
-
     private final int hashCode;
 
-    public PartitionKey3 ( final Object val1, final Object val2, final Object val3 )
+    public PartitionKey3 ( final Object val0, final Object val1, final Object val2 )
     {
+        this.val0 = val0;
         this.val1 = val1;
         this.val2 = val2;
-        this.val3 = val3;
-        this.hashCode = computeHashCode( val1, val2, val3 );
+        this.hashCode = computeHashCode( val0, val1, val2 );
+    }
+
+    @Override
+    public int partitionHashCode ()
+    {
+        return hashCode;
+    }
+
+    @Override
+    public Object get ( final int index )
+    {
+        if ( index == 0 )
+        {
+            return val0;
+        }
+
+        if ( index == 1 )
+        {
+            return val1;
+        }
+
+        if ( index == 2 )
+        {
+            return val2;
+        }
+
+        throw new IndexOutOfBoundsException( "Index: " + index + ", Size: " + 3 );
+    }
+
+    @Override
+    public int size ()
+    {
+        return 3;
     }
 
     @Override
@@ -26,23 +66,17 @@ public class PartitionKey3
         {
             return true;
         }
-        if ( o == null || getClass() != o.getClass() )
+        if ( o == null )
         {
             return false;
         }
-
-        final PartitionKey3 that = (PartitionKey3) o;
-
-        if ( !val1.equals( that.val1 ) )
+        if ( getClass() != o.getClass() )
         {
-            return false;
-        }
-        if ( !val2.equals( that.val2 ) )
-        {
-            return false;
+            return o instanceof List && super.equals( o );
         }
 
-        return val3.equals( that.val3 );
+        final PartitionKey3 n2 = (PartitionKey3) o;
+        return val0.equals( n2.val0 ) && val1.equals( n2.val1 ) && val2.equals( n2.val2 );
     }
 
     @Override
@@ -51,17 +85,9 @@ public class PartitionKey3
         return hashCode;
     }
 
-    @Override
-    public String toString ()
+    public static int computeHashCode ( final Object val0, final Object val1, final Object val2 )
     {
-        return "PartitionKey3{" + "val1=" + val1 + ", val2=" + val2 + ", val3=" + val3 + '}';
-    }
-
-    public static int computeHashCode ( final Object val1, final Object val2, final Object val3 )
-    {
-        int result = val1.hashCode();
-        result = 31 * result + val2.hashCode();
-        return 31 * result + val3.hashCode();
+        return hashTail( hashTail( hashHead( val0 ), val1 ), val2 );
     }
 
 }

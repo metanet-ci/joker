@@ -10,7 +10,7 @@ import cs.bilkent.joker.engine.config.ThreadingPreference;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.PartitionServiceImpl;
-import cs.bilkent.joker.engine.partition.impl.PartitionKeyFunctionFactoryImpl;
+import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
 import cs.bilkent.joker.operator.Operator;
@@ -37,7 +37,7 @@ public class TupleQueueContextManagerImplTest extends AbstractJokerTest
     {
         final JokerConfig jokerConfig = new JokerConfig();
         final PartitionService partitionService = new PartitionServiceImpl( jokerConfig );
-        tupleQueueManager = new TupleQueueContextManagerImpl( jokerConfig, partitionService, new PartitionKeyFunctionFactoryImpl() );
+        tupleQueueManager = new TupleQueueContextManagerImpl( jokerConfig, partitionService, new PartitionKeyExtractorFactoryImpl() );
     }
 
     @Test( expected = IllegalArgumentException.class )

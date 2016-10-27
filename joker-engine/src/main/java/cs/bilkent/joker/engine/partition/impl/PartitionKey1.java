@@ -5,22 +5,18 @@ import java.util.List;
 
 import cs.bilkent.joker.engine.partition.PartitionKey;
 import static cs.bilkent.joker.engine.partition.impl.PartitionKeyUtil.hashHead;
-import static cs.bilkent.joker.engine.partition.impl.PartitionKeyUtil.hashTail;
 
-public class PartitionKey2 extends AbstractList<Object> implements PartitionKey
+public class PartitionKey1 extends AbstractList<Object> implements PartitionKey
 {
 
     private final Object val0;
 
-    private final Object val1;
-
     private final int hashCode;
 
-    public PartitionKey2 ( final Object val0, final Object val1 )
+    public PartitionKey1 ( final Object val0 )
     {
         this.val0 = val0;
-        this.val1 = val1;
-        this.hashCode = computeHashCode( val0, val1 );
+        this.hashCode = computeHashCode( val0 );
     }
 
     @Override
@@ -37,18 +33,13 @@ public class PartitionKey2 extends AbstractList<Object> implements PartitionKey
             return val0;
         }
 
-        if ( index == 1 )
-        {
-            return val1;
-        }
-
-        throw new IndexOutOfBoundsException( "Index: " + index + ", Size: " + 2 );
+        throw new IndexOutOfBoundsException( "Index: " + index + ", Size: " + 1 );
     }
 
     @Override
     public int size ()
     {
-        return 2;
+        return 1;
     }
 
     @Override
@@ -67,8 +58,8 @@ public class PartitionKey2 extends AbstractList<Object> implements PartitionKey
             return o instanceof List && super.equals( o );
         }
 
-        final PartitionKey2 n2 = (PartitionKey2) o;
-        return val0.equals( n2.val0 ) && val1.equals( n2.val1 );
+        final PartitionKey1 n2 = (PartitionKey1) o;
+        return val0.equals( n2.val0 );
     }
 
     @Override
@@ -77,9 +68,9 @@ public class PartitionKey2 extends AbstractList<Object> implements PartitionKey
         return hashCode;
     }
 
-    public static int computeHashCode ( final Object val0, final Object val1 )
+    public static int computeHashCode ( final Object val0 )
     {
-        return hashTail( hashHead( val0 ), val1 );
+        return hashHead( val0 );
     }
 
 }

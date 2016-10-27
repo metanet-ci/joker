@@ -18,8 +18,8 @@ import cs.bilkent.joker.engine.config.ThreadingPreference;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.SINGLE_THREADED;
 import cs.bilkent.joker.engine.config.TupleQueueManagerConfig;
-import cs.bilkent.joker.engine.partition.PartitionKeyFunction;
-import cs.bilkent.joker.engine.partition.PartitionKeyFunctionFactory;
+import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
+import cs.bilkent.joker.engine.partition.PartitionKeyExtractorFactory;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
@@ -43,7 +43,7 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
 
     private final PartitionService partitionService;
 
-    private final PartitionKeyFunctionFactory partitionKeyFunctionFactory;
+    private final PartitionKeyExtractorFactory partitionKeyExtractorFactory;
 
     private final TupleQueueManagerConfig tupleQueueManagerConfig;
 
@@ -57,10 +57,10 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
     @Inject
     public TupleQueueContextManagerImpl ( final JokerConfig jokerConfig,
                                           final PartitionService partitionService,
-                                          final PartitionKeyFunctionFactory partitionKeyFunctionFactory )
+                                          final PartitionKeyExtractorFactory partitionKeyExtractorFactory )
     {
         this.partitionService = partitionService;
-        this.partitionKeyFunctionFactory = partitionKeyFunctionFactory;
+        this.partitionKeyExtractorFactory = partitionKeyExtractorFactory;
         this.tupleQueueManagerConfig = jokerConfig.getTupleQueueManagerConfig();
     }
 
@@ -117,7 +117,8 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
     @Override
     public PartitionedTupleQueueContext[] createPartitionedTupleQueueContext ( final int regionId,
                                                                                final int replicaCount,
-                                                                               final OperatorDef operatorDef )
+                                                                               final OperatorDef operatorDef,
+                                                                               final int forwardKeyLimit )
     {
         checkArgument( operatorDef != null, "No operator definition! regionId %s, replicaCount %s", regionId, replicaCount );
         checkArgument( operatorDef.operatorType() == PARTITIONED_STATEFUL,
@@ -132,6 +133,10 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
         final Function<Pair<Integer, String>, PartitionedTupleQueueContext[]> c = p ->
         {
             final PartitionedTupleQueueContext[] tupleQueueContexts = new PartitionedTupleQueueContext[ replicaCount ];
+            final PartitionKeyExtractor partitionKeyExtractor = partitionKeyExtractorFactory.createPartitionKeyExtractor( operatorDef
+                                                                                                                                  .partitionFieldNames(),
+                                                                                                                          forwardKeyLimit );
+
             for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
             {
                 final TupleQueueContainer[] containers = getOrCreateTupleQueueContainers( operatorId,
@@ -139,8 +144,7 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
                                                                                           partitionService.getPartitionCount(),
                                                                                           tupleQueueConstructor );
                 final int[] partitions = partitionService.getOrCreatePartitionDistribution( regionId, replicaCount );
-                final PartitionKeyFunction partitionKeyExtractor = partitionKeyFunctionFactory.createPartitionKeyFunction( operatorDef
-                                                                                                                                   .partitionFieldNames() );
+
                 tupleQueueContexts[ replicaIndex ] = new PartitionedTupleQueueContext( operatorId,
                                                                                        inputPortCount,
                                                                                        partitionService.getPartitionCount(),
@@ -151,10 +155,12 @@ public class TupleQueueContextManagerImpl implements TupleQueueContextManager
                                                                                        tupleQueueManagerConfig.getMaxDrainableKeyCount() );
             }
 
-            LOGGER.info( "created partitioned tuple queue context for regionId={} replicaCount={} operatorId={}",
-                         regionId,
-                         replicaCount,
-                         operatorId );
+            LOGGER.info(
+                    "created partitioned tuple queue context with partition key extractor {} for regionId={} replicaCount={} operatorId={}",
+                    partitionKeyExtractor.getClass().getSimpleName(),
+                    regionId,
+                    replicaCount,
+                    operatorId );
             return tupleQueueContexts;
         };
 

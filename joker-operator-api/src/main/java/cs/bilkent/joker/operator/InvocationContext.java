@@ -27,6 +27,8 @@ public interface InvocationContext
      */
     Tuples getOutput ();
 
+    // TODO ADD List<Object> getPartitionKey() method.
+
     /**
      * Returns the reason of a particular {@link Operator#invoke(InvocationContext)} method invocation.
      *

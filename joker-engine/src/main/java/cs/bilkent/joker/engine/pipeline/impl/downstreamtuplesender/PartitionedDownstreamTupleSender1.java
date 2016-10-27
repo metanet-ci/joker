@@ -2,7 +2,7 @@ package cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender;
 
 import java.util.concurrent.Future;
 
-import cs.bilkent.joker.engine.partition.PartitionKeyFunction;
+import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 
@@ -18,7 +18,7 @@ public class PartitionedDownstreamTupleSender1 extends AbstractPartitionedDownst
                                                final int partitionCount,
                                                final int[] partitionDistribution,
                                                final TupleQueueContext[] tupleQueueContexts,
-                                               final PartitionKeyFunction partitionKeyExtractor )
+                                               final PartitionKeyExtractor partitionKeyExtractor )
     {
         super( partitionCount, partitionDistribution, tupleQueueContexts, partitionKeyExtractor );
         this.sourcePortIndex = sourcePortIndex;

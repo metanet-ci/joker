@@ -6,7 +6,7 @@ import java.util.function.BiFunction;
 import org.junit.Before;
 import org.junit.Test;
 
-import cs.bilkent.joker.engine.partition.impl.PartitionKeyFunction1;
+import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractor1;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.impl.TupleQueueContainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
@@ -41,8 +41,7 @@ public class PartitionedTupleQueueContextTest extends AbstractJokerTest
         tupleQueueContext = new PartitionedTupleQueueContext( "op1",
                                                               INPUT_PORT_COUNT,
                                                               PARTITION_COUNT,
-                                                              0,
-                                                              new PartitionKeyFunction1( singletonList( PARTITION_KEY_FIELD ) ),
+                                                              0, new PartitionKeyExtractor1( singletonList( PARTITION_KEY_FIELD ) ),
                                                               new TupleQueueContainer[] { container },
                                                               new int[] { 0 },
                                                               Integer.MAX_VALUE );

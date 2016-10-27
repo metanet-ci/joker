@@ -11,6 +11,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.kvstore.KVStoreContext;
+import cs.bilkent.joker.engine.partition.PartitionKey;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETED;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETING;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIAL;
@@ -365,7 +366,10 @@ public class OperatorReplica
     /**
      * Invokes the operator, resets the drainer and handles the new scheduling strategy if allowed.
      */
-    private TuplesImpl invokeOperator ( final InvocationReason reason, final TuplesImpl input, final TuplesImpl output, final Object key )
+    private TuplesImpl invokeOperator ( final InvocationReason reason,
+                                        final TuplesImpl input,
+                                        final TuplesImpl output,
+                                        final PartitionKey key )
     {
         final KVStore kvStore = kvStoreContext.getKVStore( key );
         final TuplesImpl invocationOutput = output != null ? output : outputSupplier.get();

@@ -29,10 +29,10 @@ import cs.bilkent.joker.engine.pipeline.PipelineReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
 import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.NonCachedTuplesImplSupplier;
+import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.Region;
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionManager;
-import cs.bilkent.joker.engine.region.RegionTransformer;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueContextManager;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainerPool;
@@ -66,20 +66,19 @@ public class RegionManagerImpl implements RegionManager
 
     private final TupleQueueContextManager tupleQueueContextManager;
 
-    private final RegionTransformer regionTransformer;
+    private final PipelineTransformer pipelineTransformer;
 
     private final Map<Integer, Region> regions = new HashMap<>();
 
     @Inject
     public RegionManagerImpl ( final JokerConfig config,
                                final KVStoreContextManager kvStoreContextManager,
-                               final TupleQueueContextManager tupleQueueContextManager,
-                               final RegionTransformer regionTransformer )
+                               final TupleQueueContextManager tupleQueueContextManager, final PipelineTransformer pipelineTransformer )
     {
         this.config = config;
         this.kvStoreContextManager = kvStoreContextManager;
         this.tupleQueueContextManager = tupleQueueContextManager;
-        this.regionTransformer = regionTransformer;
+        this.pipelineTransformer = pipelineTransformer;
     }
 
     @Override
@@ -107,6 +106,7 @@ public class RegionManagerImpl implements RegionManager
                          operatorCount );
 
             final PipelineReplicaId[] pipelineReplicaIds = createPipelineReplicaIds( regionId, replicaCount, pipelineId );
+            final int forwardKeyLimit = regionConfig.getRegionDef().getPartitionFieldNames().size();
 
             for ( int operatorIndex = 0; operatorIndex < operatorCount; operatorIndex++ )
             {
@@ -116,8 +116,7 @@ public class RegionManagerImpl implements RegionManager
                 final TupleQueueContext[] tupleQueueContexts = createTupleQueueContexts( flow,
                                                                                          regionId,
                                                                                          replicaCount,
-                                                                                         isFirstOperator,
-                                                                                         operatorDef );
+                                                                                         isFirstOperator, operatorDef, forwardKeyLimit );
 
                 final TupleQueueDrainerPool[] drainerPools = createTupleQueueDrainerPools( regionId,
                                                                                            replicaCount,
@@ -206,7 +205,7 @@ public class RegionManagerImpl implements RegionManager
 
         final Region region = regions.remove( regionId );
 
-        final Region newRegion = regionTransformer.mergePipelines( region, startIndicesToMerge );
+        final Region newRegion = pipelineTransformer.mergePipelines( region, startIndicesToMerge );
         regions.put( regionId, newRegion );
         return newRegion;
     }
@@ -252,7 +251,7 @@ public class RegionManagerImpl implements RegionManager
         final int regionId = pipelineId.regionId;
 
         final Region region = regions.remove( regionId );
-        final Region newRegion = regionTransformer.splitPipeline( region, pipelineStartIndicesToSplit );
+        final Region newRegion = pipelineTransformer.splitPipeline( region, pipelineStartIndicesToSplit );
         regions.put( regionId, newRegion );
 
         return newRegion;
@@ -266,7 +265,7 @@ public class RegionManagerImpl implements RegionManager
         final List<Integer> startIndicesToMerge = pipelineIdsSorted.stream().map( p -> p.pipelineId ).collect( toList() );
         final RegionConfig regionConfig = region.getConfig();
 
-        if ( !regionTransformer.checkPipelineStartIndicesToMerge( regionConfig, startIndicesToMerge ) )
+        if ( !pipelineTransformer.checkPipelineStartIndicesToMerge( regionConfig, startIndicesToMerge ) )
         {
             throw new IllegalArgumentException( "invalid pipeline start indices to merge: " + startIndicesToMerge
                                                 + " current pipeline start indices: " + regionConfig.getPipelineStartIndices()
@@ -387,7 +386,8 @@ public class RegionManagerImpl implements RegionManager
                                                            final int regionId,
                                                            final int replicaCount,
                                                            final boolean isFirstOperator,
-                                                           final OperatorDef operatorDef )
+                                                           final OperatorDef operatorDef,
+                                                           final int forwardKeyLimit )
     {
         final String operatorId = operatorDef.id();
         final TupleQueueContext[] tupleQueueContexts;
@@ -407,7 +407,10 @@ public class RegionManagerImpl implements RegionManager
                          PartitionedTupleQueueContext.class.getSimpleName(),
                          regionId,
                          operatorId );
-            tupleQueueContexts = tupleQueueContextManager.createPartitionedTupleQueueContext( regionId, replicaCount, operatorDef );
+            tupleQueueContexts = tupleQueueContextManager.createPartitionedTupleQueueContext( regionId,
+                                                                                              replicaCount,
+                                                                                              operatorDef,
+                                                                                              forwardKeyLimit );
         }
         else
         {

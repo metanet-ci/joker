@@ -44,7 +44,7 @@ public class RegionDef
                        final List<OperatorDef> operators )
     {
         checkArgument( regionType != null, "region type cannot be null" );
-        checkArgument( ( regionType == PARTITIONED_STATEFUL && partitionFieldNames.size() > 0 ) || partitionFieldNames.isEmpty(),
+        checkArgument( regionType == PARTITIONED_STATEFUL ? partitionFieldNames.size() > 0 : partitionFieldNames.isEmpty(),
                        "invalid partition field names! regionType: %s partition field names: %s",
                        regionType,
                        partitionFieldNames );

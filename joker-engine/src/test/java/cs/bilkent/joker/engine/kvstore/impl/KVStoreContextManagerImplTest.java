@@ -7,6 +7,7 @@ import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.kvstore.KVStoreContext;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.PartitionServiceImpl;
+import cs.bilkent.joker.engine.partition.impl.PartitionKey1;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.operator.kvstore.impl.KeyDecoratedKVStore;
 import cs.bilkent.joker.testutils.AbstractJokerTest;
@@ -66,7 +67,7 @@ public class KVStoreContextManagerImplTest extends AbstractJokerTest
     public void shouldReleasePartitionedKVStoreContext ()
     {
         final KVStoreContext kvStoreContext = kvStoreManager.createPartitionedKVStoreContexts( REGION_ID, 1, "op1" )[ 0 ];
-        final KeyDecoratedKVStore kvStore = (KeyDecoratedKVStore) kvStoreContext.getKVStore( "key" );
+        final KeyDecoratedKVStore kvStore = (KeyDecoratedKVStore) kvStoreContext.getKVStore( new PartitionKey1( "key" ) );
         kvStore.set( "key", "value" );
         assertTrue( kvStoreManager.releasePartitionedKVStoreContext( REGION_ID, "op1" ) );
         assertThat( kvStore.getKvStore().size(), equalTo( 0 ) );

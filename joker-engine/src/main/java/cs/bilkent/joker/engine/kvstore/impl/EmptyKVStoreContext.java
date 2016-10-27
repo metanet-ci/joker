@@ -1,6 +1,7 @@
 package cs.bilkent.joker.engine.kvstore.impl;
 
 import cs.bilkent.joker.engine.kvstore.KVStoreContext;
+import cs.bilkent.joker.engine.partition.PartitionKey;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 
 public class EmptyKVStoreContext implements KVStoreContext
@@ -20,7 +21,7 @@ public class EmptyKVStoreContext implements KVStoreContext
     }
 
     @Override
-    public KVStore getKVStore ( final Object key )
+    public KVStore getKVStore ( final PartitionKey key )
     {
         return null;
     }

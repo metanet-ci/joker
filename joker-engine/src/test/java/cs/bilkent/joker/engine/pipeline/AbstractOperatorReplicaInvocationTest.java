@@ -7,6 +7,8 @@ import org.junit.Before;
 import org.mockito.Mock;
 
 import cs.bilkent.joker.engine.kvstore.KVStoreContext;
+import cs.bilkent.joker.engine.partition.PartitionKey;
+import cs.bilkent.joker.engine.partition.impl.PartitionKey1;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaInitializationTest.newUpstreamContextInstance;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
@@ -52,7 +54,7 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
     @Mock
     protected Supplier<TuplesImpl> outputSupplier;
 
-    protected final Object key = new Object();
+    protected final PartitionKey key = new PartitionKey1( new Object() );
 
     protected final InvocationContextImpl invocationContext = new InvocationContextImpl();
 

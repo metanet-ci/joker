@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
-import cs.bilkent.joker.engine.partition.PartitionKeyFunction;
+import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import static cs.bilkent.joker.engine.partition.PartitionUtil.getPartitionId;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
@@ -24,14 +24,14 @@ public abstract class AbstractPartitionedDownstreamTupleSender implements Downst
 
     private final TupleQueueContext[] tupleQueueContexts;
 
-    private final PartitionKeyFunction partitionKeyExtractor;
+    private final PartitionKeyExtractor partitionKeyExtractor;
 
     private List<Tuple>[] tupleLists;
 
     public AbstractPartitionedDownstreamTupleSender ( final int partitionCount,
                                                       final int[] partitionDistribution,
                                                       final TupleQueueContext[] tupleQueueContexts,
-                                                      final PartitionKeyFunction partitionKeyExtractor )
+                                                      final PartitionKeyExtractor partitionKeyExtractor )
     {
         this.partitionCount = partitionCount;
         this.partitionDistribution = Arrays.copyOf( partitionDistribution, partitionDistribution.length );

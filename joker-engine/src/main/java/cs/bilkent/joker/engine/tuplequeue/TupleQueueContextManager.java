@@ -13,7 +13,15 @@ public interface TupleQueueContextManager
                                                        OperatorDef operatorDef,
                                                        ThreadingPreference threadingPreference );
 
-    PartitionedTupleQueueContext[] createPartitionedTupleQueueContext ( int regionId, int replicaCount, OperatorDef operatorDef );
+    default PartitionedTupleQueueContext[] createPartitionedTupleQueueContext ( int regionId, int replicaCount, OperatorDef operatorDef )
+    {
+        return createPartitionedTupleQueueContext( regionId, replicaCount, operatorDef, operatorDef.partitionFieldNames().size() );
+    }
+
+    PartitionedTupleQueueContext[] createPartitionedTupleQueueContext ( int regionId,
+                                                                        int replicaCount,
+                                                                        OperatorDef operatorDef,
+                                                                        int forwardKeyLimit );
 
     boolean releaseDefaultTupleQueueContext ( int regionId, int replicaIndex, String operatorId );
 

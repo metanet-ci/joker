@@ -4,6 +4,7 @@ import java.util.Arrays;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.kvstore.KVStoreContext;
+import cs.bilkent.joker.engine.partition.PartitionKey;
 import static cs.bilkent.joker.engine.partition.PartitionUtil.getPartitionId;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.operator.kvstore.impl.KeyDecoratedKVStore;
@@ -41,14 +42,15 @@ public class PartitionedKVStoreContext implements KVStoreContext
     }
 
     @Override
-    public KVStore getKVStore ( final Object key )
+    public KVStore getKVStore ( final PartitionKey key )
     {
         if ( key == null )
         {
             return null;
         }
 
-        final int partitionId = getPartitionId( key, partitionCount );
+        final int partitionHash = key.partitionHashCode();
+        final int partitionId = getPartitionId( partitionHash, partitionCount );
         final KVStore kvStore = kvStores[ partitionId ];
         checkArgument( kvStore != null, "partitionId=% is not in replicaIndex=%", partitionId, replicaIndex );
         return new KeyDecoratedKVStore( key, kvStore );

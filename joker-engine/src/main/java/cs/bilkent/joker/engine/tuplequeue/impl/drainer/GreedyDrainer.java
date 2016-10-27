@@ -3,6 +3,7 @@ package cs.bilkent.joker.engine.tuplequeue.impl.drainer;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import cs.bilkent.joker.engine.partition.PartitionKey;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.operator.Tuple;
@@ -18,7 +19,7 @@ public class GreedyDrainer implements TupleQueueDrainer
 
     private TuplesImpl result;
 
-    private Object key;
+    private PartitionKey key;
 
     public GreedyDrainer ( final int inputPortCount )
     {
@@ -27,7 +28,7 @@ public class GreedyDrainer implements TupleQueueDrainer
     }
 
     @Override
-    public void drain ( final Object key, final TupleQueue[] tupleQueues )
+    public void drain ( final PartitionKey key, final TupleQueue[] tupleQueues )
     {
         checkArgument( tupleQueues != null );
         checkArgument( tupleQueues.length == inputPortCount );
@@ -49,7 +50,7 @@ public class GreedyDrainer implements TupleQueueDrainer
     }
 
     @Override
-    public Object getKey ()
+    public PartitionKey getKey ()
     {
         return key;
     }

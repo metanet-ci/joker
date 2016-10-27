@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import cs.bilkent.joker.engine.partition.PartitionKey;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
@@ -32,7 +33,7 @@ public class BlockingSinglePortDrainer implements TupleQueueDrainer
 
     private TuplesImpl result;
 
-    private Object key;
+    private PartitionKey key;
 
     public BlockingSinglePortDrainer ( final int maxBatchSize, final long timeout, final TimeUnit unit )
     {
@@ -51,7 +52,7 @@ public class BlockingSinglePortDrainer implements TupleQueueDrainer
     }
 
     @Override
-    public void drain ( final Object key, final TupleQueue[] tupleQueues )
+    public void drain ( final PartitionKey key, final TupleQueue[] tupleQueues )
     {
         checkArgument( tupleQueues != null );
         checkArgument( tupleQueues.length == 1 );
@@ -80,7 +81,7 @@ public class BlockingSinglePortDrainer implements TupleQueueDrainer
     }
 
     @Override
-    public Object getKey ()
+    public PartitionKey getKey ()
     {
         return key;
     }

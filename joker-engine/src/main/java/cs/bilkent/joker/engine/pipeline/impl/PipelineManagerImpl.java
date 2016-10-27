@@ -29,8 +29,8 @@ import cs.bilkent.joker.engine.config.JokerConfig;
 import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_THREAD_GROUP_NAME;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.exception.JokerException;
-import cs.bilkent.joker.engine.partition.PartitionKeyFunction;
-import cs.bilkent.joker.engine.partition.PartitionKeyFunctionFactory;
+import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
+import cs.bilkent.joker.engine.partition.PartitionKeyExtractorFactory;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
 import cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus;
@@ -95,14 +95,14 @@ public class PipelineManagerImpl implements PipelineManager
 
     private final PartitionService partitionService;
 
-    private final PartitionKeyFunctionFactory partitionKeyFunctionFactory;
+    private final PartitionKeyExtractorFactory partitionKeyExtractorFactory;
 
     private final ThreadGroup jokerThreadGroup;
 
     private final BiFunction<List<Pair<Integer, Integer>>, TupleQueueContext, DownstreamTupleSender>[]
             defaultDownstreamTupleSenderConstructors = new BiFunction[ 6 ];
 
-    private final Function6<List<Pair<Integer, Integer>>, Integer, int[], TupleQueueContext[], PartitionKeyFunction,
+    private final Function6<List<Pair<Integer, Integer>>, Integer, int[], TupleQueueContext[], PartitionKeyExtractor,
                                    DownstreamTupleSender>[] partitionedDownstreamTupleSenderConstructors = new Function6[ 6 ];
 
     private FlowDeploymentDef flowDeployment;
@@ -114,14 +114,13 @@ public class PipelineManagerImpl implements PipelineManager
     @Inject
     public PipelineManagerImpl ( final JokerConfig jokerConfig,
                                  final RegionManager regionManager,
-                                 final PartitionService partitionService,
-                                 final PartitionKeyFunctionFactory partitionKeyFunctionFactory,
+                                 final PartitionService partitionService, final PartitionKeyExtractorFactory partitionKeyExtractorFactory,
                                  @Named( JOKER_THREAD_GROUP_NAME ) final ThreadGroup jokerThreadGroup )
     {
         this.jokerConfig = jokerConfig;
         this.regionManager = regionManager;
         this.partitionService = partitionService;
-        this.partitionKeyFunctionFactory = partitionKeyFunctionFactory;
+        this.partitionKeyExtractorFactory = partitionKeyExtractorFactory;
         this.jokerThreadGroup = jokerThreadGroup;
         createDownstreamTupleSenderFactories( partitionService );
     }
@@ -668,13 +667,13 @@ public class PipelineManagerImpl implements PipelineManager
                 else if ( downstreamRegionDef.getRegionType() == PARTITIONED_STATEFUL )
                 {
                     final int[] partitionDistribution = getPartitionDistribution( downstreamOperator );
-                    final PartitionKeyFunction partitionKeyFunction = partitionKeyFunctionFactory.createPartitionKeyFunction(
+                    final PartitionKeyExtractor partitionKeyExtractor = partitionKeyExtractorFactory.createPartitionKeyExtractor(
                             downstreamRegionDef.getPartitionFieldNames() );
                     senders[ i ] = partitionedDownstreamTupleSenderConstructors[ j ].apply( pairs,
                                                                                             partitionService.getPartitionCount(),
                                                                                             partitionDistribution,
                                                                                             pipelineTupleQueueContexts,
-                                                                                            partitionKeyFunction );
+                                                                                            partitionKeyExtractor );
                 }
                 else if ( downstreamRegionDef.getRegionType() == STATELESS )
                 {

@@ -7,26 +7,32 @@ import cs.bilkent.joker.engine.partition.PartitionKey;
 import static cs.bilkent.joker.engine.partition.impl.PartitionKeyUtil.hashHead;
 import static cs.bilkent.joker.engine.partition.impl.PartitionKeyUtil.hashTail;
 
-public class PartitionKey2 extends AbstractList<Object> implements PartitionKey
+public class PartitionKey3Fwd2 extends AbstractList<Object> implements PartitionKey
 {
 
     private final Object val0;
 
     private final Object val1;
 
+    private final Object val2;
+
+    private final int partitionHashCode;
+
     private final int hashCode;
 
-    public PartitionKey2 ( final Object val0, final Object val1 )
+    public PartitionKey3Fwd2 ( final Object val0, final Object val1, final Object val2 )
     {
         this.val0 = val0;
         this.val1 = val1;
-        this.hashCode = computeHashCode( val0, val1 );
+        this.val2 = val2;
+        this.partitionHashCode = computePartitionHashCode( val0, val1 );
+        this.hashCode = hashTail( partitionHashCode, val2 );
     }
 
     @Override
     public int partitionHashCode ()
     {
-        return hashCode;
+        return partitionHashCode;
     }
 
     @Override
@@ -42,13 +48,18 @@ public class PartitionKey2 extends AbstractList<Object> implements PartitionKey
             return val1;
         }
 
-        throw new IndexOutOfBoundsException( "Index: " + index + ", Size: " + 2 );
+        if ( index == 2 )
+        {
+            return val2;
+        }
+
+        throw new IndexOutOfBoundsException( "Index: " + index + ", Size: " + 3 );
     }
 
     @Override
     public int size ()
     {
-        return 2;
+        return 3;
     }
 
     @Override
@@ -67,8 +78,8 @@ public class PartitionKey2 extends AbstractList<Object> implements PartitionKey
             return o instanceof List && super.equals( o );
         }
 
-        final PartitionKey2 n2 = (PartitionKey2) o;
-        return val0.equals( n2.val0 ) && val1.equals( n2.val1 );
+        final PartitionKey3Fwd2 n2 = (PartitionKey3Fwd2) o;
+        return val0.equals( n2.val0 ) && val1.equals( n2.val1 ) && val2.equals( n2.val2 );
     }
 
     @Override
@@ -77,7 +88,7 @@ public class PartitionKey2 extends AbstractList<Object> implements PartitionKey
         return hashCode;
     }
 
-    public static int computeHashCode ( final Object val0, final Object val1 )
+    public static int computePartitionHashCode ( final Object val0, final Object val1 )
     {
         return hashTail( hashHead( val0 ), val1 );
     }

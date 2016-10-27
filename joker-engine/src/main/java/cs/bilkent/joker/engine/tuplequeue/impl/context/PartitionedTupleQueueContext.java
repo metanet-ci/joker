@@ -7,7 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import cs.bilkent.joker.engine.partition.PartitionKeyFunction;
+import cs.bilkent.joker.engine.partition.PartitionKey;
+import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import static cs.bilkent.joker.engine.partition.PartitionUtil.getPartitionId;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
@@ -32,7 +33,7 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
 
     private final int partitionCount;
 
-    private final PartitionKeyFunction partitionKeyFunction;
+    private final PartitionKeyExtractor partitionKeyExtractor;
 
     private final TupleQueueContainer[] tupleQueueContainers;
 
@@ -51,8 +52,7 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
     public PartitionedTupleQueueContext ( final String operatorId,
                                           final int inputPortCount,
                                           final int partitionCount,
-                                          final int replicaIndex,
-                                          final PartitionKeyFunction partitionKeyFunction,
+                                          final int replicaIndex, final PartitionKeyExtractor partitionKeyExtractor,
                                           final TupleQueueContainer[] tupleQueueContainers,
                                           final int[] partitions,
                                           final int maxDrainableKeyCount )
@@ -76,7 +76,7 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
         this.operatorId = operatorId;
         this.inputPortCount = inputPortCount;
         this.partitionCount = partitionCount;
-        this.partitionKeyFunction = partitionKeyFunction;
+        this.partitionKeyExtractor = partitionKeyExtractor;
         this.tupleQueueContainers = copyOf( tupleQueueContainers, partitionCount );
         this.maxDrainableKeyCount = maxDrainableKeyCount;
         int ownedPartitionCount = 0;
@@ -113,8 +113,8 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
     {
         for ( Tuple tuple : tuples )
         {
-            final Object partitionKey = partitionKeyFunction.getPartitionKey( tuple );
-            final int partitionId = getPartitionId( partitionKey, partitionCount );
+            final PartitionKey partitionKey = partitionKeyExtractor.getPartitionKey( tuple );
+            final int partitionId = getPartitionId( partitionKey.partitionHashCode(), partitionCount );
             final boolean newDrainableKey = tupleQueueContainers[ partitionId ].offer( portIndex, tuple, partitionKey );
             if ( newDrainableKey )
             {
@@ -140,8 +140,8 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
     {
         for ( Tuple tuple : tuples )
         {
-            final Object partitionKey = partitionKeyFunction.getPartitionKey( tuple );
-            final int partitionId = getPartitionId( partitionKey, partitionCount );
+            final PartitionKey partitionKey = partitionKeyExtractor.getPartitionKey( tuple );
+            final int partitionId = getPartitionId( partitionKey.partitionHashCode(), partitionCount );
             final boolean newDrainableKey = tupleQueueContainers[ partitionId ].forceOffer( portIndex, tuple, partitionKey );
             if ( newDrainableKey )
             {

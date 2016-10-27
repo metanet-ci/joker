@@ -10,7 +10,7 @@ import static cs.bilkent.joker.engine.config.ThreadingPreference.SINGLE_THREADED
 import cs.bilkent.joker.engine.kvstore.impl.KVStoreContextManagerImpl;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.PartitionServiceImpl;
-import cs.bilkent.joker.engine.partition.impl.PartitionKeyFunctionFactoryImpl;
+import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
 import cs.bilkent.joker.engine.pipeline.OperatorReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
@@ -18,10 +18,10 @@ import cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus;
 import cs.bilkent.joker.engine.pipeline.UpstreamContext;
 import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
 import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.NonCachedTuplesImplSupplier;
+import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.Region;
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
-import cs.bilkent.joker.engine.region.RegionTransformer;
 import cs.bilkent.joker.engine.tuplequeue.impl.TupleQueueContextManagerImpl;
 import cs.bilkent.joker.engine.tuplequeue.impl.context.DefaultTupleQueueContext;
 import cs.bilkent.joker.engine.tuplequeue.impl.context.EmptyTupleQueueContext;
@@ -59,14 +59,12 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class RegionTransformerImplTest extends AbstractJokerTest
+public class PipelineTransformerImplTest extends AbstractJokerTest
 {
 
     private static final int REGION_ID = 1;
 
     private final JokerConfig config = new JokerConfig();
-
-    private final IdGenerator idGenerator = new IdGenerator();
 
     private final PartitionService partitionService = new PartitionServiceImpl( config );
 
@@ -74,14 +72,14 @@ public class RegionTransformerImplTest extends AbstractJokerTest
 
     private final TupleQueueContextManagerImpl tupleQueueContextManager = new TupleQueueContextManagerImpl( config,
                                                                                                             partitionService,
-                                                                                                            new PartitionKeyFunctionFactoryImpl() );
+                                                                                                            new PartitionKeyExtractorFactoryImpl() );
 
-    private final RegionTransformer regionTransformer = new RegionTransformerImpl( config, tupleQueueContextManager );
+    private final PipelineTransformer pipelineTransformer = new PipelineTransformerImpl( config, tupleQueueContextManager );
 
     private final RegionManagerImpl regionManager = new RegionManagerImpl( config,
                                                                            kvStoreContextManager,
                                                                            tupleQueueContextManager,
-                                                                           regionTransformer );
+                                                                           pipelineTransformer );
 
     @Test
     public void shouldMergeAllPipelinesOfStatefulRegion ()
@@ -126,7 +124,7 @@ public class RegionTransformerImplTest extends AbstractJokerTest
         pipelineReplicas[ 2 ].getOperator( 0 ).getQueue().offer( 0, singletonList( newTuple( "key4", "val4" ) ) );
         pipelineReplicas[ 2 ].getOperator( 0 ).getKvStoreContext().getKVStore( null ).set( "key4", "val4" );
 
-        final Region newRegion = regionTransformer.mergePipelines( region, asList( 0, 2, 4 ) );
+        final Region newRegion = pipelineTransformer.mergePipelines( region, asList( 0, 2, 4 ) );
 
         assertThat( newRegion.getConfig().getReplicaCount(), equalTo( 1 ) );
         assertThat( newRegion.getConfig().getPipelineStartIndices(), equalTo( singletonList( 0 ) ) );
@@ -191,8 +189,7 @@ public class RegionTransformerImplTest extends AbstractJokerTest
                                                  .build();
 
         final RegionDef regionDef = new RegionDef( REGION_ID,
-                                                   PARTITIONED_STATEFUL,
-                                                   emptyList(),
+                                                   PARTITIONED_STATEFUL, singletonList( "field" ),
                                                    asList( operatorDef1, operatorDef2, operatorDef3, operatorDef4, operatorDef5 ) );
 
         final RegionConfig regionConfig = new RegionConfig( regionDef, asList( 0, 2, 4 ), 1 );
@@ -206,7 +203,7 @@ public class RegionTransformerImplTest extends AbstractJokerTest
         pipelineReplicas[ 1 ].getOperator( 1 ).getQueue().offer( 0, singletonList( newTuple( "field", "val3" ) ) );
         pipelineReplicas[ 2 ].getSelfUpstreamTupleQueueContext().offer( 0, singletonList( newTuple( "field", "val4" ) ) );
 
-        final Region newRegion = regionTransformer.mergePipelines( region, asList( 0, 2, 4 ) );
+        final Region newRegion = pipelineTransformer.mergePipelines( region, asList( 0, 2, 4 ) );
 
         assertThat( newRegion.getConfig().getReplicaCount(), equalTo( 1 ) );
         assertThat( newRegion.getConfig().getPipelineStartIndices(), equalTo( singletonList( 0 ) ) );
@@ -261,7 +258,7 @@ public class RegionTransformerImplTest extends AbstractJokerTest
         final Region region = regionManager.createRegion( flow, regionConfig );
         initialize( region );
 
-        final Region newRegion = regionTransformer.mergePipelines( region, asList( 0, 1, 2, 3, 4 ) );
+        final Region newRegion = pipelineTransformer.mergePipelines( region, asList( 0, 1, 2, 3, 4 ) );
 
         for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
         {
@@ -323,7 +320,7 @@ public class RegionTransformerImplTest extends AbstractJokerTest
         final Region region = regionManager.createRegion( flow, regionConfig );
         initialize( region );
 
-        final Region newRegion = regionTransformer.mergePipelines( region, asList( 3, 4 ) );
+        final Region newRegion = pipelineTransformer.mergePipelines( region, asList( 3, 4 ) );
 
         assertThat( newRegion.getPipelineReplicas( 0 ), equalTo( region.getPipelineReplicas( 0 ) ) );
         assertThat( newRegion.getPipelineReplicas( 1 ), equalTo( region.getPipelineReplicas( 1 ) ) );
@@ -361,7 +358,7 @@ public class RegionTransformerImplTest extends AbstractJokerTest
         final Region region = regionManager.createRegion( flow, regionConfig );
         initialize( region );
 
-        final Region newRegion = regionTransformer.mergePipelines( region, asList( 0, 2 ) );
+        final Region newRegion = pipelineTransformer.mergePipelines( region, asList( 0, 2 ) );
 
         assertThat( newRegion.getPipelineReplicas( 1 ), equalTo( region.getPipelineReplicas( 2 ) ) );
         assertThat( newRegion.getPipelineReplicas( 2 ), equalTo( region.getPipelineReplicas( 3 ) ) );
@@ -383,14 +380,14 @@ public class RegionTransformerImplTest extends AbstractJokerTest
 
         final RegionConfig regionConfig = new RegionConfig( regionDef, asList( 0, 2, 3, 4 ), 2 );
 
-        assertFalse( regionTransformer.checkPipelineStartIndicesToMerge( regionConfig, singletonList( 0 ) ) );
-        assertFalse( regionTransformer.checkPipelineStartIndicesToMerge( regionConfig, singletonList( -1 ) ) );
-        assertFalse( regionTransformer.checkPipelineStartIndicesToMerge( regionConfig, asList( 0, 2, 4 ) ) );
+        assertFalse( pipelineTransformer.checkPipelineStartIndicesToMerge( regionConfig, singletonList( 0 ) ) );
+        assertFalse( pipelineTransformer.checkPipelineStartIndicesToMerge( regionConfig, singletonList( -1 ) ) );
+        assertFalse( pipelineTransformer.checkPipelineStartIndicesToMerge( regionConfig, asList( 0, 2, 4 ) ) );
 
-        assertTrue( regionTransformer.checkPipelineStartIndicesToMerge( regionConfig, asList( 0, 2 ) ) );
-        assertTrue( regionTransformer.checkPipelineStartIndicesToMerge( regionConfig, asList( 0, 2, 3 ) ) );
-        assertTrue( regionTransformer.checkPipelineStartIndicesToMerge( regionConfig, asList( 0, 2, 3, 4 ) ) );
-        assertTrue( regionTransformer.checkPipelineStartIndicesToMerge( regionConfig, asList( 3, 4 ) ) );
+        assertTrue( pipelineTransformer.checkPipelineStartIndicesToMerge( regionConfig, asList( 0, 2 ) ) );
+        assertTrue( pipelineTransformer.checkPipelineStartIndicesToMerge( regionConfig, asList( 0, 2, 3 ) ) );
+        assertTrue( pipelineTransformer.checkPipelineStartIndicesToMerge( regionConfig, asList( 0, 2, 3, 4 ) ) );
+        assertTrue( pipelineTransformer.checkPipelineStartIndicesToMerge( regionConfig, asList( 3, 4 ) ) );
     }
 
     @Test
@@ -436,7 +433,7 @@ public class RegionTransformerImplTest extends AbstractJokerTest
         pipelineReplicas[ 0 ].getOperator( 4 ).getQueue().offer( 0, singletonList( newTuple( "key4", "val4" ) ) );
         pipelineReplicas[ 0 ].getOperator( 4 ).getKvStoreContext().getKVStore( null ).set( "key4", "val4" );
 
-        final Region newRegion = regionTransformer.splitPipeline( region, asList( 0, 2, 4 ) );
+        final Region newRegion = pipelineTransformer.splitPipeline( region, asList( 0, 2, 4 ) );
 
         assertThat( newRegion.getConfig().getReplicaCount(), equalTo( 1 ) );
         assertThat( newRegion.getConfig().getPipelineStartIndices(), equalTo( asList( 0, 2, 4 ) ) );
@@ -503,8 +500,7 @@ public class RegionTransformerImplTest extends AbstractJokerTest
                                                  .build();
 
         final RegionDef regionDef = new RegionDef( REGION_ID,
-                                                   PARTITIONED_STATEFUL,
-                                                   emptyList(),
+                                                   PARTITIONED_STATEFUL, singletonList( "field" ),
                                                    asList( operatorDef1, operatorDef2, operatorDef3, operatorDef4, operatorDef5 ) );
 
         final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 1 );
@@ -518,7 +514,7 @@ public class RegionTransformerImplTest extends AbstractJokerTest
         pipelineReplicas[ 0 ].getOperator( 3 ).getQueue().offer( 0, singletonList( newTuple( "field", "val3" ) ) );
         pipelineReplicas[ 0 ].getOperator( 4 ).getQueue().offer( 0, singletonList( newTuple( "field", "val4" ) ) );
 
-        final Region newRegion = regionTransformer.splitPipeline( region, asList( 0, 2, 4 ) );
+        final Region newRegion = pipelineTransformer.splitPipeline( region, asList( 0, 2, 4 ) );
 
         assertThat( newRegion.getConfig().getReplicaCount(), equalTo( 1 ) );
         assertThat( newRegion.getConfig().getPipelineStartIndices(), equalTo( asList( 0, 2, 4 ) ) );
@@ -591,7 +587,7 @@ public class RegionTransformerImplTest extends AbstractJokerTest
         final Region region = regionManager.createRegion( flow, regionConfig );
         initialize( region );
 
-        final Region newRegion = regionTransformer.splitPipeline( region, asList( 0, 1, 2, 3, 4 ) );
+        final Region newRegion = pipelineTransformer.splitPipeline( region, asList( 0, 1, 2, 3, 4 ) );
 
         for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
         {
@@ -662,7 +658,7 @@ public class RegionTransformerImplTest extends AbstractJokerTest
         final Region region = regionManager.createRegion( flow, regionConfig );
         initialize( region );
 
-        final Region newRegion = regionTransformer.splitPipeline( region, asList( 2, 4 ) );
+        final Region newRegion = pipelineTransformer.splitPipeline( region, asList( 2, 4 ) );
 
         assertThat( newRegion.getPipelineReplicas( 0 ), equalTo( region.getPipelineReplicas( 0 ) ) );
         assertThat( newRegion.getPipelineReplicas( 1 ), equalTo( region.getPipelineReplicas( 1 ) ) );
@@ -700,7 +696,7 @@ public class RegionTransformerImplTest extends AbstractJokerTest
         final Region region = regionManager.createRegion( flow, regionConfig );
         initialize( region );
 
-        final Region newRegion = regionTransformer.splitPipeline( region, asList( 0, 1, 2 ) );
+        final Region newRegion = pipelineTransformer.splitPipeline( region, asList( 0, 1, 2 ) );
 
         assertThat( newRegion.getPipelineReplicas( 3 ), equalTo( region.getPipelineReplicas( 1 ) ) );
         assertThat( newRegion.getPipelineReplicas( 4 ), equalTo( region.getPipelineReplicas( 2 ) ) );
@@ -730,14 +726,14 @@ public class RegionTransformerImplTest extends AbstractJokerTest
 
         final RegionConfig regionConfig = new RegionConfig( regionDef, asList( 0, 2, 4 ), 2 );
 
-        assertFalse( regionTransformer.checkPipelineStartIndicesToSplit( regionConfig, singletonList( 0 ) ) );
-        assertFalse( regionTransformer.checkPipelineStartIndicesToSplit( regionConfig, singletonList( -1 ) ) );
-        assertFalse( regionTransformer.checkPipelineStartIndicesToSplit( regionConfig, asList( 0, 1, 2 ) ) );
-        assertFalse( regionTransformer.checkPipelineStartIndicesToSplit( regionConfig, asList( 4, 7 ) ) );
+        assertFalse( pipelineTransformer.checkPipelineStartIndicesToSplit( regionConfig, singletonList( 0 ) ) );
+        assertFalse( pipelineTransformer.checkPipelineStartIndicesToSplit( regionConfig, singletonList( -1 ) ) );
+        assertFalse( pipelineTransformer.checkPipelineStartIndicesToSplit( regionConfig, asList( 0, 1, 2 ) ) );
+        assertFalse( pipelineTransformer.checkPipelineStartIndicesToSplit( regionConfig, asList( 4, 7 ) ) );
 
-        assertTrue( regionTransformer.checkPipelineStartIndicesToSplit( regionConfig, asList( 0, 1 ) ) );
-        assertTrue( regionTransformer.checkPipelineStartIndicesToSplit( regionConfig, asList( 4, 5 ) ) );
-        assertTrue( regionTransformer.checkPipelineStartIndicesToSplit( regionConfig, asList( 4, 5, 6 ) ) );
+        assertTrue( pipelineTransformer.checkPipelineStartIndicesToSplit( regionConfig, asList( 0, 1 ) ) );
+        assertTrue( pipelineTransformer.checkPipelineStartIndicesToSplit( regionConfig, asList( 4, 5 ) ) );
+        assertTrue( pipelineTransformer.checkPipelineStartIndicesToSplit( regionConfig, asList( 4, 5, 6 ) ) );
     }
 
     private void initialize ( final Region region )

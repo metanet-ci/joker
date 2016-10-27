@@ -25,7 +25,7 @@ import cs.bilkent.joker.engine.kvstore.KVStoreContext;
 import cs.bilkent.joker.engine.kvstore.impl.KVStoreContextManagerImpl;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.PartitionServiceImpl;
-import cs.bilkent.joker.engine.partition.impl.PartitionKeyFunctionFactoryImpl;
+import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaInitializationTest.withUpstreamConnectionStatus;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
@@ -104,7 +104,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     public void init ()
     {
         final PartitionService partitionService = new PartitionServiceImpl( jokerConfig );
-        tupleQueueContextManager = new TupleQueueContextManagerImpl( jokerConfig, partitionService, new PartitionKeyFunctionFactoryImpl() );
+        tupleQueueContextManager = new TupleQueueContextManagerImpl( jokerConfig,
+                                                                     partitionService,
+                                                                     new PartitionKeyExtractorFactoryImpl() );
         kvStoreContextManager = new KVStoreContextManagerImpl( partitionService );
     }
 

@@ -2,10 +2,10 @@ package cs.bilkent.joker.engine.partition;
 
 import cs.bilkent.joker.operator.Tuple;
 
-public interface PartitionKeyFunction
+public interface PartitionKeyExtractor
 {
 
-    Object getPartitionKey ( Tuple tuple );
+    PartitionKey getPartitionKey ( Tuple tuple );
 
     int getPartitionHash ( Tuple tuple );
 
