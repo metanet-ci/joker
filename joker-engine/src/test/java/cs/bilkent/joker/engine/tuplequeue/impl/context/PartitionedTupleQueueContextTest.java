@@ -58,9 +58,9 @@ public class PartitionedTupleQueueContextTest extends AbstractJokerTest
         final NonBlockingMultiPortDisjunctiveDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( INPUT_PORT_COUNT, 100 );
         drainer.setParameters( AT_LEAST, new int[] { 0, 1 }, new int[] { 1, 1 } );
 
-        assertEquals( 1, tupleQueueContext.getDrainableKeyCount() );
+        assertEquals( 1, tupleQueueContext.getTotalDrainableKeyCount() );
         tupleQueueContext.drain( drainer );
-        assertEquals( 0, tupleQueueContext.getDrainableKeyCount() );
+        assertEquals( 0, tupleQueueContext.getTotalDrainableKeyCount() );
         assertEquals( tuples, drainer.getResult().getTuples( 0 ) );
     }
 
@@ -72,13 +72,13 @@ public class PartitionedTupleQueueContextTest extends AbstractJokerTest
         tuple.set( PARTITION_KEY_FIELD, "key1" );
         final List<Tuple> tuples = singletonList( tuple );
         tupleQueueContext.offer( 0, tuples );
-        assertEquals( 0, tupleQueueContext.getDrainableKeyCount() );
+        assertEquals( 0, tupleQueueContext.getTotalDrainableKeyCount() );
         tupleQueueContext.setTupleCounts( new int[] { 1, 1 }, ANY_PORT );
-        assertEquals( 1, tupleQueueContext.getDrainableKeyCount() );
+        assertEquals( 1, tupleQueueContext.getTotalDrainableKeyCount() );
 
         final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT );
         tupleQueueContext.drain( drainer );
-        assertEquals( 0, tupleQueueContext.getDrainableKeyCount() );
+        assertEquals( 0, tupleQueueContext.getTotalDrainableKeyCount() );
         assertEquals( tuples, drainer.getResult().getTuples( 0 ) );
     }
 

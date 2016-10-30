@@ -22,6 +22,7 @@ import cs.bilkent.joker.engine.config.JokerConfig;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.SINGLE_THREADED;
 import cs.bilkent.joker.engine.kvstore.KVStoreContext;
+import cs.bilkent.joker.engine.kvstore.impl.KVStoreContainer;
 import cs.bilkent.joker.engine.kvstore.impl.KVStoreContextManagerImpl;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.PartitionServiceImpl;
@@ -821,9 +822,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     private int getKVStoreTotalItemCount ( final int regionId, final String operatorId )
     {
         int count = 0;
-        for ( KVStore kvStore : kvStoreContextManager.getKVStores( regionId, operatorId ) )
+        for ( KVStoreContainer container : kvStoreContextManager.getKVStoreContainers( regionId, operatorId ) )
         {
-            count += kvStore.size();
+            count += container.getKeyCount();
         }
 
         return count;

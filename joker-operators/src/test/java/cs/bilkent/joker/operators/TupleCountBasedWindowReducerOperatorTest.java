@@ -14,7 +14,6 @@ import cs.bilkent.joker.operator.impl.InvocationContextImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.operator.kvstore.impl.InMemoryKVStore;
-import cs.bilkent.joker.operator.kvstore.impl.KeyDecoratedKVStore;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
@@ -43,7 +42,7 @@ public class TupleCountBasedWindowReducerOperatorTest extends AbstractJokerTest
 
     private final TuplesImpl output = new TuplesImpl( 1 );
 
-    private final KVStore kvStore = new KeyDecoratedKVStore( TUPLE_PARTITION_KEY, new InMemoryKVStore() );
+    private final KVStore kvStore = new InMemoryKVStore();
 
     private final InvocationContextImpl invocationContext = new InvocationContextImpl( SUCCESS, input, output, kvStore );
 

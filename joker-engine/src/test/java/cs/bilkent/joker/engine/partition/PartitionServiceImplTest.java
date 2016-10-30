@@ -1,55 +1,118 @@
 package cs.bilkent.joker.engine.partition;
 
 import java.util.Arrays;
+import java.util.Collection;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigValueFactory;
 
+import static com.typesafe.config.ConfigValueFactory.fromAnyRef;
 import cs.bilkent.joker.engine.config.JokerConfig;
-import cs.bilkent.joker.engine.config.PartitionServiceConfig;
+import static cs.bilkent.joker.engine.config.JokerConfig.ENGINE_CONFIG_NAME;
+import static cs.bilkent.joker.engine.config.PartitionServiceConfig.CONFIG_NAME;
+import static cs.bilkent.joker.engine.config.PartitionServiceConfig.PARTITION_COUNT;
 import cs.bilkent.joker.testutils.AbstractJokerTest;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
+import static java.util.Arrays.asList;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
+@RunWith( Parameterized.class )
 public class PartitionServiceImplTest extends AbstractJokerTest
 {
 
-    private final static int PARTITION_COUNT = 15;
+    @Parameters( name = "partitionCount={0}, initialReplicaCount={1}, newReplicaCount={2}" )
+    public static Collection<Object[]> data ()
+    {
+        return asList( new Object[][] { { 15, 5, 3 },
+                                        { 15, 5, 4 },
+                                        { 15, 3, 5 },
+                                        { 15, 3, 4 },
+                                        { 15, 4, 3 },
+                                        { 15, 4, 2 },
+                                        { 15, 2, 4 },
+                                        { 15, 2, 5 } } );
+    }
+
+    private final int regionId = 1;
 
     private PartitionServiceImpl partitionService;
 
-    @Before
-    public void before ()
+
+    private final int partitionCount;
+
+    private final int initialReplicaCount;
+
+    private final int newReplicaCount;
+
+    public PartitionServiceImplTest ( final int partitionCount, final int initialReplicaCount, final int newReplicaCount )
     {
-        final String configPath =
-                JokerConfig.ENGINE_CONFIG_NAME + "." + PartitionServiceConfig.CONFIG_NAME + "." + PartitionServiceConfig.PARTITION_COUNT;
-        final Config config = ConfigFactory.load()
-                                           .withoutPath( configPath )
-                                           .withValue( configPath, ConfigValueFactory.fromAnyRef( PARTITION_COUNT ) );
+        this.partitionCount = partitionCount;
+        this.initialReplicaCount = initialReplicaCount;
+        this.newReplicaCount = newReplicaCount;
+    }
+
+    @Before
+    public void init ()
+    {
+        final String configPath = ENGINE_CONFIG_NAME + "." + CONFIG_NAME + "." + PARTITION_COUNT;
+        final Config config = ConfigFactory.load().withoutPath( configPath ).withValue( configPath, fromAnyRef( partitionCount ) );
 
         final JokerConfig jokerConfig = new JokerConfig( config );
-        partitionService = new PartitionServiceImpl( jokerConfig );
+        this.partitionService = new PartitionServiceImpl( jokerConfig );
     }
 
     @Test
     public void shouldDistributePartitions ()
     {
-        final int regionId = 1;
-        final int replicaCount = 5;
-        final int[] partitions = partitionService.getOrCreatePartitionDistribution( regionId, replicaCount );
-        final int[] replicaCounts = new int[ replicaCount ];
-        for ( int i = 0; i < PARTITION_COUNT; i++ )
+        final int[] distribution = partitionService.getOrCreatePartitionDistribution( regionId, initialReplicaCount );
+        validateDistribution( partitionCount, initialReplicaCount, distribution );
+    }
+
+    @Test
+    public void shouldRedistributePartitions ()
+    {
+        partitionService.getOrCreatePartitionDistribution( regionId, initialReplicaCount );
+
+        final int[] newDistribution = partitionService.rebalancePartitionDistribution( regionId, newReplicaCount );
+        validateDistribution( partitionCount, newReplicaCount, newDistribution );
+    }
+
+    private void validateDistribution ( final int partitionCount, final int replicaCount, final int[] distribution )
+    {
+        final int[] ownedPartitionCountsByReplicaIndex = new int[ replicaCount ];
+        for ( int i = 0; i < partitionCount; i++ )
         {
-            replicaCounts[ partitions[ i ] ]++;
+            ownedPartitionCountsByReplicaIndex[ distribution[ i ] ]++;
         }
 
-        final int[] expected = new int[ replicaCount ];
-        Arrays.fill( expected, PARTITION_COUNT / replicaCount );
+        final int normalCapacity = partitionCount / replicaCount;
+        final int overCapacity = normalCapacity + 1;
 
-        assertThat( replicaCounts, equalTo( expected ) );
+        int overCapacityCount = partitionCount % replicaCount;
+        int normalCapacityCount = replicaCount - overCapacityCount;
+        for ( int i = 0; i < ownedPartitionCountsByReplicaIndex.length; i++ )
+        {
+            if ( ownedPartitionCountsByReplicaIndex[ i ] == normalCapacity )
+            {
+                normalCapacityCount--;
+            }
+            else if ( ownedPartitionCountsByReplicaIndex[ i ] == overCapacity )
+            {
+                overCapacityCount--;
+            }
+            else
+            {
+                fail( "invalid distribution: " + Arrays.toString( distribution ) );
+            }
+        }
+
+        assertEquals( "invalid distribution: " + Arrays.toString( distribution ), 0, normalCapacityCount );
+        assertEquals( "invalid distribution: " + Arrays.toString( distribution ), 0, overCapacityCount );
     }
 
 }

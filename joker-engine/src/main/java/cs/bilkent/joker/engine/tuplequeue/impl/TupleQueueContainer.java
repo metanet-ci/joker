@@ -8,6 +8,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import javax.annotation.concurrent.NotThreadSafe;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,7 @@ import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.T
 import gnu.trove.map.hash.THashMap;
 import gnu.trove.set.hash.THashSet;
 
+@NotThreadSafe
 public class TupleQueueContainer
 {
 
@@ -190,7 +192,7 @@ public class TupleQueueContainer
         return drainableKeyCount;
     }
 
-    public int setTupleCounts ( final int[] tupleCounts, final TupleAvailabilityByPort tupleAvailabilityByPort )
+    public void setTupleCounts ( final int[] tupleCounts, final TupleAvailabilityByPort tupleAvailabilityByPort )
     {
         checkArgument( inputPortCount == tupleCounts.length,
                        "mismatching input port counts for tuple queue container of operator: %s operator input port count: %s, arg: %s",
@@ -212,7 +214,10 @@ public class TupleQueueContainer
                 drainableKeys.add( e.getKey() );
             }
         }
+    }
 
+    public int getDrainableKeyCount ()
+    {
         return drainableKeys.size();
     }
 

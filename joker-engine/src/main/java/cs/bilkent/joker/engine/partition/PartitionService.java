@@ -7,4 +7,6 @@ public interface PartitionService
 
     int[] getOrCreatePartitionDistribution ( int regionId, int replicaCount );
 
+    int[] rebalancePartitionDistribution ( int regionId, int newReplicaCount );
+
 }

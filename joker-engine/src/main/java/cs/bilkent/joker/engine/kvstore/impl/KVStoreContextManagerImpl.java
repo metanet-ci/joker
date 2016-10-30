@@ -1,5 +1,6 @@
 package cs.bilkent.joker.engine.kvstore.impl;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -32,7 +33,7 @@ public class KVStoreContextManagerImpl implements KVStoreContextManager
 
     private final Map<Pair<Integer, String>, PartitionedKVStoreContext[]> partitionedKvStoreContexts = new HashMap<>();
 
-    private final Map<Pair<Integer, String>, KVStore[]> kvStores = new HashMap<>();
+    private final Map<Pair<Integer, String>, KVStoreContainer[]> kvStoreContainers = new HashMap<>();
 
     @Inject
     public KVStoreContextManagerImpl ( final PartitionService partitionService )
@@ -48,9 +49,7 @@ public class KVStoreContextManagerImpl implements KVStoreContextManager
 
         return defaultKVStoreContexts.computeIfAbsent( Pair.of( regionId, operatorId ), p ->
         {
-            checkState( !kvStores.containsKey( p ), "default kvStore for <regionId, operatorId> %s already exists!", p );
             final KVStore kvStore = new InMemoryKVStore();
-            kvStores.put( p, new KVStore[] { kvStore } );
             return new DefaultKVStoreContext( operatorId, kvStore );
         } );
     }
@@ -69,19 +68,18 @@ public class KVStoreContextManagerImpl implements KVStoreContextManager
 
         return partitionedKvStoreContexts.computeIfAbsent( Pair.of( regionId, operatorId ), p ->
         {
-            checkState( !kvStores.containsKey( p ), "partitioned kvStore for <regionId, operatorId> %s already exists!", p );
             final int partitionCount = partitionService.getPartitionCount();
-            final KVStore[] k = new KVStore[ partitionCount ];
+            final KVStoreContainer[] containers = new KVStoreContainer[ partitionCount ];
             for ( int i = 0; i < partitionCount; i++ )
             {
-                k[ i ] = new InMemoryKVStore();
+                containers[ i ] = new KVStoreContainer( i );
             }
-            kvStores.put( p, k );
+            kvStoreContainers.put( p, containers );
             final int[] partitions = partitionService.getOrCreatePartitionDistribution( regionId, replicaCount );
             final PartitionedKVStoreContext[] kvStoreContexts = new PartitionedKVStoreContext[ replicaCount ];
             for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
             {
-                kvStoreContexts[ replicaIndex ] = new PartitionedKVStoreContext( operatorId, replicaIndex, k, partitions );
+                kvStoreContexts[ replicaIndex ] = new PartitionedKVStoreContext( operatorId, replicaIndex, containers, partitions );
             }
 
             LOGGER.info( "kvStoreContext is created with {} kvStores for operator: {}", partitionCount, operatorId );
@@ -95,9 +93,10 @@ public class KVStoreContextManagerImpl implements KVStoreContextManager
         return partitionedKvStoreContexts.get( Pair.of( regionId, operatorId ) );
     }
 
-    public KVStore[] getKVStores ( final int regionId, final String operatorId )
+    public KVStoreContainer[] getKVStoreContainers ( final int regionId, final String operatorId )
     {
-        return kvStores.get( Pair.of( regionId, operatorId ) );
+        final KVStoreContainer[] containers = kvStoreContainers.get( Pair.of( regionId, operatorId ) );
+        return containers != null ? Arrays.copyOf( containers, containers.length ) : null;
     }
 
     @Override
@@ -107,7 +106,8 @@ public class KVStoreContextManagerImpl implements KVStoreContextManager
 
         if ( kvStoreContext != null )
         {
-            releaseKVStores( regionId, operatorId );
+            final KVStore kvStore = kvStoreContext.getKVStore( null );
+            kvStore.clear();
             LOGGER.info( "default kv store of region {} operator {} is released", regionId, operatorId );
             return true;
         }
@@ -123,7 +123,7 @@ public class KVStoreContextManagerImpl implements KVStoreContextManager
 
         if ( kvStoreContexts != null )
         {
-            releaseKVStores( regionId, operatorId );
+            releaseKVStoreContainers( regionId, operatorId );
             LOGGER.info( "partitioned kv stores of region {} operator {} are released", regionId, operatorId );
             return true;
         }
@@ -132,14 +132,14 @@ public class KVStoreContextManagerImpl implements KVStoreContextManager
         return false;
     }
 
-    private void releaseKVStores ( final int regionId, final String operatorId )
+    private void releaseKVStoreContainers ( final int regionId, final String operatorId )
     {
         final Pair<Integer, String> p = Pair.of( regionId, operatorId );
-        final KVStore[] kvs = kvStores.remove( p );
-        checkState( kvs != null, "kvStores not found for <regionId, operatorId> %s", p );
-        for ( KVStore k : kvs )
+        final KVStoreContainer[] containers = kvStoreContainers.remove( p );
+        checkState( containers != null, "kvStores not found for <regionId, operatorId> %s", p );
+        for ( KVStoreContainer container : containers )
         {
-            k.clear();
+            container.clear();
         }
     }
 

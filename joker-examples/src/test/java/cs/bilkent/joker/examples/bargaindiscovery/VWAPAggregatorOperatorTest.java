@@ -25,7 +25,6 @@ import cs.bilkent.joker.operator.impl.InvocationContextImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.operator.kvstore.impl.InMemoryKVStore;
-import cs.bilkent.joker.operator.kvstore.impl.KeyDecoratedKVStore;
 import cs.bilkent.joker.testutils.AbstractJokerTest;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -45,7 +44,7 @@ public class VWAPAggregatorOperatorTest extends AbstractJokerTest
 
     private final TuplesImpl output = new TuplesImpl( 1 );
 
-    private final KVStore kvStore = new KeyDecoratedKVStore( TUPLE_PARTITION_KEY, new InMemoryKVStore() );
+    private final KVStore kvStore = new InMemoryKVStore();
 
     private final InvocationContextImpl invocationContext = new InvocationContextImpl( SUCCESS, input, output, kvStore );
 
