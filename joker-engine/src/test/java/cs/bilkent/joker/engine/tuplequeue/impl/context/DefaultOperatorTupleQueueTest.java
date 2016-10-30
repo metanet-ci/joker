@@ -8,8 +8,8 @@ import org.junit.Test;
 import cs.bilkent.joker.engine.config.ThreadingPreference;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.SINGLE_THREADED;
+import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
-import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
@@ -22,7 +22,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 
-public class DefaultTupleQueueContextTest extends AbstractJokerTest
+public class DefaultOperatorTupleQueueTest extends AbstractJokerTest
 {
 
     private static final int TIMEOUT_IN_MILLIS = 2000;
@@ -83,11 +83,11 @@ public class DefaultTupleQueueContextTest extends AbstractJokerTest
                                  final ThreadingPreference threadingPreference,
                                  final int tupleCount )
     {
-        final TupleQueueContext context = new DefaultTupleQueueContext( "op1",
-                                                                        inputPortCount,
-                                                                        threadingPreference,
-                                                                        tupleQueueConstructor,
-                                                                        Integer.MAX_VALUE );
+        final OperatorTupleQueue context = new DefaultOperatorTupleQueue( "op1",
+                                                                          inputPortCount,
+                                                                          threadingPreference,
+                                                                          tupleQueueConstructor,
+                                                                          Integer.MAX_VALUE );
 
         final TuplesImpl input = addTuples( inputPortCount, tupleCount );
 
@@ -107,11 +107,11 @@ public class DefaultTupleQueueContextTest extends AbstractJokerTest
                                     final ThreadingPreference threadingPreference,
                                     final int tupleCount )
     {
-        final TupleQueueContext context = new DefaultTupleQueueContext( "op1",
-                                                                        inputPortCount,
-                                                                        threadingPreference,
-                                                                        tupleQueueConstructor,
-                                                                        Integer.MAX_VALUE );
+        final OperatorTupleQueue context = new DefaultOperatorTupleQueue( "op1",
+                                                                          inputPortCount,
+                                                                          threadingPreference,
+                                                                          tupleQueueConstructor,
+                                                                          Integer.MAX_VALUE );
 
         final TuplesImpl input = addTuples( inputPortCount, tupleCount );
 

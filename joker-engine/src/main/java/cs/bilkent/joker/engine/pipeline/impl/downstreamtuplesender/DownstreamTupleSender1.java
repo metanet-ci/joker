@@ -4,36 +4,36 @@ import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
-import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
+import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 
-public class DownstreamTupleSender1 implements DownstreamTupleSender, Supplier<TupleQueueContext>
+public class DownstreamTupleSender1 implements DownstreamTupleSender, Supplier<OperatorTupleQueue>
 {
 
     private final int sourcePortIndex;
 
     private final int destinationPortIndex;
 
-    private final TupleQueueContext tupleQueueContext;
+    private final OperatorTupleQueue operatorTupleQueue;
 
-    public DownstreamTupleSender1 ( final int sourcePortIndex, final int destinationPortIndex, final TupleQueueContext tupleQueueContext )
+    public DownstreamTupleSender1 ( final int sourcePortIndex, final int destinationPortIndex, final OperatorTupleQueue operatorTupleQueue )
     {
         this.sourcePortIndex = sourcePortIndex;
         this.destinationPortIndex = destinationPortIndex;
-        this.tupleQueueContext = tupleQueueContext;
+        this.operatorTupleQueue = operatorTupleQueue;
     }
 
     @Override
     public Future<Void> send ( final TuplesImpl tuples )
     {
-        tupleQueueContext.offer( destinationPortIndex, tuples.getTuples( sourcePortIndex ) );
+        operatorTupleQueue.offer( destinationPortIndex, tuples.getTuples( sourcePortIndex ) );
         return null;
     }
 
     @Override
-    public TupleQueueContext get ()
+    public OperatorTupleQueue get ()
     {
-        return tupleQueueContext;
+        return operatorTupleQueue;
     }
 
 }

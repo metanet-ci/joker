@@ -20,7 +20,7 @@ import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.RUNNING;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.SHUT_DOWN;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
-import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
+import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainerPool;
 import cs.bilkent.joker.flow.FlowDef;
@@ -63,7 +63,7 @@ public class OperatorReplica
 
     private final OperatorDef operatorDef;
 
-    private final TupleQueueContext queue;
+    private final OperatorTupleQueue queue;
 
     private final KVStoreContext kvStoreContext;
 
@@ -100,8 +100,7 @@ public class OperatorReplica
     private int operatorInvocationCount;
 
     public OperatorReplica ( final PipelineReplicaId pipelineReplicaId,
-                             final OperatorDef operatorDef,
-                             final TupleQueueContext queue,
+                             final OperatorDef operatorDef, final OperatorTupleQueue queue,
                              final KVStoreContext kvStoreContext,
                              final TupleQueueDrainerPool drainerPool,
                              final Supplier<TuplesImpl> outputSupplier )
@@ -110,8 +109,7 @@ public class OperatorReplica
     }
 
     public OperatorReplica ( final PipelineReplicaId pipelineReplicaId,
-                             final OperatorDef operatorDef,
-                             final TupleQueueContext queue,
+                             final OperatorDef operatorDef, final OperatorTupleQueue queue,
                              final KVStoreContext kvStoreContext,
                              final TupleQueueDrainerPool drainerPool,
                              final Supplier<TuplesImpl> outputSupplier,
@@ -486,8 +484,7 @@ public class OperatorReplica
         }
     }
 
-    public OperatorReplica duplicate ( final PipelineReplicaId pipelineReplicaId,
-                                       final TupleQueueContext queue,
+    public OperatorReplica duplicate ( final PipelineReplicaId pipelineReplicaId, final OperatorTupleQueue queue,
                                        final TupleQueueDrainerPool drainerPool,
                                        final Supplier<TuplesImpl> outputSupplier )
     {
@@ -559,7 +556,7 @@ public class OperatorReplica
         return kvStoreContext;
     }
 
-    public TupleQueueContext getQueue ()
+    public OperatorTupleQueue getQueue ()
     {
         return queue;
     }

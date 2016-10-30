@@ -24,8 +24,8 @@ import cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRun
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
-import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
-import cs.bilkent.joker.engine.tuplequeue.impl.context.DefaultTupleQueueContext;
+import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
+import cs.bilkent.joker.engine.tuplequeue.impl.context.DefaultOperatorTupleQueue;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import static java.lang.System.arraycopy;
@@ -393,10 +393,10 @@ public class Pipeline
             if ( disableCapacityCheck )
             {
                 final PipelineReplica pipelineReplica = replicas[ replicaIndex ];
-                final TupleQueueContext upstreamTupleQueueContext = pipelineReplica.getUpstreamTupleQueueContext();
-                if ( upstreamTupleQueueContext instanceof DefaultTupleQueueContext )
+                final OperatorTupleQueue pipelineTupleQueue = pipelineReplica.getPipelineTupleQueue();
+                if ( pipelineTupleQueue instanceof DefaultOperatorTupleQueue )
                 {
-                    final DefaultTupleQueueContext d = (DefaultTupleQueueContext) upstreamTupleQueueContext;
+                    final DefaultOperatorTupleQueue d = (DefaultOperatorTupleQueue) pipelineTupleQueue;
                     for ( int portIndex = 0; portIndex < d.getInputPortCount(); portIndex++ )
                     {
                         LOGGER.warn( "Pipeline {} upstream tuple queue capacity check is disabled", pipelineReplica.id() );

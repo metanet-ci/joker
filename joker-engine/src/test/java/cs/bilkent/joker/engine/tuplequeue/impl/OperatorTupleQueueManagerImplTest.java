@@ -11,7 +11,7 @@ import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.PartitionServiceImpl;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
-import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
+import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
@@ -27,45 +27,27 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 
-public class TupleQueueContextManagerImplTest extends AbstractJokerTest
+public class OperatorTupleQueueManagerImplTest extends AbstractJokerTest
 {
 
-    private TupleQueueContextManagerImpl tupleQueueManager;
+    private OperatorTupleQueueManagerImpl tupleQueueManager;
 
     @Before
     public void init ()
     {
         final JokerConfig jokerConfig = new JokerConfig();
         final PartitionService partitionService = new PartitionServiceImpl( jokerConfig );
-        tupleQueueManager = new TupleQueueContextManagerImpl( jokerConfig, partitionService, new PartitionKeyExtractorFactoryImpl() );
+        tupleQueueManager = new OperatorTupleQueueManagerImpl( jokerConfig, partitionService, new PartitionKeyExtractorFactoryImpl() );
     }
 
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotCreateTupleQueueContexteWithoutOperatorDef ()
+    public void shouldNotCreateOperatorTupleQueueWithoutOperatorDef ()
     {
-        tupleQueueManager.createDefaultTupleQueueContext( 1, 1, null, ThreadingPreference.SINGLE_THREADED );
+        tupleQueueManager.createDefaultOperatorTupleQueue( 1, 1, null, ThreadingPreference.SINGLE_THREADED );
     }
 
     @Test
-    public void shouldCreateTupleQueueContextOnlyOnceForMultipleInvocations ()
-    {
-        final OperatorDef operatorDef = new OperatorDef( "op1",
-                                                         Operator.class,
-                                                         OperatorType.STATELESS,
-                                                         1,
-                                                         1,
-                                                         new OperatorRuntimeSchemaBuilder( 1, 1 ).build(),
-                                                         new OperatorConfig(),
-                                                         Collections.emptyList() );
-
-        final TupleQueueContext tupleQueueContext1 = tupleQueueManager.createDefaultTupleQueueContext( 1, 1, operatorDef, MULTI_THREADED );
-        final TupleQueueContext tupleQueueContext2 = tupleQueueManager.createDefaultTupleQueueContext( 1, 1, operatorDef, MULTI_THREADED );
-
-        assertTrue( tupleQueueContext1 == tupleQueueContext2 );
-    }
-
-    @Test
-    public void shouldCleanTupleQueueContextOnRelease ()
+    public void shouldCreateOperatorTupleQueueOnlyOnceForMultipleInvocations ()
     {
         final OperatorDef operatorDef = new OperatorDef( "op1",
                                                          Operator.class,
@@ -75,13 +57,40 @@ public class TupleQueueContextManagerImplTest extends AbstractJokerTest
                                                          new OperatorRuntimeSchemaBuilder( 1, 1 ).build(),
                                                          new OperatorConfig(),
                                                          Collections.emptyList() );
-        final TupleQueueContext tupleQueueContext = tupleQueueManager.createDefaultTupleQueueContext( 1, 1, operatorDef, MULTI_THREADED );
-        tupleQueueContext.offer( 0, singletonList( new Tuple() ) );
-        assertTrue( tupleQueueManager.releaseDefaultTupleQueueContext( 1, 1, "op1" ) );
+
+        final OperatorTupleQueue operatorTupleQueue1 = tupleQueueManager.createDefaultOperatorTupleQueue( 1,
+                                                                                                          1,
+                                                                                                          operatorDef,
+                                                                                                          MULTI_THREADED );
+        final OperatorTupleQueue operatorTupleQueue2 = tupleQueueManager.createDefaultOperatorTupleQueue( 1,
+                                                                                                          1,
+                                                                                                          operatorDef,
+                                                                                                          MULTI_THREADED );
+
+        assertTrue( operatorTupleQueue1 == operatorTupleQueue2 );
     }
 
     @Test
-    public void shouldConvertMultiThreadedDefaultTupleQueueContextToSingleThreaded ()
+    public void shouldCleanOperatorTupleQueueOnRelease ()
+    {
+        final OperatorDef operatorDef = new OperatorDef( "op1",
+                                                         Operator.class,
+                                                         OperatorType.STATELESS,
+                                                         1,
+                                                         1,
+                                                         new OperatorRuntimeSchemaBuilder( 1, 1 ).build(),
+                                                         new OperatorConfig(),
+                                                         Collections.emptyList() );
+        final OperatorTupleQueue operatorTupleQueue = tupleQueueManager.createDefaultOperatorTupleQueue( 1,
+                                                                                                         1,
+                                                                                                         operatorDef,
+                                                                                                         MULTI_THREADED );
+        operatorTupleQueue.offer( 0, singletonList( new Tuple() ) );
+        assertTrue( tupleQueueManager.releaseDefaultOperatorTupleQueue( 1, 1, "op1" ) );
+    }
+
+    @Test
+    public void shouldConvertMultiThreadedDefaultOperatorTupleQueueToSingleThreaded ()
     {
         final OperatorDef operatorDef = new OperatorDef( "op1",
                                                          Operator.class,
@@ -92,17 +101,20 @@ public class TupleQueueContextManagerImplTest extends AbstractJokerTest
                                                          new OperatorConfig(),
                                                          Collections.emptyList() );
 
-        final TupleQueueContext tupleQueueContext = tupleQueueManager.createDefaultTupleQueueContext( 1, 1, operatorDef, MULTI_THREADED );
+        final OperatorTupleQueue operatorTupleQueue = tupleQueueManager.createDefaultOperatorTupleQueue( 1,
+                                                                                                         1,
+                                                                                                         operatorDef,
+                                                                                                         MULTI_THREADED );
         final Tuple tuple1 = new Tuple();
         tuple1.set( "key1", "val1" );
-        tupleQueueContext.offer( 0, singletonList( tuple1 ) );
+        operatorTupleQueue.offer( 0, singletonList( tuple1 ) );
         final Tuple tuple2 = new Tuple();
         tuple2.set( "key2", "val2" );
-        tupleQueueContext.offer( 1, singletonList( tuple2 ) );
+        operatorTupleQueue.offer( 1, singletonList( tuple2 ) );
 
-        final TupleQueueContext tupleQueueContext2 = tupleQueueManager.switchThreadingPreference( 1, 1, "op1" );
+        final OperatorTupleQueue operatorTupleQueue2 = tupleQueueManager.switchThreadingPreference( 1, 1, "op1" );
         final GreedyDrainer drainer = new GreedyDrainer( 2 );
-        tupleQueueContext2.drain( drainer );
+        operatorTupleQueue2.drain( drainer );
         final TuplesImpl result = drainer.getResult();
         assertNotNull( result );
         assertEquals( singletonList( tuple1 ), result.getTuples( 0 ) );
@@ -110,7 +122,7 @@ public class TupleQueueContextManagerImplTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldConvertSingleThreadedDefaultTupleQueueContextToMultiThreaded ()
+    public void shouldConvertSingleThreadedDefaultOperatorTupleQueueToMultiThreaded ()
     {
         final OperatorDef operatorDef = new OperatorDef( "op1",
                                                          Operator.class,
@@ -120,17 +132,20 @@ public class TupleQueueContextManagerImplTest extends AbstractJokerTest
                                                          new OperatorConfig(),
                                                          Collections.emptyList() );
 
-        final TupleQueueContext tupleQueueContext = tupleQueueManager.createDefaultTupleQueueContext( 1, 1, operatorDef, MULTI_THREADED );
+        final OperatorTupleQueue operatorTupleQueue = tupleQueueManager.createDefaultOperatorTupleQueue( 1,
+                                                                                                         1,
+                                                                                                         operatorDef,
+                                                                                                         MULTI_THREADED );
         final Tuple tuple1 = new Tuple();
         tuple1.set( "key1", "val1" );
-        tupleQueueContext.offer( 0, singletonList( tuple1 ) );
+        operatorTupleQueue.offer( 0, singletonList( tuple1 ) );
         final Tuple tuple2 = new Tuple();
         tuple2.set( "key2", "val2" );
-        tupleQueueContext.offer( 1, singletonList( tuple2 ) );
+        operatorTupleQueue.offer( 1, singletonList( tuple2 ) );
 
-        final TupleQueueContext tupleQueueContext2 = tupleQueueManager.switchThreadingPreference( 1, 1, "op1" );
+        final OperatorTupleQueue operatorTupleQueue2 = tupleQueueManager.switchThreadingPreference( 1, 1, "op1" );
         final GreedyDrainer drainer = new GreedyDrainer( 2 );
-        tupleQueueContext2.drain( drainer );
+        operatorTupleQueue2.drain( drainer );
         final TuplesImpl result = drainer.getResult();
         assertNotNull( result );
         assertEquals( singletonList( tuple1 ), result.getTuples( 0 ) );

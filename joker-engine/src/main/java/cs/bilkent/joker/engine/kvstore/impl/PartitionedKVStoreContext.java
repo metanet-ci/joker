@@ -63,16 +63,15 @@ public class PartitionedKVStoreContext implements KVStoreContext
         return container.getOrCreateKVStore( key );
     }
 
-    public void ownPartitions ( final KVStoreContainer[] partitions )
+    public void acquirePartitions ( final KVStoreContainer[] partitions )
     {
-        checkArgument( partitions != null,
-                       "cannot own null partitions in kv store context of operatorId=%s replicaIndex=%s",
+        checkArgument( partitions != null, "cannot acquire null partitions in kv store context of operatorId=%s replicaIndex=%s",
                        operatorId,
                        replicaIndex );
         for ( KVStoreContainer partition : partitions )
         {
             checkArgument( kvStoreContainers[ partition.getPartitionId() ] == null,
-                           "partitionId=%s is already owned by operatorId=%s replicaIndex=%s",
+                           "partitionId=%s is already acquired by operatorId=%s replicaIndex=%s",
                            partition.getPartitionId(),
                            operatorId,
                            replicaIndex );
@@ -84,13 +83,12 @@ public class PartitionedKVStoreContext implements KVStoreContext
         }
 
         final int[] partitionIds = Arrays.stream( partitions ).mapToInt( KVStoreContainer::getPartitionId ).toArray();
-        LOGGER.info( "partitions={} are owned by operatorId={} replicaIndex={}", partitionIds, operatorId, replicaIndex );
+        LOGGER.info( "partitions={} are acquired by operatorId={} replicaIndex={}", partitionIds, operatorId, replicaIndex );
     }
 
-    public KVStoreContainer[] leavePartitions ( final int[] partitionIds )
+    public KVStoreContainer[] releasePartitions ( final int[] partitionIds )
     {
-        checkArgument( partitionIds != null,
-                       "cannot leave null partition ids in kv store context of operatorId=%s replicaIndex=%s",
+        checkArgument( partitionIds != null, "cannot release null partition ids of operatorId=%s replicaIndex=%s",
                        operatorId,
                        replicaIndex );
 

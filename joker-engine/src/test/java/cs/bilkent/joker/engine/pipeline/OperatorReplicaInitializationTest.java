@@ -16,7 +16,7 @@ import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIALIZAT
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.RUNNING;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
-import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
+import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainerPool;
 import cs.bilkent.joker.operator.InitializationContext;
 import cs.bilkent.joker.operator.Operator;
@@ -61,8 +61,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
     public void before () throws InstantiationException, IllegalAccessException
     {
         operatorReplica = new OperatorReplica( new PipelineReplicaId( new PipelineId( 0, 0 ), 0 ),
-                                               operatorDef,
-                                               mock( TupleQueueContext.class ),
+                                               operatorDef, mock( OperatorTupleQueue.class ),
                                                mock( KVStoreContext.class ),
                                                drainerPool,
                                                mock( Supplier.class ),

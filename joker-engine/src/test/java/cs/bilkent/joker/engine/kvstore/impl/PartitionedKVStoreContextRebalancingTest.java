@@ -23,9 +23,9 @@ public class PartitionedKVStoreContextRebalancingTest
 
     private static final int REPLICA_INDEX = 0;
 
-    private static final int[] OWNED_PARTITIONS = new int[] { 0, 1, 2, 3, 4 };
+    private static final int[] ACQUIRED_PARTITIONS = new int[] { 0, 1, 2, 3, 4 };
 
-    private static final int[] NON_OWNED_PARTITIONS = new int[] { 5, 6, 7, 8, 9 };
+    private static final int[] NON_ACQUIRED_PARTITIONS = new int[] { 5, 6, 7, 8, 9 };
 
     private static final int PARTITION_COUNT = PARTITION_DISTRIBUTION.length;
 
@@ -52,33 +52,33 @@ public class PartitionedKVStoreContextRebalancingTest
     }
 
     @Test
-    public void shouldOwnPartitions ()
+    public void shouldAcquirePartitions ()
     {
-        final int nonOwnedPartitionId = NON_OWNED_PARTITIONS[ 0 ];
-        final Tuple tuple = generateTuple( nonOwnedPartitionId, keys );
-        final KVStoreContainer partitionToOwn = kvStoreContainers[ nonOwnedPartitionId ];
-        partitionToOwn.getOrCreateKVStore( EXTRACTOR.getPartitionKey( tuple ) ).set( "key", "val" );
+        final int nonAcquiredPartitionId = NON_ACQUIRED_PARTITIONS[ 0 ];
+        final Tuple tuple = generateTuple( nonAcquiredPartitionId, keys );
+        final KVStoreContainer partitionToAcquire = kvStoreContainers[ nonAcquiredPartitionId ];
+        partitionToAcquire.getOrCreateKVStore( EXTRACTOR.getPartitionKey( tuple ) ).set( "key", "val" );
 
-        kvStoreContext.ownPartitions( new KVStoreContainer[] { partitionToOwn } );
+        kvStoreContext.acquirePartitions( new KVStoreContainer[] { partitionToAcquire } );
 
         assertEquals( "val", kvStoreContext.getKVStore( EXTRACTOR.getPartitionKey( tuple ) ).get( "key" ) );
     }
 
     @Test( expected = IllegalArgumentException.class )
-    public void shouldNotOwnAlreadyOwnedPartitions ()
+    public void shouldNotAcquireAlreadyAcquiredPartitions ()
     {
-        kvStoreContext.ownPartitions( new KVStoreContainer[] { kvStoreContainers[ OWNED_PARTITIONS[ 0 ] ] } );
+        kvStoreContext.acquirePartitions( new KVStoreContainer[] { kvStoreContainers[ ACQUIRED_PARTITIONS[ 0 ] ] } );
     }
 
     @Test
-    public void shouldLeavePartitions ()
+    public void shouldReleasePartitions ()
     {
-        final KVStoreContainer[] left = kvStoreContext.leavePartitions( OWNED_PARTITIONS );
-        assertEquals( left.length, OWNED_PARTITIONS.length );
-        for ( KVStoreContainer partition : left )
+        final KVStoreContainer[] released = kvStoreContext.releasePartitions( ACQUIRED_PARTITIONS );
+        assertEquals( released.length, ACQUIRED_PARTITIONS.length );
+        for ( KVStoreContainer partition : released )
         {
             boolean found = false;
-            for ( int partitionId : OWNED_PARTITIONS )
+            for ( int partitionId : ACQUIRED_PARTITIONS )
             {
                 if ( partitionId == partition.getPartitionId() )
                 {
@@ -90,7 +90,7 @@ public class PartitionedKVStoreContextRebalancingTest
             assertTrue( found );
         }
 
-        for ( int partitionId : OWNED_PARTITIONS )
+        for ( int partitionId : ACQUIRED_PARTITIONS )
         {
             try
             {

@@ -29,8 +29,8 @@ import cs.bilkent.joker.engine.region.impl.RegionDefFormerImpl;
 import cs.bilkent.joker.engine.region.impl.RegionManagerImpl;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import cs.bilkent.joker.engine.supervisor.impl.SupervisorImpl;
-import cs.bilkent.joker.engine.tuplequeue.TupleQueueContextManager;
-import cs.bilkent.joker.engine.tuplequeue.impl.TupleQueueContextManagerImpl;
+import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueueManager;
+import cs.bilkent.joker.engine.tuplequeue.impl.OperatorTupleQueueManagerImpl;
 
 public class JokerModule extends AbstractModule
 {
@@ -73,7 +73,7 @@ public class JokerModule extends AbstractModule
     {
         bind( PartitionService.class ).to( PartitionServiceImpl.class );
         bind( KVStoreContextManager.class ).to( KVStoreContextManagerImpl.class );
-        bind( TupleQueueContextManager.class ).to( TupleQueueContextManagerImpl.class );
+        bind( OperatorTupleQueueManager.class ).to( OperatorTupleQueueManagerImpl.class );
         bind( RegionManager.class ).to( RegionManagerImpl.class );
         bind( RegionDefFormer.class ).to( RegionDefFormerImpl.class );
         bind( Supervisor.class ).to( SupervisorImpl.class );

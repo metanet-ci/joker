@@ -11,7 +11,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.partition.PartitionKey;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import static cs.bilkent.joker.engine.partition.PartitionUtil.getPartitionId;
-import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
+import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.TupleQueueContainer;
 import cs.bilkent.joker.operator.Tuple;
@@ -20,10 +20,10 @@ import static java.util.Arrays.copyOf;
 import static java.util.Arrays.fill;
 
 
-public class PartitionedTupleQueueContext implements TupleQueueContext
+public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
 {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger( PartitionedTupleQueueContext.class );
+    private static final Logger LOGGER = LoggerFactory.getLogger( PartitionedOperatorTupleQueue.class );
 
     private static final int NON_DRAINABLE = -1;
 
@@ -52,29 +52,28 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
 
     private int totalDrainableKeyCount;
 
-    public PartitionedTupleQueueContext ( final String operatorId,
-                                          final int inputPortCount,
-                                          final int partitionCount,
-                                          final int replicaIndex,
-                                          final PartitionKeyExtractor partitionKeyExtractor,
-                                          final TupleQueueContainer[] tupleQueueContainers,
-                                          final int[] partitions,
-                                          final int maxDrainableKeyCount )
+    public PartitionedOperatorTupleQueue ( final String operatorId,
+                                           final int inputPortCount,
+                                           final int partitionCount,
+                                           final int replicaIndex,
+                                           final PartitionKeyExtractor partitionKeyExtractor,
+                                           final TupleQueueContainer[] tupleQueueContainers,
+                                           final int[] partitions,
+                                           final int maxDrainableKeyCount )
     {
         checkArgument( partitionCount == tupleQueueContainers.length,
-                       "mismatching partition count %s and tuple queue container count %s partitioned tuple queue context of for operator"
+                       "mismatching partition count %s and tuple queue container count %s partitioned tuple queue of for operator"
                        + " %s",
                        partitionCount,
                        tupleQueueContainers.length,
                        operatorId );
         checkArgument( partitionCount == partitions.length,
-                       "mismatching partition count %s and partition distribution count %s for partitioned tuple queue context of "
+                       "mismatching partition count %s and partition distribution count %s for partitioned tuple queue of "
                        + "operator %s",
                        partitionCount,
                        partitions.length,
                        operatorId );
-        checkArgument( inputPortCount >= 0,
-                       "invalid input port count %s for partitioned tuple queue context of operator $s",
+        checkArgument( inputPortCount >= 0, "invalid input port count %s for partitioned tuple queue of operator $s",
                        inputPortCount,
                        operatorId );
         this.operatorId = operatorId;
@@ -282,14 +281,14 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
         return totalDrainableKeyCount;
     }
 
-    public void ownPartitions ( final TupleQueueContainer[] partitions )
+    public void acquirePartitions ( final TupleQueueContainer[] partitions )
     {
         checkArgument( partitions != null );
 
         for ( TupleQueueContainer partition : partitions )
         {
             checkArgument( this.tupleQueueContainers[ partition.getPartitionId() ] == null,
-                           "partitionId=% already belongs to this queue. operatorId=%s replicaIndex=%s",
+                           "partitionId=% is already acquired. operatorId=%s replicaIndex=%s",
                            partition.getPartitionId(),
                            operatorId,
                            replicaIndex );
@@ -303,35 +302,37 @@ public class PartitionedTupleQueueContext implements TupleQueueContext
         populateDrainIndices();
 
         final int[] partitionIds = Arrays.stream( partitions ).mapToInt( TupleQueueContainer::getPartitionId ).toArray();
-        LOGGER.info( "partitions={} are owned by operatorId={} replicaIndex={}", partitionIds, operatorId, replicaIndex );
+        LOGGER.info( "partitions={} are acquired by operatorId={} replicaIndex={}", partitionIds, operatorId, replicaIndex );
     }
 
-    public TupleQueueContainer[] leavePartitions ( final int[] partitionIds )
+    public TupleQueueContainer[] releasePartitions ( final int[] partitionIds )
     {
-        checkArgument( partitionIds != null );
+        checkArgument( partitionIds != null,
+                       "cannot release null partition ids of operatorId=%s replicaIndex=%s",
+                       operatorId,
+                       replicaIndex );
 
         for ( int partitionId : partitionIds )
         {
-            checkArgument( this.tupleQueueContainers[ partitionId ] != null,
-                           "partitionId=% doesn't belong to this queue. operatorId=%s replicaIndex=%s",
+            checkArgument( this.tupleQueueContainers[ partitionId ] != null, "partitionId=% is not acquired. operatorId=%s replicaIndex=%s",
                            partitionId,
                            operatorId,
                            replicaIndex );
         }
 
-        TupleQueueContainer[] left = new TupleQueueContainer[ partitionIds.length ];
+        TupleQueueContainer[] released = new TupleQueueContainer[ partitionIds.length ];
         for ( int i = 0; i < partitionIds.length; i++ )
         {
             final int partitionId = partitionIds[ i ];
-            left[ i ] = tupleQueueContainers[ partitionId ];
+            released[ i ] = tupleQueueContainers[ partitionId ];
             tupleQueueContainers[ partitionId ] = null;
         }
 
         populateDrainIndices();
 
-        LOGGER.info( "partitions={} are left by operatorId={} replicaIndex={}", partitionIds, operatorId, replicaIndex );
+        LOGGER.info( "partitions={} are released by operatorId={} replicaIndex={}", partitionIds, operatorId, replicaIndex );
 
-        return left;
+        return released;
     }
 
     private void populateDrainIndices ()

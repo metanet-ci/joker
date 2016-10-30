@@ -18,7 +18,7 @@ import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineRep
 import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.PAUSED;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
-import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
+import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -75,7 +75,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
         when( operatorDef.inputPortCount() ).thenReturn( inputOutputPortCount );
         when( operatorDef.outputPortCount() ).thenReturn( inputOutputPortCount );
         final JokerConfig config = new JokerConfig();
-        pipeline = new PipelineReplica( config, id, new OperatorReplica[] { operator }, mock( TupleQueueContext.class ) );
+        pipeline = new PipelineReplica( config, id, new OperatorReplica[] { operator }, mock( OperatorTupleQueue.class ) );
         pipeline.init( upstreamContext );
         runner = new PipelineReplicaRunner( config, pipeline, supervisor, downstreamTupleSender );
 

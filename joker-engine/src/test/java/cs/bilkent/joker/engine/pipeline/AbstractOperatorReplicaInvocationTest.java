@@ -11,7 +11,7 @@ import cs.bilkent.joker.engine.partition.PartitionKey;
 import cs.bilkent.joker.engine.partition.impl.PartitionKey1;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaInitializationTest.newUpstreamContextInstance;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
-import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
+import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainerPool;
 import cs.bilkent.joker.operator.InitializationContext;
@@ -31,7 +31,7 @@ import static org.mockito.Mockito.when;
 class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
 {
     @Mock
-    protected TupleQueueContext queue;
+    protected OperatorTupleQueue queue;
 
     @Mock
     protected Operator operator;

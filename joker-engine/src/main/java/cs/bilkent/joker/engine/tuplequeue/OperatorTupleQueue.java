@@ -9,7 +9,7 @@ import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAva
 /**
  * Manages input {@link Tuple} queues for a single operator instance replica
  */
-public interface TupleQueueContext
+public interface OperatorTupleQueue
 {
 
     String getOperatorId ();

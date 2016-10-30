@@ -25,11 +25,11 @@ import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.Region;
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
-import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
-import cs.bilkent.joker.engine.tuplequeue.TupleQueueContextManager;
+import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
+import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueueManager;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainerPool;
-import cs.bilkent.joker.engine.tuplequeue.impl.context.DefaultTupleQueueContext;
-import cs.bilkent.joker.engine.tuplequeue.impl.context.EmptyTupleQueueContext;
+import cs.bilkent.joker.engine.tuplequeue.impl.context.DefaultOperatorTupleQueue;
+import cs.bilkent.joker.engine.tuplequeue.impl.context.EmptyOperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool.BlockingTupleQueueDrainerPool;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool.NonBlockingTupleQueueDrainerPool;
@@ -50,13 +50,13 @@ public class PipelineTransformerImpl implements PipelineTransformer
 
     private final JokerConfig config;
 
-    private final TupleQueueContextManager tupleQueueContextManager;
+    private final OperatorTupleQueueManager operatorTupleQueueManager;
 
     @Inject
-    public PipelineTransformerImpl ( final JokerConfig config, final TupleQueueContextManager tupleQueueContextManager )
+    public PipelineTransformerImpl ( final JokerConfig config, final OperatorTupleQueueManager operatorTupleQueueManager )
     {
         this.config = config;
-        this.tupleQueueContextManager = tupleQueueContextManager;
+        this.operatorTupleQueueManager = operatorTupleQueueManager;
     }
 
     @Override
@@ -258,16 +258,16 @@ public class PipelineTransformerImpl implements PipelineTransformer
                                                                    final PipelineReplica pipelineReplica,
                                                                    final boolean isLastMergedPipeline )
     {
-        final TupleQueueContext pipelineUpstreamTupleQueue = pipelineReplica.getSelfUpstreamTupleQueueContext();
+        final OperatorTupleQueue pipelineSelfTupleQueue = pipelineReplica.getSelfPipelineTupleQueue();
         final OperatorReplica firstOperator = pipelineReplica.getOperator( 0 );
-        final TupleQueueContext firstOperatorQueue;
+        final OperatorTupleQueue firstOperatorQueue;
         final OperatorDef firstOperatorDef = firstOperator.getOperatorDef();
-        if ( pipelineUpstreamTupleQueue instanceof EmptyTupleQueueContext )
+        if ( pipelineSelfTupleQueue instanceof EmptyOperatorTupleQueue )
         {
-            if ( firstOperator.getQueue() instanceof DefaultTupleQueueContext )
+            if ( firstOperator.getQueue() instanceof DefaultOperatorTupleQueue )
             {
                 final String operatorId = firstOperatorDef.id();
-                firstOperatorQueue = tupleQueueContextManager.switchThreadingPreference( regionId, replicaIndex, operatorId );
+                firstOperatorQueue = operatorTupleQueueManager.switchThreadingPreference( regionId, replicaIndex, operatorId );
             }
             else
             {
@@ -279,7 +279,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
         {
             firstOperatorQueue = firstOperator.getQueue();
             final GreedyDrainer drainer = new GreedyDrainer( firstOperatorDef.inputPortCount() );
-            pipelineUpstreamTupleQueue.drain( drainer );
+            pipelineSelfTupleQueue.drain( drainer );
             final TuplesImpl result = drainer.getResult();
             if ( result != null && result.isNonEmpty() )
             {
@@ -378,25 +378,25 @@ public class PipelineTransformerImpl implements PipelineTransformer
                 }
                 else
                 {
-                    final TupleQueueContext pipelineQueue;
+                    final OperatorTupleQueue pipelineTupleQueue;
                     if ( firstOperatorDef.operatorType() == PARTITIONED_STATEFUL )
                     {
-                        LOGGER.info( "Creating {} for pipeline tuple queue context of regionId={} replicaIndex={} for pipeline operator={}",
-                                     DefaultTupleQueueContext.class.getSimpleName(),
+                        LOGGER.info( "Creating {} for pipeline tuple queue of regionId={} replicaIndex={} for pipeline operator={}",
+                                     DefaultOperatorTupleQueue.class.getSimpleName(),
                                      regionId, replicaIndex,
                                      firstOperatorDef.id() );
-                        pipelineQueue = tupleQueueContextManager.createDefaultTupleQueueContext( regionId,
-                                                                                                 replicaIndex,
-                                                                                                 firstOperatorDef,
-                                                                                                 MULTI_THREADED );
+                        pipelineTupleQueue = operatorTupleQueueManager.createDefaultOperatorTupleQueue( regionId,
+                                                                                                        replicaIndex,
+                                                                                                        firstOperatorDef,
+                                                                                                        MULTI_THREADED );
                     }
                     else
                     {
-                        LOGGER.info( "Creating {} for pipeline tuple queue context of regionId={} replicaIndex={} as first operator is {}",
-                                     EmptyTupleQueueContext.class.getSimpleName(),
+                        LOGGER.info( "Creating {} for pipeline tuple queue of regionId={} replicaIndex={} as first operator is {}",
+                                     EmptyOperatorTupleQueue.class.getSimpleName(),
                                      regionId, replicaIndex,
                                      firstOperatorDef.operatorType() );
-                        pipelineQueue = new EmptyTupleQueueContext( firstOperatorDef.id(), firstOperatorDef.inputPortCount() );
+                        pipelineTupleQueue = new EmptyOperatorTupleQueue( firstOperatorDef.id(), firstOperatorDef.inputPortCount() );
                     }
 
                     final PipelineReplica prevPipeline = newPipelineReplicas[ firstPipelineIndex + ( i - 1 ) ][ replicaIndex ];
@@ -404,8 +404,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                                                                         .getSelfUpstreamContext();
                     newPipelineReplica = new PipelineReplica( config,
                                                               newPipelineReplicaId,
-                                                              newOperatorReplicas,
-                                                              pipelineQueue,
+                                                              newOperatorReplicas, pipelineTupleQueue,
                                                               upstreamContext );
 
                     final List<String> operatorIds = Arrays.stream( newOperatorReplicas )
@@ -495,13 +494,13 @@ public class PipelineTransformerImpl implements PipelineTransformer
             final OperatorReplica operator = pipelineReplica.getOperator( start + i );
             final OperatorDef operatorDef = operator.getOperatorDef();
 
-            final TupleQueueContext queue;
+            final OperatorTupleQueue queue;
             final boolean multiThreaded = i == 0 && ( operatorDef.operatorType() == STATEFUL || operatorDef.operatorType() == STATELESS );
             if ( switchThreadingPreference && multiThreaded )
             {
-                queue = tupleQueueContextManager.switchThreadingPreference( newPipelineReplicaId.pipelineId.regionId,
-                                                                            newPipelineReplicaId.replicaIndex,
-                                                                            operatorDef.id() );
+                queue = operatorTupleQueueManager.switchThreadingPreference( newPipelineReplicaId.pipelineId.regionId,
+                                                                             newPipelineReplicaId.replicaIndex,
+                                                                             operatorDef.id() );
             }
             else
             {

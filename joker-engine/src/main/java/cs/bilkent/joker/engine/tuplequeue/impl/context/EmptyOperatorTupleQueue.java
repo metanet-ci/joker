@@ -3,21 +3,21 @@ package cs.bilkent.joker.engine.tuplequeue.impl.context;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
-import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort;
 
-public class EmptyTupleQueueContext implements TupleQueueContext
+public class EmptyOperatorTupleQueue implements OperatorTupleQueue
 {
 
     private final String operatorId;
 
     private final TupleQueue[] tupleQueues;
 
-    public EmptyTupleQueueContext ( final String operatorId, final int inputPortCount )
+    public EmptyOperatorTupleQueue ( final String operatorId, final int inputPortCount )
     {
         this.operatorId = operatorId;
         this.tupleQueues = new TupleQueue[ inputPortCount ];

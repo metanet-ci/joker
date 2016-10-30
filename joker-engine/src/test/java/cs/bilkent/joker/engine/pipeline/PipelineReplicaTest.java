@@ -10,7 +10,7 @@ import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
-import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
+import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -31,7 +31,7 @@ public class PipelineReplicaTest extends AbstractJokerTest
 {
 
     @Mock
-    private TupleQueueContext upstreamTupleQueueContext;
+    private OperatorTupleQueue pipelineTupleQueue;
 
     @Mock
     private OperatorReplica operator0;
@@ -67,7 +67,7 @@ public class PipelineReplicaTest extends AbstractJokerTest
         pipeline = new PipelineReplica( config,
                                         new PipelineReplicaId( new PipelineId( 0, 0 ), 0 ),
                                         new OperatorReplica[] { operator0, operator1, operator2 },
-                                        upstreamTupleQueueContext );
+                                        pipelineTupleQueue );
 
         final Tuple input1 = new Tuple();
         input1.set( "k1", "v1" );

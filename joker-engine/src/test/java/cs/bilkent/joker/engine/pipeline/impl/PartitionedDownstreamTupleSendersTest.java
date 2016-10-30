@@ -14,7 +14,7 @@ import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDo
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDownstreamTupleSender3;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDownstreamTupleSender4;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDownstreamTupleSenderN;
-import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
+import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -32,20 +32,20 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
 
     private final TuplesImpl tuples = new TuplesImpl( 10 );
 
-    private final DummyPartitionedTupleQueueContext tupleQueueContext0 = new DummyPartitionedTupleQueueContext();
+    private final DummyPartitionedOperatorTupleQueue operatorTupleQueue0 = new DummyPartitionedOperatorTupleQueue();
 
-    private final DummyPartitionedTupleQueueContext tupleQueueContext1 = new DummyPartitionedTupleQueueContext();
+    private final DummyPartitionedOperatorTupleQueue operatorTupleQueue1 = new DummyPartitionedOperatorTupleQueue();
 
-    private final DummyPartitionedTupleQueueContext tupleQueueContext2 = new DummyPartitionedTupleQueueContext();
+    private final DummyPartitionedOperatorTupleQueue operatorTupleQueue2 = new DummyPartitionedOperatorTupleQueue();
 
-    private final DummyPartitionedTupleQueueContext tupleQueueContext3 = new DummyPartitionedTupleQueueContext();
+    private final DummyPartitionedOperatorTupleQueue operatorTupleQueue3 = new DummyPartitionedOperatorTupleQueue();
 
     private final PartitionKeyExtractor partitionKeyExtractor = mock( PartitionKeyExtractor.class );
 
-    private final TupleQueueContext[] tupleQueueContexts = new TupleQueueContext[] { tupleQueueContext0,
-                                                                                     tupleQueueContext1,
-                                                                                     tupleQueueContext2,
-                                                                                     tupleQueueContext3 };
+    private final OperatorTupleQueue[] operatorTupleQueues = new OperatorTupleQueue[] { operatorTupleQueue0,
+                                                                                        operatorTupleQueue1,
+                                                                                        operatorTupleQueue2,
+                                                                                        operatorTupleQueue3 };
 
     private final int[] partitionDistribution = new int[] { 0, 1, 2, 3, 0, 1, 2, 3 };
 
@@ -58,7 +58,7 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
                                                                                                      2,
                                                                                                      partitionCount,
                                                                                                      partitionDistribution,
-                                                                                                     tupleQueueContexts,
+                                                                                                     operatorTupleQueues,
                                                                                                      partitionKeyExtractor );
 
         final Tuple tuple = new Tuple();
@@ -69,7 +69,7 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
 
         tupleSender.send( tuples );
 
-        assertThat( tupleQueueContext3.tuplesByPortIndex.get( 2 ), equalTo( singletonList( tuple ) ) );
+        assertThat( operatorTupleQueue3.tuplesByPortIndex.get( 2 ), equalTo( singletonList( tuple ) ) );
     }
 
     @Test
@@ -81,7 +81,7 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
                                                                                                      4,
                                                                                                      partitionCount,
                                                                                                      partitionDistribution,
-                                                                                                     tupleQueueContexts,
+                                                                                                     operatorTupleQueues,
                                                                                                      partitionKeyExtractor );
 
         final Tuple tuple1 = new Tuple();
@@ -96,8 +96,8 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
 
         tupleSender.send( tuples );
 
-        assertThat( tupleQueueContext3.tuplesByPortIndex.get( 2 ), equalTo( singletonList( tuple1 ) ) );
-        assertThat( tupleQueueContext1.tuplesByPortIndex.get( 4 ), equalTo( singletonList( tuple2 ) ) );
+        assertThat( operatorTupleQueue3.tuplesByPortIndex.get( 2 ), equalTo( singletonList( tuple1 ) ) );
+        assertThat( operatorTupleQueue1.tuplesByPortIndex.get( 4 ), equalTo( singletonList( tuple2 ) ) );
     }
 
     @Test
@@ -111,7 +111,7 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
                                                                                                      6,
                                                                                                      partitionCount,
                                                                                                      partitionDistribution,
-                                                                                                     tupleQueueContexts,
+                                                                                                     operatorTupleQueues,
                                                                                                      partitionKeyExtractor );
 
         final Tuple tuple1 = new Tuple();
@@ -130,9 +130,9 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
 
         tupleSender.send( tuples );
 
-        assertThat( tupleQueueContext3.tuplesByPortIndex.get( 2 ), equalTo( singletonList( tuple1 ) ) );
-        assertThat( tupleQueueContext1.tuplesByPortIndex.get( 4 ), equalTo( singletonList( tuple2 ) ) );
-        assertThat( tupleQueueContext0.tuplesByPortIndex.get( 6 ), equalTo( singletonList( tuple3 ) ) );
+        assertThat( operatorTupleQueue3.tuplesByPortIndex.get( 2 ), equalTo( singletonList( tuple1 ) ) );
+        assertThat( operatorTupleQueue1.tuplesByPortIndex.get( 4 ), equalTo( singletonList( tuple2 ) ) );
+        assertThat( operatorTupleQueue0.tuplesByPortIndex.get( 6 ), equalTo( singletonList( tuple3 ) ) );
     }
 
     @Test
@@ -148,7 +148,7 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
                                                                                                      8,
                                                                                                      partitionCount,
                                                                                                      partitionDistribution,
-                                                                                                     tupleQueueContexts,
+                                                                                                     operatorTupleQueues,
                                                                                                      partitionKeyExtractor );
 
         final Tuple tuple1 = new Tuple();
@@ -171,10 +171,10 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
 
         tupleSender.send( tuples );
 
-        assertThat( tupleQueueContext3.tuplesByPortIndex.get( 2 ), equalTo( singletonList( tuple1 ) ) );
-        assertThat( tupleQueueContext1.tuplesByPortIndex.get( 4 ), equalTo( singletonList( tuple2 ) ) );
-        assertThat( tupleQueueContext0.tuplesByPortIndex.get( 6 ), equalTo( singletonList( tuple3 ) ) );
-        assertThat( tupleQueueContext2.tuplesByPortIndex.get( 8 ), equalTo( singletonList( tuple4 ) ) );
+        assertThat( operatorTupleQueue3.tuplesByPortIndex.get( 2 ), equalTo( singletonList( tuple1 ) ) );
+        assertThat( operatorTupleQueue1.tuplesByPortIndex.get( 4 ), equalTo( singletonList( tuple2 ) ) );
+        assertThat( operatorTupleQueue0.tuplesByPortIndex.get( 6 ), equalTo( singletonList( tuple3 ) ) );
+        assertThat( operatorTupleQueue2.tuplesByPortIndex.get( 8 ), equalTo( singletonList( tuple4 ) ) );
     }
 
     @Test
@@ -184,7 +184,7 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
                                                                                                      new int[] { 2, 4, 6, 8, 10 },
                                                                                                      partitionCount,
                                                                                                      partitionDistribution,
-                                                                                                     tupleQueueContexts,
+                                                                                                     operatorTupleQueues,
                                                                                                      partitionKeyExtractor );
 
         final Tuple tuple1 = new Tuple();
@@ -211,14 +211,14 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
 
         tupleSender.send( tuples );
 
-        assertThat( tupleQueueContext3.tuplesByPortIndex.get( 2 ), equalTo( singletonList( tuple1 ) ) );
-        assertThat( tupleQueueContext1.tuplesByPortIndex.get( 4 ), equalTo( singletonList( tuple2 ) ) );
-        assertThat( tupleQueueContext0.tuplesByPortIndex.get( 6 ), equalTo( singletonList( tuple3 ) ) );
-        assertThat( tupleQueueContext2.tuplesByPortIndex.get( 8 ), equalTo( singletonList( tuple4 ) ) );
-        assertThat( tupleQueueContext3.tuplesByPortIndex.get( 10 ), equalTo( singletonList( tuple5 ) ) );
+        assertThat( operatorTupleQueue3.tuplesByPortIndex.get( 2 ), equalTo( singletonList( tuple1 ) ) );
+        assertThat( operatorTupleQueue1.tuplesByPortIndex.get( 4 ), equalTo( singletonList( tuple2 ) ) );
+        assertThat( operatorTupleQueue0.tuplesByPortIndex.get( 6 ), equalTo( singletonList( tuple3 ) ) );
+        assertThat( operatorTupleQueue2.tuplesByPortIndex.get( 8 ), equalTo( singletonList( tuple4 ) ) );
+        assertThat( operatorTupleQueue3.tuplesByPortIndex.get( 10 ), equalTo( singletonList( tuple5 ) ) );
     }
 
-    private static class DummyPartitionedTupleQueueContext implements TupleQueueContext
+    private static class DummyPartitionedOperatorTupleQueue implements OperatorTupleQueue
     {
 
         private final Map<Integer, List<Tuple>> tuplesByPortIndex = new HashMap<>();

@@ -4,7 +4,7 @@ import java.util.concurrent.Future;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
-import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
+import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 
 public class PartitionedDownstreamTupleSenderN extends AbstractPartitionedDownstreamTupleSender
@@ -17,16 +17,14 @@ public class PartitionedDownstreamTupleSenderN extends AbstractPartitionedDownst
     public PartitionedDownstreamTupleSenderN ( final int[] sourcePorts,
                                                final int[] destinationPorts,
                                                final int partitionCount,
-                                               final int[] partitionDistribution,
-                                               final TupleQueueContext[] tupleQueueContexts,
+                                               final int[] partitionDistribution, final OperatorTupleQueue[] operatorTupleQueues,
                                                final PartitionKeyExtractor partitionKeyExtractor )
     {
-        super( partitionCount, partitionDistribution, tupleQueueContexts, partitionKeyExtractor );
+        super( partitionCount, partitionDistribution, operatorTupleQueues, partitionKeyExtractor );
         checkArgument( sourcePorts.length == destinationPorts.length,
                        "source ports size = %s and destination ports = %s ! destination operatorId=%s",
                        sourcePorts.length,
-                       destinationPorts.length,
-                       tupleQueueContexts[ 0 ].getOperatorId() );
+                       destinationPorts.length, operatorTupleQueues[ 0 ].getOperatorId() );
         final int portCount = sourcePorts.length;
         this.ports = new int[ portCount * 2 ];
         this.limit = this.ports.length - 1;

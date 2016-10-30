@@ -9,11 +9,11 @@ import java.util.function.Supplier;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import static cs.bilkent.joker.engine.partition.PartitionUtil.getPartitionId;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
-import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
+import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 
-public abstract class AbstractPartitionedDownstreamTupleSender implements DownstreamTupleSender, Supplier<TupleQueueContext[]>
+public abstract class AbstractPartitionedDownstreamTupleSender implements DownstreamTupleSender, Supplier<OperatorTupleQueue[]>
 {
 
     private final int partitionCount;
@@ -22,32 +22,31 @@ public abstract class AbstractPartitionedDownstreamTupleSender implements Downst
 
     private final int replicaCount;
 
-    private final TupleQueueContext[] tupleQueueContexts;
+    private final OperatorTupleQueue[] operatorTupleQueues;
 
     private final PartitionKeyExtractor partitionKeyExtractor;
 
     private List<Tuple>[] tupleLists;
 
     public AbstractPartitionedDownstreamTupleSender ( final int partitionCount,
-                                                      final int[] partitionDistribution,
-                                                      final TupleQueueContext[] tupleQueueContexts,
+                                                      final int[] partitionDistribution, final OperatorTupleQueue[] operatorTupleQueues,
                                                       final PartitionKeyExtractor partitionKeyExtractor )
     {
         this.partitionCount = partitionCount;
         this.partitionDistribution = Arrays.copyOf( partitionDistribution, partitionDistribution.length );
-        this.replicaCount = tupleQueueContexts.length;
-        this.tupleQueueContexts = Arrays.copyOf( tupleQueueContexts, tupleQueueContexts.length );
+        this.replicaCount = operatorTupleQueues.length;
+        this.operatorTupleQueues = Arrays.copyOf( operatorTupleQueues, operatorTupleQueues.length );
         this.partitionKeyExtractor = partitionKeyExtractor;
-        this.tupleLists = new List[ tupleQueueContexts.length ];
-        for ( int i = 0; i < tupleQueueContexts.length; i++ )
+        this.tupleLists = new List[ operatorTupleQueues.length ];
+        for ( int i = 0; i < operatorTupleQueues.length; i++ )
         {
             tupleLists[ i ] = new ArrayList<>();
         }
     }
 
-    public final TupleQueueContext[] get ()
+    public final OperatorTupleQueue[] get ()
     {
-        return Arrays.copyOf( tupleQueueContexts, tupleQueueContexts.length );
+        return Arrays.copyOf( operatorTupleQueues, operatorTupleQueues.length );
     }
 
     protected final Future<Void> send ( final TuplesImpl input, final int sourcePortIndex, final int destinationPortIndex )
@@ -64,7 +63,7 @@ public abstract class AbstractPartitionedDownstreamTupleSender implements Downst
             final List<Tuple> tuples = tupleLists[ i ];
             if ( tuples.size() > 0 )
             {
-                tupleQueueContexts[ i ].offer( destinationPortIndex, tuples );
+                operatorTupleQueues[ i ].offer( destinationPortIndex, tuples );
                 tuples.clear();
             }
         }

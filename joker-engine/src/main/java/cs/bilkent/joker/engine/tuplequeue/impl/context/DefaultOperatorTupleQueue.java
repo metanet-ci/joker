@@ -12,17 +12,17 @@ import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.config.ThreadingPreference;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.SINGLE_THREADED;
+import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
-import cs.bilkent.joker.engine.tuplequeue.TupleQueueContext;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort;
 
 
-public class DefaultTupleQueueContext implements TupleQueueContext
+public class DefaultOperatorTupleQueue implements OperatorTupleQueue
 {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger( DefaultTupleQueueContext.class );
+    private static final Logger LOGGER = LoggerFactory.getLogger( DefaultOperatorTupleQueue.class );
 
     private final String operatorId;
 
@@ -32,11 +32,11 @@ public class DefaultTupleQueueContext implements TupleQueueContext
 
     private final int maxQueueSize;
 
-    public DefaultTupleQueueContext ( final String operatorId,
-                                      final int inputPortCount,
-                                      final ThreadingPreference threadingPreference,
-                                      final BiFunction<Integer, Boolean, TupleQueue> tupleQueueConstructor,
-                                      final int maxQueueSize
+    public DefaultOperatorTupleQueue ( final String operatorId,
+                                       final int inputPortCount,
+                                       final ThreadingPreference threadingPreference,
+                                       final BiFunction<Integer, Boolean, TupleQueue> tupleQueueConstructor,
+                                       final int maxQueueSize
 
     )
     {
