@@ -29,6 +29,7 @@ import cs.bilkent.joker.engine.config.JokerConfig;
 import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_THREAD_GROUP_NAME;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.exception.JokerException;
+import cs.bilkent.joker.engine.partition.PartitionDistribution;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractorFactory;
 import cs.bilkent.joker.engine.partition.PartitionService;
@@ -114,7 +115,8 @@ public class PipelineManagerImpl implements PipelineManager
     @Inject
     public PipelineManagerImpl ( final JokerConfig jokerConfig,
                                  final RegionManager regionManager,
-                                 final PartitionService partitionService, final PartitionKeyExtractorFactory partitionKeyExtractorFactory,
+                                 final PartitionService partitionService,
+                                 final PartitionKeyExtractorFactory partitionKeyExtractorFactory,
                                  @Named( JOKER_THREAD_GROUP_NAME ) final ThreadGroup jokerThreadGroup )
     {
         this.jokerConfig = jokerConfig;
@@ -151,14 +153,7 @@ public class PipelineManagerImpl implements PipelineManager
             final Pair<Integer, Integer> pair2 = pairs.get( 1 );
             final Pair<Integer, Integer> pair3 = pairs.get( 2 );
             final Pair<Integer, Integer> pair4 = pairs.get( 3 );
-            return new DownstreamTupleSender4( pair1._1,
-                                               pair1._2,
-                                               pair2._1,
-                                               pair2._2,
-                                               pair3._1,
-                                               pair3._2,
-                                               pair4._1,
-                                               pair4._2, tupleQueue );
+            return new DownstreamTupleSender4( pair1._1, pair1._2, pair2._1, pair2._2, pair3._1, pair3._2, pair4._1, pair4._2, tupleQueue );
         };
         defaultDownstreamTupleSenderConstructors[ 5 ] = ( pairs, tupleQueue ) ->
         {
@@ -173,8 +168,7 @@ public class PipelineManagerImpl implements PipelineManager
             final Pair<Integer, Integer> pair1 = pairs.get( 0 );
             return new PartitionedDownstreamTupleSender1( pair1._1,
                                                           pair1._2,
-                                                          partitionService.getPartitionCount(),
-                                                          partitionDistribution, tupleQueues,
+                                                          partitionService.getPartitionCount(), partitionDistribution, tupleQueues,
                                                           partitionKeyFunction );
         };
         partitionedDownstreamTupleSenderConstructors[ 2 ] = ( pairs, partitionCount, partitionDistribution, tupleQueues,
@@ -186,8 +180,7 @@ public class PipelineManagerImpl implements PipelineManager
                                                           pair1._2,
                                                           pair2._1,
                                                           pair2._2,
-                                                          partitionService.getPartitionCount(),
-                                                          partitionDistribution, tupleQueues,
+                                                          partitionService.getPartitionCount(), partitionDistribution, tupleQueues,
                                                           partitionKeyFunction );
         };
         partitionedDownstreamTupleSenderConstructors[ 3 ] = ( pairs, partitionCount, partitionDistribution, tupleQueues,
@@ -202,8 +195,7 @@ public class PipelineManagerImpl implements PipelineManager
                                                           pair2._2,
                                                           pair3._1,
                                                           pair3._2,
-                                                          partitionService.getPartitionCount(),
-                                                          partitionDistribution, tupleQueues,
+                                                          partitionService.getPartitionCount(), partitionDistribution, tupleQueues,
                                                           partitionKeyFunction );
         };
         partitionedDownstreamTupleSenderConstructors[ 4 ] = ( pairs, partitionCount, partitionDistribution, tupleQueues,
@@ -221,8 +213,7 @@ public class PipelineManagerImpl implements PipelineManager
                                                           pair3._2,
                                                           pair4._1,
                                                           pair4._2,
-                                                          partitionService.getPartitionCount(),
-                                                          partitionDistribution, tupleQueues,
+                                                          partitionService.getPartitionCount(), partitionDistribution, tupleQueues,
                                                           partitionKeyFunction );
         };
         partitionedDownstreamTupleSenderConstructors[ 5 ] = ( pairs, partitionCount, partitionDistribution, tupleQueues,
@@ -233,8 +224,7 @@ public class PipelineManagerImpl implements PipelineManager
             copyPorts( pairs, sourcePorts, destinationPorts );
             return new PartitionedDownstreamTupleSenderN( sourcePorts,
                                                           destinationPorts,
-                                                          partitionService.getPartitionCount(),
-                                                          partitionDistribution, tupleQueues,
+                                                          partitionService.getPartitionCount(), partitionDistribution, tupleQueues,
                                                           partitionKeyFunction );
         };
     }
@@ -665,7 +655,8 @@ public class PipelineManagerImpl implements PipelineManager
                             downstreamRegionDef.getPartitionFieldNames() );
                     senders[ i ] = partitionedDownstreamTupleSenderConstructors[ j ].apply( pairs,
                                                                                             partitionService.getPartitionCount(),
-                                                                                            partitionDistribution, pipelineTupleQueues,
+                                                                                            partitionDistribution,
+                                                                                            pipelineTupleQueues,
                                                                                             partitionKeyExtractor );
                 }
                 else if ( downstreamRegionDef.getRegionType() == STATELESS )
@@ -769,7 +760,8 @@ public class PipelineManagerImpl implements PipelineManager
     private int[] getPartitionDistribution ( final OperatorDef operator )
     {
         final Pipeline pipeline = getPipeline( operator, 0 );
-        return partitionService.getOrCreatePartitionDistribution( pipeline.getId().regionId, pipeline.getReplicaCount() );
+        final PartitionDistribution partitionDistribution = partitionService.getPartitionDistributionOrFail( pipeline.getId().regionId );
+        return partitionDistribution.getDistribution();
     }
 
     private OperatorTupleQueue[] getPipelineTupleQueues ( final OperatorDef operator )

@@ -5,8 +5,21 @@ public interface PartitionService
 
     int getPartitionCount ();
 
-    int[] getOrCreatePartitionDistribution ( int regionId, int replicaCount );
+    PartitionDistribution getPartitionDistribution ( int regionId );
 
-    int[] rebalancePartitionDistribution ( int regionId, int newReplicaCount );
+    default PartitionDistribution getPartitionDistributionOrFail ( int regionId )
+    {
+        final PartitionDistribution distribution = getPartitionDistribution( regionId );
+        if ( distribution == null )
+        {
+            throw new IllegalStateException( "regionId=" + regionId + " has no partition distribution!" );
+        }
+
+        return distribution;
+    }
+
+    PartitionDistribution createPartitionDistribution ( int regionId, int replicaCount );
+
+    PartitionDistribution rebalancePartitionDistribution ( int regionId, int newReplicaCount );
 
 }

@@ -14,7 +14,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
@@ -24,6 +23,7 @@ import static cs.bilkent.joker.engine.config.ThreadingPreference.SINGLE_THREADED
 import cs.bilkent.joker.engine.kvstore.OperatorKVStore;
 import cs.bilkent.joker.engine.kvstore.impl.KVStoreContainer;
 import cs.bilkent.joker.engine.kvstore.impl.OperatorKVStoreManagerImpl;
+import cs.bilkent.joker.engine.partition.PartitionDistribution;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.PartitionServiceImpl;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
@@ -89,9 +89,12 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
     private final JokerConfig jokerConfig = new JokerConfig();
 
-    private OperatorTupleQueueManagerImpl operatorTupleQueueManager;
+    private final PartitionService partitionService = new PartitionServiceImpl( jokerConfig );
 
-    private OperatorKVStoreManagerImpl operatorKVStoreManager;
+    private final OperatorTupleQueueManagerImpl operatorTupleQueueManager = new OperatorTupleQueueManagerImpl( jokerConfig,
+                                                                                                               new PartitionKeyExtractorFactoryImpl() );
+
+    private final OperatorKVStoreManagerImpl operatorKVStoreManager = new OperatorKVStoreManagerImpl();
 
     private final OperatorKVStore nopOperatorKvStore = mock( OperatorKVStore.class );
 
@@ -101,15 +104,6 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
     private final PipelineReplicaId pipelineReplicaId3 = new PipelineReplicaId( new PipelineId( 2, 0 ), 0 );
 
-    @Before
-    public void init ()
-    {
-        final PartitionService partitionService = new PartitionServiceImpl( jokerConfig );
-        operatorTupleQueueManager = new OperatorTupleQueueManagerImpl( jokerConfig,
-                                                                       partitionService,
-                                                                       new PartitionKeyExtractorFactoryImpl() );
-        operatorKVStoreManager = new OperatorKVStoreManagerImpl( partitionService );
-    }
 
     @Test
     public void testPipelineWithSingleOperator () throws ExecutionException, InterruptedException
@@ -312,7 +306,10 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                     passerDrainerPool,
                                                                     passerTuplesImplSupplier );
 
-        final OperatorKVStore[] operatorKvStores = operatorKVStoreManager.createPartitionedOperatorKVStore( REGION_ID, 1, "state" );
+        final PartitionDistribution partitionDistribution = partitionService.createPartitionDistribution( REGION_ID, 1 );
+        final OperatorKVStore[] operatorKvStores = operatorKVStoreManager.createPartitionedOperatorKVStore( REGION_ID,
+                                                                                                            "state",
+                                                                                                            partitionDistribution );
 
         final OperatorDef stateOperatorDef = OperatorDefBuilder.newInstance( "state", ValueStateOperator.class )
                                                                .setPartitionFieldNames( singletonList( "val" ) )
@@ -320,8 +317,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final PartitionedOperatorTupleQueue[] stateOperatorTupleQueues = operatorTupleQueueManager.createPartitionedOperatorTupleQueue(
                 REGION_ID,
-                1,
-                stateOperatorDef );
+                stateOperatorDef,
+                partitionDistribution );
         final PartitionedOperatorTupleQueue stateOperatorTupleQueue = stateOperatorTupleQueues[ 0 ];
 
         final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, stateOperatorDef );
@@ -598,7 +595,10 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                     passerDrainerPool,
                                                                     passerTuplesImplSupplier );
 
-        final OperatorKVStore[] operatorKvStores = operatorKVStoreManager.createPartitionedOperatorKVStore( REGION_ID, 1, "state" );
+        final PartitionDistribution partitionDistribution = partitionService.createPartitionDistribution( REGION_ID, 1 );
+        final OperatorKVStore[] operatorKvStores = operatorKVStoreManager.createPartitionedOperatorKVStore( REGION_ID,
+                                                                                                            "state",
+                                                                                                            partitionDistribution );
 
         final OperatorDef stateOperatorDef = OperatorDefBuilder.newInstance( "state", ValueStateOperator.class )
                                                                .setPartitionFieldNames( singletonList( "val" ) )
@@ -606,8 +606,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final PartitionedOperatorTupleQueue[] stateOperatorTupleQueues = operatorTupleQueueManager.createPartitionedOperatorTupleQueue(
                 REGION_ID,
-                1,
-                stateOperatorDef );
+                stateOperatorDef,
+                partitionDistribution );
         final PartitionedOperatorTupleQueue stateOperatorTupleQueue = stateOperatorTupleQueues[ 0 ];
 
         final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, stateOperatorDef );
@@ -729,7 +729,10 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                     passerDrainerPool,
                                                                     passerTuplesImplSupplier );
 
-        final OperatorKVStore[] operatorKvStores = operatorKVStoreManager.createPartitionedOperatorKVStore( REGION_ID, 1, "state" );
+        final PartitionDistribution partitionDistribution = partitionService.createPartitionDistribution( REGION_ID, 1 );
+        final OperatorKVStore[] operatorKvStores = operatorKVStoreManager.createPartitionedOperatorKVStore( REGION_ID,
+                                                                                                            "state",
+                                                                                                            partitionDistribution );
 
         final OperatorDef stateOperatorDef = OperatorDefBuilder.newInstance( "state", ValueStateOperator.class )
                                                                .setPartitionFieldNames( singletonList( "val" ) )
@@ -737,8 +740,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final PartitionedOperatorTupleQueue[] stateOperatorTupleQueues = operatorTupleQueueManager.createPartitionedOperatorTupleQueue(
                 REGION_ID,
-                1,
-                stateOperatorDef );
+                stateOperatorDef,
+                partitionDistribution );
         final PartitionedOperatorTupleQueue stateOperatorTupleQueue = stateOperatorTupleQueues[ 0 ];
 
         final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, stateOperatorDef );

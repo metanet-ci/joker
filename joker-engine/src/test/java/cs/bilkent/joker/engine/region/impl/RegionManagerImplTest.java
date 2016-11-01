@@ -68,15 +68,17 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
     private final PartitionService partitionService = new PartitionServiceImpl( config );
 
-    private final OperatorKVStoreManagerImpl operatorKVStoreManager = new OperatorKVStoreManagerImpl( partitionService );
+    private final OperatorKVStoreManagerImpl operatorKVStoreManager = new OperatorKVStoreManagerImpl();
 
     private final OperatorTupleQueueManagerImpl operatorTupleQueueManager = new OperatorTupleQueueManagerImpl( config,
-                                                                                                               partitionService,
                                                                                                                new PartitionKeyExtractorFactoryImpl() );
 
     private final PipelineTransformer pipelineTransformer = new PipelineTransformerImpl( config, operatorTupleQueueManager );
 
-    private final RegionManagerImpl regionManager = new RegionManagerImpl( config, operatorKVStoreManager, operatorTupleQueueManager,
+    private final RegionManagerImpl regionManager = new RegionManagerImpl( config,
+                                                                           partitionService,
+                                                                           operatorKVStoreManager,
+                                                                           operatorTupleQueueManager,
                                                                            pipelineTransformer );
 
 

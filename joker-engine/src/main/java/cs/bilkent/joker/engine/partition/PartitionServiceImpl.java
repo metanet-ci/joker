@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import static java.lang.Integer.compare;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.shuffle;
 
 @Singleton
 @NotThreadSafe
@@ -30,7 +31,7 @@ public class PartitionServiceImpl implements PartitionService
     private static final Logger LOGGER = LoggerFactory.getLogger( PartitionServiceImpl.class );
 
 
-    private final Map<Integer, int[]> distributions = new HashMap<>();
+    private final Map<Integer, PartitionDistribution> distributions = new HashMap<>();
 
     private final int partitionCount;
 
@@ -47,36 +48,44 @@ public class PartitionServiceImpl implements PartitionService
     }
 
     @Override
-    public int[] getOrCreatePartitionDistribution ( final int regionId, final int replicaCount )
+    public PartitionDistribution getPartitionDistribution ( final int regionId )
+    {
+        return distributions.get( regionId );
+    }
+
+    @Override
+    public PartitionDistribution createPartitionDistribution ( final int regionId, final int replicaCount )
     {
         checkReplicaCount( replicaCount );
+        checkState( !distributions.containsKey( regionId ),
+                    "regionId=%s already has a partition distribution! Cannot create partition distribution with %s replicas",
+                    regionId,
+                    replicaCount );
 
-        final int[] distribution = distributions.computeIfAbsent( regionId, r ->
+        final List<Integer> replicaIndices = new ArrayList<>( partitionCount );
+        for ( int partitionId = 0; partitionId < partitionCount; partitionId++ )
         {
-            final List<Integer> replicaIndices = new ArrayList<>( partitionCount );
-            for ( int partitionId = 0; partitionId < partitionCount; partitionId++ )
-            {
-                replicaIndices.add( partitionId % replicaCount );
-            }
-            Collections.shuffle( replicaIndices );
+            replicaIndices.add( partitionId % replicaCount );
+        }
+        shuffle( replicaIndices );
 
-            final int[] partitionOwnership = new int[ partitionCount ];
-            for ( int partitionId = 0; partitionId < partitionCount; partitionId++ )
-            {
-                partitionOwnership[ partitionId ] = replicaIndices.get( partitionId );
-            }
+        final int[] distribution = new int[ partitionCount ];
+        for ( int partitionId = 0; partitionId < partitionCount; partitionId++ )
+        {
+            distribution[ partitionId ] = replicaIndices.get( partitionId );
+        }
 
-            LOGGER.info( "partition distribution is created for regionId={} replicaCount={} distribution={}",
-                         regionId,
-                         replicaCount,
-                         partitionOwnership );
+        checkDistribution( regionId, distribution );
 
-            checkDistribution( regionId, partitionOwnership );
+        final PartitionDistribution partitionDistribution = new PartitionDistribution( distribution );
+        distributions.put( regionId, partitionDistribution );
 
-            return partitionOwnership;
-        } );
+        LOGGER.info( "partition distribution is created for regionId={} replicaCount={} distribution={}",
+                     regionId,
+                     replicaCount,
+                     distribution );
 
-        return Arrays.copyOf( distribution, partitionCount );
+        return partitionDistribution;
     }
 
     private void checkReplicaCount ( final int replicaCount )
@@ -119,17 +128,20 @@ public class PartitionServiceImpl implements PartitionService
     }
 
     @Override
-    public int[] rebalancePartitionDistribution ( final int regionId, final int newReplicaCount )
+    public PartitionDistribution rebalancePartitionDistribution ( final int regionId, final int newReplicaCount )
     {
         checkReplicaCount( newReplicaCount );
 
-        final int[] distribution = distributions.get( regionId );
+        final PartitionDistribution partitionDistribution = getPartitionDistributionOrFail( regionId );
+        checkState( partitionDistribution != null, "partition distribution to rebalance not found for regionId=%s", regionId );
+
+        final int[] distribution = partitionDistribution.getDistribution();
 
         final Map<Integer, List<Integer>> currentOwnerships = getOwnershipsMap( distribution );
 
         if ( currentOwnerships.size() == newReplicaCount )
         {
-            return Arrays.copyOf( distribution, partitionCount );
+            return partitionDistribution;
         }
 
         final Map<Integer, List<Integer>> destinations = changeOwnerships( regionId, currentOwnerships, newReplicaCount );
@@ -143,7 +155,10 @@ public class PartitionServiceImpl implements PartitionService
                      newReplicaCount,
                      distribution );
 
-        return Arrays.copyOf( distribution, partitionCount );
+        final PartitionDistribution newDistribution = new PartitionDistribution( distribution );
+        distributions.put( regionId, newDistribution );
+
+        return newDistribution;
     }
 
     private Map<Integer, List<Integer>> getOwnershipsMap ( final int[] distribution )

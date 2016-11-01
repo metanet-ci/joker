@@ -19,6 +19,8 @@ import static cs.bilkent.joker.engine.config.PartitionServiceConfig.PARTITION_CO
 import cs.bilkent.joker.testutils.AbstractJokerTest;
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 @RunWith( Parameterized.class )
@@ -67,19 +69,63 @@ public class PartitionServiceImplTest extends AbstractJokerTest
     }
 
     @Test
+    public void shouldCreatePartitionDistribution ()
+    {
+        final PartitionDistribution partitionDistribution = partitionService.createPartitionDistribution( regionId, 1 );
+        assertNotNull( partitionDistribution );
+    }
+
+    @Test( expected = IllegalStateException.class )
+    public void shouldCreatePartitionDistributionOnlyOnce ()
+    {
+        try
+        {
+            partitionService.createPartitionDistribution( regionId, 1 );
+        }
+        catch ( Exception e )
+        {
+            e.printStackTrace();
+            fail();
+        }
+
+        partitionService.createPartitionDistribution( regionId, 1 );
+    }
+
+    @Test
+    public void shouldNotGetNonExistingPartitionDistribution ()
+    {
+        assertNull( partitionService.getPartitionDistribution( regionId ) );
+    }
+
+    @Test( expected = IllegalStateException.class )
+    public void shouldFailWhenGetNonExistingPartitionDistribution ()
+    {
+        partitionService.getPartitionDistributionOrFail( regionId );
+    }
+
+    @Test
     public void shouldDistributePartitions ()
     {
-        final int[] distribution = partitionService.getOrCreatePartitionDistribution( regionId, initialReplicaCount );
-        validateDistribution( partitionCount, initialReplicaCount, distribution );
+        final PartitionDistribution distribution = partitionService.createPartitionDistribution( regionId, initialReplicaCount );
+        validateDistribution( partitionCount, initialReplicaCount, distribution.getDistribution() );
     }
 
     @Test
     public void shouldRedistributePartitions ()
     {
-        partitionService.getOrCreatePartitionDistribution( regionId, initialReplicaCount );
+        partitionService.createPartitionDistribution( regionId, initialReplicaCount );
 
-        final int[] newDistribution = partitionService.rebalancePartitionDistribution( regionId, newReplicaCount );
-        validateDistribution( partitionCount, newReplicaCount, newDistribution );
+        final PartitionDistribution distribution = partitionService.rebalancePartitionDistribution( regionId, newReplicaCount );
+        validateDistribution( partitionCount, newReplicaCount, distribution.getDistribution() );
+    }
+
+    @Test
+    public void shouldGetRedistributedPartitions ()
+    {
+        partitionService.createPartitionDistribution( regionId, initialReplicaCount );
+
+        final PartitionDistribution distribution = partitionService.rebalancePartitionDistribution( regionId, newReplicaCount );
+        assertEquals( distribution, partitionService.getPartitionDistribution( regionId ) );
     }
 
     private void validateDistribution ( final int partitionCount, final int replicaCount, final int[] distribution )

@@ -289,6 +289,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                 }
             }
             LOGGER.info( "Drained queue of pipeline {} for merge.", pipelineReplica.id() );
+            operatorTupleQueueManager.releaseDefaultOperatorTupleQueue( regionId, replicaIndex, firstOperatorDef.id() );
         }
 
         final NonBlockingTupleQueueDrainerPool drainerPool = new NonBlockingTupleQueueDrainerPool( config, firstOperatorDef );

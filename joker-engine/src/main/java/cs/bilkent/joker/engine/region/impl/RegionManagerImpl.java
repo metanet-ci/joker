@@ -23,6 +23,8 @@ import cs.bilkent.joker.engine.kvstore.OperatorKVStoreManager;
 import cs.bilkent.joker.engine.kvstore.impl.DefaultOperatorKVStore;
 import cs.bilkent.joker.engine.kvstore.impl.EmptyOperatorKVStore;
 import cs.bilkent.joker.engine.kvstore.impl.PartitionedOperatorKVStore;
+import cs.bilkent.joker.engine.partition.PartitionDistribution;
+import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.pipeline.OperatorReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
@@ -62,6 +64,8 @@ public class RegionManagerImpl implements RegionManager
 
     private final JokerConfig config;
 
+    private final PartitionService partitionService;
+
     private final OperatorKVStoreManager operatorKvStoreManager;
 
     private final OperatorTupleQueueManager operatorTupleQueueManager;
@@ -71,11 +75,14 @@ public class RegionManagerImpl implements RegionManager
     private final Map<Integer, Region> regions = new HashMap<>();
 
     @Inject
-    public RegionManagerImpl ( final JokerConfig config, final OperatorKVStoreManager operatorKvStoreManager,
+    public RegionManagerImpl ( final JokerConfig config,
+                               final PartitionService partitionService,
+                               final OperatorKVStoreManager operatorKvStoreManager,
                                final OperatorTupleQueueManager operatorTupleQueueManager,
                                final PipelineTransformer pipelineTransformer )
     {
         this.config = config;
+        this.partitionService = partitionService;
         this.operatorKvStoreManager = operatorKvStoreManager;
         this.operatorTupleQueueManager = operatorTupleQueueManager;
         this.pipelineTransformer = pipelineTransformer;
@@ -93,6 +100,12 @@ public class RegionManagerImpl implements RegionManager
         checkPipelineStartIndices( regionId, regionConfig.getRegionDef().getOperatorCount(), regionConfig.getPipelineStartIndices() );
 
         LOGGER.info( "Creating components for regionId={} pipelineCount={} replicaCount={}", regionId, pipelineCount, replicaCount );
+
+        if ( regionConfig.getRegionDef().getRegionType() == PARTITIONED_STATEFUL )
+        {
+            partitionService.createPartitionDistribution( regionId, replicaCount );
+            LOGGER.info( "Created partition distribution for regionId={} with {} replicas", regionId, replicaCount );
+        }
 
         final PipelineReplica[][] pipelineReplicas = new PipelineReplica[ pipelineCount ][ replicaCount ];
 
@@ -159,7 +172,8 @@ public class RegionManagerImpl implements RegionManager
 
                 pipelineReplicas[ pipelineIndex ][ replicaIndex ] = new PipelineReplica( config,
                                                                                          pipelineReplicaIds[ replicaIndex ],
-                                                                                         pipelineOperatorReplicas, pipelineTupleQueue );
+                                                                                         pipelineOperatorReplicas,
+                                                                                         pipelineTupleQueue );
             }
         }
 
@@ -299,11 +313,7 @@ public class RegionManagerImpl implements RegionManager
                     LOGGER.info( "Releasing default tuple queue of pipeline {}", pipelineReplica.id() );
                     final OperatorDef[] operatorDefs = regionConfig.getOperatorDefsByPipelineIndex( pipelineIndex );
                     final String operatorId = operatorDefs[ 0 ].id();
-                    checkState( operatorTupleQueueManager.releaseDefaultOperatorTupleQueue( regionId, replicaIndex, operatorId ),
-                                "Cannot release default tuple queue of regionId=%s replicaIndex=%s operator=%s",
-                                regionId,
-                                replicaIndex,
-                                operatorId );
+                    operatorTupleQueueManager.releaseDefaultOperatorTupleQueue( regionId, replicaIndex, operatorId );
                 }
 
                 for ( int i = 0; i < pipelineReplica.getOperatorCount(); i++ )
@@ -317,21 +327,14 @@ public class RegionManagerImpl implements RegionManager
                                      operatorDef.id(),
                                      pipelineReplica.id(),
                                      replicaIndex );
-                        checkState( operatorTupleQueueManager.releaseDefaultOperatorTupleQueue( regionId, replicaIndex, operatorDef.id() ),
-                                    "Cannot release default tuple queue of Operator %s in Pipeline %s replicaIndex %s",
-                                    operatorDef.id(),
-                                    pipelineReplica.id(),
-                                    replicaIndex );
+                        operatorTupleQueueManager.releaseDefaultOperatorTupleQueue( regionId, replicaIndex, operatorDef.id() );
                     }
                     else if ( queue instanceof PartitionedOperatorTupleQueue && replicaIndex == 0 )
                     {
                         LOGGER.info( "Releasing partitioned tuple queue of Operator {} in Pipeline {}",
                                      operatorDef.id(),
                                      pipelineReplica.id() );
-                        checkState( operatorTupleQueueManager.releasePartitionedOperatorTupleQueue( regionId, operatorDef.id() ),
-                                    "Cannot release partitioned tuple queue of Operator %s in Pipeline %s",
-                                    operatorDef.id(),
-                                    pipelineReplica.id() );
+                        operatorTupleQueueManager.releasePartitionedOperatorTupleQueue( regionId, operatorDef.id() );
                     }
 
                     if ( replicaIndex == 0 )
@@ -341,20 +344,14 @@ public class RegionManagerImpl implements RegionManager
                             LOGGER.info( "Releasing default operator kvStore of Operator {} in Pipeline {}",
                                          operatorDef.id(),
                                          pipelineReplica.id() );
-                            checkState( operatorKvStoreManager.releaseDefaultOperatorKVStore( regionId, operatorDef.id() ),
-                                        "Cannot release default operator kvStore of Operator %s in Pipeline %s",
-                                        operatorDef.id(),
-                                        pipelineReplica.id() );
+                            operatorKvStoreManager.releaseDefaultOperatorKVStore( regionId, operatorDef.id() );
                         }
                         else if ( operatorDef.operatorType() == PARTITIONED_STATEFUL )
                         {
                             LOGGER.info( "Releasing partitioned operator kvStore of Operator {} in Pipeline {}",
                                          operatorDef.id(),
                                          pipelineReplica.id() );
-                            checkState( operatorKvStoreManager.releasePartitionedOperatorKVStore( regionId, operatorDef.id() ),
-                                        "Cannot release partitioned operator kvStore of Operator %s in Pipeline %s",
-                                        operatorDef.id(),
-                                        pipelineReplica.id() );
+                            operatorKvStoreManager.releasePartitionedOperatorKVStore( regionId, operatorDef.id() );
                         }
                     }
                 }
@@ -407,8 +404,8 @@ public class RegionManagerImpl implements RegionManager
             LOGGER.info( "Creating {} for regionId={} operatorId={}", PartitionedOperatorTupleQueue.class.getSimpleName(),
                          regionId,
                          operatorId );
-            operatorTupleQueues = operatorTupleQueueManager.createPartitionedOperatorTupleQueue( regionId,
-                                                                                                 replicaCount,
+            final PartitionDistribution partitionDistribution = partitionService.getPartitionDistributionOrFail( regionId );
+            operatorTupleQueues = operatorTupleQueueManager.createPartitionedOperatorTupleQueue( regionId, partitionDistribution,
                                                                                                  operatorDef,
                                                                                                  forwardKeyLimit );
         }
@@ -416,7 +413,8 @@ public class RegionManagerImpl implements RegionManager
         {
             final ThreadingPreference threadingPreference = isFirstOperator ? MULTI_THREADED : SINGLE_THREADED;
             LOGGER.info( "Creating {} {} for regionId={} operatorId={}",
-                         threadingPreference, DefaultOperatorTupleQueue.class.getSimpleName(),
+                         threadingPreference,
+                         DefaultOperatorTupleQueue.class.getSimpleName(),
                          regionId,
                          operatorId );
             operatorTupleQueues = new OperatorTupleQueue[ replicaCount ];
@@ -483,7 +481,8 @@ public class RegionManagerImpl implements RegionManager
             LOGGER.info( "Creating {} for regionId={} operatorId={}", PartitionedOperatorKVStore.class.getSimpleName(),
                          regionId,
                          operatorId );
-            operatorKvStores = operatorKvStoreManager.createPartitionedOperatorKVStore( regionId, replicaCount, operatorId );
+            final PartitionDistribution partitionDistribution = partitionService.getPartitionDistributionOrFail( regionId );
+            operatorKvStores = operatorKvStoreManager.createPartitionedOperatorKVStore( regionId, operatorId, partitionDistribution );
         }
         else
         {
@@ -565,8 +564,7 @@ public class RegionManagerImpl implements RegionManager
         }
         else
         {
-            LOGGER.info( "Creating {} for pipeline tuple queue of regionId={}", EmptyOperatorTupleQueue.class.getSimpleName(),
-                         regionId );
+            LOGGER.info( "Creating {} for pipeline tuple queue of regionId={}", EmptyOperatorTupleQueue.class.getSimpleName(), regionId );
             return new EmptyOperatorTupleQueue( firstOperatorDef.id(), firstOperatorDef.inputPortCount() );
         }
     }
