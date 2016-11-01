@@ -1,7 +1,7 @@
 package cs.bilkent.joker.engine.tuplequeue;
 
 import cs.bilkent.joker.engine.config.ThreadingPreference;
-import cs.bilkent.joker.engine.tuplequeue.impl.context.PartitionedOperatorTupleQueue;
+import cs.bilkent.joker.engine.tuplequeue.impl.operator.PartitionedOperatorTupleQueue;
 import cs.bilkent.joker.operator.OperatorDef;
 
 

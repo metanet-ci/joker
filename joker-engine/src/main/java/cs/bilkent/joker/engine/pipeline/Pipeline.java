@@ -25,7 +25,7 @@ import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
-import cs.bilkent.joker.engine.tuplequeue.impl.context.DefaultOperatorTupleQueue;
+import cs.bilkent.joker.engine.tuplequeue.impl.operator.DefaultOperatorTupleQueue;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import static java.lang.System.arraycopy;
