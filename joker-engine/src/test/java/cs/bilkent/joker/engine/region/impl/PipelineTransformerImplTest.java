@@ -7,7 +7,7 @@ import org.junit.Test;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.SINGLE_THREADED;
-import cs.bilkent.joker.engine.kvstore.impl.KVStoreContextManagerImpl;
+import cs.bilkent.joker.engine.kvstore.impl.OperatorKVStoreManagerImpl;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.PartitionServiceImpl;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
@@ -68,7 +68,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
 
     private final PartitionService partitionService = new PartitionServiceImpl( config );
 
-    private final KVStoreContextManagerImpl kvStoreContextManager = new KVStoreContextManagerImpl( partitionService );
+    private final OperatorKVStoreManagerImpl operatorKVStoreManager = new OperatorKVStoreManagerImpl( partitionService );
 
     private final OperatorTupleQueueManagerImpl operatorTupleQueueManager = new OperatorTupleQueueManagerImpl( config,
                                                                                                                partitionService,
@@ -76,8 +76,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
 
     private final PipelineTransformer pipelineTransformer = new PipelineTransformerImpl( config, operatorTupleQueueManager );
 
-    private final RegionManagerImpl regionManager = new RegionManagerImpl( config,
-                                                                           kvStoreContextManager, operatorTupleQueueManager,
+    private final RegionManagerImpl regionManager = new RegionManagerImpl( config, operatorKVStoreManager, operatorTupleQueueManager,
                                                                            pipelineTransformer );
 
     @Test
@@ -115,13 +114,13 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
 
         final PipelineReplica[] pipelineReplicas = region.getReplicaPipelines( 0 );
         pipelineReplicas[ 0 ].getOperator( 0 ).getQueue().offer( 0, singletonList( newTuple( "key0", "val0" ) ) );
-        pipelineReplicas[ 0 ].getOperator( 0 ).getKvStoreContext().getKVStore( null ).set( "key0", "val0" );
+        pipelineReplicas[ 0 ].getOperator( 0 ).getOperatorKvStore().getKVStore( null ).set( "key0", "val0" );
         pipelineReplicas[ 0 ].getOperator( 1 ).getQueue().offer( 0, singletonList( newTuple( "key1", "val1" ) ) );
         pipelineReplicas[ 1 ].getOperator( 0 ).getQueue().offer( 0, singletonList( newTuple( "key2", "val2" ) ) );
-        pipelineReplicas[ 1 ].getOperator( 0 ).getKvStoreContext().getKVStore( null ).set( "key2", "val2" );
+        pipelineReplicas[ 1 ].getOperator( 0 ).getOperatorKvStore().getKVStore( null ).set( "key2", "val2" );
         pipelineReplicas[ 1 ].getOperator( 1 ).getQueue().offer( 0, singletonList( newTuple( "key3", "val3" ) ) );
         pipelineReplicas[ 2 ].getOperator( 0 ).getQueue().offer( 0, singletonList( newTuple( "key4", "val4" ) ) );
-        pipelineReplicas[ 2 ].getOperator( 0 ).getKvStoreContext().getKVStore( null ).set( "key4", "val4" );
+        pipelineReplicas[ 2 ].getOperator( 0 ).getOperatorKvStore().getKVStore( null ).set( "key4", "val4" );
 
         final Region newRegion = pipelineTransformer.mergePipelines( region, asList( 0, 2, 4 ) );
 
@@ -144,17 +143,17 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
 
         assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator0.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
         assertTrue( pipelineOperator0.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
-        assertThat( pipelineOperator0.getKvStoreContext().getKVStore( null ).get( "key0" ), equalTo( "val0" ) );
+        assertThat( pipelineOperator0.getOperatorKvStore().getKVStore( null ).get( "key0" ), equalTo( "val0" ) );
         assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator1.getQueue() ).getThreadingPreference(), equalTo( SINGLE_THREADED ) );
         assertTrue( pipelineOperator1.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
         assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator2.getQueue() ).getThreadingPreference(), equalTo( SINGLE_THREADED ) );
         assertTrue( pipelineOperator2.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
-        assertThat( pipelineOperator2.getKvStoreContext().getKVStore( null ).get( "key2" ), equalTo( "val2" ) );
+        assertThat( pipelineOperator2.getOperatorKvStore().getKVStore( null ).get( "key2" ), equalTo( "val2" ) );
         assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator3.getQueue() ).getThreadingPreference(), equalTo( SINGLE_THREADED ) );
         assertTrue( pipelineOperator3.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
         assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator4.getQueue() ).getThreadingPreference(), equalTo( SINGLE_THREADED ) );
         assertTrue( pipelineOperator4.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
-        assertThat( pipelineOperator4.getKvStoreContext().getKVStore( null ).get( "key4" ), equalTo( "val4" ) );
+        assertThat( pipelineOperator4.getOperatorKvStore().getKVStore( null ).get( "key4" ), equalTo( "val4" ) );
     }
 
     @Test
@@ -423,13 +422,13 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
 
         final PipelineReplica[] pipelineReplicas = region.getReplicaPipelines( 0 );
         pipelineReplicas[ 0 ].getOperator( 0 ).getQueue().offer( 0, singletonList( newTuple( "key0", "val0" ) ) );
-        pipelineReplicas[ 0 ].getOperator( 0 ).getKvStoreContext().getKVStore( null ).set( "key0", "val0" );
+        pipelineReplicas[ 0 ].getOperator( 0 ).getOperatorKvStore().getKVStore( null ).set( "key0", "val0" );
         pipelineReplicas[ 0 ].getOperator( 1 ).getQueue().offer( 0, singletonList( newTuple( "key1", "val1" ) ) );
         pipelineReplicas[ 0 ].getOperator( 2 ).getQueue().offer( 0, singletonList( newTuple( "key2", "val2" ) ) );
-        pipelineReplicas[ 0 ].getOperator( 2 ).getKvStoreContext().getKVStore( null ).set( "key2", "val2" );
+        pipelineReplicas[ 0 ].getOperator( 2 ).getOperatorKvStore().getKVStore( null ).set( "key2", "val2" );
         pipelineReplicas[ 0 ].getOperator( 3 ).getQueue().offer( 0, singletonList( newTuple( "key3", "val3" ) ) );
         pipelineReplicas[ 0 ].getOperator( 4 ).getQueue().offer( 0, singletonList( newTuple( "key4", "val4" ) ) );
-        pipelineReplicas[ 0 ].getOperator( 4 ).getKvStoreContext().getKVStore( null ).set( "key4", "val4" );
+        pipelineReplicas[ 0 ].getOperator( 4 ).getOperatorKvStore().getKVStore( null ).set( "key4", "val4" );
 
         final Region newRegion = pipelineTransformer.splitPipeline( region, asList( 0, 2, 4 ) );
 
@@ -452,19 +451,19 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertThat( newPipelineReplicas[ 0 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 0 ) ) );
         assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator0.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
         assertTrue( pipelineOperator0.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
-        assertThat( pipelineOperator0.getKvStoreContext().getKVStore( null ).get( "key0" ), equalTo( "val0" ) );
+        assertThat( pipelineOperator0.getOperatorKvStore().getKVStore( null ).get( "key0" ), equalTo( "val0" ) );
         assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator1.getQueue() ).getThreadingPreference(), equalTo( SINGLE_THREADED ) );
         assertTrue( pipelineOperator1.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
         assertThat( newPipelineReplicas[ 1 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 2 ) ) );
         assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator2.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
         assertTrue( pipelineOperator2.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
-        assertThat( pipelineOperator2.getKvStoreContext().getKVStore( null ).get( "key2" ), equalTo( "val2" ) );
+        assertThat( pipelineOperator2.getOperatorKvStore().getKVStore( null ).get( "key2" ), equalTo( "val2" ) );
         assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator3.getQueue() ).getThreadingPreference(), equalTo( SINGLE_THREADED ) );
         assertTrue( pipelineOperator3.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
         assertThat( newPipelineReplicas[ 2 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 4 ) ) );
         assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator4.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
         assertTrue( pipelineOperator4.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
-        assertThat( pipelineOperator4.getKvStoreContext().getKVStore( null ).get( "key4" ), equalTo( "val4" ) );
+        assertThat( pipelineOperator4.getOperatorKvStore().getKVStore( null ).get( "key4" ), equalTo( "val4" ) );
     }
 
     @Test

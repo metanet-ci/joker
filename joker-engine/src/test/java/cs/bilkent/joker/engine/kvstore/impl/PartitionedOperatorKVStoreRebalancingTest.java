@@ -14,7 +14,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class PartitionedKVStoreContextRebalancingTest
+public class PartitionedOperatorKVStoreRebalancingTest
 {
 
     private static final String OPERATOR_ID = "op1";
@@ -38,7 +38,7 @@ public class PartitionedKVStoreContextRebalancingTest
 
     private final Set<Object> keys = new HashSet<>();
 
-    private PartitionedKVStoreContext kvStoreContext;
+    private PartitionedOperatorKVStore operatorKVStore;
 
     @Before
     public void init ()
@@ -48,7 +48,7 @@ public class PartitionedKVStoreContextRebalancingTest
             kvStoreContainers[ partitionId ] = new KVStoreContainer( partitionId );
         }
 
-        kvStoreContext = new PartitionedKVStoreContext( OPERATOR_ID, REPLICA_INDEX, kvStoreContainers, PARTITION_DISTRIBUTION );
+        operatorKVStore = new PartitionedOperatorKVStore( OPERATOR_ID, REPLICA_INDEX, kvStoreContainers, PARTITION_DISTRIBUTION );
     }
 
     @Test
@@ -59,21 +59,21 @@ public class PartitionedKVStoreContextRebalancingTest
         final KVStoreContainer partitionToAcquire = kvStoreContainers[ nonAcquiredPartitionId ];
         partitionToAcquire.getOrCreateKVStore( EXTRACTOR.getPartitionKey( tuple ) ).set( "key", "val" );
 
-        kvStoreContext.acquirePartitions( new KVStoreContainer[] { partitionToAcquire } );
+        operatorKVStore.acquirePartitions( new KVStoreContainer[] { partitionToAcquire } );
 
-        assertEquals( "val", kvStoreContext.getKVStore( EXTRACTOR.getPartitionKey( tuple ) ).get( "key" ) );
+        assertEquals( "val", operatorKVStore.getKVStore( EXTRACTOR.getPartitionKey( tuple ) ).get( "key" ) );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotAcquireAlreadyAcquiredPartitions ()
     {
-        kvStoreContext.acquirePartitions( new KVStoreContainer[] { kvStoreContainers[ ACQUIRED_PARTITIONS[ 0 ] ] } );
+        operatorKVStore.acquirePartitions( new KVStoreContainer[] { kvStoreContainers[ ACQUIRED_PARTITIONS[ 0 ] ] } );
     }
 
     @Test
     public void shouldReleasePartitions ()
     {
-        final KVStoreContainer[] released = kvStoreContext.releasePartitions( ACQUIRED_PARTITIONS );
+        final KVStoreContainer[] released = operatorKVStore.releasePartitions( ACQUIRED_PARTITIONS );
         assertEquals( released.length, ACQUIRED_PARTITIONS.length );
         for ( KVStoreContainer partition : released )
         {
@@ -94,7 +94,7 @@ public class PartitionedKVStoreContextRebalancingTest
         {
             try
             {
-                kvStoreContext.getKVStore( EXTRACTOR.getPartitionKey( generateTuple( partitionId, keys ) ) );
+                operatorKVStore.getKVStore( EXTRACTOR.getPartitionKey( generateTuple( partitionId, keys ) ) );
                 fail();
             }
             catch ( NullPointerException expected )

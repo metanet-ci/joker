@@ -6,7 +6,7 @@ import java.util.function.Supplier;
 import org.junit.Before;
 import org.mockito.Mock;
 
-import cs.bilkent.joker.engine.kvstore.KVStoreContext;
+import cs.bilkent.joker.engine.kvstore.OperatorKVStore;
 import cs.bilkent.joker.engine.partition.PartitionKey;
 import cs.bilkent.joker.engine.partition.impl.PartitionKey1;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaInitializationTest.newUpstreamContextInstance;
@@ -40,7 +40,7 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
     protected OperatorDef operatorDef;
 
     @Mock
-    protected KVStoreContext kvStoreContext;
+    protected OperatorKVStore operatorKvStore;
 
     @Mock
     protected KVStore kvStore;
@@ -66,9 +66,7 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
     public void before ()
     {
         operatorReplica = new OperatorReplica( new PipelineReplicaId( new PipelineId( 0, 0 ), 0 ),
-                                               operatorDef,
-                                               queue,
-                                               kvStoreContext,
+                                               operatorDef, queue, operatorKvStore,
                                                drainerPool,
                                                outputSupplier,
                                                invocationContext );
@@ -81,7 +79,7 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
         when( operatorDef.id() ).thenReturn( "op1" );
         when( drainerPool.acquire( any( SchedulingStrategy.class ) ) ).thenReturn( drainer );
         when( drainer.getKey() ).thenReturn( key );
-        when( kvStoreContext.getKVStore( key ) ).thenReturn( kvStore );
+        when( operatorKvStore.getKVStore( key ) ).thenReturn( kvStore );
     }
 
     protected void initializeOperatorReplica ( final int inputPortCount,
@@ -116,14 +114,14 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
 
     protected void assertOperatorInvocation ()
     {
-        verify( kvStoreContext ).getKVStore( key );
+        verify( operatorKvStore ).getKVStore( key );
         verify( operator ).invoke( invocationContext );
         verify( drainer ).reset();
     }
 
     protected void assertNoOperatorInvocation ()
     {
-        verify( kvStoreContext, never() ).getKVStore( key );
+        verify( operatorKvStore, never() ).getKVStore( key );
         verify( operator, never() ).invoke( invocationContext );
     }
 

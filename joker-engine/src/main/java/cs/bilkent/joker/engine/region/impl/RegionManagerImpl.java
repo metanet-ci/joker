@@ -18,11 +18,11 @@ import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.config.ThreadingPreference;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.SINGLE_THREADED;
-import cs.bilkent.joker.engine.kvstore.KVStoreContext;
-import cs.bilkent.joker.engine.kvstore.KVStoreContextManager;
-import cs.bilkent.joker.engine.kvstore.impl.DefaultKVStoreContext;
-import cs.bilkent.joker.engine.kvstore.impl.EmptyKVStoreContext;
-import cs.bilkent.joker.engine.kvstore.impl.PartitionedKVStoreContext;
+import cs.bilkent.joker.engine.kvstore.OperatorKVStore;
+import cs.bilkent.joker.engine.kvstore.OperatorKVStoreManager;
+import cs.bilkent.joker.engine.kvstore.impl.DefaultOperatorKVStore;
+import cs.bilkent.joker.engine.kvstore.impl.EmptyOperatorKVStore;
+import cs.bilkent.joker.engine.kvstore.impl.PartitionedOperatorKVStore;
 import cs.bilkent.joker.engine.pipeline.OperatorReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
@@ -62,7 +62,7 @@ public class RegionManagerImpl implements RegionManager
 
     private final JokerConfig config;
 
-    private final KVStoreContextManager kvStoreContextManager;
+    private final OperatorKVStoreManager operatorKvStoreManager;
 
     private final OperatorTupleQueueManager operatorTupleQueueManager;
 
@@ -71,13 +71,12 @@ public class RegionManagerImpl implements RegionManager
     private final Map<Integer, Region> regions = new HashMap<>();
 
     @Inject
-    public RegionManagerImpl ( final JokerConfig config,
-                               final KVStoreContextManager kvStoreContextManager,
+    public RegionManagerImpl ( final JokerConfig config, final OperatorKVStoreManager operatorKvStoreManager,
                                final OperatorTupleQueueManager operatorTupleQueueManager,
                                final PipelineTransformer pipelineTransformer )
     {
         this.config = config;
-        this.kvStoreContextManager = kvStoreContextManager;
+        this.operatorKvStoreManager = operatorKvStoreManager;
         this.operatorTupleQueueManager = operatorTupleQueueManager;
         this.pipelineTransformer = pipelineTransformer;
     }
@@ -126,7 +125,7 @@ public class RegionManagerImpl implements RegionManager
                                                                                            isFirstOperator,
                                                                                            operatorDef );
 
-                final KVStoreContext[] kvStoreContexts = createKvStoreContexts( regionId, replicaCount, operatorDef );
+                final OperatorKVStore[] operatorKvStores = createOperatorKVStores( regionId, replicaCount, operatorDef );
 
                 final boolean isLastOperator = operatorIndex == ( operatorCount - 1 );
                 final Supplier<TuplesImpl>[] outputSuppliers = createOutputSuppliers( regionId, replicaCount, isLastOperator, operatorDef );
@@ -136,7 +135,7 @@ public class RegionManagerImpl implements RegionManager
                     operatorReplicas[ replicaIndex ][ operatorIndex ] = new OperatorReplica( pipelineReplicaIds[ replicaIndex ],
                                                                                              operatorDef,
                                                                                              operatorTupleQueues[ replicaIndex ],
-                                                                                             kvStoreContexts[ replicaIndex ],
+                                                                                             operatorKvStores[ replicaIndex ],
                                                                                              drainerPools[ replicaIndex ],
                                                                                              outputSuppliers[ replicaIndex ] );
                 }
@@ -339,21 +338,21 @@ public class RegionManagerImpl implements RegionManager
                     {
                         if ( operatorDef.operatorType() == STATEFUL )
                         {
-                            LOGGER.info( "Releasing default kv store context of Operator {} in Pipeline {}",
+                            LOGGER.info( "Releasing default operator kvStore of Operator {} in Pipeline {}",
                                          operatorDef.id(),
                                          pipelineReplica.id() );
-                            checkState( kvStoreContextManager.releaseDefaultKVStoreContext( regionId, operatorDef.id() ),
-                                        "Cannot release default kv store context of Operator %s in Pipeline %s",
+                            checkState( operatorKvStoreManager.releaseDefaultOperatorKVStore( regionId, operatorDef.id() ),
+                                        "Cannot release default operator kvStore of Operator %s in Pipeline %s",
                                         operatorDef.id(),
                                         pipelineReplica.id() );
                         }
                         else if ( operatorDef.operatorType() == PARTITIONED_STATEFUL )
                         {
-                            LOGGER.info( "Releasing partitioned kv store context of Operator {} in Pipeline {}",
+                            LOGGER.info( "Releasing partitioned operator kvStore of Operator {} in Pipeline {}",
                                          operatorDef.id(),
                                          pipelineReplica.id() );
-                            checkState( kvStoreContextManager.releasePartitionedKVStoreContext( regionId, operatorDef.id() ),
-                                        "Cannot release partitioned kv store context of Operator %s in Pipeline %s",
+                            checkState( operatorKvStoreManager.releasePartitionedOperatorKVStore( regionId, operatorDef.id() ),
+                                        "Cannot release partitioned operator kvStore of Operator %s in Pipeline %s",
                                         operatorDef.id(),
                                         pipelineReplica.id() );
                         }
@@ -465,36 +464,35 @@ public class RegionManagerImpl implements RegionManager
         return drainerPools;
     }
 
-    private KVStoreContext[] createKvStoreContexts ( final int regionId, final int replicaCount, final OperatorDef operatorDef )
+    private OperatorKVStore[] createOperatorKVStores ( final int regionId, final int replicaCount, final OperatorDef operatorDef )
     {
         final String operatorId = operatorDef.id();
-        final KVStoreContext[] kvStoreContexts;
+        final OperatorKVStore[] operatorKvStores;
         if ( operatorDef.operatorType() == STATELESS )
         {
-            LOGGER.info( "Creating {} for regionId={} operatorId={}", EmptyKVStoreContext.class.getSimpleName(), regionId, operatorId );
-            kvStoreContexts = new KVStoreContext[ replicaCount ];
+            LOGGER.info( "Creating {} for regionId={} operatorId={}", EmptyOperatorKVStore.class.getSimpleName(), regionId, operatorId );
+            operatorKvStores = new OperatorKVStore[ replicaCount ];
             for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
             {
 
-                kvStoreContexts[ replicaIndex ] = new EmptyKVStoreContext( operatorId );
+                operatorKvStores[ replicaIndex ] = new EmptyOperatorKVStore( operatorId );
             }
         }
         else if ( operatorDef.operatorType() == PARTITIONED_STATEFUL )
         {
-            LOGGER.info( "Creating {} for regionId={} operatorId={}",
-                         PartitionedKVStoreContext.class.getSimpleName(),
+            LOGGER.info( "Creating {} for regionId={} operatorId={}", PartitionedOperatorKVStore.class.getSimpleName(),
                          regionId,
                          operatorId );
-            kvStoreContexts = kvStoreContextManager.createPartitionedKVStoreContexts( regionId, replicaCount, operatorId );
+            operatorKvStores = operatorKvStoreManager.createPartitionedOperatorKVStore( regionId, replicaCount, operatorId );
         }
         else
         {
-            LOGGER.info( "Creating {} for regionId={} operatorId={}", DefaultKVStoreContext.class.getSimpleName(), regionId, operatorId );
+            LOGGER.info( "Creating {} for regionId={} operatorId={}", DefaultOperatorKVStore.class.getSimpleName(), regionId, operatorId );
             checkArgument( replicaCount == 1, "invalid replica count for operator %s in region %s", operatorDef.id(), regionId );
-            kvStoreContexts = new KVStoreContext[ 1 ];
-            kvStoreContexts[ 0 ] = kvStoreContextManager.createDefaultKVStoreContext( regionId, operatorId );
+            operatorKvStores = new OperatorKVStore[ 1 ];
+            operatorKvStores[ 0 ] = operatorKvStoreManager.createDefaultOperatorKVStore( regionId, operatorId );
         }
-        return kvStoreContexts;
+        return operatorKvStores;
     }
 
     private Supplier<TuplesImpl>[] createOutputSuppliers ( final int regionId,

@@ -21,9 +21,9 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import cs.bilkent.joker.engine.config.JokerConfig;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.SINGLE_THREADED;
-import cs.bilkent.joker.engine.kvstore.KVStoreContext;
+import cs.bilkent.joker.engine.kvstore.OperatorKVStore;
 import cs.bilkent.joker.engine.kvstore.impl.KVStoreContainer;
-import cs.bilkent.joker.engine.kvstore.impl.KVStoreContextManagerImpl;
+import cs.bilkent.joker.engine.kvstore.impl.OperatorKVStoreManagerImpl;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.PartitionServiceImpl;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
@@ -91,9 +91,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
     private OperatorTupleQueueManagerImpl operatorTupleQueueManager;
 
-    private KVStoreContextManagerImpl kvStoreContextManager;
+    private OperatorKVStoreManagerImpl operatorKVStoreManager;
 
-    private final KVStoreContext nopKvStoreContext = mock( KVStoreContext.class );
+    private final OperatorKVStore nopOperatorKvStore = mock( OperatorKVStore.class );
 
     private final PipelineReplicaId pipelineReplicaId1 = new PipelineReplicaId( new PipelineId( 0, 0 ), 0 );
 
@@ -108,7 +108,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         operatorTupleQueueManager = new OperatorTupleQueueManagerImpl( jokerConfig,
                                                                        partitionService,
                                                                        new PartitionKeyExtractorFactoryImpl() );
-        kvStoreContextManager = new KVStoreContextManagerImpl( partitionService );
+        operatorKVStoreManager = new OperatorKVStoreManagerImpl( partitionService );
     }
 
     @Test
@@ -129,9 +129,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final TupleQueueDrainerPool drainerPool = new BlockingTupleQueueDrainerPool( jokerConfig, mapperOperatorDef );
         final Supplier<TuplesImpl> tuplesImplSupplier = new NonCachedTuplesImplSupplier( mapperOperatorDef.outputPortCount() );
 
-        final OperatorReplica operator = new OperatorReplica( pipelineReplicaId1,
-                                                              mapperOperatorDef, operatorTupleQueue,
-                                                              nopKvStoreContext,
+        final OperatorReplica operator = new OperatorReplica( pipelineReplicaId1, mapperOperatorDef, operatorTupleQueue, nopOperatorKvStore,
                                                               drainerPool,
                                                               tuplesImplSupplier );
         final PipelineReplica pipeline = new PipelineReplica( jokerConfig,
@@ -192,8 +190,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final Supplier<TuplesImpl> mapperTuplesImplSupplier = new CachedTuplesImplSupplier( mapperOperatorDef.outputPortCount() );
 
         final OperatorReplica mapperOperator = new OperatorReplica( pipelineReplicaId1,
-                                                                    mapperOperatorDef, mapperOperatorTupleQueue,
-                                                                    nopKvStoreContext,
+                                                                    mapperOperatorDef,
+                                                                    mapperOperatorTupleQueue,
+                                                                    nopOperatorKvStore,
                                                                     mapperDrainerPool,
                                                                     mapperTuplesImplSupplier );
 
@@ -213,8 +212,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final Supplier<TuplesImpl> filterTuplesImplSupplier = new NonCachedTuplesImplSupplier( filterOperatorDef.inputPortCount() );
 
         final OperatorReplica filterOperator = new OperatorReplica( pipelineReplicaId1,
-                                                                    filterOperatorDef, filterOperatorTupleQueue,
-                                                                    nopKvStoreContext,
+                                                                    filterOperatorDef,
+                                                                    filterOperatorTupleQueue,
+                                                                    nopOperatorKvStore,
                                                                     filterDrainerPool,
                                                                     filterTuplesImplSupplier );
 
@@ -286,7 +286,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final OperatorReplica generatorOperator = new OperatorReplica( pipelineReplicaId1,
                                                                        generatorOperatorDef, generatorOperatorTupleQueue,
-                                                                       nopKvStoreContext,
+                                                                       nopOperatorKvStore,
                                                                        generatorDrainerPool,
                                                                        generatorTuplesImplSupplier );
 
@@ -306,12 +306,13 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final Supplier<TuplesImpl> passerTuplesImplSupplier = new CachedTuplesImplSupplier( passerOperatorDef.outputPortCount() );
 
         final OperatorReplica passerOperator = new OperatorReplica( pipelineReplicaId1,
-                                                                    passerOperatorDef, passerOperatorTupleQueue,
-                                                                    nopKvStoreContext,
+                                                                    passerOperatorDef,
+                                                                    passerOperatorTupleQueue,
+                                                                    nopOperatorKvStore,
                                                                     passerDrainerPool,
                                                                     passerTuplesImplSupplier );
 
-        final KVStoreContext[] kvStoreContexts = kvStoreContextManager.createPartitionedKVStoreContexts( REGION_ID, 1, "state" );
+        final OperatorKVStore[] operatorKvStores = operatorKVStoreManager.createPartitionedOperatorKVStore( REGION_ID, 1, "state" );
 
         final OperatorDef stateOperatorDef = OperatorDefBuilder.newInstance( "state", ValueStateOperator.class )
                                                                .setPartitionFieldNames( singletonList( "val" ) )
@@ -327,8 +328,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final Supplier<TuplesImpl> stateTuplesImplSupplier = new CachedTuplesImplSupplier( stateOperatorDef.outputPortCount() );
 
         final OperatorReplica stateOperator = new OperatorReplica( pipelineReplicaId1,
-                                                                   stateOperatorDef, stateOperatorTupleQueue,
-                                                                   kvStoreContexts[ 0 ],
+                                                                   stateOperatorDef, stateOperatorTupleQueue, operatorKvStores[ 0 ],
                                                                    stateDrainerPool,
                                                                    stateTuplesImplSupplier );
 
@@ -393,8 +393,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final Supplier<TuplesImpl> mapperTuplesImplSupplier = new NonCachedTuplesImplSupplier( mapperOperatorDef.outputPortCount() );
 
         final OperatorReplica mapperOperator = new OperatorReplica( pipelineReplicaId1,
-                                                                    mapperOperatorDef, mapperOperatorTupleQueue,
-                                                                    nopKvStoreContext,
+                                                                    mapperOperatorDef,
+                                                                    mapperOperatorTupleQueue,
+                                                                    nopOperatorKvStore,
                                                                     mapperDrainerPool,
                                                                     mapperTuplesImplSupplier );
 
@@ -423,8 +424,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final Supplier<TuplesImpl> filterTuplesImplSupplier = new NonCachedTuplesImplSupplier( filterOperatorDef.inputPortCount() );
 
         final OperatorReplica filterOperator = new OperatorReplica( pipelineReplicaId2,
-                                                                    filterOperatorDef, filterOperatorTupleQueue,
-                                                                    nopKvStoreContext,
+                                                                    filterOperatorDef,
+                                                                    filterOperatorTupleQueue,
+                                                                    nopOperatorKvStore,
                                                                     filterDrainerPool,
                                                                     filterTuplesImplSupplier );
 
@@ -511,7 +513,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final OperatorReplica generatorOperator1 = new OperatorReplica( pipelineReplicaId1,
                                                                         generatorOperatorDef1, generatorOperatorTupleQueue1,
-                                                                        nopKvStoreContext,
+                                                                        nopOperatorKvStore,
                                                                         generatorDrainerPool1,
                                                                         generatorTuplesImplSupplier1 );
 
@@ -540,7 +542,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final OperatorReplica generatorOperator2 = new OperatorReplica( pipelineReplicaId2,
                                                                         generatorOperatorDef2, generatorOperatorTupleQueue2,
-                                                                        nopKvStoreContext,
+                                                                        nopOperatorKvStore,
                                                                         generatorDrainerPool2,
                                                                         generatorTuplesImplSupplier2 );
 
@@ -565,11 +567,12 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final TupleQueueDrainerPool sinkDrainerPool = new BlockingTupleQueueDrainerPool( jokerConfig, sinkOperatorDef );
         final Supplier<TuplesImpl> sinkTuplesImplSupplier = new CachedTuplesImplSupplier( sinkOperatorDef.outputPortCount() );
 
-        final KVStoreContext sinkKVStoreContext = kvStoreContextManager.createDefaultKVStoreContext( REGION_ID, "sink" );
+        final OperatorKVStore sinkOperatorKVStore = operatorKVStoreManager.createDefaultOperatorKVStore( REGION_ID, "sink" );
 
         final OperatorReplica sinkOperator = new OperatorReplica( pipelineReplicaId3,
-                                                                  sinkOperatorDef, sinkOperatorTupleQueue,
-                                                                  sinkKVStoreContext,
+                                                                  sinkOperatorDef,
+                                                                  sinkOperatorTupleQueue,
+                                                                  sinkOperatorKVStore,
                                                                   sinkDrainerPool,
                                                                   sinkTuplesImplSupplier );
 
@@ -589,12 +592,13 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final Supplier<TuplesImpl> passerTuplesImplSupplier = new CachedTuplesImplSupplier( passerOperatorDef.outputPortCount() );
 
         final OperatorReplica passerOperator = new OperatorReplica( pipelineReplicaId3,
-                                                                    passerOperatorDef, passerOperatorTupleQueue,
-                                                                    nopKvStoreContext,
+                                                                    passerOperatorDef,
+                                                                    passerOperatorTupleQueue,
+                                                                    nopOperatorKvStore,
                                                                     passerDrainerPool,
                                                                     passerTuplesImplSupplier );
 
-        final KVStoreContext[] kvStoreContexts = kvStoreContextManager.createPartitionedKVStoreContexts( REGION_ID, 1, "state" );
+        final OperatorKVStore[] operatorKvStores = operatorKVStoreManager.createPartitionedOperatorKVStore( REGION_ID, 1, "state" );
 
         final OperatorDef stateOperatorDef = OperatorDefBuilder.newInstance( "state", ValueStateOperator.class )
                                                                .setPartitionFieldNames( singletonList( "val" ) )
@@ -610,8 +614,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final Supplier<TuplesImpl> stateTuplesImplSupplier = new CachedTuplesImplSupplier( stateOperatorDef.outputPortCount() );
 
         final OperatorReplica stateOperator = new OperatorReplica( pipelineReplicaId3,
-                                                                   stateOperatorDef, stateOperatorTupleQueue,
-                                                                   kvStoreContexts[ 0 ],
+                                                                   stateOperatorDef, stateOperatorTupleQueue, operatorKvStores[ 0 ],
                                                                    stateDrainerPool,
                                                                    stateTuplesImplSupplier );
 
@@ -700,7 +703,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final OperatorReplica generatorOperator = new OperatorReplica( pipelineReplicaId1,
                                                                        generatorOperatorDef, generatorOperatorTupleQueue,
-                                                                       nopKvStoreContext,
+                                                                       nopOperatorKvStore,
                                                                        generatorDrainerPool,
                                                                        generatorTuplesImplSupplier );
 
@@ -720,12 +723,13 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final Supplier<TuplesImpl> passerTuplesImplSupplier = new CachedTuplesImplSupplier( passerOperatorDef.outputPortCount() );
 
         final OperatorReplica passerOperator = new OperatorReplica( pipelineReplicaId1,
-                                                                    passerOperatorDef, passerOperatorTupleQueue,
-                                                                    nopKvStoreContext,
+                                                                    passerOperatorDef,
+                                                                    passerOperatorTupleQueue,
+                                                                    nopOperatorKvStore,
                                                                     passerDrainerPool,
                                                                     passerTuplesImplSupplier );
 
-        final KVStoreContext[] kvStoreContexts = kvStoreContextManager.createPartitionedKVStoreContexts( REGION_ID, 1, "state" );
+        final OperatorKVStore[] operatorKvStores = operatorKVStoreManager.createPartitionedOperatorKVStore( REGION_ID, 1, "state" );
 
         final OperatorDef stateOperatorDef = OperatorDefBuilder.newInstance( "state", ValueStateOperator.class )
                                                                .setPartitionFieldNames( singletonList( "val" ) )
@@ -741,8 +745,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final Supplier<TuplesImpl> stateTuplesImplSupplier = new CachedTuplesImplSupplier( stateOperatorDef.outputPortCount() );
 
         final OperatorReplica stateOperator = new OperatorReplica( pipelineReplicaId2,
-                                                                   stateOperatorDef, stateOperatorTupleQueue,
-                                                                   kvStoreContexts[ 0 ],
+                                                                   stateOperatorDef, stateOperatorTupleQueue, operatorKvStores[ 0 ],
                                                                    stateDrainerPool,
                                                                    stateTuplesImplSupplier );
 
@@ -805,7 +808,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     private int getKVStoreTotalItemCount ( final int regionId, final String operatorId )
     {
         int count = 0;
-        for ( KVStoreContainer container : kvStoreContextManager.getKVStoreContainers( regionId, operatorId ) )
+        for ( KVStoreContainer container : operatorKVStoreManager.getKVStoreContainers( regionId, operatorId ) )
         {
             count += container.getKeyCount();
         }

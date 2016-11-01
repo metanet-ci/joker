@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.exception.InitializationException;
-import cs.bilkent.joker.engine.kvstore.KVStoreContext;
+import cs.bilkent.joker.engine.kvstore.OperatorKVStore;
 import cs.bilkent.joker.engine.partition.PartitionKey;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETED;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETING;
@@ -65,7 +65,7 @@ public class OperatorReplica
 
     private final OperatorTupleQueue queue;
 
-    private final KVStoreContext kvStoreContext;
+    private final OperatorKVStore operatorKvStore;
 
     private final TupleQueueDrainerPool drainerPool;
 
@@ -100,17 +100,15 @@ public class OperatorReplica
     private int operatorInvocationCount;
 
     public OperatorReplica ( final PipelineReplicaId pipelineReplicaId,
-                             final OperatorDef operatorDef, final OperatorTupleQueue queue,
-                             final KVStoreContext kvStoreContext,
+                             final OperatorDef operatorDef, final OperatorTupleQueue queue, final OperatorKVStore operatorKvStore,
                              final TupleQueueDrainerPool drainerPool,
                              final Supplier<TuplesImpl> outputSupplier )
     {
-        this( pipelineReplicaId, operatorDef, queue, kvStoreContext, drainerPool, outputSupplier, new InvocationContextImpl() );
+        this( pipelineReplicaId, operatorDef, queue, operatorKvStore, drainerPool, outputSupplier, new InvocationContextImpl() );
     }
 
     public OperatorReplica ( final PipelineReplicaId pipelineReplicaId,
-                             final OperatorDef operatorDef, final OperatorTupleQueue queue,
-                             final KVStoreContext kvStoreContext,
+                             final OperatorDef operatorDef, final OperatorTupleQueue queue, final OperatorKVStore operatorKvStore,
                              final TupleQueueDrainerPool drainerPool,
                              final Supplier<TuplesImpl> outputSupplier,
                              final InvocationContextImpl invocationContext )
@@ -119,7 +117,7 @@ public class OperatorReplica
         this.operatorName = pipelineReplicaId.toString() + ".Operator<" + operatorDef.id() + ">";
         this.queue = queue;
         this.operatorDef = operatorDef;
-        this.kvStoreContext = kvStoreContext;
+        this.operatorKvStore = operatorKvStore;
         this.drainerPool = drainerPool;
         this.invocationContext = invocationContext;
         this.outputSupplier = outputSupplier;
@@ -369,7 +367,7 @@ public class OperatorReplica
                                         final TuplesImpl output,
                                         final PartitionKey key )
     {
-        final KVStore kvStore = kvStoreContext.getKVStore( key );
+        final KVStore kvStore = operatorKvStore.getKVStore( key );
         final TuplesImpl invocationOutput = output != null ? output : outputSupplier.get();
         invocationContext.setInvocationParameters( reason, input, invocationOutput, kvStore );
         operator.invoke( invocationContext );
@@ -496,8 +494,7 @@ public class OperatorReplica
 
         final OperatorReplica duplicate = new OperatorReplica( pipelineReplicaId,
                                                                this.operatorDef,
-                                                               queue,
-                                                               this.kvStoreContext,
+                                                               queue, this.operatorKvStore,
                                                                drainerPool,
                                                                outputSupplier );
 
@@ -551,9 +548,9 @@ public class OperatorReplica
         return operator;
     }
 
-    public KVStoreContext getKvStoreContext ()
+    public OperatorKVStore getOperatorKvStore ()
     {
-        return kvStoreContext;
+        return operatorKvStore;
     }
 
     public OperatorTupleQueue getQueue ()

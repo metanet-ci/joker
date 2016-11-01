@@ -8,8 +8,8 @@ import static com.google.inject.name.Names.named;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_ID;
 import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_THREAD_GROUP_NAME;
-import cs.bilkent.joker.engine.kvstore.KVStoreContextManager;
-import cs.bilkent.joker.engine.kvstore.impl.KVStoreContextManagerImpl;
+import cs.bilkent.joker.engine.kvstore.OperatorKVStoreManager;
+import cs.bilkent.joker.engine.kvstore.impl.OperatorKVStoreManagerImpl;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractorFactory;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.PartitionServiceImpl;
@@ -72,7 +72,7 @@ public class JokerModule extends AbstractModule
     protected void configure ()
     {
         bind( PartitionService.class ).to( PartitionServiceImpl.class );
-        bind( KVStoreContextManager.class ).to( KVStoreContextManagerImpl.class );
+        bind( OperatorKVStoreManager.class ).to( OperatorKVStoreManagerImpl.class );
         bind( OperatorTupleQueueManager.class ).to( OperatorTupleQueueManagerImpl.class );
         bind( RegionManager.class ).to( RegionManagerImpl.class );
         bind( RegionDefFormer.class ).to( RegionDefFormerImpl.class );

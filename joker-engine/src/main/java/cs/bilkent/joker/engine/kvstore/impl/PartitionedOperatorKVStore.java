@@ -6,15 +6,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static cs.bilkent.joker.com.google.common.base.Preconditions.checkArgument;
-import cs.bilkent.joker.engine.kvstore.KVStoreContext;
+import cs.bilkent.joker.engine.kvstore.OperatorKVStore;
 import cs.bilkent.joker.engine.partition.PartitionKey;
 import static cs.bilkent.joker.engine.partition.PartitionUtil.getPartitionId;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 
-public class PartitionedKVStoreContext implements KVStoreContext
+public class PartitionedOperatorKVStore implements OperatorKVStore
 {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger( PartitionedKVStoreContext.class );
+    private static final Logger LOGGER = LoggerFactory.getLogger( PartitionedOperatorKVStore.class );
 
 
     private final String operatorId;
@@ -25,10 +25,10 @@ public class PartitionedKVStoreContext implements KVStoreContext
 
     private final int partitionCount;
 
-    PartitionedKVStoreContext ( final String operatorId,
-                                final int replicaIndex,
-                                final KVStoreContainer[] kvStoreContainers,
-                                final int[] partitions )
+    PartitionedOperatorKVStore ( final String operatorId,
+                                 final int replicaIndex,
+                                 final KVStoreContainer[] kvStoreContainers,
+                                 final int[] partitions )
     {
         this.operatorId = operatorId;
         this.replicaIndex = replicaIndex;
@@ -65,7 +65,7 @@ public class PartitionedKVStoreContext implements KVStoreContext
 
     public void acquirePartitions ( final KVStoreContainer[] partitions )
     {
-        checkArgument( partitions != null, "cannot acquire null partitions in kv store context of operatorId=%s replicaIndex=%s",
+        checkArgument( partitions != null, "cannot acquire null partitions in operator kvStore of operatorId=%s replicaIndex=%s",
                        operatorId,
                        replicaIndex );
         for ( KVStoreContainer partition : partitions )

@@ -11,7 +11,7 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import cs.bilkent.joker.engine.exception.InitializationException;
-import cs.bilkent.joker.engine.kvstore.KVStoreContext;
+import cs.bilkent.joker.engine.kvstore.OperatorKVStore;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIALIZATION_FAILED;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.RUNNING;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
@@ -61,8 +61,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
     public void before () throws InstantiationException, IllegalAccessException
     {
         operatorReplica = new OperatorReplica( new PipelineReplicaId( new PipelineId( 0, 0 ), 0 ),
-                                               operatorDef, mock( OperatorTupleQueue.class ),
-                                               mock( KVStoreContext.class ),
+                                               operatorDef, mock( OperatorTupleQueue.class ), mock( OperatorKVStore.class ),
                                                drainerPool,
                                                mock( Supplier.class ),
                                                new InvocationContextImpl() );

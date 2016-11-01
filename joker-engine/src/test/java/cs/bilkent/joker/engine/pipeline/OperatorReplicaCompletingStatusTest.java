@@ -137,7 +137,7 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
         expected.set( "f1", "val1" );
         verify( queue ).offer( 0, singletonList( expected ) );
         verify( queue ).drain( drainer );
-        verify( kvStoreContext ).getKVStore( null );
+        verify( operatorKvStore ).getKVStore( null );
         verify( operator ).invoke( invocationContext );
         verify( drainer ).reset();
         verify( drainerPool, never() ).release( drainer );
@@ -181,7 +181,7 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
         expected.set( "f1", "val1" );
         verify( queue ).offer( 0, singletonList( expected ) );
         verify( queue ).drain( drainer );
-        verify( kvStoreContext ).getKVStore( null );
+        verify( operatorKvStore ).getKVStore( null );
         verify( operator ).invoke( invocationContext );
         verify( drainer ).reset();
         verify( drainerPool ).release( drainer );
@@ -219,7 +219,7 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
         reset( drainerPool );
         reset( outputSupplier );
         reset( operator );
-        reset( kvStoreContext );
+        reset( operatorKvStore );
         applyDefaultMocks();
     }
 
