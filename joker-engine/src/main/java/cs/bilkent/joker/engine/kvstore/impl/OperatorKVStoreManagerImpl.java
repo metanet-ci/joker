@@ -1,7 +1,8 @@
 package cs.bilkent.joker.engine.kvstore.impl;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.inject.Singleton;
@@ -17,6 +18,7 @@ import cs.bilkent.joker.engine.partition.PartitionDistribution;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.operator.kvstore.impl.InMemoryKVStore;
 import cs.bilkent.joker.utils.Pair;
+import static java.util.Arrays.copyOf;
 
 @Singleton
 @NotThreadSafe
@@ -28,7 +30,7 @@ public class OperatorKVStoreManagerImpl implements OperatorKVStoreManager
 
     private final Map<Pair<Integer, String>, DefaultOperatorKVStore> defaultOperatorKVStores = new HashMap<>();
 
-    private final Map<Pair<Integer, String>, PartitionedOperatorKVStore[]> partitionedOperatorKvStores = new HashMap<>();
+    private final Map<Pair<Integer, String>, PartitionedOperatorKVStore[]> partitionedOperatorKVStores = new HashMap<>();
 
     private final Map<Pair<Integer, String>, KVStoreContainer[]> kvStoreContainersByOperatorId = new HashMap<>();
 
@@ -39,14 +41,13 @@ public class OperatorKVStoreManagerImpl implements OperatorKVStoreManager
         checkArgument( operatorId != null, "null operatorId for regionId %s", regionId );
 
         final Pair<Integer, String> key = Pair.of( regionId, operatorId );
-        checkState( !defaultOperatorKVStores.containsKey( key ),
-                    "default operator tuple queue already exists for regionId=%s operatorId=%s",
+        checkState( !defaultOperatorKVStores.containsKey( key ), "default kv store already exists for regionId=%s operatorId=%s",
                     regionId,
                     operatorId );
 
         final DefaultOperatorKVStore operatorKVStore = new DefaultOperatorKVStore( operatorId, new InMemoryKVStore() );
         defaultOperatorKVStores.put( key, operatorKVStore );
-        LOGGER.info( "default operator kv store is created for operator: {}", operatorId );
+        LOGGER.info( "default kv store is created for operator: {}", operatorId );
 
         return operatorKVStore;
     }
@@ -57,9 +58,9 @@ public class OperatorKVStoreManagerImpl implements OperatorKVStoreManager
     }
 
     @Override
-    public OperatorKVStore[] createPartitionedOperatorKVStore ( final int regionId,
-                                                                final String operatorId,
-                                                                final PartitionDistribution partitionDistribution )
+    public OperatorKVStore[] createPartitionedOperatorKVStores ( final int regionId,
+                                                                 final String operatorId,
+                                                                 final PartitionDistribution partitionDistribution )
     {
         checkArgument( regionId >= 0, "invalid regionId %s", regionId );
         checkArgument( operatorId != null, "null operatorId for regionId %s", regionId );
@@ -69,8 +70,7 @@ public class OperatorKVStoreManagerImpl implements OperatorKVStoreManager
                        regionId );
 
         final Pair<Integer, String> key = Pair.of( regionId, operatorId );
-        checkState( !partitionedOperatorKvStores.containsKey( key ),
-                    "partitioned operator tuple queue already exists for regionId=%s operatorId=%s",
+        checkState( !partitionedOperatorKVStores.containsKey( key ), "partitioned kv stores already exists for regionId=%s operatorId=%s",
                     regionId,
                     operatorId );
 
@@ -89,21 +89,121 @@ public class OperatorKVStoreManagerImpl implements OperatorKVStoreManager
             operatorKVStores[ replicaIndex ] = new PartitionedOperatorKVStore( operatorId, replicaIndex, containers, partitions );
         }
 
-        partitionedOperatorKvStores.put( key, operatorKVStores );
+        partitionedOperatorKVStores.put( key, operatorKVStores );
         LOGGER.info( "operator kv store is created with {} kvStores for operator: {}", partitionCount, operatorId );
 
         return operatorKVStores;
     }
 
+    @Override
+    public OperatorKVStore[] rebalancePartitionedOperatorKVStores ( final int regionId,
+                                                                    final String operatorId,
+                                                                    final PartitionDistribution currentPartitionDistribution,
+                                                                    final PartitionDistribution newPartitionDistribution )
+    {
+        final Pair<Integer, String> key = Pair.of( regionId, operatorId );
+        PartitionedOperatorKVStore[] kvStores = partitionedOperatorKVStores.get( key );
+        checkState( kvStores != null, "partitioned kv stores do not exist for regionId=%s operatorId=%s", regionId, operatorId );
+
+        final Map<Integer, KVStoreContainer> migratingPartitions = getMigratingPartitions( currentPartitionDistribution,
+                                                                                           newPartitionDistribution,
+                                                                                           kvStores );
+
+        kvStores = migratePartitions( currentPartitionDistribution, newPartitionDistribution, kvStores, migratingPartitions );
+
+        partitionedOperatorKVStores.put( key, kvStores );
+
+        return kvStores;
+    }
+
+    private Map<Integer, KVStoreContainer> getMigratingPartitions ( final PartitionDistribution currentPartitionDistribution,
+                                                                    final PartitionDistribution newPartitionDistribution,
+                                                                    final PartitionedOperatorKVStore[] queues )
+    {
+        final Map<Integer, KVStoreContainer> migratingPartitions = new HashMap<>();
+
+        for ( int replicaIndex = 0; replicaIndex < queues.length; replicaIndex++ )
+        {
+            final List<Integer> partitionIds = currentPartitionDistribution.getPartitionIdsMigratedFromReplicaIndex(
+                    newPartitionDistribution,
+                    replicaIndex );
+            if ( partitionIds.size() > 0 )
+            {
+                queues[ replicaIndex ].releasePartitions( partitionIds ).forEach( c -> migratingPartitions.put( c.getPartitionId(), c ) );
+            }
+        }
+
+        return migratingPartitions;
+    }
+
+    private PartitionedOperatorKVStore[] migratePartitions ( final PartitionDistribution currentPartitionDistribution,
+                                                             final PartitionDistribution newPartitionDistribution,
+                                                             final PartitionedOperatorKVStore[] kvStores,
+                                                             final Map<Integer, KVStoreContainer> movingPartitions )
+    {
+        final String operatorId = kvStores[ 0 ].getOperatorId();
+        final int currentReplicaCount = currentPartitionDistribution.getReplicaCount();
+        final int newReplicaCount = newPartitionDistribution.getReplicaCount();
+        final PartitionedOperatorKVStore[] newKVStores = copyOf( kvStores, newReplicaCount );
+        if ( currentReplicaCount > newReplicaCount )
+        {
+            for ( int replicaIndex = 0; replicaIndex < newReplicaCount; replicaIndex++ )
+            {
+                final List<KVStoreContainer> partitions = getPartitionsMigratedToReplicaIndex( currentPartitionDistribution,
+                                                                                               newPartitionDistribution,
+                                                                                               movingPartitions,
+                                                                                               replicaIndex );
+                newKVStores[ replicaIndex ].acquirePartitions( partitions );
+            }
+        }
+        else
+        {
+            for ( int replicaIndex = currentReplicaCount; replicaIndex < newReplicaCount; replicaIndex++ )
+            {
+                final int partitionCount = newPartitionDistribution.getPartitionCount();
+                final KVStoreContainer containers[] = new KVStoreContainer[ partitionCount ];
+                getPartitionsMigratedToReplicaIndex( currentPartitionDistribution,
+                                                     newPartitionDistribution,
+                                                     movingPartitions,
+                                                     replicaIndex ).forEach( p -> containers[ p.getPartitionId() ] = p );
+                newKVStores[ replicaIndex ] = new PartitionedOperatorKVStore( operatorId,
+                                                                              replicaIndex,
+                                                                              containers,
+                                                                              newPartitionDistribution.getDistribution() );
+
+            }
+        }
+
+        return newKVStores;
+    }
+
+    private List<KVStoreContainer> getPartitionsMigratedToReplicaIndex ( final PartitionDistribution currentPartitionDistribution,
+                                                                         final PartitionDistribution newPartitionDistribution,
+                                                                         final Map<Integer, KVStoreContainer> movingPartitions,
+                                                                         final int replicaIndex )
+    {
+        final List<Integer> partitionIds = currentPartitionDistribution.getPartitionIdsMigratedToReplicaIndex( newPartitionDistribution,
+                                                                                                               replicaIndex );
+
+        final List<KVStoreContainer> partitions = new ArrayList<>();
+        for ( Integer partitionId : partitionIds )
+        {
+            partitions.add( movingPartitions.remove( partitionId ) );
+        }
+
+        return partitions;
+    }
+
+
     public OperatorKVStore[] getPartitionedOperatorKVStore ( final int regionId, final String operatorId )
     {
-        return partitionedOperatorKvStores.get( Pair.of( regionId, operatorId ) );
+        return partitionedOperatorKVStores.get( Pair.of( regionId, operatorId ) );
     }
 
     public KVStoreContainer[] getKVStoreContainers ( final int regionId, final String operatorId )
     {
         final KVStoreContainer[] containers = kvStoreContainersByOperatorId.get( Pair.of( regionId, operatorId ) );
-        return containers != null ? Arrays.copyOf( containers, containers.length ) : null;
+        return containers != null ? copyOf( containers, containers.length ) : null;
     }
 
     @Override
@@ -121,9 +221,9 @@ public class OperatorKVStoreManagerImpl implements OperatorKVStoreManager
     }
 
     @Override
-    public void releasePartitionedOperatorKVStore ( final int regionId, final String operatorId )
+    public void releasePartitionedOperatorKVStores ( final int regionId, final String operatorId )
     {
-        final PartitionedOperatorKVStore[] operatorKVStores = partitionedOperatorKvStores.remove( Pair.of( regionId, operatorId ) );
+        final PartitionedOperatorKVStore[] operatorKVStores = partitionedOperatorKVStores.remove( Pair.of( regionId, operatorId ) );
         checkState( operatorKVStores != null,
                     "partitioned kv stores of regionId=%s operatorId=%s are not found for releasing",
                     regionId,

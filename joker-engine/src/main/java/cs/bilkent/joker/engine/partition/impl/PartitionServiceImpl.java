@@ -1,4 +1,4 @@
-package cs.bilkent.joker.engine.partition;
+package cs.bilkent.joker.engine.partition.impl;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,6 +19,8 @@ import com.google.inject.Singleton;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.config.JokerConfig;
+import cs.bilkent.joker.engine.partition.PartitionDistribution;
+import cs.bilkent.joker.engine.partition.PartitionService;
 import static java.lang.Integer.compare;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.shuffle;

@@ -7,10 +7,15 @@ public interface OperatorKVStoreManager
 
     OperatorKVStore createDefaultOperatorKVStore ( int regionId, String operatorId );
 
-    OperatorKVStore[] createPartitionedOperatorKVStore ( int regionId, String operatorId, PartitionDistribution partitionDistribution );
+    OperatorKVStore[] createPartitionedOperatorKVStores ( int regionId, String operatorId, PartitionDistribution partitionDistribution );
+
+    OperatorKVStore[] rebalancePartitionedOperatorKVStores ( int regionId,
+                                                             String operatorId,
+                                                             PartitionDistribution currentPartitionDistribution,
+                                                             PartitionDistribution newPartitionDistribution );
 
     void releaseDefaultOperatorKVStore ( int regionId, String operatorId );
 
-    void releasePartitionedOperatorKVStore ( int regionId, String operatorId );
+    void releasePartitionedOperatorKVStores ( int regionId, String operatorId );
 
 }

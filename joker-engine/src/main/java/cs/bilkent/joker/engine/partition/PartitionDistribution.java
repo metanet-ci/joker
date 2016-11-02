@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 import static java.util.Collections.unmodifiableList;
 
 public class PartitionDistribution
@@ -33,6 +35,7 @@ public class PartitionDistribution
         }
 
         this.partitionIdsByReplicaIndex = Collections.unmodifiableMap( partitionIdsByReplicaIndex );
+        checkArgument( this.partitionIdsByReplicaIndex.size() > 0, "no replica indices found in partition distribution!" );
     }
 
     public int[] getDistribution ()
@@ -50,80 +53,82 @@ public class PartitionDistribution
         return partitionIdsByReplicaIndex.size();
     }
 
-    public List<Integer> getPartitionsByReplicaIndex ( final int replicaIndex )
+    public int getReplicaIndex ( final int partitionId )
+    {
+        return distribution[ partitionId ];
+    }
+
+    public List<Integer> getPartitionIdsByReplicaIndex ( final int replicaIndex )
     {
         return partitionIdsByReplicaIndex.get( replicaIndex );
     }
 
-    public List<PartitionOwnershipChange> getPartitionsMovedToReplicaIndex ( final PartitionDistribution newDistribution,
-                                                                             final int replicaIndex )
+    public List<Integer> getPartitionIdsMigratedToReplicaIndex ( final PartitionDistribution other, final int replicaIndex )
     {
-        final List<PartitionOwnershipChange> changes = new ArrayList<>();
+        verifyReplicaCount( other );
+
+        final List<Integer> migrations = new ArrayList<>();
 
         for ( int partitionId = 0; partitionId < getPartitionCount(); partitionId++ )
         {
-            final int oldReplicaIndex = this.distribution[ partitionId ];
-            final int newReplicaIndex = newDistribution.distribution[ partitionId ];
-            if ( oldReplicaIndex != replicaIndex && newReplicaIndex == replicaIndex )
+            final int thisReplicaIndex = this.distribution[ partitionId ];
+            final int otherReplicaIndex = other.distribution[ partitionId ];
+            if ( thisReplicaIndex != replicaIndex && otherReplicaIndex == replicaIndex )
             {
-                changes.add( new PartitionOwnershipChange( partitionId, oldReplicaIndex, newReplicaIndex ) );
+                verifyMigrationReplicaIndices( other, thisReplicaIndex, otherReplicaIndex );
+                migrations.add( partitionId );
             }
         }
 
-        return changes;
+        return migrations;
     }
 
-    public List<PartitionOwnershipChange> getPartitionsMovedFromReplicaIndex ( final PartitionDistribution newDistribution,
-                                                                               final int replicaIndex )
+    public List<Integer> getPartitionIdsMigratedFromReplicaIndex ( final PartitionDistribution other, final int replicaIndex )
     {
-        final List<PartitionOwnershipChange> changes = new ArrayList<>();
+        verifyReplicaCount( other );
+
+        final List<Integer> migrations = new ArrayList<>();
 
         for ( int partitionId = 0; partitionId < getPartitionCount(); partitionId++ )
         {
-            final int oldReplicaIndex = this.distribution[ partitionId ];
-            final int newReplicaIndex = newDistribution.distribution[ partitionId ];
-            if ( oldReplicaIndex == replicaIndex && newReplicaIndex != replicaIndex )
+            final int thisReplicaIndex = this.distribution[ partitionId ];
+            final int otherReplicaIndex = other.distribution[ partitionId ];
+            if ( thisReplicaIndex == replicaIndex && otherReplicaIndex != replicaIndex )
             {
-                changes.add( new PartitionOwnershipChange( partitionId, oldReplicaIndex, newReplicaIndex ) );
+                verifyMigrationReplicaIndices( other, thisReplicaIndex, otherReplicaIndex );
+                migrations.add( partitionId );
             }
         }
 
-        return changes;
+        return migrations;
     }
 
-    public List<PartitionOwnershipChange> diff ( final PartitionDistribution newDistribution )
+    private void verifyReplicaCount ( final PartitionDistribution other )
     {
-        final List<PartitionOwnershipChange> changes = new ArrayList<>();
-
-        for ( int partitionId = 0; partitionId < getPartitionCount(); partitionId++ )
-        {
-            final int oldReplicaIndex = this.distribution[ partitionId ];
-            final int newReplicaIndex = newDistribution.distribution[ partitionId ];
-            if ( oldReplicaIndex != newReplicaIndex )
-            {
-                changes.add( new PartitionOwnershipChange( partitionId, oldReplicaIndex, newReplicaIndex ) );
-            }
-        }
-
-        return changes;
+        checkState( this.getReplicaCount() != other.getReplicaCount(),
+                    "both distributions have same replica count! this: {} other: {}",
+                    distribution,
+                    other.distribution );
     }
 
-    public static class PartitionOwnershipChange
+    private void verifyMigrationReplicaIndices ( final PartitionDistribution other,
+                                                 final int thisReplicaIndex,
+                                                 final int otherReplicaIndex )
     {
-
-        public final int partitionId;
-
-        public final int oldReplicaIndex;
-
-        public final int newReplicaIndex;
-
-        private PartitionOwnershipChange ( final int partitionId, final int oldReplicaIndex, final int newReplicaIndex )
+        if ( otherReplicaIndex > thisReplicaIndex )
         {
-            this.partitionId = partitionId;
-            this.oldReplicaIndex = oldReplicaIndex;
-            this.newReplicaIndex = newReplicaIndex;
+            checkState( otherReplicaIndex >= this.getReplicaCount() );
         }
+        else
+        {
+            checkState( thisReplicaIndex >= other.getReplicaCount() );
+        }
+    }
 
+    @Override
+    public String toString ()
+    {
+        return "PartitionDistribution{" + Arrays.toString( distribution ) + '}';
     }
 
 }

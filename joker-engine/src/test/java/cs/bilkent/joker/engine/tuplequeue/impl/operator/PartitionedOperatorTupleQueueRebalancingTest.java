@@ -1,6 +1,8 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.operator;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.BiFunction;
 
@@ -16,6 +18,7 @@ import cs.bilkent.joker.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.testutils.AbstractJokerTest;
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -33,9 +36,9 @@ public class PartitionedOperatorTupleQueueRebalancingTest extends AbstractJokerT
 
     private static final int REPLICA_INDEX = 0;
 
-    private static final int[] ACQUIRED_PARTITIONS = new int[] { 0, 1, 2, 3, 4 };
+    private static final List<Integer> ACQUIRED_PARTITIONS = asList( 0, 1, 2, 3, 4 );
 
-    private static final int[] NON_ACQUIRED_PARTITIONS = new int[] { 5, 6, 7, 8, 9 };
+    private static final List<Integer> NON_ACQUIRED_PARTITIONS = asList( 5, 6, 7, 8, 9 );
 
     private static final int PARTITION_COUNT = PARTITION_DISTRIBUTION.length;
 
@@ -67,24 +70,22 @@ public class PartitionedOperatorTupleQueueRebalancingTest extends AbstractJokerT
                                                                 PARTITION_DISTRIBUTION,
                                                                 Integer.MAX_VALUE );
 
-        for ( int i = 0; i < ACQUIRED_PARTITIONS.length; i++ )
+        for ( int partitionId : ACQUIRED_PARTITIONS )
         {
-            final int partitionId = ACQUIRED_PARTITIONS[ i ];
-            operatorTupleQueue.offer( 0, singletonList( generateTuple( partitionId, keys ) ) );
+            operatorTupleQueue.offer( 0, singletonList( generateTuple( partitionId ) ) );
         }
     }
 
     @Test
     public void shouldAcquireNewPartitions ()
     {
-        final TupleQueueContainer[] newPartitions = new TupleQueueContainer[ NON_ACQUIRED_PARTITIONS.length ];
+        final List<TupleQueueContainer> newPartitions = new ArrayList<>();
 
-        for ( int i = 0; i < newPartitions.length; i++ )
+        for ( int partitionId : NON_ACQUIRED_PARTITIONS )
         {
-            final int partitionId = NON_ACQUIRED_PARTITIONS[ i ];
             final TupleQueueContainer container = tupleQueueContainers[ partitionId ];
-            newPartitions[ i ] = container;
-            final Tuple tuple = generateTuple( partitionId, keys );
+            newPartitions.add( container );
+            final Tuple tuple = generateTuple( partitionId );
             container.offer( 0, tuple, EXTRACTOR.getPartitionKey( tuple ) );
         }
 
@@ -94,7 +95,7 @@ public class PartitionedOperatorTupleQueueRebalancingTest extends AbstractJokerT
 
         for ( int partitionId : PARTITION_DISTRIBUTION )
         {
-            final Tuple tuple = generateTuple( partitionId, keys );
+            final Tuple tuple = generateTuple( partitionId );
             operatorTupleQueue.offer( 0, singletonList( tuple ) );
         }
 
@@ -117,8 +118,8 @@ public class PartitionedOperatorTupleQueueRebalancingTest extends AbstractJokerT
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotAcquireAlreadyAcquiredPartition ()
     {
-        final TupleQueueContainer[] newPartitions = new TupleQueueContainer[ 1 ];
-        newPartitions[ 0 ] = tupleQueueContainers[ ACQUIRED_PARTITIONS[ 0 ] ];
+        final List<TupleQueueContainer> newPartitions = new ArrayList<>();
+        newPartitions.add( tupleQueueContainers[ ACQUIRED_PARTITIONS.get( 0 ) ] );
 
         operatorTupleQueue.acquirePartitions( newPartitions );
     }
@@ -126,23 +127,23 @@ public class PartitionedOperatorTupleQueueRebalancingTest extends AbstractJokerT
     @Test
     public void shouldReleasePartitions ()
     {
-        final int releasePartitionIndex = ACQUIRED_PARTITIONS.length / 2;
-        final int[] releasePartitionIds = new int[ releasePartitionIndex ];
-        for ( int i = 0; i < releasePartitionIds.length; i++ )
+        final int releasePartitionIndex = ACQUIRED_PARTITIONS.size() / 2;
+        final List<Integer> releasePartitionIds = new ArrayList<>();
+        for ( int i = 0; i < releasePartitionIndex; i++ )
         {
-            releasePartitionIds[ i ] = ACQUIRED_PARTITIONS[ i ];
+            releasePartitionIds.add( ACQUIRED_PARTITIONS.get( i ) );
         }
 
-        final TupleQueueContainer[] releasedPartitions = operatorTupleQueue.releasePartitions( releasePartitionIds );
+        final List<TupleQueueContainer> releasedPartitions = operatorTupleQueue.releasePartitions( releasePartitionIds );
         assertReleasedPartitions( releasePartitionIds, releasedPartitions );
 
-        assertEquals( ACQUIRED_PARTITIONS.length - releasePartitionIds.length, operatorTupleQueue.getTotalDrainableKeyCount() );
+        assertEquals( ACQUIRED_PARTITIONS.size() - releasePartitionIds.size(), operatorTupleQueue.getTotalDrainableKeyCount() );
 
         for ( int releasedPartitionId : releasePartitionIds )
         {
             try
             {
-                operatorTupleQueue.offer( 0, singletonList( generateTuple( releasedPartitionId, keys ) ) );
+                operatorTupleQueue.offer( 0, singletonList( generateTuple( releasedPartitionId ) ) );
                 fail();
             }
             catch ( NullPointerException expected )
@@ -151,14 +152,14 @@ public class PartitionedOperatorTupleQueueRebalancingTest extends AbstractJokerT
             }
         }
 
-        for ( int partitionId = releasePartitionIndex; partitionId < ACQUIRED_PARTITIONS.length; partitionId++ )
+        for ( int i = releasePartitionIndex; i < ACQUIRED_PARTITIONS.size(); i++ )
         {
-            operatorTupleQueue.offer( 0, singletonList( generateTuple( partitionId, keys ) ) );
+            operatorTupleQueue.offer( 0, singletonList( generateTuple( ACQUIRED_PARTITIONS.get( i ) ) ) );
         }
 
-        int expectedKeyCount = ACQUIRED_PARTITIONS.length;
-        expectedKeyCount -= releasePartitionIds.length;
-        expectedKeyCount += ( ACQUIRED_PARTITIONS.length - releasePartitionIds.length );
+        int expectedKeyCount = ACQUIRED_PARTITIONS.size();
+        expectedKeyCount -= releasePartitionIds.size();
+        expectedKeyCount += ( ACQUIRED_PARTITIONS.size() - releasePartitionIds.size() );
 
         assertEquals( expectedKeyCount, operatorTupleQueue.getTotalDrainableKeyCount() );
     }
@@ -166,16 +167,21 @@ public class PartitionedOperatorTupleQueueRebalancingTest extends AbstractJokerT
     @Test
     public void shouldReleaseAllPartitions ()
     {
-        final int[] releasePartitionIds = ACQUIRED_PARTITIONS;
-        final TupleQueueContainer[] releasedPartitions = operatorTupleQueue.releasePartitions( releasePartitionIds );
+        final List<Integer> releasePartitionIds = new ArrayList<>();
+        for ( int partitionId : ACQUIRED_PARTITIONS )
+        {
+            releasePartitionIds.add( partitionId );
+
+        }
+        final List<TupleQueueContainer> releasedPartitions = operatorTupleQueue.releasePartitions( releasePartitionIds );
         assertReleasedPartitions( releasePartitionIds, releasedPartitions );
 
         assertEquals( 0, operatorTupleQueue.getTotalDrainableKeyCount() );
     }
 
-    private void assertReleasedPartitions ( final int[] releasePartitionIds, final TupleQueueContainer[] releasedPartitions )
+    private void assertReleasedPartitions ( final List<Integer> releasePartitionIds, final List<TupleQueueContainer> releasedPartitions )
     {
-        assertEquals( releasePartitionIds.length, releasedPartitions.length );
+        assertEquals( releasePartitionIds.size(), releasedPartitions.size() );
         for ( int releasePartitionId : releasePartitionIds )
         {
             boolean found = false;
@@ -195,19 +201,18 @@ public class PartitionedOperatorTupleQueueRebalancingTest extends AbstractJokerT
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotReleaseNotAcquiredPartition ()
     {
-        final int[] releasedPartitionIds = new int[] { 1 };
-        releasedPartitionIds[ 0 ] = NON_ACQUIRED_PARTITIONS[ 0 ];
+        final List<Integer> releasedPartitionIds = NON_ACQUIRED_PARTITIONS.subList( 0, 1 );
 
         operatorTupleQueue.releasePartitions( releasedPartitionIds );
     }
 
-    private Tuple generateTuple ( final int partitionId, final Set<Object> existingKeys )
+    private Tuple generateTuple ( final int partitionId )
     {
         final Tuple tuple = new Tuple();
         int i = 0;
         while ( true )
         {
-            if ( existingKeys.contains( i ) )
+            if ( keys.contains( i ) )
             {
                 i++;
                 continue;

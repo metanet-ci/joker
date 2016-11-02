@@ -1,6 +1,8 @@
 package cs.bilkent.joker.engine.kvstore.impl;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,7 +65,7 @@ public class PartitionedOperatorKVStore implements OperatorKVStore
         return container.getOrCreateKVStore( key );
     }
 
-    public void acquirePartitions ( final KVStoreContainer[] partitions )
+    public void acquirePartitions ( final List<KVStoreContainer> partitions )
     {
         checkArgument( partitions != null, "cannot acquire null partitions in operator kvStore of operatorId=%s replicaIndex=%s",
                        operatorId,
@@ -82,11 +84,11 @@ public class PartitionedOperatorKVStore implements OperatorKVStore
             kvStoreContainers[ partition.getPartitionId() ] = partition;
         }
 
-        final int[] partitionIds = Arrays.stream( partitions ).mapToInt( KVStoreContainer::getPartitionId ).toArray();
+        final int[] partitionIds = partitions.stream().mapToInt( KVStoreContainer::getPartitionId ).toArray();
         LOGGER.info( "partitions={} are acquired by operatorId={} replicaIndex={}", partitionIds, operatorId, replicaIndex );
     }
 
-    public KVStoreContainer[] releasePartitions ( final int[] partitionIds )
+    public List<KVStoreContainer> releasePartitions ( final List<Integer> partitionIds )
     {
         checkArgument( partitionIds != null, "cannot release null partition ids of operatorId=%s replicaIndex=%s",
                        operatorId,
@@ -101,11 +103,10 @@ public class PartitionedOperatorKVStore implements OperatorKVStore
                            replicaIndex );
         }
 
-        final KVStoreContainer[] left = new KVStoreContainer[ partitionIds.length ];
-        for ( int i = 0; i < partitionIds.length; i++ )
+        final List<KVStoreContainer> left = new ArrayList<>();
+        for ( int partitionId : partitionIds )
         {
-            final int partitionId = partitionIds[ i ];
-            left[ i ] = kvStoreContainers[ partitionId ];
+            left.add( kvStoreContainers[ partitionId ] );
             kvStoreContainers[ partitionId ] = null;
         }
 

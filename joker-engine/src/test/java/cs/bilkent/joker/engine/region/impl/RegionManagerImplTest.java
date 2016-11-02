@@ -14,8 +14,8 @@ import cs.bilkent.joker.engine.kvstore.impl.EmptyOperatorKVStore;
 import cs.bilkent.joker.engine.kvstore.impl.OperatorKVStoreManagerImpl;
 import cs.bilkent.joker.engine.kvstore.impl.PartitionedOperatorKVStore;
 import cs.bilkent.joker.engine.partition.PartitionService;
-import cs.bilkent.joker.engine.partition.PartitionServiceImpl;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
+import cs.bilkent.joker.engine.partition.impl.PartitionServiceImpl;
 import cs.bilkent.joker.engine.pipeline.OperatorReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
@@ -505,8 +505,8 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertNotNull( operatorKvStores );
         assertEquals( 1, operatorKvStores.length );
 
-        final PartitionedOperatorTupleQueue[] operatorTupleQueues = operatorTupleQueueManager.getPartitionedOperatorTupleQueues( region.getRegionId(),
-                                                                                                                                 operatorDef1 );
+        final OperatorTupleQueue[] operatorTupleQueues = operatorTupleQueueManager.getPartitionedOperatorTupleQueues( region.getRegionId(),
+                                                                                                                      operatorDef1 );
 
         assertNotNull( operatorTupleQueues );
         assertEquals( 1, operatorTupleQueues.length );
@@ -753,8 +753,8 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         assertNotNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, operatorDef1 ) );
         assertNotNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 1, operatorDef1 ) );
-        final PartitionedOperatorTupleQueue[] operatorTupleQueues = operatorTupleQueueManager.getPartitionedOperatorTupleQueues( region.getRegionId(),
-                                                                                                                                 operatorDef2 );
+        final OperatorTupleQueue[] operatorTupleQueues = operatorTupleQueueManager.getPartitionedOperatorTupleQueues( region.getRegionId(),
+                                                                                                                      operatorDef2 );
         assertNotNull( operatorTupleQueues );
         assertEquals( 2, operatorTupleQueues.length );
 

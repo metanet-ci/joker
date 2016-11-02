@@ -334,7 +334,7 @@ public class RegionManagerImpl implements RegionManager
                         LOGGER.info( "Releasing partitioned tuple queue of Operator {} in Pipeline {}",
                                      operatorDef.id(),
                                      pipelineReplica.id() );
-                        operatorTupleQueueManager.releasePartitionedOperatorTupleQueue( regionId, operatorDef.id() );
+                        operatorTupleQueueManager.releasePartitionedOperatorTupleQueues( regionId, operatorDef.id() );
                     }
 
                     if ( replicaIndex == 0 )
@@ -351,7 +351,7 @@ public class RegionManagerImpl implements RegionManager
                             LOGGER.info( "Releasing partitioned operator kvStore of Operator {} in Pipeline {}",
                                          operatorDef.id(),
                                          pipelineReplica.id() );
-                            operatorKvStoreManager.releasePartitionedOperatorKVStore( regionId, operatorDef.id() );
+                            operatorKvStoreManager.releasePartitionedOperatorKVStores( regionId, operatorDef.id() );
                         }
                     }
                 }
@@ -405,9 +405,10 @@ public class RegionManagerImpl implements RegionManager
                          regionId,
                          operatorId );
             final PartitionDistribution partitionDistribution = partitionService.getPartitionDistributionOrFail( regionId );
-            operatorTupleQueues = operatorTupleQueueManager.createPartitionedOperatorTupleQueue( regionId, partitionDistribution,
-                                                                                                 operatorDef,
-                                                                                                 forwardKeyLimit );
+            operatorTupleQueues = operatorTupleQueueManager.createPartitionedOperatorTupleQueues( regionId,
+                                                                                                  operatorDef,
+                                                                                                  partitionDistribution,
+                                                                                                  forwardKeyLimit );
         }
         else
         {
@@ -482,7 +483,7 @@ public class RegionManagerImpl implements RegionManager
                          regionId,
                          operatorId );
             final PartitionDistribution partitionDistribution = partitionService.getPartitionDistributionOrFail( regionId );
-            operatorKvStores = operatorKvStoreManager.createPartitionedOperatorKVStore( regionId, operatorId, partitionDistribution );
+            operatorKvStores = operatorKvStoreManager.createPartitionedOperatorKVStores( regionId, operatorId, partitionDistribution );
         }
         else
         {

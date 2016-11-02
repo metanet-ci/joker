@@ -1,6 +1,6 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.operator;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -62,14 +62,12 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
                                            final int maxDrainableKeyCount )
     {
         checkArgument( partitionCount == tupleQueueContainers.length,
-                       "mismatching partition count %s and tuple queue container count %s partitioned tuple queue of for operator"
-                       + " %s",
+                       "mismatching partition count %s and tuple queue container count %s partitioned tuple queue of for operator" + " %s",
                        partitionCount,
                        tupleQueueContainers.length,
                        operatorId );
         checkArgument( partitionCount == partitions.length,
-                       "mismatching partition count %s and partition distribution count %s for partitioned tuple queue of "
-                       + "operator %s",
+                       "mismatching partition count %s and partition distribution count %s for partitioned tuple queue of " + "operator %s",
                        partitionCount,
                        partitions.length,
                        operatorId );
@@ -92,7 +90,7 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
         }
         this.drainIndices = new int[ partitionCount ];
         this.drainablePartitions = new int[ partitionCount ];
-        resetDrainIndices();
+        populateDrainIndices();
     }
 
     @Override
@@ -281,7 +279,7 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
         return totalDrainableKeyCount;
     }
 
-    public void acquirePartitions ( final TupleQueueContainer[] partitions )
+    public void acquirePartitions ( final List<TupleQueueContainer> partitions )
     {
         checkArgument( partitions != null );
 
@@ -301,11 +299,11 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
 
         populateDrainIndices();
 
-        final int[] partitionIds = Arrays.stream( partitions ).mapToInt( TupleQueueContainer::getPartitionId ).toArray();
+        final int[] partitionIds = partitions.stream().mapToInt( TupleQueueContainer::getPartitionId ).toArray();
         LOGGER.info( "partitions={} are acquired by operatorId={} replicaIndex={}", partitionIds, operatorId, replicaIndex );
     }
 
-    public TupleQueueContainer[] releasePartitions ( final int[] partitionIds )
+    public List<TupleQueueContainer> releasePartitions ( final List<Integer> partitionIds )
     {
         checkArgument( partitionIds != null,
                        "cannot release null partition ids of operatorId=%s replicaIndex=%s",
@@ -320,11 +318,10 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
                            replicaIndex );
         }
 
-        TupleQueueContainer[] released = new TupleQueueContainer[ partitionIds.length ];
-        for ( int i = 0; i < partitionIds.length; i++ )
+        List<TupleQueueContainer> released = new ArrayList<>( partitionIds.size() );
+        for ( int partitionId : partitionIds )
         {
-            final int partitionId = partitionIds[ i ];
-            released[ i ] = tupleQueueContainers[ partitionId ];
+            released.add( tupleQueueContainers[ partitionId ] );
             tupleQueueContainers[ partitionId ] = null;
         }
 
@@ -333,6 +330,11 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
         LOGGER.info( "partitions={} are released by operatorId={} replicaIndex={}", partitionIds, operatorId, replicaIndex );
 
         return released;
+    }
+
+    public PartitionKeyExtractor getPartitionKeyExtractor ()
+    {
+        return partitionKeyExtractor;
     }
 
     private void populateDrainIndices ()
