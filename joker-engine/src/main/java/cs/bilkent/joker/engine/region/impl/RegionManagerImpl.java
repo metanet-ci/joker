@@ -66,7 +66,7 @@ public class RegionManagerImpl implements RegionManager
 
     private static final Logger LOGGER = LoggerFactory.getLogger( RegionManagerImpl.class );
 
-    private static final Set<OperatorType> REBALANCEABLE_PARTITIONS = EnumSet.of( PARTITIONED_STATEFUL, STATELESS );
+    private static final Set<OperatorType> REBALANCEABLE_REGION_TYPES = EnumSet.of( PARTITIONED_STATEFUL, STATELESS );
 
 
     private final JokerConfig config;
@@ -288,7 +288,7 @@ public class RegionManagerImpl implements RegionManager
 
         final RegionConfig regionConfig = region.getConfig();
         final RegionDef regionDef = regionConfig.getRegionDef();
-        checkState( REBALANCEABLE_PARTITIONS.contains( regionDef.getRegionType() ),
+        checkState( REBALANCEABLE_REGION_TYPES.contains( regionDef.getRegionType() ),
                     "cannot rebalance %s regionId=%s",
                     regionDef.getRegionType(),
                     regionId );
