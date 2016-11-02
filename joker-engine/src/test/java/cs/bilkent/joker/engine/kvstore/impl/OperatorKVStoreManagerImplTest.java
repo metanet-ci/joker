@@ -10,15 +10,12 @@ import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.kvstore.OperatorKVStore;
 import cs.bilkent.joker.engine.partition.PartitionDistribution;
 import cs.bilkent.joker.engine.partition.PartitionKey;
-import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import static cs.bilkent.joker.engine.partition.PartitionUtil.getPartitionId;
 import cs.bilkent.joker.engine.partition.impl.PartitionKey1;
-import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractor1;
 import cs.bilkent.joker.engine.partition.impl.PartitionServiceImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.testutils.AbstractJokerTest;
-import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
@@ -32,10 +29,6 @@ public class OperatorKVStoreManagerImplTest extends AbstractJokerTest
     private static final int REGION_ID = 1;
 
     private static final String OPERATOR_ID = "op1";
-
-    private static final String PARTITION_KEY_FIELD = "field";
-
-    private static final PartitionKeyExtractor EXTRACTOR = new PartitionKeyExtractor1( singletonList( PARTITION_KEY_FIELD ) );
 
 
     private final Set<Object> keys = new HashSet<>();
