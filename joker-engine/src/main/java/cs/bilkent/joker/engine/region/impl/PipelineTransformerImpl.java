@@ -278,16 +278,8 @@ public class PipelineTransformerImpl implements PipelineTransformer
         else
         {
             firstOperatorQueue = firstOperator.getQueue();
-            final GreedyDrainer drainer = new GreedyDrainer( firstOperatorDef.inputPortCount() );
-            pipelineSelfTupleQueue.drain( drainer );
-            final TuplesImpl result = drainer.getResult();
-            if ( result != null && result.isNonEmpty() )
-            {
-                for ( int portIndex = 0; portIndex < result.getPortCount(); portIndex++ )
-                {
-                    firstOperatorQueue.offer( portIndex, result.getTuples( portIndex ) );
-                }
-            }
+            drainPipelineTupleQueue( pipelineSelfTupleQueue, firstOperatorQueue, firstOperatorDef );
+
             LOGGER.info( "Drained queue of pipeline {} for merge.", pipelineReplica.id() );
             operatorTupleQueueManager.releaseDefaultOperatorTupleQueue( regionId, replicaIndex, firstOperatorDef.id() );
         }
@@ -298,6 +290,22 @@ public class PipelineTransformerImpl implements PipelineTransformer
                                                     : new CachedTuplesImplSupplier( firstOperatorDef.inputPortCount() );
         LOGGER.info( "Duplicating first operator {} of {} to {}", firstOperatorDef.id(), pipelineReplica.id(), newPipelineReplicaId );
         return firstOperator.duplicate( newPipelineReplicaId, firstOperatorQueue, drainerPool, outputSupplier );
+    }
+
+    private void drainPipelineTupleQueue ( final OperatorTupleQueue pipelineTupleQueue,
+                                           final OperatorTupleQueue operatorTupleQueue,
+                                           final OperatorDef operatorDef )
+    {
+        final GreedyDrainer drainer = new GreedyDrainer( operatorDef.inputPortCount() );
+        pipelineTupleQueue.drain( drainer );
+        final TuplesImpl result = drainer.getResult();
+        if ( result != null && result.isNonEmpty() )
+        {
+            for ( int portIndex = 0; portIndex < result.getPortCount(); portIndex++ )
+            {
+                operatorTupleQueue.offer( portIndex, result.getTuples( portIndex ) );
+            }
+        }
     }
 
     private List<Integer> getPipelineStartIndicesAfterMerge ( final List<Integer> currentStartIndices,

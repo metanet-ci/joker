@@ -376,7 +376,7 @@ public class PipelineReplica
     {
         return "PipelineReplica{" + "id=" + id + ", status=" + status + ", pipelineTupleQueue=" + pipelineTupleQueue.getClass()
                                                                                                                     .getSimpleName()
-               + ", upstreamDrainer=" + upstreamDrainer.getClass().getSimpleName()
+               + ", upstreamDrainer=" + ( upstreamDrainer != null ? upstreamDrainer.getClass().getSimpleName() : null )
                + ", pipelineUpstreamContext=" + pipelineUpstreamContext + ", operators=" + Arrays.toString( operators ) + '}';
     }
 

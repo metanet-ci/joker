@@ -33,6 +33,20 @@ public interface OperatorTupleQueueManager
                                                                    PartitionDistribution currentPartitionDistribution,
                                                                    PartitionDistribution newPartitionDistribution );
 
+    OperatorTupleQueue[] getPartitionedOperatorTupleQueues ( int regionId, String operatorId );
+
+    default OperatorTupleQueue[] getPartitionedOperatorTupleQueuesOrFail ( int regionId, String operatorId )
+    {
+        final OperatorTupleQueue[] operatorTupleQueues = getPartitionedOperatorTupleQueues( regionId, operatorId );
+        if ( operatorTupleQueues == null )
+        {
+            throw new IllegalStateException( "partitioned operator tuple queues not found for regionId=" + regionId + " operatorId="
+                                             + operatorId );
+        }
+
+        return operatorTupleQueues;
+    }
+
     void releaseDefaultOperatorTupleQueue ( int regionId, int replicaIndex, String operatorId );
 
     void releasePartitionedOperatorTupleQueues ( int regionId, String operatorId );

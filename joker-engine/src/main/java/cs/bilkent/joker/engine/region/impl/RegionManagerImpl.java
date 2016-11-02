@@ -1,9 +1,11 @@
 package cs.bilkent.joker.engine.region.impl;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -34,10 +36,12 @@ import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.NonCachedTuplesImplSu
 import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.Region;
 import cs.bilkent.joker.engine.region.RegionConfig;
+import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.region.RegionManager;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueueManager;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainerPool;
+import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool.BlockingTupleQueueDrainerPool;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool.NonBlockingTupleQueueDrainerPool;
 import cs.bilkent.joker.engine.tuplequeue.impl.operator.DefaultOperatorTupleQueue;
@@ -51,6 +55,7 @@ import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import static java.lang.Integer.compare;
+import static java.lang.System.arraycopy;
 import static java.util.Collections.sort;
 import static java.util.stream.Collectors.toList;
 
@@ -60,6 +65,8 @@ public class RegionManagerImpl implements RegionManager
 {
 
     private static final Logger LOGGER = LoggerFactory.getLogger( RegionManagerImpl.class );
+
+    private static final Set<OperatorType> REBALANCEABLE_PARTITIONS = EnumSet.of( PARTITIONED_STATEFUL, STATELESS );
 
 
     private final JokerConfig config;
@@ -91,6 +98,7 @@ public class RegionManagerImpl implements RegionManager
     @Override
     public Region createRegion ( final FlowDef flow, final RegionConfig regionConfig )
     {
+        checkArgument( flow != null, "flow is null" );
         checkState( !regions.containsKey( regionConfig.getRegionId() ), "Region %s is already created!", regionConfig.getRegionId() );
 
         final int regionId = regionConfig.getRegionId();
@@ -162,12 +170,9 @@ public class RegionManagerImpl implements RegionManager
                              pipelineIndex,
                              pipelineId );
                 final OperatorReplica[] pipelineOperatorReplicas = operatorReplicas[ replicaIndex ];
-                final OperatorType regionType =
-                        pipelineIndex == 0 ? regionConfig.getRegionDef().getRegionType() : operatorDefs[ 0 ].operatorType();
                 final OperatorTupleQueue pipelineTupleQueue = createPipelineTupleQueue( flow,
                                                                                         regionId,
                                                                                         replicaIndex,
-                                                                                        regionType,
                                                                                         pipelineOperatorReplicas );
 
                 pipelineReplicas[ pipelineIndex ][ replicaIndex ] = new PipelineReplica( config,
@@ -270,6 +275,313 @@ public class RegionManagerImpl implements RegionManager
         regions.put( regionId, newRegion );
 
         return newRegion;
+    }
+
+    @Override
+    public Region rebalanceRegion ( final FlowDef flow, final int regionId, final int newReplicaCount )
+    {
+        checkArgument( flow != null, "flow is null" );
+        checkArgument( newReplicaCount > 0, "cannot rebalance regionId=%s since replica count is %s", regionId, newReplicaCount );
+
+        final Region region = regions.remove( regionId );
+        checkArgument( region != null, "invalid region %s to rebalance", region );
+
+        final RegionConfig regionConfig = region.getConfig();
+        final RegionDef regionDef = regionConfig.getRegionDef();
+        checkState( REBALANCEABLE_PARTITIONS.contains( regionDef.getRegionType() ),
+                    "cannot rebalance %s regionId=%s",
+                    regionDef.getRegionType(),
+                    regionId );
+
+        if ( newReplicaCount == regionConfig.getReplicaCount() )
+        {
+            regions.put( regionId, region );
+            LOGGER.warn( "No rebalance since regionId=%s already has the same replica count=%s", regionId, newReplicaCount );
+            return region;
+        }
+
+        checkStatelessOperatorTupleQueuesEmpty( region );
+        drainPipelineTupleQueues( region );
+
+        rebalanceRegion( region, newReplicaCount );
+
+        final Region newRegion;
+        if ( regionConfig.getReplicaCount() < newReplicaCount )
+        {
+            newRegion = extendRegionReplicas( flow, region, newReplicaCount );
+        }
+        else
+        {
+            newRegion = shrinkRegionReplicas( region, newReplicaCount );
+        }
+        regions.put( regionId, newRegion );
+
+        return newRegion;
+    }
+
+    private void rebalanceRegion ( final Region region, final int newReplicaCount )
+    {
+        final int regionId = region.getRegionId();
+        final RegionConfig regionConfig = region.getConfig();
+
+        if ( regionConfig.getRegionDef().getRegionType() == STATELESS )
+        {
+            LOGGER.info( "Will not rebalance partition distribution since regionId={} is {}", regionId, STATELESS );
+            return;
+        }
+
+        final PartitionDistribution currentPartitionDistribution = partitionService.getPartitionDistributionOrFail( regionId );
+        final PartitionDistribution rebalancedPartitionDistribution = partitionService.rebalancePartitionDistribution( regionId,
+                                                                                                                       newReplicaCount );
+
+        for ( int pipelineIndex = 0; pipelineIndex < regionConfig.getPipelineCount(); pipelineIndex++ )
+        {
+            final PipelineReplica[] currentPipelineReplicas = region.getPipelineReplicas( pipelineIndex );
+            for ( OperatorReplica operator : currentPipelineReplicas[ 0 ].getOperators() )
+            {
+                final OperatorDef operatorDef = operator.getOperatorDef();
+                if ( operatorDef.operatorType() == PARTITIONED_STATEFUL )
+                {
+                    operatorTupleQueueManager.rebalancePartitionedOperatorTupleQueues( regionId,
+                                                                                       operatorDef,
+                                                                                       currentPartitionDistribution,
+                                                                                       rebalancedPartitionDistribution );
+                    operatorKvStoreManager.rebalancePartitionedOperatorKVStores( regionId,
+                                                                                 operatorDef.id(),
+                                                                                 currentPartitionDistribution,
+                                                                                 rebalancedPartitionDistribution );
+                }
+            }
+        }
+    }
+
+    private Region extendRegionReplicas ( final FlowDef flow, final Region region, final int newReplicaCount )
+    {
+        final int regionId = region.getRegionId();
+        final RegionConfig regionConfig = region.getConfig();
+        final int currentReplicaCount = regionConfig.getReplicaCount();
+        final PipelineReplica[][] newPipelineReplicas = new PipelineReplica[ regionConfig.getPipelineCount() ][ newReplicaCount ];
+        for ( int pipelineIndex = 0; pipelineIndex < regionConfig.getPipelineCount(); pipelineIndex++ )
+        {
+            final PipelineReplica[] currentPipelineReplicas = region.getPipelineReplicas( pipelineIndex );
+            arraycopy( currentPipelineReplicas, 0, newPipelineReplicas[ pipelineIndex ], 0, currentReplicaCount );
+
+            LOGGER.info( "{} replicas of pipelineIndex={} of regionId={} are copied.", currentReplicaCount, pipelineIndex, regionId );
+
+            final int pipelineId = regionConfig.getPipelineStartIndex( pipelineIndex );
+            final OperatorDef[] operatorDefs = regionConfig.getOperatorDefsByPipelineIndex( pipelineIndex );
+            final int operatorCount = operatorDefs.length;
+
+            for ( int replicaIndex = currentReplicaCount; replicaIndex < newReplicaCount; replicaIndex++ )
+            {
+                LOGGER.info( "Initializing pipeline instance for regionId={} pipelineIndex={} replicaIndex={} with {} operators",
+                             regionId,
+                             pipelineIndex,
+                             replicaIndex,
+                             operatorCount );
+
+                final OperatorReplica[] operatorReplicas = new OperatorReplica[ operatorCount ];
+                final PipelineReplicaId pipelineReplicaId = new PipelineReplicaId( new PipelineId( regionId, pipelineId ), replicaIndex );
+
+                for ( int operatorIndex = 0; operatorIndex < operatorCount; operatorIndex++ )
+                {
+                    final OperatorDef operatorDef = operatorDefs[ operatorIndex ];
+                    final String operatorId = operatorDef.id();
+                    final boolean isFirstOperator = ( operatorIndex == 0 ), isLastOperator = ( operatorIndex == ( operatorCount - 1 ) );
+
+                    final OperatorTupleQueue operatorTupleQueue;
+                    if ( flow.getUpstreamConnections( operatorId ).isEmpty() )
+                    {
+                        LOGGER.info( "Creating {} for regionId={} operatorId={}",
+                                     EmptyOperatorTupleQueue.class.getSimpleName(),
+                                     regionId,
+                                     operatorId );
+                        operatorTupleQueue = new EmptyOperatorTupleQueue( operatorId, operatorDef.inputPortCount() );
+                    }
+                    else if ( operatorDef.operatorType() == PARTITIONED_STATEFUL )
+                    {
+                        LOGGER.info( "Creating {} for regionId={} operatorId={}",
+                                     PartitionedOperatorTupleQueue.class.getSimpleName(),
+                                     regionId,
+                                     operatorId );
+                        final OperatorTupleQueue[] operatorTupleQueues = operatorTupleQueueManager.getPartitionedOperatorTupleQueuesOrFail(
+                                regionId,
+                                operatorDef.id() );
+                        operatorTupleQueue = operatorTupleQueues[ replicaIndex ];
+                    }
+                    else
+                    {
+                        final ThreadingPreference threadingPreference = getThreadingPreference( isFirstOperator );
+                        LOGGER.info( "Creating {} {} for regionId={} operatorId={}",
+                                     threadingPreference,
+                                     DefaultOperatorTupleQueue.class.getSimpleName(),
+                                     regionId,
+                                     operatorId );
+                        operatorTupleQueue = operatorTupleQueueManager.createDefaultOperatorTupleQueue( regionId,
+                                                                                                        replicaIndex,
+                                                                                                        operatorDef,
+                                                                                                        threadingPreference );
+                    }
+
+                    final TupleQueueDrainerPool drainerPool = createTupleQueueDrainer( operatorDef, isFirstOperator );
+                    LOGGER.info( "Creating {} for regionId={} operatorId={}",
+                                 drainerPool.getClass().getSimpleName(),
+                                 regionId,
+                                 operatorId );
+
+                    final OperatorKVStore operatorKVStore;
+                    if ( operatorDef.operatorType() == STATELESS )
+                    {
+                        LOGGER.info( "Creating {} for regionId={} operatorId={}",
+                                     EmptyOperatorKVStore.class.getSimpleName(),
+                                     regionId,
+                                     operatorId );
+                        operatorKVStore = new EmptyOperatorKVStore( operatorId );
+                    }
+                    else
+                    {
+                        checkState( operatorDef.operatorType() == PARTITIONED_STATEFUL );
+                        LOGGER.info( "Creating {} for regionId={} operatorId={}",
+                                     PartitionedOperatorKVStore.class.getSimpleName(),
+                                     regionId,
+                                     operatorId );
+                        final OperatorKVStore[] operatorKvStores = operatorKvStoreManager.getPartitionedOperatorKVStoresOrFail( regionId,
+                                                                                                                                operatorId );
+                        operatorKVStore = operatorKvStores[ replicaIndex ];
+                    }
+
+                    final Supplier<TuplesImpl> outputSupplier = createOutputSupplier( operatorDef, isLastOperator );
+                    LOGGER.info( "Creating {} for regionId={} operatorId={}",
+                                 outputSupplier.getClass().getSimpleName(),
+                                 regionId,
+                                 operatorId );
+
+                    operatorReplicas[ operatorIndex ] = new OperatorReplica( pipelineReplicaId,
+                                                                             operatorDef,
+                                                                             operatorTupleQueue,
+                                                                             operatorKVStore,
+                                                                             drainerPool,
+                                                                             outputSupplier );
+                }
+
+                final OperatorTupleQueue pipelineTupleQueue = createPipelineTupleQueue( flow, regionId, replicaIndex, operatorReplicas );
+
+                newPipelineReplicas[ pipelineIndex ][ replicaIndex ] = new PipelineReplica( config,
+                                                                                            pipelineReplicaId,
+                                                                                            operatorReplicas,
+                                                                                            pipelineTupleQueue );
+            }
+        }
+
+        final RegionConfig newRegionConfig = new RegionConfig( regionConfig.getRegionDef(),
+                                                               regionConfig.getPipelineStartIndices(),
+                                                               newReplicaCount );
+
+        LOGGER.info( "regionId={} is extended to {} replicas", regionId, newReplicaCount );
+
+        return new Region( newRegionConfig, newPipelineReplicas );
+    }
+
+    private Region shrinkRegionReplicas ( final Region region, final int newReplicaCount )
+    {
+        final int regionId = region.getRegionId();
+        final RegionConfig regionConfig = region.getConfig();
+        final PipelineReplica[][] newPipelineReplicas = new PipelineReplica[ regionConfig.getPipelineCount() ][ newReplicaCount ];
+        for ( int pipelineIndex = 0; pipelineIndex < regionConfig.getPipelineCount(); pipelineIndex++ )
+        {
+            final PipelineReplica[] currentPipelineReplicas = region.getPipelineReplicas( pipelineIndex );
+            arraycopy( currentPipelineReplicas, 0, newPipelineReplicas[ pipelineIndex ], 0, newReplicaCount );
+
+            for ( int replicaIndex = newReplicaCount; replicaIndex < regionConfig.getReplicaCount(); replicaIndex++ )
+            {
+                final PipelineReplica pipelineReplica = currentPipelineReplicas[ replicaIndex ];
+                final OperatorReplica[] operators = pipelineReplica.getOperators();
+                final OperatorDef firstOperatorDef = operators[ 0 ].getOperatorDef();
+                if ( firstOperatorDef.operatorType() == PARTITIONED_STATEFUL )
+                {
+                    operatorTupleQueueManager.releaseDefaultOperatorTupleQueue( regionId, replicaIndex, firstOperatorDef.id() );
+                    LOGGER.info( "Released pipeline tuple queue of Pipeline {} Operator {}", pipelineReplica.id(), firstOperatorDef.id() );
+                }
+
+                for ( OperatorReplica operator : operators )
+                {
+                    final OperatorDef operatorDef = operator.getOperatorDef();
+                    if ( operatorDef.operatorType() == STATELESS )
+                    {
+                        operatorTupleQueueManager.releaseDefaultOperatorTupleQueue( regionId, replicaIndex, operatorDef.id() );
+                        LOGGER.info( "Released operator tuple queue of Pipeline {} Operator {}", pipelineReplica.id(), operatorDef.id() );
+                    }
+                    else
+                    {
+                        checkState( operatorDef.operatorType() == PARTITIONED_STATEFUL,
+                                    "Cannot shrink {} because of {} operator {}",
+                                    pipelineReplica.id(),
+                                    operatorDef.id(),
+                                    operatorDef.operatorType() );
+                    }
+                }
+            }
+        }
+
+        final RegionConfig newRegionConfig = new RegionConfig( regionConfig.getRegionDef(),
+                                                               regionConfig.getPipelineStartIndices(),
+                                                               newReplicaCount );
+        LOGGER.info( "regionId={} is shrank to {} replicas", regionId, newReplicaCount );
+
+        return new Region( newRegionConfig, newPipelineReplicas );
+    }
+
+    private void checkStatelessOperatorTupleQueuesEmpty ( final Region region )
+    {
+        final RegionConfig config = region.getConfig();
+        for ( int pipelineIndex = 0; pipelineIndex < config.getPipelineCount(); pipelineIndex++ )
+        {
+            for ( PipelineReplica pipelineReplica : region.getPipelineReplicas( pipelineIndex ) )
+            {
+                for ( OperatorReplica operatorReplica : pipelineReplica.getOperators() )
+                {
+                    final OperatorDef operatorDef = operatorReplica.getOperatorDef();
+                    if ( operatorDef.operatorType() == STATELESS )
+                    {
+                        final OperatorTupleQueue operatorTupleQueue = operatorReplica.getQueue();
+                        final GreedyDrainer drainer = new GreedyDrainer( operatorDef.inputPortCount() );
+                        operatorTupleQueue.drain( drainer );
+                        final TuplesImpl result = drainer.getResult();
+                        checkState( result == null || result.isEmpty(),
+                                    "%s %s operator %s has non-empty queue!",
+                                    pipelineReplica.id(),
+                                    STATELESS,
+                                    operatorDef.id() );
+                    }
+                }
+            }
+        }
+    }
+
+    private void drainPipelineTupleQueues ( final Region region )
+    {
+        final RegionConfig config = region.getConfig();
+        for ( int pipelineIndex = 0; pipelineIndex < config.getPipelineCount(); pipelineIndex++ )
+        {
+            for ( PipelineReplica pipelineReplica : region.getPipelineReplicas( pipelineIndex ) )
+            {
+                final OperatorTupleQueue pipelineTupleQueue = pipelineReplica.getSelfPipelineTupleQueue();
+                final OperatorReplica operator = pipelineReplica.getOperator( 0 );
+                final OperatorTupleQueue operatorTupleQueue = operator.getQueue();
+                final OperatorDef operatorDef = operator.getOperatorDef();
+                final GreedyDrainer drainer = new GreedyDrainer( operatorDef.inputPortCount() );
+                pipelineTupleQueue.drain( drainer );
+                final TuplesImpl result = drainer.getResult();
+                if ( result != null && result.isNonEmpty() )
+                {
+                    LOGGER.info( "Draining pipeline tuple queue of %s", pipelineReplica.id() );
+                    for ( int portIndex = 0; portIndex < result.getPortCount(); portIndex++ )
+                    {
+                        operatorTupleQueue.offer( portIndex, result.getTuples( portIndex ) );
+                    }
+                }
+            }
+        }
     }
 
     private List<Integer> getMergeablePipelineStartIndices ( final List<PipelineId> pipelineIds )
@@ -412,7 +724,7 @@ public class RegionManagerImpl implements RegionManager
         }
         else
         {
-            final ThreadingPreference threadingPreference = isFirstOperator ? MULTI_THREADED : SINGLE_THREADED;
+            final ThreadingPreference threadingPreference = getThreadingPreference( isFirstOperator );
             LOGGER.info( "Creating {} {} for regionId={} operatorId={}",
                          threadingPreference,
                          DefaultOperatorTupleQueue.class.getSimpleName(),
@@ -431,23 +743,24 @@ public class RegionManagerImpl implements RegionManager
         return operatorTupleQueues;
     }
 
+    private ThreadingPreference getThreadingPreference ( final boolean isFirstOperator )
+    {
+        return isFirstOperator ? MULTI_THREADED : SINGLE_THREADED;
+    }
+
     private TupleQueueDrainerPool[] createTupleQueueDrainerPools ( final int regionId,
                                                                    final int replicaCount,
                                                                    final boolean isFirstOperator,
                                                                    final OperatorDef operatorDef )
     {
         final String operatorId = operatorDef.id();
-        final TupleQueueDrainerPool[] drainerPools = new TupleQueueDrainerPool[ replicaCount ];
+
         if ( isFirstOperator )
         {
             LOGGER.info( "Creating {} for regionId={} operatorId={}",
                          BlockingTupleQueueDrainerPool.class.getSimpleName(),
                          regionId,
                          operatorId );
-            for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
-            {
-                drainerPools[ replicaIndex ] = new BlockingTupleQueueDrainerPool( config, operatorDef );
-            }
         }
         else
         {
@@ -455,12 +768,22 @@ public class RegionManagerImpl implements RegionManager
                          NonBlockingTupleQueueDrainerPool.class.getSimpleName(),
                          regionId,
                          operatorId );
-            for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
-            {
-                drainerPools[ replicaIndex ] = new NonBlockingTupleQueueDrainerPool( config, operatorDef );
-            }
         }
+
+        final TupleQueueDrainerPool[] drainerPools = new TupleQueueDrainerPool[ replicaCount ];
+        for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
+        {
+            drainerPools[ replicaIndex ] = createTupleQueueDrainer( operatorDef, isFirstOperator );
+        }
+
         return drainerPools;
+    }
+
+    private TupleQueueDrainerPool createTupleQueueDrainer ( final OperatorDef operatorDef, final boolean isFirstOperator )
+    {
+        return isFirstOperator
+               ? new BlockingTupleQueueDrainerPool( config, operatorDef )
+               : new NonBlockingTupleQueueDrainerPool( config, operatorDef );
     }
 
     private OperatorKVStore[] createOperatorKVStores ( final int regionId, final int replicaCount, final OperatorDef operatorDef )
@@ -501,17 +824,12 @@ public class RegionManagerImpl implements RegionManager
                                                            final OperatorDef operatorDef )
     {
         final String operatorId = operatorDef.id();
-        final Supplier<TuplesImpl>[] outputSuppliers = new Supplier[ replicaCount ];
         if ( isLastOperator )
         {
             LOGGER.info( "Creating {} for last operator of regionId={} operatorId={}",
                          NonCachedTuplesImplSupplier.class.getSimpleName(),
                          regionId,
                          operatorId );
-            for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
-            {
-                outputSuppliers[ replicaIndex ] = new NonCachedTuplesImplSupplier( operatorDef.outputPortCount() );
-            }
         }
         else
         {
@@ -519,18 +837,28 @@ public class RegionManagerImpl implements RegionManager
                          CachedTuplesImplSupplier.class.getSimpleName(),
                          regionId,
                          operatorId );
-            for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
-            {
-                outputSuppliers[ replicaIndex ] = new CachedTuplesImplSupplier( operatorDef.outputPortCount() );
-            }
         }
+
+        final Supplier<TuplesImpl>[] outputSuppliers = new Supplier[ replicaCount ];
+        for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
+        {
+            outputSuppliers[ replicaIndex ] = createOutputSupplier( operatorDef, isLastOperator );
+        }
+
         return outputSuppliers;
+    }
+
+    private Supplier<TuplesImpl> createOutputSupplier ( final OperatorDef operatorDef, final boolean isLastOperator )
+    {
+        return isLastOperator
+               ? new NonCachedTuplesImplSupplier( operatorDef.outputPortCount() )
+               : new CachedTuplesImplSupplier( operatorDef.outputPortCount() );
+
     }
 
     private OperatorTupleQueue createPipelineTupleQueue ( final FlowDef flow,
                                                           final int regionId,
                                                           final int replicaIndex,
-                                                          final OperatorType regionType,
                                                           final OperatorReplica[] pipelineOperatorReplicas )
     {
         final OperatorDef firstOperatorDef = pipelineOperatorReplicas[ 0 ].getOperatorDef();
@@ -541,7 +869,7 @@ public class RegionManagerImpl implements RegionManager
                          regionId );
             return new EmptyOperatorTupleQueue( firstOperatorDef.id(), firstOperatorDef.inputPortCount() );
         }
-        else if ( regionType == PARTITIONED_STATEFUL )
+        else
         {
             if ( firstOperatorDef.operatorType() == PARTITIONED_STATEFUL )
             {
@@ -562,11 +890,6 @@ public class RegionManagerImpl implements RegionManager
                              firstOperatorDef.operatorType() );
                 return new EmptyOperatorTupleQueue( firstOperatorDef.id(), firstOperatorDef.inputPortCount() );
             }
-        }
-        else
-        {
-            LOGGER.info( "Creating {} for pipeline tuple queue of regionId={}", EmptyOperatorTupleQueue.class.getSimpleName(), regionId );
-            return new EmptyOperatorTupleQueue( firstOperatorDef.id(), firstOperatorDef.inputPortCount() );
         }
     }
 

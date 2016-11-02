@@ -2,6 +2,7 @@ package cs.bilkent.joker.engine.tuplequeue.impl;
 
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -128,7 +129,9 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
 
         final String operatorId = operatorDef.id();
         checkArgument( operatorDef.operatorType() == PARTITIONED_STATEFUL,
-                       "invalid operator type: %s ! regionId %s operatorId %s", regionId, operatorId );
+                       "invalid operator type: %s ! regionId %s operatorId %s",
+                       regionId,
+                       operatorId );
         checkArgument( replicaCount > 0, "invalid replica count %s ! regionId %s operatorId %s", replicaCount, regionId, operatorId );
 
         final Pair<Integer, String> key = Pair.of( regionId, operatorId );
@@ -174,9 +177,12 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
         return operatorTupleQueues;
     }
 
-    public OperatorTupleQueue[] getPartitionedOperatorTupleQueues ( final int regionId, final OperatorDef operatorDef )
+    @Override
+    public OperatorTupleQueue[] getPartitionedOperatorTupleQueues ( final int regionId, final String operatorId )
     {
-        return partitionedOperatorTupleQueues.get( Pair.of( regionId, operatorDef.id() ) );
+        final Pair<Integer, String> key = Pair.of( regionId, operatorId );
+        final PartitionedOperatorTupleQueue[] operatorTupleQueues = this.partitionedOperatorTupleQueues.get( key );
+        return operatorTupleQueues != null ? Arrays.copyOf( operatorTupleQueues, operatorTupleQueues.length ) : null;
     }
 
     private BiFunction<Integer, Boolean, TupleQueue> getTupleQueueConstructor ( final ThreadingPreference threadingPreference )
@@ -205,6 +211,10 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
         queues = migratePartitions( currentPartitionDistribution, newPartitionDistribution, queues, migratingPartitions );
 
         this.partitionedOperatorTupleQueues.put( key, queues );
+        LOGGER.info( "partitioned operator tuple queues of regionId={} operatorId={} are rebalanced to {} replicas",
+                     regionId,
+                     operatorId,
+                     newPartitionDistribution.getReplicaCount() );
 
         return queues;
     }

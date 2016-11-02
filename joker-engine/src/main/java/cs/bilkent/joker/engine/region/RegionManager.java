@@ -18,6 +18,8 @@ public interface RegionManager
 
     Region splitPipeline ( PipelineId pipelineId, List<Integer> pipelineOperatorIndicesToSplit );
 
+    Region rebalanceRegion ( FlowDef flow, int regionId, int replicaCount );
+
     void releaseRegion ( int regionId );
 
 }

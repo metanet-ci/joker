@@ -112,6 +112,10 @@ public class OperatorKVStoreManagerImpl implements OperatorKVStoreManager
         kvStores = migratePartitions( currentPartitionDistribution, newPartitionDistribution, kvStores, migratingPartitions );
 
         partitionedOperatorKVStores.put( key, kvStores );
+        LOGGER.info( "partitioned operator kv stores of regionId={} operatorId={} are rebalanced to {} replicas",
+                     regionId,
+                     operatorId,
+                     newPartitionDistribution.getReplicaCount() );
 
         return kvStores;
     }
@@ -195,9 +199,12 @@ public class OperatorKVStoreManagerImpl implements OperatorKVStoreManager
     }
 
 
-    public OperatorKVStore[] getPartitionedOperatorKVStore ( final int regionId, final String operatorId )
+    @Override
+    public OperatorKVStore[] getPartitionedOperatorKVStores ( final int regionId, final String operatorId )
     {
-        return partitionedOperatorKVStores.get( Pair.of( regionId, operatorId ) );
+        final Pair<Integer, String> key = Pair.of( regionId, operatorId );
+        final PartitionedOperatorKVStore[] operatorKVStores = partitionedOperatorKVStores.get( key );
+        return operatorKVStores != null ? copyOf( operatorKVStores, operatorKVStores.length ) : null;
     }
 
     public KVStoreContainer[] getKVStoreContainers ( final int regionId, final String operatorId )

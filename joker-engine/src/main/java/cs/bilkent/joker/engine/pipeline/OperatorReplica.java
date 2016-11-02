@@ -602,7 +602,8 @@ public class OperatorReplica
     public String toString ()
     {
         return "OperatorReplica{" + "operatorName='" + operatorName + '\'' + ", operatorType=" + operatorDef.operatorType() + ", queue="
-               + queue.getClass().getSimpleName() + ", drainer=" + drainer.getClass().getSimpleName() + ", status=" + status
+               + queue.getClass().getSimpleName() + ", drainer=" + ( drainer != null ? drainer.getClass().getSimpleName() : null )
+               + ", status=" + status
                + ", upstreamContext=" + upstreamContext + ", selfUpstreamContext=" + selfUpstreamContext + ", completionReason="
                + completionReason + ", initialSchedulingStrategy=" + initialSchedulingStrategy + ", schedulingStrategy="
                + schedulingStrategy + '}';

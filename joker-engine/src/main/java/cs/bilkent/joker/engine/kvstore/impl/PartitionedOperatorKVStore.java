@@ -96,8 +96,7 @@ public class PartitionedOperatorKVStore implements OperatorKVStore
 
         for ( int partitionId : partitionIds )
         {
-            checkArgument( kvStoreContainers[ partitionId ] != null,
-                           "partitionId=%s is not owned by operatorId=%s replicaIndex=%s",
+            checkArgument( kvStoreContainers[ partitionId ] != null, "partitionId=%s is not acquired by operatorId=%s replicaIndex=%s",
                            partitionId,
                            operatorId,
                            replicaIndex );
@@ -110,7 +109,7 @@ public class PartitionedOperatorKVStore implements OperatorKVStore
             kvStoreContainers[ partitionId ] = null;
         }
 
-        LOGGER.info( "partitions={} are left by operatorId={} replicaIndex={}", partitionIds, operatorId, replicaIndex );
+        LOGGER.info( "partitions={} are released by operatorId={} replicaIndex={}", partitionIds, operatorId, replicaIndex );
 
         return left;
     }

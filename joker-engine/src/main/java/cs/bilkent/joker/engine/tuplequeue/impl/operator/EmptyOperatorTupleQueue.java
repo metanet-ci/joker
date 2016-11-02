@@ -42,18 +42,33 @@ public class EmptyOperatorTupleQueue implements OperatorTupleQueue
     @Override
     public void offer ( final int portIndex, final List<Tuple> tuples )
     {
+        if ( tuples.isEmpty() )
+        {
+            return;
+        }
+
         throw new UnsupportedOperationException( operatorId );
     }
 
     @Override
     public int tryOffer ( final int portIndex, final List<Tuple> tuples, final long timeout, final TimeUnit unit )
     {
+        if ( tuples.isEmpty() )
+        {
+            return 0;
+        }
+
         throw new UnsupportedOperationException( operatorId );
     }
 
     @Override
     public void forceOffer ( final int portIndex, final List<Tuple> tuples )
     {
+        if ( tuples.isEmpty() )
+        {
+            return;
+        }
+
         throw new UnsupportedOperationException( operatorId );
     }
 
