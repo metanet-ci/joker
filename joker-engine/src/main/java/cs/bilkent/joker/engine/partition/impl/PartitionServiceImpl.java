@@ -92,7 +92,10 @@ public class PartitionServiceImpl implements PartitionService
 
     private void checkReplicaCount ( final int replicaCount )
     {
-        checkArgument( replicaCount > 0, "replica count: %s must be positive", replicaCount );
+        checkArgument( replicaCount > 0 && replicaCount <= partitionCount,
+                       "replica count: %s must be positive and should be less than %s",
+                       replicaCount,
+                       partitionCount );
     }
 
     private void checkDistribution ( final int regionId, final int[] distribution )

@@ -2,6 +2,7 @@ package cs.bilkent.joker.engine.partition;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Random;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -31,15 +32,17 @@ public class PartitionServiceImplTest extends AbstractJokerTest
     @Parameters( name = "partitionCount={0}, initialReplicaCount={1}, newReplicaCount={2}" )
     public static Collection<Object[]> data ()
     {
-        return asList( new Object[][] { { 15, 5, 3 },
-                                        { 15, 5, 4 },
-                                        { 15, 3, 5 },
-                                        { 15, 3, 4 },
-                                        { 15, 4, 3 },
-                                        { 15, 4, 2 },
-                                        { 15, 2, 4 },
-                                        { 15, 2, 5 } } );
+        return asList( new Object[][] { { 200, 25, 15 },
+                                        { 200, 25, 20 },
+                                        { 200, 15, 25 },
+                                        { 200, 15, 20 },
+                                        { 200, 20, 15 },
+                                        { 200, 20, 10 },
+                                        { 200, 10, 20 },
+                                        { 200, 10, 25 } } );
     }
+
+    private static final Random RANDOM = new Random();
 
     private final int regionId = 1;
 
@@ -118,6 +121,19 @@ public class PartitionServiceImplTest extends AbstractJokerTest
 
         final PartitionDistribution distribution = partitionService.rebalancePartitionDistribution( regionId, newReplicaCount );
         validateDistribution( partitionCount, newReplicaCount, distribution.getDistribution() );
+    }
+
+    @Test
+    public void shouldRedistributePartitionsMultipleTimes ()
+    {
+        partitionService.createPartitionDistribution( regionId, initialReplicaCount );
+
+        for ( int i = 0; i < 5000; i++ )
+        {
+            final int newReplicaCount = 1 + RANDOM.nextInt( 25 );
+            final PartitionDistribution distribution = partitionService.rebalancePartitionDistribution( regionId, newReplicaCount );
+            validateDistribution( partitionCount, newReplicaCount, distribution.getDistribution() );
+        }
     }
 
     @Test
