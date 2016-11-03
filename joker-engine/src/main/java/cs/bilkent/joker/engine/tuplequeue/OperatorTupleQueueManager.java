@@ -13,6 +13,20 @@ public interface OperatorTupleQueueManager
                                                          OperatorDef operatorDef,
                                                          ThreadingPreference threadingPreference );
 
+    OperatorTupleQueue getDefaultOperatorTupleQueue ( int regionId, int replicaIndex, String operatorId );
+
+    default OperatorTupleQueue getDefaultOperatorTupleQueueOrFail ( int regionId, int replicaIndex, String operatorId )
+    {
+        final OperatorTupleQueue operatorTupleQueue = getDefaultOperatorTupleQueue( regionId, replicaIndex, operatorId );
+        if ( operatorTupleQueue == null )
+        {
+            throw new IllegalStateException( "default operator tuple queues not found for regionId=" + regionId + " replicaIndex="
+                                             + replicaIndex + " operatorId=" + operatorId );
+        }
+
+        return operatorTupleQueue;
+    }
+
     default OperatorTupleQueue[] createPartitionedOperatorTupleQueues ( int regionId,
                                                                         OperatorDef operatorDef,
                                                                         PartitionDistribution partitionDistribution )

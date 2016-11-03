@@ -113,9 +113,10 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
         return operatorTupleQueue;
     }
 
-    public OperatorTupleQueue getDefaultOperatorTupleQueue ( final int regionId, final int replicaIndex, final OperatorDef operatorDef )
+    @Override
+    public OperatorTupleQueue getDefaultOperatorTupleQueue ( final int regionId, final int replicaIndex, final String operatorId )
     {
-        return singleOperatorTupleQueues.get( Triple.of( regionId, replicaIndex, operatorDef.id() ) );
+        return singleOperatorTupleQueues.get( Triple.of( regionId, replicaIndex, operatorId ) );
     }
 
     @Override

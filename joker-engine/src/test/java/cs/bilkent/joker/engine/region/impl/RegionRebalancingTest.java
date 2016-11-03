@@ -52,6 +52,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 @RunWith( value = Parameterized.class )
@@ -124,6 +125,21 @@ public class RegionRebalancingTest extends AbstractJokerTest
 
         final Region rebalancedRegion = regionManager.rebalanceRegion( flowExample6.flow, regionDef.getRegionId(), rebalancedReplicaCount );
         assertPartitionedStatefulRegion( flowExample6, regionDef, rebalancedRegion );
+        if ( rebalancedReplicaCount < initialReplicaCount )
+        {
+            for ( int replicaIndex = initialReplicaCount; replicaIndex < rebalancedReplicaCount; replicaIndex++ )
+            {
+                assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(),
+                                                                                    replicaIndex,
+                                                                                    flowExample6.operatorDef1.id() ) );
+                assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(),
+                                                                                    replicaIndex,
+                                                                                    flowExample6.operatorDef2.id() ) );
+                assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(),
+                                                                                    replicaIndex,
+                                                                                    flowExample6.operatorDef3.id() ) );
+            }
+        }
     }
 
     private void assertPartitionedStatefulRegion ( final FlowExample6 flowExample6, final RegionDef regionDef, final Region region )

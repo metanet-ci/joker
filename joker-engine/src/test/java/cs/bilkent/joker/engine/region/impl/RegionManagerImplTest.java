@@ -151,11 +151,11 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final Region region = regionManager.createRegion( flowExample1.flow, regionConfig );
 
-        assertNotNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample1.operatorDef1 ) );
+        assertNotNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample1.operatorDef1.id() ) );
 
         regionManager.releaseRegion( region.getRegionId() );
 
-        assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample1.operatorDef1 ) );
+        assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample1.operatorDef1.id() ) );
     }
 
     private void assertStatelessPipelineWithNoInput ( final int regionId,
@@ -334,12 +334,12 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final Region region = regionManager.createRegion( flow, regionConfig );
 
-        assertNotNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample3.operatorDef1 ) );
+        assertNotNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample3.operatorDef1.id() ) );
         assertNotNull( operatorKVStoreManager.getDefaultOperatorKVStore( region.getRegionId(), flowExample3.operatorDef1.id() ) );
 
         regionManager.releaseRegion( region.getRegionId() );
 
-        assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample3.operatorDef1 ) );
+        assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample3.operatorDef1.id() ) );
         assertNull( operatorKVStoreManager.getDefaultOperatorKVStore( region.getRegionId(), flowExample3.operatorDef1.id() ) );
     }
 
@@ -354,12 +354,12 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final Region region = regionManager.createRegion( flowExample3.flow, regionConfig );
 
-        assertNotNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample3.operatorDef1 ) );
+        assertNotNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample3.operatorDef1.id() ) );
         assertNotNull( operatorKVStoreManager.getDefaultOperatorKVStore( region.getRegionId(), flowExample3.operatorDef1.id() ) );
 
         regionManager.releaseRegion( region.getRegionId() );
 
-        assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample3.operatorDef1 ) );
+        assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample3.operatorDef1.id() ) );
         assertNull( operatorKVStoreManager.getDefaultOperatorKVStore( region.getRegionId(), flowExample3.operatorDef1.id() ) );
     }
 
@@ -543,8 +543,8 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final Region region = regionManager.createRegion( flowExample5.flow, regionConfig );
 
-        assertNotNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample5.operatorDef1 ) );
-        assertNotNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 1, flowExample5.operatorDef1 ) );
+        assertNotNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample5.operatorDef1.id() ) );
+        assertNotNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 1, flowExample5.operatorDef1.id() ) );
         final OperatorTupleQueue[] operatorTupleQueues = operatorTupleQueueManager.getPartitionedOperatorTupleQueues( region.getRegionId(),
                                                                                                                       flowExample5.operatorDef2
                                                                                                                               .id() );
@@ -558,8 +558,8 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         regionManager.releaseRegion( region.getRegionId() );
 
-        assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample5.operatorDef1 ) );
-        assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 1, flowExample5.operatorDef1 ) );
+        assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample5.operatorDef1.id() ) );
+        assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 1, flowExample5.operatorDef1.id() ) );
         assertNull( operatorKVStoreManager.getPartitionedOperatorKVStores( region.getRegionId(), flowExample5.operatorDef2.id() ) );
     }
 
