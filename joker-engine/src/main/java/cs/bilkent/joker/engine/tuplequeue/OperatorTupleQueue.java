@@ -71,4 +71,6 @@ public interface OperatorTupleQueue
 
     boolean isOverloaded ();
 
+    boolean isEmpty ();
+
 }

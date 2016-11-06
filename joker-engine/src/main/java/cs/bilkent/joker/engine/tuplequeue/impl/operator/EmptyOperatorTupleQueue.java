@@ -120,4 +120,10 @@ public class EmptyOperatorTupleQueue implements OperatorTupleQueue
         return false;
     }
 
+    @Override
+    public boolean isEmpty ()
+    {
+        return true;
+    }
+
 }

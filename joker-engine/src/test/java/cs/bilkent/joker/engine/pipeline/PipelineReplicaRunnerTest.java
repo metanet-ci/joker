@@ -22,6 +22,7 @@ import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
+import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.joker.testutils.AbstractJokerTest;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -106,10 +107,32 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
 
         runner.pause().get();
 
-        assertTrueEventually( () ->
-                              {
-                                  assertEquals( PAUSED, runner.getStatus() );
-                              } );
+        assertTrueEventually( () -> assertEquals( PAUSED, runner.getStatus() ) );
+    }
+
+    @Test
+    public void shouldStopWhileRunning () throws ExecutionException, InterruptedException
+    {
+        thread.start();
+
+        runner.stop().get();
+
+        assertTrueEventually( () -> assertEquals( COMPLETED, runner.getStatus() ) );
+    }
+
+    @Test
+    public void shouldDrainStatelessTuplesWhileRunning () throws ExecutionException, InterruptedException
+    {
+        when( operator.getOperatorType() ).thenReturn( STATELESS );
+        final OperatorTupleQueue operatorTupleQueue = mock( OperatorTupleQueue.class );
+        when( operator.getQueue() ).thenReturn( operatorTupleQueue );
+        when( operatorTupleQueue.isEmpty() ).thenReturn( true );
+
+        thread.start();
+
+        runner.drainStatelessOperatorsAndStop().get();
+
+        assertTrueEventually( () -> assertEquals( COMPLETED, runner.getStatus() ) );
     }
 
     @Test
@@ -119,10 +142,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
 
         runner.pause().get();
 
-        assertTrueEventually( () ->
-                              {
-                                  assertEquals( PAUSED, runner.getStatus() );
-                              } );
+        assertTrueEventually( () -> assertEquals( PAUSED, runner.getStatus() ) );
 
         runner.pause().get();
     }
@@ -228,12 +248,57 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
         when( supervisor.getUpstreamContext( pipeline.id() ) ).thenReturn( upstreamContext );
 
         final CompletableFuture<Boolean> future = runner.updatePipelineUpstreamContext();
+        assertTrue( future.get() );
+        assertEquals( PAUSED, runner.getStatus() );
+
         assertTrueEventually( () -> verify( supervisor, times( 2 ) ).getUpstreamContext( id ) );
         pipeline.getPipelineReplicaCompletionTracker().onStatusChange( operatorDef.id(), OperatorReplicaStatus.COMPLETED );
-        assertTrue( future.get() );
 
         assertThat( runner.getPipelineUpstreamContext(), equalTo( upstreamContext ) );
     }
+
+    @Test
+    public void shouldNotUpdateUpstreamContextWhenStopped () throws ExecutionException, InterruptedException
+    {
+        thread.start();
+
+        runner.stop().get();
+
+        assertTrueEventually( () -> assertEquals( runner.getStatus(), COMPLETED ) );
+
+        final CompletableFuture<Boolean> future = runner.updatePipelineUpstreamContext();
+        try
+        {
+            future.get();
+            fail();
+        }
+        catch ( ExecutionException expected )
+        {
+
+        }
+    }
+
+    @Test
+    public void shouldNotUpdateUpstreamContextWhenCompleted () throws ExecutionException, InterruptedException
+    {
+        thread.start();
+
+        pipeline.getPipelineReplicaCompletionTracker().onStatusChange( operatorDef.id(), OperatorReplicaStatus.COMPLETED );
+
+        assertTrueEventually( () -> assertEquals( runner.getStatus(), COMPLETED ) );
+
+        final CompletableFuture<Boolean> future = runner.updatePipelineUpstreamContext();
+        try
+        {
+            future.get();
+            fail();
+        }
+        catch ( ExecutionException expected )
+        {
+
+        }
+    }
+
 
     @Test
     public void shouldResumeWhileRunning () throws ExecutionException, InterruptedException

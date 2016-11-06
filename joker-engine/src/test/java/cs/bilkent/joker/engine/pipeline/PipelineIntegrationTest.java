@@ -278,7 +278,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final Supplier<TuplesImpl> generatorTuplesImplSupplier = new CachedTuplesImplSupplier( generatorOperatorDef.outputPortCount() );
 
         final OperatorReplica generatorOperator = new OperatorReplica( pipelineReplicaId1,
-                                                                       generatorOperatorDef, generatorOperatorTupleQueue,
+                                                                       generatorOperatorDef,
+                                                                       generatorOperatorTupleQueue,
                                                                        nopOperatorKvStore,
                                                                        generatorDrainerPool,
                                                                        generatorTuplesImplSupplier );
@@ -314,17 +315,18 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                .setPartitionFieldNames( singletonList( "val" ) )
                                                                .build();
 
-        final OperatorTupleQueue[] stateOperatorTupleQueues = operatorTupleQueueManager.createPartitionedOperatorTupleQueues(
-                REGION_ID,
-                stateOperatorDef,
-                partitionDistribution );
+        final OperatorTupleQueue[] stateOperatorTupleQueues = operatorTupleQueueManager.createPartitionedOperatorTupleQueues( REGION_ID,
+                                                                                                                              stateOperatorDef,
+                                                                                                                              partitionDistribution );
         final OperatorTupleQueue stateOperatorTupleQueue = stateOperatorTupleQueues[ 0 ];
 
         final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, stateOperatorDef );
         final Supplier<TuplesImpl> stateTuplesImplSupplier = new CachedTuplesImplSupplier( stateOperatorDef.outputPortCount() );
 
         final OperatorReplica stateOperator = new OperatorReplica( pipelineReplicaId1,
-                                                                   stateOperatorDef, stateOperatorTupleQueue, operatorKvStores[ 0 ],
+                                                                   stateOperatorDef,
+                                                                   stateOperatorTupleQueue,
+                                                                   operatorKvStores[ 0 ],
                                                                    stateDrainerPool,
                                                                    stateTuplesImplSupplier );
 
@@ -435,11 +437,13 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         pipeline2.init( supervisor.upstreamContexts.get( pipelineReplicaId2 ) );
 
         final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig, pipeline1, supervisor, tupleSender );
+        supervisor.downstreamTupleSenders.put( pipeline1.id(), tupleSender );
 
-        final TupleCollectorDownstreamTupleSender tupleCollector2 = new TupleCollectorDownstreamTupleSender( filterOperatorDef
+        final TupleCollectorDownstreamTupleSender tupleCollector = new TupleCollectorDownstreamTupleSender( filterOperatorDef
                                                                                                                      .outputPortCount() );
 
-        final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( jokerConfig, pipeline2, supervisor, tupleCollector2 );
+        final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( jokerConfig, pipeline2, supervisor, tupleCollector );
+        supervisor.downstreamTupleSenders.put( pipeline2.id(), tupleCollector );
 
         supervisor.targetPipelineReplicaId = pipelineReplicaId2;
         supervisor.runner = runner2;
@@ -459,8 +463,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         }
 
         final int evenValCount = tupleCount / 2;
-        assertTrueEventually( () -> assertEquals( evenValCount, tupleCollector2.tupleQueues[ 0 ].size() ) );
-        final List<Tuple> tuples = tupleCollector2.tupleQueues[ 0 ].pollTuplesAtLeast( 1 );
+        assertTrueEventually( () -> assertEquals( evenValCount, tupleCollector.tupleQueues[ 0 ].size() ) );
+        final List<Tuple> tuples = tupleCollector.tupleQueues[ 0 ].pollTuplesAtLeast( 1 );
         for ( int i = 0; i < evenValCount; i++ )
         {
             final Tuple expected = new Tuple();
@@ -508,7 +512,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                                                                  () );
 
         final OperatorReplica generatorOperator1 = new OperatorReplica( pipelineReplicaId1,
-                                                                        generatorOperatorDef1, generatorOperatorTupleQueue1,
+                                                                        generatorOperatorDef1,
+                                                                        generatorOperatorTupleQueue1,
                                                                         nopOperatorKvStore,
                                                                         generatorDrainerPool1,
                                                                         generatorTuplesImplSupplier1 );
@@ -537,7 +542,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                                                                  () );
 
         final OperatorReplica generatorOperator2 = new OperatorReplica( pipelineReplicaId2,
-                                                                        generatorOperatorDef2, generatorOperatorTupleQueue2,
+                                                                        generatorOperatorDef2,
+                                                                        generatorOperatorTupleQueue2,
                                                                         nopOperatorKvStore,
                                                                         generatorDrainerPool2,
                                                                         generatorTuplesImplSupplier2 );
@@ -603,17 +609,18 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                .setPartitionFieldNames( singletonList( "val" ) )
                                                                .build();
 
-        final OperatorTupleQueue[] stateOperatorTupleQueues = operatorTupleQueueManager.createPartitionedOperatorTupleQueues(
-                REGION_ID,
-                stateOperatorDef,
-                partitionDistribution );
+        final OperatorTupleQueue[] stateOperatorTupleQueues = operatorTupleQueueManager.createPartitionedOperatorTupleQueues( REGION_ID,
+                                                                                                                              stateOperatorDef,
+                                                                                                                              partitionDistribution );
         final OperatorTupleQueue stateOperatorTupleQueue = stateOperatorTupleQueues[ 0 ];
 
         final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, stateOperatorDef );
         final Supplier<TuplesImpl> stateTuplesImplSupplier = new CachedTuplesImplSupplier( stateOperatorDef.outputPortCount() );
 
         final OperatorReplica stateOperator = new OperatorReplica( pipelineReplicaId3,
-                                                                   stateOperatorDef, stateOperatorTupleQueue, operatorKvStores[ 0 ],
+                                                                   stateOperatorDef,
+                                                                   stateOperatorTupleQueue,
+                                                                   operatorKvStores[ 0 ],
                                                                    stateDrainerPool,
                                                                    stateTuplesImplSupplier );
 
@@ -624,19 +631,17 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         pipeline3.init( supervisor.upstreamContexts.get( pipelineReplicaId3 ) );
 
-        final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig,
-                                                                         pipeline1,
-                                                                         supervisor, new DownstreamTupleSenderImpl( sinkOperatorTupleQueue,
-                                                                                                                    new Pair[] { Pair.of( 0, 0 ) } ) );
-        final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( jokerConfig,
-                                                                         pipeline2,
-                                                                         supervisor, new DownstreamTupleSenderImpl( sinkOperatorTupleQueue,
-                                                                                                                    new Pair[] { Pair.of(
-                                                                                                                            0, 1 ) } ) );
-        final PipelineReplicaRunner runner3 = new PipelineReplicaRunner( jokerConfig,
-                                                                         pipeline3,
-                                                                         supervisor,
-                                                                         new DownstreamTupleSenderImpl( null, new Pair[] {} ) );
+        final DownstreamTupleSenderImpl sender1 = new DownstreamTupleSenderImpl( sinkOperatorTupleQueue, new Pair[] { Pair.of( 0, 0 ) } );
+        final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig, pipeline1, supervisor, sender1 );
+        supervisor.downstreamTupleSenders.put( pipeline1.id(), sender1 );
+
+        final DownstreamTupleSenderImpl sender2 = new DownstreamTupleSenderImpl( sinkOperatorTupleQueue, new Pair[] { Pair.of( 0, 1 ) } );
+        final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( jokerConfig, pipeline2, supervisor, sender2 );
+        supervisor.downstreamTupleSenders.put( pipeline2.id(), sender2 );
+
+        final DownstreamTupleSenderImpl sender3 = new DownstreamTupleSenderImpl( null, new Pair[] {} );
+        final PipelineReplicaRunner runner3 = new PipelineReplicaRunner( jokerConfig, pipeline3, supervisor, sender3 );
+        supervisor.downstreamTupleSenders.put( pipeline3.id(), sender3 );
 
         supervisor.targetPipelineReplicaId = pipelineReplicaId3;
         supervisor.runner = runner3;
@@ -701,7 +706,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final Supplier<TuplesImpl> generatorTuplesImplSupplier = new NonCachedTuplesImplSupplier( generatorOperatorDef.outputPortCount() );
 
         final OperatorReplica generatorOperator = new OperatorReplica( pipelineReplicaId1,
-                                                                       generatorOperatorDef, generatorOperatorTupleQueue,
+                                                                       generatorOperatorDef,
+                                                                       generatorOperatorTupleQueue,
                                                                        nopOperatorKvStore,
                                                                        generatorDrainerPool,
                                                                        generatorTuplesImplSupplier );
@@ -737,17 +743,18 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                .setPartitionFieldNames( singletonList( "val" ) )
                                                                .build();
 
-        final OperatorTupleQueue[] stateOperatorTupleQueues = operatorTupleQueueManager.createPartitionedOperatorTupleQueues(
-                REGION_ID,
-                stateOperatorDef,
-                partitionDistribution );
+        final OperatorTupleQueue[] stateOperatorTupleQueues = operatorTupleQueueManager.createPartitionedOperatorTupleQueues( REGION_ID,
+                                                                                                                              stateOperatorDef,
+                                                                                                                              partitionDistribution );
         final OperatorTupleQueue stateOperatorTupleQueue = stateOperatorTupleQueues[ 0 ];
 
         final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, stateOperatorDef );
         final Supplier<TuplesImpl> stateTuplesImplSupplier = new CachedTuplesImplSupplier( stateOperatorDef.outputPortCount() );
 
         final OperatorReplica stateOperator = new OperatorReplica( pipelineReplicaId2,
-                                                                   stateOperatorDef, stateOperatorTupleQueue, operatorKvStores[ 0 ],
+                                                                   stateOperatorDef,
+                                                                   stateOperatorTupleQueue,
+                                                                   operatorKvStores[ 0 ],
                                                                    stateDrainerPool,
                                                                    stateTuplesImplSupplier );
 
@@ -769,15 +776,14 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         pipeline2.init( supervisor.upstreamContexts.get( pipelineReplicaId2 ) );
 
-        final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig,
-                                                                         pipeline1,
-                                                                         supervisor,
-                                                                         new DownstreamTupleSenderImpl( pipeline2.getPipelineTupleQueue(),
-                                                                                                        new Pair[] { Pair.of( 0, 0 ) } ) );
-        final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( jokerConfig,
-                                                                         pipeline2,
-                                                                         supervisor,
-                                                                         mock( DownstreamTupleSender.class ) );
+        final DownstreamTupleSenderImpl sender1 = new DownstreamTupleSenderImpl( pipeline2.getPipelineTupleQueue(),
+                                                                                 new Pair[] { Pair.of( 0, 0 ) } );
+        supervisor.downstreamTupleSenders.put( pipeline1.id(), sender1 );
+        final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig, pipeline1, supervisor, sender1 );
+
+        final DownstreamTupleSender sender2 = mock( DownstreamTupleSender.class );
+        final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( jokerConfig, pipeline2, supervisor, sender2 );
+        supervisor.downstreamTupleSenders.put( pipeline2.id(), sender2 );
 
         supervisor.targetPipelineReplicaId = pipelineReplicaId2;
         supervisor.runner = runner2;
@@ -1010,6 +1016,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         private final Map<PipelineReplicaId, UpstreamContext> upstreamContexts = new ConcurrentHashMap<>();
 
+        private final Map<PipelineReplicaId, DownstreamTupleSender> downstreamTupleSenders = new ConcurrentHashMap<>();
+
         private final Map<PipelineReplicaId, Integer> inputPortIndices = new HashMap<>();
 
         private final Set<PipelineReplicaId> completedPipelines = Collections.newSetFromMap( new ConcurrentHashMap<>() );
@@ -1022,6 +1030,12 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         public UpstreamContext getUpstreamContext ( final PipelineReplicaId id )
         {
             return upstreamContexts.get( id );
+        }
+
+        @Override
+        public DownstreamTupleSender getDownstreamTupleSender ( final PipelineReplicaId id )
+        {
+            return downstreamTupleSenders.get( id );
         }
 
         @Override

@@ -19,6 +19,7 @@ import static cs.bilkent.joker.engine.FlowStatus.SHUT_DOWN;
 import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_THREAD_GROUP_NAME;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.exception.JokerException;
+import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
 import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineManager;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
@@ -106,7 +107,7 @@ public class SupervisorImpl implements Supervisor
         final CompletableFuture<Void> future = new CompletableFuture<>();
         synchronized ( monitor )
         {
-            checkState( isInitialized() && ( shutdownFuture == null ),
+            checkState( isDeploymentChangeOK(),
                         "cannot merge pipelines %s since %s and shutdown future is %s",
                         pipelineIdsToMerge,
                         pipelineManager.getFlowStatus(),
@@ -125,7 +126,7 @@ public class SupervisorImpl implements Supervisor
         final CompletableFuture<Void> future = new CompletableFuture<>();
         synchronized ( monitor )
         {
-            checkState( isInitialized() && ( shutdownFuture == null ),
+            checkState( isDeploymentChangeOK(),
                         "cannot split pipeline %s into %s since %s and shutdown future is %s",
                         pipelineId,
                         pipelineOperatorIndices,
@@ -138,6 +139,31 @@ public class SupervisorImpl implements Supervisor
         }
 
         return future;
+    }
+
+    public Future<Void> rebalanceRegion ( final int regionId, final int newReplicaCount )
+    {
+        final CompletableFuture<Void> future = new CompletableFuture<>();
+        synchronized ( monitor )
+        {
+            checkState( isDeploymentChangeOK(),
+                        "cannot rebalance region %s to new replica count %s since %s and shutdown future is %s",
+                        regionId,
+                        newReplicaCount,
+                        pipelineManager.getFlowStatus(),
+                        shutdownFuture );
+
+            final boolean result = queue.offer( () -> doRebalanceRegion( future, regionId, newReplicaCount ) );
+            assert result : "offer failed for rebalance region " + regionId + " to new replica count: " + newReplicaCount;
+            LOGGER.info( "rebalance region {} to new replica count {} task offered", regionId, newReplicaCount );
+        }
+
+        return future;
+    }
+
+    private boolean isDeploymentChangeOK ()
+    {
+        return isInitialized() && ( shutdownFuture == null );
     }
 
     private void doMergePipelines ( final CompletableFuture<Void> future, final List<PipelineId> pipelineIdsToMerge )
@@ -182,6 +208,26 @@ public class SupervisorImpl implements Supervisor
         }
     }
 
+    private void doRebalanceRegion ( final CompletableFuture<Void> future, final int regionId, final int newReplicaCount )
+    {
+        try
+        {
+            pipelineManager.rebalanceRegion( this, regionId, newReplicaCount );
+            future.complete( null );
+        }
+        catch ( IllegalArgumentException e )
+        {
+            LOGGER.error( "Rebalance region" + regionId + " to new replica count: " + newReplicaCount + " failed", e );
+            future.completeExceptionally( e );
+        }
+        catch ( JokerException e )
+        {
+            LOGGER.error( "Rebalance region" + regionId + " to new replica count: " + newReplicaCount + " failed", e );
+            future.completeExceptionally( e );
+            throw e;
+        }
+    }
+
     private boolean isInitialized ()
     {
         final FlowStatus status = pipelineManager.getFlowStatus();
@@ -192,6 +238,12 @@ public class SupervisorImpl implements Supervisor
     public UpstreamContext getUpstreamContext ( final PipelineReplicaId id )
     {
         return pipelineManager.getUpstreamContext( id );
+    }
+
+    @Override
+    public DownstreamTupleSender getDownstreamTupleSender ( final PipelineReplicaId id )
+    {
+        return pipelineManager.getDownstreamTupleSender( id );
     }
 
     @Override

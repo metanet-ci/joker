@@ -392,17 +392,15 @@ public class RegionManagerImpl implements RegionManager
                     final OperatorTupleQueue operatorTupleQueue;
                     if ( flow.getUpstreamConnections( operatorId ).isEmpty() )
                     {
-                        LOGGER.info( "Creating {} for regionId={} operatorId={}",
-                                     EmptyOperatorTupleQueue.class.getSimpleName(),
-                                     regionId,
+                        LOGGER.info( "Creating {} for regionId={} replicaIndex={} operatorId={}",
+                                     EmptyOperatorTupleQueue.class.getSimpleName(), regionId, replicaIndex,
                                      operatorId );
                         operatorTupleQueue = new EmptyOperatorTupleQueue( operatorId, operatorDef.inputPortCount() );
                     }
                     else if ( operatorDef.operatorType() == PARTITIONED_STATEFUL )
                     {
-                        LOGGER.info( "Creating {} for regionId={} operatorId={}",
-                                     PartitionedOperatorTupleQueue.class.getSimpleName(),
-                                     regionId,
+                        LOGGER.info( "Creating {} for regionId={} replicaIndex={} operatorId={}",
+                                     PartitionedOperatorTupleQueue.class.getSimpleName(), regionId, replicaIndex,
                                      operatorId );
                         final OperatorTupleQueue[] operatorTupleQueues = operatorTupleQueueManager.getPartitionedOperatorTupleQueuesOrFail(
                                 regionId,
@@ -412,10 +410,9 @@ public class RegionManagerImpl implements RegionManager
                     else
                     {
                         final ThreadingPreference threadingPreference = getThreadingPreference( isFirstOperator );
-                        LOGGER.info( "Creating {} {} for regionId={} operatorId={}",
+                        LOGGER.info( "Creating {} {} for regionId={} replicaIndex={} operatorId={}",
                                      threadingPreference,
-                                     DefaultOperatorTupleQueue.class.getSimpleName(),
-                                     regionId,
+                                     DefaultOperatorTupleQueue.class.getSimpleName(), regionId, replicaIndex,
                                      operatorId );
                         operatorTupleQueue = operatorTupleQueueManager.createDefaultOperatorTupleQueue( regionId,
                                                                                                         replicaIndex,
@@ -424,26 +421,23 @@ public class RegionManagerImpl implements RegionManager
                     }
 
                     final TupleQueueDrainerPool drainerPool = createTupleQueueDrainer( operatorDef, isFirstOperator );
-                    LOGGER.info( "Creating {} for regionId={} operatorId={}",
-                                 drainerPool.getClass().getSimpleName(),
-                                 regionId,
+                    LOGGER.info( "Creating {} for regionId={} replicaIndex={} operatorId={}",
+                                 drainerPool.getClass().getSimpleName(), regionId, replicaIndex,
                                  operatorId );
 
                     final OperatorKVStore operatorKVStore;
                     if ( operatorDef.operatorType() == STATELESS )
                     {
-                        LOGGER.info( "Creating {} for regionId={} operatorId={}",
-                                     EmptyOperatorKVStore.class.getSimpleName(),
-                                     regionId,
+                        LOGGER.info( "Creating {} for regionId={} replicaIndex={} operatorId={}",
+                                     EmptyOperatorKVStore.class.getSimpleName(), regionId, replicaIndex,
                                      operatorId );
                         operatorKVStore = new EmptyOperatorKVStore( operatorId );
                     }
                     else
                     {
                         checkState( operatorDef.operatorType() == PARTITIONED_STATEFUL );
-                        LOGGER.info( "Creating {} for regionId={} operatorId={}",
-                                     PartitionedOperatorKVStore.class.getSimpleName(),
-                                     regionId,
+                        LOGGER.info( "Creating {} for regionId={} replicaIndex={} operatorId={}",
+                                     PartitionedOperatorKVStore.class.getSimpleName(), regionId, replicaIndex,
                                      operatorId );
                         final OperatorKVStore[] operatorKvStores = operatorKvStoreManager.getPartitionedOperatorKVStoresOrFail( regionId,
                                                                                                                                 operatorId );
@@ -451,9 +445,8 @@ public class RegionManagerImpl implements RegionManager
                     }
 
                     final Supplier<TuplesImpl> outputSupplier = createOutputSupplier( operatorDef, isLastOperator );
-                    LOGGER.info( "Creating {} for regionId={} operatorId={}",
-                                 outputSupplier.getClass().getSimpleName(),
-                                 regionId,
+                    LOGGER.info( "Creating {} for regionId={} replicaIndex={} operatorId={}",
+                                 outputSupplier.getClass().getSimpleName(), regionId, replicaIndex,
                                  operatorId );
 
                     operatorReplicas[ operatorIndex ] = new OperatorReplica( pipelineReplicaId,
@@ -574,7 +567,7 @@ public class RegionManagerImpl implements RegionManager
                 final TuplesImpl result = drainer.getResult();
                 if ( result != null && result.isNonEmpty() )
                 {
-                    LOGGER.info( "Draining pipeline tuple queue of %s", pipelineReplica.id() );
+                    LOGGER.info( "Draining pipeline tuple queue of {}", pipelineReplica.id() );
                     for ( int portIndex = 0; portIndex < result.getPortCount(); portIndex++ )
                     {
                         operatorTupleQueue.offer( portIndex, result.getTuples( portIndex ) );

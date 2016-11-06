@@ -51,7 +51,7 @@ public class Pipeline
 
     private Thread[] threads;
 
-    private DownstreamTupleSender[] downstreamTupleSenders;
+    private volatile DownstreamTupleSender[] downstreamTupleSenders;
 
     private PipelineReplicaRunnerStatus runnerStatus;
 
@@ -86,13 +86,57 @@ public class Pipeline
         this.replicas = new PipelineReplica[ replicaCount ];
         arraycopy( pipelineReplicas, 0, this.replicas, 0, replicaCount );
         this.threads = new Thread[ replicaCount ];
-        this.pipelineStatus = RUNNING;
-        replicaStatuses = new OperatorReplicaStatus[ replicaCount ];
-        fill( this.replicaStatuses, RUNNING );
+        this.replicaStatuses = new OperatorReplicaStatus[ replicaCount ];
         this.runners = new PipelineReplicaRunner[ replicaCount ];
         this.downstreamTupleSenders = new DownstreamTupleSender[ replicaCount ];
         this.initialSchedulingStrategy = initialSchedulingStrategy;
         this.upstreamContext = upstreamContext;
+
+        final int highestRunningPipelineReplicaIndex = getHighestRunningPipelineReplicaIndex();
+        if ( highestRunningPipelineReplicaIndex == replicas.length - 1 )
+        {
+            this.pipelineStatus = RUNNING;
+            fill( this.replicaStatuses, RUNNING );
+        }
+        else
+        {
+            final SchedulingStrategy[] schedulingStrategies = this.replicas[ 0 ].getSchedulingStrategies();
+            init( schedulingStrategies, highestRunningPipelineReplicaIndex + 1 );
+        }
+    }
+
+    private int getHighestRunningPipelineReplicaIndex ()
+    {
+        int replicaIndex = 0;
+        for ( ; replicaIndex < getReplicaCount(); replicaIndex++ )
+        {
+            final OperatorReplicaStatus status = replicas[ replicaIndex ].getStatus();
+            if ( status == INITIAL )
+            {
+                break;
+            }
+
+            checkState( status == RUNNING,
+                        "invalid pipeline initialization status! Pipeline: %s replicaIndex is in %s status",
+                        id,
+                        replicaIndex,
+                        status );
+        }
+
+        checkState( replicaIndex > 0, "invalid pipeline status! No running replicas! Pipeline: %s", id );
+        for ( int i = replicaIndex; i < getReplicaCount(); i++ )
+        {
+            final OperatorReplicaStatus status = replicas[ i ].getStatus();
+            checkState( status == INITIAL,
+                        "invalid pipeline status! Pipeline: %s replica index: %s should be %s but it is %s",
+                        id,
+                        i,
+                        INITIAL,
+
+                        status );
+        }
+
+        return replicaIndex - 1;
     }
 
     public PipelineId getId ()
@@ -172,23 +216,67 @@ public class Pipeline
         this.upstreamContext = upstreamContext;
     }
 
-    public void setDownstreamTupleSender ( final int replicaIndex, final DownstreamTupleSender downstreamTupleSender )
+    public void setDownstreamTupleSenders ( final DownstreamTupleSender[] downstreamTupleSenders )
     {
-        checkArgument( downstreamTupleSender != null,
-                       "Cannot set null DownstreamTupleSender for Pipeline %s replicaIndex=%s",
+        checkArgument( downstreamTupleSenders != null, "Cannot set null DownstreamTupleSenders for Pipeline %s", id );
+        checkArgument( downstreamTupleSenders.length == getReplicaCount(),
+                       "Cannot set DownstreamTupleSenders with %s replicas for Pipeline %s with %s replicas",
                        id,
-                       replicaIndex );
-        checkState( downstreamTupleSenders[ replicaIndex ] == null,
-                    "DownstreamTupleSender %s already set for Pipeline %s replicaIndex=%s",
-                    downstreamTupleSenders[ replicaIndex ],
-                    id,
-                    replicaIndex );
-        downstreamTupleSenders[ replicaIndex ] = downstreamTupleSender;
+                       downstreamTupleSenders.length,
+                       getReplicaCount() );
+
+        for ( int replicaIndex = 0; replicaIndex < getReplicaCount(); replicaIndex++ )
+        {
+            checkArgument( downstreamTupleSenders[ replicaIndex ] != null,
+                           "argument DownstreamTupleSender null for Pipeline %s replicaIndex=%s",
+                           id,
+                           replicaIndex );
+        }
+
+        this.downstreamTupleSenders = Arrays.copyOf( downstreamTupleSenders, downstreamTupleSenders.length );
     }
 
     public DownstreamTupleSender getDownstreamTupleSender ( final int replicaIndex )
     {
         return downstreamTupleSenders[ replicaIndex ];
+    }
+
+    private void init ( final SchedulingStrategy[] initialSchedulingStrategies, final int replicaIndexToInit )
+    {
+        try
+        {
+            final SchedulingStrategy[][] schedulingStrategies = new SchedulingStrategy[ getReplicaCount() ][ getOperatorCount() ];
+            for ( int replicaIndex = replicaIndexToInit; replicaIndex < getReplicaCount(); replicaIndex++ )
+            {
+                final PipelineReplica pipelineReplica = replicas[ replicaIndex ];
+                LOGGER.info( "Initializing Replica {} of Pipeline {} with {}", replicaIndex, id, upstreamContext );
+                final SchedulingStrategy[] strategies = pipelineReplica.init( upstreamContext );
+                arraycopy( strategies, 0, schedulingStrategies[ replicaIndex ], 0, getOperatorCount() );
+            }
+
+            for ( int replicaIndex = replicaIndexToInit; replicaIndex < getReplicaCount(); replicaIndex++ )
+            {
+                checkState( Arrays.equals( initialSchedulingStrategies, schedulingStrategies[ replicaIndex ] ),
+                            "Pipeline %s Replica O scheduling strategies: %s, Replica %s scheduling strategies: ",
+                            id,
+                            schedulingStrategies[ 0 ],
+                            replicaIndex,
+                            schedulingStrategies[ replicaIndex ] );
+            }
+
+            this.initialSchedulingStrategy = initialSchedulingStrategies[ 0 ];
+            pipelineStatus = RUNNING;
+            fill( replicaStatuses, RUNNING );
+        }
+        catch ( Exception e )
+        {
+            if ( e.getCause() instanceof InterruptedException )
+            {
+                Thread.currentThread().interrupt();
+            }
+            pipelineStatus = INITIALIZATION_FAILED;
+            throw e;
+        }
     }
 
     public void init ()
@@ -374,19 +462,68 @@ public class Pipeline
         LOGGER.info( "Pipeline {} threads are started", id );
     }
 
-    public List<Exception> stopPipelineReplicaRunners ( final boolean disableCapacityCheck, final long timeoutInMillis )
+    public List<Exception> pausePipelineReplicaRunners ( final long timeoutInMillis )
     {
-        checkState( pipelineStatus == RUNNING || pipelineStatus == COMPLETING || pipelineStatus == COMPLETED,
-                    "cannot create pipeline %s replica runners since in %s status",
-                    id,
-                    pipelineStatus );
-        checkState( runnerStatus == PipelineReplicaRunnerStatus.RUNNING,
-                    "cannot create pipeline %s replica runners since runner status is %s",
+        checkState( pipelineStatus == RUNNING, "cannot pause pipeline %s replica runners since in %s status", id, pipelineStatus );
+        checkState( runnerStatus == PipelineReplicaRunnerStatus.RUNNING || runnerStatus == PipelineReplicaRunnerStatus.PAUSED,
+                    "cannot pause pipeline %s replica runners since runner status is %s",
                     id,
                     runnerStatus );
 
         final List<Future<Boolean>> futures = new ArrayList<>();
-        final List<Exception> failures = new ArrayList<>();
+
+        for ( int replicaIndex = 0; replicaIndex < getReplicaCount(); replicaIndex++ )
+        {
+            final PipelineReplicaRunner runner = runners[ replicaIndex ];
+            futures.add( runner.pause() );
+        }
+
+        final List<Exception> failures = waitForPipelineReplicaCommands( futures, timeoutInMillis, "pause" );
+
+        LOGGER.info( "Replica runners of Pipeline {} are paused...", id );
+
+        runnerStatus = PipelineReplicaRunnerStatus.PAUSED;
+
+        return failures;
+    }
+
+    public List<Exception> resumePipelineReplicaRunners ( final long timeoutInMillis )
+    {
+        checkState( pipelineStatus == RUNNING, "cannot resume pipeline %s replica runners since in %s status", id, pipelineStatus );
+        checkState( runnerStatus == PipelineReplicaRunnerStatus.RUNNING || runnerStatus == PipelineReplicaRunnerStatus.PAUSED,
+                    "cannot resume pipeline %s replica runners since runner status is %s",
+                    id,
+                    runnerStatus );
+
+        final List<Future<Boolean>> futures = new ArrayList<>();
+
+        for ( int replicaIndex = 0; replicaIndex < getReplicaCount(); replicaIndex++ )
+        {
+            final PipelineReplicaRunner runner = runners[ replicaIndex ];
+            futures.add( runner.resume() );
+        }
+
+        final List<Exception> failures = waitForPipelineReplicaCommands( futures, timeoutInMillis, "resume" );
+
+        LOGGER.info( "Replica runners of Pipeline {} are resumed...", id );
+
+        runnerStatus = PipelineReplicaRunnerStatus.RUNNING;
+
+        return failures;
+    }
+
+    public List<Exception> stopPipelineReplicaRunners ( final boolean disableCapacityCheck, final long timeoutInMillis )
+    {
+        checkState( pipelineStatus == RUNNING || pipelineStatus == COMPLETING || pipelineStatus == COMPLETED,
+                    "cannot stop pipeline %s replica runners since in %s status",
+                    id,
+                    pipelineStatus );
+        checkState( runnerStatus == PipelineReplicaRunnerStatus.RUNNING,
+                    "cannot stop pipeline %s replica runners since runner status is %s",
+                    id,
+                    runnerStatus );
+
+        final List<Future<Boolean>> futures = new ArrayList<>();
 
         for ( int replicaIndex = 0; replicaIndex < getReplicaCount(); replicaIndex++ )
         {
@@ -410,6 +547,55 @@ public class Pipeline
             futures.add( runner.stop() );
         }
 
+        final List<Exception> failures = waitForPipelineReplicaCommands( futures, timeoutInMillis, "stop" );
+
+        LOGGER.info( "Replica runners of Pipeline {} are stopped...", id );
+
+        joinPipelineReplicaRunnerThreads( timeoutInMillis, failures );
+
+        runnerStatus = PipelineReplicaRunnerStatus.COMPLETED;
+
+        LOGGER.info( "Replica runner threads of Pipeline {} are stopped...", id );
+
+        return failures;
+    }
+
+    public List<Exception> drainStatelessOperatorsAndStopPipelineReplicaRunners ( final long timeoutInMillis )
+    {
+        checkState( pipelineStatus == RUNNING, "cannot stop pipeline %s replica runners since in %s status", id, pipelineStatus );
+        checkState( runnerStatus == PipelineReplicaRunnerStatus.RUNNING,
+                    "cannot stop pipeline %s replica runners since runner status is %s",
+                    id,
+                    runnerStatus );
+
+        final List<Future<Boolean>> futures = new ArrayList<>();
+
+        for ( int replicaIndex = 0; replicaIndex < getReplicaCount(); replicaIndex++ )
+        {
+            final PipelineReplicaRunner runner = runners[ replicaIndex ];
+            runners[ replicaIndex ] = null;
+            futures.add( runner.drainStatelessOperatorsAndStop() );
+        }
+
+        final List<Exception> failures = waitForPipelineReplicaCommands( futures, timeoutInMillis, "drain" );
+
+        LOGGER.info( "Replica runners of Pipeline {} are stopped...", id );
+
+        joinPipelineReplicaRunnerThreads( timeoutInMillis, failures );
+
+        runnerStatus = PipelineReplicaRunnerStatus.COMPLETED;
+
+        LOGGER.info( "Replica runner threads of Pipeline {} are stopped...", id );
+
+        return failures;
+    }
+
+    private List<Exception> waitForPipelineReplicaCommands ( final List<Future<Boolean>> futures,
+                                                             final long timeoutInMillis,
+                                                             final String command )
+    {
+        final List<Exception> failures = new ArrayList<>();
+
         for ( int replicaIndex = 0; replicaIndex < getReplicaCount(); replicaIndex++ )
         {
             final Future<Boolean> future = futures.get( replicaIndex );
@@ -420,18 +606,22 @@ public class Pipeline
             catch ( InterruptedException e )
             {
                 Thread.currentThread().interrupt();
-                LOGGER.error( "Interrupted during waiting for pipeline " + id + " replicaIndex=" + replicaIndex + " runner to stop", e );
+                LOGGER.error( "Interrupted during waiting for pipeline " + id + " replicaIndex=" + replicaIndex + " runner to " + command,
+                              e );
                 failures.add( e );
             }
             catch ( ExecutionException | TimeoutException e )
             {
-                LOGGER.error( "Failed during waiting for pipeline " + id + " replicaIndex=" + replicaIndex + " runner to stop", e );
+                LOGGER.error( "Failed during waiting for pipeline " + id + " replicaIndex=" + replicaIndex + " runner to " + command, e );
                 failures.add( e );
             }
         }
 
-        LOGGER.info( "Replica runners of Pipeline {} are stopped...", id );
+        return failures;
+    }
 
+    private void joinPipelineReplicaRunnerThreads ( final long timeoutInMillis, final List<Exception> failures )
+    {
         for ( int replicaIndex = 0; replicaIndex < getReplicaCount(); replicaIndex++ )
         {
             final Thread thread = threads[ replicaIndex ];
@@ -447,12 +637,6 @@ public class Pipeline
                 failures.add( e );
             }
         }
-
-        runnerStatus = PipelineReplicaRunnerStatus.COMPLETED;
-
-        LOGGER.info( "Replica runner threads of Pipeline {} are stopped...", id );
-
-        return failures;
     }
 
     public void shutdown ()

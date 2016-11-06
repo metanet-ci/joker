@@ -59,6 +59,11 @@ public class Joker
         return engine.splitPipeline( pipelineId, pipelineOperatorIndices );
     }
 
+    public Future<Void> rebalanceRegion ( final int regionId, final int newReplicaCount )
+    {
+        return engine.rebalanceRegion( regionId, newReplicaCount );
+    }
+
     public Future<Void> shutdown ()
     {
         return engine.shutdown();

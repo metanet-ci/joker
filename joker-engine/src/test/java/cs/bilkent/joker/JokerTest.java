@@ -132,7 +132,7 @@ public class JokerTest extends AbstractJokerTest
     }
 
     @Test
-    public void testEndToEndSystemWithMergingPipelinesAtRuntime () throws InterruptedException, ExecutionException, TimeoutException
+    public void testEndToEndSystemWithMergingPipelines () throws InterruptedException, ExecutionException, TimeoutException
     {
         final FlowExample1 flowExample = new FlowExample1();
         final JokerConfig jokerConfig = new JokerConfig();
@@ -166,7 +166,7 @@ public class JokerTest extends AbstractJokerTest
     }
 
     @Test
-    public void testEndToEndSystemWithSplittingPipelinesAtRuntime () throws InterruptedException, ExecutionException, TimeoutException
+    public void testEndToEndSystemWithSplittingPipelines () throws InterruptedException, ExecutionException, TimeoutException
     {
         final FlowExample1 flowExample = new FlowExample1();
         final JokerConfig jokerConfig = new JokerConfig();
@@ -198,7 +198,7 @@ public class JokerTest extends AbstractJokerTest
     }
 
     @Test
-    public void testEndToEndSystemWithSplittingAndMergingPipelinesAtRuntime () throws InterruptedException, ExecutionException,
+    public void testEndToEndSystemWithSplittingAndMergingPipelines () throws InterruptedException, ExecutionException,
                                                                                                   TimeoutException
     {
         final FlowExample1 flowExample = new FlowExample1();
@@ -232,7 +232,7 @@ public class JokerTest extends AbstractJokerTest
     }
 
     @Test
-    public void testEndToEndSystemWithMergingAndSplittingPipelinesAtRuntime () throws InterruptedException, ExecutionException,
+    public void testEndToEndSystemWithMergingAndSplittingPipelines () throws InterruptedException, ExecutionException,
                                                                                                   TimeoutException
     {
         final FlowExample1 flowExample = new FlowExample1();
@@ -251,6 +251,143 @@ public class JokerTest extends AbstractJokerTest
         joker.splitPipeline( new PipelineId( 1, 0 ), asList( 1, 2 ) ).get( 15, SECONDS );
 
         sleepUninterruptibly( 15, SECONDS );
+
+        joker.shutdown().get( 60, SECONDS );
+
+        System.out.println( "Value generator 1 is invoked " + flowExample.valueGenerator1.invocationCount.get() + " times." );
+        System.out.println( "Value generator 2 is invoked " + flowExample.valueGenerator2.invocationCount.get() + " times." );
+        System.out.println( "Collector is invoked " + flowExample.valueCollector.invocationCount.get() + " times." );
+
+        for ( int i = 0; i < flowExample.valueCollector.values.length(); i++ )
+        {
+            final int expected = ( flowExample.valueGenerator1.generatedValues[ i ].intValue()
+                                   + flowExample.valueGenerator2.generatedValues[ i ].intValue() ) * MULTIPLIER_VALUE;
+            final int actual = flowExample.valueCollector.values.get( i );
+            assertEquals( "i: " + i + " expected: " + expected + " actual: " + actual, expected, actual );
+        }
+    }
+
+    @Test
+    public void testEndToEndSystemWithRebalancingRegions () throws InterruptedException, ExecutionException, TimeoutException
+    {
+        final FlowExample1 flowExample = new FlowExample1();
+        final JokerConfig jokerConfig = new JokerConfig();
+        final StaticRegionConfigFactory2 regionConfigFactory = new StaticRegionConfigFactory2( jokerConfig,
+                                                                                               PARTITIONED_STATEFUL_REGION_REPLICA_COUNT );
+        final Joker joker = new JokerBuilder().setRegionConfigFactory( regionConfigFactory ).setJokerConfig( jokerConfig ).build();
+
+        joker.run( flowExample.flow );
+
+        sleepUninterruptibly( 5, SECONDS );
+
+        joker.rebalanceRegion( 1, PARTITIONED_STATEFUL_REGION_REPLICA_COUNT / 2 ).get( 15, SECONDS );
+
+        sleepUninterruptibly( 5, SECONDS );
+
+        joker.rebalanceRegion( 1, PARTITIONED_STATEFUL_REGION_REPLICA_COUNT ).get( 15, SECONDS );
+
+        sleepUninterruptibly( 5, SECONDS );
+
+        joker.rebalanceRegion( 1, PARTITIONED_STATEFUL_REGION_REPLICA_COUNT / 2 ).get( 15, SECONDS );
+
+        sleepUninterruptibly( 5, SECONDS );
+
+        joker.rebalanceRegion( 1, PARTITIONED_STATEFUL_REGION_REPLICA_COUNT ).get( 15, SECONDS );
+
+        sleepUninterruptibly( 10, SECONDS );
+
+        joker.shutdown().get( 60, SECONDS );
+
+        System.out.println( "Value generator 1 is invoked " + flowExample.valueGenerator1.invocationCount.get() + " times." );
+        System.out.println( "Value generator 2 is invoked " + flowExample.valueGenerator2.invocationCount.get() + " times." );
+        System.out.println( "Collector is invoked " + flowExample.valueCollector.invocationCount.get() + " times." );
+
+        for ( int i = 0; i < flowExample.valueCollector.values.length(); i++ )
+        {
+            final int expected = ( flowExample.valueGenerator1.generatedValues[ i ].intValue()
+                                   + flowExample.valueGenerator2.generatedValues[ i ].intValue() ) * MULTIPLIER_VALUE;
+            final int actual = flowExample.valueCollector.values.get( i );
+            assertEquals( "i: " + i + " expected: " + expected + " actual: " + actual, expected, actual );
+        }
+    }
+
+    @Test
+    public void testEndToEndSystemWithRebalancingRegionsWithStaticFlowOptimization () throws InterruptedException, ExecutionException,
+                                                                                                         TimeoutException
+    {
+        final FlowExample2 flowExample = new FlowExample2();
+
+        final JokerConfig jokerConfig = new JokerConfig();
+        final StaticRegionConfigFactory regionConfigFactory = new StaticRegionConfigFactory( jokerConfig,
+                                                                                             PARTITIONED_STATEFUL_REGION_REPLICA_COUNT );
+        final Joker joker = new JokerBuilder().setRegionConfigFactory( regionConfigFactory ).setJokerConfig( jokerConfig ).build();
+
+        joker.run( flowExample.flow );
+
+        sleepUninterruptibly( 5, SECONDS );
+
+        joker.rebalanceRegion( 1, PARTITIONED_STATEFUL_REGION_REPLICA_COUNT / 2 ).get( 1500, SECONDS );
+
+        sleepUninterruptibly( 5, SECONDS );
+
+        joker.rebalanceRegion( 1, PARTITIONED_STATEFUL_REGION_REPLICA_COUNT ).get( 1500, SECONDS );
+
+        sleepUninterruptibly( 20, SECONDS );
+
+        joker.shutdown().get( 60, SECONDS );
+
+        System.out.println( "Value generator 1 is invoked " + flowExample.valueGenerator1.invocationCount.get() + " times." );
+        System.out.println( "Value generator 2 is invoked " + flowExample.valueGenerator2.invocationCount.get() + " times." );
+        System.out.println( "Collector1 is invoked " + flowExample.valueCollector1.invocationCount.get() + " times." );
+        System.out.println( "Collector2 is invoked " + flowExample.valueCollector2.invocationCount.get() + " times." );
+        System.out.println( "Collector3 is invoked " + flowExample.valueCollector3.invocationCount.get() + " times." );
+        System.out.println( "Collector4 is invoked " + flowExample.valueCollector4.invocationCount.get() + " times." );
+
+        for ( int i = 0; i < flowExample.valueCollector1.values.length(); i++ )
+        {
+            final int expected = ( flowExample.valueGenerator1.generatedValues[ i ].intValue()
+                                   + flowExample.valueGenerator2.generatedValues[ i ].intValue() ) * MULTIPLIER_VALUE;
+            final int actual1 = flowExample.valueCollector1.values.get( i );
+            final int actual2 = flowExample.valueCollector2.values.get( i );
+            final int actual3 = flowExample.valueCollector3.values.get( i );
+            final int actual4 = flowExample.valueCollector4.values.get( i );
+            assertEquals( expected, actual1 );
+            assertEquals( expected, actual2 );
+            assertEquals( expected, actual3 );
+            assertEquals( expected, actual4 );
+        }
+    }
+
+
+    @Test
+    public void testEndToEndSystemWithRebalancingRegionsAndMergingSplittingPipelines () throws InterruptedException, ExecutionException,
+                                                                                                           TimeoutException
+    {
+        final FlowExample1 flowExample = new FlowExample1();
+        final JokerConfig jokerConfig = new JokerConfig();
+        final StaticRegionConfigFactory2 regionConfigFactory = new StaticRegionConfigFactory2( jokerConfig,
+                                                                                               PARTITIONED_STATEFUL_REGION_REPLICA_COUNT );
+        final Joker joker = new JokerBuilder().setRegionConfigFactory( regionConfigFactory ).setJokerConfig( jokerConfig ).build();
+
+        joker.run( flowExample.flow );
+
+        sleepUninterruptibly( 5, SECONDS );
+
+        joker.rebalanceRegion( 1, PARTITIONED_STATEFUL_REGION_REPLICA_COUNT / 2 ).get( 60, SECONDS );
+
+        sleepUninterruptibly( 5, SECONDS );
+
+        joker.splitPipeline( new PipelineId( 1, 0 ), asList( 1, 2 ) ).get( 15, SECONDS );
+
+        sleepUninterruptibly( 5, SECONDS );
+
+        joker.mergePipelines( asList( new PipelineId( 1, 0 ), new PipelineId( 1, 1 ), new PipelineId( 1, 2 ) ) ).get( 15, SECONDS );
+
+        sleepUninterruptibly( 5, SECONDS );
+
+        joker.rebalanceRegion( 1, PARTITIONED_STATEFUL_REGION_REPLICA_COUNT ).get( 15, SECONDS );
+
+        sleepUninterruptibly( 10, SECONDS );
 
         joker.shutdown().get( 60, SECONDS );
 

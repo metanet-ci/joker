@@ -7,20 +7,20 @@ public class PipelineManagerConfig
 
     static final String CONFIG_NAME = "pipelineManager";
 
-    static final String RUNNER_STOP_TIMEOUT = "runnerStopTimeoutInMillis";
+    static final String RUNNER_COMMAND_TIMEOUT = "runnerCommandTimeoutInMillis";
 
 
-    private final long runnerStopTimeoutInMillis;
+    private final long runnerCommandTimeoutInMillis;
 
     PipelineManagerConfig ( final Config parentConfig )
     {
         final Config config = parentConfig.getConfig( CONFIG_NAME );
-        this.runnerStopTimeoutInMillis = config.getLong( RUNNER_STOP_TIMEOUT );
+        this.runnerCommandTimeoutInMillis = config.getLong( RUNNER_COMMAND_TIMEOUT );
     }
 
-    public long getRunnerStopTimeoutInMillis ()
+    public long getRunnerCommandTimeoutInMillis ()
     {
-        return runnerStopTimeoutInMillis;
+        return runnerCommandTimeoutInMillis;
     }
 
 }

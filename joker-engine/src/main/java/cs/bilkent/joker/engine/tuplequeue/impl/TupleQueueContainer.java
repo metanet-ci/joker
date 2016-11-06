@@ -221,6 +221,22 @@ public class TupleQueueContainer
         return drainableKeys.size();
     }
 
+    public boolean isEmpty ()
+    {
+        for ( TupleQueue[] tupleQueues : tupleQueuesByKeys.values() )
+        {
+            for ( TupleQueue tupleQueue : tupleQueues )
+            {
+                if ( tupleQueue.size() > 0 )
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
     private boolean addToDrainableKeys ( final PartitionKey key, final TupleQueue[] tupleQueues )
     {
         if ( drainableKeys.contains( key ) )

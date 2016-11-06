@@ -301,6 +301,12 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
             return false;
         }
 
+        @Override
+        public boolean isEmpty ()
+        {
+            throw new UnsupportedOperationException();
+        }
+
     }
 
 }

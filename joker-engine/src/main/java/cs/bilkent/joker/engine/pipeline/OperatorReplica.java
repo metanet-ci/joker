@@ -40,6 +40,7 @@ import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ANY_PORT;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
+import cs.bilkent.joker.operator.spec.OperatorType;
 
 /**
  * Manages runtime state of an {@link Operator} defined in a {@link FlowDef} and provides methods for operator invocation.
@@ -100,7 +101,9 @@ public class OperatorReplica
     private int operatorInvocationCount;
 
     public OperatorReplica ( final PipelineReplicaId pipelineReplicaId,
-                             final OperatorDef operatorDef, final OperatorTupleQueue queue, final OperatorKVStore operatorKvStore,
+                             final OperatorDef operatorDef,
+                             final OperatorTupleQueue queue,
+                             final OperatorKVStore operatorKvStore,
                              final TupleQueueDrainerPool drainerPool,
                              final Supplier<TuplesImpl> outputSupplier )
     {
@@ -108,7 +111,9 @@ public class OperatorReplica
     }
 
     public OperatorReplica ( final PipelineReplicaId pipelineReplicaId,
-                             final OperatorDef operatorDef, final OperatorTupleQueue queue, final OperatorKVStore operatorKvStore,
+                             final OperatorDef operatorDef,
+                             final OperatorTupleQueue queue,
+                             final OperatorKVStore operatorKvStore,
                              final TupleQueueDrainerPool drainerPool,
                              final Supplier<TuplesImpl> outputSupplier,
                              final InvocationContextImpl invocationContext )
@@ -342,7 +347,7 @@ public class OperatorReplica
         queue.setTupleCounts( tupleCounts, ANY_PORT );
     }
 
-    private void offer ( final TuplesImpl input )
+    public void offer ( final TuplesImpl input )
     {
         if ( input != null )
         {
@@ -492,9 +497,7 @@ public class OperatorReplica
                     pipelineReplicaId,
                     this.status );
 
-        final OperatorReplica duplicate = new OperatorReplica( pipelineReplicaId,
-                                                               this.operatorDef,
-                                                               queue, this.operatorKvStore,
+        final OperatorReplica duplicate = new OperatorReplica( pipelineReplicaId, this.operatorDef, queue, this.operatorKvStore,
                                                                drainerPool,
                                                                outputSupplier );
 
@@ -521,6 +524,11 @@ public class OperatorReplica
     public OperatorDef getOperatorDef ()
     {
         return operatorDef;
+    }
+
+    public OperatorType getOperatorType ()
+    {
+        return operatorDef.operatorType();
     }
 
     public SchedulingStrategy getInitialSchedulingStrategy ()
@@ -603,10 +611,9 @@ public class OperatorReplica
     {
         return "OperatorReplica{" + "operatorName='" + operatorName + '\'' + ", operatorType=" + operatorDef.operatorType() + ", queue="
                + queue.getClass().getSimpleName() + ", drainer=" + ( drainer != null ? drainer.getClass().getSimpleName() : null )
-               + ", status=" + status
-               + ", upstreamContext=" + upstreamContext + ", selfUpstreamContext=" + selfUpstreamContext + ", completionReason="
-               + completionReason + ", initialSchedulingStrategy=" + initialSchedulingStrategy + ", schedulingStrategy="
-               + schedulingStrategy + '}';
+               + ", status=" + status + ", upstreamContext=" + upstreamContext + ", selfUpstreamContext=" + selfUpstreamContext
+               + ", completionReason=" + completionReason + ", initialSchedulingStrategy=" + initialSchedulingStrategy
+               + ", schedulingStrategy=" + schedulingStrategy + '}';
     }
 
 }

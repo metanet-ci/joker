@@ -18,7 +18,11 @@ public interface PipelineManager
 
     void splitPipeline ( Supervisor supervisor, PipelineId pipelineId, List<Integer> pipelineOperatorIndices );
 
+    void rebalanceRegion ( Supervisor supervisor, int regionId, int newReplicaCount );
+
     UpstreamContext getUpstreamContext ( PipelineReplicaId id );
+
+    DownstreamTupleSender getDownstreamTupleSender ( PipelineReplicaId id );
 
     boolean handlePipelineReplicaCompleted ( PipelineReplicaId id );
 

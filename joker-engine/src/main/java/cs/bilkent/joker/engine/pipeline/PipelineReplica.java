@@ -30,6 +30,7 @@ import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
+import cs.bilkent.joker.operator.spec.OperatorType;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import cs.bilkent.joker.utils.Pair;
 import static java.util.stream.Collectors.toList;
@@ -68,7 +69,8 @@ public class PipelineReplica
 
     public PipelineReplica ( final JokerConfig config,
                              final PipelineReplicaId id,
-                             final OperatorReplica[] operators, final OperatorTupleQueue pipelineTupleQueue )
+                             final OperatorReplica[] operators,
+                             final OperatorTupleQueue pipelineTupleQueue )
     {
         this.config = config;
         this.id = id;
@@ -86,7 +88,8 @@ public class PipelineReplica
 
     public PipelineReplica ( final JokerConfig config,
                              final PipelineReplicaId id,
-                             final OperatorReplica[] operators, final OperatorTupleQueue pipelineTupleQueue,
+                             final OperatorReplica[] operators,
+                             final OperatorTupleQueue pipelineTupleQueue,
                              final UpstreamContext upstreamContext )
     {
         this( config, id, operators, pipelineTupleQueue );
@@ -102,7 +105,7 @@ public class PipelineReplica
 
         initUpstreamDrainer();
 
-        SchedulingStrategy[] schedulingStrategies = new SchedulingStrategy[ operatorCount ];
+        final SchedulingStrategy[] schedulingStrategies = new SchedulingStrategy[ operatorCount ];
         UpstreamContext uc = upstreamContext;
         for ( int i = 0; i < operatorCount; i++ )
         {
@@ -288,6 +291,34 @@ public class PipelineReplica
         return tuples;
     }
 
+    public TuplesImpl invoke ( final OperatorType operatorType )
+    {
+        OperatorReplica operator;
+        pipelineTupleQueue.drain( upstreamDrainer );
+        TuplesImpl tuples = upstreamDrainer.getResult();
+        UpstreamContext upstreamContext = this.pipelineUpstreamContext;
+
+        for ( int i = 0; i < operatorCount; i++ )
+        {
+            operator = operators[ i ];
+            if ( operator.getOperatorType() == operatorType )
+            {
+                tuples = operator.invoke( tuples, upstreamContext );
+            }
+            else
+            {
+                operator.offer( tuples );
+                tuples = null;
+            }
+
+            upstreamContext = operator.getSelfUpstreamContext();
+        }
+
+        upstreamDrainer.reset();
+
+        return tuples;
+    }
+
     public void shutdown ()
     {
         if ( status == SHUT_DOWN )
@@ -354,6 +385,17 @@ public class PipelineReplica
     public OperatorReplica[] getOperators ()
     {
         return Arrays.copyOf( operators, operators.length );
+    }
+
+    public SchedulingStrategy[] getSchedulingStrategies ()
+    {
+        final SchedulingStrategy[] schedulingStrategies = new SchedulingStrategy[ operatorCount ];
+        for ( int i = 0; i < operatorCount; i++ )
+        {
+            schedulingStrategies[ i ] = operators[ i ].getInitialSchedulingStrategy();
+        }
+
+        return schedulingStrategies;
     }
 
     public boolean isCompleted ()

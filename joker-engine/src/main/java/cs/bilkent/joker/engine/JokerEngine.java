@@ -67,4 +67,9 @@ public class JokerEngine
         return supervisor.splitPipeline( pipelineId, pipelineOperatorIndices );
     }
 
+    public Future<Void> rebalanceRegion ( final int regionId, final int newReplicaCount )
+    {
+        return supervisor.rebalanceRegion( regionId, newReplicaCount );
+    }
+
 }

@@ -208,6 +208,20 @@ public class DefaultOperatorTupleQueue implements OperatorTupleQueue
         return false;
     }
 
+    @Override
+    public boolean isEmpty ()
+    {
+        for ( int i = 0; i < tupleQueues.length; i++ )
+        {
+            if ( tupleQueues[ i ].size() > 0 )
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public ThreadingPreference getThreadingPreference ()
     {
         return threadingPreference;

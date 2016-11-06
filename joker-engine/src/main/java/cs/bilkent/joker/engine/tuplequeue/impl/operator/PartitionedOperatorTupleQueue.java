@@ -274,6 +274,20 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
         return totalDrainableKeyCount >= maxDrainableKeyCount;
     }
 
+    @Override
+    public boolean isEmpty ()
+    {
+        for ( TupleQueueContainer container : tupleQueueContainers )
+        {
+            if ( container != null && !container.isEmpty() )
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     int getTotalDrainableKeyCount ()
     {
         return totalDrainableKeyCount;
