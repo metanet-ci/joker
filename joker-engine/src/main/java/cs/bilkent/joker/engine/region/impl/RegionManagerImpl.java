@@ -71,6 +71,8 @@ public class RegionManagerImpl implements RegionManager
 
     private final JokerConfig config;
 
+    private final Class<Supplier<TuplesImpl>> lastOperatorOutputSupplierClass;
+
     private final PartitionService partitionService;
 
     private final OperatorKVStoreManager operatorKvStoreManager;
@@ -89,6 +91,7 @@ public class RegionManagerImpl implements RegionManager
                                final PipelineTransformer pipelineTransformer )
     {
         this.config = config;
+        this.lastOperatorOutputSupplierClass = config.getRegionManagerConfig().getLastOperatorOutputSupplierClass();
         this.partitionService = partitionService;
         this.operatorKvStoreManager = operatorKvStoreManager;
         this.operatorTupleQueueManager = operatorTupleQueueManager;
@@ -393,14 +396,18 @@ public class RegionManagerImpl implements RegionManager
                     if ( flow.getUpstreamConnections( operatorId ).isEmpty() )
                     {
                         LOGGER.info( "Creating {} for regionId={} replicaIndex={} operatorId={}",
-                                     EmptyOperatorTupleQueue.class.getSimpleName(), regionId, replicaIndex,
+                                     EmptyOperatorTupleQueue.class.getSimpleName(),
+                                     regionId,
+                                     replicaIndex,
                                      operatorId );
                         operatorTupleQueue = new EmptyOperatorTupleQueue( operatorId, operatorDef.inputPortCount() );
                     }
                     else if ( operatorDef.operatorType() == PARTITIONED_STATEFUL )
                     {
                         LOGGER.info( "Creating {} for regionId={} replicaIndex={} operatorId={}",
-                                     PartitionedOperatorTupleQueue.class.getSimpleName(), regionId, replicaIndex,
+                                     PartitionedOperatorTupleQueue.class.getSimpleName(),
+                                     regionId,
+                                     replicaIndex,
                                      operatorId );
                         final OperatorTupleQueue[] operatorTupleQueues = operatorTupleQueueManager.getPartitionedOperatorTupleQueuesOrFail(
                                 regionId,
@@ -411,8 +418,7 @@ public class RegionManagerImpl implements RegionManager
                     {
                         final ThreadingPreference threadingPreference = getThreadingPreference( isFirstOperator );
                         LOGGER.info( "Creating {} {} for regionId={} replicaIndex={} operatorId={}",
-                                     threadingPreference,
-                                     DefaultOperatorTupleQueue.class.getSimpleName(), regionId, replicaIndex,
+                                     threadingPreference, DefaultOperatorTupleQueue.class.getSimpleName(), regionId, replicaIndex,
                                      operatorId );
                         operatorTupleQueue = operatorTupleQueueManager.createDefaultOperatorTupleQueue( regionId,
                                                                                                         replicaIndex,
@@ -422,14 +428,18 @@ public class RegionManagerImpl implements RegionManager
 
                     final TupleQueueDrainerPool drainerPool = createTupleQueueDrainer( operatorDef, isFirstOperator );
                     LOGGER.info( "Creating {} for regionId={} replicaIndex={} operatorId={}",
-                                 drainerPool.getClass().getSimpleName(), regionId, replicaIndex,
+                                 drainerPool.getClass().getSimpleName(),
+                                 regionId,
+                                 replicaIndex,
                                  operatorId );
 
                     final OperatorKVStore operatorKVStore;
                     if ( operatorDef.operatorType() == STATELESS )
                     {
                         LOGGER.info( "Creating {} for regionId={} replicaIndex={} operatorId={}",
-                                     EmptyOperatorKVStore.class.getSimpleName(), regionId, replicaIndex,
+                                     EmptyOperatorKVStore.class.getSimpleName(),
+                                     regionId,
+                                     replicaIndex,
                                      operatorId );
                         operatorKVStore = new EmptyOperatorKVStore( operatorId );
                     }
@@ -437,7 +447,9 @@ public class RegionManagerImpl implements RegionManager
                     {
                         checkState( operatorDef.operatorType() == PARTITIONED_STATEFUL );
                         LOGGER.info( "Creating {} for regionId={} replicaIndex={} operatorId={}",
-                                     PartitionedOperatorKVStore.class.getSimpleName(), regionId, replicaIndex,
+                                     PartitionedOperatorKVStore.class.getSimpleName(),
+                                     regionId,
+                                     replicaIndex,
                                      operatorId );
                         final OperatorKVStore[] operatorKvStores = operatorKvStoreManager.getPartitionedOperatorKVStoresOrFail( regionId,
                                                                                                                                 operatorId );
@@ -446,7 +458,9 @@ public class RegionManagerImpl implements RegionManager
 
                     final Supplier<TuplesImpl> outputSupplier = createOutputSupplier( operatorDef, isLastOperator );
                     LOGGER.info( "Creating {} for regionId={} replicaIndex={} operatorId={}",
-                                 outputSupplier.getClass().getSimpleName(), regionId, replicaIndex,
+                                 outputSupplier.getClass().getSimpleName(),
+                                 regionId,
+                                 replicaIndex,
                                  operatorId );
 
                     operatorReplicas[ operatorIndex ] = new OperatorReplica( pipelineReplicaId,
@@ -843,9 +857,8 @@ public class RegionManagerImpl implements RegionManager
 
     private Supplier<TuplesImpl> createOutputSupplier ( final OperatorDef operatorDef, final boolean isLastOperator )
     {
-        return isLastOperator
-               ? new NonCachedTuplesImplSupplier( operatorDef.outputPortCount() )
-               : new CachedTuplesImplSupplier( operatorDef.outputPortCount() );
+        return isLastOperator ? OutputSupplierUtils.newInstance( lastOperatorOutputSupplierClass, operatorDef.outputPortCount() )
+                              : new CachedTuplesImplSupplier( operatorDef.outputPortCount() );
 
     }
 

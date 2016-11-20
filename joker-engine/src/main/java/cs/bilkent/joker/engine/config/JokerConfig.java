@@ -27,6 +27,8 @@ public class JokerConfig
 
     private final PipelineManagerConfig pipelineManagerConfig;
 
+    private final RegionManagerConfig regionManagerConfig;
+
     public JokerConfig ()
     {
         this( ConfigFactory.load() );
@@ -42,6 +44,7 @@ public class JokerConfig
         this.partitionServiceConfig = new PartitionServiceConfig( engineConfig );
         this.flowDeploymentConfig = new FlowDeploymentConfig( engineConfig );
         this.pipelineManagerConfig = new PipelineManagerConfig( engineConfig );
+        this.regionManagerConfig = new RegionManagerConfig( engineConfig );
     }
 
     public Config getRootConfig ()
@@ -77,6 +80,11 @@ public class JokerConfig
     public PipelineManagerConfig getPipelineManagerConfig ()
     {
         return pipelineManagerConfig;
+    }
+
+    public RegionManagerConfig getRegionManagerConfig ()
+    {
+        return regionManagerConfig;
     }
 
 }
