@@ -8,9 +8,10 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import cs.bilkent.joker.engine.config.JokerConfig;
+import cs.bilkent.joker.engine.exception.InitializationException;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETED;
-import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIALIZATION_FAILED;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.RUNNING;
+import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.SHUT_DOWN;
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import cs.bilkent.joker.operator.OperatorDef;
@@ -73,9 +74,11 @@ public class PipelineTest extends AbstractJokerTest
             pipeline.init();
             fail();
         }
-        catch ( IllegalStateException e )
+        catch ( InitializationException e )
         {
-            assertThat( pipeline.getPipelineStatus(), equalTo( INITIALIZATION_FAILED ) );
+            assertThat( pipeline.getPipelineStatus(), equalTo( SHUT_DOWN ) );
+            verify( pipelineReplica0 ).shutdown();
+            verify( pipelineReplica1 ).shutdown();
         }
     }
 

@@ -6,15 +6,16 @@ import com.typesafe.config.Config;
 
 public class TupleQueueDrainerConfig
 {
-    static final String CONFIG_NAME = "tupleQueueDrainer";
 
-    static final String MAX_BATCH_SIZE = "maxBatchSize";
+    public static final String CONFIG_NAME = "tupleQueueDrainer";
 
-    static final String PARTITIONED_STATEFUL_PIPELINE_DRAINER_MAX_BATCH_SIZE = "partitionedStatefulPipelineDrainerMaxBatchSize";
+    public static final String MAX_BATCH_SIZE = "maxBatchSize";
 
-    static final String DRAIN_TIMEOUT = "drainTimeout";
+    public static final String PARTITIONED_STATEFUL_PIPELINE_DRAINER_MAX_BATCH_SIZE = "partitionedStatefulPipelineDrainerMaxBatchSize";
 
-    static final String DRAIN_TIMEOUT_UNIT = "drainTimeoutUnit";
+    public static final String DRAIN_TIMEOUT = "drainTimeout";
+
+    public static final String DRAIN_TIMEOUT_UNIT = "drainTimeoutUnit";
 
 
     private final int maxBatchSize;

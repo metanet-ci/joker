@@ -8,6 +8,9 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.exception.InitializationException;
+import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIAL;
+import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.RUNNING;
+import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.SHUT_DOWN;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
@@ -88,6 +91,8 @@ public class PipelineReplicaTest extends AbstractJokerTest
 
         pipeline.init( upstreamContext0 );
 
+        assertThat( pipeline.getStatus(), equalTo( RUNNING ) );
+
         verify( operator0 ).init( upstreamContext0 );
         verify( operator1 ).init( upstreamContext1 );
         verify( operator2 ).init( upstreamContext2 );
@@ -98,7 +103,7 @@ public class PipelineReplicaTest extends AbstractJokerTest
     {
         when( operator0.getSelfUpstreamContext() ).thenReturn( upstreamContext1 );
         doThrow( new InitializationException( "" ) ).when( operator1 ).init( upstreamContext1 );
-
+        when( operator2.getStatus() ).thenReturn( INITIAL );
         try
         {
             pipeline.init( upstreamContext0 );
@@ -106,7 +111,7 @@ public class PipelineReplicaTest extends AbstractJokerTest
         }
         catch ( InitializationException expected )
         {
-
+            assertThat( pipeline.getStatus(), equalTo( SHUT_DOWN ) );
         }
 
         verify( operator0 ).init( upstreamContext0 );
@@ -114,6 +119,7 @@ public class PipelineReplicaTest extends AbstractJokerTest
         verify( operator1 ).init( upstreamContext1 );
         verify( operator1 ).shutdown();
         verify( operator2, never() ).init( anyObject() );
+        verify( operator2, never() ).shutdown();
     }
 
     @Test
@@ -123,6 +129,8 @@ public class PipelineReplicaTest extends AbstractJokerTest
         when( operator1.getSelfUpstreamContext() ).thenReturn( upstreamContext2 );
         pipeline.init( upstreamContext0 );
         pipeline.shutdown();
+
+        assertThat( pipeline.getStatus(), equalTo( SHUT_DOWN ) );
 
         verify( operator0 ).shutdown();
         verify( operator1 ).shutdown();

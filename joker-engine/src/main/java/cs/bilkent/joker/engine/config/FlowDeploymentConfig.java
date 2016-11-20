@@ -5,15 +5,16 @@ import com.typesafe.config.Config;
 public class FlowDeploymentConfig
 {
 
-    static final String CONFIG_NAME = "flowDeployment";
+    public static final String CONFIG_NAME = "flowDeployment";
 
-    static final String DUPLICATE_STATELESS_REGIONS = "duplicateStatelessRegions";
+    public static final String DUPLICATE_STATELESS_REGIONS = "duplicateStatelessRegions";
 
-    static final String MERGE_STATELESS_REGIONS_WITH_STATEFUL_REGIONS = "mergeStatelessRegionsWithStatefulRegions";
+    public static final String MERGE_STATELESS_REGIONS_WITH_STATEFUL_REGIONS = "mergeStatelessRegionsWithStatefulRegions";
 
-    static final String PAIR_STATELESS_REGIONS_WITH_PARTITIONED_STATEFUL_REGIONS = "pairStatelessRegionsWithPartitionedStatefulRegions";
+    public static final String PAIR_STATELESS_REGIONS_WITH_PARTITIONED_STATEFUL_REGIONS =
+            "pairStatelessRegionsWithPartitionedStatefulRegions";
 
-    static final String MAX_REPLICA_COUNT = "maxReplicaCount";
+    public static final String MAX_REPLICA_COUNT = "maxReplicaCount";
 
 
     private final boolean duplicateStatelessRegionsEnabled;

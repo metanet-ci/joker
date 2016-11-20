@@ -14,10 +14,10 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.config.JokerConfig;
+import cs.bilkent.joker.engine.exception.InitializationException;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETED;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETING;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIAL;
-import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIALIZATION_FAILED;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.RUNNING;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.SHUT_DOWN;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus;
@@ -274,7 +274,7 @@ public class Pipeline
             {
                 Thread.currentThread().interrupt();
             }
-            pipelineStatus = INITIALIZATION_FAILED;
+            pipelineStatus = SHUT_DOWN;
             throw e;
         }
     }
@@ -282,6 +282,7 @@ public class Pipeline
     public void init ()
     {
         checkState( pipelineStatus == INITIAL, "cannot initialize pipeline %s since in %s status", id, pipelineStatus );
+        checkState( upstreamContext != null, "cannot initialize pipeline %s since upstream context not set", id );
 
         try
         {
@@ -308,14 +309,34 @@ public class Pipeline
             pipelineStatus = RUNNING;
             fill( replicaStatuses, RUNNING );
         }
-        catch ( Exception e )
+        catch ( Exception e1 )
         {
-            if ( e.getCause() instanceof InterruptedException )
+            if ( e1.getCause() instanceof InterruptedException )
             {
                 Thread.currentThread().interrupt();
             }
-            pipelineStatus = INITIALIZATION_FAILED;
-            throw e;
+            for ( int replicaIndex = 0; replicaIndex < getReplicaCount(); replicaIndex++ )
+            {
+                final PipelineReplica pipelineReplica = replicas[ replicaIndex ];
+                try
+                {
+                    LOGGER.info( "Shutting down Replica {} of Pipeline {}", replicaIndex, id );
+                    pipelineReplica.shutdown();
+                }
+                catch ( Exception e2 )
+                {
+                    if ( e2.getCause() instanceof InterruptedException )
+                    {
+                        Thread.currentThread().interrupt();
+                    }
+
+                    LOGGER.error( "Shutdown of PipelineReplica=" + pipelineReplica.id() + "  failed!", e2 );
+                }
+            }
+            LOGGER.error( "Initialization of Pipeline " + id + " failed!", e1 );
+            pipelineStatus = SHUT_DOWN;
+
+            throw new InitializationException( "Initialization of Pipeline " + id + " failed!", e1 );
         }
     }
 

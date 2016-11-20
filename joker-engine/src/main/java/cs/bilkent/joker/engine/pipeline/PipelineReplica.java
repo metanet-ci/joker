@@ -13,7 +13,6 @@ import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.config.TupleQueueDrainerConfig;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIAL;
-import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIALIZATION_FAILED;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.RUNNING;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.SHUT_DOWN;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
@@ -118,7 +117,7 @@ public class PipelineReplica
             catch ( InitializationException e )
             {
                 shutdownOperators();
-                status = INITIALIZATION_FAILED;
+                status = SHUT_DOWN;
                 throw e;
             }
         }
@@ -326,10 +325,7 @@ public class PipelineReplica
             return;
         }
 
-        checkState( status == RUNNING || status == INITIALIZATION_FAILED,
-                    "Cannot shutdown PipelineReplica %s as it is in %s state",
-                    id,
-                    status );
+        checkState( status == RUNNING, "Cannot shutdown PipelineReplica %s as it is in %s status", id, status );
         shutdownOperators();
         status = SHUT_DOWN;
         LOGGER.info( "Pipeline Replica {} is shut down", id );
@@ -342,7 +338,10 @@ public class PipelineReplica
             final OperatorReplica operator = operators[ i ];
             try
             {
-                operator.shutdown();
+                if ( operator.getStatus() != INITIAL )
+                {
+                    operator.shutdown();
+                }
             }
             catch ( Exception e )
             {

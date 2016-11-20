@@ -27,7 +27,6 @@ import cs.bilkent.joker.engine.partition.PartitionDistribution;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
 import cs.bilkent.joker.engine.partition.impl.PartitionServiceImpl;
-import static cs.bilkent.joker.engine.pipeline.OperatorReplicaInitializationTest.withUpstreamConnectionStatus;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
@@ -439,8 +438,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig, pipeline1, supervisor, tupleSender );
         supervisor.downstreamTupleSenders.put( pipeline1.id(), tupleSender );
 
-        final TupleCollectorDownstreamTupleSender tupleCollector = new TupleCollectorDownstreamTupleSender( filterOperatorDef
-                                                                                                                     .outputPortCount() );
+        final TupleCollectorDownstreamTupleSender tupleCollector = new TupleCollectorDownstreamTupleSender( filterOperatorDef.outputPortCount() );
 
         final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( jokerConfig, pipeline2, supervisor, tupleCollector );
         supervisor.downstreamTupleSenders.put( pipeline2.id(), tupleCollector );
@@ -1045,9 +1043,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
             if ( !id.equals( targetPipelineReplicaId ) )
             {
                 final UpstreamContext currentUpstreamContext = upstreamContexts.get( targetPipelineReplicaId );
-                final UpstreamContext newUpstreamContext = withUpstreamConnectionStatus( currentUpstreamContext,
-                                                                                         inputPortIndices.get( id ),
-                                                                                         CLOSED );
+                final UpstreamContext newUpstreamContext = currentUpstreamContext.withUpstreamConnectionStatus( inputPortIndices.get( id ),
+                                                                                                                CLOSED );
                 upstreamContexts.put( targetPipelineReplicaId, newUpstreamContext );
                 runner.updatePipelineUpstreamContext();
             }

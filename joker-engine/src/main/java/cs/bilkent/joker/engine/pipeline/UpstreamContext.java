@@ -8,12 +8,14 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
+import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ALL_PORTS;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ANY_PORT;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
+import static java.lang.Math.min;
 
 public class UpstreamContext
 {
@@ -36,14 +38,9 @@ public class UpstreamContext
         return version;
     }
 
-    public int getPortCount ()
-    {
-        return statuses.length;
-    }
-
     public UpstreamConnectionStatus getUpstreamConnectionStatus ( int index )
     {
-        return statuses[ index ];
+        return index < statuses.length ? statuses[ index ] : CLOSED;
     }
 
     public boolean isActiveConnectionPresent ()
@@ -64,10 +61,10 @@ public class UpstreamContext
         return !isActiveConnectionPresent();
     }
 
-    public boolean[] getUpstreamConnectionStatuses ()
+    public boolean[] getUpstreamConnectionStatuses ( int portCount )
     {
-        final boolean[] b = new boolean[ statuses.length ];
-        for ( int portIndex = 0; portIndex < statuses.length; portIndex++ )
+        final boolean[] b = new boolean[ portCount ];
+        for ( int portIndex = 0, j = min( portCount, statuses.length ); portIndex < j; portIndex++ )
         {
             b[ portIndex ] = statuses[ portIndex ] == ACTIVE;
         }
@@ -95,11 +92,6 @@ public class UpstreamContext
 
     public void verifyOrFail ( final OperatorDef operatorDef, final SchedulingStrategy schedulingStrategy )
     {
-        checkArgument( operatorDef.inputPortCount() == getPortCount(),
-                       "different input port counts! operator=%s upstream context=%s",
-                       operatorDef.inputPortCount(),
-                       getPortCount() );
-
         if ( schedulingStrategy instanceof ScheduleWhenAvailable )
         {
             checkState( operatorDef.inputPortCount() == 0,
@@ -116,12 +108,6 @@ public class UpstreamContext
                         operatorDef.id(),
                         ScheduleWhenTuplesAvailable.class.getSimpleName() );
             final ScheduleWhenTuplesAvailable s = (ScheduleWhenTuplesAvailable) schedulingStrategy;
-            checkState( operatorDef.inputPortCount() == s.getPortCount(),
-                        "Operator %s and SchedulingStrategy %s has different input port counts: %s, %s respectively.",
-                        operatorDef.id(),
-                        s,
-                        operatorDef.inputPortCount(),
-                        s.getPortCount() );
             if ( s.getTupleAvailabilityByPort() == ANY_PORT )
             {
                 for ( int i = 0; i < operatorDef.inputPortCount(); i++ )
@@ -152,6 +138,14 @@ public class UpstreamContext
         {
             throw new IllegalStateException( operatorDef.id() + " returns invalid initial scheduling strategy: " + schedulingStrategy );
         }
+    }
+
+    public UpstreamContext withUpstreamConnectionStatus ( final int portIndex, final UpstreamConnectionStatus newStatus )
+    {
+        checkArgument( portIndex < statuses.length );
+        final UpstreamConnectionStatus[] s = Arrays.copyOf( statuses, statuses.length );
+        s[ portIndex ] = newStatus;
+        return new UpstreamContext( version + 1, s );
     }
 
     @Override

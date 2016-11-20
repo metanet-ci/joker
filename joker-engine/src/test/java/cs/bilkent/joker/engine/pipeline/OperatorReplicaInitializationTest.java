@@ -61,7 +61,9 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
     public void before () throws InstantiationException, IllegalAccessException
     {
         operatorReplica = new OperatorReplica( new PipelineReplicaId( new PipelineId( 0, 0 ), 0 ),
-                                               operatorDef, mock( OperatorTupleQueue.class ), mock( OperatorKVStore.class ),
+                                               operatorDef,
+                                               mock( OperatorTupleQueue.class ),
+                                               mock( OperatorKVStore.class ),
                                                drainerPool,
                                                mock( Supplier.class ),
                                                new InvocationContextImpl() );
@@ -185,21 +187,21 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldFailWhenOperatorInitializationReturnsInvalidSchedulingStrategy_incompatibleUpstreamContext ()
+    public void shouldNotFailWhenOperatorInitializationReturnsSchedulingStrategy_withLessPortsThanUpstreamContext ()
     {
         final int inputPortCount = 1;
-        shouldFailToInitializeOperator( inputPortCount,
-                                        scheduleWhenTuplesAvailableOnAny( inputPortCount, 2, 0 ),
-                                        newUpstreamContextInstance( 1, 2, ACTIVE ) );
+        shouldInitializeOperatorSuccessfully( inputPortCount,
+                                              scheduleWhenTuplesAvailableOnAny( inputPortCount, 2, 0 ),
+                                              newUpstreamContextInstance( 1, 2, ACTIVE ) );
     }
 
     @Test
-    public void shouldFailWhenOperatorInitializationReturnsInvalidSchedulingStrategy_incompatibleSchedulingStrategy ()
+    public void shouldFailWhenOperatorInitializationReturnsSchedulingStrategy_withMorePortsThanUpstreamContext ()
     {
         final int inputPortCount = 1;
-        shouldFailToInitializeOperator( inputPortCount,
-                                        scheduleWhenTuplesAvailableOnAny( inputPortCount + 1, 2, 0 ),
-                                        newUpstreamContextInstance( 1, 1, ACTIVE ) );
+        shouldInitializeOperatorSuccessfully( inputPortCount,
+                                              scheduleWhenTuplesAvailableOnAny( inputPortCount + 1, 2, 0 ),
+                                              newUpstreamContextInstance( 1, 1, ACTIVE ) );
     }
 
     private void shouldFailToInitializeOperator ( final int inputPortCount,
@@ -253,20 +255,6 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
         Arrays.fill( upstreamConnectionStatuses, status );
 
         return new UpstreamContext( version, upstreamConnectionStatuses );
-    }
-
-    public static UpstreamContext withUpstreamConnectionStatus ( final UpstreamContext upstreamContext,
-                                                                 final int portIndex,
-                                                                 final UpstreamConnectionStatus newStatus )
-    {
-        final int portCount = upstreamContext.getPortCount();
-        final UpstreamConnectionStatus[] statuses = new UpstreamConnectionStatus[ portCount ];
-        for ( int i = 0; i < portCount; i++ )
-        {
-            statuses[ i ] = upstreamContext.getUpstreamConnectionStatus( i );
-        }
-        statuses[ portIndex ] = newStatus;
-        return new UpstreamContext( upstreamContext.getVersion() + 1, statuses );
     }
 
 }

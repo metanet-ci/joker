@@ -5,9 +5,9 @@ import com.typesafe.config.Config;
 public class PipelineReplicaRunnerConfig
 {
 
-    static final String CONFIG_NAME = "pipelineReplicaRunner";
+    public static final String CONFIG_NAME = "pipelineReplicaRunner";
 
-    static final String RUNNER_WAIT_TIMEOUT = "runnerWaitTimeoutInMillis";
+    public static final String RUNNER_WAIT_TIMEOUT = "runnerWaitTimeoutInMillis";
 
 
     private final long waitTimeoutInMillis;

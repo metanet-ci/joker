@@ -5,13 +5,13 @@ import com.typesafe.config.Config;
 public class TupleQueueManagerConfig
 {
 
-    static final String CONFIG_NAME = "tupleQueueManager";
+    public static final String CONFIG_NAME = "tupleQueueManager";
 
-    static final String TUPLE_QUEUE_INITIAL_SIZE = "tupleQueueInitialSize";
+    public static final String TUPLE_QUEUE_INITIAL_SIZE = "tupleQueueInitialSize";
 
-    static final String MAX_DRAINABLE_KEY_COUNT = "maxDrainableKeyCount";
+    public static final String MAX_DRAINABLE_KEY_COUNT = "maxDrainableKeyCount";
 
-    static final String MAX_SINGLE_THREADED_TUPLE_QUEUE_SIZE = "maxSingleThreadedTupleQueueSize";
+    public static final String MAX_SINGLE_THREADED_TUPLE_QUEUE_SIZE = "maxSingleThreadedTupleQueueSize";
 
 
     private final int tupleQueueInitialSize;

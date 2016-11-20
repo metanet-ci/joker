@@ -104,7 +104,8 @@ public final class OperatorDefBuilder
 
     private static void failIfInvalidPortCount ( final OperatorType type, final int portCount, final String portType )
     {
-        checkArgument( portCount >= DYNAMIC_PORT_COUNT, "invalid " + portType + " port count: " + portCount );
+        checkArgument( portCount >= DYNAMIC_PORT_COUNT,
+                       "invalid " + portType + " port count: " + portCount + " for " + type + " operator" );
     }
 
     private static void failIfStatelessOperatorWithMultipleInputPorts ( final OperatorType type,

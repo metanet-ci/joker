@@ -169,7 +169,7 @@ public class OperatorReplica
      */
     private void initializeOperator ( final UpstreamContext upstreamContext )
     {
-        final boolean[] upstreamConnectionStatuses = upstreamContext.getUpstreamConnectionStatuses();
+        final boolean[] upstreamConnectionStatuses = upstreamContext.getUpstreamConnectionStatuses( operatorDef.inputPortCount() );
         final InitializationContext initContext = new InitializationContextImpl( operatorDef.id(),
                                                                                  operatorDef.inputPortCount(),
                                                                                  operatorDef.outputPortCount(),
@@ -427,7 +427,7 @@ public class OperatorReplica
     {
         checkArgument( upstreamContext != null, "upstream context is null! operator ", operatorName );
         this.upstreamContext = upstreamContext;
-        invocationContext.setUpstreamConnectionStatuses( upstreamContext.getUpstreamConnectionStatuses() );
+        invocationContext.setUpstreamConnectionStatuses( upstreamContext.getUpstreamConnectionStatuses( operatorDef.inputPortCount() ) );
     }
 
     /**
