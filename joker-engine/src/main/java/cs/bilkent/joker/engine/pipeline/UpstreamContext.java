@@ -140,11 +140,11 @@ public class UpstreamContext
         }
     }
 
-    public UpstreamContext withUpstreamConnectionStatus ( final int portIndex, final UpstreamConnectionStatus newStatus )
+    public UpstreamContext withClosedUpstreamConnection ( final int portIndex )
     {
         checkArgument( portIndex < statuses.length );
         final UpstreamConnectionStatus[] s = Arrays.copyOf( statuses, statuses.length );
-        s[ portIndex ] = newStatus;
+        s[ portIndex ] = CLOSED;
         return new UpstreamContext( version + 1, s );
     }
 

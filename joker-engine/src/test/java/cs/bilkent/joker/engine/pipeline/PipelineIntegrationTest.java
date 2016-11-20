@@ -1043,8 +1043,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
             if ( !id.equals( targetPipelineReplicaId ) )
             {
                 final UpstreamContext currentUpstreamContext = upstreamContexts.get( targetPipelineReplicaId );
-                final UpstreamContext newUpstreamContext = currentUpstreamContext.withUpstreamConnectionStatus( inputPortIndices.get( id ),
-                                                                                                                CLOSED );
+                final UpstreamContext newUpstreamContext = currentUpstreamContext.withClosedUpstreamConnection( inputPortIndices.get( id
+                ) );
                 upstreamContexts.put( targetPipelineReplicaId, newUpstreamContext );
                 runner.updatePipelineUpstreamContext();
             }

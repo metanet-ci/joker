@@ -41,7 +41,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 
-public class PipelineReplicaOperatorPortCountsTest extends AbstractJokerTest
+public class PipelineOperatorPortCountsTest extends AbstractJokerTest
 {
 
     private Injector injector;
@@ -89,20 +89,7 @@ public class PipelineReplicaOperatorPortCountsTest extends AbstractJokerTest
                                                  .connect( "op1", 1, "op2", 0 )
                                                  .build();
 
-        final FlowDeploymentDef flowDepDef = flowDeploymentDefFormer.createFlowDeploymentDef( flow, regionDefFormer.createRegions( flow ) );
-        final List<RegionDef> regionDefs = flowDepDef.getRegions();
-        assertThat( regionDefs, hasSize( 1 ) );
-
-        final RegionDef regionDef = regionDefs.get( 0 );
-        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 1 );
-
-        final Region region = regionManager.createRegion( flow, regionConfig );
-        final PipelineReplica[] pipelineReplicas = region.getPipelineReplicas( 0 );
-        final Pipeline pipeline = new Pipeline( pipelineReplicas[ 0 ].id().pipelineId, regionConfig, pipelineReplicas );
-        pipeline.setUpstreamContext( new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ) );
-        pipeline.init();
-
-        assertThat( pipelineReplicas[ 0 ].getStatus(), equalTo( OperatorReplicaStatus.RUNNING ) );
+        testPipelineInitialization( flow );
     }
 
     @Test
@@ -125,6 +112,11 @@ public class PipelineReplicaOperatorPortCountsTest extends AbstractJokerTest
                                                  .connect( "op1", 0, "op2", 1 )
                                                  .build();
 
+        testPipelineInitialization( flow );
+    }
+
+    private void testPipelineInitialization ( final FlowDef flow )
+    {
         final FlowDeploymentDef flowDepDef = flowDeploymentDefFormer.createFlowDeploymentDef( flow, regionDefFormer.createRegions( flow ) );
         final List<RegionDef> regionDefs = flowDepDef.getRegions();
         assertThat( regionDefs, hasSize( 1 ) );
