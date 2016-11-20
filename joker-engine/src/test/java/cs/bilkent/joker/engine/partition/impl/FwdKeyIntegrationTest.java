@@ -41,7 +41,7 @@ import static cs.bilkent.joker.operators.BeaconOperator.TUPLE_COUNT_CONFIG_PARAM
 import static cs.bilkent.joker.operators.BeaconOperator.TUPLE_POPULATOR_CONFIG_PARAMETER;
 import cs.bilkent.joker.operators.ForEachOperator;
 import static cs.bilkent.joker.operators.ForEachOperator.CONSUMER_FUNCTION_CONFIG_PARAMETER;
-import cs.bilkent.joker.testutils.AbstractJokerTest;
+import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;

@@ -1,4 +1,4 @@
-package cs.bilkent.joker.testutils;
+package cs.bilkent.joker.test;
 
 import java.util.concurrent.TimeUnit;
 

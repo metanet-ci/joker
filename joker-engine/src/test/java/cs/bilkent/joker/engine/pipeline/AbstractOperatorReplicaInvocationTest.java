@@ -22,7 +22,7 @@ import cs.bilkent.joker.operator.impl.InvocationContextImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
-import cs.bilkent.joker.testutils.AbstractJokerTest;
+import cs.bilkent.joker.test.AbstractJokerTest;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;

@@ -19,7 +19,7 @@ import static cs.bilkent.joker.operators.BarrierOperator.MERGE_POLICY_CONfIG_PAR
 import cs.bilkent.joker.operators.BarrierOperator.TupleValueMergePolicy;
 import static cs.bilkent.joker.operators.BarrierOperator.TupleValueMergePolicy.KEEP_EXISTING_VALUE;
 import static cs.bilkent.joker.operators.BarrierOperator.TupleValueMergePolicy.OVERWRITE_WITH_NEW_VALUE;
-import cs.bilkent.joker.testutils.AbstractJokerTest;
+import cs.bilkent.joker.test.AbstractJokerTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;

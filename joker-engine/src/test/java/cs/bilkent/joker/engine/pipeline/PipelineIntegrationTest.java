@@ -67,7 +67,7 @@ import cs.bilkent.joker.operators.FilterOperator;
 import static cs.bilkent.joker.operators.FilterOperator.PREDICATE_CONFIG_PARAMETER;
 import cs.bilkent.joker.operators.MapperOperator;
 import static cs.bilkent.joker.operators.MapperOperator.MAPPER_CONFIG_PARAMETER;
-import cs.bilkent.joker.testutils.AbstractJokerTest;
+import cs.bilkent.joker.test.AbstractJokerTest;
 import cs.bilkent.joker.utils.Pair;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;

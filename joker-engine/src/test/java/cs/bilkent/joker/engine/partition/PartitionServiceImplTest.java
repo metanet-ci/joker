@@ -18,7 +18,7 @@ import static cs.bilkent.joker.engine.config.JokerConfig.ENGINE_CONFIG_NAME;
 import static cs.bilkent.joker.engine.config.PartitionServiceConfig.CONFIG_NAME;
 import static cs.bilkent.joker.engine.config.PartitionServiceConfig.PARTITION_COUNT;
 import cs.bilkent.joker.engine.partition.impl.PartitionServiceImpl;
-import cs.bilkent.joker.testutils.AbstractJokerTest;
+import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;

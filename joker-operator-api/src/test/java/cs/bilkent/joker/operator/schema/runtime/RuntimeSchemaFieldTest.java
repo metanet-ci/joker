@@ -2,7 +2,7 @@ package cs.bilkent.joker.operator.schema.runtime;
 
 import org.junit.Test;
 
-import cs.bilkent.joker.testutils.AbstractJokerTest;
+import cs.bilkent.joker.test.AbstractJokerTest;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 

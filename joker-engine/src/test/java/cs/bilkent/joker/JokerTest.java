@@ -11,6 +11,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import cs.bilkent.joker.Joker.JokerBuilder;
@@ -47,7 +48,8 @@ import cs.bilkent.joker.operators.ForEachOperator;
 import static cs.bilkent.joker.operators.ForEachOperator.CONSUMER_FUNCTION_CONFIG_PARAMETER;
 import cs.bilkent.joker.operators.MapperOperator;
 import static cs.bilkent.joker.operators.MapperOperator.MAPPER_CONFIG_PARAMETER;
-import cs.bilkent.joker.testutils.AbstractJokerTest;
+import cs.bilkent.joker.test.AbstractJokerTest;
+import cs.bilkent.joker.test.category.SlowTest;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -93,6 +95,7 @@ public class JokerTest extends AbstractJokerTest
         }
     }
 
+    @Category( SlowTest.class )
     @Test
     public void testEndToEndSystemWithStaticFlowOptimization () throws InterruptedException, ExecutionException, TimeoutException
     {
@@ -131,6 +134,7 @@ public class JokerTest extends AbstractJokerTest
         }
     }
 
+    @Category( SlowTest.class )
     @Test
     public void testEndToEndSystemWithMergingPipelines () throws InterruptedException, ExecutionException, TimeoutException
     {
@@ -165,6 +169,7 @@ public class JokerTest extends AbstractJokerTest
         }
     }
 
+    @Category( SlowTest.class )
     @Test
     public void testEndToEndSystemWithSplittingPipelines () throws InterruptedException, ExecutionException, TimeoutException
     {
@@ -197,6 +202,7 @@ public class JokerTest extends AbstractJokerTest
         }
     }
 
+    @Category( SlowTest.class )
     @Test
     public void testEndToEndSystemWithSplittingAndMergingPipelines () throws InterruptedException, ExecutionException,
                                                                                                   TimeoutException
@@ -231,6 +237,7 @@ public class JokerTest extends AbstractJokerTest
         }
     }
 
+    @Category( SlowTest.class )
     @Test
     public void testEndToEndSystemWithMergingAndSplittingPipelines () throws InterruptedException, ExecutionException,
                                                                                                   TimeoutException
@@ -267,6 +274,7 @@ public class JokerTest extends AbstractJokerTest
         }
     }
 
+    @Category( SlowTest.class )
     @Test
     public void testEndToEndSystemWithRebalancingRegions () throws InterruptedException, ExecutionException, TimeoutException
     {
@@ -311,6 +319,7 @@ public class JokerTest extends AbstractJokerTest
         }
     }
 
+    @Category( SlowTest.class )
     @Test
     public void testEndToEndSystemWithRebalancingRegionsWithStaticFlowOptimization () throws InterruptedException, ExecutionException,
                                                                                                          TimeoutException
@@ -358,7 +367,7 @@ public class JokerTest extends AbstractJokerTest
         }
     }
 
-
+    @Category( SlowTest.class )
     @Test
     public void testEndToEndSystemWithRebalancingRegionsAndMergingSplittingPipelines () throws InterruptedException, ExecutionException,
                                                                                                            TimeoutException

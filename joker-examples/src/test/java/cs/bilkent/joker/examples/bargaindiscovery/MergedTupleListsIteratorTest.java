@@ -10,7 +10,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.testutils.AbstractJokerTest;
+import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;

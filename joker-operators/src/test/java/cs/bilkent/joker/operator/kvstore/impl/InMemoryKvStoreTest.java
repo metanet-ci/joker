@@ -12,7 +12,7 @@ import java.util.Set;
 import org.junit.Test;
 
 import cs.bilkent.joker.operator.kvstore.KVStore;
-import cs.bilkent.joker.testutils.AbstractJokerTest;
+import cs.bilkent.joker.test.AbstractJokerTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;

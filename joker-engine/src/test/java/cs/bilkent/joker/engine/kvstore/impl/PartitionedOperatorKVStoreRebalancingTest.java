@@ -10,13 +10,14 @@ import org.junit.Test;
 import static cs.bilkent.joker.engine.partition.PartitionUtil.getPartitionId;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractor1;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class PartitionedOperatorKVStoreRebalancingTest
+public class PartitionedOperatorKVStoreRebalancingTest extends AbstractJokerTest
 {
 
     private static final String OPERATOR_ID = "op1";

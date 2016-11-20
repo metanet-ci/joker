@@ -15,7 +15,7 @@ import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import static cs.bilkent.joker.operators.FilterOperator.PREDICATE_CONFIG_PARAMETER;
 import static cs.bilkent.joker.operators.FilterOperator.TUPLE_COUNT_CONFIG_PARAMETER;
 import static cs.bilkent.joker.operators.MapperOperatorTest.assertScheduleWhenTuplesAvailableStrategy;
-import cs.bilkent.joker.testutils.AbstractJokerTest;
+import cs.bilkent.joker.test.AbstractJokerTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertTrue;

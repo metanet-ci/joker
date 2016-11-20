@@ -2,11 +2,12 @@ package cs.bilkent.joker.engine.partition;
 
 import org.junit.Test;
 
+import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-public class PartitionDistributionTest
+public class PartitionDistributionTest extends AbstractJokerTest
 {
 
     @Test

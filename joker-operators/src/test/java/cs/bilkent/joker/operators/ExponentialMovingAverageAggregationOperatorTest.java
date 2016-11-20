@@ -21,7 +21,7 @@ import static cs.bilkent.joker.operators.ExponentialMovingAverageAggregationOper
 import static cs.bilkent.joker.operators.ExponentialMovingAverageAggregationOperator.TUPLE_COUNT_FIELD;
 import static cs.bilkent.joker.operators.ExponentialMovingAverageAggregationOperator.VALUE_FIELD;
 import static cs.bilkent.joker.operators.ExponentialMovingAverageAggregationOperator.WEIGHT_CONFIG_PARAMETER;
-import cs.bilkent.joker.testutils.AbstractJokerTest;
+import cs.bilkent.joker.test.AbstractJokerTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;
