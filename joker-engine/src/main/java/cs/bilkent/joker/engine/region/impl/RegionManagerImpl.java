@@ -71,7 +71,7 @@ public class RegionManagerImpl implements RegionManager
 
     private final JokerConfig config;
 
-    private final Class<Supplier<TuplesImpl>> lastOperatorOutputSupplierClass;
+    private final Class<Supplier<TuplesImpl>> pipelineTailOperatorOutputSupplierClass;
 
     private final PartitionService partitionService;
 
@@ -91,7 +91,7 @@ public class RegionManagerImpl implements RegionManager
                                final PipelineTransformer pipelineTransformer )
     {
         this.config = config;
-        this.lastOperatorOutputSupplierClass = config.getRegionManagerConfig().getLastOperatorOutputSupplierClass();
+        this.pipelineTailOperatorOutputSupplierClass = config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass();
         this.partitionService = partitionService;
         this.operatorKvStoreManager = operatorKvStoreManager;
         this.operatorTupleQueueManager = operatorTupleQueueManager;
@@ -857,7 +857,7 @@ public class RegionManagerImpl implements RegionManager
 
     private Supplier<TuplesImpl> createOutputSupplier ( final OperatorDef operatorDef, final boolean isLastOperator )
     {
-        return isLastOperator ? OutputSupplierUtils.newInstance( lastOperatorOutputSupplierClass, operatorDef.outputPortCount() )
+        return isLastOperator ? OutputSupplierUtils.newInstance( pipelineTailOperatorOutputSupplierClass, operatorDef.outputPortCount() )
                               : new CachedTuplesImplSupplier( operatorDef.outputPortCount() );
 
     }

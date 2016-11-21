@@ -802,7 +802,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
     static void assertLastOperatorOutputSupplier ( final JokerConfig config, final OperatorReplica operatorReplica )
     {
         assertThat( operatorReplica.getOutputSupplier().getClass(),
-                    equalTo( config.getRegionManagerConfig().getLastOperatorOutputSupplierClass() ) );
+                    equalTo( config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass() ) );
     }
 
     @OperatorSpec( type = OperatorType.STATELESS, inputPortCount = 1, outputPortCount = 1 )

@@ -11,19 +11,19 @@ public class RegionManagerConfig
 
     public static final String CONFIG_NAME = "regionManager";
 
-    public static final String LAST_OPERATOR_OUTPUT_SUPPLIER_CLASS = "lastOperatorOutputSupplierClass";
+    public static final String PIPELINE_TAIL_OPERATOR_OUTPUT_SUPPLIER_CLASS = "pipelineTailOperatorOutputSupplierClass";
 
 
-    private Class<Supplier<TuplesImpl>> lastOperatorOutputSupplierClass;
+    private Class<Supplier<TuplesImpl>> pipelineTailOperatorOutputSupplierClass;
 
     RegionManagerConfig ( final Config parentConfig )
     {
         final Config config = parentConfig.getConfig( CONFIG_NAME );
-        final String className = config.getString( LAST_OPERATOR_OUTPUT_SUPPLIER_CLASS );
+        final String className = config.getString( PIPELINE_TAIL_OPERATOR_OUTPUT_SUPPLIER_CLASS );
         try
         {
 
-            this.lastOperatorOutputSupplierClass = (Class<Supplier<TuplesImpl>>) Class.forName( className );
+            this.pipelineTailOperatorOutputSupplierClass = (Class<Supplier<TuplesImpl>>) Class.forName( className );
         }
         catch ( ClassNotFoundException e )
         {
@@ -31,9 +31,9 @@ public class RegionManagerConfig
         }
     }
 
-    public Class<Supplier<TuplesImpl>> getLastOperatorOutputSupplierClass ()
+    public Class<Supplier<TuplesImpl>> getPipelineTailOperatorOutputSupplierClass ()
     {
-        return lastOperatorOutputSupplierClass;
+        return pipelineTailOperatorOutputSupplierClass;
     }
 
 }

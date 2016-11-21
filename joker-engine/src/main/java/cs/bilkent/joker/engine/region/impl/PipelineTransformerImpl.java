@@ -49,7 +49,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
 
     private final JokerConfig config;
 
-    private final Class<Supplier<TuplesImpl>> lastOperatorOutputSupplierClass;
+    private final Class<Supplier<TuplesImpl>> pipelineTailOperatorOutputSupplierClass;
 
     private final OperatorTupleQueueManager operatorTupleQueueManager;
 
@@ -57,7 +57,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
     public PipelineTransformerImpl ( final JokerConfig config, final OperatorTupleQueueManager operatorTupleQueueManager )
     {
         this.config = config;
-        this.lastOperatorOutputSupplierClass = config.getRegionManagerConfig().getLastOperatorOutputSupplierClass();
+        this.pipelineTailOperatorOutputSupplierClass = config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass();
         this.operatorTupleQueueManager = operatorTupleQueueManager;
     }
 
@@ -236,10 +236,10 @@ public class PipelineTransformerImpl implements PipelineTransformer
         for ( int i = 1, j = pipelineReplica.getOperatorCount(); i < j; i++ )
         {
             final OperatorReplica operator = pipelineReplica.getOperator( i );
-            final Supplier<TuplesImpl> outputSupplier = ( ( i == ( j - 1 ) ) && isLastMergedPipeline ) ? OutputSupplierUtils.newInstance(
-                    lastOperatorOutputSupplierClass,
-                    operator.getOperatorDef().inputPortCount() )
-                                                                                                       : new CachedTuplesImplSupplier( operator.getOperatorDef().inputPortCount() );
+            final Supplier<TuplesImpl> outputSupplier = ( ( i == ( j - 1 ) ) && isLastMergedPipeline )
+                                                        ? OutputSupplierUtils.newInstance( pipelineTailOperatorOutputSupplierClass,
+                                                                                           operator.getOperatorDef().inputPortCount() )
+                                                        : new CachedTuplesImplSupplier( operator.getOperatorDef().inputPortCount() );
 
             newOperatorReplicas[ operatorIndex++ ] = operator.duplicate( newPipelineReplicaId,
                                                                          operator.getQueue(),
@@ -289,7 +289,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
 
         final NonBlockingTupleQueueDrainerPool drainerPool = new NonBlockingTupleQueueDrainerPool( config, firstOperatorDef );
         final Supplier<TuplesImpl> outputSupplier = ( isLastMergedPipeline && ( pipelineReplica.getOperatorCount() == 1 ) )
-                                                    ? OutputSupplierUtils.newInstance( lastOperatorOutputSupplierClass,
+                                                    ? OutputSupplierUtils.newInstance( pipelineTailOperatorOutputSupplierClass,
                                                                                        firstOperatorDef.inputPortCount() )
                                                     : new CachedTuplesImplSupplier( firstOperatorDef.inputPortCount() );
         LOGGER.info( "Duplicating first operator {} of {} to {}", firstOperatorDef.id(), pipelineReplica.id(), newPipelineReplicaId );
@@ -395,7 +395,9 @@ public class PipelineTransformerImpl implements PipelineTransformer
                     if ( firstOperatorDef.operatorType() == PARTITIONED_STATEFUL )
                     {
                         LOGGER.info( "Creating {} for pipeline tuple queue of regionId={} replicaIndex={} for pipeline operator={}",
-                                     DefaultOperatorTupleQueue.class.getSimpleName(), regionId, replicaIndex,
+                                     DefaultOperatorTupleQueue.class.getSimpleName(),
+                                     regionId,
+                                     replicaIndex,
                                      firstOperatorDef.id() );
                         pipelineTupleQueue = operatorTupleQueueManager.createDefaultOperatorTupleQueue( regionId,
                                                                                                         replicaIndex,
@@ -405,7 +407,9 @@ public class PipelineTransformerImpl implements PipelineTransformer
                     else
                     {
                         LOGGER.info( "Creating {} for pipeline tuple queue of regionId={} replicaIndex={} as first operator is {}",
-                                     EmptyOperatorTupleQueue.class.getSimpleName(), regionId, replicaIndex,
+                                     EmptyOperatorTupleQueue.class.getSimpleName(),
+                                     regionId,
+                                     replicaIndex,
                                      firstOperatorDef.operatorType() );
                         pipelineTupleQueue = new EmptyOperatorTupleQueue( firstOperatorDef.id(), firstOperatorDef.inputPortCount() );
                     }
@@ -413,8 +417,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                     final PipelineReplica prevPipeline = newPipelineReplicas[ firstPipelineIndex + ( i - 1 ) ][ replicaIndex ];
                     final UpstreamContext upstreamContext = prevPipeline.getOperator( prevPipeline.getOperatorCount() - 1 )
                                                                         .getSelfUpstreamContext();
-                    newPipelineReplica = new PipelineReplica( config,
-                                                              newPipelineReplicaId, newOperatorReplicas, pipelineTupleQueue,
+                    newPipelineReplica = new PipelineReplica( config, newPipelineReplicaId, newOperatorReplicas, pipelineTupleQueue,
                                                               upstreamContext );
 
                     final List<String> operatorIds = Arrays.stream( newOperatorReplicas )
@@ -522,9 +525,8 @@ public class PipelineTransformerImpl implements PipelineTransformer
                                                       : new NonBlockingTupleQueueDrainerPool( config, operatorDef );
 
             final Supplier<TuplesImpl> outputSupplier = ( i == newOperatorReplicas.length - 1 ) ? OutputSupplierUtils.newInstance(
-                    lastOperatorOutputSupplierClass,
-                    operatorDef.inputPortCount() )
-                                                                                                : operator.getOutputSupplier();
+                    pipelineTailOperatorOutputSupplierClass,
+                    operatorDef.inputPortCount() ) : operator.getOutputSupplier();
 
             newOperatorReplicas[ i ] = operator.duplicate( newPipelineReplicaId, queue, drainerPool, outputSupplier );
         }

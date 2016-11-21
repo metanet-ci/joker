@@ -283,7 +283,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
             assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator4.getQueue() ).getThreadingPreference(), equalTo( SINGLE_THREADED ) );
             assertTrue( pipelineOperator4.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
             assertThat( pipelineOperator4.getOutputSupplier().getClass(),
-                        equalTo( config.getRegionManagerConfig().getLastOperatorOutputSupplierClass() ) );
+                        equalTo( config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass() ) );
         }
     }
 
@@ -601,31 +601,31 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
             assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator0.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
             assertTrue( pipelineOperator0.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
             assertThat( pipelineOperator0.getOutputSupplier().getClass(),
-                        equalTo( config.getRegionManagerConfig().getLastOperatorOutputSupplierClass() ) );
+                        equalTo( config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass() ) );
             assertThat( newPipelineReplicas[ 1 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 1 ) ) );
             assertTrue( newPipelineReplicas[ 1 ].getSelfPipelineTupleQueue() instanceof EmptyOperatorTupleQueue );
             assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator1.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
             assertTrue( pipelineOperator1.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
             assertThat( pipelineOperator1.getOutputSupplier().getClass(),
-                        equalTo( config.getRegionManagerConfig().getLastOperatorOutputSupplierClass() ) );
+                        equalTo( config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass() ) );
             assertThat( newPipelineReplicas[ 2 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 2 ) ) );
             assertTrue( newPipelineReplicas[ 2 ].getSelfPipelineTupleQueue() instanceof EmptyOperatorTupleQueue );
             assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator2.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
             assertTrue( pipelineOperator2.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
             assertThat( pipelineOperator2.getOutputSupplier().getClass(),
-                        equalTo( config.getRegionManagerConfig().getLastOperatorOutputSupplierClass() ) );
+                        equalTo( config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass() ) );
             assertThat( newPipelineReplicas[ 3 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 3 ) ) );
             assertTrue( newPipelineReplicas[ 3 ].getSelfPipelineTupleQueue() instanceof EmptyOperatorTupleQueue );
             assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator3.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
             assertTrue( pipelineOperator3.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
             assertThat( pipelineOperator3.getOutputSupplier().getClass(),
-                        equalTo( config.getRegionManagerConfig().getLastOperatorOutputSupplierClass() ) );
+                        equalTo( config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass() ) );
             assertThat( newPipelineReplicas[ 4 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 4 ) ) );
             assertTrue( newPipelineReplicas[ 4 ].getSelfPipelineTupleQueue() instanceof EmptyOperatorTupleQueue );
             assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator4.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
             assertTrue( pipelineOperator4.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
             assertThat( pipelineOperator4.getOutputSupplier().getClass(),
-                        equalTo( config.getRegionManagerConfig().getLastOperatorOutputSupplierClass() ) );
+                        equalTo( config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass() ) );
         }
     }
 
