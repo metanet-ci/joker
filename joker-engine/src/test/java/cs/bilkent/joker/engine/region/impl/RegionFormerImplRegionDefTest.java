@@ -415,19 +415,19 @@ public class RegionFormerImplRegionDefTest extends AbstractJokerTest
         assertPartitionedStatefulRegion( regions.get( 1 ), asList( "A", "B" ), singletonList( operator2 ) );
     }
 
-    static void assertStatelessRegion ( final RegionDef region, final List<OperatorDef> operators )
+    private static void assertStatelessRegion ( final RegionDef region, final List<OperatorDef> operators )
     {
         assertRegion( region, STATELESS, emptyList(), operators );
     }
 
-    static void assertPartitionedStatefulRegion ( final RegionDef region,
-                                                  final List<String> partitionFieldNames,
-                                                  final List<OperatorDef> operators )
+    private static void assertPartitionedStatefulRegion ( final RegionDef region,
+                                                          final List<String> partitionFieldNames,
+                                                          final List<OperatorDef> operators )
     {
         assertRegion( region, PARTITIONED_STATEFUL, partitionFieldNames, operators );
     }
 
-    static void assertStatefulRegion ( final RegionDef region, final List<OperatorDef> operators )
+    private static void assertStatefulRegion ( final RegionDef region, final List<OperatorDef> operators )
     {
         assertRegion( region, STATEFUL, emptyList(), operators );
     }
@@ -443,25 +443,25 @@ public class RegionFormerImplRegionDefTest extends AbstractJokerTest
         assertThat( region.getOperators(), equalTo( operators ) );
     }
 
-    OperatorDef createOperator ( final String operatorId, final Class<? extends Operator> operatorClazz )
+    private OperatorDef createOperator ( final String operatorId, final Class<? extends Operator> operatorClazz )
     {
         return createOperator( operatorId, operatorClazz, emptyList(), emptyList() );
     }
 
-    OperatorDef createStatelessOperator ( final String operatorId, final List<String> schemaFieldNames )
+    private OperatorDef createStatelessOperator ( final String operatorId, final List<String> schemaFieldNames )
     {
         return createOperator( operatorId, StatelessOperator.class, schemaFieldNames, emptyList() );
     }
 
-    OperatorDef createPartitionedStatefulOperator ( final String operatorId, final List<String> schemaFieldNames )
+    private OperatorDef createPartitionedStatefulOperator ( final String operatorId, final List<String> schemaFieldNames )
     {
         return createOperator( operatorId, PartitionedStatefulOperator.class, schemaFieldNames, schemaFieldNames );
     }
 
-    OperatorDef createOperator ( final String operatorId,
-                                 final Class<? extends Operator> operatorClazz,
-                                 final List<String> schemaFieldNames,
-                                 final List<String> partitionFieldNames )
+    private OperatorDef createOperator ( final String operatorId,
+                                         final Class<? extends Operator> operatorClazz,
+                                         final List<String> schemaFieldNames,
+                                         final List<String> partitionFieldNames )
     {
         final OperatorDefBuilder builder = OperatorDefBuilder.newInstance( operatorId, operatorClazz );
         final OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );

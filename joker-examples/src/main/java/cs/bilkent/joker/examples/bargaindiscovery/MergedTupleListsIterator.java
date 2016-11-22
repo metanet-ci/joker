@@ -22,7 +22,7 @@ class MergedTupleListsIterator implements Iterator<Tuple>
 
     private Tuple right;
 
-    public MergedTupleListsIterator ( final List<Tuple> left, final List<Tuple> right, final Comparator<Tuple> comparator )
+    MergedTupleListsIterator ( final List<Tuple> left, final List<Tuple> right, final Comparator<Tuple> comparator )
     {
         this.leftIt = left.iterator();
         this.rightIt = right.iterator();

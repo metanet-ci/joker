@@ -24,9 +24,7 @@ public class MapperOperator implements Operator
 
     public static final String MAPPER_CONFIG_PARAMETER = "mapper";
 
-    public static final String TUPLE_COUNT_CONFIG_PARAMETER = "tupleCount";
-
-    public static final int DEFAULT_TUPLE_COUNT_CONFIG_VALUE = 1;
+    private static final int DEFAULT_TUPLE_COUNT_CONFIG_VALUE = 1;
 
 
     private BiConsumer<Tuple, Tuple> mapper;
@@ -40,8 +38,7 @@ public class MapperOperator implements Operator
 
         this.mapper = config.getOrFail( MAPPER_CONFIG_PARAMETER );
         this.outputSchema = context.getOutputPortSchema( 0 );
-        final int tupleCount = config.getIntegerOrDefault( TUPLE_COUNT_CONFIG_PARAMETER, DEFAULT_TUPLE_COUNT_CONFIG_VALUE );
-        return scheduleWhenTuplesAvailableOnDefaultPort( tupleCount );
+        return scheduleWhenTuplesAvailableOnDefaultPort( DEFAULT_TUPLE_COUNT_CONFIG_VALUE );
     }
 
     @Override

@@ -28,21 +28,21 @@ import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 public class VWAPAggregatorOperator implements Operator
 {
 
-    public static final String WINDOW_SIZE_CONfIG_PARAMETER = "windowSize";
+    static final String WINDOW_SIZE_CONfIG_PARAMETER = "windowSize";
 
-    public static final String SLIDE_FACTOR_CONfIG_PARAMETER = "slideFactor";
+    static final String SLIDE_FACTOR_CONfIG_PARAMETER = "slideFactor";
 
-    public static final String TICKER_SYMBOL_FIELD = "tickersymbol";
+    static final String TICKER_SYMBOL_FIELD = "tickersymbol";
 
-    public static final String SINGLE_VWAP_FIELD = "svwap";
+    static final String SINGLE_VWAP_FIELD = "svwap";
 
-    public static final String SINGLE_VOLUME_FIELD = "svolume";
+    static final String SINGLE_VOLUME_FIELD = "svolume";
 
-    public static final String TUPLE_INPUT_VWAP_FIELD = "myvwap";
+    static final String TUPLE_INPUT_VWAP_FIELD = "myvwap";
 
-    public static final String TUPLE_VOLUME_FIELD = "volume";
+    static final String TUPLE_VOLUME_FIELD = "volume";
 
-    public static final String TIMESTAMP_FIELD = "timestamp";
+    static final String TIMESTAMP_FIELD = "timestamp";
 
     static final String TUPLE_COUNT_FIELD = "tupleCount";
 

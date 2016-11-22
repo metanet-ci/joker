@@ -12,7 +12,7 @@ public class PartitionKeyExtractorN implements PartitionKeyExtractor
 
     private final List<String> partitionFieldNames;
 
-    public PartitionKeyExtractorN ( final List<String> partitionFieldNames )
+    PartitionKeyExtractorN ( final List<String> partitionFieldNames )
     {
         this.partitionFieldNames = partitionFieldNames;
     }

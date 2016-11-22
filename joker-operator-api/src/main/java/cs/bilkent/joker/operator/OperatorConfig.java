@@ -50,9 +50,9 @@ public final class OperatorConfig implements Fields<String>
     }
 
     @Override
-    public Object remove ( final String key )
+    public <T> T remove ( final String key )
     {
-        return this.values.remove( key );
+        return (T) this.values.remove( key );
     }
 
     @Override

@@ -265,16 +265,8 @@ public final class ScheduleWhenTuplesAvailable implements SchedulingStrategy
 
         final ScheduleWhenTuplesAvailable that = (ScheduleWhenTuplesAvailable) o;
 
-        if ( !Arrays.equals( tupleCounts, that.tupleCounts ) )
-        {
-            return false;
-        }
-        if ( tupleAvailabilityByCount != that.tupleAvailabilityByCount )
-        {
-            return false;
-        }
-        return tupleAvailabilityByPort == that.tupleAvailabilityByPort;
-
+        return Arrays.equals( tupleCounts, that.tupleCounts ) && tupleAvailabilityByCount == that.tupleAvailabilityByCount
+               && tupleAvailabilityByPort == that.tupleAvailabilityByPort;
     }
 
     @Override

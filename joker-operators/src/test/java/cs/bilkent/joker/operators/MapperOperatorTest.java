@@ -20,7 +20,6 @@ import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
 import static cs.bilkent.joker.operators.MapperOperator.MAPPER_CONFIG_PARAMETER;
-import static cs.bilkent.joker.operators.MapperOperator.TUPLE_COUNT_CONFIG_PARAMETER;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -78,19 +77,6 @@ public class MapperOperatorTest extends AbstractJokerTest
         final SchedulingStrategy strategy = operator.init( initContext );
 
         assertScheduleWhenTuplesAvailableStrategy( strategy, 1 );
-    }
-
-    @Test
-    public void shouldInitializeWithTupleCount ()
-    {
-        final BiConsumer<Tuple, Tuple> mapper = ( input, output ) -> input.consumeEntries( output::set );
-        final int tupleCount = 5;
-        initContext.getConfig().set( MAPPER_CONFIG_PARAMETER, mapper );
-        initContext.getConfig().set( TUPLE_COUNT_CONFIG_PARAMETER, tupleCount );
-
-        final SchedulingStrategy strategy = operator.init( initContext );
-
-        assertScheduleWhenTuplesAvailableStrategy( strategy, tupleCount );
     }
 
     @Test

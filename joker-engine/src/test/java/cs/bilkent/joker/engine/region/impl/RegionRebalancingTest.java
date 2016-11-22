@@ -74,8 +74,6 @@ public class RegionRebalancingTest extends AbstractJokerTest
 
     private final RegionDefFormerImpl regionDefFormer = new RegionDefFormerImpl( idGenerator );
 
-    private final FlowDeploymentDefFormerImpl flowDeploymentDefFormer = new FlowDeploymentDefFormerImpl( config, idGenerator );
-
     private final PartitionService partitionService = new PartitionServiceImpl( config );
 
     private final OperatorKVStoreManagerImpl operatorKVStoreManager = new OperatorKVStoreManagerImpl();
@@ -238,10 +236,10 @@ public class RegionRebalancingTest extends AbstractJokerTest
         regionManager.createRegion( flowExample2.flow, regionConfig );
 
         final Region rebalancedRegion = regionManager.rebalanceRegion( flowExample2.flow, regionDef.getRegionId(), rebalancedReplicaCount );
-        assertRebalancedStatelessRegion( flowExample2, regionDef, rebalancedRegion );
+        assertRebalancedStatelessRegion( flowExample2, rebalancedRegion );
     }
 
-    private void assertRebalancedStatelessRegion ( final FlowExample2 flowExample2, final RegionDef regionDef, final Region region )
+    private void assertRebalancedStatelessRegion ( final FlowExample2 flowExample2, final Region region )
     {
         for ( int replicaIndex = 0; replicaIndex < region.getConfig().getReplicaCount(); replicaIndex++ )
         {

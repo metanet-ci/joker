@@ -1,5 +1,6 @@
 package cs.bilkent.joker.examples.bargaindiscovery;
 
+import java.util.Comparator;
 import java.util.Iterator;
 
 import org.slf4j.Logger;
@@ -64,8 +65,7 @@ public class BargainIndexOperator implements Operator
         final KVStore kvStore = invocationContext.getKVStore();
         final Iterator<Tuple> it = new MergedTupleListsIterator( input.getTuples( 0 ),
                                                                  input.getTuples( 1 ),
-                                                                 ( left, right ) -> left.getLong( TIMESTAMP_FIELD )
-                                                                                        .compareTo( right.getLong( TIMESTAMP_FIELD ) ) );
+                                                                 Comparator.comparing( left -> left.getLong( TIMESTAMP_FIELD ) ) );
         while ( it.hasNext() )
         {
             final Tuple tuple = it.next();

@@ -123,7 +123,7 @@ public class BarrierOperator implements Operator
 
         private final TupleValueMergePolicy mergePolicy;
 
-        public EntryMerger ( final TupleValueMergePolicy mergePolicy )
+        EntryMerger ( final TupleValueMergePolicy mergePolicy )
         {
             this.mergePolicy = mergePolicy;
         }

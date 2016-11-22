@@ -35,12 +35,7 @@ public final class Port
 
         final Port port = (Port) o;
 
-        if ( portIndex != port.portIndex )
-        {
-            return false;
-        }
-        return operatorId.equals( port.operatorId );
-
+        return portIndex == port.portIndex && operatorId.equals( port.operatorId );
     }
 
     @Override

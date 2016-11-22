@@ -170,7 +170,7 @@ public class PipelineReplica
         return blockingDrainer;
     }
 
-    public void setPipelineUpstreamContext ( final UpstreamContext pipelineUpstreamContext )
+    void setPipelineUpstreamContext ( final UpstreamContext pipelineUpstreamContext )
     {
         if ( pipelineUpstreamContext == this.pipelineUpstreamContext )
         {
@@ -386,7 +386,17 @@ public class PipelineReplica
         return Arrays.copyOf( operators, operators.length );
     }
 
-    public SchedulingStrategy[] getSchedulingStrategies ()
+    public boolean isCompleted ()
+    {
+        return pipelineReplicaCompletionTracker.isPipelineCompleted();
+    }
+
+    public OperatorReplicaStatus getStatus ()
+    {
+        return status;
+    }
+
+    SchedulingStrategy[] getSchedulingStrategies ()
     {
         final SchedulingStrategy[] schedulingStrategies = new SchedulingStrategy[ operatorCount ];
         for ( int i = 0; i < operatorCount; i++ )
@@ -397,19 +407,9 @@ public class PipelineReplica
         return schedulingStrategies;
     }
 
-    public boolean isCompleted ()
-    {
-        return pipelineReplicaCompletionTracker.isPipelineCompleted();
-    }
-
-    public PipelineReplicaCompletionTracker getPipelineReplicaCompletionTracker ()
+    PipelineReplicaCompletionTracker getPipelineReplicaCompletionTracker ()
     {
         return pipelineReplicaCompletionTracker;
-    }
-
-    public OperatorReplicaStatus getStatus ()
-    {
-        return status;
     }
 
     @Override

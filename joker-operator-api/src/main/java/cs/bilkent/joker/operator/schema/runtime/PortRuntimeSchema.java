@@ -2,7 +2,7 @@ package cs.bilkent.joker.operator.schema.runtime;
 
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +24,7 @@ public final class PortRuntimeSchema implements TupleSchema
     public PortRuntimeSchema ( final List<RuntimeSchemaField> fields )
     {
         final ArrayList<RuntimeSchemaField> f = new ArrayList<>( fields );
-        Collections.sort( f, ( o1, o2 ) -> o1.getName().compareTo( o2.getName() ) );
+        f.sort( Comparator.comparing( RuntimeSchemaField::getName ) );
         this.fields = unmodifiableList( f );
         for ( int i = 0; i < f.size(); i++ )
         {

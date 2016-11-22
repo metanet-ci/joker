@@ -48,7 +48,7 @@ public class PipelineReplicaCompletionTracker implements OperatorReplicaListener
         }
     }
 
-    public boolean isPipelineCompleted ()
+    boolean isPipelineCompleted ()
     {
         return completedOperatorCount == operatorCount;
     }

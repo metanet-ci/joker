@@ -23,9 +23,7 @@ public class FilterOperator implements Operator
 
     public static final String PREDICATE_CONFIG_PARAMETER = "predicate";
 
-    public static final String TUPLE_COUNT_CONFIG_PARAMETER = "tupleCount";
-
-    public static final int DEFAULT_TUPLE_COUNT_CONFIG_VALUE = 1;
+    private static final int DEFAULT_TUPLE_COUNT_CONFIG_VALUE = 1;
 
 
     private Predicate<Tuple> predicate;
@@ -36,8 +34,7 @@ public class FilterOperator implements Operator
         final OperatorConfig config = context.getConfig();
 
         this.predicate = config.getOrFail( PREDICATE_CONFIG_PARAMETER );
-        final int tupleCount = config.getIntegerOrDefault( TUPLE_COUNT_CONFIG_PARAMETER, DEFAULT_TUPLE_COUNT_CONFIG_VALUE );
-        return scheduleWhenTuplesAvailableOnDefaultPort( tupleCount );
+        return scheduleWhenTuplesAvailableOnDefaultPort( DEFAULT_TUPLE_COUNT_CONFIG_VALUE );
     }
 
     @Override

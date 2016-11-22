@@ -14,7 +14,7 @@ public class PartitionKeyExtractorNFwdM implements PartitionKeyExtractor
 
     private final int forwardKeyLimit;
 
-    public PartitionKeyExtractorNFwdM ( final List<String> partitionFieldNames, final int forwardKeyLimit )
+    PartitionKeyExtractorNFwdM ( final List<String> partitionFieldNames, final int forwardKeyLimit )
     {
         this.partitionFieldNames = partitionFieldNames;
         this.forwardKeyLimit = forwardKeyLimit;

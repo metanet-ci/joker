@@ -84,7 +84,7 @@ public class OperatorTupleQueueManagerImplTest extends AbstractJokerTest
             tupleQueueManager.createDefaultOperatorTupleQueue( REGION_ID, 1, STATELESS_OPERATOR, MULTI_THREADED );
             fail();
         }
-        catch ( IllegalStateException expected )
+        catch ( IllegalStateException ignored )
         {
 
         }
@@ -97,7 +97,7 @@ public class OperatorTupleQueueManagerImplTest extends AbstractJokerTest
             tupleQueueManager.createPartitionedOperatorTupleQueues( 1, PARTITIONED_STATEFUL_OPERATOR, partitionDistribution );
             fail();
         }
-        catch ( IllegalStateException expected )
+        catch ( IllegalStateException ignored )
         {
 
         }

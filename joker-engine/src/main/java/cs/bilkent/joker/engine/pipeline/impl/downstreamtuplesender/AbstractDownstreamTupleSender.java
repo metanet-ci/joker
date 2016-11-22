@@ -13,7 +13,7 @@ public abstract class AbstractDownstreamTupleSender implements DownstreamTupleSe
 
     private final DownstreamTupleSenderFailureFlag failureFlag;
 
-    public AbstractDownstreamTupleSender ( final DownstreamTupleSenderFailureFlag failureFlag )
+    AbstractDownstreamTupleSender ( final DownstreamTupleSenderFailureFlag failureFlag )
     {
         this.failureFlag = failureFlag;
     }

@@ -11,7 +11,7 @@ import cs.bilkent.joker.operator.Tuple;
 public class CVWAPFunction implements BiConsumer<Tuple, Tuple>
 {
 
-    public static final String CVWAP_FIELD = "cvwap";
+    static final String CVWAP_FIELD = "cvwap";
 
     @Override
     public void accept ( final Tuple input, final Tuple output )

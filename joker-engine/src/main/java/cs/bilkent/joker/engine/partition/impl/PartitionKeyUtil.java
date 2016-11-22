@@ -16,7 +16,7 @@ public final class PartitionKeyUtil
 
     }
 
-    public static void rangeCheck ( final int index, final int size )
+    static void rangeCheck ( final int index, final int size )
     {
         if ( index >= size )
         {

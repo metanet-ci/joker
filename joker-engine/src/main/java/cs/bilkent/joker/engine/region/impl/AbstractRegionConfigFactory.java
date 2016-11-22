@@ -16,7 +16,7 @@ import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 public abstract class AbstractRegionConfigFactory implements RegionConfigFactory
 {
 
-    protected final int maxReplicaCount;
+    final int maxReplicaCount;
 
     protected AbstractRegionConfigFactory ( JokerConfig jokerConfig )
     {
@@ -62,7 +62,7 @@ public abstract class AbstractRegionConfigFactory implements RegionConfigFactory
             }
             catch ( Exception e )
             {
-                if ( e instanceof InterruptedException )
+                if ( e.getCause() instanceof InterruptedException )
                 {
                     Thread.currentThread().interrupt();
                 }
@@ -83,14 +83,13 @@ public abstract class AbstractRegionConfigFactory implements RegionConfigFactory
                        regionConfigs.size() );
         for ( final RegionDef region : regions )
         {
-            checkArgument( regionConfigs.stream()
-                                        .filter( regionConfig -> region.equals( regionConfig.getRegionDef() ) )
-                                        .findFirst()
-                                        .isPresent(), "no region config found for region: %s", region );
+            checkArgument( regionConfigs.stream().anyMatch( regionConfig -> region.equals( regionConfig.getRegionDef() ) ),
+                           "no region config found for region: %s",
+                           region );
         }
     }
 
-    protected final void validatePipelineStartIndices ( final List<OperatorDef> operators, final List<Integer> pipelineStartIndices )
+    final void validatePipelineStartIndices ( final List<OperatorDef> operators, final List<Integer> pipelineStartIndices )
     {
         if ( pipelineStartIndices.get( 0 ) != 0 )
         {
@@ -106,7 +105,7 @@ public abstract class AbstractRegionConfigFactory implements RegionConfigFactory
         checkArgument( i < operators.size() );
     }
 
-    protected final void validateReplicaCount ( final RegionDef region, final int replicaCount )
+    private void validateReplicaCount ( final RegionDef region, final int replicaCount )
     {
         if ( region.getRegionType() != STATEFUL )
         {

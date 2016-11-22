@@ -16,7 +16,7 @@ public class PartitionKeyExtractorNFwd2 implements PartitionKeyExtractor
 
     private final String field1;
 
-    public PartitionKeyExtractorNFwd2 ( final List<String> partitionFieldNames )
+    PartitionKeyExtractorNFwd2 ( final List<String> partitionFieldNames )
     {
         this.partitionFieldNames = partitionFieldNames;
         this.field0 = partitionFieldNames.get( 0 );

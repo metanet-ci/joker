@@ -87,11 +87,11 @@ public class RegionUtil
         return false;
     }
 
-    public static RegionDef getRegionByFirstOperator ( final List<RegionDef> regions, final OperatorDef operator )
+    public static RegionDef getRegionByLastOperator ( final List<RegionDef> regions, final OperatorDef operator )
     {
         for ( RegionDef region : regions )
         {
-            if ( region.getFirstOperator().equals( operator ) )
+            if ( region.getLastOperator().equals( operator ) )
             {
                 return region;
             }
@@ -100,11 +100,11 @@ public class RegionUtil
         throw new IllegalStateException( "No region found for operator " + operator.id() );
     }
 
-    public static RegionDef getRegionByLastOperator ( final List<RegionDef> regions, final OperatorDef operator )
+    private static RegionDef getRegionByFirstOperator ( final List<RegionDef> regions, final OperatorDef operator )
     {
         for ( RegionDef region : regions )
         {
-            if ( region.getLastOperator().equals( operator ) )
+            if ( region.getFirstOperator().equals( operator ) )
             {
                 return region;
             }

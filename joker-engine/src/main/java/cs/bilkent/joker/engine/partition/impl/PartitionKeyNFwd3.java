@@ -19,7 +19,7 @@ public class PartitionKeyNFwd3 extends AbstractList<Object> implements Partition
 
     private final int partitionHashCode;
 
-    public PartitionKeyNFwd3 ( final Tuple tuple, final List<String> partitionFieldNames )
+    PartitionKeyNFwd3 ( final Tuple tuple, final List<String> partitionFieldNames )
     {
         final int j = partitionFieldNames.size();
         this.values = new Object[ j ];
@@ -88,7 +88,7 @@ public class PartitionKeyNFwd3 extends AbstractList<Object> implements Partition
         return hashCode;
     }
 
-    public static int computePartitionHash ( final Object val0, final Object val1, final Object val2 )
+    static int computePartitionHash ( final Object val0, final Object val1, final Object val2 )
     {
         return hashTail( hashTail( hashHead( val0 ), val1 ), val2 );
     }

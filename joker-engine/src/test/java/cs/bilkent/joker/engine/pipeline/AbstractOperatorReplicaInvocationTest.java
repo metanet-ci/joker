@@ -73,7 +73,7 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
         applyDefaultMocks();
     }
 
-    protected void applyDefaultMocks ()
+    void applyDefaultMocks ()
     {
         when( operatorDef.id() ).thenReturn( "op1" );
         when( drainerPool.acquire( any( SchedulingStrategy.class ) ) ).thenReturn( drainer );
@@ -81,9 +81,7 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
         when( operatorKvStore.getKVStore( key ) ).thenReturn( kvStore );
     }
 
-    protected void initializeOperatorReplica ( final int inputPortCount,
-                                               final int outputPortCount,
-                                               final SchedulingStrategy schedulingStrategy )
+    void initializeOperatorReplica ( final int inputPortCount, final int outputPortCount, final SchedulingStrategy schedulingStrategy )
     {
         mockOperatorDef( inputPortCount, outputPortCount );
         mockOperatorInitializationSchedulingStrategy( schedulingStrategy );
@@ -92,7 +90,7 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
         operatorReplica.init( initializationUpstreamContext );
     }
 
-    protected void mockOperatorDef ( final int inputPortCount, final int outputPortCount )
+    private void mockOperatorDef ( final int inputPortCount, final int outputPortCount )
     {
         when( operatorDef.inputPortCount() ).thenReturn( inputPortCount );
         when( operatorDef.outputPortCount() ).thenReturn( outputPortCount );
@@ -106,25 +104,25 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
         }
     }
 
-    protected void mockOperatorInitializationSchedulingStrategy ( final SchedulingStrategy schedulingStrategy )
+    private void mockOperatorInitializationSchedulingStrategy ( final SchedulingStrategy schedulingStrategy )
     {
         when( operator.init( any( InitializationContext.class ) ) ).thenReturn( schedulingStrategy );
     }
 
-    protected void assertOperatorInvocation ()
+    void assertOperatorInvocation ()
     {
         verify( operatorKvStore ).getKVStore( key );
         verify( operator ).invoke( invocationContext );
         verify( drainer ).reset();
     }
 
-    protected void assertNoOperatorInvocation ()
+    void assertNoOperatorInvocation ()
     {
         verify( operatorKvStore, never() ).getKVStore( key );
         verify( operator, never() ).invoke( invocationContext );
     }
 
-    protected void setOperatorReplicaStatus ( OperatorReplicaStatus status )
+    void setOperatorReplicaStatus ( OperatorReplicaStatus status )
     {
         try
         {

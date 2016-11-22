@@ -43,7 +43,7 @@ public class UpstreamContext
         return index < statuses.length ? statuses[ index ] : CLOSED;
     }
 
-    public boolean isActiveConnectionPresent ()
+    boolean isActiveConnectionPresent ()
     {
         for ( UpstreamConnectionStatus status : statuses )
         {
@@ -56,12 +56,12 @@ public class UpstreamContext
         return false;
     }
 
-    public boolean isActiveConnectionAbsent ()
+    boolean isActiveConnectionAbsent ()
     {
         return !isActiveConnectionPresent();
     }
 
-    public boolean[] getUpstreamConnectionStatuses ( int portCount )
+    boolean[] getUpstreamConnectionStatuses ( int portCount )
     {
         final boolean[] b = new boolean[ portCount ];
         for ( int portIndex = 0, j = min( portCount, statuses.length ); portIndex < j; portIndex++ )
@@ -72,7 +72,7 @@ public class UpstreamContext
         return b;
     }
 
-    public boolean isInvokable ( final OperatorDef operatorDef, final SchedulingStrategy schedulingStrategy )
+    boolean isInvokable ( final OperatorDef operatorDef, final SchedulingStrategy schedulingStrategy )
     {
         try
         {
@@ -90,7 +90,7 @@ public class UpstreamContext
         }
     }
 
-    public void verifyOrFail ( final OperatorDef operatorDef, final SchedulingStrategy schedulingStrategy )
+    void verifyOrFail ( final OperatorDef operatorDef, final SchedulingStrategy schedulingStrategy )
     {
         if ( schedulingStrategy instanceof ScheduleWhenAvailable )
         {
@@ -140,7 +140,7 @@ public class UpstreamContext
         }
     }
 
-    public UpstreamContext withClosedUpstreamConnection ( final int portIndex )
+    UpstreamContext withClosedUpstreamConnection ( final int portIndex )
     {
         checkArgument( portIndex < statuses.length );
         final UpstreamConnectionStatus[] s = Arrays.copyOf( statuses, statuses.length );
@@ -162,12 +162,7 @@ public class UpstreamContext
 
         final UpstreamContext that = (UpstreamContext) o;
 
-        if ( version != that.version )
-        {
-            return false;
-        }
-
-        return Arrays.equals( statuses, that.statuses );
+        return version == that.version && Arrays.equals( statuses, that.statuses );
     }
 
     @Override

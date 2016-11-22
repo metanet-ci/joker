@@ -76,7 +76,7 @@ public class InteractiveRegionConfigFactory extends AbstractRegionConfigFactory
         }
         catch ( Exception e )
         {
-            if ( e instanceof InterruptedException )
+            if ( e.getCause() instanceof InterruptedException )
             {
                 Thread.currentThread().interrupt();
             }

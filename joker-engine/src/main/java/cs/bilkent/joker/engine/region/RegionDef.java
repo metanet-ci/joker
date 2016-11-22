@@ -19,7 +19,7 @@ import static java.util.Collections.unmodifiableMap;
 public class RegionDef
 {
 
-    public static final Map<OperatorType, Set<OperatorType>> REGION_OPERATOR_TYPES;
+    private static final Map<OperatorType, Set<OperatorType>> REGION_OPERATOR_TYPES;
 
     static
     {
@@ -119,20 +119,8 @@ public class RegionDef
 
         final RegionDef regionDef = (RegionDef) o;
 
-        if ( regionId != regionDef.regionId )
-        {
-            return false;
-        }
-        if ( regionType != regionDef.regionType )
-        {
-            return false;
-        }
-        if ( !partitionFieldNames.equals( regionDef.partitionFieldNames ) )
-        {
-            return false;
-        }
-        return operators.equals( regionDef.operators );
-
+        return regionId == regionDef.regionId && regionType == regionDef.regionType
+               && partitionFieldNames.equals( regionDef.partitionFieldNames ) && operators.equals( regionDef.operators );
     }
 
     @Override

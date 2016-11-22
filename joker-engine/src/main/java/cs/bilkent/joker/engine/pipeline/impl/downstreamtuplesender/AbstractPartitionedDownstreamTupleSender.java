@@ -30,11 +30,11 @@ public abstract class AbstractPartitionedDownstreamTupleSender extends AbstractD
 
     private List<Tuple>[] tupleLists;
 
-    public AbstractPartitionedDownstreamTupleSender ( final DownstreamTupleSenderFailureFlag failureFlag,
-                                                      final int partitionCount,
-                                                      final int[] partitionDistribution,
-                                                      final OperatorTupleQueue[] operatorTupleQueues,
-                                                      final PartitionKeyExtractor partitionKeyExtractor )
+    AbstractPartitionedDownstreamTupleSender ( final DownstreamTupleSenderFailureFlag failureFlag,
+                                               final int partitionCount,
+                                               final int[] partitionDistribution,
+                                               final OperatorTupleQueue[] operatorTupleQueues,
+                                               final PartitionKeyExtractor partitionKeyExtractor )
     {
         super( failureFlag );
         this.partitionCount = partitionCount;

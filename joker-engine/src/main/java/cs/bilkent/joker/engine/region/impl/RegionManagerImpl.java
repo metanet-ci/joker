@@ -57,7 +57,6 @@ import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import static java.lang.Integer.compare;
 import static java.lang.System.arraycopy;
-import static java.util.Collections.sort;
 import static java.util.stream.Collectors.toList;
 
 @Singleton
@@ -202,11 +201,11 @@ public class RegionManagerImpl implements RegionManager
         checkArgument( pipelineIds != null && pipelineIds.size() > 1 );
 
         final List<PipelineId> pipelineIdsSorted = new ArrayList<>( pipelineIds );
-        sort( pipelineIdsSorted, ( o1, o2 ) ->
-        {
-            final int c = compare( o1.regionId, o2.regionId );
-            return c != 0 ? c : compare( o1.pipelineId, o2.pipelineId );
-        } );
+        pipelineIdsSorted.sort( ( o1, o2 ) ->
+                                {
+                                    final int c = compare( o1.regionId, o2.regionId );
+                                    return c != 0 ? c : compare( o1.pipelineId, o2.pipelineId );
+                                } );
 
         checkArgument( pipelineIdsSorted.get( 0 ).regionId == pipelineIdsSorted.get( pipelineIdsSorted.size() - 1 ).regionId,
                        "multiple region ids in %s",
@@ -251,9 +250,8 @@ public class RegionManagerImpl implements RegionManager
 
         int curr = 0;
         final int operatorCount = region.getConfig().getOperatorCountByPipelineId( pipelineId.pipelineId );
-        for ( int i = 0; i < pipelineOperatorIndicesToSplit.size(); i++ )
+        for ( int p : pipelineOperatorIndicesToSplit )
         {
-            final int p = pipelineOperatorIndicesToSplit.get( i );
             checkArgument( p > curr && p < operatorCount );
             curr = p;
         }

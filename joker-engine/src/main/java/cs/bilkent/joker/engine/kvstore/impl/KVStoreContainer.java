@@ -17,7 +17,7 @@ public class KVStoreContainer
     private final Map<PartitionKey, KVStore> kvStores = new HashMap<>();
 
 
-    public KVStoreContainer ( final int partitionId )
+    KVStoreContainer ( final int partitionId )
     {
         this.partitionId = partitionId;
     }
@@ -32,7 +32,7 @@ public class KVStoreContainer
         return kvStores.size();
     }
 
-    public KVStore getOrCreateKVStore ( final PartitionKey key )
+    KVStore getOrCreateKVStore ( final PartitionKey key )
     {
         return kvStores.computeIfAbsent( key, k -> new InMemoryKVStore() );
     }

@@ -19,7 +19,7 @@ public class PartitionKeyNFwdM extends AbstractList<Object> implements Partition
 
     private final int partitionHashCode;
 
-    public PartitionKeyNFwdM ( final Tuple tuple, final List<String> partitionFieldNames, final int forwardKeyLimit )
+    PartitionKeyNFwdM ( final Tuple tuple, final List<String> partitionFieldNames, final int forwardKeyLimit )
     {
         final int j = partitionFieldNames.size();
         this.values = new Object[ j ];
@@ -92,7 +92,7 @@ public class PartitionKeyNFwdM extends AbstractList<Object> implements Partition
         return hashCode;
     }
 
-    public static int computePartitionHash ( final Tuple tuple, final List<String> partitionFieldNames, final int forwardKeyLimit )
+    static int computePartitionHash ( final Tuple tuple, final List<String> partitionFieldNames, final int forwardKeyLimit )
     {
         int hashCode = hashHead( tuple.getObject( partitionFieldNames.get( 0 ) ) );
 

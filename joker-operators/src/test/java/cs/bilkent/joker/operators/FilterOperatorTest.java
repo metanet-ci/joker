@@ -13,7 +13,6 @@ import cs.bilkent.joker.operator.impl.InvocationContextImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import static cs.bilkent.joker.operators.FilterOperator.PREDICATE_CONFIG_PARAMETER;
-import static cs.bilkent.joker.operators.FilterOperator.TUPLE_COUNT_CONFIG_PARAMETER;
 import static cs.bilkent.joker.operators.MapperOperatorTest.assertScheduleWhenTuplesAvailableStrategy;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -60,18 +59,6 @@ public class FilterOperatorTest extends AbstractJokerTest
         final SchedulingStrategy strategy = operator.init( initContext );
 
         assertScheduleWhenTuplesAvailableStrategy( strategy, 1 );
-    }
-
-    @Test
-    public void shouldInitializeWithTupleCount ()
-    {
-        final int tupleCount = 5;
-        initContext.getConfig().set( PREDICATE_CONFIG_PARAMETER, positiveCountsPredicate );
-        initContext.getConfig().set( TUPLE_COUNT_CONFIG_PARAMETER, tupleCount );
-
-        final SchedulingStrategy strategy = operator.init( initContext );
-
-        assertScheduleWhenTuplesAvailableStrategy( strategy, tupleCount );
     }
 
     @Test

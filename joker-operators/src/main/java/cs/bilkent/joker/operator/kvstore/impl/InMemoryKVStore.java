@@ -38,9 +38,9 @@ public class InMemoryKVStore implements KVStore
     }
 
     @Override
-    public Object remove ( final Object key )
+    public <T> T remove ( final Object key )
     {
-        return values.remove( key );
+        return (T) values.remove( key );
     }
 
     @Override

@@ -22,8 +22,7 @@ public class MergedTupleListsIteratorTest extends AbstractJokerTest
 
     private final static String FIELD_NAME = "val";
 
-    public static final Comparator<Tuple> COMPARATOR = ( left, right ) -> left.getInteger( FIELD_NAME )
-                                                                              .compareTo( right.getInteger( FIELD_NAME ) );
+    private static final Comparator<Tuple> COMPARATOR = Comparator.comparing( left -> left.getInteger( FIELD_NAME ) );
 
 
     private final Tuple val1 = new Tuple();

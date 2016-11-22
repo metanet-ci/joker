@@ -30,7 +30,7 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
     @Test
     public void testFlow1 ()
     {
-        /**
+        /*
          * O1 --> O2
          */
 
@@ -52,7 +52,7 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
     @Test
     public void testFlow2 ()
     {
-        /**
+        /*
          * O1 --> O2 --> O3
          */
 
@@ -77,7 +77,7 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
     @Test
     public void testFlow3 ()
     {
-        /**
+        /*
          *
          *                   /--> O4
          *                  /
@@ -109,7 +109,7 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
     @Test
     public void testFlow4 ()
     {
-        /**
+        /*
          *
          * O1 --> O2 --> O3 --> O5
          *             /
@@ -139,7 +139,7 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
     @Test
     public void testFlow5 ()
     {
-        /**
+        /*
          *
          * O1 --> O2 --> O3
          *             /
@@ -167,7 +167,7 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
     @Test
     public void testFlow6 ()
     {
-        /**
+        /*
          *
          *     /--> O2
          *    /        \
@@ -201,7 +201,7 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
     @Test
     public void testFlow7 ()
     {
-        /**
+        /*
          *
          *              /--> O4
          *             /
@@ -237,7 +237,7 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
     @Test
     public void testFlow8 ()
     {
-        /**
+        /*
          *
          *         O5 --\
          *               \

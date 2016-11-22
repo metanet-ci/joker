@@ -18,7 +18,7 @@ public class PartitionKey3 extends AbstractList<Object> implements PartitionKey
 
     private final int hashCode;
 
-    public PartitionKey3 ( final Object val0, final Object val1, final Object val2 )
+    PartitionKey3 ( final Object val0, final Object val1, final Object val2 )
     {
         this.val0 = val0;
         this.val1 = val1;
@@ -85,7 +85,7 @@ public class PartitionKey3 extends AbstractList<Object> implements PartitionKey
         return hashCode;
     }
 
-    public static int computeHashCode ( final Object val0, final Object val1, final Object val2 )
+    static int computeHashCode ( final Object val0, final Object val1, final Object val2 )
     {
         return hashTail( hashTail( hashHead( val0 ), val1 ), val2 );
     }

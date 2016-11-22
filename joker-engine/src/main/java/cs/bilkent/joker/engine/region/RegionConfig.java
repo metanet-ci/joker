@@ -101,11 +101,6 @@ public class RegionConfig
         return operatorDefsArr;
     }
 
-    public int getOperatorCountByPipelineIndex ( final int pipelineIndex )
-    {
-        return getOperatorDefsByPipelineIndex( pipelineIndex ).length;
-    }
-
     @Override
     public String toString ()
     {

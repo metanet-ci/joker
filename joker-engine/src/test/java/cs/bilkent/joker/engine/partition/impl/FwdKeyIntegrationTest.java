@@ -198,7 +198,7 @@ public class FwdKeyIntegrationTest extends AbstractJokerTest
 
         private final AtomicInteger invocationCount = new AtomicInteger();
 
-        public ValueGenerator ( final int keyRange, final int keyComponentCount, final int valueRange )
+        ValueGenerator ( final int keyRange, final int keyComponentCount, final int valueRange )
         {
             this.keyRange = keyRange;
             this.keyComponentCount = keyComponentCount;
@@ -239,7 +239,7 @@ public class FwdKeyIntegrationTest extends AbstractJokerTest
 
         private final AtomicInteger invocationCount = new AtomicInteger();
 
-        public ValueCollector ( final int keyComponentCount )
+        ValueCollector ( final int keyComponentCount )
         {
             this.keyComponentCount = keyComponentCount;
         }

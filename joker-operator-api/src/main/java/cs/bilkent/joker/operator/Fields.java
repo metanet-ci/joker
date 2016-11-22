@@ -38,8 +38,6 @@ public interface Fields<K>
      *
      * @param key
      *         the key to check the associated value
-     * @param <T>
-     *         type of the value
      *
      * @return if there exists a value associated with the given key, false otherwise
      */
@@ -104,7 +102,6 @@ public interface Fields<K>
      *
      * @return the associated value
      *
-     * @throws IllegalArgumentException
      */
     default <T> T getOrFail ( K key )
     {
@@ -130,7 +127,7 @@ public interface Fields<K>
      * @return the associated value
      *
      * @throws RuntimeException
-     *         craeted by the provided function
+     *         created by the provided function
      */
     default <T> T getOrFail ( K key, Function<K, ? extends RuntimeException> exceptionFunc )
     {

@@ -418,7 +418,7 @@ public class JokerTest extends AbstractJokerTest
 
         private final int replicaCount;
 
-        public StaticRegionConfigFactory ( final JokerConfig jokerConfig, final int replicaCount )
+        StaticRegionConfigFactory ( final JokerConfig jokerConfig, final int replicaCount )
         {
             super( jokerConfig );
             this.replicaCount = replicaCount;
@@ -465,7 +465,7 @@ public class JokerTest extends AbstractJokerTest
             final List<RegionDef> regions = regionGroup.getRegions();
             final int replicaCount = regions.get( 0 ).getRegionType() == PARTITIONED_STATEFUL ? this.replicaCount : 1;
             final List<List<Integer>> pipelineStartIndicesList = new ArrayList<>();
-            for ( RegionDef region : regions )
+            for ( RegionDef ignored : regions )
             {
                 pipelineStartIndicesList.add( singletonList( 0 ) );
             }
@@ -494,7 +494,7 @@ public class JokerTest extends AbstractJokerTest
 
         private final AtomicInteger invocationCount = new AtomicInteger();
 
-        public ValueGenerator ( final int keyRange, final int valueRange )
+        ValueGenerator ( final int keyRange, final int valueRange )
         {
             this.keyRange = keyRange;
             this.valueRange = valueRange;
@@ -534,7 +534,7 @@ public class JokerTest extends AbstractJokerTest
 
         private final String name;
 
-        public ValueCollector ( final String name, final int keyRange )
+        ValueCollector ( final String name, final int keyRange )
         {
             this.name = name;
             this.values = new AtomicReferenceArray<>( keyRange );

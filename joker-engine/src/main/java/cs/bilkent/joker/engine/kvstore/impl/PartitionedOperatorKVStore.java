@@ -65,7 +65,7 @@ public class PartitionedOperatorKVStore implements OperatorKVStore
         return container.getOrCreateKVStore( key );
     }
 
-    public void acquirePartitions ( final List<KVStoreContainer> partitions )
+    void acquirePartitions ( final List<KVStoreContainer> partitions )
     {
         checkArgument( partitions != null, "cannot acquire null partitions in operator kvStore of operatorId=%s replicaIndex=%s",
                        operatorId,
@@ -88,7 +88,7 @@ public class PartitionedOperatorKVStore implements OperatorKVStore
         LOGGER.info( "partitions={} are acquired by operatorId={} replicaIndex={}", partitionIds, operatorId, replicaIndex );
     }
 
-    public List<KVStoreContainer> releasePartitions ( final List<Integer> partitionIds )
+    List<KVStoreContainer> releasePartitions ( final List<Integer> partitionIds )
     {
         checkArgument( partitionIds != null, "cannot release null partition ids of operatorId=%s replicaIndex=%s",
                        operatorId,

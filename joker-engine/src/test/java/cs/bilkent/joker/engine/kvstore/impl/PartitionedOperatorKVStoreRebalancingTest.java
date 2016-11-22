@@ -100,7 +100,7 @@ public class PartitionedOperatorKVStoreRebalancingTest extends AbstractJokerTest
                 operatorKVStore.getKVStore( EXTRACTOR.getPartitionKey( generateTuple( partitionId, keys ) ) );
                 fail();
             }
-            catch ( NullPointerException expected )
+            catch ( NullPointerException ignored )
             {
 
             }

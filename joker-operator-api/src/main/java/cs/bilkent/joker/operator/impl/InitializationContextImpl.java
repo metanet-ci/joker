@@ -125,9 +125,4 @@ public class InitializationContextImpl implements InitializationContext
         this.config = config;
     }
 
-    public void setUpstreamConnectionStatuses ( final boolean[] upstreamConnectionStatuses )
-    {
-        this.upstreamConnectionStatuses = Arrays.copyOf( upstreamConnectionStatuses, upstreamConnectionStatuses.length );
-    }
-
 }

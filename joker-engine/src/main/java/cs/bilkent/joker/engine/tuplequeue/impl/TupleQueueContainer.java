@@ -81,11 +81,6 @@ public class TupleQueueContainer
         return partitionId;
     }
 
-    public TupleQueue[] getTupleQueues ( final PartitionKey key )
-    {
-        return tupleQueuesByKeys.computeIfAbsent( key, this.tupleQueuesConstructor );
-    }
-
     public boolean offer ( final int portIndex, final Tuple tuple, final PartitionKey key )
     {
         final TupleQueue[] tupleQueues = getTupleQueues( key );
@@ -271,6 +266,11 @@ public class TupleQueueContainer
 
             return true;
         }
+    }
+
+    private TupleQueue[] getTupleQueues ( final PartitionKey key )
+    {
+        return tupleQueuesByKeys.computeIfAbsent( key, this.tupleQueuesConstructor );
     }
 
 }

@@ -45,7 +45,7 @@ public class PartitionDistributionTest extends AbstractJokerTest
             distribution1.getPartitionIdsMigratedFromReplicaIndex( distribution2, 0 );
             fail();
         }
-        catch ( IllegalStateException expected )
+        catch ( IllegalStateException ignored )
         {
 
         }
@@ -55,7 +55,7 @@ public class PartitionDistributionTest extends AbstractJokerTest
             distribution1.getPartitionIdsMigratedToReplicaIndex( distribution2, 1 );
             fail();
         }
-        catch ( IllegalStateException expected )
+        catch ( IllegalStateException ignored )
         {
 
         }
@@ -72,7 +72,7 @@ public class PartitionDistributionTest extends AbstractJokerTest
             distribution1.getPartitionIdsMigratedFromReplicaIndex( distribution2, 0 );
             fail();
         }
-        catch ( IllegalStateException expected )
+        catch ( IllegalStateException ignored )
         {
 
         }
@@ -82,7 +82,7 @@ public class PartitionDistributionTest extends AbstractJokerTest
             distribution1.getPartitionIdsMigratedToReplicaIndex( distribution2, 1 );
             fail();
         }
-        catch ( IllegalStateException expected )
+        catch ( IllegalStateException ignored )
         {
 
         }
@@ -99,7 +99,7 @@ public class PartitionDistributionTest extends AbstractJokerTest
             distribution1.getPartitionIdsMigratedFromReplicaIndex( distribution2, 0 );
             fail();
         }
-        catch ( IllegalStateException expected )
+        catch ( IllegalStateException ignored )
         {
 
         }
@@ -109,7 +109,7 @@ public class PartitionDistributionTest extends AbstractJokerTest
             distribution1.getPartitionIdsMigratedToReplicaIndex( distribution2, 1 );
             fail();
         }
-        catch ( IllegalStateException expected )
+        catch ( IllegalStateException ignored )
         {
 
         }

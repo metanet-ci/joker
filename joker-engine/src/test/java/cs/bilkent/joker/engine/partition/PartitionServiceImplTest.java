@@ -158,13 +158,13 @@ public class PartitionServiceImplTest extends AbstractJokerTest
 
         int overCapacityCount = partitionCount % replicaCount;
         int normalCapacityCount = replicaCount - overCapacityCount;
-        for ( int i = 0; i < ownedPartitionCountsByReplicaIndex.length; i++ )
+        for ( final int c : ownedPartitionCountsByReplicaIndex )
         {
-            if ( ownedPartitionCountsByReplicaIndex[ i ] == normalCapacity )
+            if ( c == normalCapacity )
             {
                 normalCapacityCount--;
             }
-            else if ( ownedPartitionCountsByReplicaIndex[ i ] == overCapacity )
+            else if ( c == overCapacity )
             {
                 overCapacityCount--;
             }

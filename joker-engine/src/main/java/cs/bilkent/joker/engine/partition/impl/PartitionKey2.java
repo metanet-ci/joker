@@ -16,7 +16,7 @@ public class PartitionKey2 extends AbstractList<Object> implements PartitionKey
 
     private final int hashCode;
 
-    public PartitionKey2 ( final Object val0, final Object val1 )
+    PartitionKey2 ( final Object val0, final Object val1 )
     {
         this.val0 = val0;
         this.val1 = val1;

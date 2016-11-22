@@ -67,8 +67,10 @@ public class PipelineReplicaRunner implements Runnable
     private volatile PipelineReplicaRunnerCommand command;
 
 
-    public PipelineReplicaRunner ( final JokerConfig config, final PipelineReplica pipeline, final Supervisor supervisor,
-                                   final DownstreamTupleSender downstreamTupleSender )
+    PipelineReplicaRunner ( final JokerConfig config,
+                            final PipelineReplica pipeline,
+                            final Supervisor supervisor,
+                            final DownstreamTupleSender downstreamTupleSender )
     {
         this.config = config;
         this.pipeline = pipeline;
@@ -86,7 +88,7 @@ public class PipelineReplicaRunner implements Runnable
         }
     }
 
-    public UpstreamContext getPipelineUpstreamContext ()
+    UpstreamContext getPipelineUpstreamContext ()
     {
         synchronized ( monitor )
         {
@@ -94,7 +96,7 @@ public class PipelineReplicaRunner implements Runnable
         }
     }
 
-    public CompletableFuture<Boolean> pause ()
+    CompletableFuture<Boolean> pause ()
     {
         final CompletableFuture<Boolean> result;
         synchronized ( monitor )
@@ -173,7 +175,7 @@ public class PipelineReplicaRunner implements Runnable
         return result;
     }
 
-    public CompletableFuture<Boolean> resume ()
+    CompletableFuture<Boolean> resume ()
     {
         final CompletableFuture<Boolean> result;
         synchronized ( monitor )
@@ -248,7 +250,7 @@ public class PipelineReplicaRunner implements Runnable
         return result;
     }
 
-    public CompletableFuture<Boolean> stop ()
+    CompletableFuture<Boolean> stop ()
     {
         final CompletableFuture<Boolean> result;
         synchronized ( monitor )
@@ -350,7 +352,7 @@ public class PipelineReplicaRunner implements Runnable
         return result;
     }
 
-    public CompletableFuture<Boolean> updatePipelineUpstreamContext ()
+    CompletableFuture<Boolean> updatePipelineUpstreamContext ()
     {
         final CompletableFuture<Boolean> result;
         synchronized ( monitor )
@@ -384,7 +386,7 @@ public class PipelineReplicaRunner implements Runnable
         return result;
     }
 
-    public CompletableFuture<Boolean> drainStatelessOperatorsAndStop ()
+    CompletableFuture<Boolean> drainStatelessOperatorsAndStop ()
     {
         final CompletableFuture<Boolean> result;
         synchronized ( monitor )

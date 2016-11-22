@@ -146,7 +146,7 @@ public class PartitionedOperatorTupleQueueRebalancingTest extends AbstractJokerT
                 operatorTupleQueue.offer( 0, singletonList( generateTuple( releasedPartitionId ) ) );
                 fail();
             }
-            catch ( NullPointerException expected )
+            catch ( NullPointerException ignored )
             {
 
             }

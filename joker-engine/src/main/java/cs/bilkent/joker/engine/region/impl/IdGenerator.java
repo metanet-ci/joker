@@ -20,7 +20,7 @@ public class IdGenerator
         this.next = next;
     }
 
-    public int nextId ()
+    int nextId ()
     {
         return next++;
     }

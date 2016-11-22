@@ -3,6 +3,7 @@ package cs.bilkent.joker.engine.partition.impl;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -21,7 +22,6 @@ import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.partition.PartitionDistribution;
 import cs.bilkent.joker.engine.partition.PartitionService;
-import static java.lang.Integer.compare;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.shuffle;
 
@@ -262,7 +262,7 @@ public class PartitionServiceImpl implements PartitionService
         return currentOwnerships.entrySet()
                                 .stream()
                                 .filter( e -> sourceReplicas.contains( e.getKey() ) )
-                                .max( ( e1, e2 ) -> compare( getPartitionCount( e1 ), getPartitionCount( e2 ) ) )
+                                .max( Comparator.comparingInt( this::getPartitionCount ) )
                                 .get();
     }
 
@@ -281,8 +281,7 @@ public class PartitionServiceImpl implements PartitionService
     private List<Integer> getDestination ( final Map<Integer, List<Integer>> destinations )
     {
         return destinations.entrySet()
-                           .stream()
-                           .min( ( e1, e2 ) -> compare( getPartitionCount( e1 ), getPartitionCount( e2 ) ) )
+                           .stream().min( Comparator.comparingInt( this::getPartitionCount ) )
                            .get()
                            .getValue();
     }

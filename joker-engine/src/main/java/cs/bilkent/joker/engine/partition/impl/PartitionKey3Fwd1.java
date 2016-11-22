@@ -20,7 +20,7 @@ public class PartitionKey3Fwd1 extends AbstractList<Object> implements Partition
 
     private final int hashCode;
 
-    public PartitionKey3Fwd1 ( final Object val0, final Object val1, final Object val2 )
+    PartitionKey3Fwd1 ( final Object val0, final Object val1, final Object val2 )
     {
         this.val0 = val0;
         this.val1 = val1;
@@ -88,7 +88,7 @@ public class PartitionKey3Fwd1 extends AbstractList<Object> implements Partition
         return hashCode;
     }
 
-    public static int computePartitionHashCode ( final Object val0 )
+    static int computePartitionHashCode ( final Object val0 )
     {
         return hashHead( val0 );
     }

@@ -25,7 +25,7 @@ import static org.junit.Assert.assertTrue;
 public class InMemoryKvStoreTest extends AbstractJokerTest
 {
 
-    final KVStore kvStore = new InMemoryKVStore();
+    private final KVStore kvStore = new InMemoryKVStore();
 
     @Test
     public void shouldSet ()

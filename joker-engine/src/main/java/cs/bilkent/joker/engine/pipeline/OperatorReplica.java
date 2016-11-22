@@ -513,7 +513,7 @@ public class OperatorReplica
         return duplicate;
     }
 
-    public void setOperatorReplicaListener ( final OperatorReplicaListener listener )
+    void setOperatorReplicaListener ( final OperatorReplicaListener listener )
     {
         checkArgument( listener != null, "cannot set null operator replica listener to %s", operatorName );
         this.listener = listener;
@@ -579,21 +579,6 @@ public class OperatorReplica
         return outputSupplier;
     }
 
-    public boolean isInvokable ()
-    {
-        return status == RUNNING || status == COMPLETING;
-    }
-
-    public boolean isNonInvokable ()
-    {
-        return !isInvokable();
-    }
-
-    public InvocationReason getCompletionReason ()
-    {
-        return completionReason;
-    }
-
     public UpstreamContext getUpstreamContext ()
     {
         return upstreamContext;
@@ -602,6 +587,21 @@ public class OperatorReplica
     public UpstreamContext getSelfUpstreamContext ()
     {
         return selfUpstreamContext;
+    }
+
+    boolean isInvokable ()
+    {
+        return status == RUNNING || status == COMPLETING;
+    }
+
+    boolean isNonInvokable ()
+    {
+        return !isInvokable();
+    }
+
+    InvocationReason getCompletionReason ()
+    {
+        return completionReason;
     }
 
     @Override

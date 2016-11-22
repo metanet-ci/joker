@@ -47,19 +47,6 @@ public class FlowDeploymentDef
         return regionGroups;
     }
 
-    public RegionDef getRegionDef ( final int regionId )
-    {
-        for ( RegionDef region : regions )
-        {
-            if ( region.getRegionId() == regionId )
-            {
-                return region;
-            }
-        }
-
-        return null;
-    }
-
     public RegionGroup getRegionGroupByFirstRegionId ( final int regionId )
     {
         for ( RegionGroup regionGroup : regionGroups )

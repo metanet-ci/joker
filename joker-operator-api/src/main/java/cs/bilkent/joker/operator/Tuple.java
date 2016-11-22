@@ -120,7 +120,7 @@ public final class Tuple implements Fields<String>
 
         for ( int i = schema.getFieldCount(); i < values.size(); i++ )
         {
-            final Entry<String, Object> entry = (Entry<String, Object>) values.get( i );
+            final Entry<String, Object> entry = getEntry( i );
             if ( entry.getKey().equals( key ) )
             {
                 return (T) entry.getValue();
@@ -147,7 +147,7 @@ public final class Tuple implements Fields<String>
 
         for ( int i = schema.getFieldCount(); i < values.size(); i++ )
         {
-            final Entry<String, Object> entry = (Entry<String, Object>) values.get( i );
+            final Entry<String, Object> entry = getEntry( i );
             if ( entry.getKey().equals( key ) )
             {
                 return true;
@@ -171,7 +171,7 @@ public final class Tuple implements Fields<String>
         {
             for ( int i = schema.getFieldCount(); i < values.size(); i++ )
             {
-                final Entry<String, Object> entry = (Entry<String, Object>) values.get( i );
+                final Entry<String, Object> entry = getEntry( i );
                 if ( entry.getKey().equals( key ) )
                 {
                     entry.setValue( value );
@@ -190,17 +190,17 @@ public final class Tuple implements Fields<String>
     }
 
     @Override
-    public Object remove ( final String key )
+    public <T> T remove ( final String key )
     {
         final int index = schema.getFieldIndex( key );
         if ( index != FIELD_NOT_FOUND )
         {
-            return values.set( index, null );
+            return (T) values.set( index, null );
         }
 
         for ( int i = schema.getFieldCount(); i < values.size(); i++ )
         {
-            final Entry<String, Object> entry = (Entry<String, Object>) values.get( i );
+            final Entry<String, Object> entry = getEntry( i );
             if ( entry.getKey().equals( key ) )
             {
                 if ( i < values.size() - 1 )
@@ -210,11 +210,16 @@ public final class Tuple implements Fields<String>
 
                 values.remove( i );
 
-                return entry.getValue();
+                return (T) entry.getValue();
             }
         }
 
         return null;
+    }
+
+    private Entry<String, Object> getEntry ( final int i )
+    {
+        return (Entry<String, Object>) values.get( i );
     }
 
     @Override
@@ -236,7 +241,7 @@ public final class Tuple implements Fields<String>
         }
         for ( int i = schema.getFieldCount(); i < values.size(); i++ )
         {
-            final Entry<String, Object> entry = (Entry<String, Object>) values.get( i );
+            final Entry<String, Object> entry = getEntry( i );
             consumer.accept( entry.getKey(), entry.getValue() );
         }
     }
@@ -285,7 +290,7 @@ public final class Tuple implements Fields<String>
         }
         for ( int i = schema.getFieldCount(); i < values.size(); i++ )
         {
-            final Entry<String, Object> entry = (Entry<String, Object>) values.get( i );
+            final Entry<String, Object> entry = getEntry( i );
             map.put( entry.getKey(), entry.getValue() );
         }
 
@@ -332,7 +337,7 @@ public final class Tuple implements Fields<String>
 
         for ( int i = schema.getFieldCount(); i < values.size(); i++ )
         {
-            final Entry<String, Object> entry = (Entry<String, Object>) values.get( i );
+            final Entry<String, Object> entry = getEntry( i );
             sb.append( "{" ).append( entry.getKey() ).append( "=" ).append( entry.getValue() ).append( "}," );
         }
 
