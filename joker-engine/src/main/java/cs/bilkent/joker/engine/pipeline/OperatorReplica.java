@@ -1,6 +1,7 @@
 package cs.bilkent.joker.engine.pipeline;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.Supplier;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -31,6 +32,7 @@ import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SHUTD
 import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SUCCESS;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
+import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.InitializationContextImpl;
 import cs.bilkent.joker.operator.impl.InvocationContextImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -190,11 +192,6 @@ public class OperatorReplica
         if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
         {
             final ScheduleWhenTuplesAvailable ss = (ScheduleWhenTuplesAvailable) schedulingStrategy;
-            for ( int portIndex = 0; portIndex < ss.getPortCount(); portIndex++ )
-            {
-                queue.ensureCapacity( portIndex, ss.getTupleCount( portIndex ) );
-
-            }
             queue.setTupleCounts( ss.getTupleCounts(), ss.getTupleAvailabilityByPort() );
         }
     }
@@ -353,7 +350,8 @@ public class OperatorReplica
         {
             for ( int portIndex = 0; portIndex < input.getPortCount(); portIndex++ )
             {
-                queue.offer( portIndex, input.getTuplesModifiable( portIndex ) );
+                final List<Tuple> tuples = input.getTuplesModifiable( portIndex );
+                queue.offer( portIndex, tuples );
             }
         }
     }

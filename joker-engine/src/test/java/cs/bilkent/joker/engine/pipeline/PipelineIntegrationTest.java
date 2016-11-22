@@ -70,6 +70,7 @@ import static cs.bilkent.joker.operators.MapperOperator.MAPPER_CONFIG_PARAMETER;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import cs.bilkent.joker.utils.Pair;
 import static java.util.Collections.singletonList;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -976,7 +977,6 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
     }
 
-
     public static class DownstreamTupleSenderImpl implements DownstreamTupleSender
     {
 
@@ -999,7 +999,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                 final int inputPort = p._2;
                 if ( tuples.getTupleCount( outputPort ) > 0 )
                 {
-                    operatorTupleQueue.offer( inputPort, tuples.getTuples( outputPort ) );
+                    operatorTupleQueue.offer( inputPort, tuples.getTuples( outputPort ), Long.MAX_VALUE, MILLISECONDS );
                 }
             }
 

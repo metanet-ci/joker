@@ -30,65 +30,48 @@ public class SingleThreadedTupleQueue implements TupleQueue
     }
 
     @Override
-    public void ensureCapacity ( final int capacity )
-    {
-
-    }
-
-    @Override
-    public void enableCapacityCheck ()
-    {
-
-    }
-
-    @Override
-    public void disableCapacityCheck ()
-    {
-
-    }
-
-    @Override
-    public boolean isCapacityCheckEnabled ()
-    {
-        return false;
-    }
-
-    @Override
-    public void offerTuple ( final Tuple tuple )
+    public boolean offerTuple ( final Tuple tuple )
     {
         queue.offer( tuple );
+        return true;
     }
 
     @Override
-    public boolean tryOfferTuple ( final Tuple tuple, final long timeout, final TimeUnit unit )
+    public boolean offerTuple ( final Tuple tuple, final long timeout, final TimeUnit unit )
     {
         offerTuple( tuple );
         return true;
     }
 
     @Override
-    public void forceOfferTuple ( final Tuple tuple )
-    {
-        offerTuple( tuple );
-    }
-
-    @Override
-    public void offerTuples ( final List<Tuple> tuples )
+    public int offerTuples ( final List<Tuple> tuples )
     {
         queue.addAll( tuples );
-    }
-
-    @Override
-    public int tryOfferTuples ( final List<Tuple> tuples, final long timeout, final TimeUnit unit )
-    {
-        offerTuples( tuples );
         return tuples.size();
     }
 
     @Override
-    public void forceOfferTuples ( final List<Tuple> tuples )
+    public int offerTuples ( final List<Tuple> tuples, final int fromIndex )
     {
-        offerTuples( tuples );
+        final int j = tuples.size();
+        for ( int i = fromIndex; i < j; i++ )
+        {
+            queue.add( tuples.get( i ) );
+        }
+
+        return j - fromIndex;
+    }
+
+    @Override
+    public int offerTuples ( final List<Tuple> tuples, final long timeout, final TimeUnit unit )
+    {
+        return offerTuples( tuples );
+    }
+
+    @Override
+    public int offerTuples ( final List<Tuple> tuples, final int fromIndex, final long timeout, final TimeUnit unit )
+    {
+        return offerTuples( tuples, fromIndex );
     }
 
     @Override
@@ -209,12 +192,6 @@ public class SingleThreadedTupleQueue implements TupleQueue
         }
 
         return tuples;
-    }
-
-    @Override
-    public boolean awaitMinimumSize ( final int expectedSize )
-    {
-        return queue.size() >= expectedSize;
     }
 
     @Override

@@ -10,100 +10,88 @@ public interface TupleQueue
 {
 
     /**
-     * Ensures that the tuple queue instance accepts number of tuples given in the parameter without blocking
-     *
-     * @param capacity
-     *         number of tuples guaranteed to be accepted by the tuple queue without blocking
-     */
-    void ensureCapacity ( int capacity );
-
-    /**
-     * Enables the capacity check such that the available capacity is considered while offering tuples into the queue
-     */
-    void enableCapacityCheck ();
-
-    /**
-     * Disables the capacity check such that offers calls are handled as an unbounded queue
-     */
-    void disableCapacityCheck ();
-
-
-    /**
-     * Returns true if capacity check is enabled for the queue
-     *
-     * @return true if capacity check is enabled for the queue
-     */
-    boolean isCapacityCheckEnabled ();
-
-    /**
-     * Offers the given tuple by blocking
-     *
-     * @param tuple
-     *         tuple to be offered to the queue
-     */
-    void offerTuple ( Tuple tuple );
-
-    /**
-     * Attempts to offer the given tuple to the queue by blocking with the given timeout value in milliseconds. It may block if the queue
-     * has no capacity
+     * Attempts to offer the given tuple if there is available capacity in the queue.
+     * Please note that this method does not block and returns {@code false} immediately if there is no empty capacity.
      *
      * @param tuple
      *         tuple to be offered to the queue
      *
-     * @return true if tuple is offered to the queue before timeout occurs, false otherwise
+     * @return true if the offer is successful, false otherwise
      */
-    boolean tryOfferTuple ( Tuple tuple, long timeout, TimeUnit unit );
+    boolean offerTuple ( Tuple tuple );
 
     /**
-     * Offers the given tuple to the queue immediately with no capacity checking
+     * Attempts to offer the given tuple to the queue. If there is no empty capacity, it blocks for the given timeout duration.
      *
      * @param tuple
      *         tuple to be offered to the queue
+     *
+     * @return true if tuple is offered to the queue before the timeout, false otherwise
      */
-    void forceOfferTuple ( Tuple tuple );
+    boolean offerTuple ( Tuple tuple, long timeout, TimeUnit unit );
 
     /**
-     * Offers given tuples to the queue by blocking. If the queue has no enough capacity, the call blocks until all tuples are added
+     * Attempts to offer given tuples to the queue without blocking, and returns the number of tuples that are successfully offered.
      *
      * @param tuples
-     *         tuples to be offered to the queue by blocking
+     *         tuples to be offered to the queue without blocking
+     *
+     * @return number of tuples that are successfully offered
      */
-    void offerTuples ( List<Tuple> tuples );
+    int offerTuples ( List<Tuple> tuples );
 
     /**
-     * Attempts to offer given tuples to the queue by blocking with the given timeout value in milliseconds. If the queue has
-     * no enough capacity within the timeout duration, the call returns before offering all tuples and reports number of tuples
-     * offered to the queue
+     * Attempts to offer given tuples to the queue without blocking, starting from the given index (inclusive),
+     * and returns the number of tuples that are successfully offered.
+     *
+     * @param tuples
+     *         tuples to be offered to the queue without blocking
+     * @param fromIndex
+     *         starting index of the tuples to be offered (inclusive)
+     *
+     * @return number of tuples that are successfully offered
+     */
+    int offerTuples ( List<Tuple> tuples, int fromIndex );
+
+    /**
+     * Attempts to offer given tuples to the queue. If there is no empty capacity, it blocks for the given timeout duration.
+     * It returns the number of tuples that are successfully offered.
      *
      * @param tuples
      *         tuples to be offered to the queue
      *
-     * @return number of tuples offered into the queue. Please note that it may be less than number of tuples in the first parameter
+     * @return number of tuples that are successfully offered
      */
-    int tryOfferTuples ( List<Tuple> tuples, long timeout, TimeUnit unit );
+    int offerTuples ( List<Tuple> tuples, long timeout, TimeUnit unit );
 
     /**
-     * Offers the given tuples to the queue immediately with no capacity checking
+     * Attempts to offer given tuples to the queue, starting from the given index (inclusive). If there is no empty capacity,
+     * it blocks for the given timeout duration. It returns the number of tuples that are successfully offered.
      *
      * @param tuples
      *         tuples to be offered to the queue
+     * @param fromIndex
+     *         starting index of the tuples to be offered (inclusive)
+     *
+     * @return number of tuples that are successfully offered
      */
-    void forceOfferTuples ( List<Tuple> tuples );
+    int offerTuples ( List<Tuple> tuples, int fromIndex, long timeout, TimeUnit unit );
 
     /**
-     * Polls tuples from the queue with the number equal to the given count. It may block or directly return an empty list if the queue has
-     * no enough number of tuples
+     * Polls tuples from the queue with the number equal to the given count without blocking, if the queue already has enough tuples.
+     * It does not block and returns an empty list immediately if the queue has no enough number of tuples.
      *
      * @param count
      *         exact number of tuples to be polled from the queue
      *
-     * @return list of tuples polled from the queue. It may be an empty list if the queue has no enough number of tuples to be polled
+     * @return list of tuples polled from the queue. It may be an empty list if the queue has no enough number of tuples to be polled on
+     * the invocation time
      */
     List<Tuple> pollTuples ( int count );
 
     /**
-     * Polls tuples from the queue with the number equal to the given count. It may block if the queue has no enough number of tuples
-     * within the given timeout duration
+     * Polls tuples from the queue with the number equal to the given count.
+     * It blocks for the given timeout duration if the queue has not enough number of tuples.
      *
      * @param count
      *         exact number of tuples to be polled from the queue
@@ -114,8 +102,8 @@ public interface TupleQueue
     List<Tuple> pollTuples ( int count, long timeout, TimeUnit unit );
 
     /**
-     * Polls tuples from the queue with the number equal to the given count into the provided list. It may block or directly return an
-     * empty list if the queue has no enough number of tuples
+     * Polls tuples from the queue with the number equal to the given count into the given list, without blocking.
+     * It does not modify the given list if the queue has no enough number of tuples.
      *
      * @param count
      *         exact number of tuples to be polled from the queue
@@ -125,8 +113,8 @@ public interface TupleQueue
     void pollTuples ( int count, List<Tuple> tuples );
 
     /**
-     * Polls tuples from the queue with the number equal to the given count into the provided list. It may block if the queue has no
-     * enough number of tuples within the given timeout duration
+     * Polls tuples from the queue with the number equal to the given count into the provided list.
+     * It blocks for the given timeout duration if the queue has no enough number of tuples.
      *
      * @param count
      *         exact number of tuples to be polled from the queue
@@ -136,56 +124,56 @@ public interface TupleQueue
     void pollTuples ( int count, List<Tuple> tuples, long timeout, TimeUnit unit );
 
     /**
-     * Polls tuples from the queue with the number greater than or equal to the given count. It may block or directly return an empty list
-     * if the queue has no enough number of tuples
+     * Polls tuples from the queue with the number greater than or equal to the given count, without blocking.
+     * It immediately returns an empty list if the queue has no enough number of tuples.
      *
      * @param count
      *         minimum number of tuples to be polled from the queue
      *
-     * @return list of tuples polled from the queue. It may be an empty list if the queue has no enough number of tuples to be polled
+     * @return list of the tuples polled from the queue. It is an empty list if the queue has no enough number of tuples.
      */
     List<Tuple> pollTuplesAtLeast ( int count );
 
     /**
-     * Polls tuples from the queue with the number greater than or equal to the given count. It may block if the queue has no
-     * enough number of tuples within the given timeout duration
+     * Polls tuples from the queue with the number greater than or equal to the given count.
+     * It blocks for the given timeout duration if the queue has no enough number of tuples.
      *
      * @param count
      *         exact number of tuples to be polled from the queue
      *
-     * @return list of tuples polled from the queue. It may be an empty list if the queue has no enough number of tuples to be polled
+     * @return list of tuples polled from the queue. It is an empty list if the queue has no enough number of tuples.
      */
     List<Tuple> pollTuplesAtLeast ( int count, long timeout, TimeUnit unit );
 
     /**
-     * Polls tuples from the queue with the number greater than or equal to the given count, and less than or equal to the given limit.
-     * It may block or directly return an empty list if the queue has no enough number of tuples
+     * Polls tuples from the queue with the number greater than or equal to the given count, and less than or equal to the given limit,
+     * without blocking. It immediately returns an empty list if the queue has no enough number of tuples.
      *
      * @param count
      *         minimum number of tuples to be polled from the queue
      * @param limit
      *         maximum number of tuples to be polled from the queue
      *
-     * @return list of tuples polled from the queue. It may be an empty list if the queue has no enough number of tuples to be polled
+     * @return list of tuples polled from the queue. It is an empty list if the queue has no enough number of tuples.
      */
     List<Tuple> pollTuplesAtLeast ( int count, int limit );
 
     /**
      * Polls tuples from the queue with the number greater than or equal to the given count, and less than or equal to the given limit.
-     * It may block if the queue has no enough number of tuples within the given timeout duration
+     * It blocks for the given timeout duration if the queue has no enough number of tuples.
      *
      * @param count
      *         exact number of tuples to be polled from the queue
      * @param limit
      *         maximum number of tuples to be polled from the queue
      *
-     * @return list of tuples polled from the queue. It may be an empty list if the queue has no enough number of tuples to be polled
+     * @return list of tuples polled from the queue. It is an empty list if the queue has no enough number of tuples.
      */
     List<Tuple> pollTuplesAtLeast ( int count, int limit, long timeout, TimeUnit unit );
 
     /**
-     * Polls tuples from the queue with the number greater than or equal to the given count into the provided list. It may block or
-     * directly return an empty list if the queue has no enough number of tuples
+     * Polls tuples from the queue with the number greater than or equal to the given count into the provided list, without blocking.
+     * It does not modify the given list if the queue has no enough number of tuples.
      *
      * @param count
      *         minimum number of tuples to be polled from the queue
@@ -195,8 +183,8 @@ public interface TupleQueue
     void pollTuplesAtLeast ( int count, List<Tuple> tuples );
 
     /**
-     * Polls tuples from the queue with the number greater than or equal to the given count into the provided list. It may block if the
-     * queue has no enough number of tuples within the given timeout duration
+     * Polls tuples from the queue with the number greater than or equal to the given count into the provided list.
+     * It blocks for the given timeout duration if the queue has no enough number of tuples.
      *
      * @param count
      *         exact number of tuples to be polled from the queue
@@ -207,7 +195,7 @@ public interface TupleQueue
 
     /**
      * Polls tuples from the queue with the number greater than or equal to the given count, and less than or equal to the given limit
-     * into the provided list. It may block or directly return an empty list if the queue has no enough number of tuples
+     * into the provided list, without blocking. It does not modify the given list if the queue has no enough number of tuples.
      *
      * @param count
      *         minimum number of tuples to be polled from the queue
@@ -220,26 +208,16 @@ public interface TupleQueue
 
     /**
      * Polls tuples from the queue with the number greater than or equal to the given count, and less than or equal to the given limit
-     * into the provided list. It may block if the queue has no enough number of tuples within the given timeout duration
+     * into the provided list. It blocks for the given timeout duration if the queue has no enough number of tuples.
      *
      * @param count
      *         exact number of tuples to be polled from the queue
      * @param limit
      *         maximum number of tuples to be polled from the queue
      * @param tuples
+     *         list to add the polled tuples
      */
     void pollTuplesAtLeast ( int count, int limit, List<Tuple> tuples, long timeout, TimeUnit unit );
-
-    /**
-     * Returns true if the queue has number of tuples greater than or equal to the expected size. It may block or directly return an
-     * empty false if the queue has no enough number of tuples
-     *
-     * @param expectedSize
-     *         number of tuples to be present in the queue
-     *
-     * @return true if the queue has number of tuples greater than or equal to the expected size
-     */
-    boolean awaitMinimumSize ( int expectedSize );
 
     /**
      * @param expectedSize

@@ -6,7 +6,7 @@ import java.util.function.Supplier;
 
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 
-public final class OutputSupplierUtils
+public final class TuplesImplSupplierUtils
 {
 
     public static Supplier<TuplesImpl> newInstance ( final Class<Supplier<TuplesImpl>> clazz, final int inputPortCount )
@@ -22,7 +22,7 @@ public final class OutputSupplierUtils
         }
     }
 
-    private OutputSupplierUtils ()
+    private TuplesImplSupplierUtils ()
     {
 
     }

@@ -2,13 +2,12 @@ package cs.bilkent.joker.engine.tuplequeue.impl.operator;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.config.ThreadingPreference;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.SINGLE_THREADED;
@@ -35,7 +34,7 @@ public class DefaultOperatorTupleQueue implements OperatorTupleQueue
     public DefaultOperatorTupleQueue ( final String operatorId,
                                        final int inputPortCount,
                                        final ThreadingPreference threadingPreference,
-                                       final BiFunction<Integer, Boolean, TupleQueue> tupleQueueConstructor,
+                                       final Function<Integer, TupleQueue> tupleQueueConstructor,
                                        final int maxQueueSize
 
     )
@@ -49,7 +48,7 @@ public class DefaultOperatorTupleQueue implements OperatorTupleQueue
         this.tupleQueues = new TupleQueue[ inputPortCount ];
         for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
         {
-            this.tupleQueues[ portIndex ] = tupleQueueConstructor.apply( portIndex, true );
+            this.tupleQueues[ portIndex ] = tupleQueueConstructor.apply( portIndex );
         }
         this.maxQueueSize = threadingPreference == SINGLE_THREADED ? maxQueueSize : Integer.MAX_VALUE;
     }
@@ -67,45 +66,41 @@ public class DefaultOperatorTupleQueue implements OperatorTupleQueue
     }
 
     @Override
-    public void offer ( final int portIndex, final List<Tuple> tuples )
+    public int offer ( final int portIndex, final List<Tuple> tuples )
+    {
+        return offer( portIndex, tuples, 0 );
+    }
+
+    @Override
+    public int offer ( final int portIndex, final List<Tuple> tuples, final int fromIndex )
     {
         final TupleQueue[] tupleQueues = getTupleQueues( tuples );
 
         if ( tupleQueues != null )
         {
-            tupleQueues[ portIndex ].offerTuples( tuples );
+            return tupleQueues[ portIndex ].offerTuples( tuples, fromIndex );
         }
+
+        return 0;
     }
 
     @Override
-    public int tryOffer ( final int portIndex, final List<Tuple> tuples, final long timeout, final TimeUnit unit )
+    public int offer ( final int portIndex, final List<Tuple> tuples, final long timeout, final TimeUnit unit )
     {
-        if ( tuples == null )
-        {
-            return -1;
-        }
+        return offer( portIndex, tuples, 0, timeout, unit );
+    }
 
+    @Override
+    public int offer ( final int portIndex, final List<Tuple> tuples, final int fromIndex, final long timeout, final TimeUnit unit )
+    {
         final TupleQueue[] tupleQueues = getTupleQueues( tuples );
 
         if ( tupleQueues != null )
         {
-            return tupleQueues[ portIndex ].tryOfferTuples( tuples, timeout, unit );
+            return tupleQueues[ portIndex ].offerTuples( tuples, fromIndex, timeout, unit );
         }
 
-        return -1;
-    }
-
-    @Override
-    public void forceOffer ( final int portIndex, final List<Tuple> tuples )
-    {
-        final TupleQueue[] tupleQueues = getTupleQueues( tuples );
-
-        if ( tupleQueues == null )
-        {
-            return;
-        }
-
-        tupleQueues[ portIndex ].forceOfferTuples( tuples );
+        return 0;
     }
 
     private TupleQueue[] getTupleQueues ( final List<Tuple> tuples )
@@ -117,12 +112,6 @@ public class DefaultOperatorTupleQueue implements OperatorTupleQueue
     public void drain ( TupleQueueDrainer drainer )
     {
         drainer.drain( null, tupleQueues );
-    }
-
-    @Override
-    public void ensureCapacity ( final int portIndex, final int capacity )
-    {
-        tupleQueues[ portIndex ].ensureCapacity( capacity );
     }
 
     @Override
@@ -153,40 +142,6 @@ public class DefaultOperatorTupleQueue implements OperatorTupleQueue
     @Override
     public void setTupleCounts ( final int[] tupleCounts, final TupleAvailabilityByPort tupleAvailabilityByPort )
     {
-        if ( threadingPreference == MULTI_THREADED )
-        {
-            for ( int portIndex = 0; portIndex < getInputPortCount(); portIndex++ )
-            {
-                tupleQueues[ portIndex ].ensureCapacity( tupleCounts[ portIndex ] );
-            }
-        }
-    }
-
-    @Override
-    public void enableCapacityCheck ( final int portIndex )
-    {
-        checkState( threadingPreference == MULTI_THREADED,
-                    "Cannot enable capacity check for single threaded tuple queue of operator %s",
-                    operatorId );
-        tupleQueues[ portIndex ].enableCapacityCheck();
-    }
-
-    @Override
-    public void disableCapacityCheck ( final int portIndex )
-    {
-        checkState( threadingPreference == MULTI_THREADED,
-                    "Cannot disable capacity check for single threaded tuple queue of operator %s",
-                    operatorId );
-        tupleQueues[ portIndex ].disableCapacityCheck();
-    }
-
-    @Override
-    public boolean isCapacityCheckEnabled ( final int portIndex )
-    {
-        checkState( threadingPreference == MULTI_THREADED,
-                    "Cannot check if capacity enabled for single threaded tuple queue of operator %s",
-                    operatorId );
-        return tupleQueues[ portIndex ].isCapacityCheckEnabled();
     }
 
     @Override

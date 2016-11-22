@@ -9,11 +9,13 @@ import java.util.function.Supplier;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import static cs.bilkent.joker.engine.partition.PartitionUtil.getPartitionId;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
+import cs.bilkent.joker.engine.pipeline.DownstreamTupleSenderFailureFlag;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 
-public abstract class AbstractPartitionedDownstreamTupleSender implements DownstreamTupleSender, Supplier<OperatorTupleQueue[]>
+public abstract class AbstractPartitionedDownstreamTupleSender extends AbstractDownstreamTupleSender implements DownstreamTupleSender,
+                                                                                                                Supplier<OperatorTupleQueue[]>
 {
 
     private final int partitionCount;
@@ -28,10 +30,13 @@ public abstract class AbstractPartitionedDownstreamTupleSender implements Downst
 
     private List<Tuple>[] tupleLists;
 
-    public AbstractPartitionedDownstreamTupleSender ( final int partitionCount,
-                                                      final int[] partitionDistribution, final OperatorTupleQueue[] operatorTupleQueues,
+    public AbstractPartitionedDownstreamTupleSender ( final DownstreamTupleSenderFailureFlag failureFlag,
+                                                      final int partitionCount,
+                                                      final int[] partitionDistribution,
+                                                      final OperatorTupleQueue[] operatorTupleQueues,
                                                       final PartitionKeyExtractor partitionKeyExtractor )
     {
+        super( failureFlag );
         this.partitionCount = partitionCount;
         this.partitionDistribution = Arrays.copyOf( partitionDistribution, partitionDistribution.length );
         this.replicaCount = operatorTupleQueues.length;
@@ -51,7 +56,7 @@ public abstract class AbstractPartitionedDownstreamTupleSender implements Downst
 
     protected final Future<Void> send ( final TuplesImpl input, final int sourcePortIndex, final int destinationPortIndex )
     {
-        for ( Tuple tuple : input.getTuples( sourcePortIndex ) )
+        for ( Tuple tuple : input.getTuplesModifiable( sourcePortIndex ) )
         {
             final int partitionId = getPartitionId( partitionKeyExtractor.getPartitionHash( tuple ), partitionCount );
             final int replicaIndex = partitionDistribution[ partitionId ];
@@ -63,7 +68,7 @@ public abstract class AbstractPartitionedDownstreamTupleSender implements Downst
             final List<Tuple> tuples = tupleLists[ i ];
             if ( tuples.size() > 0 )
             {
-                operatorTupleQueues[ i ].offer( destinationPortIndex, tuples );
+                send( operatorTupleQueues[ i ], destinationPortIndex, tuples );
                 tuples.clear();
             }
         }

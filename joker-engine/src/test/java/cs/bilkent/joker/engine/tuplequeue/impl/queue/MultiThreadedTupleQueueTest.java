@@ -27,8 +27,9 @@ public class MultiThreadedTupleQueueTest extends AbstractJokerTest
     @Test
     public void shouldOfferSingleTuple ()
     {
-        queue.offerTuple( newTuple( 1 ) );
+        final boolean success = queue.offerTuple( newTuple( 1 ) );
 
+        assertTrue( success );
         assertQueueContent( 1 );
     }
 
@@ -43,36 +44,16 @@ public class MultiThreadedTupleQueueTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldOfferTupleExceedinglyWhenCapacityIncreases () throws InterruptedException
+    public void shouldNotOfferTupleOnceFilled ()
     {
         queue.offerTuple( newTuple( 1 ) );
         queue.offerTuple( newTuple( 2 ) );
         queue.offerTuple( newTuple( 3 ) );
 
-        final Thread thread = spawnThread( increaseCapacity( Thread.currentThread(), 4 ) );
+        final boolean offered = queue.offerTuple( newTuple( 4 ) );
+        assertFalse( offered );
 
-        queue.offerTuple( newTuple( 4 ) );
-
-        assertQueueContent( 4 );
-
-        thread.join();
-    }
-
-    @Test
-    public void shouldOfferTupleExceedinglyWithTimeoutWhenCapacityIncreases () throws InterruptedException
-    {
-        queue.offerTuple( newTuple( 1 ) );
-        queue.offerTuple( newTuple( 2 ) );
-        queue.offerTuple( newTuple( 3 ) );
-
-        final Thread thread = spawnThread( increaseCapacity( Thread.currentThread(), 4 ) );
-
-        final boolean result = queue.tryOfferTuple( newTuple( 4 ), Integer.MAX_VALUE, MILLISECONDS );
-
-        assertTrue( result );
-        assertQueueContent( 4 );
-
-        thread.join();
+        assertQueueContent( 3 );
     }
 
     @Test
@@ -82,81 +63,131 @@ public class MultiThreadedTupleQueueTest extends AbstractJokerTest
         queue.offerTuple( newTuple( 2 ) );
         queue.offerTuple( newTuple( 3 ) );
 
-        final boolean result = queue.tryOfferTuple( newTuple( 4 ), 500, MILLISECONDS );
+        final boolean result = queue.offerTuple( newTuple( 4 ), TIMEOUT_IN_MILLIS, MILLISECONDS );
 
         assertFalse( result );
         assertQueueContent( 3 );
     }
 
     @Test
-    public void shouldTryOfferTuples ()
+    public void shouldOfferTuplesWithTimeout ()
     {
-        final int offered = queue.tryOfferTuples( asList( newTuple( 1 ), newTuple( 2 ) ), TIMEOUT_IN_MILLIS, MILLISECONDS );
+        final int offered = queue.offerTuples( asList( newTuple( 1 ), newTuple( 2 ) ), TIMEOUT_IN_MILLIS, MILLISECONDS );
 
         assertEquals( 2, offered );
         assertQueueContent( 2 );
     }
 
     @Test
-    public void shouldOfferTuplesPartiallyWithTimeoutWhenCapacityIncreases () throws InterruptedException
+    public void shouldOfferTuplesFromIndexWithTimeout ()
     {
-        queue.offerTuple( newTuple( 1 ) );
-        queue.offerTuple( newTuple( 2 ) );
-        final Thread thread = spawnThread( increaseCapacity( Thread.currentThread(), 4 ) );
+        final int offered = queue.offerTuples( asList( newTuple( 0 ), newTuple( 1 ), newTuple( 2 ) ), 1, TIMEOUT_IN_MILLIS, MILLISECONDS );
 
-        final int offeredCount = queue.tryOfferTuples( asList( newTuple( 3 ), newTuple( 4 ), newTuple( 5 ) ),
-                                                       TIMEOUT_IN_MILLIS,
-                                                       MILLISECONDS );
+        assertEquals( 2, offered );
+        assertQueueContent( 2 );
+    }
 
-        assertEquals( 2, offeredCount );
-        assertQueueContent( 4 );
+    @Test
+    public void shouldOfferEmptyTuplesWithTimeout ()
+    {
+        final int offered = queue.offerTuples( asList( newTuple( 1 ), newTuple( 2 ) ), 2, TIMEOUT_IN_MILLIS, MILLISECONDS );
 
+        assertEquals( 0, offered );
+    }
+
+    @Test
+    public void shouldOfferTuplesPartiallyWithTimeout ()
+    {
+        final int offered = queue.offerTuples( asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ), newTuple( 4 ) ),
+                                               TIMEOUT_IN_MILLIS,
+                                               MILLISECONDS );
+
+        assertEquals( 3, offered );
+        assertQueueContent( 3 );
+    }
+
+    @Test
+    public void shouldOfferTuplesFromIndexPartiallyWithTimeout ()
+    {
+        final int offered = queue.offerTuples( asList( newTuple( 0 ), newTuple( 1 ), newTuple( 2 ), newTuple( 3 ), newTuple( 4 ) ),
+                                               1,
+                                               TIMEOUT_IN_MILLIS,
+                                               MILLISECONDS );
+
+        assertEquals( 3, offered );
+        assertQueueContent( 3 );
+    }
+
+    @Test
+    public void shouldOfferTuplesExceedinglyWhenTheyArePolledInParallel () throws InterruptedException
+    {
+        final Thread thread = spawnThread( () -> queue.pollTuplesAtLeast( 1, TIMEOUT_IN_MILLIS, MILLISECONDS ) );
+
+        final int offered = queue.offerTuples( asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ), newTuple( 4 ) ),
+                                               TIMEOUT_IN_MILLIS,
+                                               MILLISECONDS );
+
+        assertEquals( 4, offered );
         thread.join();
     }
 
     @Test
-    public void shouldOfferTuplesCompletelyWithTimeoutWhenCapacityIncreases () throws InterruptedException
+    public void shouldOfferTuplesFromIndexExceedinglyWhenTheyArePolledInParallel () throws InterruptedException
     {
-        queue.offerTuple( newTuple( 1 ) );
-        queue.offerTuple( newTuple( 2 ) );
-        final Thread thread = spawnThread( increaseCapacity( Thread.currentThread(), 5 ) );
+        final Thread thread = spawnThread( () -> queue.pollTuplesAtLeast( 2, TIMEOUT_IN_MILLIS, MILLISECONDS ) );
 
-        final int offeredCount = queue.tryOfferTuples( asList( newTuple( 3 ), newTuple( 4 ), newTuple( 5 ) ),
-                                                       TIMEOUT_IN_MILLIS,
-                                                       MILLISECONDS );
+        final int offered = queue.offerTuples( asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ), newTuple( 4 ), newTuple( 5 ) ),
+                                               1,
+                                               TIMEOUT_IN_MILLIS,
+                                               MILLISECONDS );
 
-        assertEquals( 3, offeredCount );
-        assertQueueContent( 5 );
-
+        assertEquals( 4, offered );
         thread.join();
     }
 
     @Test
     public void shouldOfferTuplesWhenCapacityAvailable ()
     {
-        queue.offerTuples( asList( newTuple( 1 ), newTuple( 2 ) ) );
+        final int offeredCount = queue.offerTuples( asList( newTuple( 1 ), newTuple( 2 ) ) );
 
+        assertEquals( 2, offeredCount );
         assertQueueContent( 2 );
     }
 
     @Test
-    public void shouldOfferTuplesExceedinglyWhenCapacityIncreases () throws InterruptedException
+    public void shouldOfferTuplesFromIndexWhenCapacityAvailable ()
     {
-        final Thread testThread = Thread.currentThread();
-        final Thread thread = spawnThread( increaseCapacity( testThread, 4 ) );
+        final int offeredCount = queue.offerTuples( asList( newTuple( 0 ), newTuple( 1 ), newTuple( 2 ) ), 1 );
 
-        queue.offerTuples( asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ), newTuple( 4 ) ) );
-
-        assertQueueContent( 4 );
-
-        thread.join();
+        assertEquals( 2, offeredCount );
+        assertQueueContent( 2 );
     }
 
     @Test
-    public void shouldAwaitSizeSucceedWhenExpectedSizeIsAlreadyAvailable ()
+    public void shouldOfferTuplesPartiallyWhenCapacityNotEnough ()
     {
-        queue.offerTuples( asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ) ) );
-        assertTrue( queue.awaitMinimumSize( 3 ) );
+        final int offeredCount = queue.offerTuples( asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ), newTuple( 4 ) ) );
+
+        assertEquals( 3, offeredCount );
+        assertQueueContent( 3 );
+    }
+
+    @Test
+    public void shouldOfferTuplesFromIndexPartiallyWhenCapacityNotEnough ()
+    {
+        final int offeredCount = queue.offerTuples( asList( newTuple( 0 ), newTuple( 1 ), newTuple( 2 ), newTuple( 3 ), newTuple( 4 ) ),
+                                                    1 );
+
+        assertEquals( 3, offeredCount );
+        assertQueueContent( 3 );
+    }
+
+    @Test
+    public void shouldNotOfferEmptyTuples ()
+    {
+        final int offered = queue.offerTuples( asList( newTuple( 1 ), newTuple( 2 ) ), 2 );
+
+        assertEquals( 0, offered );
     }
 
     @Test
@@ -167,7 +198,7 @@ public class MultiThreadedTupleQueueTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldAwaitSizeWithTimeoutSucceedWhenExpectedSizeIsSatisfiedTuplesAreOfferedAfterwards () throws InterruptedException
+    public void shouldAwaitSizeWithTimeoutSucceedWhenExpectedSizeIsEventuallySatisfied () throws InterruptedException
     {
         final Thread thread = spawnThread( offerTuples( Thread.currentThread(),
                                                         queue,
@@ -178,92 +209,47 @@ public class MultiThreadedTupleQueueTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldOfferExceedingTuplesWhenCapacityCheckDisabled () throws InterruptedException
-    {
-        final Thread thread = spawnThread( offerTuples( Thread.currentThread(),
-                                                        queue,
-                                                        asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ), newTuple( 4 ) ) ) );
-        queue.disableCapacityCheck();
-
-        assertTrueEventually( () -> assertQueueContent( 4 ) );
-
-        thread.join();
-    }
-
-    @Test
-    public void shouldNotOfferExceedingTuplesAfterQueueCapacityCheckEnabledAgain ()
-    {
-        queue.disableCapacityCheck();
-        queue.offerTuples( asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ), newTuple( 4 ) ) );
-        queue.enableCapacityCheck();
-        assertFalse( queue.tryOfferTuple( newTuple( 5 ), 1000, MILLISECONDS ) );
-    }
-
-    @Test
     public void shouldPollExactNumberOfTuples () throws InterruptedException
     {
-        queue.disableCapacityCheck();
-        final Thread thread = spawnThread( offerTuples( Thread.currentThread(),
-                                                        queue,
-                                                        asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ), newTuple( 4 ) ) ) );
+        queue.offerTuples( asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ) ) );
+
         final List<Tuple> tuples = queue.pollTuples( 2 );
         assertEquals( 2, tuples.size() );
-
-        thread.join();
     }
 
     @Test
     public void shouldPollAllTuples () throws InterruptedException
     {
-        queue.disableCapacityCheck();
-        final Thread thread = spawnThread( offerTuples( Thread.currentThread(),
-                                                        queue,
-                                                        asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ), newTuple( 4 ) ) ) );
+        queue.offerTuples( asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ) ) );
         final List<Tuple> tuples = queue.pollTuplesAtLeast( 2 );
-        assertEquals( 4, tuples.size() );
-
-        thread.join();
+        assertEquals( 3, tuples.size() );
     }
 
     @Test
-    public void shouldPollAllTuples2 () throws InterruptedException
+    public void shouldDrainAllTuples () throws InterruptedException
     {
-        queue.disableCapacityCheck();
-        final Thread thread = spawnThread( offerTuples( Thread.currentThread(),
-                                                        queue,
-                                                        asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ), newTuple( 4 ) ) ) );
+        queue.offerTuples( asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ) ) );
+
         final List<Tuple> tuples = new ArrayList<>();
         queue.pollTuplesAtLeast( 2, tuples );
-        assertEquals( 4, tuples.size() );
-
-        thread.join();
+        assertEquals( 3, tuples.size() );
     }
 
     @Test
     public void shouldPollTuplesWithLimit () throws InterruptedException
     {
-        queue.disableCapacityCheck();
-        final Thread thread = spawnThread( offerTuples( Thread.currentThread(),
-                                                        queue,
-                                                        asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ), newTuple( 4 ) ) ) );
-        final List<Tuple> tuples = queue.pollTuplesAtLeast( 2, 3 );
-        assertEquals( 3, tuples.size() );
-
-        thread.join();
+        queue.offerTuples( asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ) ) );
+        final List<Tuple> tuples = queue.pollTuplesAtLeast( 1, 2 );
+        assertEquals( 2, tuples.size() );
     }
 
     @Test
-    public void shouldPollTuplesWithLimit2 () throws InterruptedException
+    public void shouldDrainTuplesWithLimit () throws InterruptedException
     {
-        queue.disableCapacityCheck();
-        final Thread thread = spawnThread( offerTuples( Thread.currentThread(),
-                                                        queue,
-                                                        asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ), newTuple( 4 ) ) ) );
+        queue.offerTuples( asList( newTuple( 1 ), newTuple( 2 ), newTuple( 3 ) ) );
         final List<Tuple> tuples = new ArrayList<>();
-        queue.pollTuplesAtLeast( 2, 3, tuples );
-        assertEquals( 3, tuples.size() );
-
-        thread.join();
+        queue.pollTuplesAtLeast( 1, 2, tuples );
+        assertEquals( 2, tuples.size() );
     }
 
     private Tuple newTuple ( final int val )
@@ -285,19 +271,6 @@ public class MultiThreadedTupleQueueTest extends AbstractJokerTest
 
         assertEquals( size, queue.size() );
         assertEquals( expected, queue.pollTuples( size ) );
-    }
-
-    private Runnable increaseCapacity ( final Thread testThread, final int newCapacity )
-    {
-        return () ->
-        {
-            while ( !( testThread.getState() == WAITING || testThread.getState() == TIMED_WAITING ) )
-            {
-                sleepUninterruptibly( 1, MILLISECONDS );
-            }
-
-            queue.ensureCapacity( newCapacity );
-        };
     }
 
     public static Runnable offerTuples ( final Thread testThread, final TupleQueue queue, final List<Tuple> tuples )

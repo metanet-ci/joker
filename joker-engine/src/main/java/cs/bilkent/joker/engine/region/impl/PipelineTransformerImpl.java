@@ -12,6 +12,7 @@ import javax.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static cs.bilkent.joker.com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
 import cs.bilkent.joker.engine.pipeline.OperatorReplica;
@@ -33,6 +34,7 @@ import cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool.NonBlockingTupleQueu
 import cs.bilkent.joker.engine.tuplequeue.impl.operator.DefaultOperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.impl.operator.EmptyOperatorTupleQueue;
 import cs.bilkent.joker.operator.OperatorDef;
+import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
@@ -237,8 +239,8 @@ public class PipelineTransformerImpl implements PipelineTransformer
         {
             final OperatorReplica operator = pipelineReplica.getOperator( i );
             final Supplier<TuplesImpl> outputSupplier = ( ( i == ( j - 1 ) ) && isLastMergedPipeline )
-                                                        ? OutputSupplierUtils.newInstance( pipelineTailOperatorOutputSupplierClass,
-                                                                                           operator.getOperatorDef().inputPortCount() )
+                                                        ? TuplesImplSupplierUtils.newInstance( pipelineTailOperatorOutputSupplierClass,
+                                                                                               operator.getOperatorDef().inputPortCount() )
                                                         : new CachedTuplesImplSupplier( operator.getOperatorDef().inputPortCount() );
 
             newOperatorReplicas[ operatorIndex++ ] = operator.duplicate( newPipelineReplicaId,
@@ -289,8 +291,8 @@ public class PipelineTransformerImpl implements PipelineTransformer
 
         final NonBlockingTupleQueueDrainerPool drainerPool = new NonBlockingTupleQueueDrainerPool( config, firstOperatorDef );
         final Supplier<TuplesImpl> outputSupplier = ( isLastMergedPipeline && ( pipelineReplica.getOperatorCount() == 1 ) )
-                                                    ? OutputSupplierUtils.newInstance( pipelineTailOperatorOutputSupplierClass,
-                                                                                       firstOperatorDef.inputPortCount() )
+                                                    ? TuplesImplSupplierUtils.newInstance( pipelineTailOperatorOutputSupplierClass,
+                                                                                           firstOperatorDef.inputPortCount() )
                                                     : new CachedTuplesImplSupplier( firstOperatorDef.inputPortCount() );
         LOGGER.info( "Duplicating first operator {} of {} to {}", firstOperatorDef.id(), pipelineReplica.id(), newPipelineReplicaId );
         return firstOperator.duplicate( newPipelineReplicaId, firstOperatorQueue, drainerPool, outputSupplier );
@@ -307,7 +309,9 @@ public class PipelineTransformerImpl implements PipelineTransformer
         {
             for ( int portIndex = 0; portIndex < result.getPortCount(); portIndex++ )
             {
-                operatorTupleQueue.offer( portIndex, result.getTuples( portIndex ) );
+                final List<Tuple> tuples = result.getTuplesModifiable( portIndex );
+                final int offered = operatorTupleQueue.offer( portIndex, tuples );
+                checkState( offered == tuples.size() );
             }
         }
     }
@@ -524,7 +528,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                                                       ? new BlockingTupleQueueDrainerPool( config, operatorDef )
                                                       : new NonBlockingTupleQueueDrainerPool( config, operatorDef );
 
-            final Supplier<TuplesImpl> outputSupplier = ( i == newOperatorReplicas.length - 1 ) ? OutputSupplierUtils.newInstance(
+            final Supplier<TuplesImpl> outputSupplier = ( i == newOperatorReplicas.length - 1 ) ? TuplesImplSupplierUtils.newInstance(
                     pipelineTailOperatorOutputSupplierClass,
                     operatorDef.inputPortCount() ) : operator.getOutputSupplier();
 

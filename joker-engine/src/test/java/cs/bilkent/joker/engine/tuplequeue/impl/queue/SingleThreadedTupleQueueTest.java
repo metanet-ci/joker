@@ -1,6 +1,7 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.queue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Test;
@@ -22,19 +23,39 @@ public class SingleThreadedTupleQueueTest extends AbstractJokerTest
     @Test
     public void shouldOfferSingleTuple ()
     {
-        queue.offerTuple( new Tuple() );
+        final boolean success = queue.offerTuple( new Tuple() );
 
+        assertTrue( success );
         assertThat( queue.size(), equalTo( 1 ) );
     }
 
     @Test
-    public void shouldResizeQueue ()
+    public void shouldGrowQueue ()
     {
         queue.offerTuple( new Tuple() );
         queue.offerTuple( new Tuple() );
         queue.offerTuple( new Tuple() );
 
         assertThat( queue.size(), equalTo( 3 ) );
+    }
+
+    @Test
+    public void shouldOfferTupleFromIndex ()
+    {
+        final Tuple tuple = new Tuple();
+        queue.offerTuples( Arrays.asList( new Tuple(), tuple ), 1 );
+
+        final List<Tuple> tuples = queue.pollTuples( 1 );
+
+        assertThat( tuples, hasSize( 1 ) );
+        assertTrue( tuple == tuples.get( 0 ) );
+    }
+
+    @Test
+    public void shouldNotOfferTupleFromInvalidIndex ()
+    {
+        final int offered = queue.offerTuples( Arrays.asList( new Tuple(), new Tuple() ), 2 );
+        assertThat( offered, equalTo( 0 ) );
     }
 
     @Test
@@ -50,7 +71,7 @@ public class SingleThreadedTupleQueueTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldPollExactNumberOfTuplesAndLeaveExtrasInQueue ()
+    public void shouldPollOnlyExactNumberOfTuples ()
     {
         final Tuple tuple1 = new Tuple();
         final Tuple tuple2 = new Tuple();
@@ -68,7 +89,7 @@ public class SingleThreadedTupleQueueTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldNotPollExactNumberOfTuplesWhenSizeIsSmaller ()
+    public void shouldNotPollExactNumberOfTuplesWhenEnoughNumberOfTuplesNotPresentInQueue ()
     {
         queue.offerTuple( new Tuple() );
 
@@ -97,7 +118,7 @@ public class SingleThreadedTupleQueueTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldPollAllTuples2 ()
+    public void shouldDrainAllTuples ()
     {
         final Tuple tuple1 = new Tuple();
         final Tuple tuple2 = new Tuple();
@@ -143,7 +164,7 @@ public class SingleThreadedTupleQueueTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldPollTuplesWithLimit2 ()
+    public void shouldDrainTuplesWithLimit ()
     {
         final Tuple tuple1 = new Tuple();
         final Tuple tuple2 = new Tuple();
@@ -171,7 +192,7 @@ public class SingleThreadedTupleQueueTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldNotPollTuplesWithAtLeastWhenSizeIsSmaller ()
+    public void shouldNotPollTuplesWithAtLeastWhenEnoughNumberOfTuplesNotPresentInQueue ()
     {
         queue.offerTuple( new Tuple() );
 

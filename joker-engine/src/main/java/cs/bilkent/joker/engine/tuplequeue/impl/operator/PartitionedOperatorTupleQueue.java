@@ -106,10 +106,23 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
     }
 
     @Override
-    public void offer ( final int portIndex, final List<Tuple> tuples )
+    public int offer ( final int portIndex, final List<Tuple> tuples )
     {
-        for ( Tuple tuple : tuples )
+        return offer( portIndex, tuples, 0 );
+    }
+
+    @Override
+    public int offer ( final int portIndex, final List<Tuple> tuples, final int fromIndex )
+    {
+        if ( tuples == null )
         {
+            return 0;
+        }
+
+        final int j = tuples.size();
+        for ( int i = fromIndex; i < j; i++ )
+        {
+            final Tuple tuple = tuples.get( i );
             final PartitionKey partitionKey = partitionKeyExtractor.getPartitionKey( tuple );
             final int partitionId = getPartitionId( partitionKey.partitionHashCode(), partitionCount );
             final boolean newDrainableKey = tupleQueueContainers[ partitionId ].offer( portIndex, tuple, partitionKey );
@@ -118,33 +131,20 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
                 markDrainablePartition( partitionId, 1 );
             }
         }
+
+        return j - fromIndex;
     }
 
     @Override
-    public int tryOffer ( final int portIndex, final List<Tuple> tuples, final long timeout, final TimeUnit unit )
+    public int offer ( final int portIndex, final List<Tuple> tuples, final long timeout, final TimeUnit unit )
     {
-        if ( tuples == null )
-        {
-            return -1;
-        }
-
-        offer( portIndex, tuples );
-        return tuples.size();
+        return offer( portIndex, tuples, 0 );
     }
 
     @Override
-    public void forceOffer ( final int portIndex, final List<Tuple> tuples )
+    public int offer ( final int portIndex, final List<Tuple> tuples, final int fromIndex, final long timeout, final TimeUnit unit )
     {
-        for ( Tuple tuple : tuples )
-        {
-            final PartitionKey partitionKey = partitionKeyExtractor.getPartitionKey( tuple );
-            final int partitionId = getPartitionId( partitionKey.partitionHashCode(), partitionCount );
-            final boolean newDrainableKey = tupleQueueContainers[ partitionId ].forceOffer( portIndex, tuple, partitionKey );
-            if ( newDrainableKey )
-            {
-                markDrainablePartition( partitionId, 1 );
-            }
-        }
+        return offer( portIndex, tuples, fromIndex );
     }
 
     @Override
@@ -191,12 +191,6 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
         drainIndices[ anotherDrainablePartition ] = i;
         drainIndices[ partitionId ] = NON_DRAINABLE;
         nextDrainIndex = drainablePartitionCount == 0 ? NON_DRAINABLE : ( nextDrainIndex + 1 ) % drainablePartitionCount;
-    }
-
-    @Override
-    public void ensureCapacity ( final int portIndex, final int capacity )
-    {
-
     }
 
     @Override
@@ -248,24 +242,6 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
         }
 
         populateDrainIndices();
-    }
-
-    @Override
-    public void enableCapacityCheck ( final int portIndex )
-    {
-
-    }
-
-    @Override
-    public void disableCapacityCheck ( final int portIndex )
-    {
-
-    }
-
-    @Override
-    public boolean isCapacityCheckEnabled ( final int portIndex )
-    {
-        return false;
     }
 
     @Override

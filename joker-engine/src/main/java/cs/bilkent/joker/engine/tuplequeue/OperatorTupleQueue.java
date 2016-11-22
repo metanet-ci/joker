@@ -17,37 +17,59 @@ public interface OperatorTupleQueue
     int getInputPortCount ();
 
     /**
-     * Offers given tuples to the tuple queue of the given port index.
-     * Blocks until there is available capacity for all tuples and all of them are successfully offered.
+     * Attempts to offer given tuples to the tuple queue of given port index without blocking,
+     * and returns the number of tuples that are successfully offered.
      *
      * @param portIndex
      *         port index to offer the tuples
      * @param tuples
      *         tuples to be offered
+     *
+     * @return number of tuples that are successfully offered
      */
-    void offer ( int portIndex, List<Tuple> tuples );
+    int offer ( int portIndex, List<Tuple> tuples );
 
     /**
-     * Attempts to offer given tuples to the queue as many as possible
+     * Attempts to offer given tuples to the tuple queue of given port index without blocking,
+     * starting from the given index (inclusive), and returns the number of tuples that are successfully offered.
      *
      * @param portIndex
      *         port index to offer the tuples
      * @param tuples
      *         tuples to be offered
+     * @param fromIndex
+     *         starting index of the tuples to be offered (inclusive)
      *
-     * @return number of tuples successfully offered
+     * @return number of tuples that are successfully offered
      */
-    int tryOffer ( int portIndex, List<Tuple> tuples, long timeout, TimeUnit unit );
+    int offer ( int portIndex, List<Tuple> tuples, int fromIndex );
 
     /**
-     * Offers given tuples into the queue without checking the available queue capacity.
+     * Attempts to offer given tuples to the tuple queue of given port index. If there is no empty capacity,
+     * it blocks for the given timeout duration. It returns the number of tuples that are successfully offered.
      *
      * @param portIndex
      *         port index to offer the tuples
      * @param tuples
      *         tuples to be offered
+     *
+     * @return number of tuples that are successfully offered
      */
-    void forceOffer ( int portIndex, List<Tuple> tuples );
+    int offer ( int portIndex, List<Tuple> tuples, long timeout, TimeUnit unit );
+
+    /**
+     * Attempts to offer given tuples to the tuple queue of given port index, starting from the given index (inclusive).
+     * If there is no empty capacity, it blocks for the given timeout duration.
+     * It returns the number of tuples that are successfully offered.
+     *
+     * @param portIndex
+     *         port index to offer the tuples
+     * @param tuples
+     *         tuples to be offered
+     *
+     * @return number of tuples that are successfully offered
+     */
+    int offer ( int portIndex, List<Tuple> tuples, int fromIndex, long timeout, TimeUnit unit );
 
     /**
      * Removes tuples from the underlying input queues using the given {@link TupleQueueDrainer}
@@ -57,17 +79,9 @@ public interface OperatorTupleQueue
      */
     void drain ( TupleQueueDrainer drainer );
 
-    void ensureCapacity ( int portIndex, int capacity );
-
     void clear ();
 
     void setTupleCounts ( int[] tupleCounts, TupleAvailabilityByPort tupleAvailabilityByPort );
-
-    void enableCapacityCheck ( final int portIndex );
-
-    void disableCapacityCheck ( final int portIndex );
-
-    boolean isCapacityCheckEnabled ( final int portIndex );
 
     boolean isOverloaded ();
 

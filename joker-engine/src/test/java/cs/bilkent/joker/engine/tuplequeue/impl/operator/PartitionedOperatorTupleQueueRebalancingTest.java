@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -57,7 +57,7 @@ public class PartitionedOperatorTupleQueueRebalancingTest extends AbstractJokerT
     {
         for ( int partitionId = 0; partitionId < PARTITION_COUNT; partitionId++ )
         {
-            final BiFunction<Integer, Boolean, TupleQueue> constructor = ( i, b ) -> new SingleThreadedTupleQueue( 100 );
+            final Function<Integer, TupleQueue> constructor = ( portIndex ) -> new SingleThreadedTupleQueue( 100 );
             tupleQueueContainers[ partitionId ] = new TupleQueueContainer( OPERATOR_ID, INPUT_PORT_COUNT, partitionId, constructor );
         }
 

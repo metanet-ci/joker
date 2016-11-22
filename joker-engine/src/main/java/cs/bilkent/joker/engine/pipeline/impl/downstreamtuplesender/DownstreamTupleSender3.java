@@ -4,10 +4,11 @@ import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
+import cs.bilkent.joker.engine.pipeline.DownstreamTupleSenderFailureFlag;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 
-public class DownstreamTupleSender3 implements DownstreamTupleSender, Supplier<OperatorTupleQueue>
+public class DownstreamTupleSender3 extends AbstractDownstreamTupleSender implements DownstreamTupleSender, Supplier<OperatorTupleQueue>
 {
 
     private final int sourcePortIndex1;
@@ -24,13 +25,16 @@ public class DownstreamTupleSender3 implements DownstreamTupleSender, Supplier<O
 
     private final OperatorTupleQueue operatorTupleQueue;
 
-    public DownstreamTupleSender3 ( final int sourcePortIndex1,
+    public DownstreamTupleSender3 ( final DownstreamTupleSenderFailureFlag failureFlag,
+                                    final int sourcePortIndex1,
                                     final int destinationPortIndex1,
                                     final int sourcePortIndex2,
                                     final int destinationPortIndex2,
                                     final int sourcePortIndex3,
-                                    final int destinationPortIndex3, final OperatorTupleQueue operatorTupleQueue )
+                                    final int destinationPortIndex3,
+                                    final OperatorTupleQueue operatorTupleQueue )
     {
+        super( failureFlag );
         this.sourcePortIndex1 = sourcePortIndex1;
         this.destinationPortIndex1 = destinationPortIndex1;
         this.sourcePortIndex2 = sourcePortIndex2;
@@ -43,9 +47,9 @@ public class DownstreamTupleSender3 implements DownstreamTupleSender, Supplier<O
     @Override
     public Future<Void> send ( final TuplesImpl tuples )
     {
-        operatorTupleQueue.offer( destinationPortIndex1, tuples.getTuples( sourcePortIndex1 ) );
-        operatorTupleQueue.offer( destinationPortIndex2, tuples.getTuples( sourcePortIndex2 ) );
-        operatorTupleQueue.offer( destinationPortIndex3, tuples.getTuples( sourcePortIndex3 ) );
+        send( operatorTupleQueue, destinationPortIndex1, tuples.getTuplesModifiable( sourcePortIndex1 ) );
+        send( operatorTupleQueue, destinationPortIndex2, tuples.getTuplesModifiable( sourcePortIndex2 ) );
+        send( operatorTupleQueue, destinationPortIndex3, tuples.getTuplesModifiable( sourcePortIndex3 ) );
         return null;
     }
 

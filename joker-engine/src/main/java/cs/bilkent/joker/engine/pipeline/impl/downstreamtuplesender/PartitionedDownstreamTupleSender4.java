@@ -3,6 +3,7 @@ package cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender;
 import java.util.concurrent.Future;
 
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
+import cs.bilkent.joker.engine.pipeline.DownstreamTupleSenderFailureFlag;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 
@@ -25,7 +26,7 @@ public class PartitionedDownstreamTupleSender4 extends AbstractPartitionedDownst
 
     private final int destinationPortIndex4;
 
-    public PartitionedDownstreamTupleSender4 ( final int sourcePortIndex1,
+    public PartitionedDownstreamTupleSender4 ( final DownstreamTupleSenderFailureFlag failureFlag, final int sourcePortIndex1,
                                                final int destinationPortIndex1,
                                                final int sourcePortIndex2,
                                                final int destinationPortIndex2,
@@ -37,7 +38,7 @@ public class PartitionedDownstreamTupleSender4 extends AbstractPartitionedDownst
                                                final int[] partitionDistribution, final OperatorTupleQueue[] operatorTupleQueues,
                                                final PartitionKeyExtractor partitionKeyExtractor )
     {
-        super( partitionCount, partitionDistribution, operatorTupleQueues, partitionKeyExtractor );
+        super( failureFlag, partitionCount, partitionDistribution, operatorTupleQueues, partitionKeyExtractor );
         this.sourcePortIndex1 = sourcePortIndex1;
         this.destinationPortIndex1 = destinationPortIndex1;
         this.sourcePortIndex2 = sourcePortIndex2;

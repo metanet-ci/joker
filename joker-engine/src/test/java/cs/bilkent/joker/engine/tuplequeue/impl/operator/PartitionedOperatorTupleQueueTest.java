@@ -1,7 +1,7 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.operator;
 
 import java.util.List;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -35,7 +35,7 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
     @Before
     public void init ()
     {
-        final BiFunction<Integer, Boolean, TupleQueue> tupleQueueConstructor = ( portIndex, capacityCheckEnabled ) -> new SingleThreadedTupleQueue( 10 );
+        final Function<Integer, TupleQueue> tupleQueueConstructor = ( portIndex ) -> new SingleThreadedTupleQueue( 10 );
 
         final TupleQueueContainer container = new TupleQueueContainer( "op1", INPUT_PORT_COUNT, 0, tupleQueueConstructor );
         operatorTupleQueue = new PartitionedOperatorTupleQueue( "op1",

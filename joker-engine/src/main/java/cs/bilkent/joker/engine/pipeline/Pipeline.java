@@ -24,8 +24,6 @@ import cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRun
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
-import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
-import cs.bilkent.joker.engine.tuplequeue.impl.operator.DefaultOperatorTupleQueue;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import static java.lang.System.arraycopy;
@@ -533,7 +531,7 @@ public class Pipeline
         return failures;
     }
 
-    public List<Exception> stopPipelineReplicaRunners ( final boolean disableCapacityCheck, final long timeoutInMillis )
+    public List<Exception> stopPipelineReplicaRunners ( final long timeoutInMillis )
     {
         checkState( pipelineStatus == RUNNING || pipelineStatus == COMPLETING || pipelineStatus == COMPLETED,
                     "cannot stop pipeline %s replica runners since in %s status",
@@ -548,21 +546,6 @@ public class Pipeline
 
         for ( int replicaIndex = 0; replicaIndex < getReplicaCount(); replicaIndex++ )
         {
-            if ( disableCapacityCheck )
-            {
-                final PipelineReplica pipelineReplica = replicas[ replicaIndex ];
-                final OperatorTupleQueue pipelineTupleQueue = pipelineReplica.getPipelineTupleQueue();
-                if ( pipelineTupleQueue instanceof DefaultOperatorTupleQueue )
-                {
-                    final DefaultOperatorTupleQueue d = (DefaultOperatorTupleQueue) pipelineTupleQueue;
-                    for ( int portIndex = 0; portIndex < d.getInputPortCount(); portIndex++ )
-                    {
-                        LOGGER.warn( "Pipeline {} upstream tuple queue capacity check is disabled", pipelineReplica.id() );
-                        d.disableCapacityCheck( portIndex );
-                    }
-                }
-            }
-
             final PipelineReplicaRunner runner = runners[ replicaIndex ];
             runners[ replicaIndex ] = null;
             futures.add( runner.stop() );
@@ -576,7 +559,17 @@ public class Pipeline
 
         runnerStatus = PipelineReplicaRunnerStatus.COMPLETED;
 
-        LOGGER.info( "Replica runner threads of Pipeline {} are stopped...", id );
+        if ( failures.isEmpty() )
+        {
+            LOGGER.info( "Replica runner threads of Pipeline {} are stopped...", id );
+        }
+        else
+        {
+            for ( Exception failure : failures )
+            {
+                LOGGER.error( "Replica runner threads of Pipeline " + id + "  are stopped...", failure );
+            }
+        }
 
         return failures;
     }

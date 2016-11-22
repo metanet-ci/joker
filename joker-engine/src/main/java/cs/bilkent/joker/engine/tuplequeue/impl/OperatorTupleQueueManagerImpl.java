@@ -6,7 +6,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -96,7 +96,7 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
                     operatorId,
                     replicaIndex );
 
-        final BiFunction<Integer, Boolean, TupleQueue> tupleQueueConstructor = getTupleQueueConstructor( threadingPreference );
+        final Function<Integer, TupleQueue> tupleQueueConstructor = getTupleQueueConstructor( threadingPreference );
 
         final int inputPortCount = operatorDef.inputPortCount();
 
@@ -141,7 +141,7 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
                     regionId,
                     operatorId );
 
-        final BiFunction<Integer, Boolean, TupleQueue> tupleQueueConstructor = getTupleQueueConstructor( SINGLE_THREADED );
+        final Function<Integer, TupleQueue> tupleQueueConstructor = getTupleQueueConstructor( SINGLE_THREADED );
 
         final int inputPortCount = operatorDef.inputPortCount();
 
@@ -186,12 +186,11 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
         return operatorTupleQueues != null ? Arrays.copyOf( operatorTupleQueues, operatorTupleQueues.length ) : null;
     }
 
-    private BiFunction<Integer, Boolean, TupleQueue> getTupleQueueConstructor ( final ThreadingPreference threadingPreference )
+    private Function<Integer, TupleQueue> getTupleQueueConstructor ( final ThreadingPreference threadingPreference )
     {
         return threadingPreference == SINGLE_THREADED
-               ? ( portIndex, capacityCheckEnabled ) -> new SingleThreadedTupleQueue( tupleQueueManagerConfig.getTupleQueueInitialSize() )
-               : ( portIndex, capacityCheckEnabled ) -> new MultiThreadedTupleQueue( tupleQueueManagerConfig.getTupleQueueInitialSize(),
-                                                                                     capacityCheckEnabled );
+               ? ( portIndex ) -> new SingleThreadedTupleQueue( tupleQueueManagerConfig.getTupleQueueInitialSize() )
+               : ( portIndex ) -> new MultiThreadedTupleQueue( tupleQueueManagerConfig.getTupleQueueInitialSize() );
     }
 
     @Override
@@ -342,12 +341,12 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
 
         final ThreadingPreference threadingPreference = operatorTupleQueue.getThreadingPreference(), newThreadingPreference;
 
-        final BiFunction<Integer, Boolean, TupleQueue> tupleQueueConstructor;
+        final Function<Integer, TupleQueue> tupleQueueConstructor;
 
         if ( threadingPreference == MULTI_THREADED )
         {
             newThreadingPreference = SINGLE_THREADED;
-            tupleQueueConstructor = ( portIndex, capacityCheckEnabled ) ->
+            tupleQueueConstructor = ( portIndex ) ->
             {
                 final TupleQueue q = operatorTupleQueue.getTupleQueue( portIndex );
                 final MultiThreadedTupleQueue tupleQueue = (MultiThreadedTupleQueue) q;
@@ -357,7 +356,7 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
         else if ( threadingPreference == SINGLE_THREADED )
         {
             newThreadingPreference = MULTI_THREADED;
-            tupleQueueConstructor = ( portIndex, capacityCheckEnabled ) ->
+            tupleQueueConstructor = ( portIndex ) ->
             {
                 final TupleQueue q = operatorTupleQueue.getTupleQueue( portIndex );
                 final SingleThreadedTupleQueue tupleQueue = (SingleThreadedTupleQueue) q;
@@ -390,7 +389,7 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
     private TupleQueueContainer[] createTupleQueueContainers ( final String operatorId,
                                                                final int inputPortCount,
                                                                final int partitionCount,
-                                                               final BiFunction<Integer, Boolean, TupleQueue> tupleQueueConstructor )
+                                                               final Function<Integer, TupleQueue> tupleQueueConstructor )
     {
         final TupleQueueContainer[] containers = new TupleQueueContainer[ partitionCount ];
         for ( int i = 0; i < partitionCount; i++ )

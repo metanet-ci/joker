@@ -110,7 +110,7 @@ public class PipelineTest extends AbstractJokerTest
 
         pipeline.startPipelineReplicaRunners( new JokerConfig(), supervisor, new ThreadGroup( "test" ) );
 
-        pipeline.stopPipelineReplicaRunners( false, TimeUnit.SECONDS.toMillis( 30 ) );
+        pipeline.stopPipelineReplicaRunners( TimeUnit.SECONDS.toMillis( 30 ) );
     }
 
     @Test
@@ -150,7 +150,7 @@ public class PipelineTest extends AbstractJokerTest
 
         }
 
-        pipeline.stopPipelineReplicaRunners( false, TimeUnit.SECONDS.toMillis( 30 ) );
+        pipeline.stopPipelineReplicaRunners( TimeUnit.SECONDS.toMillis( 30 ) );
     }
 
     @Test( expected = IllegalStateException.class )
@@ -175,7 +175,7 @@ public class PipelineTest extends AbstractJokerTest
         pipeline.setUpstreamContext( upstreamContext );
         pipeline.init();
 
-        pipeline.stopPipelineReplicaRunners( false, TimeUnit.SECONDS.toMillis( 30 ) );
+        pipeline.stopPipelineReplicaRunners( TimeUnit.SECONDS.toMillis( 30 ) );
     }
 
     @Test
@@ -213,7 +213,7 @@ public class PipelineTest extends AbstractJokerTest
         }
         catch ( Exception e )
         {
-            pipeline.stopPipelineReplicaRunners( false, TimeUnit.SECONDS.toMillis( 30 ) );
+            pipeline.stopPipelineReplicaRunners( TimeUnit.SECONDS.toMillis( 30 ) );
         }
     }
 
@@ -295,7 +295,7 @@ public class PipelineTest extends AbstractJokerTest
 
         assertThat( pipeline.getPipelineStatus(), equalTo( COMPLETED ) );
 
-        pipeline.stopPipelineReplicaRunners( false, TimeUnit.SECONDS.toMillis( 30 ) );
+        pipeline.stopPipelineReplicaRunners( TimeUnit.SECONDS.toMillis( 30 ) );
     }
 
 }

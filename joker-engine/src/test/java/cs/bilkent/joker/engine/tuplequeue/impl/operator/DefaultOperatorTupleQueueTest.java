@@ -1,7 +1,7 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.operator;
 
 import java.util.List;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import org.junit.Test;
 
@@ -30,58 +30,58 @@ public class DefaultOperatorTupleQueueTest extends AbstractJokerTest
     private static final int TUPLE_QUEUE_SIZE = 2;
 
     @Test
-    public void testAddSinglePortTuplesToUnboundedQueue ()
+    public void shouldOfferSinglePortTuplesToUnboundedQueue ()
     {
-        testAddTuples( getSingleThreadedTupleQueueConstructor(), 1, SINGLE_THREADED, 2 );
+        testOfferTuples( getSingleThreadedTupleQueueConstructor(), 1, SINGLE_THREADED, 2 );
     }
 
     @Test
-    public void testAddSinglePortTuplesToBoundedQueue ()
+    public void shouldOfferSinglePortTuplesToBoundedQueue ()
     {
-        testAddTuples( getMultiThreadedTupleQueueConstructor( 2 ), 1, MULTI_THREADED, 2 );
+        testOfferTuples( getMultiThreadedTupleQueueConstructor( 2 ), 1, MULTI_THREADED, 2 );
     }
 
     @Test
-    public void testAddMultiPortTuplesToUnboundedQueue ()
+    public void shouldOfferMultiPortTuplesToUnboundedQueue ()
     {
-        testAddTuples( getSingleThreadedTupleQueueConstructor(), 2, SINGLE_THREADED, 2 );
+        testOfferTuples( getSingleThreadedTupleQueueConstructor(), 2, SINGLE_THREADED, 2 );
     }
 
     @Test
-    public void testAddMultiPortTuplesToBoundedQueue ()
+    public void shouldOfferMultiPortTuplesToBoundedQueue ()
     {
-        testAddTuples( getMultiThreadedTupleQueueConstructor( 2 ), 2, MULTI_THREADED, 2 );
+        testOfferTuples( getMultiThreadedTupleQueueConstructor( 2 ), 2, MULTI_THREADED, 2 );
     }
 
     @Test
-    public void testTryAddSinglePortTuplesToUnboundedQueue ()
+    public void shouldOfferSinglePortTuplesToUnboundedQueueWithTimeout ()
     {
-        testTryAddTuples( getSingleThreadedTupleQueueConstructor(), 1, SINGLE_THREADED, 2 );
+        testOfferWithTimeout( getSingleThreadedTupleQueueConstructor(), 1, SINGLE_THREADED, 2 );
     }
 
     @Test
-    public void testTryAddSinglePortTuplesToBoundedQueue ()
+    public void shouldOfferSinglePortTuplesToBoundedQueueWithTimeout ()
     {
-        testTryAddTuples( getMultiThreadedTupleQueueConstructor( 2 ), 1, MULTI_THREADED, 2 );
+        testOfferWithTimeout( getMultiThreadedTupleQueueConstructor( 2 ), 1, MULTI_THREADED, 2 );
     }
 
     @Test
-    public void testTryAddMultiPortTuplesToUnboundedQueue ()
+    public void shouldOfferMultiPortTuplesToUnboundedQueueWithTimeout ()
     {
-        testTryAddTuples( getSingleThreadedTupleQueueConstructor(), 2, SINGLE_THREADED, 2 );
+        testOfferWithTimeout( getSingleThreadedTupleQueueConstructor(), 2, SINGLE_THREADED, 2 );
     }
 
     @Test
-    public void testTryAddMultiPortTuplesToBoundedQueue ()
+    public void shouldOfferMultiPortTuplesToBoundedQueueWithTimeout ()
     {
-        testTryAddTuples( getMultiThreadedTupleQueueConstructor( 2 ), 2, MULTI_THREADED, 2 );
+        testOfferWithTimeout( getMultiThreadedTupleQueueConstructor( 2 ), 2, MULTI_THREADED, 2 );
     }
 
 
-    private void testAddTuples ( final BiFunction<Integer, Boolean, TupleQueue> tupleQueueConstructor,
-                                 final int inputPortCount,
-                                 final ThreadingPreference threadingPreference,
-                                 final int tupleCount )
+    private void testOfferTuples ( final Function<Integer, TupleQueue> tupleQueueConstructor,
+                                   final int inputPortCount,
+                                   final ThreadingPreference threadingPreference,
+                                   final int tupleCount )
     {
         final OperatorTupleQueue context = new DefaultOperatorTupleQueue( "op1",
                                                                           inputPortCount,
@@ -89,7 +89,7 @@ public class DefaultOperatorTupleQueueTest extends AbstractJokerTest
                                                                           tupleQueueConstructor,
                                                                           Integer.MAX_VALUE );
 
-        final TuplesImpl input = addTuples( inputPortCount, tupleCount );
+        final TuplesImpl input = createTuples( inputPortCount, tupleCount );
 
         for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
         {
@@ -102,10 +102,10 @@ public class DefaultOperatorTupleQueueTest extends AbstractJokerTest
         assertTuples( inputPortCount, tupleCount, drainer );
     }
 
-    private void testTryAddTuples ( final BiFunction<Integer, Boolean, TupleQueue> tupleQueueConstructor,
-                                    final int inputPortCount,
-                                    final ThreadingPreference threadingPreference,
-                                    final int tupleCount )
+    private void testOfferWithTimeout ( final Function<Integer, TupleQueue> tupleQueueConstructor,
+                                        final int inputPortCount,
+                                        final ThreadingPreference threadingPreference,
+                                        final int tupleCount )
     {
         final OperatorTupleQueue context = new DefaultOperatorTupleQueue( "op1",
                                                                           inputPortCount,
@@ -113,12 +113,12 @@ public class DefaultOperatorTupleQueueTest extends AbstractJokerTest
                                                                           tupleQueueConstructor,
                                                                           Integer.MAX_VALUE );
 
-        final TuplesImpl input = addTuples( inputPortCount, tupleCount );
+        final TuplesImpl input = createTuples( inputPortCount, tupleCount );
 
         for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
         {
             final List<Tuple> tuples = input.getTuples( portIndex );
-            final int count = context.tryOffer( portIndex, tuples, TIMEOUT_IN_MILLIS, MILLISECONDS );
+            final int count = context.offer( portIndex, tuples, TIMEOUT_IN_MILLIS, MILLISECONDS );
             assertEquals( count, tuples.size() );
         }
 
@@ -128,7 +128,7 @@ public class DefaultOperatorTupleQueueTest extends AbstractJokerTest
         assertTuples( inputPortCount, tupleCount, drainer );
     }
 
-    private TuplesImpl addTuples ( final int inputPortCount, final int tupleCount )
+    private TuplesImpl createTuples ( final int inputPortCount, final int tupleCount )
     {
         final TuplesImpl input = new TuplesImpl( inputPortCount );
         for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
@@ -167,14 +167,14 @@ public class DefaultOperatorTupleQueueTest extends AbstractJokerTest
         }
     }
 
-    private BiFunction<Integer, Boolean, TupleQueue> getSingleThreadedTupleQueueConstructor ()
+    private Function<Integer, TupleQueue> getSingleThreadedTupleQueueConstructor ()
     {
-        return ( portIndex, capacityCheckEnabled ) -> new SingleThreadedTupleQueue( TUPLE_QUEUE_SIZE );
+        return ( portIndex ) -> new SingleThreadedTupleQueue( TUPLE_QUEUE_SIZE );
     }
 
-    private BiFunction<Integer, Boolean, TupleQueue> getMultiThreadedTupleQueueConstructor ( final int queueSize )
+    private Function<Integer, TupleQueue> getMultiThreadedTupleQueueConstructor ( final int queueSize )
     {
-        return ( portIndex, capacityCheckEnabled ) -> new MultiThreadedTupleQueue( queueSize, capacityCheckEnabled );
+        return ( portIndex ) -> new MultiThreadedTupleQueue( queueSize );
     }
 
 }

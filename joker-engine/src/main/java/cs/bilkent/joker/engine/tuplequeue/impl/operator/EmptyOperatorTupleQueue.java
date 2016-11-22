@@ -40,20 +40,9 @@ public class EmptyOperatorTupleQueue implements OperatorTupleQueue
     }
 
     @Override
-    public void offer ( final int portIndex, final List<Tuple> tuples )
+    public int offer ( final int portIndex, final List<Tuple> tuples )
     {
-        if ( tuples.isEmpty() )
-        {
-            return;
-        }
-
-        throw new UnsupportedOperationException( operatorId );
-    }
-
-    @Override
-    public int tryOffer ( final int portIndex, final List<Tuple> tuples, final long timeout, final TimeUnit unit )
-    {
-        if ( tuples.isEmpty() )
+        if ( tuples == null || tuples.isEmpty() )
         {
             return 0;
         }
@@ -62,11 +51,33 @@ public class EmptyOperatorTupleQueue implements OperatorTupleQueue
     }
 
     @Override
-    public void forceOffer ( final int portIndex, final List<Tuple> tuples )
+    public int offer ( final int portIndex, final List<Tuple> tuples, final int fromIndex )
     {
-        if ( tuples.isEmpty() )
+        if ( tuples == null || tuples.isEmpty() || fromIndex == ( tuples.size() - 1 ) )
         {
-            return;
+            return 0;
+        }
+
+        throw new UnsupportedOperationException( operatorId );
+    }
+
+    @Override
+    public int offer ( final int portIndex, final List<Tuple> tuples, final long timeout, final TimeUnit unit )
+    {
+        if ( tuples == null || tuples.isEmpty() )
+        {
+            return 0;
+        }
+
+        throw new UnsupportedOperationException( operatorId );
+    }
+
+    @Override
+    public int offer ( final int portIndex, final List<Tuple> tuples, final int fromIndex, final long timeout, final TimeUnit unit )
+    {
+        if ( tuples == null || tuples.isEmpty() || fromIndex == ( tuples.size() - 1 ) )
+        {
+            return 0;
         }
 
         throw new UnsupportedOperationException( operatorId );
@@ -79,12 +90,6 @@ public class EmptyOperatorTupleQueue implements OperatorTupleQueue
     }
 
     @Override
-    public void ensureCapacity ( final int portIndex, final int capacity )
-    {
-
-    }
-
-    @Override
     public void clear ()
     {
 
@@ -94,24 +99,6 @@ public class EmptyOperatorTupleQueue implements OperatorTupleQueue
     public void setTupleCounts ( final int[] tupleCounts, final TupleAvailabilityByPort tupleAvailabilityByPort )
     {
 
-    }
-
-    @Override
-    public void enableCapacityCheck ( final int portIndex )
-    {
-
-    }
-
-    @Override
-    public void disableCapacityCheck ( final int portIndex )
-    {
-
-    }
-
-    @Override
-    public boolean isCapacityCheckEnabled ( final int portIndex )
-    {
-        return false;
     }
 
     @Override

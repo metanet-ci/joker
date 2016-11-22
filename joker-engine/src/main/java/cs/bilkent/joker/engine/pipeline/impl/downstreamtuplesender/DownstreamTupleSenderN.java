@@ -5,10 +5,11 @@ import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
+import cs.bilkent.joker.engine.pipeline.DownstreamTupleSenderFailureFlag;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 
-public class DownstreamTupleSenderN implements DownstreamTupleSender, Supplier<OperatorTupleQueue>
+public class DownstreamTupleSenderN extends AbstractDownstreamTupleSender implements DownstreamTupleSender, Supplier<OperatorTupleQueue>
 {
 
     private final int[] ports;
@@ -17,12 +18,15 @@ public class DownstreamTupleSenderN implements DownstreamTupleSender, Supplier<O
 
     private final OperatorTupleQueue operatorTupleQueue;
 
-    public DownstreamTupleSenderN ( final int[] sourcePorts, final int[] destinationPorts, final OperatorTupleQueue operatorTupleQueue )
+    public DownstreamTupleSenderN ( final DownstreamTupleSenderFailureFlag failureFlag,
+                                    final int[] sourcePorts,
+                                    final int[] destinationPorts,
+                                    final OperatorTupleQueue operatorTupleQueue )
     {
+        super( failureFlag );
         checkArgument( sourcePorts.length == destinationPorts.length,
                        "source ports size = %s and destination ports = %s ! operatorId=%s",
-                       sourcePorts.length,
-                       destinationPorts.length, operatorTupleQueue.getOperatorId() );
+                       sourcePorts.length, destinationPorts.length, operatorTupleQueue.getOperatorId() );
         final int portCount = sourcePorts.length;
         this.ports = new int[ portCount * 2 ];
         this.limit = this.ports.length - 1;
@@ -39,7 +43,7 @@ public class DownstreamTupleSenderN implements DownstreamTupleSender, Supplier<O
     {
         for ( int i = 0; i < limit; i += 2 )
         {
-            operatorTupleQueue.offer( ports[ i + 1 ], tuples.getTuples( ports[ i ] ) );
+            send( operatorTupleQueue, ports[ i + 1 ], tuples.getTuplesModifiable( ports[ i ] ) );
         }
 
         return null;

@@ -18,15 +18,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
 import cs.bilkent.joker.operator.Tuple;
 import static java.lang.Math.max;
-import static java.lang.System.nanoTime;
 
 @ThreadSafe
 public class MultiThreadedTupleQueue implements TupleQueue
 {
 
     private static final Logger LOGGER = LoggerFactory.getLogger( MultiThreadedTupleQueue.class );
-
-    private static final int NO_CAPACITY_CHECK = Integer.MAX_VALUE;
 
 
     private final ReentrantLock lock = new ReentrantLock();
@@ -38,11 +35,11 @@ public class MultiThreadedTupleQueue implements TupleQueue
     @GuardedBy( "monitor" )
     private final ArrayDeque<Tuple> queue;
 
-    private int effectiveCapacity, capacity;
+    private final int capacity;
 
     public MultiThreadedTupleQueue ( final int initialCapacity )
     {
-        this( initialCapacity, true );
+        this( initialCapacity, new ArrayDeque<>( initialCapacity ) );
     }
 
     public MultiThreadedTupleQueue ( final int initialCapacity, ArrayDeque<Tuple> queue )
@@ -50,129 +47,35 @@ public class MultiThreadedTupleQueue implements TupleQueue
         checkArgument( initialCapacity > 0 );
         this.queue = queue;
         this.capacity = initialCapacity;
-        this.effectiveCapacity = initialCapacity;
-    }
-
-    public MultiThreadedTupleQueue ( final int initialCapacity, final boolean capacityCheckEnabled )
-    {
-        checkArgument( initialCapacity > 0 );
-        this.queue = new ArrayDeque<>( initialCapacity );
-        this.capacity = initialCapacity;
-        this.effectiveCapacity = capacityCheckEnabled ? initialCapacity : NO_CAPACITY_CHECK;
     }
 
     @Override
-    public void ensureCapacity ( final int newCapacity )
+    public boolean offerTuple ( final Tuple tuple )
     {
-        checkArgument( newCapacity > 0 && newCapacity != NO_CAPACITY_CHECK );
-
-        lock.lock();
-        try
-        {
-            if ( newCapacity > capacity )
-            {
-                capacity = newCapacity;
-                if ( isCapacityCheckEnabled() )
-                {
-                    effectiveCapacity = newCapacity;
-                }
-                fullCondition.signalAll();
-            }
-        }
-        finally
-        {
-            lock.unlock();
-        }
+        return doOfferTuple( tuple, 0 );
     }
 
     @Override
-    public void enableCapacityCheck ()
-    {
-        lock.lock();
-        try
-        {
-            effectiveCapacity = capacity;
-        }
-        finally
-        {
-            lock.unlock();
-        }
-    }
-
-    @Override
-    public void disableCapacityCheck ()
-    {
-        lock.lock();
-        try
-        {
-            effectiveCapacity = NO_CAPACITY_CHECK;
-            fullCondition.signalAll();
-        }
-        finally
-        {
-            lock.unlock();
-        }
-    }
-
-    @Override
-    public boolean isCapacityCheckEnabled ()
-    {
-        lock.lock();
-        try
-        {
-            return effectiveCapacity != NO_CAPACITY_CHECK;
-        }
-        finally
-        {
-            lock.unlock();
-        }
-    }
-
-    @Override
-    public void offerTuple ( final Tuple tuple )
-    {
-        doOfferTuple( tuple, Long.MAX_VALUE );
-    }
-
-    @Override
-    public boolean tryOfferTuple ( final Tuple tuple, final long timeout, final TimeUnit unit )
+    public boolean offerTuple ( final Tuple tuple, final long timeout, final TimeUnit unit )
     {
         return doOfferTuple( tuple, unit.toNanos( timeout ) );
     }
 
-    @Override
-    public void forceOfferTuple ( final Tuple tuple )
-    {
-        lock.lock();
-        try
-        {
-            queue.add( tuple );
-            emptyCondition.signal();
-        }
-        finally
-        {
-            lock.unlock();
-        }
-    }
-
-    private boolean doOfferTuple ( final Tuple tuple, final long timeoutInNanos )
+    private boolean doOfferTuple ( final Tuple tuple, long timeoutInNanos )
     {
         checkArgument( tuple != null, "tuple can't be null" );
-
-        final long startNanos = nanoTime();
 
         lock.lock();
         try
         {
             while ( availableCapacity() <= 0 )
             {
-                final long remainingNanos = timeoutInNanos - ( nanoTime() - startNanos );
-                if ( remainingNanos <= 0 )
+                if ( timeoutInNanos <= 0 )
                 {
                     return false;
                 }
 
-                awaitInNanos( fullCondition, remainingNanos );
+                timeoutInNanos = awaitNanos( fullCondition, timeoutInNanos );
             }
 
             queue.add( tuple );
@@ -187,69 +90,56 @@ public class MultiThreadedTupleQueue implements TupleQueue
     }
 
     @Override
-    public void offerTuples ( final List<Tuple> tuples )
+    public int offerTuples ( final List<Tuple> tuples )
     {
-        doOfferTuples( tuples, Long.MAX_VALUE );
+        return doOfferTuples( tuples, 0, 0 );
     }
 
     @Override
-    public int tryOfferTuples ( final List<Tuple> tuples, final long timeout, final TimeUnit unit )
+    public int offerTuples ( final List<Tuple> tuples, final int fromIndex )
     {
-        return doOfferTuples( tuples, unit.toNanos( timeout ) );
+        return doOfferTuples( tuples, fromIndex, 0 );
     }
 
     @Override
-    public void forceOfferTuples ( final List<Tuple> tuples )
+    public int offerTuples ( final List<Tuple> tuples, final long timeout, final TimeUnit unit )
     {
-        lock.lock();
-        try
-        {
-            queue.addAll( tuples );
-            emptyCondition.signal();
-        }
-        finally
-        {
-            lock.unlock();
-        }
+        return doOfferTuples( tuples, 0, unit.toNanos( timeout ) );
     }
 
-    private int doOfferTuples ( final List<Tuple> tuples, final long timeoutInNanos )
+    @Override
+    public int offerTuples ( final List<Tuple> tuples, final int fromIndex, final long timeout, final TimeUnit unit )
+    {
+        return doOfferTuples( tuples, fromIndex, unit.toNanos( timeout ) );
+    }
+
+    private int doOfferTuples ( final List<Tuple> tuples, final int fromIndex, long timeoutInNanos )
     {
         checkArgument( tuples != null, "tuples can't be null" );
 
-        final long startNanos = nanoTime();
-
         lock.lock();
         try
         {
-            int i = 0, j = tuples.size();
+            int i = fromIndex, j = tuples.size();
             while ( true )
             {
                 int availableCapacity;
                 while ( ( availableCapacity = availableCapacity() ) <= 0 )
                 {
-                    final long remainingNanos = timeoutInNanos - ( nanoTime() - startNanos );
-                    if ( remainingNanos <= 0 )
+                    if ( timeoutInNanos <= 0 )
                     {
-                        return i;
+                        return i - fromIndex;
                     }
 
-                    awaitInNanos( fullCondition, remainingNanos );
+                    timeoutInNanos = awaitNanos( fullCondition, timeoutInNanos );
                 }
 
                 int k = i;
-                if ( availableCapacity == NO_CAPACITY_CHECK )
+                i += availableCapacity;
+
+                if ( i > j )
                 {
                     i = j;
-                }
-                else
-                {
-                    i += availableCapacity;
-
-                    if ( i > j )
-                    {
-                        i = j;
-                    }
                 }
 
                 while ( k < i )
@@ -261,7 +151,7 @@ public class MultiThreadedTupleQueue implements TupleQueue
 
                 if ( i == j )
                 {
-                    return i;
+                    return i - fromIndex;
                 }
             }
         }
@@ -274,7 +164,7 @@ public class MultiThreadedTupleQueue implements TupleQueue
     @Override
     public List<Tuple> pollTuples ( final int count )
     {
-        return doPollTuples( count, Long.MAX_VALUE, null );
+        return doPollTuples( count, 0, null );
     }
 
     @Override
@@ -286,7 +176,7 @@ public class MultiThreadedTupleQueue implements TupleQueue
     @Override
     public void pollTuples ( final int count, final List<Tuple> tuples )
     {
-        doPollTuples( count, Long.MAX_VALUE, tuples );
+        doPollTuples( count, 0, tuples );
     }
 
     @Override
@@ -295,25 +185,21 @@ public class MultiThreadedTupleQueue implements TupleQueue
         doPollTuples( count, unit.toNanos( timeout ), tuples );
     }
 
-    private List<Tuple> doPollTuples ( final int count, final long timeoutInNanos, List<Tuple> tuples )
+    private List<Tuple> doPollTuples ( final int count, long timeoutInNanos, List<Tuple> tuples )
     {
         checkArgument( count >= 0 );
-        final long startNanos = nanoTime();
 
         lock.lock();
         try
         {
-            // checkArgument( effectiveCapacity >= count );
-
             while ( queue.size() < count )
             {
-                final long remainingNanos = timeoutInNanos - ( nanoTime() - startNanos );
-                if ( remainingNanos <= 0 )
+                if ( timeoutInNanos <= 0 )
                 {
                     return tuples != null ? tuples : Collections.emptyList();
                 }
 
-                awaitInNanos( emptyCondition, remainingNanos );
+                timeoutInNanos = awaitNanos( emptyCondition, timeoutInNanos );
             }
 
             if ( tuples == null )
@@ -339,7 +225,7 @@ public class MultiThreadedTupleQueue implements TupleQueue
     @Override
     public List<Tuple> pollTuplesAtLeast ( final int count )
     {
-        return doPollTuplesAtLeast( count, Integer.MAX_VALUE, Long.MAX_VALUE, null );
+        return doPollTuplesAtLeast( count, Integer.MAX_VALUE, 0, null );
     }
 
     @Override
@@ -351,7 +237,7 @@ public class MultiThreadedTupleQueue implements TupleQueue
     @Override
     public List<Tuple> pollTuplesAtLeast ( final int count, final int limit )
     {
-        return doPollTuplesAtLeast( count, limit, Long.MAX_VALUE, null );
+        return doPollTuplesAtLeast( count, limit, 0, null );
     }
 
     @Override
@@ -364,7 +250,7 @@ public class MultiThreadedTupleQueue implements TupleQueue
     @Override
     public void pollTuplesAtLeast ( final int count, final List<Tuple> tuples )
     {
-        doPollTuplesAtLeast( count, Integer.MAX_VALUE, Long.MAX_VALUE, tuples );
+        doPollTuplesAtLeast( count, Integer.MAX_VALUE, 0, tuples );
     }
 
     @Override
@@ -377,7 +263,7 @@ public class MultiThreadedTupleQueue implements TupleQueue
     public void pollTuplesAtLeast ( final int count, final int limit, final List<Tuple> tuples )
     {
         checkArgument( limit >= count );
-        doPollTuplesAtLeast( count, limit, Long.MAX_VALUE, tuples );
+        doPollTuplesAtLeast( count, limit, 0, tuples );
     }
 
     @Override
@@ -386,11 +272,10 @@ public class MultiThreadedTupleQueue implements TupleQueue
         doPollTuplesAtLeast( count, limit, unit.toNanos( timeout ), tuples );
     }
 
-    private List<Tuple> doPollTuplesAtLeast ( final int count, int limit, final long timeoutInNanos, List<Tuple> tuples )
+    private List<Tuple> doPollTuplesAtLeast ( final int count, int limit, long timeoutInNanos, List<Tuple> tuples )
     {
         checkArgument( count >= 0 );
 
-        final long startNanos = nanoTime();
         lock.lock();
         try
         {
@@ -398,13 +283,12 @@ public class MultiThreadedTupleQueue implements TupleQueue
 
             while ( queue.size() < count )
             {
-                final long remainingNanos = timeoutInNanos - ( nanoTime() - startNanos );
-                if ( remainingNanos <= 0 )
+                if ( timeoutInNanos <= 0 )
                 {
                     return tuples != null ? tuples : Collections.emptyList();
                 }
 
-                awaitInNanos( emptyCondition, remainingNanos );
+                timeoutInNanos = awaitNanos( emptyCondition, timeoutInNanos );
             }
 
             if ( tuples == null )
@@ -430,33 +314,24 @@ public class MultiThreadedTupleQueue implements TupleQueue
     }
 
     @Override
-    public boolean awaitMinimumSize ( final int expectedSize )
-    {
-        return doAwaitMinimumSize( expectedSize, Long.MAX_VALUE );
-    }
-
-    @Override
     public boolean awaitMinimumSize ( final int expectedSize, final long timeout, final TimeUnit unit )
     {
         return doAwaitMinimumSize( expectedSize, unit.toNanos( timeout ) );
     }
 
-    private boolean doAwaitMinimumSize ( final int expectedSize, final long timeoutInNanos )
+    private boolean doAwaitMinimumSize ( final int expectedSize, long timeoutInNanos )
     {
-        final long startNanos = nanoTime();
-
         lock.lock();
         try
         {
             while ( queue.size() < expectedSize )
             {
-                final long remainingNanos = timeoutInNanos - ( nanoTime() - startNanos );
-                if ( remainingNanos <= 0 )
+                if ( timeoutInNanos <= 0 )
                 {
                     return false;
                 }
 
-                awaitInNanos( emptyCondition, remainingNanos );
+                timeoutInNanos = awaitNanos( emptyCondition, timeoutInNanos );
             }
         }
         finally
@@ -502,22 +377,23 @@ public class MultiThreadedTupleQueue implements TupleQueue
         return new SingleThreadedTupleQueue( this.queue );
     }
 
-    private void awaitInNanos ( final Condition condition, final long durationInNanos )
+    private long awaitNanos ( final Condition condition, final long durationInNanos )
     {
         try
         {
-            condition.awaitNanos( durationInNanos );
+            return condition.awaitNanos( durationInNanos );
         }
         catch ( InterruptedException e )
         {
             LOGGER.warn( "Thread {} interrupted while waiting in queue", Thread.currentThread().getName() );
             Thread.currentThread().interrupt();
+            return 0;
         }
     }
 
     private int availableCapacity ()
     {
-        return max( ( effectiveCapacity - queue.size() ), 0 );
+        return max( ( capacity - queue.size() ), 0 );
     }
 
 }

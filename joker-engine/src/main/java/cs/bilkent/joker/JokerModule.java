@@ -14,6 +14,7 @@ import cs.bilkent.joker.engine.partition.PartitionKeyExtractorFactory;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
 import cs.bilkent.joker.engine.partition.impl.PartitionServiceImpl;
+import cs.bilkent.joker.engine.pipeline.DownstreamTupleSenderFailureFlag;
 import cs.bilkent.joker.engine.pipeline.PipelineManager;
 import cs.bilkent.joker.engine.pipeline.impl.PipelineManagerImpl;
 import cs.bilkent.joker.engine.region.FlowDeploymentDefFormer;
@@ -92,6 +93,7 @@ public class JokerModule extends AbstractModule
         bind( JokerConfig.class ).toInstance( config );
         bind( ThreadGroup.class ).annotatedWith( named( JOKER_THREAD_GROUP_NAME ) ).toInstance( new ThreadGroup( "Joker" ) );
         bind( IdGenerator.class ).toInstance( new IdGenerator() );
+        bind( DownstreamTupleSenderFailureFlag.class ).toInstance( new DownstreamTupleSenderFailureFlag() );
         bind( Object.class ).annotatedWith( named( JOKER_ID ) ).toInstance( jokerId );
     }
 

@@ -49,6 +49,7 @@ import cs.bilkent.joker.engine.tuplequeue.impl.operator.EmptyOperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.impl.operator.PartitionedOperatorTupleQueue;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.operator.OperatorDef;
+import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.spec.OperatorType;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
@@ -584,7 +585,9 @@ public class RegionManagerImpl implements RegionManager
                     LOGGER.info( "Draining pipeline tuple queue of {}", pipelineReplica.id() );
                     for ( int portIndex = 0; portIndex < result.getPortCount(); portIndex++ )
                     {
-                        operatorTupleQueue.offer( portIndex, result.getTuples( portIndex ) );
+                        final List<Tuple> tuples = result.getTuplesModifiable( portIndex );
+                        final int offered = operatorTupleQueue.offer( portIndex, tuples );
+                        checkState( offered == tuples.size() );
                     }
                 }
             }
@@ -857,7 +860,8 @@ public class RegionManagerImpl implements RegionManager
 
     private Supplier<TuplesImpl> createOutputSupplier ( final OperatorDef operatorDef, final boolean isLastOperator )
     {
-        return isLastOperator ? OutputSupplierUtils.newInstance( pipelineTailOperatorOutputSupplierClass, operatorDef.outputPortCount() )
+        return isLastOperator ? TuplesImplSupplierUtils.newInstance( pipelineTailOperatorOutputSupplierClass,
+                                                                     operatorDef.outputPortCount() )
                               : new CachedTuplesImplSupplier( operatorDef.outputPortCount() );
 
     }

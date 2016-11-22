@@ -5,6 +5,10 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
+import cs.bilkent.joker.engine.exception.JokerException;
+import static cs.bilkent.joker.engine.pipeline.DownstreamTupleSender.OFFER_TIMEOUT;
+import static cs.bilkent.joker.engine.pipeline.DownstreamTupleSender.OFFER_TIME_UNIT;
+import cs.bilkent.joker.engine.pipeline.DownstreamTupleSenderFailureFlag;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.DownstreamTupleSender1;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.DownstreamTupleSender2;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.DownstreamTupleSender3;
@@ -16,151 +20,236 @@ import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Collections.singletonList;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @RunWith( MockitoJUnitRunner.class )
 public class DownstreamTupleSendersTest extends AbstractJokerTest
 {
+
+    private final DownstreamTupleSenderFailureFlag failureFlag = new DownstreamTupleSenderFailureFlag();
 
     private final TuplesImpl tuples = new TuplesImpl( 10 );
 
     @Mock
     private OperatorTupleQueue operatorTupleQueue;
 
+    private int sourcePortIndex1 = 1, sourcePortIndex2 = 2, sourcePortIndex3 = 3, sourcePortIndex4 = 4;
+
+    private int destinationPortIndex1 = 4, destinationPortIndex2 = 3, destinationPortIndex3 = 2, destinationPortIndex4 = 1;
+
     @Test
     public void testDownstreamTupleSender1 ()
     {
-        final DownstreamTupleSender1 tupleSender = new DownstreamTupleSender1( 1, 2, operatorTupleQueue );
-        final Tuple tuple = new Tuple();
-        tuple.set( "key", "val" );
-        tuples.add( 1, tuple );
+        sendViaDownstreamTupleSender1( 1 );
+    }
+
+    @Test( expected = JokerException.class )
+    public void testDownstreamTupleSender1FailureWhenFailureFlagIsSet ()
+    {
+        failureFlag.setFailed();
+
+        sendViaDownstreamTupleSender1( 0 );
+    }
+
+    private void sendViaDownstreamTupleSender1 ( final int offerResult )
+    {
+
+        final DownstreamTupleSender1 tupleSender = new DownstreamTupleSender1( failureFlag,
+                                                                               sourcePortIndex1,
+                                                                               destinationPortIndex1,
+                                                                               operatorTupleQueue );
+        addTuple( "key", "val", sourcePortIndex1 );
+
+        setMock( sourcePortIndex1, destinationPortIndex1, offerResult );
 
         tupleSender.send( tuples );
 
-        final Tuple expected = new Tuple();
-        expected.set( "key", "val" );
-        verify( operatorTupleQueue ).offer( 2, singletonList( expected ) );
+        verifyMock( "key", "val", destinationPortIndex1 );
     }
 
     @Test
     public void testDownstreamTupleSender2 ()
     {
-        final DownstreamTupleSender2 tupleSender = new DownstreamTupleSender2( 1, 2, 3, 4, operatorTupleQueue );
-        final Tuple tuple1 = new Tuple();
-        tuple1.set( "key1", "val" );
-        tuples.add( 1, tuple1 );
-        final Tuple tuple2 = new Tuple();
-        tuple2.set( "key2", "val" );
-        tuples.add( 3, tuple2 );
+        sendViaDownstreamTupleSender2( 1 );
+    }
+
+    @Test( expected = JokerException.class )
+    public void testDownstreamTupleSender2FailureWhenFailureFlagIsSet ()
+    {
+        failureFlag.setFailed();
+
+        sendViaDownstreamTupleSender2( 0 );
+    }
+
+    private void sendViaDownstreamTupleSender2 ( final int offerResult )
+    {
+        final DownstreamTupleSender2 tupleSender = new DownstreamTupleSender2( failureFlag,
+                                                                               sourcePortIndex1,
+                                                                               destinationPortIndex1,
+                                                                               sourcePortIndex2,
+                                                                               destinationPortIndex2,
+                                                                               operatorTupleQueue );
+        addTuple( "key1", "val", sourcePortIndex1 );
+        addTuple( "key2", "val", sourcePortIndex2 );
+
+        setMock( sourcePortIndex1, destinationPortIndex1, offerResult );
+        setMock( sourcePortIndex2, destinationPortIndex2, offerResult );
 
         tupleSender.send( tuples );
 
-        final Tuple expected1 = new Tuple();
-        expected1.set( "key1", "val" );
-        verify( operatorTupleQueue ).offer( 2, singletonList( expected1 ) );
-        final Tuple expected2 = new Tuple();
-        expected2.set( "key2", "val" );
-        verify( operatorTupleQueue ).offer( 4, singletonList( expected2 ) );
+        verifyMock( "key1", "val", destinationPortIndex1 );
+        verifyMock( "key2", "val", destinationPortIndex2 );
     }
 
     @Test
     public void testDownstreamTupleSender3 ()
     {
-        final DownstreamTupleSender3 tupleSender = new DownstreamTupleSender3( 1, 2, 3, 4, 5, 6, operatorTupleQueue );
-        final Tuple tuple1 = new Tuple();
-        tuple1.set( "key1", "val" );
-        tuples.add( 1, tuple1 );
-        final Tuple tuple2 = new Tuple();
-        tuple2.set( "key2", "val" );
-        tuples.add( 3, tuple2 );
-        final Tuple tuple3 = new Tuple();
-        tuple3.set( "key3", "val" );
-        tuples.add( 5, tuple3 );
+        sendViaDownstreamTupleSender3( 1 );
+    }
+
+    @Test( expected = JokerException.class )
+    public void testDownstreamTupleSender3FailureWhenFailureFlagIsSet ()
+    {
+        failureFlag.setFailed();
+
+        sendViaDownstreamTupleSender3( 0 );
+    }
+
+    private void sendViaDownstreamTupleSender3 ( final int offerResult )
+    {
+        final DownstreamTupleSender3 tupleSender = new DownstreamTupleSender3( failureFlag,
+                                                                               sourcePortIndex1,
+                                                                               destinationPortIndex1,
+                                                                               sourcePortIndex2,
+                                                                               destinationPortIndex2,
+                                                                               sourcePortIndex3,
+                                                                               destinationPortIndex3,
+                                                                               operatorTupleQueue );
+        addTuple( "key1", "val", sourcePortIndex1 );
+        addTuple( "key2", "val", sourcePortIndex2 );
+        addTuple( "key3", "val", sourcePortIndex3 );
+
+        setMock( sourcePortIndex1, destinationPortIndex1, offerResult );
+        setMock( sourcePortIndex2, destinationPortIndex2, offerResult );
+        setMock( sourcePortIndex3, destinationPortIndex3, offerResult );
 
         tupleSender.send( tuples );
 
-        final Tuple expected1 = new Tuple();
-        expected1.set( "key1", "val" );
-        verify( operatorTupleQueue ).offer( 2, singletonList( expected1 ) );
-        final Tuple expected2 = new Tuple();
-        expected2.set( "key2", "val" );
-        verify( operatorTupleQueue ).offer( 4, singletonList( expected2 ) );
-        final Tuple expected3 = new Tuple();
-        expected3.set( "key3", "val" );
-        verify( operatorTupleQueue ).offer( 6, singletonList( expected3 ) );
+        verifyMock( "key1", "val", destinationPortIndex1 );
+        verifyMock( "key2", "val", destinationPortIndex2 );
+        verifyMock( "key3", "val", destinationPortIndex3 );
     }
 
     @Test
     public void testDownstreamTupleSender4 ()
     {
-        final DownstreamTupleSender4 tupleSender = new DownstreamTupleSender4( 1, 2, 3, 4, 5, 6, 7, 8, operatorTupleQueue );
-        final Tuple tuple1 = new Tuple();
-        tuple1.set( "key1", "val" );
-        tuples.add( 1, tuple1 );
-        final Tuple tuple2 = new Tuple();
-        tuple2.set( "key2", "val" );
-        tuples.add( 3, tuple2 );
-        final Tuple tuple3 = new Tuple();
-        tuple3.set( "key3", "val" );
-        tuples.add( 5, tuple3 );
-        final Tuple tuple4 = new Tuple();
-        tuple4.set( "key4", "val" );
-        tuples.add( 7, tuple4 );
+        sendViaDownstreamTupleSender4( 1 );
+
+    }
+
+    @Test( expected = JokerException.class )
+    public void testDownstreamTupleSender4FailureWhenFailureFlagIsSet ()
+    {
+        failureFlag.setFailed();
+
+        sendViaDownstreamTupleSender4( 0 );
+    }
+
+    private void sendViaDownstreamTupleSender4 ( final int offerResult )
+    {
+        final DownstreamTupleSender4 tupleSender = new DownstreamTupleSender4( failureFlag,
+                                                                               sourcePortIndex1,
+                                                                               destinationPortIndex1,
+                                                                               sourcePortIndex2,
+                                                                               destinationPortIndex2,
+                                                                               sourcePortIndex3,
+                                                                               destinationPortIndex3,
+                                                                               sourcePortIndex4,
+                                                                               destinationPortIndex4,
+                                                                               operatorTupleQueue );
+        addTuple( "key1", "val", sourcePortIndex1 );
+        addTuple( "key2", "val", sourcePortIndex2 );
+        addTuple( "key3", "val", sourcePortIndex3 );
+        addTuple( "key4", "val", sourcePortIndex4 );
+
+        setMock( sourcePortIndex1, destinationPortIndex1, offerResult );
+        setMock( sourcePortIndex2, destinationPortIndex2, offerResult );
+        setMock( sourcePortIndex3, destinationPortIndex3, offerResult );
+        setMock( sourcePortIndex4, destinationPortIndex4, offerResult );
 
         tupleSender.send( tuples );
 
-        final Tuple expected1 = new Tuple();
-        expected1.set( "key1", "val" );
-        verify( operatorTupleQueue ).offer( 2, singletonList( expected1 ) );
-        final Tuple expected2 = new Tuple();
-        expected2.set( "key2", "val" );
-        verify( operatorTupleQueue ).offer( 4, singletonList( expected2 ) );
-        final Tuple expected3 = new Tuple();
-        expected3.set( "key3", "val" );
-        verify( operatorTupleQueue ).offer( 6, singletonList( expected3 ) );
-        final Tuple expected4 = new Tuple();
-        expected4.set( "key4", "val" );
-        verify( operatorTupleQueue ).offer( 8, singletonList( expected4 ) );
+        verifyMock( "key1", "val", destinationPortIndex1 );
+        verifyMock( "key2", "val", destinationPortIndex2 );
+        verifyMock( "key3", "val", destinationPortIndex3 );
+        verifyMock( "key4", "val", destinationPortIndex4 );
     }
 
     @Test
     public void testDownstreamTupleSenderN ()
     {
-        final DownstreamTupleSenderN tupleSender = new DownstreamTupleSenderN( new int[] { 1, 3, 5, 7, 9 },
-                                                                               new int[] { 2, 4, 6, 8, 10 },
+        sendViaDownstreamTupleSenderN( 1 );
+    }
+
+    @Test( expected = JokerException.class )
+    public void testDownstreamTupleSenderNFailureWhenFailureFlagIsSet ()
+    {
+        failureFlag.setFailed();
+
+        sendViaDownstreamTupleSenderN( 0 );
+    }
+
+    private void sendViaDownstreamTupleSenderN ( final int offerResult )
+    {
+        final DownstreamTupleSenderN tupleSender = new DownstreamTupleSenderN( failureFlag,
+                                                                               new int[] { sourcePortIndex1,
+                                                                                           sourcePortIndex2,
+                                                                                           sourcePortIndex3,
+                                                                                           sourcePortIndex4 },
+                                                                               new int[] { destinationPortIndex1,
+                                                                                           destinationPortIndex2,
+                                                                                           destinationPortIndex3,
+                                                                                           destinationPortIndex4 },
                                                                                operatorTupleQueue );
-        final Tuple tuple1 = new Tuple();
-        tuple1.set( "key1", "val" );
-        tuples.add( 1, tuple1 );
-        final Tuple tuple2 = new Tuple();
-        tuple2.set( "key2", "val" );
-        tuples.add( 3, tuple2 );
-        final Tuple tuple3 = new Tuple();
-        tuple3.set( "key3", "val" );
-        tuples.add( 5, tuple3 );
-        final Tuple tuple4 = new Tuple();
-        tuple4.set( "key4", "val" );
-        tuples.add( 7, tuple4 );
-        final Tuple tuple5 = new Tuple();
-        tuple5.set( "key5", "val" );
-        tuples.add( 9, tuple5 );
+        addTuple( "key1", "val", sourcePortIndex1 );
+        addTuple( "key2", "val", sourcePortIndex2 );
+        addTuple( "key3", "val", sourcePortIndex3 );
+        addTuple( "key4", "val", sourcePortIndex4 );
+
+        setMock( sourcePortIndex1, destinationPortIndex1, offerResult );
+        setMock( sourcePortIndex2, destinationPortIndex2, offerResult );
+        setMock( sourcePortIndex3, destinationPortIndex3, offerResult );
+        setMock( sourcePortIndex4, destinationPortIndex4, offerResult );
 
         tupleSender.send( tuples );
 
-        final Tuple expected1 = new Tuple();
-        expected1.set( "key1", "val" );
-        verify( operatorTupleQueue ).offer( 2, singletonList( expected1 ) );
-        final Tuple expected2 = new Tuple();
-        expected2.set( "key2", "val" );
-        verify( operatorTupleQueue ).offer( 4, singletonList( expected2 ) );
-        final Tuple expected3 = new Tuple();
-        expected3.set( "key3", "val" );
-        verify( operatorTupleQueue ).offer( 6, singletonList( expected3 ) );
-        final Tuple expected4 = new Tuple();
-        expected4.set( "key4", "val" );
-        verify( operatorTupleQueue ).offer( 8, singletonList( expected4 ) );
-        final Tuple expected5 = new Tuple();
-        expected5.set( "key5", "val" );
-        verify( operatorTupleQueue ).offer( 10, singletonList( expected5 ) );
+        verifyMock( "key1", "val", destinationPortIndex1 );
+        verifyMock( "key2", "val", destinationPortIndex2 );
+        verifyMock( "key3", "val", destinationPortIndex3 );
+        verifyMock( "key4", "val", destinationPortIndex4 );
+    }
+
+    private void addTuple ( final String key, final Object val, final int sourcePortIndex )
+    {
+        final Tuple tuple = new Tuple();
+        tuple.set( key, val );
+        tuples.add( sourcePortIndex, tuple );
+    }
+
+    private void setMock ( final int sourcePortIndex, final int destinationPortIndex, final int offerResult )
+    {
+        when( operatorTupleQueue.offer( destinationPortIndex,
+                                        tuples.getTuplesModifiable( sourcePortIndex ),
+                                        0,
+                                        OFFER_TIMEOUT,
+                                        OFFER_TIME_UNIT ) ).thenReturn( offerResult );
+    }
+
+    private void verifyMock ( final String key, final Object val, final int destinationPortIndex )
+    {
+        final Tuple expected = new Tuple();
+        expected.set( key, val );
+        verify( operatorTupleQueue ).offer( destinationPortIndex, singletonList( expected ), 0, OFFER_TIMEOUT, OFFER_TIME_UNIT );
     }
 
 }

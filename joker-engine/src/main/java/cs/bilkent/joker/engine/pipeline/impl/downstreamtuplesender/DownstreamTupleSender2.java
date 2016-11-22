@@ -4,10 +4,11 @@ import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
+import cs.bilkent.joker.engine.pipeline.DownstreamTupleSenderFailureFlag;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 
-public class DownstreamTupleSender2 implements DownstreamTupleSender, Supplier<OperatorTupleQueue>
+public class DownstreamTupleSender2 extends AbstractDownstreamTupleSender implements DownstreamTupleSender, Supplier<OperatorTupleQueue>
 {
 
     private final int sourcePortIndex1;
@@ -20,11 +21,12 @@ public class DownstreamTupleSender2 implements DownstreamTupleSender, Supplier<O
 
     private final OperatorTupleQueue operatorTupleQueue;
 
-    public DownstreamTupleSender2 ( final int sourcePortIndex1,
+    public DownstreamTupleSender2 ( final DownstreamTupleSenderFailureFlag failureFlag, final int sourcePortIndex1,
                                     final int destinationPortIndex1,
                                     final int sourcePortIndex2,
                                     final int destinationPortIndex2, final OperatorTupleQueue operatorTupleQueue )
     {
+        super( failureFlag );
         this.sourcePortIndex1 = sourcePortIndex1;
         this.destinationPortIndex1 = destinationPortIndex1;
         this.sourcePortIndex2 = sourcePortIndex2;
@@ -35,8 +37,8 @@ public class DownstreamTupleSender2 implements DownstreamTupleSender, Supplier<O
     @Override
     public Future<Void> send ( final TuplesImpl tuples )
     {
-        operatorTupleQueue.offer( destinationPortIndex1, tuples.getTuples( sourcePortIndex1 ) );
-        operatorTupleQueue.offer( destinationPortIndex2, tuples.getTuples( sourcePortIndex2 ) );
+        send( operatorTupleQueue, destinationPortIndex1, tuples.getTuplesModifiable( sourcePortIndex1 ) );
+        send( operatorTupleQueue, destinationPortIndex2, tuples.getTuplesModifiable( sourcePortIndex2 ) );
         return null;
     }
 

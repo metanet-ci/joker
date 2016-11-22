@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -50,8 +49,7 @@ public class TupleQueueContainer
 
     public TupleQueueContainer ( final String operatorId,
                                  final int inputPortCount,
-                                 final int partitionId,
-                                 final BiFunction<Integer, Boolean, TupleQueue> tupleQueueConstructor )
+                                 final int partitionId, final Function<Integer, TupleQueue> tupleQueueConstructor )
     {
         this.operatorId = operatorId;
         this.inputPortCount = inputPortCount;
@@ -62,7 +60,7 @@ public class TupleQueueContainer
             final TupleQueue[] tupleQueues = new TupleQueue[ inputPortCount ];
             for ( int i = 0; i < inputPortCount; i++ )
             {
-                final TupleQueue queue = tupleQueueConstructor.apply( i, false );
+                final TupleQueue queue = tupleQueueConstructor.apply( i );
                 tupleQueues[ i ] = queue;
             }
             return tupleQueues;
@@ -91,13 +89,6 @@ public class TupleQueueContainer
     {
         final TupleQueue[] tupleQueues = getTupleQueues( key );
         tupleQueues[ portIndex ].offerTuple( tuple );
-        return addToDrainableKeys( key, tupleQueues );
-    }
-
-    public boolean forceOffer ( final int portIndex, final Tuple tuple, final PartitionKey key )
-    {
-        final TupleQueue[] tupleQueues = getTupleQueues( key );
-        tupleQueues[ portIndex ].forceOfferTuple( tuple );
         return addToDrainableKeys( key, tupleQueues );
     }
 
