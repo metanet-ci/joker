@@ -26,7 +26,9 @@ public class DownstreamTupleSenderN extends AbstractDownstreamTupleSender implem
         super( failureFlag );
         checkArgument( sourcePorts.length == destinationPorts.length,
                        "source ports size = %s and destination ports = %s ! operatorId=%s",
-                       sourcePorts.length, destinationPorts.length, operatorTupleQueue.getOperatorId() );
+                       sourcePorts.length,
+                       destinationPorts.length,
+                       operatorTupleQueue.getOperatorId() );
         final int portCount = sourcePorts.length;
         this.ports = new int[ portCount * 2 ];
         this.limit = this.ports.length - 1;

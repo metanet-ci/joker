@@ -977,6 +977,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
     }
 
+
     public static class DownstreamTupleSenderImpl implements DownstreamTupleSender
     {
 

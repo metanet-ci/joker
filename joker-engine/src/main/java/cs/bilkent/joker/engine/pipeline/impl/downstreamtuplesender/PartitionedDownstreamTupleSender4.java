@@ -26,7 +26,8 @@ public class PartitionedDownstreamTupleSender4 extends AbstractPartitionedDownst
 
     private final int destinationPortIndex4;
 
-    public PartitionedDownstreamTupleSender4 ( final DownstreamTupleSenderFailureFlag failureFlag, final int sourcePortIndex1,
+    public PartitionedDownstreamTupleSender4 ( final DownstreamTupleSenderFailureFlag failureFlag,
+                                               final int sourcePortIndex1,
                                                final int destinationPortIndex1,
                                                final int sourcePortIndex2,
                                                final int destinationPortIndex2,
@@ -35,7 +36,8 @@ public class PartitionedDownstreamTupleSender4 extends AbstractPartitionedDownst
                                                final int sourcePortIndex4,
                                                final int destinationPortIndex4,
                                                final int partitionCount,
-                                               final int[] partitionDistribution, final OperatorTupleQueue[] operatorTupleQueues,
+                                               final int[] partitionDistribution,
+                                               final OperatorTupleQueue[] operatorTupleQueues,
                                                final PartitionKeyExtractor partitionKeyExtractor )
     {
         super( failureFlag, partitionCount, partitionDistribution, operatorTupleQueues, partitionKeyExtractor );

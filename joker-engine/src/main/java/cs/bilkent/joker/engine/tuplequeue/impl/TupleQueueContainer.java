@@ -49,7 +49,8 @@ public class TupleQueueContainer
 
     public TupleQueueContainer ( final String operatorId,
                                  final int inputPortCount,
-                                 final int partitionId, final Function<Integer, TupleQueue> tupleQueueConstructor )
+                                 final int partitionId,
+                                 final Function<Integer, TupleQueue> tupleQueueConstructor )
     {
         this.operatorId = operatorId;
         this.inputPortCount = inputPortCount;

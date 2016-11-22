@@ -26,7 +26,9 @@ public class PartitionedDownstreamTupleSenderN extends AbstractPartitionedDownst
         super( failureFlag, partitionCount, partitionDistribution, operatorTupleQueues, partitionKeyExtractor );
         checkArgument( sourcePorts.length == destinationPorts.length,
                        "source ports size = %s and destination ports = %s ! destination operatorId=%s",
-                       sourcePorts.length, destinationPorts.length, operatorTupleQueues[ 0 ].getOperatorId() );
+                       sourcePorts.length,
+                       destinationPorts.length,
+                       operatorTupleQueues[ 0 ].getOperatorId() );
         final int portCount = sourcePorts.length;
         this.ports = new int[ portCount * 2 ];
         this.limit = this.ports.length - 1;

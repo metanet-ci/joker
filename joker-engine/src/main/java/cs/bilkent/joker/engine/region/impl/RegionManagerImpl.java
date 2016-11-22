@@ -419,7 +419,10 @@ public class RegionManagerImpl implements RegionManager
                     {
                         final ThreadingPreference threadingPreference = getThreadingPreference( isFirstOperator );
                         LOGGER.info( "Creating {} {} for regionId={} replicaIndex={} operatorId={}",
-                                     threadingPreference, DefaultOperatorTupleQueue.class.getSimpleName(), regionId, replicaIndex,
+                                     threadingPreference,
+                                     DefaultOperatorTupleQueue.class.getSimpleName(),
+                                     regionId,
+                                     replicaIndex,
                                      operatorId );
                         operatorTupleQueue = operatorTupleQueueManager.createDefaultOperatorTupleQueue( regionId,
                                                                                                         replicaIndex,
@@ -860,9 +863,10 @@ public class RegionManagerImpl implements RegionManager
 
     private Supplier<TuplesImpl> createOutputSupplier ( final OperatorDef operatorDef, final boolean isLastOperator )
     {
-        return isLastOperator ? TuplesImplSupplierUtils.newInstance( pipelineTailOperatorOutputSupplierClass,
-                                                                     operatorDef.outputPortCount() )
-                              : new CachedTuplesImplSupplier( operatorDef.outputPortCount() );
+        return isLastOperator
+               ? TuplesImplSupplierUtils.newInstance( pipelineTailOperatorOutputSupplierClass,
+                                                      operatorDef.outputPortCount() )
+               : new CachedTuplesImplSupplier( operatorDef.outputPortCount() );
 
     }
 

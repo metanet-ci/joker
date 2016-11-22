@@ -65,8 +65,7 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
     @Before
     public void before ()
     {
-        operatorReplica = new OperatorReplica( new PipelineReplicaId( new PipelineId( 0, 0 ), 0 ),
-                                               operatorDef, queue, operatorKvStore,
+        operatorReplica = new OperatorReplica( new PipelineReplicaId( new PipelineId( 0, 0 ), 0 ), operatorDef, queue, operatorKvStore,
                                                drainerPool,
                                                outputSupplier,
                                                invocationContext );

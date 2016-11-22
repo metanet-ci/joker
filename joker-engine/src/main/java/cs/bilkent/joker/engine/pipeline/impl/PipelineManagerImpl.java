@@ -205,8 +205,14 @@ public class PipelineManagerImpl implements PipelineManager
         {
             final Pair<Integer, Integer> pair1 = pairs.get( 0 );
             final Pair<Integer, Integer> pair2 = pairs.get( 1 );
-            return new PartitionedDownstreamTupleSender2( downstreamTupleSenderFailureFlag, pair1._1,
-                                                          pair1._2, pair2._1, pair2._2, partitionCount, partitionDistribution, tupleQueues,
+            return new PartitionedDownstreamTupleSender2( downstreamTupleSenderFailureFlag,
+                                                          pair1._1,
+                                                          pair1._2,
+                                                          pair2._1,
+                                                          pair2._2,
+                                                          partitionCount,
+                                                          partitionDistribution,
+                                                          tupleQueues,
                                                           partitionKeyFunction );
         };
         partitionedDownstreamTupleSenderConstructors[ 3 ] = ( pairs, partitionCount, partitionDistribution, tupleQueues,
@@ -215,10 +221,16 @@ public class PipelineManagerImpl implements PipelineManager
             final Pair<Integer, Integer> pair1 = pairs.get( 0 );
             final Pair<Integer, Integer> pair2 = pairs.get( 1 );
             final Pair<Integer, Integer> pair3 = pairs.get( 2 );
-            return new PartitionedDownstreamTupleSender3( downstreamTupleSenderFailureFlag, pair1._1,
+            return new PartitionedDownstreamTupleSender3( downstreamTupleSenderFailureFlag,
+                                                          pair1._1,
                                                           pair1._2,
                                                           pair2._1,
-                                                          pair2._2, pair3._1, pair3._2, partitionCount, partitionDistribution, tupleQueues,
+                                                          pair2._2,
+                                                          pair3._1,
+                                                          pair3._2,
+                                                          partitionCount,
+                                                          partitionDistribution,
+                                                          tupleQueues,
                                                           partitionKeyFunction );
         };
         partitionedDownstreamTupleSenderConstructors[ 4 ] = ( pairs, partitionCount, partitionDistribution, tupleQueues,
@@ -228,12 +240,18 @@ public class PipelineManagerImpl implements PipelineManager
             final Pair<Integer, Integer> pair2 = pairs.get( 1 );
             final Pair<Integer, Integer> pair3 = pairs.get( 2 );
             final Pair<Integer, Integer> pair4 = pairs.get( 3 );
-            return new PartitionedDownstreamTupleSender4( downstreamTupleSenderFailureFlag, pair1._1,
+            return new PartitionedDownstreamTupleSender4( downstreamTupleSenderFailureFlag,
+                                                          pair1._1,
                                                           pair1._2,
                                                           pair2._1,
                                                           pair2._2,
                                                           pair3._1,
-                                                          pair3._2, pair4._1, pair4._2, partitionCount, partitionDistribution, tupleQueues,
+                                                          pair3._2,
+                                                          pair4._1,
+                                                          pair4._2,
+                                                          partitionCount,
+                                                          partitionDistribution,
+                                                          tupleQueues,
                                                           partitionKeyFunction );
         };
         partitionedDownstreamTupleSenderConstructors[ 5 ] = ( pairs, partitionCount, partitionDistribution, tupleQueues,
@@ -371,8 +389,7 @@ public class PipelineManagerImpl implements PipelineManager
                              .values()
                              .stream()
                              .flatMap( ports -> ports.stream().map( port -> port.operatorId ) )
-                             .distinct()
-                             .map( flowDeployment.getFlow()::getOperator ).map( this::getPipelineByFirstOperatorOrFail )
+                             .distinct().map( flowDeployment.getFlow()::getOperator ).map( this::getPipelineByFirstOperatorOrFail )
                              .collect( toList() );
     }
 
@@ -867,7 +884,8 @@ public class PipelineManagerImpl implements PipelineManager
                     final PartitionKeyExtractor partitionKeyExtractor = partitionKeyExtractorFactory.createPartitionKeyExtractor(
                             downstreamRegionDef.getPartitionFieldNames() );
                     sendersToDownstreamOperators[ i ] = partitionedDownstreamTupleSenderConstructors[ j ].apply( pairs,
-                                                                                                                 partitionService.getPartitionCount(),
+                                                                                                                 partitionService
+                                                                                                                         .getPartitionCount(),
                                                                                                                  partitionDistribution,
                                                                                                                  pipelineTupleQueues,
                                                                                                                  partitionKeyExtractor );

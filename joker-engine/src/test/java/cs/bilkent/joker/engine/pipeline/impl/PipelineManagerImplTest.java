@@ -121,8 +121,7 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         assertEquals( 2, pipelines.size() );
 
         final Pipeline pipeline1 = pipelines.get( 0 );
-        assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { CLOSED, CLOSED } ),
-                      pipeline1.getUpstreamContext() );
+        assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { CLOSED, CLOSED } ), pipeline1.getUpstreamContext() );
         assertEquals( partitionedStatefulRegionDef, pipeline1.getRegionDef() );
         assertEquals( 0, pipeline1.getOperatorIndex( operatorDef1 ) );
         assertNotEquals( pipeline1.getPipelineReplica( 0 ), pipeline1.getPipelineReplica( 1 ) );
@@ -173,8 +172,7 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         assertEquals( INITIAL, pipeline2.getPipelineStatus() );
         assertEquals( INITIAL, pipeline3.getPipelineStatus() );
 
-        assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { CLOSED, CLOSED } ),
-                      pipeline1.getUpstreamContext() );
+        assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { CLOSED, CLOSED } ), pipeline1.getUpstreamContext() );
         assertEquals( partitionedStatefulRegionDef, pipeline1.getRegionDef() );
         assertEquals( 0, pipeline1.getOperatorIndex( operatorDef1 ) );
         assertNotEquals( pipeline1.getPipelineReplica( 0 ), pipeline1.getPipelineReplica( 1 ) );

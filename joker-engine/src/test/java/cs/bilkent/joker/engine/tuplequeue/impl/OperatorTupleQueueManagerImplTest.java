@@ -106,8 +106,7 @@ public class OperatorTupleQueueManagerImplTest extends AbstractJokerTest
     @Test
     public void shouldCleanOperatorTupleQueueOnRelease ()
     {
-        final OperatorTupleQueue operatorTupleQueue = tupleQueueManager.createDefaultOperatorTupleQueue( REGION_ID,
-                                                                                                         1, STATELESS_OPERATOR,
+        final OperatorTupleQueue operatorTupleQueue = tupleQueueManager.createDefaultOperatorTupleQueue( REGION_ID, 1, STATELESS_OPERATOR,
                                                                                                          MULTI_THREADED );
         operatorTupleQueue.offer( 0, singletonList( new Tuple() ) );
         tupleQueueManager.releaseDefaultOperatorTupleQueue( 1, 1, "op1" );
@@ -116,8 +115,7 @@ public class OperatorTupleQueueManagerImplTest extends AbstractJokerTest
     @Test
     public void shouldConvertMultiThreadedDefaultOperatorTupleQueueToSingleThreaded ()
     {
-        final OperatorTupleQueue operatorTupleQueue = tupleQueueManager.createDefaultOperatorTupleQueue( REGION_ID,
-                                                                                                         1, STATELESS_OPERATOR,
+        final OperatorTupleQueue operatorTupleQueue = tupleQueueManager.createDefaultOperatorTupleQueue( REGION_ID, 1, STATELESS_OPERATOR,
                                                                                                          MULTI_THREADED );
         final Tuple tuple1 = new Tuple();
         tuple1.set( "key1", "val1" );
@@ -138,8 +136,7 @@ public class OperatorTupleQueueManagerImplTest extends AbstractJokerTest
     @Test
     public void shouldConvertSingleThreadedDefaultOperatorTupleQueueToMultiThreaded ()
     {
-        final OperatorTupleQueue operatorTupleQueue = tupleQueueManager.createDefaultOperatorTupleQueue( 1,
-                                                                                                         1, STATELESS_OPERATOR,
+        final OperatorTupleQueue operatorTupleQueue = tupleQueueManager.createDefaultOperatorTupleQueue( 1, 1, STATELESS_OPERATOR,
                                                                                                          MULTI_THREADED );
         final Tuple tuple1 = new Tuple();
         tuple1.set( "key1", "val1" );

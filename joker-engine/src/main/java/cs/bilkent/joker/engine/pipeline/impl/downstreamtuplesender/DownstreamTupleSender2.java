@@ -21,10 +21,12 @@ public class DownstreamTupleSender2 extends AbstractDownstreamTupleSender implem
 
     private final OperatorTupleQueue operatorTupleQueue;
 
-    public DownstreamTupleSender2 ( final DownstreamTupleSenderFailureFlag failureFlag, final int sourcePortIndex1,
+    public DownstreamTupleSender2 ( final DownstreamTupleSenderFailureFlag failureFlag,
+                                    final int sourcePortIndex1,
                                     final int destinationPortIndex1,
                                     final int sourcePortIndex2,
-                                    final int destinationPortIndex2, final OperatorTupleQueue operatorTupleQueue )
+                                    final int destinationPortIndex2,
+                                    final OperatorTupleQueue operatorTupleQueue )
     {
         super( failureFlag );
         this.sourcePortIndex1 = sourcePortIndex1;
