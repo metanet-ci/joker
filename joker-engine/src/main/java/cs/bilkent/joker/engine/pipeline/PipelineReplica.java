@@ -146,10 +146,7 @@ public class PipelineReplica
         final int maxBatchSize = tupleQueueDrainerConfig.getPartitionedStatefulPipelineDrainerMaxBatchSize();
         if ( upstreamInputPortCount == 1 )
         {
-            final BlockingSinglePortDrainer blockingDrainer = new BlockingSinglePortDrainer( maxBatchSize,
-                                                                                             tupleQueueDrainerConfig.getDrainTimeout(),
-                                                                                             tupleQueueDrainerConfig
-                                                                                                     .getDrainTimeoutTimeUnit() );
+            final BlockingSinglePortDrainer blockingDrainer = new BlockingSinglePortDrainer( maxBatchSize );
             blockingDrainer.setParameters( AT_LEAST, 1 );
             return blockingDrainer;
         }
@@ -161,11 +158,7 @@ public class PipelineReplica
         final int[] blockingTupleCounts = new int[ upstreamInputPortCount ];
         Arrays.fill( blockingTupleCounts, 1 );
 
-        final MultiPortDrainer blockingDrainer = new BlockingMultiPortDisjunctiveDrainer( upstreamInputPortCount,
-                                                                                          maxBatchSize,
-                                                                                          tupleQueueDrainerConfig.getDrainTimeout(),
-                                                                                          tupleQueueDrainerConfig.getDrainTimeoutTimeUnit
-                                                                                                                          () );
+        final MultiPortDrainer blockingDrainer = new BlockingMultiPortDisjunctiveDrainer( upstreamInputPortCount, maxBatchSize );
         blockingDrainer.setParameters( AT_LEAST, upstreamInputPorts, blockingTupleCounts );
         return blockingDrainer;
     }
@@ -273,11 +266,12 @@ public class PipelineReplica
 
     public TuplesImpl invoke ()
     {
-        OperatorReplica operator;
+        upstreamDrainer.reset();
         pipelineTupleQueue.drain( upstreamDrainer );
         TuplesImpl tuples = upstreamDrainer.getResult();
-        UpstreamContext upstreamContext = this.pipelineUpstreamContext;
 
+        UpstreamContext upstreamContext = this.pipelineUpstreamContext;
+        OperatorReplica operator;
         for ( int i = 0; i < operatorCount; i++ )
         {
             operator = operators[ i ];
@@ -285,14 +279,13 @@ public class PipelineReplica
             upstreamContext = operator.getSelfUpstreamContext();
         }
 
-        upstreamDrainer.reset();
-
         return tuples;
     }
 
     public TuplesImpl invoke ( final OperatorType operatorType )
     {
         OperatorReplica operator;
+        upstreamDrainer.reset();
         pipelineTupleQueue.drain( upstreamDrainer );
         TuplesImpl tuples = upstreamDrainer.getResult();
         UpstreamContext upstreamContext = this.pipelineUpstreamContext;
@@ -312,8 +305,6 @@ public class PipelineReplica
 
             upstreamContext = operator.getSelfUpstreamContext();
         }
-
-        upstreamDrainer.reset();
 
         return tuples;
     }

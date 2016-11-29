@@ -1,7 +1,6 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.operator;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
@@ -52,28 +51,6 @@ public class EmptyOperatorTupleQueue implements OperatorTupleQueue
 
     @Override
     public int offer ( final int portIndex, final List<Tuple> tuples, final int fromIndex )
-    {
-        if ( tuples == null || tuples.isEmpty() || fromIndex == ( tuples.size() - 1 ) )
-        {
-            return 0;
-        }
-
-        throw new UnsupportedOperationException( operatorId );
-    }
-
-    @Override
-    public int offer ( final int portIndex, final List<Tuple> tuples, final long timeout, final TimeUnit unit )
-    {
-        if ( tuples == null || tuples.isEmpty() )
-        {
-            return 0;
-        }
-
-        throw new UnsupportedOperationException( operatorId );
-    }
-
-    @Override
-    public int offer ( final int portIndex, final List<Tuple> tuples, final int fromIndex, final long timeout, final TimeUnit unit )
     {
         if ( tuples == null || tuples.isEmpty() || fromIndex == ( tuples.size() - 1 ) )
         {

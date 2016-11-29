@@ -20,7 +20,6 @@ public class JokerConfigTest extends AbstractJokerTest
 
         assertTrue( jokerConfig.getPipelineReplicaRunnerConfig().getWaitTimeoutInMillis() > 0 );
         assertTrue( jokerConfig.getTupleQueueManagerConfig().getTupleQueueInitialSize() > 0 );
-        assertTrue( jokerConfig.getTupleQueueDrainerConfig().getDrainTimeout() > 0 );
     }
 
     @Test

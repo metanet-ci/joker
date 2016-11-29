@@ -32,7 +32,6 @@ import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
-import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.NonCachedTuplesImplSupplier;
 import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.Region;
 import cs.bilkent.joker.engine.region.RegionConfig;
@@ -428,7 +427,7 @@ public class RegionManagerImpl implements RegionManager
                                                                                                         threadingPreference );
                     }
 
-                    final TupleQueueDrainerPool drainerPool = createTupleQueueDrainer( operatorDef, isFirstOperator );
+                    final TupleQueueDrainerPool drainerPool = createTupleQueueDrainerPool( operatorDef, isFirstOperator );
                     LOGGER.info( "Creating {} for regionId={} replicaIndex={} operatorId={}",
                                  drainerPool.getClass().getSimpleName(),
                                  regionId,
@@ -784,16 +783,16 @@ public class RegionManagerImpl implements RegionManager
         final TupleQueueDrainerPool[] drainerPools = new TupleQueueDrainerPool[ replicaCount ];
         for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
         {
-            drainerPools[ replicaIndex ] = createTupleQueueDrainer( operatorDef, isFirstOperator );
+            drainerPools[ replicaIndex ] = createTupleQueueDrainerPool( operatorDef, isFirstOperator );
         }
 
         return drainerPools;
     }
 
-    private TupleQueueDrainerPool createTupleQueueDrainer ( final OperatorDef operatorDef, final boolean isFirstOperator )
+    private TupleQueueDrainerPool createTupleQueueDrainerPool ( final OperatorDef operatorDef, final boolean isFirstOperator )
     {
-        return isFirstOperator
-               ? new BlockingTupleQueueDrainerPool( config, operatorDef )
+        return ( isFirstOperator && operatorDef.operatorType() != PARTITIONED_STATEFUL ) ? new BlockingTupleQueueDrainerPool( config,
+                                                                                                                              operatorDef )
                : new NonBlockingTupleQueueDrainerPool( config, operatorDef );
     }
 
@@ -838,7 +837,7 @@ public class RegionManagerImpl implements RegionManager
         if ( isLastOperator )
         {
             LOGGER.info( "Creating {} for last operator of regionId={} operatorId={}",
-                         NonCachedTuplesImplSupplier.class.getSimpleName(),
+                         pipelineTailOperatorOutputSupplierClass.getSimpleName(),
                          regionId,
                          operatorId );
         }

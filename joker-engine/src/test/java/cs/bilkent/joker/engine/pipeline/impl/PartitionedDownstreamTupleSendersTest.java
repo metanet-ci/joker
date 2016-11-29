@@ -4,16 +4,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSenderFailureFlag;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDownstreamTupleSender1;
-import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDownstreamTupleSender2;
-import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDownstreamTupleSender3;
-import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDownstreamTupleSender4;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDownstreamTupleSenderN;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
@@ -75,120 +71,6 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
         tupleSender.send( tuples );
 
         assertThat( operatorTupleQueue3.tuplesByPortIndex.get( destinationPortIndex1 ), equalTo( singletonList( tuple ) ) );
-    }
-
-    @Test
-    public void testPartitionedDownstreamTupleSender2 ()
-    {
-        final int sourcePortIndex1 = 1, sourcePortIndex2 = 3;
-        final int destinationPortIndex1 = 2, destinationPortIndex2 = 4;
-        final PartitionedDownstreamTupleSender2 tupleSender = new PartitionedDownstreamTupleSender2( failureFlag,
-                                                                                                     sourcePortIndex1,
-                                                                                                     destinationPortIndex1,
-                                                                                                     sourcePortIndex2,
-                                                                                                     destinationPortIndex2,
-                                                                                                     partitionCount,
-                                                                                                     partitionDistribution,
-                                                                                                     operatorTupleQueues,
-                                                                                                     partitionKeyExtractor );
-
-        final Tuple tuple1 = new Tuple();
-        tuple1.set( "key1", "val" );
-        tuples.add( sourcePortIndex1, tuple1 );
-        final Tuple tuple2 = new Tuple();
-        tuple2.set( "key2", "val" );
-        tuples.add( sourcePortIndex2, tuple2 );
-        final int replicaIndex1 = 3, replicaIndex2 = 1;
-        when( partitionKeyExtractor.getPartitionHash( tuple1 ) ).thenReturn( replicaIndex1 );
-        when( partitionKeyExtractor.getPartitionHash( tuple2 ) ).thenReturn( replicaIndex2 );
-
-        tupleSender.send( tuples );
-
-        assertThat( operatorTupleQueue3.tuplesByPortIndex.get( destinationPortIndex1 ), equalTo( singletonList( tuple1 ) ) );
-        assertThat( operatorTupleQueue1.tuplesByPortIndex.get( destinationPortIndex2 ), equalTo( singletonList( tuple2 ) ) );
-    }
-
-    @Test
-    public void testPartitionedDownstreamTupleSender3 ()
-    {
-        final int sourcePortIndex1 = 1, sourcePortIndex2 = 3, sourcePortIndex3 = 5;
-        final int destinationPortIndex1 = 2, destinationPortIndex2 = 4, destinationPortIndex3 = 6;
-        final PartitionedDownstreamTupleSender3 tupleSender = new PartitionedDownstreamTupleSender3( failureFlag,
-                                                                                                     sourcePortIndex1,
-                                                                                                     destinationPortIndex1,
-                                                                                                     sourcePortIndex2,
-                                                                                                     destinationPortIndex2,
-                                                                                                     sourcePortIndex3,
-                                                                                                     destinationPortIndex3,
-                                                                                                     partitionCount,
-                                                                                                     partitionDistribution,
-                                                                                                     operatorTupleQueues,
-                                                                                                     partitionKeyExtractor );
-
-        final Tuple tuple1 = new Tuple();
-        tuple1.set( "key1", "val" );
-        tuples.add( sourcePortIndex1, tuple1 );
-        final Tuple tuple2 = new Tuple();
-        tuple2.set( "key2", "val" );
-        tuples.add( sourcePortIndex2, tuple2 );
-        final Tuple tuple3 = new Tuple();
-        tuple3.set( "key3", "val" );
-        tuples.add( sourcePortIndex3, tuple3 );
-        final int replicaIndex1 = 3, replicaIndex2 = 1, replicaIndex3 = 0;
-        when( partitionKeyExtractor.getPartitionHash( tuple1 ) ).thenReturn( replicaIndex1 );
-        when( partitionKeyExtractor.getPartitionHash( tuple2 ) ).thenReturn( replicaIndex2 );
-        when( partitionKeyExtractor.getPartitionHash( tuple3 ) ).thenReturn( replicaIndex3 );
-
-        tupleSender.send( tuples );
-
-        assertThat( operatorTupleQueue3.tuplesByPortIndex.get( destinationPortIndex1 ), equalTo( singletonList( tuple1 ) ) );
-        assertThat( operatorTupleQueue1.tuplesByPortIndex.get( destinationPortIndex2 ), equalTo( singletonList( tuple2 ) ) );
-        assertThat( operatorTupleQueue0.tuplesByPortIndex.get( destinationPortIndex3 ), equalTo( singletonList( tuple3 ) ) );
-    }
-
-    @Test
-    public void testPartitionedDownstreamTupleSender4 ()
-    {
-        final int sourcePortIndex1 = 1, sourcePortIndex2 = 3, sourcePortIndex3 = 5, sourcePortIndex4 = 7;
-        final int destinationPortIndex1 = 2, destinationPortIndex2 = 4, destinationPortIndex3 = 6, destinationPortIndex4 = 8;
-        final PartitionedDownstreamTupleSender4 tupleSender = new PartitionedDownstreamTupleSender4( failureFlag,
-                                                                                                     sourcePortIndex1,
-                                                                                                     destinationPortIndex1,
-                                                                                                     sourcePortIndex2,
-                                                                                                     destinationPortIndex2,
-                                                                                                     sourcePortIndex3,
-                                                                                                     destinationPortIndex3,
-                                                                                                     sourcePortIndex4,
-                                                                                                     destinationPortIndex4,
-                                                                                                     partitionCount,
-                                                                                                     partitionDistribution,
-                                                                                                     operatorTupleQueues,
-                                                                                                     partitionKeyExtractor );
-
-        final Tuple tuple1 = new Tuple();
-        tuple1.set( "key1", "val" );
-        tuples.add( sourcePortIndex1, tuple1 );
-        final Tuple tuple2 = new Tuple();
-        tuple2.set( "key2", "val" );
-        tuples.add( sourcePortIndex2, tuple2 );
-        final Tuple tuple3 = new Tuple();
-        tuple3.set( "key3", "val" );
-        tuples.add( sourcePortIndex3, tuple3 );
-        final Tuple tuple4 = new Tuple();
-        tuple4.set( "key4", "val" );
-        tuples.add( sourcePortIndex4, tuple4 );
-        final int replicaIndex1 = 3, replicaIndex2 = 1, replicaIndex3 = 0, replicaIndex4 = 2;
-        when( partitionKeyExtractor.getPartitionHash( tuple1 ) ).thenReturn( replicaIndex1 );
-        when( partitionKeyExtractor.getPartitionHash( tuple2 ) ).thenReturn( replicaIndex2 );
-        when( partitionKeyExtractor.getPartitionHash( tuple3 ) ).thenReturn( replicaIndex3 );
-        when( partitionKeyExtractor.getPartitionHash( tuple4 ) ).thenReturn( replicaIndex4 );
-
-        tupleSender.send( tuples );
-
-        assertThat( operatorTupleQueue3.tuplesByPortIndex.get( destinationPortIndex1 ), equalTo( singletonList( tuple1 ) ) );
-        assertThat( operatorTupleQueue1.tuplesByPortIndex.get( destinationPortIndex2 ), equalTo( singletonList( tuple2 ) ) );
-        assertThat( operatorTupleQueue0.tuplesByPortIndex.get( destinationPortIndex3 ), equalTo( singletonList( tuple3 ) ) );
-        assertThat( operatorTupleQueue2.tuplesByPortIndex.get( destinationPortIndex4 ), equalTo( singletonList( tuple4 ) ) );
     }
 
     @Test
@@ -265,18 +147,6 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
         {
             tuplesByPortIndex.computeIfAbsent( portIndex, ArrayList::new ).addAll( tuples.subList( fromIndex, tuples.size() ) );
             return tuples.size() - fromIndex;
-        }
-
-        @Override
-        public int offer ( final int portIndex, final List<Tuple> tuples, final long timeout, final TimeUnit unit )
-        {
-            return offer( portIndex, tuples );
-        }
-
-        @Override
-        public int offer ( final int portIndex, final List<Tuple> tuples, final int fromIndex, final long timeout, final TimeUnit unit )
-        {
-            return offer( portIndex, tuples, fromIndex );
         }
 
         @Override

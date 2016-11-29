@@ -169,7 +169,7 @@ public class RegionRebalancingTest extends AbstractJokerTest
             assertOperatorDef( operatorReplica2, flowExample6.operatorDef2 );
             assertPartitionedOperatorTupleQueue( operatorReplica2 );
             assertPartitionedOperatorKVStore( operatorReplica2 );
-            assertBlockingTupleQueueDrainerPool( operatorReplica2 );
+            assertNonBlockingTupleQueueDrainerPool( operatorReplica2 );
             assertCachedTuplesImplSupplier( operatorReplica2 );
 
             final OperatorReplica operatorReplica3 = pipeline1.getOperator( 1 );

@@ -35,7 +35,7 @@ public class GreedyDrainerTest extends AbstractJokerTest
     {
         final TupleQueue tupleQueue = new SingleThreadedTupleQueue( 1 );
         final Tuple tuple = new Tuple();
-        tupleQueue.offerTuple( tuple );
+        tupleQueue.offer( tuple );
 
         final GreedyDrainer greedyDrainer = new GreedyDrainer( 1 );
 
@@ -54,10 +54,10 @@ public class GreedyDrainerTest extends AbstractJokerTest
     {
         final TupleQueue tupleQueue1 = new SingleThreadedTupleQueue( 1 );
         final Tuple tuple1 = new Tuple();
-        tupleQueue1.offerTuple( tuple1 );
+        tupleQueue1.offer( tuple1 );
         final TupleQueue tupleQueue2 = new SingleThreadedTupleQueue( 1 );
         final Tuple tuple2 = new Tuple();
-        tupleQueue2.offerTuple( tuple2 );
+        tupleQueue2.offer( tuple2 );
 
         final GreedyDrainer greedyDrainer = new GreedyDrainer( 2 );
 

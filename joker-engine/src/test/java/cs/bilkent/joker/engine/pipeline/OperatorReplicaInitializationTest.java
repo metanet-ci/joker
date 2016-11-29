@@ -18,6 +18,7 @@ import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainerPool;
+import cs.bilkent.joker.engine.tuplequeue.impl.drainer.NopDrainer;
 import cs.bilkent.joker.operator.InitializationContext;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
@@ -71,6 +72,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
         when( operatorDef.id() ).thenReturn( "op1" );
         when( operatorDef.outputPortCount() ).thenReturn( outputPortCount );
         when( operatorDef.createOperator() ).thenReturn( operator );
+        when( drainerPool.acquire( anyObject() ) ).thenReturn( new NopDrainer() );
     }
 
     @Test

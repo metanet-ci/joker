@@ -2,7 +2,6 @@ package cs.bilkent.joker.engine.tuplequeue.impl.operator;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -133,18 +132,6 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
         }
 
         return j - fromIndex;
-    }
-
-    @Override
-    public int offer ( final int portIndex, final List<Tuple> tuples, final long timeout, final TimeUnit unit )
-    {
-        return offer( portIndex, tuples, 0 );
-    }
-
-    @Override
-    public int offer ( final int portIndex, final List<Tuple> tuples, final int fromIndex, final long timeout, final TimeUnit unit )
-    {
-        return offer( portIndex, tuples, fromIndex );
     }
 
     @Override

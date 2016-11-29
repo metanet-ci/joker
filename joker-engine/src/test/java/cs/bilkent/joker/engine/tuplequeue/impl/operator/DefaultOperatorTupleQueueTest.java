@@ -1,9 +1,13 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.operator;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import cs.bilkent.joker.engine.config.ThreadingPreference;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
@@ -16,116 +20,71 @@ import cs.bilkent.joker.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.test.AbstractJokerTest;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.Arrays.asList;
 import static junit.framework.TestCase.assertNotNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertEquals;
 
+@RunWith( Parameterized.class )
 public class DefaultOperatorTupleQueueTest extends AbstractJokerTest
 {
 
-    private static final int TIMEOUT_IN_MILLIS = 2000;
-
     private static final int TUPLE_QUEUE_SIZE = 2;
 
-    @Test
-    public void shouldOfferSinglePortTuplesToUnboundedQueue ()
+    @Parameters( name = "constructor={0}, threadingPreference={1}" )
+    public static Collection<Object[]> data ()
     {
-        testOfferTuples( getSingleThreadedTupleQueueConstructor(), 1, SINGLE_THREADED, 2 );
+        final Function<Integer, TupleQueue> c0 = ( portIndex ) -> new SingleThreadedTupleQueue( TUPLE_QUEUE_SIZE );
+        final Function<Integer, TupleQueue> c1 = ( portIndex ) -> new MultiThreadedTupleQueue( TUPLE_QUEUE_SIZE );
+        return asList( new Object[][] { { c0, SINGLE_THREADED }, { c1, MULTI_THREADED } } );
+    }
+
+    private final Function<Integer, TupleQueue> tupleQueueConstructor;
+
+    private final ThreadingPreference threadingPreference;
+
+    public DefaultOperatorTupleQueueTest ( final Function<Integer, TupleQueue> tupleQueueConstructor,
+                                           final ThreadingPreference threadingPreference )
+    {
+        this.tupleQueueConstructor = tupleQueueConstructor;
+        this.threadingPreference = threadingPreference;
     }
 
     @Test
-    public void shouldOfferSinglePortTuplesToBoundedQueue ()
+    public void shouldOfferSinglePortTuples ()
     {
-        testOfferTuples( getMultiThreadedTupleQueueConstructor( 2 ), 1, MULTI_THREADED, 2 );
+        testOfferTuples( tupleQueueConstructor, 1, threadingPreference );
     }
 
     @Test
-    public void shouldOfferMultiPortTuplesToUnboundedQueue ()
+    public void shouldOfferMultiPortTuples ()
     {
-        testOfferTuples( getSingleThreadedTupleQueueConstructor(), 2, SINGLE_THREADED, 2 );
+        testOfferTuples( tupleQueueConstructor, 2, threadingPreference );
     }
-
-    @Test
-    public void shouldOfferMultiPortTuplesToBoundedQueue ()
-    {
-        testOfferTuples( getMultiThreadedTupleQueueConstructor( 2 ), 2, MULTI_THREADED, 2 );
-    }
-
-    @Test
-    public void shouldOfferSinglePortTuplesToUnboundedQueueWithTimeout ()
-    {
-        testOfferWithTimeout( getSingleThreadedTupleQueueConstructor(), 1, SINGLE_THREADED, 2 );
-    }
-
-    @Test
-    public void shouldOfferSinglePortTuplesToBoundedQueueWithTimeout ()
-    {
-        testOfferWithTimeout( getMultiThreadedTupleQueueConstructor( 2 ), 1, MULTI_THREADED, 2 );
-    }
-
-    @Test
-    public void shouldOfferMultiPortTuplesToUnboundedQueueWithTimeout ()
-    {
-        testOfferWithTimeout( getSingleThreadedTupleQueueConstructor(), 2, SINGLE_THREADED, 2 );
-    }
-
-    @Test
-    public void shouldOfferMultiPortTuplesToBoundedQueueWithTimeout ()
-    {
-        testOfferWithTimeout( getMultiThreadedTupleQueueConstructor( 2 ), 2, MULTI_THREADED, 2 );
-    }
-
 
     private void testOfferTuples ( final Function<Integer, TupleQueue> tupleQueueConstructor,
                                    final int inputPortCount,
-                                   final ThreadingPreference threadingPreference,
-                                   final int tupleCount )
+                                   final ThreadingPreference threadingPreference )
     {
-        final OperatorTupleQueue context = new DefaultOperatorTupleQueue( "op1",
-                                                                          inputPortCount,
-                                                                          threadingPreference,
-                                                                          tupleQueueConstructor,
-                                                                          Integer.MAX_VALUE );
+        final OperatorTupleQueue operatorTupleQueue = new DefaultOperatorTupleQueue( "op1",
+                                                                                     inputPortCount,
+                                                                                     threadingPreference,
+                                                                                     tupleQueueConstructor,
+                                                                                     Integer.MAX_VALUE );
 
-        final TuplesImpl input = createTuples( inputPortCount, tupleCount );
-
-        for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
-        {
-            context.offer( portIndex, input.getTuples( portIndex ) );
-        }
-
-        final GreedyDrainer drainer = new GreedyDrainer( inputPortCount );
-        context.drain( drainer );
-
-        assertTuples( inputPortCount, tupleCount, drainer );
-    }
-
-    private void testOfferWithTimeout ( final Function<Integer, TupleQueue> tupleQueueConstructor,
-                                        final int inputPortCount,
-                                        final ThreadingPreference threadingPreference,
-                                        final int tupleCount )
-    {
-        final OperatorTupleQueue context = new DefaultOperatorTupleQueue( "op1",
-                                                                          inputPortCount,
-                                                                          threadingPreference,
-                                                                          tupleQueueConstructor,
-                                                                          Integer.MAX_VALUE );
-
-        final TuplesImpl input = createTuples( inputPortCount, tupleCount );
+        final TuplesImpl input = createTuples( inputPortCount, TUPLE_QUEUE_SIZE );
 
         for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
         {
             final List<Tuple> tuples = input.getTuples( portIndex );
-            final int count = context.offer( portIndex, tuples, TIMEOUT_IN_MILLIS, MILLISECONDS );
-            assertEquals( count, tuples.size() );
+            final int offered = operatorTupleQueue.offer( portIndex, tuples );
+            assertThat( offered, equalTo( tuples.size() ) );
         }
 
         final GreedyDrainer drainer = new GreedyDrainer( inputPortCount );
-        context.drain( drainer );
+        operatorTupleQueue.drain( drainer );
 
-        assertTuples( inputPortCount, tupleCount, drainer );
+        assertTuples( inputPortCount, TUPLE_QUEUE_SIZE, drainer );
     }
 
     private TuplesImpl createTuples ( final int inputPortCount, final int tupleCount )
@@ -165,16 +124,6 @@ public class DefaultOperatorTupleQueueTest extends AbstractJokerTest
                 assertThat( tuple, equalTo( expected ) );
             }
         }
-    }
-
-    private Function<Integer, TupleQueue> getSingleThreadedTupleQueueConstructor ()
-    {
-        return ( portIndex ) -> new SingleThreadedTupleQueue( TUPLE_QUEUE_SIZE );
-    }
-
-    private Function<Integer, TupleQueue> getMultiThreadedTupleQueueConstructor ( final int queueSize )
-    {
-        return ( portIndex ) -> new MultiThreadedTupleQueue( queueSize );
     }
 
 }

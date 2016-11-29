@@ -52,14 +52,8 @@ import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import cs.bilkent.joker.engine.pipeline.UpstreamContext;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.CompositeDownstreamTupleSender;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.DownstreamTupleSender1;
-import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.DownstreamTupleSender2;
-import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.DownstreamTupleSender3;
-import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.DownstreamTupleSender4;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.DownstreamTupleSenderN;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDownstreamTupleSender1;
-import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDownstreamTupleSender2;
-import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDownstreamTupleSender3;
-import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDownstreamTupleSender4;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDownstreamTupleSenderN;
 import cs.bilkent.joker.engine.region.FlowDeploymentDef;
 import cs.bilkent.joker.engine.region.FlowDeploymentDef.RegionGroup;
@@ -93,7 +87,7 @@ public class PipelineManagerImpl implements PipelineManager
 
     private static final Logger LOGGER = LoggerFactory.getLogger( PipelineManagerImpl.class );
 
-    private static final int DOWNSTREAM_TUPLE_SENDER_CONSTRUCTOR_COUNT = 5;
+    private static final int DOWNSTREAM_TUPLE_SENDER_CONSTRUCTOR_COUNT = 2;
 
 
     private final JokerConfig jokerConfig;
@@ -146,43 +140,6 @@ public class PipelineManagerImpl implements PipelineManager
         };
         defaultDownstreamTupleSenderConstructors[ 2 ] = ( pairs, tupleQueue ) ->
         {
-            final Pair<Integer, Integer> pair1 = pairs.get( 0 );
-            final Pair<Integer, Integer> pair2 = pairs.get( 1 );
-            return new DownstreamTupleSender2( downstreamTupleSenderFailureFlag, pair1._1, pair1._2, pair2._1, pair2._2, tupleQueue );
-        };
-        defaultDownstreamTupleSenderConstructors[ 3 ] = ( pairs, tupleQueue ) ->
-        {
-            final Pair<Integer, Integer> pair1 = pairs.get( 0 );
-            final Pair<Integer, Integer> pair2 = pairs.get( 1 );
-            final Pair<Integer, Integer> pair3 = pairs.get( 2 );
-            return new DownstreamTupleSender3( downstreamTupleSenderFailureFlag,
-                                               pair1._1,
-                                               pair1._2,
-                                               pair2._1,
-                                               pair2._2,
-                                               pair3._1,
-                                               pair3._2,
-                                               tupleQueue );
-        };
-        defaultDownstreamTupleSenderConstructors[ 4 ] = ( pairs, tupleQueue ) ->
-        {
-            final Pair<Integer, Integer> pair1 = pairs.get( 0 );
-            final Pair<Integer, Integer> pair2 = pairs.get( 1 );
-            final Pair<Integer, Integer> pair3 = pairs.get( 2 );
-            final Pair<Integer, Integer> pair4 = pairs.get( 3 );
-            return new DownstreamTupleSender4( downstreamTupleSenderFailureFlag,
-                                               pair1._1,
-                                               pair1._2,
-                                               pair2._1,
-                                               pair2._2,
-                                               pair3._1,
-                                               pair3._2,
-                                               pair4._1,
-                                               pair4._2,
-                                               tupleQueue );
-        };
-        defaultDownstreamTupleSenderConstructors[ 5 ] = ( pairs, tupleQueue ) ->
-        {
             final int[] sourcePorts = new int[ pairs.size() ];
             final int[] destinationPorts = new int[ pairs.size() ];
             copyPorts( pairs, sourcePorts, destinationPorts );
@@ -201,60 +158,6 @@ public class PipelineManagerImpl implements PipelineManager
                                                           partitionKeyFunction );
         };
         partitionedDownstreamTupleSenderConstructors[ 2 ] = ( pairs, partitionCount, partitionDistribution, tupleQueues,
-                                                              partitionKeyFunction ) ->
-        {
-            final Pair<Integer, Integer> pair1 = pairs.get( 0 );
-            final Pair<Integer, Integer> pair2 = pairs.get( 1 );
-            return new PartitionedDownstreamTupleSender2( downstreamTupleSenderFailureFlag,
-                                                          pair1._1,
-                                                          pair1._2,
-                                                          pair2._1,
-                                                          pair2._2,
-                                                          partitionCount,
-                                                          partitionDistribution,
-                                                          tupleQueues,
-                                                          partitionKeyFunction );
-        };
-        partitionedDownstreamTupleSenderConstructors[ 3 ] = ( pairs, partitionCount, partitionDistribution, tupleQueues,
-                                                              partitionKeyFunction ) ->
-        {
-            final Pair<Integer, Integer> pair1 = pairs.get( 0 );
-            final Pair<Integer, Integer> pair2 = pairs.get( 1 );
-            final Pair<Integer, Integer> pair3 = pairs.get( 2 );
-            return new PartitionedDownstreamTupleSender3( downstreamTupleSenderFailureFlag,
-                                                          pair1._1,
-                                                          pair1._2,
-                                                          pair2._1,
-                                                          pair2._2,
-                                                          pair3._1,
-                                                          pair3._2,
-                                                          partitionCount,
-                                                          partitionDistribution,
-                                                          tupleQueues,
-                                                          partitionKeyFunction );
-        };
-        partitionedDownstreamTupleSenderConstructors[ 4 ] = ( pairs, partitionCount, partitionDistribution, tupleQueues,
-                                                              partitionKeyFunction ) ->
-        {
-            final Pair<Integer, Integer> pair1 = pairs.get( 0 );
-            final Pair<Integer, Integer> pair2 = pairs.get( 1 );
-            final Pair<Integer, Integer> pair3 = pairs.get( 2 );
-            final Pair<Integer, Integer> pair4 = pairs.get( 3 );
-            return new PartitionedDownstreamTupleSender4( downstreamTupleSenderFailureFlag,
-                                                          pair1._1,
-                                                          pair1._2,
-                                                          pair2._1,
-                                                          pair2._2,
-                                                          pair3._1,
-                                                          pair3._2,
-                                                          pair4._1,
-                                                          pair4._2,
-                                                          partitionCount,
-                                                          partitionDistribution,
-                                                          tupleQueues,
-                                                          partitionKeyFunction );
-        };
-        partitionedDownstreamTupleSenderConstructors[ 5 ] = ( pairs, partitionCount, partitionDistribution, tupleQueues,
                                                               partitionKeyFunction ) ->
         {
             final int[] sourcePorts = new int[ pairs.size() ];
@@ -389,7 +292,9 @@ public class PipelineManagerImpl implements PipelineManager
                              .values()
                              .stream()
                              .flatMap( ports -> ports.stream().map( port -> port.operatorId ) )
-                             .distinct().map( flowDeployment.getFlow()::getOperator ).map( this::getPipelineByFirstOperatorOrFail )
+                             .distinct()
+                             .map( flowDeployment.getFlow()::getOperator )
+                             .map( this::getPipelineByFirstOperatorOrFail )
                              .collect( toList() );
     }
 

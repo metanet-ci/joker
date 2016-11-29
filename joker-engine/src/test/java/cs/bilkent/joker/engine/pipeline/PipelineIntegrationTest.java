@@ -40,6 +40,8 @@ import cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool.BlockingTupleQueueDr
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool.NonBlockingTupleQueueDrainerPool;
 import cs.bilkent.joker.engine.tuplequeue.impl.operator.EmptyOperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
+import cs.bilkent.joker.engine.util.concurrent.BackoffIdleStrategy;
+import cs.bilkent.joker.engine.util.concurrent.IdleStrategy;
 import cs.bilkent.joker.operator.InitializationContext;
 import cs.bilkent.joker.operator.InvocationContext;
 import cs.bilkent.joker.operator.Operator;
@@ -70,7 +72,6 @@ import static cs.bilkent.joker.operators.MapperOperator.MAPPER_CONFIG_PARAMETER;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import cs.bilkent.joker.utils.Pair;
 import static java.util.Collections.singletonList;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -148,7 +149,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         }
 
         assertTrueEventually( () -> assertEquals( tupleCount, tupleCollector.tupleQueues[ 0 ].size() ) );
-        final List<Tuple> tuples = tupleCollector.tupleQueues[ 0 ].pollTuplesAtLeast( 1 );
+        final List<Tuple> tuples = tupleCollector.tupleQueues[ 0 ].poll( Integer.MAX_VALUE );
         for ( int i = 0; i < tupleCount; i++ )
         {
             final Tuple expected = new Tuple();
@@ -240,7 +241,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final int evenValCount = tupleCount / 2;
         assertTrueEventually( () -> assertEquals( evenValCount, tupleCollector.tupleQueues[ 0 ].size() ) );
-        final List<Tuple> tuples = tupleCollector.tupleQueues[ 0 ].pollTuplesAtLeast( 1 );
+        final List<Tuple> tuples = tupleCollector.tupleQueues[ 0 ].poll( Integer.MAX_VALUE );
         for ( int i = 0; i < evenValCount; i++ )
         {
             final Tuple expected = new Tuple();
@@ -463,7 +464,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final int evenValCount = tupleCount / 2;
         assertTrueEventually( () -> assertEquals( evenValCount, tupleCollector.tupleQueues[ 0 ].size() ) );
-        final List<Tuple> tuples = tupleCollector.tupleQueues[ 0 ].pollTuplesAtLeast( 1 );
+        final List<Tuple> tuples = tupleCollector.tupleQueues[ 0 ].poll( Integer.MAX_VALUE );
         for ( int i = 0; i < evenValCount; i++ )
         {
             final Tuple expected = new Tuple();
@@ -842,7 +843,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         {
             for ( int i = 0; i < tuples.getPortCount(); i++ )
             {
-                tupleQueues[ i ].offerTuples( tuples.getTuples( i ) );
+                tupleQueues[ i ].offer( tuples.getTuples( i ) );
             }
 
             return null;
@@ -981,6 +982,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     public static class DownstreamTupleSenderImpl implements DownstreamTupleSender
     {
 
+        private final IdleStrategy idleStrategy = BackoffIdleStrategy.newDefaultInstance();
+
         private final OperatorTupleQueue operatorTupleQueue;
 
         private final Pair<Integer, Integer>[] ports;
@@ -992,15 +995,32 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         }
 
         @Override
-        public Future<Void> send ( final TuplesImpl tuples )
+        public Future<Void> send ( final TuplesImpl input )
         {
             for ( Pair<Integer, Integer> p : ports )
             {
                 final int outputPort = p._1;
                 final int inputPort = p._2;
-                if ( tuples.getTupleCount( outputPort ) > 0 )
+                if ( input.getTupleCount( outputPort ) > 0 )
                 {
-                    operatorTupleQueue.offer( inputPort, tuples.getTuples( outputPort ), Long.MAX_VALUE, MILLISECONDS );
+                    idleStrategy.reset();
+
+                    final List<Tuple> tuples = input.getTuples( outputPort );
+                    final int size = tuples.size();
+                    int fromIndex = 0;
+                    while ( true )
+                    {
+                        final int offered = operatorTupleQueue.offer( inputPort, tuples, fromIndex );
+                        fromIndex += offered;
+                        if ( fromIndex == size )
+                        {
+                            break;
+                        }
+                        else if ( offered == 0 )
+                        {
+                            idleStrategy.idle();
+                        }
+                    }
                 }
             }
 

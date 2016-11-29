@@ -388,7 +388,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertOperatorDef( operatorReplica1, flowExample4.operatorDef1 );
         assertPartitionedOperatorTupleQueue( operatorReplica1 );
         assertPartitionedOperatorKVStore( operatorReplica1 );
-        assertBlockingTupleQueueDrainerPool( operatorReplica1 );
+        assertNonBlockingTupleQueueDrainerPool( operatorReplica1 );
         assertLastOperatorOutputSupplier( config, operatorReplica1 );
     }
 
@@ -448,7 +448,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
             assertOperatorDef( operatorReplica, flowExample4.operatorDef1 );
             assertPartitionedOperatorTupleQueue( operatorReplica );
             assertPartitionedOperatorKVStore( operatorReplica );
-            assertBlockingTupleQueueDrainerPool( operatorReplica );
+            assertNonBlockingTupleQueueDrainerPool( operatorReplica );
             assertLastOperatorOutputSupplier( config, operatorReplica );
         }
     }
@@ -600,7 +600,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertOperatorDef( operatorReplica2, flowExample6.operatorDef2 );
         assertPartitionedOperatorTupleQueue( operatorReplica2 );
         assertPartitionedOperatorKVStore( operatorReplica2 );
-        assertBlockingTupleQueueDrainerPool( operatorReplica2 );
+        assertNonBlockingTupleQueueDrainerPool( operatorReplica2 );
         assertCachedTuplesImplSupplier( operatorReplica2 );
 
         final OperatorReplica operatorReplica3 = pipeline1.getOperator( 1 );
@@ -699,7 +699,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertOperatorDef( operatorReplica2, flowExample6.operatorDef2 );
         assertPartitionedOperatorTupleQueue( operatorReplica2 );
         assertPartitionedOperatorKVStore( operatorReplica2 );
-        assertBlockingTupleQueueDrainerPool( operatorReplica2 );
+        assertNonBlockingTupleQueueDrainerPool( operatorReplica2 );
         assertLastOperatorOutputSupplier( config, operatorReplica2 );
 
         final OperatorReplica operatorReplica3 = pipeline2.getOperator( 0 );

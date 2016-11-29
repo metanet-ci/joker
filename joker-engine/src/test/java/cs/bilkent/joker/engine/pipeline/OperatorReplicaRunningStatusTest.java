@@ -245,7 +245,9 @@ public class OperatorReplicaRunningStatusTest extends AbstractOperatorReplicaInv
         expected.set( "f1", "val1" );
         verify( queue ).offer( 0, singletonList( expected ) );
         verify( queue, times( 2 ) ).drain( drainer );
-        assertOperatorInvocation();
+        verify( operatorKvStore ).getKVStore( key );
+        verify( operator ).invoke( invocationContext );
+        verify( drainer, times( 2 ) ).reset();
         verify( drainerPool ).release( drainer );
         verify( drainerPool ).acquire( ScheduleWhenAvailable.INSTANCE );
 

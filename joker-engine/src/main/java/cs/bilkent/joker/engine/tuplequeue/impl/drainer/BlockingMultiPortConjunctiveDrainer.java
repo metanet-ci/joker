@@ -1,38 +1,57 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.drainer;
 
-import java.util.concurrent.TimeUnit;
-
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
+import cs.bilkent.joker.engine.util.concurrent.BackoffIdleStrategy;
+import cs.bilkent.joker.engine.util.concurrent.IdleStrategy;
 
 public class BlockingMultiPortConjunctiveDrainer extends MultiPortDrainer
 {
 
-    private final long timeoutPerQueue;
+    private final IdleStrategy idleStrategy = BackoffIdleStrategy.newDefaultInstance();
 
-    private final TimeUnit unit;
-
-    public BlockingMultiPortConjunctiveDrainer ( final int inputPortCount, final int maxBatchSize, final long timeout, final TimeUnit unit )
+    public BlockingMultiPortConjunctiveDrainer ( final int inputPortCount, final int maxBatchSize )
     {
         super( inputPortCount, maxBatchSize );
-        this.timeoutPerQueue = inputPortCount > 0 ? (long) Math.ceil( ( (double) timeout ) / inputPortCount ) : 0;
-        this.unit = unit;
     }
 
     @Override
     protected int[] checkQueueSizes ( final TupleQueue[] tupleQueues )
     {
-        int satisfied = 0;
-        for ( int i = 0; i < limit; i += 2 )
+        boolean idle = false;
+        while ( true )
         {
-            final int portIndex = tupleCounts[ i ];
-            final int tupleCount = tupleCounts[ i + 1 ];
-            if ( tupleCount == 0 || tupleQueues[ portIndex ].awaitMinimumSize( tupleCount, timeoutPerQueue, unit ) )
+            int satisfied = 0;
+            for ( int i = 0; i < limit; i += 2 )
             {
-                satisfied++;
+                final int portIndex = tupleCounts[ i ];
+                final int tupleCount = tupleCounts[ i + 1 ];
+                if ( tupleCount == NO_TUPLES_AVAILABLE || tupleQueues[ portIndex ].size() >= tupleCount )
+                {
+                    satisfied++;
+                }
+            }
+
+            if ( satisfied == inputPortCount )
+            {
+                return tupleCounts;
+            }
+            else
+            {
+                if ( idle )
+                {
+                    return null;
+                }
+
+                idle = idleStrategy.idle();
             }
         }
+    }
 
-        return satisfied == inputPortCount ? tupleCounts : null;
+    @Override
+    public void reset ()
+    {
+        super.reset();
+        idleStrategy.reset();
     }
 
 }

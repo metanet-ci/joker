@@ -1,12 +1,9 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.drainer;
 
-import java.util.List;
-
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.partition.PartitionKey;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
-import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST_BUT_SAME_ON_ALL_PORTS;
@@ -24,11 +21,13 @@ public abstract class MultiPortDrainer implements TupleQueueDrainer
 
     protected final int inputPortCount;
 
+    protected final int[] tupleCountsBuffer;
+
     private final int maxBatchSize;
 
-    private TupleAvailabilityByCount tupleAvailabilityByCount;
-
     private final TuplesImpl buffer;
+
+    private boolean pollWithExactCount;
 
     private TuplesImpl result;
 
@@ -36,22 +35,31 @@ public abstract class MultiPortDrainer implements TupleQueueDrainer
 
     MultiPortDrainer ( final int inputPortCount, final int maxBatchSize )
     {
-        checkArgument( inputPortCount > 1, "invalid input port count %s", inputPortCount );
+        //        checkArgument( inputPortCount > 1, "invalid input port count %s", inputPortCount );
         this.inputPortCount = inputPortCount;
         this.maxBatchSize = maxBatchSize;
         this.buffer = new TuplesImpl( inputPortCount );
         this.tupleCounts = new int[ inputPortCount * 2 ];
+        this.tupleCountsBuffer = new int[ inputPortCount * 2 ];
         this.limit = this.tupleCounts.length - 1;
     }
 
-    public void setParameters ( final TupleAvailabilityByCount tupleAvailabilityByCount, final int[] inputPorts, final int[] tupleCounts )
+    public final void setParameters ( final TupleAvailabilityByCount tupleAvailabilityByCount,
+                                      final int[] inputPorts,
+                                      final int[] tupleCounts )
     {
-        this.tupleAvailabilityByCount = tupleAvailabilityByCount;
+        this.pollWithExactCount = tupleAvailabilityByCount == EXACT || tupleAvailabilityByCount == AT_LEAST_BUT_SAME_ON_ALL_PORTS;
         for ( int i = 0; i < inputPortCount; i++ )
         {
-            this.tupleCounts[ i * 2 ] = inputPorts[ i ];
-            this.tupleCounts[ i * 2 + 1 ] = tupleCounts[ i ];
+            final int portIndex = i * 2;
+            this.tupleCounts[ portIndex ] = inputPorts[ i ];
+            this.tupleCountsBuffer[ portIndex ] = inputPorts[ i ];
+            int tupleCount = tupleCounts[ i ];
+            tupleCount = tupleCount > 0 ? tupleCount : NO_TUPLES_AVAILABLE;
+            this.tupleCounts[ portIndex + 1 ] = tupleCount;
+            this.tupleCountsBuffer[ portIndex + 1 ] = tupleCount;
         }
+        reset();
     }
 
     @Override
@@ -60,44 +68,30 @@ public abstract class MultiPortDrainer implements TupleQueueDrainer
         checkArgument( tupleQueues != null );
         checkArgument( tupleQueues.length == inputPortCount );
 
-        boolean success = false;
-
         final int[] tupleCounts = checkQueueSizes( tupleQueues );
-        if ( tupleCounts != null )
+
+        if ( tupleCounts == null )
         {
-            for ( int i = 0; i < limit; i += 2 )
+            return;
+        }
+
+        for ( int i = 0; i < limit; i += 2 )
+        {
+            int tupleCount = tupleCounts[ i + 1 ];
+            if ( tupleCount == NO_TUPLES_AVAILABLE )
             {
-                final int portIndex = tupleCounts[ i ];
-                final int tupleCount = tupleCounts[ i + 1 ];
-                if ( tupleCount == NO_TUPLES_AVAILABLE )
-                {
-                    continue;
-                }
-
-                final TupleQueue tupleQueue = tupleQueues[ portIndex ];
-                final boolean pollWithExactCount =
-                        tupleAvailabilityByCount == EXACT || tupleAvailabilityByCount == AT_LEAST_BUT_SAME_ON_ALL_PORTS;
-
-                final List<Tuple> tuples = buffer.getTuplesModifiable( portIndex );
-
-                if ( pollWithExactCount )
-                {
-                    tupleQueue.pollTuples( tupleCount, tuples );
-                }
-                else
-                {
-                    tupleQueue.pollTuplesAtLeast( tupleCount, max( tupleCount, maxBatchSize ), tuples );
-                }
-
-                success |= !tuples.isEmpty();
+                continue;
             }
+
+            tupleCount = pollWithExactCount ? tupleCount : max( tupleCount, maxBatchSize );
+
+            final int portIndex = tupleCounts[ i ];
+            final TupleQueue tupleQueue = tupleQueues[ portIndex ];
+            tupleQueue.poll( tupleCount, buffer.getTuplesModifiable( portIndex ) );
         }
 
-        if ( success )
-        {
-            this.result = buffer;
-            this.key = key;
-        }
+        this.result = buffer;
+        this.key = key;
     }
 
     @Override

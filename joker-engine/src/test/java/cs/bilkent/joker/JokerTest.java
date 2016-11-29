@@ -80,6 +80,10 @@ public class JokerTest extends AbstractJokerTest
 
         sleepUninterruptibly( 30, SECONDS );
 
+        System.out.println( "Value generator 1 is invoked " + flowExample.valueGenerator1.invocationCount.get() + " times." );
+        System.out.println( "Value generator 2 is invoked " + flowExample.valueGenerator2.invocationCount.get() + " times." );
+        System.out.println( "Collector is invoked " + flowExample.valueCollector.invocationCount.get() + " times." );
+
         joker.shutdown().get( 60, SECONDS );
 
         System.out.println( "Value generator 1 is invoked " + flowExample.valueGenerator1.invocationCount.get() + " times." );
@@ -109,6 +113,13 @@ public class JokerTest extends AbstractJokerTest
         joker.run( flowExample.flow );
 
         sleepUninterruptibly( 30, SECONDS );
+
+        System.out.println( "Value generator 1 is invoked " + flowExample.valueGenerator1.invocationCount.get() + " times." );
+        System.out.println( "Value generator 2 is invoked " + flowExample.valueGenerator2.invocationCount.get() + " times." );
+        System.out.println( "Collector1 is invoked " + flowExample.valueCollector1.invocationCount.get() + " times." );
+        System.out.println( "Collector2 is invoked " + flowExample.valueCollector2.invocationCount.get() + " times." );
+        System.out.println( "Collector3 is invoked " + flowExample.valueCollector3.invocationCount.get() + " times." );
+        System.out.println( "Collector4 is invoked " + flowExample.valueCollector4.invocationCount.get() + " times." );
 
         joker.shutdown().get( 60, SECONDS );
 
@@ -204,8 +215,7 @@ public class JokerTest extends AbstractJokerTest
 
     @Category( SlowTest.class )
     @Test
-    public void testEndToEndSystemWithSplittingAndMergingPipelines () throws InterruptedException, ExecutionException,
-                                                                                                  TimeoutException
+    public void testEndToEndSystemWithSplittingAndMergingPipelines () throws InterruptedException, ExecutionException, TimeoutException
     {
         final FlowExample1 flowExample = new FlowExample1();
         final JokerConfig jokerConfig = new JokerConfig();
@@ -239,8 +249,7 @@ public class JokerTest extends AbstractJokerTest
 
     @Category( SlowTest.class )
     @Test
-    public void testEndToEndSystemWithMergingAndSplittingPipelines () throws InterruptedException, ExecutionException,
-                                                                                                  TimeoutException
+    public void testEndToEndSystemWithMergingAndSplittingPipelines () throws InterruptedException, ExecutionException, TimeoutException
     {
         final FlowExample1 flowExample = new FlowExample1();
         final JokerConfig jokerConfig = new JokerConfig();
@@ -508,7 +517,7 @@ public class JokerTest extends AbstractJokerTest
         @Override
         public void accept ( final Tuple tuple )
         {
-            //            sleepUninterruptibly( 1, MICROSECONDS );
+            //                        sleepUninterruptibly( 1, MICROSECONDS );
             invocationCount.incrementAndGet();
 
             final int key = RANDOM.nextInt( keyRange );

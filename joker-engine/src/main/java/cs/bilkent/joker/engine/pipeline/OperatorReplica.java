@@ -148,7 +148,10 @@ public class OperatorReplica
             setSelfUpstreamContext( ACTIVE );
 
             setStatus( RUNNING );
-            LOGGER.info( "{} initialized. Initial scheduling strategy: {}", operatorName, schedulingStrategy );
+            LOGGER.info( "{} initialized. Initial scheduling strategy: {} Drainer: {}",
+                         operatorName,
+                         schedulingStrategy,
+                         drainer.getClass().getSimpleName() );
             return initialSchedulingStrategy;
         }
         catch ( Exception e )
@@ -295,7 +298,6 @@ public class OperatorReplica
                 }
                 else
                 {
-                    drainer.reset();
                     invoked = false;
                 }
             }
@@ -313,7 +315,6 @@ public class OperatorReplica
                 }
                 else
                 {
-                    drainer.reset();
                     invoked = false;
                 }
 
@@ -358,6 +359,7 @@ public class OperatorReplica
 
     private TuplesImpl drainQueueAndGetResult ()
     {
+        drainer.reset();
         queue.drain( drainer );
         return drainer.getResult();
     }
@@ -374,7 +376,6 @@ public class OperatorReplica
         final TuplesImpl invocationOutput = output != null ? output : outputSupplier.get();
         invocationContext.setInvocationParameters( reason, input, invocationOutput, kvStore );
         operator.invoke( invocationContext );
-        drainer.reset();
         operatorInvocationCount++;
 
         return invocationOutput;

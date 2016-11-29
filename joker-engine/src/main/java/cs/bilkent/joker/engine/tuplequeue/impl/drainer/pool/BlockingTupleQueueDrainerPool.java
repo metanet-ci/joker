@@ -1,6 +1,5 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool;
 
-import java.util.concurrent.TimeUnit;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -47,17 +46,15 @@ public class BlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
 
         final TupleQueueDrainerConfig tupleQueueDrainerConfig = config.getTupleQueueDrainerConfig();
         final int maxBatchSize = tupleQueueDrainerConfig.getMaxBatchSize();
-        final long timeout = tupleQueueDrainerConfig.getDrainTimeout();
-        final TimeUnit unit = tupleQueueDrainerConfig.getDrainTimeoutTimeUnit();
 
         if ( inputPortCount == 1 )
         {
-            this.singlePortDrainer = new BlockingSinglePortDrainer( maxBatchSize, timeout, unit );
+            this.singlePortDrainer = new BlockingSinglePortDrainer( maxBatchSize );
         }
         else if ( inputPortCount > 1 )
         {
-            this.multiPortConjunctiveDrainer = new BlockingMultiPortConjunctiveDrainer( inputPortCount, maxBatchSize, timeout, unit );
-            this.multiPortDisjunctiveDrainer = new BlockingMultiPortDisjunctiveDrainer( inputPortCount, maxBatchSize, timeout, unit );
+            this.multiPortConjunctiveDrainer = new BlockingMultiPortConjunctiveDrainer( inputPortCount, maxBatchSize );
+            this.multiPortDisjunctiveDrainer = new BlockingMultiPortDisjunctiveDrainer( inputPortCount, maxBatchSize );
         }
 
         this.greedyDrainer = new GreedyDrainer( inputPortCount );

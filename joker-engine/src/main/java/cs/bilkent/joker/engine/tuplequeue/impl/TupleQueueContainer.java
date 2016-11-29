@@ -84,7 +84,7 @@ public class TupleQueueContainer
     public boolean offer ( final int portIndex, final Tuple tuple, final PartitionKey key )
     {
         final TupleQueue[] tupleQueues = getTupleQueues( key );
-        tupleQueues[ portIndex ].offerTuple( tuple );
+        tupleQueues[ portIndex ].offer( tuple );
         return addToDrainableKeys( key, tupleQueues );
     }
 
@@ -151,7 +151,7 @@ public class TupleQueueContainer
                 {
                     if ( LOGGER.isDebugEnabled() )
                     {
-                        final List<Tuple> tuples = tupleQueue.pollTuplesAtLeast( 1 );
+                        final List<Tuple> tuples = tupleQueue.poll( Integer.MAX_VALUE );
                         LOGGER.warn( "Tuple queue {} of operator: {} for key: {} has {} tuples before clear: {}",
                                      portIndex,
                                      operatorId,

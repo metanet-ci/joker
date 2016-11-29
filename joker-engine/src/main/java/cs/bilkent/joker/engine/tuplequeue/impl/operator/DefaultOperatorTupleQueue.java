@@ -1,7 +1,6 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.operator;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
@@ -76,31 +75,7 @@ public class DefaultOperatorTupleQueue implements OperatorTupleQueue
     {
         final TupleQueue[] tupleQueues = getTupleQueues( tuples );
 
-        if ( tupleQueues != null )
-        {
-            return tupleQueues[ portIndex ].offerTuples( tuples, fromIndex );
-        }
-
-        return 0;
-    }
-
-    @Override
-    public int offer ( final int portIndex, final List<Tuple> tuples, final long timeout, final TimeUnit unit )
-    {
-        return offer( portIndex, tuples, 0, timeout, unit );
-    }
-
-    @Override
-    public int offer ( final int portIndex, final List<Tuple> tuples, final int fromIndex, final long timeout, final TimeUnit unit )
-    {
-        final TupleQueue[] tupleQueues = getTupleQueues( tuples );
-
-        if ( tupleQueues != null )
-        {
-            return tupleQueues[ portIndex ].offerTuples( tuples, fromIndex, timeout, unit );
-        }
-
-        return 0;
+        return tupleQueues != null ? tupleQueues[ portIndex ].offer( tuples, fromIndex ) : 0;
     }
 
     private TupleQueue[] getTupleQueues ( final List<Tuple> tuples )
@@ -127,7 +102,7 @@ public class DefaultOperatorTupleQueue implements OperatorTupleQueue
             {
                 if ( LOGGER.isDebugEnabled() )
                 {
-                    final List<Tuple> tuples = tupleQueue.pollTuplesAtLeast( 1 );
+                    final List<Tuple> tuples = tupleQueue.poll( Integer.MAX_VALUE );
                     LOGGER.warn( "Tuple queue {} of operator: {} has {} tuples before clear: {}", portIndex, operatorId, size, tuples );
                 }
                 else

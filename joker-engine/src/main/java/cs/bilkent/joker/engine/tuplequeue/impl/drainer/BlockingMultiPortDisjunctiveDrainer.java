@@ -1,67 +1,69 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.drainer;
 
-import java.util.concurrent.TimeUnit;
-
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
-import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount;
+import cs.bilkent.joker.engine.util.concurrent.BackoffIdleStrategy;
+import cs.bilkent.joker.engine.util.concurrent.IdleStrategy;
 
 
 public class BlockingMultiPortDisjunctiveDrainer extends MultiPortDrainer
 {
 
-    private final long timeoutPerQueue;
+    private final IdleStrategy idleStrategy = BackoffIdleStrategy.newDefaultInstance();
 
-    private final TimeUnit unit;
-
-    private final int[] tupleCountsBuffer;
-
-    public BlockingMultiPortDisjunctiveDrainer ( final int inputPortCount, final int maxBatchSize, final long timeout, final TimeUnit unit )
+    public BlockingMultiPortDisjunctiveDrainer ( final int inputPortCount, final int maxBatchSize )
     {
         super( inputPortCount, maxBatchSize );
-        this.timeoutPerQueue = inputPortCount > 0 ? (long) Math.ceil( ( (double) timeout ) / inputPortCount ) : 0;
-        this.unit = unit;
-        this.tupleCountsBuffer = new int[ inputPortCount * 2 ];
-    }
-
-    public void setParameters ( final TupleAvailabilityByCount tupleAvailabilityByCount, final int[] inputPorts, final int[] tupleCounts )
-    {
-        super.setParameters( tupleAvailabilityByCount, inputPorts, tupleCounts );
-        System.arraycopy( this.tupleCounts, 0, tupleCountsBuffer, 0, tupleCountsBuffer.length );
     }
 
     @Override
     protected int[] checkQueueSizes ( final TupleQueue[] tupleQueues )
     {
-        boolean notFound = true;
-        for ( int i = 0; i < limit; i += 2 )
+        boolean idle = false;
+        while ( true )
         {
-            final int portIndex = tupleCounts[ i ];
-            final int tupleCountIndex = i + 1;
-            final int tupleCount = tupleCounts[ tupleCountIndex ];
-            final TupleQueue tupleQueue = tupleQueues[ portIndex ];
-            if ( notFound )
+            boolean satisfied = false;
+            for ( int i = 0; i < limit; i += 2 )
             {
-                if ( tupleQueue.awaitMinimumSize( tupleCount, timeoutPerQueue, unit ) )
+                final int portIndex = tupleCounts[ i ];
+                final int tupleCountIndex = i + 1;
+                final int tupleCount = tupleCounts[ tupleCountIndex ];
+                final TupleQueue tupleQueue = tupleQueues[ portIndex ];
+                if ( tupleCount != NO_TUPLES_AVAILABLE )
                 {
-                    tupleCountsBuffer[ tupleCountIndex ] = tupleCount;
-                    notFound = false;
-                }
-                else
-                {
-                    tupleCountsBuffer[ tupleCountIndex ] = NO_TUPLES_AVAILABLE;
+                    if ( tupleQueue.size() >= tupleCount )
+                    {
+                        tupleCountsBuffer[ tupleCountIndex ] = tupleCount;
+                        satisfied = true;
+                    }
+                    else
+                    {
+                        tupleCountsBuffer[ tupleCountIndex ] = NO_TUPLES_AVAILABLE;
+                    }
                 }
             }
-            else if ( tupleQueue.size() >= tupleCount )
+
+            if ( satisfied )
             {
-                tupleCountsBuffer[ tupleCountIndex ] = tupleCount;
+                return tupleCountsBuffer;
             }
             else
             {
-                tupleCountsBuffer[ tupleCountIndex ] = NO_TUPLES_AVAILABLE;
+                if ( idle )
+                {
+                    return null;
+                }
+
+                idle = idleStrategy.idle();
             }
         }
 
-        return tupleCountsBuffer;
+    }
+
+    @Override
+    public void reset ()
+    {
+        super.reset();
+        idleStrategy.reset();
     }
 
 }

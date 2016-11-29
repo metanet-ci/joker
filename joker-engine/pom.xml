@@ -52,6 +52,7 @@
             <artifactId>guice</artifactId>
             <version>${guice.version}</version>
         </dependency>
+
     </dependencies>
 
 </project>
