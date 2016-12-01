@@ -12,7 +12,7 @@ public class NonBlockingMultiPortDisjunctiveDrainer extends MultiPortDrainer
     }
 
     @Override
-    protected int[] checkQueueSizes ( final TupleQueue[] tupleQueues )
+    protected int[] checkQueueSizes ( final boolean maySkipBlocking, final TupleQueue[] tupleQueues )
     {
         boolean satisfied = false;
         for ( int i = 0; i < limit; i += 2 )

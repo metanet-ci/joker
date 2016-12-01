@@ -16,9 +16,9 @@ public class BlockingMultiPortDisjunctiveDrainer extends MultiPortDrainer
     }
 
     @Override
-    protected int[] checkQueueSizes ( final TupleQueue[] tupleQueues )
+    protected int[] checkQueueSizes ( final boolean maySkipBlocking, final TupleQueue[] tupleQueues )
     {
-        boolean idle = false;
+        boolean idle = maySkipBlocking;
         while ( true )
         {
             boolean satisfied = false;

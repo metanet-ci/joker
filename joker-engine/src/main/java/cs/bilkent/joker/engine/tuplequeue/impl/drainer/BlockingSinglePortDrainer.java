@@ -17,14 +17,14 @@ public class BlockingSinglePortDrainer extends SinglePortDrainer
     }
 
     @Override
-    public void drain ( final PartitionKey key, final TupleQueue[] tupleQueues )
+    public void drain ( final boolean maySkipBlocking, final PartitionKey key, final TupleQueue[] tupleQueues )
     {
         checkArgument( tupleQueues != null );
         checkArgument( tupleQueues.length == 1 );
 
         final TupleQueue tupleQueue = tupleQueues[ 0 ];
 
-        boolean idle = false;
+        boolean idle = maySkipBlocking;
         while ( tupleQueue.size() < tupleCountToCheck )
         {
             if ( idle )

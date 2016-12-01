@@ -104,7 +104,7 @@ public class OperatorReplicaRunningStatusTest extends AbstractOperatorReplicaInv
         {
             verify( queue, never() ).offer( anyInt(), anyList() );
         }
-        verify( queue ).drain( drainer );
+        verify( queue ).drain( false, drainer );
         assertOperatorInvocation();
         verify( drainerPool, never() ).release( drainer );
 
@@ -141,7 +141,7 @@ public class OperatorReplicaRunningStatusTest extends AbstractOperatorReplicaInv
         final TuplesImpl output = operatorReplica.invoke( upstreamInput, newUpstreamContext );
 
         verify( queue, never() ).offer( anyInt(), anyList() );
-        verify( queue ).drain( drainer );
+        verify( queue ).drain( false, drainer );
         assertOperatorInvocation();
         verify( drainerPool ).release( drainer );
 
@@ -173,7 +173,7 @@ public class OperatorReplicaRunningStatusTest extends AbstractOperatorReplicaInv
         final Tuple expected = new Tuple();
         expected.set( "f1", "val1" );
         verify( queue ).offer( 0, singletonList( expected ) );
-        verify( queue ).drain( drainer );
+        verify( queue ).drain( false, drainer );
         verify( drainer ).reset();
         assertNoOperatorInvocation();
         verify( drainerPool, never() ).release( drainer );
@@ -209,7 +209,7 @@ public class OperatorReplicaRunningStatusTest extends AbstractOperatorReplicaInv
         final Tuple expected = new Tuple();
         expected.set( "f1", "val1" );
         verify( queue ).offer( 0, singletonList( expected ) );
-        verify( queue ).drain( drainer );
+        verify( queue ).drain( false, drainer );
         verify( drainer ).reset();
         assertNoOperatorInvocation();
         verify( drainerPool, never() ).release( drainer );
@@ -244,7 +244,7 @@ public class OperatorReplicaRunningStatusTest extends AbstractOperatorReplicaInv
         final Tuple expected = new Tuple();
         expected.set( "f1", "val1" );
         verify( queue ).offer( 0, singletonList( expected ) );
-        verify( queue, times( 2 ) ).drain( drainer );
+        verify( queue, times( 2 ) ).drain( false, drainer );
         verify( operatorKvStore ).getKVStore( key );
         verify( operator ).invoke( invocationContext );
         verify( drainer, times( 2 ) ).reset();

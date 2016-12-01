@@ -14,7 +14,7 @@ public class NonBlockingSinglePortDrainer extends SinglePortDrainer
     }
 
     @Override
-    public void drain ( final PartitionKey key, final TupleQueue[] tupleQueues )
+    public void drain ( final boolean maySkipBlocking, final PartitionKey key, final TupleQueue[] tupleQueues )
     {
         checkArgument( tupleQueues != null );
         checkArgument( tupleQueues.length == 1 );

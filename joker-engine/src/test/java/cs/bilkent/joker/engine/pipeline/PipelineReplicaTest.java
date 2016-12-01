@@ -162,7 +162,7 @@ public class PipelineReplicaTest extends AbstractJokerTest
         pipeline.setPipelineUpstreamContext( upstreamContext0New );
         pipeline.invoke();
 
-        verify( operator0 ).invoke( null, upstreamContext0New );
+        verify( operator0 ).invoke( true, null, upstreamContext0New );
     }
 
     @Test
@@ -172,17 +172,17 @@ public class PipelineReplicaTest extends AbstractJokerTest
         when( operator1.getSelfUpstreamContext() ).thenReturn( upstreamContext2 );
         pipeline.init( upstreamContext0 );
 
-        when( operator0.invoke( null, upstreamContext0 ) ).thenReturn( upstreamInput1 );
-        when( operator1.invoke( upstreamInput1, upstreamContext1 ) ).thenReturn( upstreamInput2 );
-        when( operator2.invoke( upstreamInput2, upstreamContext2 ) ).thenReturn( output );
+        when( operator0.invoke( true, null, upstreamContext0 ) ).thenReturn( upstreamInput1 );
+        when( operator1.invoke( true, upstreamInput1, upstreamContext1 ) ).thenReturn( upstreamInput2 );
+        when( operator2.invoke( true, upstreamInput2, upstreamContext2 ) ).thenReturn( output );
 
         final TuplesImpl result = pipeline.invoke();
 
         assertThat( result, equalTo( output ) );
 
-        verify( operator0 ).invoke( null, upstreamContext0 );
-        verify( operator1 ).invoke( upstreamInput1, upstreamContext1 );
-        verify( operator2 ).invoke( upstreamInput2, upstreamContext2 );
+        verify( operator0 ).invoke( true, null, upstreamContext0 );
+        verify( operator1 ).invoke( true, upstreamInput1, upstreamContext1 );
+        verify( operator2 ).invoke( true, upstreamInput2, upstreamContext2 );
     }
 
 }

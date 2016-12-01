@@ -23,6 +23,8 @@ import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.test.AbstractJokerTest;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -111,6 +113,7 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
 
     void assertOperatorInvocation ()
     {
+        assertTrue( operatorReplica.isOperatorInvokedOnLastAttempt() );
         verify( operatorKvStore ).getKVStore( key );
         verify( operator ).invoke( invocationContext );
         verify( drainer ).reset();
@@ -118,6 +121,7 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
 
     void assertNoOperatorInvocation ()
     {
+        assertFalse( operatorReplica.isOperatorInvokedOnLastAttempt() );
         verify( operatorKvStore, never() ).getKVStore( key );
         verify( operator, never() ).invoke( invocationContext );
     }

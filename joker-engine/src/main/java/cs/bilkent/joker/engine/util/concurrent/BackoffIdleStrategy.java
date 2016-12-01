@@ -71,7 +71,7 @@ public final class BackoffIdleStrategy extends BackoffIdleStrategyData implement
 
     public static BackoffIdleStrategy newDefaultInstance ()
     {
-        return new BackoffIdleStrategy( 1000, 100, 3, 1, 2 );
+        return new BackoffIdleStrategy( 1000, 100, 100, 1, 1 );
     }
 
     long pad01, pad02, pad03, pad04, pad05, pad06, pad07;

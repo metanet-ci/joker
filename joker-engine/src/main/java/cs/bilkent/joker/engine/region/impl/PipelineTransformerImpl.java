@@ -512,7 +512,9 @@ public class PipelineTransformerImpl implements PipelineTransformer
             final OperatorDef operatorDef = operator.getOperatorDef();
 
             final OperatorTupleQueue queue;
-            final boolean multiThreaded = i == 0 && ( operatorDef.operatorType() == STATEFUL || operatorDef.operatorType() == STATELESS );
+            final boolean isFirstOperator = ( i == 0 );
+            final boolean multiThreaded =
+                    isFirstOperator && ( operatorDef.operatorType() == STATEFUL || operatorDef.operatorType() == STATELESS );
             if ( switchThreadingPreference && multiThreaded )
             {
                 queue = operatorTupleQueueManager.switchThreadingPreference( newPipelineReplicaId.pipelineId.regionId,
@@ -524,7 +526,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                 queue = operator.getQueue();
             }
 
-            final TupleQueueDrainerPool drainerPool = multiThreaded
+            final TupleQueueDrainerPool drainerPool = ( multiThreaded && operatorDef.inputPortCount() > 0 )
                                                       ? new BlockingTupleQueueDrainerPool( config, operatorDef )
                                                       : new NonBlockingTupleQueueDrainerPool( config, operatorDef );
 

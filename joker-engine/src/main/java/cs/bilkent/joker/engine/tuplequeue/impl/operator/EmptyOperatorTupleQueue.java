@@ -61,9 +61,9 @@ public class EmptyOperatorTupleQueue implements OperatorTupleQueue
     }
 
     @Override
-    public void drain ( final TupleQueueDrainer drainer )
+    public void drain ( final boolean maySkipBlocking, final TupleQueueDrainer drainer )
     {
-        drainer.drain( null, tupleQueues );
+        drainer.drain( maySkipBlocking, null, tupleQueues );
     }
 
     @Override

@@ -43,13 +43,21 @@ public interface OperatorTupleQueue
      */
     int offer ( int portIndex, List<Tuple> tuples, int fromIndex );
 
+
+    default void drain ( TupleQueueDrainer drainer )
+    {
+        drain( false, drainer );
+    }
+
     /**
      * Removes tuples from the underlying input queues using the given {@link TupleQueueDrainer}
      *
+     * @param maySkipBlocking
+     *         a boolean flag which is passed to drainer to specify if the drainer may not block if it is a blocking drainer
      * @param drainer
      *         to remove tuples from the underlying input queues
      */
-    void drain ( TupleQueueDrainer drainer );
+    void drain ( boolean maySkipBlocking, TupleQueueDrainer drainer );
 
     void clear ();
 

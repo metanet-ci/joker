@@ -74,7 +74,7 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
         final Tuple expected = new Tuple();
         expected.set( "f1", "val1" );
         verify( queue ).offer( 0, singletonList( expected ) );
-        verify( queue ).drain( drainer );
+        verify( queue ).drain( false, drainer );
         assertOperatorInvocation();
 
         assertThat( invocationContext.getReason(), equalTo( INPUT_PORT_CLOSED ) );
@@ -105,7 +105,7 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
         final Tuple expected = new Tuple();
         expected.set( "f1", "val1" );
         verify( queue ).offer( 0, singletonList( expected ) );
-        verify( queue ).drain( drainer );
+        verify( queue ).drain( false, drainer );
         assertNoOperatorInvocation();
         verify( drainerPool, never() ).release( drainer );
         verify( drainer ).reset();
@@ -135,7 +135,7 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
         final Tuple expected = new Tuple();
         expected.set( "f1", "val1" );
         verify( queue ).offer( 0, singletonList( expected ) );
-        verify( queue ).drain( drainer );
+        verify( queue ).drain( false, drainer );
         verify( operatorKvStore ).getKVStore( null );
         verify( operator ).invoke( invocationContext );
         verify( drainer ).reset();
@@ -178,7 +178,7 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
         final Tuple expected = new Tuple();
         expected.set( "f1", "val1" );
         verify( queue ).offer( 0, singletonList( expected ) );
-        verify( queue ).drain( drainer );
+        verify( queue ).drain( false, drainer );
         verify( operatorKvStore ).getKVStore( null );
         verify( operator ).invoke( invocationContext );
         verify( drainer ).reset();

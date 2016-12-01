@@ -88,7 +88,7 @@ public class TupleQueueContainer
         return addToDrainableKeys( key, tupleQueues );
     }
 
-    public int drain ( final TupleQueueDrainer drainer )
+    public int drain ( final boolean maySkipBlocking, final TupleQueueDrainer drainer )
     {
         int nonDrainableKeyCount = 0;
         if ( drainer instanceof GreedyDrainer )
@@ -99,7 +99,7 @@ public class TupleQueueContainer
                 final PartitionKey key = it.next();
                 final TupleQueue[] tupleQueues = getTupleQueues( key );
 
-                drainer.drain( key, tupleQueues );
+                drainer.drain( maySkipBlocking, key, tupleQueues );
                 it.remove();
 
                 if ( drainableKeys.remove( key ) )
@@ -124,7 +124,7 @@ public class TupleQueueContainer
             {
                 final PartitionKey key = it.next();
                 final TupleQueue[] tupleQueues = getTupleQueues( key );
-                drainer.drain( key, tupleQueues );
+                drainer.drain( maySkipBlocking, key, tupleQueues );
                 if ( !checkIfDrainable( tupleQueues ) )
                 {
                     it.remove();

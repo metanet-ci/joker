@@ -28,7 +28,7 @@ public class GreedyDrainer implements TupleQueueDrainer
     }
 
     @Override
-    public void drain ( final PartitionKey key, final TupleQueue[] tupleQueues )
+    public void drain ( final boolean maySkipBlocking, final PartitionKey key, final TupleQueue[] tupleQueues )
     {
         checkArgument( tupleQueues != null );
         checkArgument( tupleQueues.length == inputPortCount );

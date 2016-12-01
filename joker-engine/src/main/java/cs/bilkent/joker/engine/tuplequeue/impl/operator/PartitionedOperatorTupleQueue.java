@@ -135,12 +135,12 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
     }
 
     @Override
-    public void drain ( final TupleQueueDrainer drainer )
+    public void drain ( final boolean maySkipBlocking, final TupleQueueDrainer drainer )
     {
         while ( drainablePartitionCount > 0 )
         {
             final int partitionId = drainablePartitions[ nextDrainIndex ];
-            final int nonDrainableKeyCount = tupleQueueContainers[ partitionId ].drain( drainer );
+            final int nonDrainableKeyCount = tupleQueueContainers[ partitionId ].drain( maySkipBlocking, drainer );
 
             totalDrainableKeyCount -= nonDrainableKeyCount;
 

@@ -96,6 +96,8 @@ public class OperatorReplica
     {
     };
 
+    private boolean operatorInvokedOnLastAttempt;
+
     private int invocationCount;
 
     private int overloadedInvocationCount;
@@ -126,8 +128,8 @@ public class OperatorReplica
         this.operatorDef = operatorDef;
         this.operatorKvStore = operatorKvStore;
         this.drainerPool = drainerPool;
-        this.invocationContext = invocationContext;
         this.outputSupplier = outputSupplier;
+        this.invocationContext = invocationContext;
     }
 
     /**
@@ -184,9 +186,8 @@ public class OperatorReplica
                                                                                  upstreamConnectionStatuses );
         final SchedulingStrategy schedulingStrategy = operator.init( initContext );
         upstreamContext.verifyOrFail( operatorDef, schedulingStrategy );
-        this.schedulingStrategy = schedulingStrategy;
-        initialSchedulingStrategy = this.schedulingStrategy;
-        drainer = drainerPool.acquire( this.schedulingStrategy );
+        this.initialSchedulingStrategy = schedulingStrategy;
+        setNewSchedulingStrategy( schedulingStrategy );
         setQueueTupleCounts( schedulingStrategy );
     }
 
@@ -211,6 +212,11 @@ public class OperatorReplica
         selfUpstreamContext = new UpstreamContext( version, selfStatuses );
     }
 
+    public TuplesImpl invoke ( final TuplesImpl upstreamInput, final UpstreamContext upstreamContext )
+    {
+        return invoke( false, upstreamInput, upstreamContext );
+    }
+
     /**
      * Performs the operator invocation as described below.
      * <p>
@@ -231,6 +237,9 @@ public class OperatorReplica
      * - it performs the final invocation and moves the operator to {@link OperatorReplicaStatus#COMPLETED} status
      * if all input ports are closed.
      *
+     * @param drainerMaySkipBlocking
+     *         a boolean flag which is passed to drainer to specify if the drainer may not block for the current invocation if it is a
+     *         blocking drainer
      * @param upstreamInput
      *         input of the operator which is sent by the upstream operator
      * @param upstreamContext
@@ -238,8 +247,10 @@ public class OperatorReplica
      *
      * @return output of the operator invocation
      */
-    public TuplesImpl invoke ( final TuplesImpl upstreamInput, final UpstreamContext upstreamContext )
+    public TuplesImpl invoke ( final boolean drainerMaySkipBlocking, final TuplesImpl upstreamInput, final UpstreamContext upstreamContext )
     {
+        operatorInvokedOnLastAttempt = false;
+
         if ( status == COMPLETED )
         {
             return null;
@@ -256,9 +267,10 @@ public class OperatorReplica
         {
             overloadedInvocationCount++;
         }
+
         while ( true )
         {
-            input = drainQueueAndGetResult();
+            input = drainQueue( drainerMaySkipBlocking );
             boolean invoked = true;
             if ( status == RUNNING )
             {
@@ -286,7 +298,7 @@ public class OperatorReplica
                     completionReason = INPUT_PORT_CLOSED;
                     setNewSchedulingStrategy( ScheduleWhenAvailable.INSTANCE );
                     setQueueTupleCountsForGreedyDraining();
-                    input = drainQueueAndGetResult();
+                    input = drainQueue( drainerMaySkipBlocking );
                     if ( input != null && input.isNonEmpty() )
                     {
                         output = invokeOperator( INPUT_PORT_CLOSED, input, output, drainer.getKey() );
@@ -324,6 +336,8 @@ public class OperatorReplica
                 }
             }
 
+            operatorInvokedOnLastAttempt |= invoked;
+
             if ( singleInvocation || !invoked || status == COMPLETED )
             {
                 break;
@@ -357,10 +371,10 @@ public class OperatorReplica
         }
     }
 
-    private TuplesImpl drainQueueAndGetResult ()
+    private TuplesImpl drainQueue ( final boolean drainerMaySkipBlocking )
     {
         drainer.reset();
-        queue.drain( drainer );
+        queue.drain( drainerMaySkipBlocking, drainer );
         return drainer.getResult();
     }
 
@@ -401,6 +415,7 @@ public class OperatorReplica
         }
         schedulingStrategy = newSchedulingStrategy;
         drainer = drainerPool.acquire( schedulingStrategy );
+        LOGGER.info( "{} acquired {}", operatorName, drainer.getClass().getSimpleName() );
     }
 
     /**
@@ -595,9 +610,9 @@ public class OperatorReplica
         return status == RUNNING || status == COMPLETING;
     }
 
-    boolean isNonInvokable ()
+    boolean isOperatorInvokedOnLastAttempt ()
     {
-        return !isInvokable();
+        return operatorInvokedOnLastAttempt;
     }
 
     InvocationReason getCompletionReason ()

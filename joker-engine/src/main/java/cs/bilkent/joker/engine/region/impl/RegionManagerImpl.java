@@ -791,8 +791,9 @@ public class RegionManagerImpl implements RegionManager
 
     private TupleQueueDrainerPool createTupleQueueDrainerPool ( final OperatorDef operatorDef, final boolean isFirstOperator )
     {
-        return ( isFirstOperator && operatorDef.operatorType() != PARTITIONED_STATEFUL ) ? new BlockingTupleQueueDrainerPool( config,
-                                                                                                                              operatorDef )
+        return ( isFirstOperator && operatorDef.inputPortCount() > 0 && ( operatorDef.operatorType() == STATEFUL
+                                                                          || operatorDef.operatorType() == STATELESS ) )
+               ? new BlockingTupleQueueDrainerPool( config, operatorDef )
                : new NonBlockingTupleQueueDrainerPool( config, operatorDef );
     }
 

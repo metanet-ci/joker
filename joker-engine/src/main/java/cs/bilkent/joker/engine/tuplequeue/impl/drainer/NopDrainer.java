@@ -10,7 +10,7 @@ import cs.bilkent.joker.operator.impl.TuplesImpl;
 public class NopDrainer implements TupleQueueDrainer
 {
     @Override
-    public void drain ( @Nullable final PartitionKey key, final TupleQueue[] tupleQueues )
+    public void drain ( final boolean maySkipBlocking, @Nullable final PartitionKey key, final TupleQueue[] tupleQueues )
     {
 
     }
