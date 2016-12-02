@@ -1001,9 +1001,11 @@ public class RegionManagerImplTest extends AbstractJokerTest
             operatorRuntimeSchemaBuilder0.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field2", Integer.class );
             operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class ).addOutputField( 0, "field2", Integer.class );
             operatorRuntimeSchemaBuilder2.addInputField( 0, "field2", Integer.class )
-                                         .addInputField( 1, "field2", Integer.class )
+                                         .addInputField( 1, "field2", Integer.class ).addOutputField( 0, "field2", Integer.class )
                                          .addOutputField( 0, "field3", Integer.class );
-            operatorRuntimeSchemaBuilder3.addInputField( 0, "field3", Integer.class ).addOutputField( 0, "field3", Integer.class );
+            operatorRuntimeSchemaBuilder3.addInputField( 0, "field2", Integer.class )
+                                         .addInputField( 0, "field3", Integer.class )
+                                         .addOutputField( 0, "field3", Integer.class );
             operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithSingleInputOutputPortCount.class )
                                              .setExtendingSchema( operatorRuntimeSchemaBuilder0 )
                                              .build();

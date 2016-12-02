@@ -341,15 +341,28 @@ public class RegionFormerImplRegionDefTest extends AbstractJokerTest
     }
 
     @Test
-    public void test_PARTITIONED_STATEFUL___STATELESS ()
+    public void test_PARTITIONED_STATEFUL___STATELESS___A___AB ()
     {
         final OperatorDef operator1 = createPartitionedStatefulOperator( "o1", singletonList( "A" ) );
-        final OperatorDef operator2 = createOperator( "o2", StatelessOperator.class );
+        final OperatorDef operator2 = createOperator( "o2", StatelessOperator.class, asList( "A", "B" ), emptyList() );
 
         final List<RegionDef> regions = regionFormer.createRegions( asList( operator1, operator2 ) );
 
         assertThat( regions, hasSize( 1 ) );
         assertPartitionedStatefulRegion( regions.get( 0 ), singletonList( "A" ), asList( operator1, operator2 ) );
+    }
+
+    @Test
+    public void test_PARTITIONED_STATEFUL___STATELESS___ABC___AB ()
+    {
+        final OperatorDef operator1 = createPartitionedStatefulOperator( "o1", asList( "A", "B", "C" ) );
+        final OperatorDef operator2 = createOperator( "o2", StatelessOperator.class, asList( "A", "B" ), emptyList() );
+
+        final List<RegionDef> regions = regionFormer.createRegions( asList( operator1, operator2 ) );
+
+        assertThat( regions, hasSize( 2 ) );
+        assertPartitionedStatefulRegion( regions.get( 0 ), asList( "A", "B", "C" ), singletonList( operator1 ) );
+        assertStatelessRegion( regions.get( 1 ), singletonList( operator2 ) );
     }
 
     @Test

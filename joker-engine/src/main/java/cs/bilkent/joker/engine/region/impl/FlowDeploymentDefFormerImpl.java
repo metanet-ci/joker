@@ -17,6 +17,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.config.FlowDeploymentConfig;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.region.FlowDeploymentDef;
@@ -29,6 +30,7 @@ import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
 import cs.bilkent.joker.flow.Port;
 import cs.bilkent.joker.operator.OperatorDef;
+import cs.bilkent.joker.operator.schema.runtime.PortRuntimeSchema;
 import cs.bilkent.joker.operator.spec.OperatorType;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
@@ -109,54 +111,73 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
                                                                            final List<RegionDef> regions )
     {
         final List<List<RegionDef>> regionGroups = new ArrayList<>();
-        for ( RegionDef region : sortTopologically( operators, connections, regions ) )
+        for ( RegionDef currentRegion : sortTopologically( operators, connections, regions ) )
         {
-            if ( region.getRegionType() != STATELESS )
+            if ( currentRegion.getRegionType() != STATELESS )
             {
-                addSingletonRegionGroup( regionGroups, region );
+                addSingletonRegionGroup( regionGroups, currentRegion );
             }
             else
             {
-                final List<OperatorDef> upstreamOperators = getUpstreamOperators( operators, connections, region.getFirstOperator().id() );
+                final List<OperatorDef> upstreamOperators = getUpstreamOperators( operators,
+                                                                                  connections,
+                                                                                  currentRegion.getFirstOperator().id() );
                 if ( upstreamOperators.size() == 1 )
                 {
                     final RegionDef upstreamRegion = getRegionByLastOperator( regions, upstreamOperators.get( 0 ) );
                     final OperatorType upstreamRegionType = upstreamRegion.getRegionType();
                     if ( upstreamRegionType == STATEFUL )
                     {
-                        addSingletonRegionGroup( regionGroups, region );
+                        addSingletonRegionGroup( regionGroups, currentRegion );
                     }
                     else if ( upstreamRegionType == PARTITIONED_STATEFUL )
+                    {
+                        if ( containsAllFieldNamesOnInputPort( currentRegion, upstreamRegion.getPartitionFieldNames() ) )
+                        {
+                            boolean added = false;
+                            for ( List<RegionDef> regionGroup : regionGroups )
+                            {
+                                if ( regionGroup.get( 0 ).equals( upstreamRegion ) )
+                                {
+                                    LOGGER.debug( "Adding {} to region group {}", currentRegion, regionGroup );
+                                    regionGroup.add( currentRegion );
+                                    added = true;
+                                    break;
+                                }
+                            }
+                            checkArgument( added, "Cannot find region group of upstream {} of {}", upstreamRegion, currentRegion );
+                        }
+                        else
+                        {
+                            addSingletonRegionGroup( regionGroups, currentRegion );
+                        }
+                    }
+                    else if ( upstreamRegionType == STATELESS )
                     {
                         boolean added = false;
                         for ( List<RegionDef> regionGroup : regionGroups )
                         {
-                            if ( regionGroup.get( 0 ).equals( upstreamRegion ) )
+                            final RegionDef groupHeadRegion = regionGroup.get( 0 );
+                            if ( groupHeadRegion.getRegionType() == PARTITIONED_STATEFUL && regionGroup.contains( upstreamRegion ) )
                             {
-                                LOGGER.debug( "Adding {} to region group {}", region, regionGroup );
-                                regionGroup.add( region );
+                                if ( containsAllFieldNamesOnInputPort( currentRegion, groupHeadRegion.getPartitionFieldNames() ) )
+                                {
+                                    LOGGER.debug( "Adding {} to region group {}", currentRegion, regionGroup );
+                                    regionGroup.add( currentRegion );
+                                }
+                                else
+                                {
+                                    addSingletonRegionGroup( regionGroups, currentRegion );
+                                }
+
                                 added = true;
                                 break;
                             }
                         }
-                        checkArgument( added, "Cannot find region group of upstream {} of {}", upstreamRegion, region );
-                    }
-                    else if ( upstreamRegionType == STATELESS )
-                    {
-                        boolean newGroup = true;
-                        for ( List<RegionDef> regionGroup : regionGroups )
+
+                        if ( !added )
                         {
-                            if ( regionGroup.get( 0 ).getRegionType() == PARTITIONED_STATEFUL && regionGroup.contains( region ) )
-                            {
-                                LOGGER.debug( "Adding {} to region group {}", region, regionGroup );
-                                regionGroup.add( region );
-                                newGroup = false;
-                                break;
-                            }
-                        }
-                        if ( newGroup )
-                        {
-                            addSingletonRegionGroup( regionGroups, region );
+                            addSingletonRegionGroup( regionGroups, currentRegion );
                         }
                     }
                     else
@@ -166,12 +187,33 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
                 }
                 else
                 {
-                    addSingletonRegionGroup( regionGroups, region );
+                    addSingletonRegionGroup( regionGroups, currentRegion );
                 }
             }
         }
 
         return regionGroups.stream().map( RegionGroup::new ).collect( toList() );
+    }
+
+    private boolean containsAllFieldNamesOnInputPort ( final RegionDef region, final List<String> fieldNames )
+    {
+        for ( OperatorDef operator : region.getOperators() )
+        {
+            if ( !containsAllFieldNamesOnInputPort( operator, fieldNames ) )
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private boolean containsAllFieldNamesOnInputPort ( final OperatorDef operator, final List<String> fieldNames )
+    {
+        checkState( operator.operatorType() == STATELESS && operator.inputPortCount() == 1 );
+
+        final PortRuntimeSchema inputSchema = operator.schema().getInputSchema( 0 );
+        return fieldNames.stream().allMatch( fieldName -> inputSchema.getField( fieldName ) != null );
     }
 
     private void addSingletonRegionGroup ( final List<List<RegionDef>> regionGroups, final RegionDef region )
@@ -198,44 +240,48 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
     private void attemptToMergeRegions ( final Map<String, OperatorDef> operators, final Collection<Entry<Port, Port>> connections,
                                          final List<RegionDef> regions )
     {
-        for ( RegionDef region : regions )
+        for ( RegionDef currentRegion : regions )
         {
-            final OperatorDef firstOperator = region.getFirstOperator();
+            final OperatorDef firstOperator = currentRegion.getFirstOperator();
             final List<OperatorDef> upstreamOperators = getUpstreamOperators( operators, connections, firstOperator.id() );
             if ( upstreamOperators.size() == 1 )
             {
                 final RegionDef upstreamRegion = getRegionByLastOperator( regions, upstreamOperators.get( 0 ) );
 
-                if ( region.getRegionType() == PARTITIONED_STATEFUL )
+                if ( currentRegion.getRegionType() == PARTITIONED_STATEFUL )
                 {
                     checkArgument( upstreamRegion.getRegionType() != STATELESS,
                                    "Invalid upstream %s for downstream %s",
-                                   upstreamRegion,
-                                   region );
-                    LOGGER.debug( "Will not merge downstream {} with upstream {} with single downstream",
-                                  region.getRegionType(),
+                                   upstreamRegion, currentRegion );
+                    LOGGER.debug( "Will not merge downstream {} with upstream {} with single downstream", currentRegion.getRegionType(),
                                   upstreamRegion.getRegionType() );
                     continue;
                 }
-                else if ( region.getRegionType() == STATEFUL )
+                else if ( currentRegion.getRegionType() == STATEFUL )
                 {
                     if ( upstreamRegion.getRegionType() == PARTITIONED_STATEFUL )
                     {
-                        LOGGER.debug( "Will not merge downstream {} with upstream {} with single downstream",
-                                      region.getRegionType(),
+                        LOGGER.debug( "Will not merge downstream {} with upstream {} with single downstream", currentRegion.getRegionType(),
                                       upstreamRegion.getRegionType() );
                         continue;
                     }
                 }
+
+                // region is STATELESS
 
                 if ( getDownstreamOperators( operators, connections, upstreamRegion.getLastOperator().id() ).size() == 1 )
                 {
                     final OperatorType newRegionType;
                     if ( upstreamRegion.getRegionType() == PARTITIONED_STATEFUL )
                     {
+                        if ( !containsAllFieldNamesOnInputPort( currentRegion, upstreamRegion.getPartitionFieldNames() ) )
+                        {
+                            continue;
+                        }
+
                         newRegionType = PARTITIONED_STATEFUL;
                     }
-                    else if ( upstreamRegion.getRegionType() == STATEFUL || region.getRegionType() == STATEFUL )
+                    else if ( upstreamRegion.getRegionType() == STATEFUL || currentRegion.getRegionType() == STATEFUL )
                     {
                         newRegionType = STATEFUL;
                     }
@@ -244,14 +290,17 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
                         newRegionType = STATELESS;
                     }
 
-                    LOGGER.debug( "Downstream {} is appended to Upstream {}. New region is {}", region, upstreamRegion, newRegionType );
+                    LOGGER.debug( "Downstream {} is appended to Upstream {}. New region is {}",
+                                  currentRegion,
+                                  upstreamRegion,
+                                  newRegionType );
                     final List<OperatorDef> regionOperators = new ArrayList<>( upstreamRegion.getOperators() );
-                    regionOperators.addAll( region.getOperators() );
+                    regionOperators.addAll( currentRegion.getOperators() );
                     final RegionDef newRegion = new RegionDef( idGenerator.nextId(),
                                                                newRegionType,
                                                                upstreamRegion.getPartitionFieldNames(),
                                                                regionOperators );
-                    regions.remove( region );
+                    regions.remove( currentRegion );
                     regions.remove( upstreamRegion );
                     regions.add( newRegion );
                     break;
@@ -259,8 +308,7 @@ public class FlowDeploymentDefFormerImpl implements FlowDeploymentDefFormer
             }
             else
             {
-                LOGGER.debug( "Will not merge downstream {} since it has {} upstream regions",
-                              region.getRegionType(),
+                LOGGER.debug( "Will not merge downstream {} since it has {} upstream regions", currentRegion.getRegionType(),
                               upstreamOperators.size() );
             }
         }

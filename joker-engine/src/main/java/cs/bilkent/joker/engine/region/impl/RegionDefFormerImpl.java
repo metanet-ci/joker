@@ -16,6 +16,7 @@ import javax.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
 import cs.bilkent.joker.flow.FlowDef;
@@ -95,9 +96,22 @@ public class RegionDefFormerImpl implements RegionDefFormer
                 if ( regionType == null )
                 {
                     regionType = STATELESS;
+                    regionOperators.add( currentOperator );
                 }
-
-                regionOperators.add( currentOperator );
+                else if ( regionType == STATELESS || ( regionType == PARTITIONED_STATEFUL && containsAllFieldNamesOnInputPort(
+                        currentOperator,
+                        regionPartitionFieldNames ) ) )
+                {
+                    regionOperators.add( currentOperator );
+                }
+                else
+                {
+                    regions.add( new RegionDef( idGenerator.nextId(), regionType, regionPartitionFieldNames, regionOperators ) );
+                    regionType = STATELESS;
+                    regionPartitionFieldNames = new ArrayList<>();
+                    regionOperators = new ArrayList<>();
+                    regionOperators.add( currentOperator );
+                }
             }
             else if ( operatorType == PARTITIONED_STATEFUL )
             {
@@ -226,15 +240,10 @@ public class RegionDefFormerImpl implements RegionDefFormer
 
     private boolean containsAllFieldNamesOnInputPort ( final OperatorDef operator, final List<String> fieldNames )
     {
-        if ( operator.inputPortCount() == 1 )
-        {
-            final PortRuntimeSchema inputSchema = operator.schema().getInputSchema( 0 );
-            return fieldNames.stream().allMatch( fieldName -> inputSchema.getField( fieldName ) != null );
-        }
-        else
-        {
-            return false;
-        }
+        checkState( operator.operatorType() == STATELESS && operator.inputPortCount() == 1 );
+
+        final PortRuntimeSchema inputSchema = operator.schema().getInputSchema( 0 );
+        return fieldNames.stream().allMatch( fieldName -> inputSchema.getField( fieldName ) != null );
     }
 
     private OperatorDef removeRandomOperator ( final Set<OperatorDef> operators )

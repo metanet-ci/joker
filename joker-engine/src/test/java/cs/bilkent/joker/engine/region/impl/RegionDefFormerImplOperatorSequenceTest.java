@@ -7,8 +7,14 @@ import org.junit.Test;
 
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
+import cs.bilkent.joker.operator.InitializationContext;
+import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
+import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
+import cs.bilkent.joker.operator.spec.OperatorSpec;
+import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.joker.operators.MapperOperator;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Arrays.asList;
@@ -270,6 +276,31 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
         assertOperatorSequence( singletonList( "o5" ), operatorSequences );
     }
 
+    @Test
+    public void test9 ()
+    {
+         /*
+         *
+         *     /--\
+         *    /    \
+         * O1       > O2
+         *    \    /
+         *     \--/
+         *
+         */
+
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", StatelessOperatorWith2OutputPorts.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o2", MapperOperator.class ) );
+        flowBuilder.connect( "o1", 0, "o2" );
+        flowBuilder.connect( "o1", 1, "o2" );
+
+        final FlowDef flow = flowBuilder.build();
+
+        final Collection<List<OperatorDef>> operatorSequences = regionFormer.createOperatorSequences( flow );
+        assertThat( operatorSequences, hasSize( 1 ) );
+        assertOperatorSequence( asList( "o1", "o2" ), operatorSequences );
+    }
+
     private void assertOperatorSequence ( final List<String> expectedOperatorIds, Collection<List<OperatorDef>> operatorSequences )
     {
         final boolean sequenceExists = operatorSequences.stream().anyMatch( operatorSequence ->
@@ -283,6 +314,24 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
                                                                             } );
 
         assertTrue( sequenceExists );
+    }
+
+    @OperatorSpec( type = STATELESS, inputPortCount = 1, outputPortCount = 2 )
+    public static class StatelessOperatorWith2OutputPorts implements Operator
+    {
+
+        @Override
+        public SchedulingStrategy init ( final InitializationContext context )
+        {
+            return null;
+        }
+
+        @Override
+        public void invoke ( final InvocationContext invocationContext )
+        {
+
+        }
+
     }
 
 }

@@ -44,7 +44,7 @@ public class RegionDefFormerImplAllRegionsTest extends AbstractJokerTest
     @Test
     public void testFlowWithSingleOperatorSequence ()
     {
-        /**
+        /*
          * O1 --> O2
          */
 
@@ -63,7 +63,7 @@ public class RegionDefFormerImplAllRegionsTest extends AbstractJokerTest
     @Test
     public void testFlowWithTwoOperatorsWithMultipleConnections ()
     {
-        /**
+        /*
          *     /-\
          *    /   \
          * O1 -----> O2
@@ -90,7 +90,7 @@ public class RegionDefFormerImplAllRegionsTest extends AbstractJokerTest
     @Test
     public void testFlowWithMultipleOperatorSequences ()
     {
-        /**
+        /*
          *
          *          /--> O4
          *         /
