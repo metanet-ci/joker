@@ -280,10 +280,7 @@ public class PartitionServiceImpl implements PartitionService
     @SuppressWarnings( "OptionalGetWithoutIsPresent" )
     private List<Integer> getDestination ( final Map<Integer, List<Integer>> destinations )
     {
-        return destinations.entrySet()
-                           .stream().min( Comparator.comparingInt( this::getPartitionCount ) )
-                           .get()
-                           .getValue();
+        return destinations.entrySet().stream().min( Comparator.comparingInt( this::getPartitionCount ) ).get().getValue();
     }
 
     private boolean isNewDistributionBalanced ( final int regionId,

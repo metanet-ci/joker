@@ -382,8 +382,10 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
         final String operatorTupleQueueId = toOperatorTupleQueueId( operatorId, replicaIndex );
         final DefaultOperatorTupleQueue newOperatorTupleQueue = new DefaultOperatorTupleQueue( operatorTupleQueueId,
                                                                                                operatorTupleQueue.getInputPortCount(),
-                                                                                               newThreadingPreference, tupleQueues,
-                                                                                               tupleQueueManagerConfig.getTupleQueueCapacity() );
+                                                                                               newThreadingPreference,
+                                                                                               tupleQueues,
+                                                                                               tupleQueueManagerConfig
+                                                                                                       .getTupleQueueCapacity() );
 
         singleOperatorTupleQueues.put( tupleQueueId, newOperatorTupleQueue );
         LOGGER.info( "{} default tuple queue is switched to {} for regionId={} replicaIndex={} operatorId={}",
