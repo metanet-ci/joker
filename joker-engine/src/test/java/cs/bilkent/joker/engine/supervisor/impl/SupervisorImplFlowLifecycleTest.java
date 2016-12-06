@@ -1,7 +1,6 @@
 package cs.bilkent.joker.engine.supervisor.impl;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -25,7 +24,6 @@ import cs.bilkent.joker.engine.pipeline.impl.PipelineManagerImpl;
 import cs.bilkent.joker.engine.pipeline.impl.PipelineManagerImplTest.PartitionedStatefulOperatorInput2Output2;
 import cs.bilkent.joker.engine.pipeline.impl.PipelineManagerImplTest.StatefulOperatorInput0Output1;
 import cs.bilkent.joker.engine.pipeline.impl.PipelineManagerImplTest.StatefulOperatorInput1Output1;
-import cs.bilkent.joker.engine.region.FlowDeploymentDef;
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
@@ -48,6 +46,7 @@ import cs.bilkent.joker.operator.spec.OperatorSpec;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import cs.bilkent.joker.test.AbstractJokerTest;
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -82,9 +81,7 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
         final RegionConfig regionConfig1 = new RegionConfig( regions.get( 0 ), singletonList( 0 ), 1 );
         final RegionConfig regionConfig2 = new RegionConfig( regions.get( 1 ), singletonList( 0 ), 1 );
 
-        final FlowDeploymentDef flowDeployment = new FlowDeploymentDef( flowDef, regions );
-
-        supervisor.start( flowDeployment, Arrays.asList( regionConfig1, regionConfig2 ) );
+        supervisor.start( flowDef, regions, asList( regionConfig1, regionConfig2 ) );
 
         for ( Pipeline pipeline : pipelineManager.getPipelines() )
         {
@@ -124,9 +121,7 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
             regionConfigs.add( new RegionConfig( region, singletonList( 0 ), replicaCount ) );
         }
 
-        final FlowDeploymentDef flowDeployment = new FlowDeploymentDef( flowDef, regions );
-
-        supervisor.start( flowDeployment, regionConfigs );
+        supervisor.start( flowDef, regions, regionConfigs );
 
         supervisor.shutdown().get( 30, TimeUnit.SECONDS );
     }
@@ -143,11 +138,9 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
         final RegionConfig regionConfig1 = new RegionConfig( regions.get( 0 ), singletonList( 0 ), 1 );
         final RegionConfig regionConfig2 = new RegionConfig( regions.get( 1 ), singletonList( 0 ), 1 );
 
-        final FlowDeploymentDef flowDeployment = new FlowDeploymentDef( flowDef, regions );
-
         try
         {
-            supervisor.start( flowDeployment, Arrays.asList( regionConfig1, regionConfig2 ) );
+            supervisor.start( flowDef, regions, asList( regionConfig1, regionConfig2 ) );
             fail();
         }
         catch ( InitializationException e )
@@ -170,9 +163,7 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
         final RegionConfig regionConfig1 = new RegionConfig( regions.get( 0 ), singletonList( 0 ), 1 );
         final RegionConfig regionConfig2 = new RegionConfig( regions.get( 1 ), singletonList( 0 ), 1 );
 
-        final FlowDeploymentDef flowDeployment = new FlowDeploymentDef( flowDef, regions );
-
-        supervisor.start( flowDeployment, Arrays.asList( regionConfig1, regionConfig2 ) );
+        supervisor.start( flowDef, regions, asList( regionConfig1, regionConfig2 ) );
         assertTrueEventually( () -> assertEquals( FlowStatus.SHUT_DOWN, supervisor.getFlowStatus() ) );
 
         supervisor.shutdown().get( 30, TimeUnit.SECONDS );
@@ -190,9 +181,7 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
         final RegionConfig regionConfig1 = new RegionConfig( regions.get( 0 ), singletonList( 0 ), 1 );
         final RegionConfig regionConfig2 = new RegionConfig( regions.get( 1 ), singletonList( 0 ), 1 );
 
-        final FlowDeploymentDef flowDeployment = new FlowDeploymentDef( flowDef, regions );
-
-        supervisor.start( flowDeployment, Arrays.asList( regionConfig1, regionConfig2 ) );
+        supervisor.start( flowDef, regions, asList( regionConfig1, regionConfig2 ) );
 
         supervisor.shutdown().get( 30, TimeUnit.SECONDS );
     }

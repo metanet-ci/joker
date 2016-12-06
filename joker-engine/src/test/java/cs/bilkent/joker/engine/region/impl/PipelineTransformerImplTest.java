@@ -8,6 +8,7 @@ import cs.bilkent.joker.engine.config.JokerConfig;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.SINGLE_THREADED;
 import cs.bilkent.joker.engine.kvstore.impl.OperatorKVStoreManagerImpl;
+import cs.bilkent.joker.engine.partition.PartitionKeyExtractorFactory;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
 import cs.bilkent.joker.engine.partition.impl.PartitionServiceImpl;
@@ -74,11 +75,14 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
 
     private final PipelineTransformer pipelineTransformer = new PipelineTransformerImpl( config, operatorTupleQueueManager );
 
+    private final PartitionKeyExtractorFactory partitionKeyExtractorFactory = new PartitionKeyExtractorFactoryImpl();
+
     private final RegionManagerImpl regionManager = new RegionManagerImpl( config,
                                                                            partitionService,
                                                                            operatorKVStoreManager,
                                                                            operatorTupleQueueManager,
-                                                                           pipelineTransformer );
+                                                                           pipelineTransformer,
+                                                                           partitionKeyExtractorFactory );
 
     @Test
     public void shouldMergeAllPipelinesOfStatefulRegion ()

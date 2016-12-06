@@ -251,6 +251,12 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
         return true;
     }
 
+    @Override
+    public void ensureCapacity ( final int capacity )
+    {
+
+    }
+
     int getTotalDrainableKeyCount ()
     {
         return totalDrainableKeyCount;

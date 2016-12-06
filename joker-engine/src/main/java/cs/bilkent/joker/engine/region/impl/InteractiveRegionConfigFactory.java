@@ -3,7 +3,6 @@ package cs.bilkent.joker.engine.region.impl;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -16,9 +15,9 @@ import com.google.common.base.Splitter;
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.exception.InitializationException;
-import cs.bilkent.joker.engine.region.FlowDeploymentDef.RegionGroup;
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
+import static cs.bilkent.joker.engine.util.ExceptionUtils.checkInterruption;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.spec.OperatorType;
 import static java.util.stream.Collectors.toList;
@@ -49,40 +48,23 @@ public class InteractiveRegionConfigFactory extends AbstractRegionConfigFactory
     }
 
     @Override
-    protected List<RegionConfig> createRegionConfigs ( final RegionGroup regionGroup )
+    protected RegionConfig createRegionConfig ( final RegionDef regionDef )
     {
-        checkArgument( regionGroup != null, "null region group!" );
-        final List<RegionDef> regions = regionGroup.getRegions();
-        checkArgument( regions != null && regions.size() > 0, "no region definitions!" );
+        checkArgument( regionDef != null, "null region def!" );
 
         try
         {
-            System.out.println( "Region config with first " + regions.get( 0 ).getRegionType() + " region..." );
-            final int replicaCount = readReplicaCount( regions );
+            System.out.println( "Region config for " + regionDef.getRegionType() + " region..." );
+            final int replicaCount = readReplicaCount( regionDef );
+            final List<Integer> pipelineStartIndices = readPipelineStartIndices( regionDef );
 
-            final List<List<Integer>> pipelineStartIndicesList = new ArrayList<>();
-            for ( RegionDef region : regions )
-            {
-                pipelineStartIndicesList.add( readPipelineStartIndices( region ) );
-            }
-
-            final List<RegionConfig> regionConfigs = new ArrayList<>( regions.size() );
-            for ( int i = 0; i < regions.size(); i++ )
-            {
-                regionConfigs.add( new RegionConfig( regions.get( 0 ), pipelineStartIndicesList.get( i ), replicaCount ) );
-            }
-
-            return regionConfigs;
+            return new RegionConfig( regionDef, pipelineStartIndices, replicaCount );
         }
         catch ( Exception e )
         {
-            if ( e.getCause() instanceof InterruptedException )
-            {
-                Thread.currentThread().interrupt();
-            }
-            throw new InitializationException( "create region configs failed for " + regionGroup, e );
+            checkInterruption( e );
+            throw new InitializationException( "create region configs failed for " + regionDef, e );
         }
-
     }
 
     private List<Integer> readPipelineStartIndices ( final RegionDef region ) throws IOException
@@ -121,10 +103,10 @@ public class InteractiveRegionConfigFactory extends AbstractRegionConfigFactory
         return pipelineStartIndices;
     }
 
-    private int readReplicaCount ( final List<RegionDef> regions ) throws IOException
+    private int readReplicaCount ( final RegionDef regionDef ) throws IOException
     {
         final int replicaCount;
-        if ( regions.get( 0 ).getRegionType() == OperatorType.PARTITIONED_STATEFUL )
+        if ( regionDef.getRegionType() == OperatorType.PARTITIONED_STATEFUL )
         {
             System.out.println( "Enter replica count: " );
             replicaCount = Integer.parseInt( br.readLine() );
@@ -133,7 +115,7 @@ public class InteractiveRegionConfigFactory extends AbstractRegionConfigFactory
         else
         {
             replicaCount = 1;
-            System.out.println( "Replica count is " + replicaCount + " since " + regions.get( 0 ).getRegionType() + " region" );
+            System.out.println( "Replica count is " + replicaCount + " since " + regionDef.getRegionType() + " region" );
         }
 
         return replicaCount;

@@ -1,4 +1,4 @@
-package cs.bilkent.joker.engine.pipeline.impl;
+package cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -7,8 +7,6 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 import cs.bilkent.joker.engine.exception.JokerException;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSenderFailureFlag;
-import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.DownstreamTupleSender1;
-import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.DownstreamTupleSenderN;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -116,7 +114,8 @@ public class DownstreamTupleSendersTest extends AbstractJokerTest
     private void setMock ( final int sourcePortIndex, final int destinationPortIndex, final int offerResult )
     {
         when( operatorTupleQueue.offer( destinationPortIndex,
-                                        tuples.getTuplesModifiable( sourcePortIndex ), 0 ) ).thenReturn( offerResult );
+                                        tuples.getTuplesModifiable( sourcePortIndex ),
+                                        0 ) ).thenReturn( offerResult );
     }
 
     private void verifyMock ( final String key, final Object val, final int destinationPortIndex )

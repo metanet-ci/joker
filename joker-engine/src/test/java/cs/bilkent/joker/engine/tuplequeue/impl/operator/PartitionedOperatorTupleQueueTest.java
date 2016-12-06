@@ -1,17 +1,14 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.operator;
 
 import java.util.List;
-import java.util.function.Function;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractor1;
-import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.impl.TupleQueueContainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.NonBlockingMultiPortDisjunctiveDrainer;
-import cs.bilkent.joker.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import cs.bilkent.joker.operator.Tuple;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ANY_PORT;
@@ -35,9 +32,7 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
     @Before
     public void init ()
     {
-        final Function<Integer, TupleQueue> tupleQueueConstructor = ( portIndex ) -> new SingleThreadedTupleQueue( 10 );
-
-        final TupleQueueContainer container = new TupleQueueContainer( "op1", INPUT_PORT_COUNT, 0, tupleQueueConstructor );
+        final TupleQueueContainer container = new TupleQueueContainer( "op1", INPUT_PORT_COUNT, 0 );
         operatorTupleQueue = new PartitionedOperatorTupleQueue( "op1",
                                                                 INPUT_PORT_COUNT,
                                                                 PARTITION_COUNT,

@@ -89,6 +89,11 @@ public class RegionConfig
         return getOperatorDefsByPipelineId( pipelineId ).length;
     }
 
+    public int getOperatorCountByPipelineIndex ( final int pipelineIndex )
+    {
+        return getOperatorDefsByPipelineIndex( pipelineIndex ).length;
+    }
+
     public OperatorDef[] getOperatorDefsByPipelineIndex ( final int pipelineIndex )
     {
         final List<OperatorDef> operators = regionDef.getOperators();

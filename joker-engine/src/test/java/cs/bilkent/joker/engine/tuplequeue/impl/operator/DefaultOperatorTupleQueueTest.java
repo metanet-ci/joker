@@ -2,7 +2,6 @@ package cs.bilkent.joker.engine.tuplequeue.impl.operator;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.function.Function;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,46 +30,34 @@ public class DefaultOperatorTupleQueueTest extends AbstractJokerTest
 
     private static final int TUPLE_QUEUE_SIZE = 2;
 
-    @Parameters( name = "constructor={0}, threadingPreference={1}" )
+    @Parameters( name = "threadingPreference={0}" )
     public static Collection<Object[]> data ()
     {
-        final Function<Integer, TupleQueue> c0 = ( portIndex ) -> new SingleThreadedTupleQueue( TUPLE_QUEUE_SIZE );
-        final Function<Integer, TupleQueue> c1 = ( portIndex ) -> new MultiThreadedTupleQueue( TUPLE_QUEUE_SIZE );
-        return asList( new Object[][] { { c0, SINGLE_THREADED }, { c1, MULTI_THREADED } } );
+        return asList( new Object[][] { { SINGLE_THREADED }, { MULTI_THREADED } } );
     }
-
-    private final Function<Integer, TupleQueue> tupleQueueConstructor;
 
     private final ThreadingPreference threadingPreference;
 
-    public DefaultOperatorTupleQueueTest ( final Function<Integer, TupleQueue> tupleQueueConstructor,
-                                           final ThreadingPreference threadingPreference )
+    public DefaultOperatorTupleQueueTest ( final ThreadingPreference threadingPreference )
     {
-        this.tupleQueueConstructor = tupleQueueConstructor;
         this.threadingPreference = threadingPreference;
     }
 
     @Test
     public void shouldOfferSinglePortTuples ()
     {
-        testOfferTuples( tupleQueueConstructor, 1, threadingPreference );
+        testOfferTuples( 1, threadingPreference );
     }
 
     @Test
     public void shouldOfferMultiPortTuples ()
     {
-        testOfferTuples( tupleQueueConstructor, 2, threadingPreference );
+        testOfferTuples( 2, threadingPreference );
     }
 
-    private void testOfferTuples ( final Function<Integer, TupleQueue> tupleQueueConstructor,
-                                   final int inputPortCount,
-                                   final ThreadingPreference threadingPreference )
+    private void testOfferTuples ( final int inputPortCount, final ThreadingPreference threadingPreference )
     {
-        final OperatorTupleQueue operatorTupleQueue = new DefaultOperatorTupleQueue( "op1",
-                                                                                     inputPortCount,
-                                                                                     threadingPreference,
-                                                                                     tupleQueueConstructor,
-                                                                                     Integer.MAX_VALUE );
+        final OperatorTupleQueue operatorTupleQueue = createOperatorTupleQueue( inputPortCount, threadingPreference );
 
         final TuplesImpl input = createTuples( inputPortCount, TUPLE_QUEUE_SIZE );
 
@@ -85,6 +72,18 @@ public class DefaultOperatorTupleQueueTest extends AbstractJokerTest
         operatorTupleQueue.drain( drainer );
 
         assertTuples( inputPortCount, TUPLE_QUEUE_SIZE, drainer );
+    }
+
+    private OperatorTupleQueue createOperatorTupleQueue ( final int inputPortCount, final ThreadingPreference threadingPreference )
+    {
+        final TupleQueue[] tupleQueues = new TupleQueue[ inputPortCount ];
+        for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
+        {
+            tupleQueues[ portIndex ] = threadingPreference == SINGLE_THREADED
+                                       ? new SingleThreadedTupleQueue( TUPLE_QUEUE_SIZE )
+                                       : new MultiThreadedTupleQueue( TUPLE_QUEUE_SIZE );
+        }
+        return new DefaultOperatorTupleQueue( "op1", inputPortCount, threadingPreference, tupleQueues, Integer.MAX_VALUE );
     }
 
     private TuplesImpl createTuples ( final int inputPortCount, final int tupleCount )

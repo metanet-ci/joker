@@ -33,6 +33,11 @@ public class Region
         return config;
     }
 
+    public RegionDef getRegionDef ()
+    {
+        return config.getRegionDef();
+    }
+
     public PipelineReplica[] getReplicaPipelines ( final int replicaIndex )
     {
         final PipelineReplica[] p = new PipelineReplica[ config.getPipelineCount() ];

@@ -22,7 +22,6 @@ import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
-import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -102,6 +101,17 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
     }
 
     @Test
+    public void shouldCompletePauseWhenRunAfterwards ()
+    {
+        final CompletableFuture<Boolean> future = runner.pause();
+        runner.resume();
+
+        thread.start();
+
+        assertTrue( future.isDone() );
+    }
+
+    @Test
     public void shouldPauseWhileRunning () throws ExecutionException, InterruptedException
     {
         thread.start();
@@ -117,21 +127,6 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
         thread.start();
 
         runner.stop().get();
-
-        assertTrueEventually( () -> assertEquals( COMPLETED, runner.getStatus() ) );
-    }
-
-    @Test
-    public void shouldDrainStatelessTuplesWhileRunning () throws ExecutionException, InterruptedException
-    {
-        when( operator.getOperatorType() ).thenReturn( STATELESS );
-        final OperatorTupleQueue operatorTupleQueue = mock( OperatorTupleQueue.class );
-        when( operator.getQueue() ).thenReturn( operatorTupleQueue );
-        when( operatorTupleQueue.isEmpty() ).thenReturn( true );
-
-        thread.start();
-
-        runner.drainStatelessOperatorsAndStop().get();
 
         assertTrueEventually( () -> assertEquals( COMPLETED, runner.getStatus() ) );
     }

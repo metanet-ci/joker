@@ -100,9 +100,10 @@ public class SingleThreadedTupleQueue implements TupleQueue
         queue.clear();
     }
 
-    public MultiThreadedTupleQueue toMultiThreadedTupleQueue ( final int initialCapacity )
+    @Override
+    public boolean ensureCapacity ( final int capacity )
     {
-        return new MultiThreadedTupleQueue( initialCapacity, this.queue );
+        return false;
     }
 
 }

@@ -7,44 +7,42 @@ import javax.inject.Inject;
 
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.pipeline.PipelineId;
-import cs.bilkent.joker.engine.region.FlowDeploymentDef;
-import cs.bilkent.joker.engine.region.FlowDeploymentDefFormer;
+import cs.bilkent.joker.engine.region.FlowDefOptimizer;
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionConfigFactory;
 import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
 import cs.bilkent.joker.engine.supervisor.impl.SupervisorImpl;
 import cs.bilkent.joker.flow.FlowDef;
+import cs.bilkent.joker.utils.Pair;
 
 public class JokerEngine
 {
 
     private final RegionDefFormer regionDefFormer;
 
-    private final FlowDeploymentDefFormer flowDeploymentDefFormer;
+    private final FlowDefOptimizer flowDefOptimizer;
 
     private final RegionConfigFactory regionConfigFactory;
 
     private final SupervisorImpl supervisor;
 
     @Inject
-    public JokerEngine ( final RegionDefFormer regionDefFormer,
-                         final FlowDeploymentDefFormer flowDeploymentDefFormer,
+    public JokerEngine ( final RegionDefFormer regionDefFormer, final FlowDefOptimizer flowDefOptimizer,
                          final RegionConfigFactory regionConfigFactory,
                          final SupervisorImpl supervisor )
     {
         this.regionDefFormer = regionDefFormer;
-        this.flowDeploymentDefFormer = flowDeploymentDefFormer;
+        this.flowDefOptimizer = flowDefOptimizer;
         this.regionConfigFactory = regionConfigFactory;
         this.supervisor = supervisor;
     }
 
     public void run ( final FlowDef flow ) throws InitializationException
     {
-        final List<RegionDef> regions = regionDefFormer.createRegions( flow );
-        final FlowDeploymentDef flowDeployment = flowDeploymentDefFormer.createFlowDeploymentDef( flow, regions );
-        final List<RegionConfig> regionConfigs = regionConfigFactory.createRegionConfigs( flowDeployment );
-        supervisor.start( flowDeployment, regionConfigs );
+        final Pair<FlowDef, List<RegionDef>> result = flowDefOptimizer.optimize( flow, regionDefFormer.createRegions( flow ) );
+        final List<RegionConfig> regionConfigs = regionConfigFactory.createRegionConfigs( result._2 );
+        supervisor.start( result._1, result._2, regionConfigs );
     }
 
     public FlowStatus getStatus ()

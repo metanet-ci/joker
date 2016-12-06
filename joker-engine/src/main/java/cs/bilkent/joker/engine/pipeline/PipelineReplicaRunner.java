@@ -1,7 +1,5 @@
 package cs.bilkent.joker.engine.pipeline;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -12,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.config.JokerConfig;
-import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerCommandType.DRAIN_STATELESS_OPERATORS;
 import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerCommandType.PAUSE;
 import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerCommandType.RESUME;
 import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerCommandType.STOP;
@@ -21,11 +18,8 @@ import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineRep
 import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.PAUSED;
 import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.RUNNING;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
-import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleNever;
-import cs.bilkent.joker.operator.spec.OperatorType;
-import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import static java.lang.Boolean.TRUE;
 
 /**
@@ -61,8 +55,6 @@ public class PipelineReplicaRunner implements Runnable
     private Future<Void> downstreamTuplesFuture;
 
     private PipelineReplicaRunnerStatus status = RUNNING;
-
-    private boolean drainStatelessOperators;
 
     private volatile PipelineReplicaRunnerCommand command;
 
@@ -307,16 +299,6 @@ public class PipelineReplicaRunner implements Runnable
                     LOGGER.info( "{}: there is pending {} command already", id, type, STOP );
                     result = command.future;
                 }
-                else if ( type == DRAIN_STATELESS_OPERATORS )
-                {
-                    checkState( status == RUNNING,
-                                "Pipeline %s cannot be stopped since its status is %s and pending command is %s",
-                                id,
-                                status,
-                                type );
-                    LOGGER.info( "{}: using pending {} command's future for {}", id, type, STOP );
-                    result = command.future;
-                }
                 else
                 {
                     // UNKNOWN COMMAND
@@ -380,59 +362,6 @@ public class PipelineReplicaRunner implements Runnable
             {
                 LOGGER.info( "{}: there is already pending command {}", id, command.type );
                 result = command.future;
-            }
-        }
-
-        return result;
-    }
-
-    CompletableFuture<Boolean> drainStatelessOperatorsAndStop ()
-    {
-        final CompletableFuture<Boolean> result;
-        synchronized ( monitor )
-        {
-            PipelineReplicaRunnerCommand command = this.command;
-            final PipelineReplicaRunnerStatus status = this.status;
-            if ( command != null )
-            {
-                final PipelineReplicaRunnerCommandType type = command.type;
-                if ( type == PAUSE || type == UPDATE_PIPELINE_UPSTREAM_CONTEXT || type == STOP )
-                {
-                    checkState( status == RUNNING,
-                                "Pipeline %s cannot be drained since its status is %s and pending command is %s",
-                                id,
-                                status,
-                                type );
-                    LOGGER.info( "{}: switching pending {} command to {}", id, type, DRAIN_STATELESS_OPERATORS );
-                    command = new PipelineReplicaRunnerCommand( STOP, command.future );
-                    this.command = command;
-                    result = command.future;
-                }
-                else
-                {
-                    // RESUME OR UNKNOWN COMMAND
-                    LOGGER.error( "{}: {} failed since there is a pending {} command", id, DRAIN_STATELESS_OPERATORS, type );
-                    result = new CompletableFuture<>();
-                    command.future.thenRun( () -> result.completeExceptionally( new IllegalStateException( id + ": "
-                                                                                                           + DRAIN_STATELESS_OPERATORS
-                                                                                                           + " failed since there "
-                                                                                                           + "is a pending " + type
-                                                                                                           + " command" ) ) );
-                }
-            }
-            else if ( status == RUNNING )
-            {
-                LOGGER.info( "{}: {} command is set", id, DRAIN_STATELESS_OPERATORS );
-                command = new PipelineReplicaRunnerCommand( DRAIN_STATELESS_OPERATORS );
-                this.command = command;
-                result = command.future;
-            }
-            else
-            {
-                LOGGER.error( "{}: {} failed since status is {}", id, DRAIN_STATELESS_OPERATORS, status );
-                result = new CompletableFuture<>();
-                result.completeExceptionally( new IllegalStateException( id + ": " + DRAIN_STATELESS_OPERATORS + " failed since status is "
-                                                                         + status ) );
             }
         }
 
@@ -520,13 +449,6 @@ public class PipelineReplicaRunner implements Runnable
                     LOGGER.info( "{}: stopping while {}", id, status );
                     status = COMPLETED;
                 }
-                else if ( commandType == DRAIN_STATELESS_OPERATORS )
-                {
-                    update( pipelineUpstreamContext, downstreamTupleSender );
-                    LOGGER.info( "{}: drain-stopping while {}", id, status );
-                    drainStatelessOperators = true;
-                    status = COMPLETED;
-                }
                 else if ( status == RUNNING )
                 {
                     if ( commandType == PAUSE )
@@ -607,11 +529,6 @@ public class PipelineReplicaRunner implements Runnable
     {
         LOGGER.info( "{}: completing the run", id );
 
-        if ( !pipeline.isCompleted() && drainStatelessOperators )
-        {
-            doDrainStatelessOperators();
-        }
-
         awaitDownstreamTuplesFuture();
         LOGGER.info( "{}: all downstream tuples are sent", id );
 
@@ -626,7 +543,7 @@ public class PipelineReplicaRunner implements Runnable
             if ( command != null )
             {
                 final PipelineReplicaRunnerCommandType type = command.type;
-                if ( type == STOP || type == DRAIN_STATELESS_OPERATORS )
+                if ( type == STOP )
                 {
                     LOGGER.info( "{}: completing command with type: {}", id, type );
                     command.complete();
@@ -640,46 +557,6 @@ public class PipelineReplicaRunner implements Runnable
             }
             this.status = COMPLETED;
         }
-    }
-
-    private void doDrainStatelessOperators ()
-    {
-        LOGGER.info( "{}: Starting draining stateless operators", id );
-        final List<OperatorTupleQueue> statelessOperatorTupleQueues = collectOperatorTupleQueues( STATELESS );
-
-        while ( checkOperatorTupleQueuesNonEmpty( statelessOperatorTupleQueues ) )
-        {
-            sendToDownstream( pipeline.invoke( STATELESS ) );
-        }
-
-        LOGGER.info( "{}: Completed draining stateless operators", id );
-    }
-
-    private List<OperatorTupleQueue> collectOperatorTupleQueues ( final OperatorType operatorType )
-    {
-        final List<OperatorTupleQueue> operatorTupleQueues = new ArrayList<>();
-        for ( OperatorReplica operatorReplica : pipeline.getOperators() )
-        {
-            if ( operatorReplica.getOperatorType() == operatorType )
-            {
-                operatorTupleQueues.add( operatorReplica.getQueue() );
-            }
-        }
-
-        return operatorTupleQueues;
-    }
-
-    private boolean checkOperatorTupleQueuesNonEmpty ( final List<OperatorTupleQueue> operatorTupleQueues )
-    {
-        for ( int i = 0; i < operatorTupleQueues.size(); i++ )
-        {
-            if ( !operatorTupleQueues.get( i ).isEmpty() )
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private void sendToDownstream ( final TuplesImpl output )
@@ -713,7 +590,7 @@ public class PipelineReplicaRunner implements Runnable
 
     enum PipelineReplicaRunnerCommandType
     {
-        PAUSE, RESUME, STOP, UPDATE_PIPELINE_UPSTREAM_CONTEXT, DRAIN_STATELESS_OPERATORS
+        PAUSE, RESUME, STOP, UPDATE_PIPELINE_UPSTREAM_CONTEXT
     }
 
 

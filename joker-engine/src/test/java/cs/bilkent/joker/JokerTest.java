@@ -1,6 +1,5 @@
 package cs.bilkent.joker;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
@@ -17,7 +16,6 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import cs.bilkent.joker.Joker.JokerBuilder;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.pipeline.PipelineId;
-import cs.bilkent.joker.engine.region.FlowDeploymentDef.RegionGroup;
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.region.impl.AbstractRegionConfigFactory;
@@ -330,54 +328,6 @@ public class JokerTest extends AbstractJokerTest
 
     @Category( SlowTest.class )
     @Test
-    public void testEndToEndSystemWithRebalancingRegionsWithStaticFlowOptimization () throws InterruptedException, ExecutionException,
-                                                                                                         TimeoutException
-    {
-        final FlowExample2 flowExample = new FlowExample2();
-
-        final JokerConfig jokerConfig = new JokerConfig();
-        final StaticRegionConfigFactory regionConfigFactory = new StaticRegionConfigFactory( jokerConfig,
-                                                                                             PARTITIONED_STATEFUL_REGION_REPLICA_COUNT );
-        final Joker joker = new JokerBuilder().setRegionConfigFactory( regionConfigFactory ).setJokerConfig( jokerConfig ).build();
-
-        joker.run( flowExample.flow );
-
-        sleepUninterruptibly( 5, SECONDS );
-
-        joker.rebalanceRegion( 1, PARTITIONED_STATEFUL_REGION_REPLICA_COUNT / 2 ).get( 1500, SECONDS );
-
-        sleepUninterruptibly( 5, SECONDS );
-
-        joker.rebalanceRegion( 1, PARTITIONED_STATEFUL_REGION_REPLICA_COUNT ).get( 1500, SECONDS );
-
-        sleepUninterruptibly( 20, SECONDS );
-
-        joker.shutdown().get( 60, SECONDS );
-
-        System.out.println( "Value generator 1 is invoked " + flowExample.valueGenerator1.invocationCount.get() + " times." );
-        System.out.println( "Value generator 2 is invoked " + flowExample.valueGenerator2.invocationCount.get() + " times." );
-        System.out.println( "Collector1 is invoked " + flowExample.valueCollector1.invocationCount.get() + " times." );
-        System.out.println( "Collector2 is invoked " + flowExample.valueCollector2.invocationCount.get() + " times." );
-        System.out.println( "Collector3 is invoked " + flowExample.valueCollector3.invocationCount.get() + " times." );
-        System.out.println( "Collector4 is invoked " + flowExample.valueCollector4.invocationCount.get() + " times." );
-
-        for ( int i = 0; i < flowExample.valueCollector1.values.length(); i++ )
-        {
-            final int expected = ( flowExample.valueGenerator1.generatedValues[ i ].intValue()
-                                   + flowExample.valueGenerator2.generatedValues[ i ].intValue() ) * MULTIPLIER_VALUE;
-            final int actual1 = flowExample.valueCollector1.values.get( i );
-            final int actual2 = flowExample.valueCollector2.values.get( i );
-            final int actual3 = flowExample.valueCollector3.values.get( i );
-            final int actual4 = flowExample.valueCollector4.values.get( i );
-            assertEquals( expected, actual1 );
-            assertEquals( expected, actual2 );
-            assertEquals( expected, actual3 );
-            assertEquals( expected, actual4 );
-        }
-    }
-
-    @Category( SlowTest.class )
-    @Test
     public void testEndToEndSystemWithRebalancingRegionsAndMergingSplittingPipelines () throws InterruptedException, ExecutionException,
                                                                                                            TimeoutException
     {
@@ -434,25 +384,13 @@ public class JokerTest extends AbstractJokerTest
         }
 
         @Override
-        protected List<RegionConfig> createRegionConfigs ( final RegionGroup regionGroup )
+        protected RegionConfig createRegionConfig ( final RegionDef regionDef )
         {
-            final List<RegionDef> regions = regionGroup.getRegions();
-            final int replicaCount = regions.get( 0 ).getRegionType() == PARTITIONED_STATEFUL ? this.replicaCount : 1;
-            final List<List<Integer>> pipelineStartIndicesList = new ArrayList<>();
-            for ( RegionDef region : regions )
-            {
-                final int operatorCount = region.getOperatorCount();
-                final List<Integer> pipelineStartIndices = operatorCount == 1 ? singletonList( 0 ) : asList( 0, operatorCount / 2 );
-                pipelineStartIndicesList.add( pipelineStartIndices );
-            }
+            final int replicaCount = regionDef.getRegionType() == PARTITIONED_STATEFUL ? this.replicaCount : 1;
+            final int operatorCount = regionDef.getOperatorCount();
+            final List<Integer> pipelineStartIndices = operatorCount == 1 ? singletonList( 0 ) : asList( 0, operatorCount / 2 );
 
-            final List<RegionConfig> regionConfigs = new ArrayList<>( regions.size() );
-            for ( int i = 0; i < regions.size(); i++ )
-            {
-                regionConfigs.add( new RegionConfig( regions.get( i ), pipelineStartIndicesList.get( i ), replicaCount ) );
-            }
-
-            return regionConfigs;
+            return new RegionConfig( regionDef, pipelineStartIndices, replicaCount );
         }
     }
 
@@ -469,23 +407,10 @@ public class JokerTest extends AbstractJokerTest
         }
 
         @Override
-        protected List<RegionConfig> createRegionConfigs ( final RegionGroup regionGroup )
+        protected RegionConfig createRegionConfig ( final RegionDef regionDef )
         {
-            final List<RegionDef> regions = regionGroup.getRegions();
-            final int replicaCount = regions.get( 0 ).getRegionType() == PARTITIONED_STATEFUL ? this.replicaCount : 1;
-            final List<List<Integer>> pipelineStartIndicesList = new ArrayList<>();
-            for ( RegionDef ignored : regions )
-            {
-                pipelineStartIndicesList.add( singletonList( 0 ) );
-            }
-
-            final List<RegionConfig> regionConfigs = new ArrayList<>( regions.size() );
-            for ( int i = 0; i < regions.size(); i++ )
-            {
-                regionConfigs.add( new RegionConfig( regions.get( i ), pipelineStartIndicesList.get( i ), replicaCount ) );
-            }
-
-            return regionConfigs;
+            final int replicaCount = regionDef.getRegionType() == PARTITIONED_STATEFUL ? this.replicaCount : 1;
+            return new RegionConfig( regionDef, singletonList( 0 ), replicaCount );
         }
     }
 

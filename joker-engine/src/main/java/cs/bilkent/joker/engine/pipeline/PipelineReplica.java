@@ -29,7 +29,6 @@ import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
-import cs.bilkent.joker.operator.spec.OperatorType;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import cs.bilkent.joker.utils.Pair;
 import static java.util.stream.Collectors.toList;
@@ -288,37 +287,6 @@ public class PipelineReplica
             tuples = operator.invoke( drainerMaySkipBlocking, tuples, upstreamContext );
             upstreamContext = operator.getSelfUpstreamContext();
             invoked |= operator.isOperatorInvokedOnLastAttempt();
-        }
-
-        drainerMaySkipBlocking = invoked;
-
-        return tuples;
-    }
-
-    public TuplesImpl invoke ( final OperatorType operatorType )
-    {
-        OperatorReplica operator;
-        upstreamDrainer.reset();
-        pipelineTupleQueue.drain( drainerMaySkipBlocking, upstreamDrainer );
-        TuplesImpl tuples = upstreamDrainer.getResult();
-        UpstreamContext upstreamContext = this.pipelineUpstreamContext;
-
-        boolean invoked = false;
-        for ( int i = 0; i < operatorCount; i++ )
-        {
-            operator = operators[ i ];
-            if ( operator.getOperatorType() == operatorType )
-            {
-                tuples = operator.invoke( drainerMaySkipBlocking, tuples, upstreamContext );
-                invoked |= ( tuples != null );
-            }
-            else
-            {
-                operator.offer( tuples );
-                tuples = null;
-            }
-
-            upstreamContext = operator.getSelfUpstreamContext();
         }
 
         drainerMaySkipBlocking = invoked;

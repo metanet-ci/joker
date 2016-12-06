@@ -26,7 +26,6 @@ import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDo
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
-import cs.bilkent.joker.engine.supervisor.Supervisor;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
@@ -69,15 +68,12 @@ public class PipelineManagerImplTest extends AbstractJokerTest
 
     private PipelineManagerImpl pipelineManager;
 
-    private Supervisor supervisor;
-
     @Before
     public void init ()
     {
         final Injector injector = Guice.createInjector( new JokerModule( jokerConfig ) );
         regionDefFormer = injector.getInstance( RegionDefFormer.class );
         pipelineManager = (PipelineManagerImpl) injector.getInstance( PipelineManager.class );
-        supervisor = injector.getInstance( Supervisor.class );
     }
 
     @Test

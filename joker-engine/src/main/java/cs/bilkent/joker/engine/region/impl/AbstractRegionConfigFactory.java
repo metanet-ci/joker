@@ -5,11 +5,10 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.config.JokerConfig;
-import cs.bilkent.joker.engine.region.FlowDeploymentDef;
-import cs.bilkent.joker.engine.region.FlowDeploymentDef.RegionGroup;
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionConfigFactory;
 import cs.bilkent.joker.engine.region.RegionDef;
+import static cs.bilkent.joker.engine.util.ExceptionUtils.checkInterruption;
 import cs.bilkent.joker.operator.OperatorDef;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 
@@ -20,37 +19,26 @@ public abstract class AbstractRegionConfigFactory implements RegionConfigFactory
 
     protected AbstractRegionConfigFactory ( JokerConfig jokerConfig )
     {
-        this.maxReplicaCount = jokerConfig.getFlowDeploymentConfig().getMaxReplicaCount();
+        this.maxReplicaCount = jokerConfig.getFlowDefOptimizerConfig().getMaxReplicaCount();
     }
 
     @Override
-    public List<RegionConfig> createRegionConfigs ( final FlowDeploymentDef flowDeployment )
+    public List<RegionConfig> createRegionConfigs ( final List<RegionDef> regionDefs )
     {
         try
         {
             init();
             final List<RegionConfig> regionConfigs = new ArrayList<>();
-            for ( RegionGroup regionGroup : flowDeployment.getRegionGroups() )
+            for ( RegionDef regionDef : regionDefs )
             {
-                final List<RegionConfig> r = createRegionConfigs( regionGroup );
-                final List<RegionDef> regions = regionGroup.getRegions();
+                final RegionConfig regionConfig = createRegionConfig( regionDef );
 
-                final int replicaCount = r.get( 0 ).getReplicaCount();
-                validateReplicaCount( regions.get( 0 ), replicaCount );
+                final int replicaCount = regionConfig.getReplicaCount();
+                validateReplicaCount( regionDef, replicaCount );
+                validatePipelineStartIndices( regionDef.getOperators(), regionConfig.getPipelineStartIndices() );
 
-                for ( int i = 0; i < regions.size(); i++ )
-                {
-                    final RegionDef region = regions.get( i );
-                    final RegionConfig regionConfig = r.get( i );
-                    checkArgument( region.equals( regionConfig.getRegionDef() ) );
-                    validatePipelineStartIndices( region.getOperators(), regionConfig.getPipelineStartIndices() );
-                    checkArgument( regionConfig.getReplicaCount() == replicaCount );
-                }
-
-                regionConfigs.addAll( r );
+                regionConfigs.add( regionConfig );
             }
-
-            failIfMissingRegionConfigExists( flowDeployment.getRegions(), regionConfigs );
 
             return regionConfigs;
         }
@@ -62,32 +50,13 @@ public abstract class AbstractRegionConfigFactory implements RegionConfigFactory
             }
             catch ( Exception e )
             {
-                if ( e.getCause() instanceof InterruptedException )
-                {
-                    Thread.currentThread().interrupt();
-                }
+                checkInterruption( e );
             }
         }
 
     }
 
-    protected abstract List<RegionConfig> createRegionConfigs ( RegionGroup regionGroup );
-
-    private void failIfMissingRegionConfigExists ( final List<RegionDef> regions, final List<RegionConfig> regionConfigs )
-    {
-        checkArgument( regions != null );
-        checkArgument( regionConfigs != null );
-        checkArgument( regions.size() == regionConfigs.size(),
-                       "mismatching regions size %s and region configs size %s",
-                       regions.size(),
-                       regionConfigs.size() );
-        for ( final RegionDef region : regions )
-        {
-            checkArgument( regionConfigs.stream().anyMatch( regionConfig -> region.equals( regionConfig.getRegionDef() ) ),
-                           "no region config found for region: %s",
-                           region );
-        }
-    }
+    protected abstract RegionConfig createRegionConfig ( RegionDef regionDef );
 
     final void validatePipelineStartIndices ( final List<OperatorDef> operators, final List<Integer> pipelineStartIndices )
     {

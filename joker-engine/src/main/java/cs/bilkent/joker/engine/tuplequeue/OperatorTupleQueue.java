@@ -67,4 +67,6 @@ public interface OperatorTupleQueue
 
     boolean isEmpty ();
 
+    void ensureCapacity ( int capacity );
+
 }

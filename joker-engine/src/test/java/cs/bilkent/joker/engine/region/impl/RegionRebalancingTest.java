@@ -16,6 +16,7 @@ import static cs.bilkent.joker.engine.config.ThreadingPreference.SINGLE_THREADED
 import cs.bilkent.joker.engine.kvstore.impl.OperatorKVStoreManagerImpl;
 import cs.bilkent.joker.engine.partition.PartitionDistribution;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
+import cs.bilkent.joker.engine.partition.PartitionKeyExtractorFactory;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import static cs.bilkent.joker.engine.partition.PartitionUtil.getPartitionId;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractor1;
@@ -29,7 +30,6 @@ import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.Region;
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
-import cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.FlowExample2;
 import cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.FlowExample6;
 import static cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.FlowExample6.PARTITION_KEY_FIELD;
 import static cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.assertBlockingTupleQueueDrainerPool;
@@ -76,18 +76,19 @@ public class RegionRebalancingTest extends AbstractJokerTest
 
     private final PartitionService partitionService = new PartitionServiceImpl( config );
 
-    private final OperatorKVStoreManagerImpl operatorKVStoreManager = new OperatorKVStoreManagerImpl();
-
     private final OperatorTupleQueueManagerImpl operatorTupleQueueManager = new OperatorTupleQueueManagerImpl( config,
                                                                                                                new PartitionKeyExtractorFactoryImpl() );
 
     private final PipelineTransformer pipelineTransformer = new PipelineTransformerImpl( config, operatorTupleQueueManager );
 
+    private final PartitionKeyExtractorFactory partitionKeyExtractorFactory = new PartitionKeyExtractorFactoryImpl();
+
     private final RegionManagerImpl regionManager = new RegionManagerImpl( config,
                                                                            partitionService,
-                                                                           operatorKVStoreManager,
+                                                                           new OperatorKVStoreManagerImpl(),
                                                                            operatorTupleQueueManager,
-                                                                           pipelineTransformer );
+                                                                           pipelineTransformer,
+                                                                           partitionKeyExtractorFactory );
 
 
     private final int initialReplicaCount;
@@ -112,13 +113,16 @@ public class RegionRebalancingTest extends AbstractJokerTest
         final RegionConfig regionConfig = new RegionConfig( regionDef, asList( 0, 1 ), initialReplicaCount );
         final Region region = regionManager.createRegion( flowExample6.flow, regionConfig );
 
-        final PipelineReplica[] pipelineReplicas = region.getPipelineReplicas( 1 );
+        final PipelineReplica[] pipelineReplicas0 = region.getPipelineReplicas( 0 );
+        final PipelineReplica[] pipelineReplicas1 = region.getPipelineReplicas( 1 );
         final PartitionDistribution partitionDistribution = partitionService.getPartitionDistributionOrFail( regionDef.getRegionId() );
         for ( int partitionId = 0; partitionId < config.getPartitionServiceConfig().getPartitionCount(); partitionId++ )
         {
             final Tuple tuple = generateTuple( partitionId );
             final int replicaIndex = partitionDistribution.getReplicaIndex( partitionId );
-            pipelineReplicas[ replicaIndex ].getSelfPipelineTupleQueue().offer( 0, singletonList( tuple ) );
+            pipelineReplicas0[ replicaIndex ].getOperator( 0 ).getQueue().offer( 0, singletonList( tuple ) );
+            pipelineReplicas1[ replicaIndex ].getSelfPipelineTupleQueue().offer( 0, singletonList( tuple ) );
+            pipelineReplicas1[ replicaIndex ].getOperator( 1 ).getQueue().offer( 0, singletonList( tuple ) );
         }
 
         final Region rebalancedRegion = regionManager.rebalanceRegion( flowExample6.flow, regionDef.getRegionId(), rebalancedReplicaCount );
@@ -180,8 +184,9 @@ public class RegionRebalancingTest extends AbstractJokerTest
             assertLastOperatorOutputSupplier( config, operatorReplica3 );
         }
 
-        final PipelineReplica[] pipelineReplicas = region.getPipelineReplicas( 1 );
-        for ( PipelineReplica pipelineReplica : pipelineReplicas )
+        final PipelineReplica[] pipelineReplicas0 = region.getPipelineReplicas( 0 );
+        final PipelineReplica[] pipelineReplicas1 = region.getPipelineReplicas( 1 );
+        for ( PipelineReplica pipelineReplica : pipelineReplicas1 )
         {
             final OperatorReplica operator = pipelineReplica.getOperator( 0 );
 
@@ -191,78 +196,36 @@ public class RegionRebalancingTest extends AbstractJokerTest
             assertTrue( result == null || result.isEmpty() );
         }
 
+        final Set<Object> keys1 = new HashSet<>( keys );
+        final Set<Object> keys2 = new HashSet<>( keys );
+        final Set<Object> keys3 = new HashSet<>( keys );
+
         final PartitionDistribution partitionDistribution = partitionService.getPartitionDistributionOrFail( region.getRegionId() );
         for ( int partitionId = 0; partitionId < partitionService.getPartitionCount(); partitionId++ )
         {
             final int replicaIndex = partitionDistribution.getReplicaIndex( partitionId );
-            final OperatorReplica operator = pipelineReplicas[ replicaIndex ].getOperator( 0 );
-            final OperatorTupleQueue operatorTupleQueue = operator.getQueue();
-            final GreedyDrainer drainer = new GreedyDrainer( operator.getOperatorDef().inputPortCount() );
-            operatorTupleQueue.drain( drainer );
-            final TuplesImpl result = drainer.getResult();
-            if ( result != null && result.isNonEmpty() )
-            {
-                for ( Tuple tuple : result.getTuplesByDefaultPort() )
-                {
-                    keys.remove( tuple.get( PARTITION_KEY_FIELD ) );
-                }
-            }
+            drainOperatorTupleQueue( keys1, pipelineReplicas0[ replicaIndex ].getOperator( 0 ) );
+            drainOperatorTupleQueue( keys2, pipelineReplicas1[ replicaIndex ].getOperator( 0 ) );
+            drainOperatorTupleQueue( keys3, pipelineReplicas1[ replicaIndex ].getOperator( 1 ) );
         }
 
-        assertTrue( keys.isEmpty() );
+        assertTrue( keys1.isEmpty() );
+        assertTrue( keys2.isEmpty() );
+        assertTrue( keys3.isEmpty() );
     }
 
-    @Test( expected = IllegalStateException.class )
-    public void shouldNotRebalanceStatelessRegionWhenOperatorTupleQueueIsNonEmpty ()
+    private void drainOperatorTupleQueue ( final Set<Object> keys1, final OperatorReplica operator )
     {
-        final FlowExample2 flowExample2 = new FlowExample2();
-        final List<RegionDef> regionDefs = regionDefFormer.createRegions( flowExample2.flow );
-        final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), initialReplicaCount );
-        final Region region = regionManager.createRegion( flowExample2.flow, regionConfig );
-        final PipelineReplica pipelineReplica = region.getPipelineReplicas( 0 )[ 0 ];
-        pipelineReplica.getPipelineTupleQueue().offer( 0, singletonList( new Tuple() ) );
-
-        regionManager.rebalanceRegion( flowExample2.flow, regionDef.getRegionId(), rebalancedReplicaCount );
-    }
-
-    @Test
-    public void shouldRebalanceStatelessRegion ()
-    {
-        final FlowExample2 flowExample2 = new FlowExample2();
-        final List<RegionDef> regionDefs = regionDefFormer.createRegions( flowExample2.flow );
-        final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), initialReplicaCount );
-        regionManager.createRegion( flowExample2.flow, regionConfig );
-
-        final Region rebalancedRegion = regionManager.rebalanceRegion( flowExample2.flow, regionDef.getRegionId(), rebalancedReplicaCount );
-        assertRebalancedStatelessRegion( flowExample2, rebalancedRegion );
-    }
-
-    private void assertRebalancedStatelessRegion ( final FlowExample2 flowExample2, final Region region )
-    {
-        for ( int replicaIndex = 0; replicaIndex < region.getConfig().getReplicaCount(); replicaIndex++ )
+        final OperatorTupleQueue operatorTupleQueue = operator.getQueue();
+        final GreedyDrainer drainer = new GreedyDrainer( operator.getOperatorDef().inputPortCount() );
+        operatorTupleQueue.drain( drainer );
+        final TuplesImpl result = drainer.getResult();
+        if ( result != null && result.isNonEmpty() )
         {
-            final PipelineReplica[] pipelineReplicas = region.getReplicaPipelines( replicaIndex );
-            assertEquals( 1, pipelineReplicas.length );
-            final PipelineReplica pipelineReplica0 = pipelineReplicas[ 0 ];
-            assertDefaultOperatorTupleQueue( pipelineReplica0, flowExample2.operatorDef1.inputPortCount() );
-            assertEmptySelfPipelineTupleQueue( pipelineReplica0 );
-
-            assertEquals( new PipelineReplicaId( new PipelineId( region.getRegionId(), 0 ), replicaIndex ), pipelineReplica0.id() );
-            assertEquals( 2, pipelineReplica0.getOperatorCount() );
-            final OperatorReplica operatorReplica0_1 = pipelineReplica0.getOperator( 0 );
-            final OperatorReplica operatorReplica0_2 = pipelineReplica0.getOperator( 1 );
-            assertOperatorDef( operatorReplica0_1, flowExample2.operatorDef1 );
-            assertOperatorDef( operatorReplica0_2, flowExample2.operatorDef2 );
-            assertDefaultOperatorTupleQueue( operatorReplica0_1, flowExample2.operatorDef1.inputPortCount(), MULTI_THREADED );
-            assertDefaultOperatorTupleQueue( operatorReplica0_2, flowExample2.operatorDef2.inputPortCount(), SINGLE_THREADED );
-            assertEmptytOperatorKVStore( operatorReplica0_1 );
-            assertEmptytOperatorKVStore( operatorReplica0_2 );
-            assertBlockingTupleQueueDrainerPool( operatorReplica0_1 );
-            assertNonBlockingTupleQueueDrainerPool( operatorReplica0_2 );
-            assertCachedTuplesImplSupplier( operatorReplica0_1 );
-            assertLastOperatorOutputSupplier( config, operatorReplica0_2 );
+            for ( Tuple tuple : result.getTuplesByDefaultPort() )
+            {
+                keys1.remove( tuple.get( PARTITION_KEY_FIELD ) );
+            }
         }
     }
 

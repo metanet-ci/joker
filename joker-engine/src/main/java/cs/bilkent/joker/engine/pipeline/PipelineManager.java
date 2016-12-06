@@ -3,14 +3,15 @@ package cs.bilkent.joker.engine.pipeline;
 import java.util.List;
 
 import cs.bilkent.joker.engine.FlowStatus;
-import cs.bilkent.joker.engine.region.FlowDeploymentDef;
 import cs.bilkent.joker.engine.region.RegionConfig;
+import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
+import cs.bilkent.joker.flow.FlowDef;
 
 public interface PipelineManager
 {
 
-    void start ( Supervisor supervisor, FlowDeploymentDef flowDeployment, List<RegionConfig> regionConfigs );
+    void start ( Supervisor supervisor, FlowDef flow, List<RegionDef> regionDefs, List<RegionConfig> regionConfigs );
 
     void triggerShutdown ();
 

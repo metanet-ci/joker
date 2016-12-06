@@ -24,6 +24,7 @@ import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainerPool;
+import static cs.bilkent.joker.engine.util.ExceptionUtils.checkInterruption;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.operator.InitializationContext;
 import cs.bilkent.joker.operator.InvocationContext.InvocationReason;
@@ -491,6 +492,7 @@ public class OperatorReplica
         }
         catch ( Exception e )
         {
+            checkInterruption( e );
             LOGGER.error( operatorName + " failed to shut down", e );
         }
         finally

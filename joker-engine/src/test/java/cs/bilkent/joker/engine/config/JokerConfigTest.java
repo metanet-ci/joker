@@ -19,14 +19,14 @@ public class JokerConfigTest extends AbstractJokerTest
         final JokerConfig jokerConfig = new JokerConfig( config );
 
         assertTrue( jokerConfig.getPipelineReplicaRunnerConfig().getWaitTimeoutInMillis() > 0 );
-        assertTrue( jokerConfig.getTupleQueueManagerConfig().getTupleQueueInitialSize() > 0 );
+        assertTrue( jokerConfig.getTupleQueueManagerConfig().getTupleQueueCapacity() > 0 );
     }
 
     @Test
     public void shouldOverwriteDefaultConfigWithCustomConfigValue ()
     {
         final String configPath = JokerConfig.ENGINE_CONFIG_NAME + "." + TupleQueueManagerConfig.CONFIG_NAME + "."
-                                  + TupleQueueManagerConfig.TUPLE_QUEUE_INITIAL_SIZE;
+                                  + TupleQueueManagerConfig.TUPLE_QUEUE_CAPACITY;
 
         final Config tupleQueueManagerConfig = ConfigFactory.empty().withValue( configPath, ConfigValueFactory.fromAnyRef( 250 ) );
 
@@ -34,7 +34,7 @@ public class JokerConfigTest extends AbstractJokerTest
 
         final JokerConfig jokerConfig = new JokerConfig( config );
 
-        assertEquals( 250, jokerConfig.getTupleQueueManagerConfig().getTupleQueueInitialSize() );
+        assertEquals( 250, jokerConfig.getTupleQueueManagerConfig().getTupleQueueCapacity() );
     }
 
 }

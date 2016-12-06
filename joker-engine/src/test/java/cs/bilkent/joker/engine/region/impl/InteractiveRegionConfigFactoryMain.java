@@ -8,8 +8,6 @@ import java.util.function.Consumer;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import cs.bilkent.joker.engine.config.JokerConfig;
-import cs.bilkent.joker.engine.region.FlowDeploymentDef;
-import cs.bilkent.joker.engine.region.FlowDeploymentDefFormer;
 import cs.bilkent.joker.engine.region.RegionConfigFactory;
 import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
@@ -38,7 +36,6 @@ public class InteractiveRegionConfigFactoryMain
         final IdGenerator idGenerator = new IdGenerator();
         final RegionDefFormer regionFormer = new RegionDefFormerImpl( idGenerator );
         final JokerConfig jokerConfig = new JokerConfig();
-        final FlowDeploymentDefFormer flowDeploymentDefFormer = new FlowDeploymentDefFormerImpl( jokerConfig, idGenerator );
         final RegionConfigFactory regionConfigFactory = new InteractiveRegionConfigFactory( jokerConfig );
 
         final OperatorConfig beaconConfig = new OperatorConfig();
@@ -92,9 +89,8 @@ public class InteractiveRegionConfigFactoryMain
                                                  .build();
 
         final List<RegionDef> regions = regionFormer.createRegions( flow );
-        final FlowDeploymentDef flowDeployment = flowDeploymentDefFormer.createFlowDeploymentDef( flow, regions );
 
-        regionConfigFactory.createRegionConfigs( flowDeployment );
+        regionConfigFactory.createRegionConfigs( regions );
     }
 
 }

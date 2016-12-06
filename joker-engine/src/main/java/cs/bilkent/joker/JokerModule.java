@@ -17,12 +17,12 @@ import cs.bilkent.joker.engine.partition.impl.PartitionServiceImpl;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSenderFailureFlag;
 import cs.bilkent.joker.engine.pipeline.PipelineManager;
 import cs.bilkent.joker.engine.pipeline.impl.PipelineManagerImpl;
-import cs.bilkent.joker.engine.region.FlowDeploymentDefFormer;
+import cs.bilkent.joker.engine.region.FlowDefOptimizer;
 import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.RegionConfigFactory;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
 import cs.bilkent.joker.engine.region.RegionManager;
-import cs.bilkent.joker.engine.region.impl.FlowDeploymentDefFormerImpl;
+import cs.bilkent.joker.engine.region.impl.FlowDefOptimizerImpl;
 import cs.bilkent.joker.engine.region.impl.IdGenerator;
 import cs.bilkent.joker.engine.region.impl.InteractiveRegionConfigFactory;
 import cs.bilkent.joker.engine.region.impl.PipelineTransformerImpl;
@@ -80,7 +80,7 @@ public class JokerModule extends AbstractModule
         bind( Supervisor.class ).to( SupervisorImpl.class );
         bind( PartitionKeyExtractorFactory.class ).to( PartitionKeyExtractorFactoryImpl.class );
         bind( PipelineManager.class ).to( PipelineManagerImpl.class );
-        bind( FlowDeploymentDefFormer.class ).to( FlowDeploymentDefFormerImpl.class );
+        bind( FlowDefOptimizer.class ).to( FlowDefOptimizerImpl.class );
         bind( PipelineTransformer.class ).to( PipelineTransformerImpl.class );
         if ( regionConfigFactory != null )
         {

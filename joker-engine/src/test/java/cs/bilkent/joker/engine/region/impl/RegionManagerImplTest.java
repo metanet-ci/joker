@@ -13,6 +13,7 @@ import cs.bilkent.joker.engine.kvstore.impl.DefaultOperatorKVStore;
 import cs.bilkent.joker.engine.kvstore.impl.EmptyOperatorKVStore;
 import cs.bilkent.joker.engine.kvstore.impl.OperatorKVStoreManagerImpl;
 import cs.bilkent.joker.engine.kvstore.impl.PartitionedOperatorKVStore;
+import cs.bilkent.joker.engine.partition.PartitionKeyExtractorFactory;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
 import cs.bilkent.joker.engine.partition.impl.PartitionServiceImpl;
@@ -21,7 +22,6 @@ import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
-import cs.bilkent.joker.engine.region.FlowDeploymentDef;
 import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.Region;
 import cs.bilkent.joker.engine.region.RegionConfig;
@@ -45,6 +45,7 @@ import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
 import cs.bilkent.joker.operator.spec.OperatorType;
 import cs.bilkent.joker.test.AbstractJokerTest;
+import cs.bilkent.joker.utils.Pair;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -65,7 +66,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
     private final RegionDefFormerImpl regionDefFormer = new RegionDefFormerImpl( idGenerator );
 
-    private final FlowDeploymentDefFormerImpl flowDeploymentDefFormer = new FlowDeploymentDefFormerImpl( config, idGenerator );
+    private final FlowDefOptimizerImpl flowOptimizer = new FlowDefOptimizerImpl( config, idGenerator );
 
     private final PartitionService partitionService = new PartitionServiceImpl( config );
 
@@ -76,11 +77,14 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
     private final PipelineTransformer pipelineTransformer = new PipelineTransformerImpl( config, operatorTupleQueueManager );
 
+    private final PartitionKeyExtractorFactory partitionKeyExtractorFactory = new PartitionKeyExtractorFactoryImpl();
+
     private final RegionManagerImpl regionManager = new RegionManagerImpl( config,
                                                                            partitionService,
                                                                            operatorKVStoreManager,
                                                                            operatorTupleQueueManager,
-                                                                           pipelineTransformer );
+                                                                           pipelineTransformer,
+                                                                           partitionKeyExtractorFactory );
 
 
     @Test
@@ -285,12 +289,11 @@ public class RegionManagerImplTest extends AbstractJokerTest
     {
         final FlowExample3 flowExample3 = new FlowExample3();
 
-        final FlowDeploymentDef flowDeployment = flowDeploymentDefFormer.createFlowDeploymentDef( flowExample3.flow,
-                                                                                                  regionDefFormer.createRegions(
-                                                                                                          flowExample3.flow ) );
+        final Pair<FlowDef, List<RegionDef>> result = flowOptimizer.optimize( flowExample3.flow,
+                                                                              regionDefFormer.createRegions( flowExample3.flow ) );
+        final FlowDef flow = result._1;
+        final List<RegionDef> regionDefs = result._2;
 
-        final FlowDef flow = flowDeployment.getFlow();
-        final List<RegionDef> regionDefs = flowDeployment.getRegions();
         final RegionDef regionDef = regionDefs.get( 0 );
         final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 1 );
 
@@ -324,12 +327,11 @@ public class RegionManagerImplTest extends AbstractJokerTest
     {
         final FlowExample3 flowExample3 = new FlowExample3();
 
-        final FlowDeploymentDef flowDeployment = flowDeploymentDefFormer.createFlowDeploymentDef( flowExample3.flow,
-                                                                                                  regionDefFormer.createRegions(
-                                                                                                          flowExample3.flow ) );
+        final Pair<FlowDef, List<RegionDef>> result = flowOptimizer.optimize( flowExample3.flow,
+                                                                              regionDefFormer.createRegions( flowExample3.flow ) );
+        final FlowDef flow = result._1;
+        final List<RegionDef> regionDefs = result._2;
 
-        final FlowDef flow = flowDeployment.getFlow();
-        final List<RegionDef> regionDefs = flowDeployment.getRegions();
         final RegionDef regionDef = regionDefs.get( 0 );
         final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 1 );
 
@@ -753,7 +755,6 @@ public class RegionManagerImplTest extends AbstractJokerTest
     {
         final OperatorTupleQueue operatorTupleQueue = operatorReplica.getQueue();
         assertTrue( operatorTupleQueue instanceof DefaultOperatorTupleQueue );
-        assertEquals( operatorReplica.getOperatorDef().id(), operatorTupleQueue.getOperatorId() );
         assertEquals( threadingPreference, ( (DefaultOperatorTupleQueue) operatorTupleQueue ).getThreadingPreference() );
         assertEquals( inputPortCount, operatorTupleQueue.getInputPortCount() );
     }
@@ -1001,7 +1002,8 @@ public class RegionManagerImplTest extends AbstractJokerTest
             operatorRuntimeSchemaBuilder0.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field2", Integer.class );
             operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class ).addOutputField( 0, "field2", Integer.class );
             operatorRuntimeSchemaBuilder2.addInputField( 0, "field2", Integer.class )
-                                         .addInputField( 1, "field2", Integer.class ).addOutputField( 0, "field2", Integer.class )
+                                         .addInputField( 1, "field2", Integer.class )
+                                         .addOutputField( 0, "field2", Integer.class )
                                          .addOutputField( 0, "field3", Integer.class );
             operatorRuntimeSchemaBuilder3.addInputField( 0, "field2", Integer.class )
                                          .addInputField( 0, "field3", Integer.class )

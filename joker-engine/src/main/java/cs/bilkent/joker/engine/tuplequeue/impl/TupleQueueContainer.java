@@ -17,6 +17,7 @@ import cs.bilkent.joker.engine.partition.PartitionKey;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
+import cs.bilkent.joker.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ALL_PORTS;
@@ -29,6 +30,8 @@ public class TupleQueueContainer
 {
 
     private static final Logger LOGGER = LoggerFactory.getLogger( TupleQueueContainer.class );
+
+    private static final int TUPLE_QUEUE_INITIAL_SIZE = 10;
 
 
     private final String operatorId;
@@ -47,10 +50,7 @@ public class TupleQueueContainer
 
     private TupleAvailabilityByPort tupleAvailabilityByPort;
 
-    public TupleQueueContainer ( final String operatorId,
-                                 final int inputPortCount,
-                                 final int partitionId,
-                                 final Function<Integer, TupleQueue> tupleQueueConstructor )
+    public TupleQueueContainer ( final String operatorId, final int inputPortCount, final int partitionId )
     {
         this.operatorId = operatorId;
         this.inputPortCount = inputPortCount;
@@ -61,8 +61,7 @@ public class TupleQueueContainer
             final TupleQueue[] tupleQueues = new TupleQueue[ inputPortCount ];
             for ( int i = 0; i < inputPortCount; i++ )
             {
-                final TupleQueue queue = tupleQueueConstructor.apply( i );
-                tupleQueues[ i ] = queue;
+                tupleQueues[ i ] = new SingleThreadedTupleQueue( TUPLE_QUEUE_INITIAL_SIZE );
             }
             return tupleQueues;
         };

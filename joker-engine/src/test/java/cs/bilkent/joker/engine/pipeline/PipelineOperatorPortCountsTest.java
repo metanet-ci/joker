@@ -11,10 +11,9 @@ import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
 import cs.bilkent.joker.JokerModule;
-import cs.bilkent.joker.engine.config.FlowDeploymentConfig;
+import cs.bilkent.joker.engine.config.FlowDefOptimizerConfig;
 import cs.bilkent.joker.engine.config.JokerConfig;
-import cs.bilkent.joker.engine.region.FlowDeploymentDef;
-import cs.bilkent.joker.engine.region.FlowDeploymentDefFormer;
+import cs.bilkent.joker.engine.region.FlowDefOptimizer;
 import cs.bilkent.joker.engine.region.Region;
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
@@ -35,6 +34,7 @@ import cs.bilkent.joker.operator.spec.OperatorSpec;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.joker.test.AbstractJokerTest;
+import cs.bilkent.joker.utils.Pair;
 import static java.lang.Boolean.TRUE;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -50,14 +50,13 @@ public class PipelineOperatorPortCountsTest extends AbstractJokerTest
 
     private RegionManager regionManager;
 
-    private FlowDeploymentDefFormer flowDeploymentDefFormer;
-
+    private FlowDefOptimizer flowDefOptimizer;
 
     @Before
     public void init ()
     {
-        final String configPath = JokerConfig.ENGINE_CONFIG_NAME + "." + FlowDeploymentConfig.CONFIG_NAME + "."
-                                  + FlowDeploymentConfig.MERGE_STATELESS_REGIONS_WITH_STATEFUL_REGIONS;
+        final String configPath = JokerConfig.ENGINE_CONFIG_NAME + "." + FlowDefOptimizerConfig.CONFIG_NAME + "."
+                                  + FlowDefOptimizerConfig.MERGE_STATELESS_REGIONS_WITH_STATEFUL_REGIONS;
 
         final Config flowDeploymentConfig = ConfigFactory.empty().withValue( configPath, ConfigValueFactory.fromAnyRef( TRUE ) );
 
@@ -66,7 +65,7 @@ public class PipelineOperatorPortCountsTest extends AbstractJokerTest
         injector = Guice.createInjector( new JokerModule( new JokerConfig( config ) ) );
         regionDefFormer = injector.getInstance( RegionDefFormer.class );
         regionManager = injector.getInstance( RegionManager.class );
-        flowDeploymentDefFormer = injector.getInstance( FlowDeploymentDefFormer.class );
+        flowDefOptimizer = injector.getInstance( FlowDefOptimizer.class );
     }
 
     @Test
@@ -117,8 +116,9 @@ public class PipelineOperatorPortCountsTest extends AbstractJokerTest
 
     private void testPipelineInitialization ( final FlowDef flow )
     {
-        final FlowDeploymentDef flowDepDef = flowDeploymentDefFormer.createFlowDeploymentDef( flow, regionDefFormer.createRegions( flow ) );
-        final List<RegionDef> regionDefs = flowDepDef.getRegions();
+        final Pair<FlowDef, List<RegionDef>> result = flowDefOptimizer.optimize( flow, regionDefFormer.createRegions( flow ) );
+        final List<RegionDef> regionDefs = result._2;
+
         assertThat( regionDefs, hasSize( 1 ) );
 
         final RegionDef regionDef = regionDefs.get( 0 );

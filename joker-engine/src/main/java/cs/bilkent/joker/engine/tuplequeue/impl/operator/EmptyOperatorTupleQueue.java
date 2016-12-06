@@ -90,4 +90,10 @@ public class EmptyOperatorTupleQueue implements OperatorTupleQueue
         return true;
     }
 
+    @Override
+    public void ensureCapacity ( final int capacity )
+    {
+
+    }
+
 }

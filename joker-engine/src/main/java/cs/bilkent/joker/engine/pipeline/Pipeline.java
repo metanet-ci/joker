@@ -24,6 +24,7 @@ import cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRun
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
+import static cs.bilkent.joker.engine.util.ExceptionUtils.checkInterruption;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import static java.lang.System.arraycopy;
@@ -268,10 +269,7 @@ public class Pipeline
         }
         catch ( Exception e )
         {
-            if ( e.getCause() instanceof InterruptedException )
-            {
-                Thread.currentThread().interrupt();
-            }
+            checkInterruption( e );
             pipelineStatus = SHUT_DOWN;
             throw e;
         }
@@ -309,10 +307,7 @@ public class Pipeline
         }
         catch ( Exception e1 )
         {
-            if ( e1.getCause() instanceof InterruptedException )
-            {
-                Thread.currentThread().interrupt();
-            }
+            checkInterruption( e1 );
             for ( int replicaIndex = 0; replicaIndex < getReplicaCount(); replicaIndex++ )
             {
                 final PipelineReplica pipelineReplica = replicas[ replicaIndex ];
@@ -323,10 +318,7 @@ public class Pipeline
                 }
                 catch ( Exception e2 )
                 {
-                    if ( e2.getCause() instanceof InterruptedException )
-                    {
-                        Thread.currentThread().interrupt();
-                    }
+                    checkInterruption( e2 );
 
                     LOGGER.error( "Shutdown of PipelineReplica=" + pipelineReplica.id() + "  failed!", e2 );
                 }
@@ -570,36 +562,6 @@ public class Pipeline
                 LOGGER.error( "Replica runner threads of Pipeline " + id + "  are stopped...", failure );
             }
         }
-
-        return failures;
-    }
-
-    public List<Exception> drainStatelessOperatorsAndStopPipelineReplicaRunners ( final long timeoutInMillis )
-    {
-        checkState( pipelineStatus == RUNNING, "cannot stop pipeline %s replica runners since in %s status", id, pipelineStatus );
-        checkState( runnerStatus == PipelineReplicaRunnerStatus.RUNNING,
-                    "cannot stop pipeline %s replica runners since runner status is %s",
-                    id,
-                    runnerStatus );
-
-        final List<Future<Boolean>> futures = new ArrayList<>();
-
-        for ( int replicaIndex = 0; replicaIndex < getReplicaCount(); replicaIndex++ )
-        {
-            final PipelineReplicaRunner runner = runners[ replicaIndex ];
-            runners[ replicaIndex ] = null;
-            futures.add( runner.drainStatelessOperatorsAndStop() );
-        }
-
-        final List<Exception> failures = waitForPipelineReplicaCommands( futures, timeoutInMillis, "drain" );
-
-        LOGGER.info( "Replica runners of Pipeline {} are stopped...", id );
-
-        joinPipelineReplicaRunnerThreads( timeoutInMillis, failures );
-
-        runnerStatus = PipelineReplicaRunnerStatus.COMPLETED;
-
-        LOGGER.info( "Replica runner threads of Pipeline {} are stopped...", id );
 
         return failures;
     }

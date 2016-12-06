@@ -24,9 +24,11 @@ import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineManager;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.joker.engine.pipeline.UpstreamContext;
-import cs.bilkent.joker.engine.region.FlowDeploymentDef;
 import cs.bilkent.joker.engine.region.RegionConfig;
+import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
+import static cs.bilkent.joker.engine.util.ExceptionUtils.checkInterruption;
+import cs.bilkent.joker.flow.FlowDef;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 @Singleton
@@ -62,20 +64,19 @@ public class SupervisorImpl implements Supervisor
         return pipelineManager.getFlowStatus();
     }
 
-    public void start ( final FlowDeploymentDef flowDeployment, final List<RegionConfig> regionConfigs ) throws InitializationException
+    public void start ( final FlowDef flow,
+                        final List<RegionDef> regionDefs,
+                        final List<RegionConfig> regionConfigs ) throws InitializationException
     {
         synchronized ( monitor )
         {
             try
             {
-                pipelineManager.start( this, flowDeployment, regionConfigs );
+                pipelineManager.start( this, flow, regionDefs, regionConfigs );
             }
             catch ( InitializationException e )
             {
-                if ( e.getCause() instanceof InterruptedException )
-                {
-                    Thread.currentThread().interrupt();
-                }
+                checkInterruption( e );
                 LOGGER.error( "Flow start failed", e );
                 throw e;
             }

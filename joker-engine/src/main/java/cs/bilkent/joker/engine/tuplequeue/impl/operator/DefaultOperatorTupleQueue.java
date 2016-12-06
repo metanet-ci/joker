@@ -1,7 +1,7 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.operator;
 
+import java.util.Arrays;
 import java.util.List;
-import java.util.function.Function;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,28 +28,23 @@ public class DefaultOperatorTupleQueue implements OperatorTupleQueue
 
     private final ThreadingPreference threadingPreference;
 
-    private final int maxQueueSize;
+    private final int tupleQueueCapacity;
 
     public DefaultOperatorTupleQueue ( final String operatorId,
                                        final int inputPortCount,
                                        final ThreadingPreference threadingPreference,
-                                       final Function<Integer, TupleQueue> tupleQueueConstructor,
-                                       final int maxQueueSize
-
-    )
+                                       final TupleQueue[] tupleQueues,
+                                       final int tupleQueueCapacity )
     {
         checkArgument( inputPortCount >= 0 );
         checkArgument( threadingPreference != null );
-        checkArgument( tupleQueueConstructor != null );
-        checkArgument( maxQueueSize > 0 );
+        checkArgument( tupleQueues != null );
+        checkArgument( inputPortCount == tupleQueues.length );
+        checkArgument( tupleQueueCapacity > 0 );
         this.operatorId = operatorId;
         this.threadingPreference = threadingPreference;
-        this.tupleQueues = new TupleQueue[ inputPortCount ];
-        for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
-        {
-            this.tupleQueues[ portIndex ] = tupleQueueConstructor.apply( portIndex );
-        }
-        this.maxQueueSize = threadingPreference == SINGLE_THREADED ? maxQueueSize : Integer.MAX_VALUE;
+        this.tupleQueues = Arrays.copyOf( tupleQueues, inputPortCount );
+        this.tupleQueueCapacity = threadingPreference == SINGLE_THREADED ? tupleQueueCapacity : Integer.MAX_VALUE;
     }
 
     @Override
@@ -94,7 +89,7 @@ public class DefaultOperatorTupleQueue implements OperatorTupleQueue
     {
         LOGGER.info( "Clearing tuple queues of operator: {}", operatorId );
 
-        for ( int portIndex = 0; portIndex < tupleQueues.length; portIndex++ )
+        for ( int portIndex = 0; portIndex < getInputPortCount(); portIndex++ )
         {
             final TupleQueue tupleQueue = tupleQueues[ portIndex ];
             final int size = tupleQueue.size();
@@ -127,9 +122,9 @@ public class DefaultOperatorTupleQueue implements OperatorTupleQueue
             return false;
         }
 
-        for ( int i = 0; i < tupleQueues.length; i++ )
+        for ( int portIndex = 0; portIndex < getInputPortCount(); portIndex++ )
         {
-            if ( tupleQueues[ i ].size() >= maxQueueSize )
+            if ( tupleQueues[ portIndex ].size() >= tupleQueueCapacity )
             {
                 return true;
             }
@@ -141,15 +136,27 @@ public class DefaultOperatorTupleQueue implements OperatorTupleQueue
     @Override
     public boolean isEmpty ()
     {
-        for ( int i = 0; i < tupleQueues.length; i++ )
+        for ( int portIndex = 0; portIndex < getInputPortCount(); portIndex++ )
         {
-            if ( tupleQueues[ i ].size() > 0 )
+            if ( tupleQueues[ portIndex ].size() > 0 )
             {
                 return false;
             }
         }
 
         return true;
+    }
+
+    @Override
+    public void ensureCapacity ( final int capacity )
+    {
+        for ( int portIndex = 0; portIndex < getInputPortCount(); portIndex++ )
+        {
+            if ( tupleQueues[ portIndex ].ensureCapacity( capacity ) )
+            {
+                LOGGER.info( "tuple queue of port index {} of operator {} is extended to {}", portIndex, operatorId, capacity );
+            }
+        }
     }
 
     public ThreadingPreference getThreadingPreference ()

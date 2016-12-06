@@ -1,6 +1,5 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.queue;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -11,32 +10,17 @@ import org.agrona.concurrent.ManyToOneConcurrentArrayQueue;
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
 import cs.bilkent.joker.operator.Tuple;
-import static java.lang.Math.max;
 
 @ThreadSafe
 public class MultiThreadedTupleQueue implements TupleQueue
 {
 
-    private final ManyToOneConcurrentArrayQueue<Tuple> queue;
-
-    private final int capacity;
+    private ManyToOneConcurrentArrayQueue<Tuple> queue;
 
     public MultiThreadedTupleQueue ( final int initialCapacity )
     {
         checkArgument( initialCapacity > 0 );
-        this.capacity = initialCapacity;
         this.queue = new ManyToOneConcurrentArrayQueue<>( initialCapacity );
-    }
-
-    public MultiThreadedTupleQueue ( final int initialCapacity, ArrayDeque<Tuple> queue )
-    {
-        checkArgument( initialCapacity > 0 );
-        this.capacity = initialCapacity;
-        this.queue = new ManyToOneConcurrentArrayQueue<>( max( initialCapacity, queue.size() ) );
-        for ( Tuple tuple : queue )
-        {
-            this.queue.offer( tuple );
-        }
     }
 
     @Override
@@ -109,17 +93,20 @@ public class MultiThreadedTupleQueue implements TupleQueue
         queue.clear();
     }
 
-    public SingleThreadedTupleQueue toSingleThreadedTupleQueue ()
+    // THIS METHOD IS NOT THREAD-SAFE !!!
+    @Override
+    public boolean ensureCapacity ( final int capacity )
     {
-        final SingleThreadedTupleQueue queue = new SingleThreadedTupleQueue( capacity );
-
-        Tuple tuple;
-        while ( ( tuple = poll() ) != null )
+        if ( capacity > queue.capacity() )
         {
-            queue.offer( tuple );
+            final ManyToOneConcurrentArrayQueue<Tuple> newQueue = new ManyToOneConcurrentArrayQueue<>( capacity );
+            queue.drain( newQueue::offer );
+            this.queue = newQueue;
+
+            return true;
         }
 
-        return queue;
+        return false;
     }
 
 }

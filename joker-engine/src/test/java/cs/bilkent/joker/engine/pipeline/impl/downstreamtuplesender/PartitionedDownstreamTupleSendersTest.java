@@ -1,4 +1,4 @@
-package cs.bilkent.joker.engine.pipeline.impl;
+package cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -9,8 +9,6 @@ import org.junit.Test;
 
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSenderFailureFlag;
-import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDownstreamTupleSender1;
-import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDownstreamTupleSenderN;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.operator.Tuple;
@@ -177,6 +175,12 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
         public boolean isEmpty ()
         {
             throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void ensureCapacity ( final int capacity )
+        {
+
         }
 
     }

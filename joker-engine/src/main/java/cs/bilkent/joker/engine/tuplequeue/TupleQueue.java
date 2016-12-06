@@ -79,4 +79,6 @@ public interface TupleQueue
 
     void clear ();
 
+    boolean ensureCapacity ( int capacity );
+
 }

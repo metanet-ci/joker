@@ -23,7 +23,7 @@ public class JokerConfig
 
     private final PartitionServiceConfig partitionServiceConfig;
 
-    private final FlowDeploymentConfig flowDeploymentConfig;
+    private final FlowDefOptimizerConfig flowDefOptimizerConfig;
 
     private final PipelineManagerConfig pipelineManagerConfig;
 
@@ -42,7 +42,7 @@ public class JokerConfig
         this.tupleQueueDrainerConfig = new TupleQueueDrainerConfig( engineConfig );
         this.pipelineReplicaRunnerConfig = new PipelineReplicaRunnerConfig( engineConfig );
         this.partitionServiceConfig = new PartitionServiceConfig( engineConfig );
-        this.flowDeploymentConfig = new FlowDeploymentConfig( engineConfig );
+        this.flowDefOptimizerConfig = new FlowDefOptimizerConfig( engineConfig );
         this.pipelineManagerConfig = new PipelineManagerConfig( engineConfig );
         this.regionManagerConfig = new RegionManagerConfig( engineConfig );
     }
@@ -72,9 +72,9 @@ public class JokerConfig
         return partitionServiceConfig;
     }
 
-    public FlowDeploymentConfig getFlowDeploymentConfig ()
+    public FlowDefOptimizerConfig getFlowDefOptimizerConfig ()
     {
-        return flowDeploymentConfig;
+        return flowDefOptimizerConfig;
     }
 
     public PipelineManagerConfig getPipelineManagerConfig ()

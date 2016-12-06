@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
@@ -55,8 +56,6 @@ import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.DownstreamTup
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.DownstreamTupleSenderN;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDownstreamTupleSender1;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDownstreamTupleSenderN;
-import cs.bilkent.joker.engine.region.FlowDeploymentDef;
-import cs.bilkent.joker.engine.region.FlowDeploymentDef.RegionGroup;
 import cs.bilkent.joker.engine.region.Region;
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
@@ -108,7 +107,9 @@ public class PipelineManagerImpl implements PipelineManager
     private final Function6<List<Pair<Integer, Integer>>, Integer, int[], OperatorTupleQueue[], PartitionKeyExtractor,
                                    DownstreamTupleSender>[] partitionedDownstreamTupleSenderConstructors = new Function6[ 6 ];
 
-    private FlowDeploymentDef flowDeployment;
+    private FlowDef flow;
+
+    private List<RegionDef> regionDefs;
 
     private final Map<PipelineId, Pipeline> pipelines = new ConcurrentHashMap<>();
 
@@ -188,14 +189,19 @@ public class PipelineManagerImpl implements PipelineManager
     }
 
     @Override
-    public void start ( final Supervisor supervisor, final FlowDeploymentDef flowDeployment, final List<RegionConfig> regionConfigs )
+    public void start ( final Supervisor supervisor,
+                        final FlowDef flow,
+                        final List<RegionDef> regionDefs,
+                        final List<RegionConfig> regionConfigs )
     {
         try
         {
             checkState( status == FlowStatus.INITIAL, "cannot startPipelineReplicaRunnerThreads since status is %s", status );
-            checkState( this.flowDeployment == null, "Flow deployment is already done!" );
-            this.flowDeployment = flowDeployment;
-            createPipelines( flowDeployment.getFlow(), regionConfigs );
+            checkState( this.flow == null, "flow is already assigned!" );
+            checkState( this.regionDefs == null, "region defs are already assigned!" );
+            this.flow = flow;
+            this.regionDefs = regionDefs;
+            createPipelines( flow, regionConfigs );
             initPipelines();
             createPipelineReplicaRunners( supervisor );
             status = FlowStatus.RUNNING;
@@ -287,15 +293,14 @@ public class PipelineManagerImpl implements PipelineManager
 
     private Collection<Pipeline> getDownstreamPipelines ( final Pipeline upstreamPipeline )
     {
-        return flowDeployment.getFlow()
-                             .getDownstreamConnections( upstreamPipeline.getLastOperatorDef().id() )
-                             .values()
-                             .stream()
-                             .flatMap( ports -> ports.stream().map( port -> port.operatorId ) )
-                             .distinct()
-                             .map( flowDeployment.getFlow()::getOperator )
-                             .map( this::getPipelineByFirstOperatorOrFail )
-                             .collect( toList() );
+        return flow.getDownstreamConnections( upstreamPipeline.getLastOperatorDef().id() )
+                   .values()
+                   .stream()
+                   .flatMap( ports -> ports.stream().map( port -> port.operatorId ) )
+                   .distinct()
+                   .map( flow::getOperator )
+                   .map( this::getPipelineByFirstOperatorOrFail )
+                   .collect( toList() );
     }
 
     private UpstreamContext getUpdatedUpstreamContext ( final Pipeline pipeline )
@@ -325,7 +330,7 @@ public class PipelineManagerImpl implements PipelineManager
     {
         final OperatorDef firstOperator = pipeline.getFirstOperatorDef();
         final UpstreamConnectionStatus[] statuses = new UpstreamConnectionStatus[ firstOperator.inputPortCount() ];
-        for ( Entry<Port, Collection<Port>> entry : flowDeployment.getFlow().getUpstreamConnections( firstOperator.id() ).entrySet() )
+        for ( Entry<Port, Collection<Port>> entry : flow.getUpstreamConnections( firstOperator.id() ).entrySet() )
         {
             final Collection<Port> upstreamPorts = entry.getValue();
             final UpstreamConnectionStatus status;
@@ -335,9 +340,7 @@ public class PipelineManagerImpl implements PipelineManager
             }
             else
             {
-                final List<Pair<OperatorDef, Pipeline>> upstream = upstreamPorts.stream()
-                                                                                .map( p -> flowDeployment.getFlow()
-                                                                                                         .getOperator( p.operatorId ) )
+                final List<Pair<OperatorDef, Pipeline>> upstream = upstreamPorts.stream().map( p -> flow.getOperator( p.operatorId ) )
                                                                                 .map( o -> Pair.of( o, getPipelineOrFail( o ) ) )
                                                                                 .collect( toList() );
 
@@ -386,7 +389,7 @@ public class PipelineManagerImpl implements PipelineManager
         for ( Pipeline pipeline : pipelines.values() )
         {
             final OperatorDef operatorDef = pipeline.getFirstOperatorDef();
-            if ( flowDeployment.getFlow().getUpstreamConnections( operatorDef.id() ).isEmpty() )
+            if ( flow.getUpstreamConnections( operatorDef.id() ).isEmpty() )
             {
                 pipeline.handleUpstreamContextUpdated( new UpstreamContext( 1, new UpstreamConnectionStatus[] {} ) );
             }
@@ -419,7 +422,7 @@ public class PipelineManagerImpl implements PipelineManager
                                                     initialSchedulingStrategy,
                                                     upstreamContext );
             addPipeline( pipeline );
-            createDownstreamTupleSenders( flowDeployment.getFlow(), pipeline );
+            createDownstreamTupleSenders( flow, pipeline );
             pipeline.startPipelineReplicaRunners( jokerConfig, supervisor, jokerThreadGroup );
         }
         catch ( Exception e )
@@ -467,7 +470,7 @@ public class PipelineManagerImpl implements PipelineManager
 
             for ( Pipeline pipeline : newPipelines )
             {
-                createDownstreamTupleSenders( flowDeployment.getFlow(), pipeline );
+                createDownstreamTupleSenders( flow, pipeline );
             }
 
             for ( Pipeline pipeline : newPipelines )
@@ -490,39 +493,35 @@ public class PipelineManagerImpl implements PipelineManager
                     regionId,
                     newReplicaCount,
                     status );
-        final RegionGroup regionGroup = getRegionGroupToRebalanceOrFail( regionId, newReplicaCount );
+        final RegionDef regionDef = getRegionDefToRebalanceOrFail( regionId, newReplicaCount );
 
-        final List<Integer> regionIds = regionGroup.getRegions().stream().map( RegionDef::getRegionId ).collect( toList() );
-        LOGGER.info( "Will try to rebalance regions: {} new replica count: {}", regionIds, newReplicaCount );
+        LOGGER.info( "Will try to rebalance region: {} new replica count: {}", regionId, newReplicaCount );
 
-        final Collection<Pipeline> upstreamPipelines = pauseUpstreamPipelines( regionGroup.getRegions().get( 0 ) );
-        drainStatelessOperatorsAndReleasePipelines( regionGroup );
+        final Collection<Pipeline> upstreamPipelines = pauseUpstreamPipelines( regionDef );
+        stopAndReleasePipelines( regionDef );
 
         try
         {
             final List<Pipeline> newPipelines = new ArrayList<>();
-            for ( RegionDef regionDef : regionGroup.getRegions() )
-            {
-                final Region region = regionManager.rebalanceRegion( flowDeployment.getFlow(), regionDef.getRegionId(), newReplicaCount );
+            final Region region = regionManager.rebalanceRegion( flow, regionDef.getRegionId(), newReplicaCount );
 
-                for ( int pipelineIndex = 0; pipelineIndex < region.getConfig().getPipelineCount(); pipelineIndex++ )
-                {
-                    final PipelineReplica[] pipelineReplicas = region.getPipelineReplicas( pipelineIndex );
-                    final PipelineReplica pipelineReplica = pipelineReplicas[ 0 ];
-                    final PipelineId pipelineId = pipelineReplica.id().pipelineId;
-                    final Pipeline pipeline = new Pipeline( pipelineId,
-                                                            region.getConfig(),
-                                                            pipelineReplicas,
-                                                            pipelineReplica.getOperator( 0 ).getInitialSchedulingStrategy(),
-                                                            pipelineReplica.getPipelineUpstreamContext() );
-                    addPipeline( pipeline );
-                    newPipelines.add( pipeline );
-                }
+            for ( int pipelineIndex = 0; pipelineIndex < region.getConfig().getPipelineCount(); pipelineIndex++ )
+            {
+                final PipelineReplica[] pipelineReplicas = region.getPipelineReplicas( pipelineIndex );
+                final PipelineReplica pipelineReplica = pipelineReplicas[ 0 ];
+                final PipelineId pipelineId = pipelineReplica.id().pipelineId;
+                final Pipeline pipeline = new Pipeline( pipelineId,
+                                                        region.getConfig(),
+                                                        pipelineReplicas,
+                                                        pipelineReplica.getOperator( 0 ).getInitialSchedulingStrategy(),
+                                                        pipelineReplica.getPipelineUpstreamContext() );
+                addPipeline( pipeline );
+                newPipelines.add( pipeline );
             }
 
             for ( Pipeline pipeline : newPipelines )
             {
-                createDownstreamTupleSenders( flowDeployment.getFlow(), pipeline );
+                createDownstreamTupleSenders( flow, pipeline );
             }
 
             for ( Pipeline pipeline : newPipelines )
@@ -538,28 +537,28 @@ public class PipelineManagerImpl implements PipelineManager
 
         for ( Pipeline pausedPipeline : upstreamPipelines )
         {
-            createDownstreamTupleSenders( flowDeployment.getFlow(), pausedPipeline );
+            createDownstreamTupleSenders( flow, pausedPipeline );
         }
 
         resumePipelines( upstreamPipelines );
     }
 
-    private RegionGroup getRegionGroupToRebalanceOrFail ( final int regionId, final int newReplicaCount )
+    private RegionDef getRegionDefToRebalanceOrFail ( final int regionId, final int newReplicaCount )
     {
         checkArgument( newReplicaCount > 0, "cannot rebalance region %s since new replica count is %s", regionId, newReplicaCount );
 
-        final RegionGroup regionGroup = flowDeployment.getRegionGroupByFirstRegionId( regionId );
+        final Optional<RegionDef> regionDefOpt = regionDefs.stream().filter( r -> r.getRegionId() == regionId ).findFirst();
 
-        if ( regionGroup != null )
+        if ( regionDefOpt.isPresent() )
         {
-            final RegionDef regionDef = regionGroup.getRegions().get( 0 );
+            final RegionDef regionDef = regionDefOpt.get();
             checkArgument( regionDef.getRegionType() == PARTITIONED_STATEFUL,
                            "cannot rebalance region %s to new replica count %s since it is %s",
                            regionId,
                            newReplicaCount,
                            regionDef.getRegionType() );
 
-            return regionGroup;
+            return regionDef;
         }
 
         throw new IllegalArgumentException( "cannot rebalance region " + regionId + " to new replica count " + newReplicaCount
@@ -597,41 +596,24 @@ public class PipelineManagerImpl implements PipelineManager
         }
     }
 
-    private void drainStatelessOperatorsAndReleasePipelines ( final RegionGroup regionGroup )
+    private void stopAndReleasePipelines ( final RegionDef regionDef )
     {
-        for ( RegionDef regionDef : regionGroup.getRegions() )
+        final List<PipelineId> pipelineIds = new ArrayList<>();
+        for ( Pipeline pipeline : this.pipelines.values() )
         {
-            final List<Pipeline> pipelines = new ArrayList<>();
-            for ( Pipeline pipeline : this.pipelines.values() )
+            if ( regionDef.getRegionId() == pipeline.getId().regionId )
             {
-                if ( regionDef.getRegionId() == pipeline.getId().regionId )
-                {
-                    pipelines.add( pipeline );
-                }
-            }
-
-            pipelines.sort( Comparator.comparingInt( p -> p.getId().pipelineId ) );
-
-            for ( Pipeline pipeline : pipelines )
-            {
-                final long runnerStopTimeoutInMillis = jokerConfig.getPipelineManagerConfig().getRunnerCommandTimeoutInMillis();
-                final List<Exception> failures = pipeline.drainStatelessOperatorsAndStopPipelineReplicaRunners( runnerStopTimeoutInMillis );
-                final PipelineId pipelineId = pipeline.getId();
-                this.pipelines.remove( pipelineId );
-                LOGGER.info( "Pipeline {} drained its stateless operators and is released...", pipelineId );
-                if ( !failures.isEmpty() )
-                {
-                    throw new JokerException( "Failed during draining stateless operators of  pipeline " + pipelineId
-                                              + " replica runners!" );
-                }
+                pipelineIds.add( pipeline.getId() );
             }
         }
+
+        pipelineIds.sort( Comparator.comparingInt( p -> p.pipelineId ) );
+        stopAndReleasePipelines( pipelineIds );
     }
 
     private Collection<Pipeline> pauseUpstreamPipelines ( final RegionDef regionDef )
     {
         final Collection<Pipeline> upstream = new ArrayList<>();
-        final FlowDef flow = flowDeployment.getFlow();
         final Set<String> upstreamOperatorIds = new HashSet<>();
         for ( Collection<Port> c : flow.getUpstreamConnections( regionDef.getFirstOperator().id() ).values() )
         {
@@ -735,7 +717,7 @@ public class PipelineManagerImpl implements PipelineManager
                     final ScheduleWhenTuplesAvailable s = (ScheduleWhenTuplesAvailable) schedulingStrategy;
                     for ( int tupleCount : s.getTupleCounts() )
                     {
-                        checkState( tupleCount <= jokerConfig.getTupleQueueManagerConfig().getTupleQueueInitialSize(),
+                        checkState( tupleCount <= jokerConfig.getTupleQueueManagerConfig().getTupleQueueCapacity(),
                                     "Tuple queues are too small for scheduling strategy: %s of Operator=%s",
                                     operatorReplica.getOperatorName(),
                                     schedulingStrategy );
@@ -1058,11 +1040,8 @@ public class PipelineManagerImpl implements PipelineManager
     private List<Pipeline> getPipelinesTopologicallySorted ()
     {
         final List<Pipeline> pipelines = new ArrayList<>();
-        final List<RegionDef> regionDefsSorted = sortTopologically( flowDeployment.getFlow().getOperatorsMap(),
-                                                                    flowDeployment.getFlow().getConnections(),
-                                                                    flowDeployment.getRegions() );
 
-        for ( RegionDef regionDef : regionDefsSorted )
+        for ( RegionDef regionDef : sortTopologically( flow.getOperatorsMap(), flow.getConnections(), regionDefs ) )
         {
             final List<Pipeline> regionPipelines = new ArrayList<>();
             for ( Pipeline pipeline : this.pipelines.values() )

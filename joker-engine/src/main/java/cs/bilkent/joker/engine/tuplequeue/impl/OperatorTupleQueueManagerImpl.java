@@ -6,7 +6,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -32,9 +31,11 @@ import cs.bilkent.joker.engine.tuplequeue.impl.operator.PartitionedOperatorTuple
 import cs.bilkent.joker.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import cs.bilkent.joker.operator.OperatorDef;
+import cs.bilkent.joker.operator.Tuple;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import cs.bilkent.joker.utils.Pair;
 import cs.bilkent.joker.utils.Triple;
+import static java.lang.Math.max;
 import static java.util.Arrays.copyOf;
 
 @Singleton
@@ -96,21 +97,32 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
                     operatorId,
                     replicaIndex );
 
-        final Function<Integer, TupleQueue> tupleQueueConstructor = getTupleQueueConstructor( threadingPreference );
-
         final int inputPortCount = operatorDef.inputPortCount();
+        final TupleQueue[] tupleQueues = new TupleQueue[ inputPortCount ];
+        for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
+        {
+            tupleQueues[ portIndex ] = threadingPreference == SINGLE_THREADED
+                                       ? new SingleThreadedTupleQueue( tupleQueueManagerConfig.getTupleQueueCapacity() )
+                                       : new MultiThreadedTupleQueue( tupleQueueManagerConfig.getTupleQueueCapacity() );
+        }
 
-        final int maxSingleThreadedTupleQueueSize = tupleQueueManagerConfig.getMaxSingleThreadedTupleQueueSize();
-        final DefaultOperatorTupleQueue operatorTupleQueue = new DefaultOperatorTupleQueue( operatorId,
+        final String operatorTupleQueueId = toOperatorTupleQueueId( operatorId, replicaIndex );
+        final DefaultOperatorTupleQueue operatorTupleQueue = new DefaultOperatorTupleQueue( operatorTupleQueueId,
                                                                                             inputPortCount,
                                                                                             threadingPreference,
-                                                                                            tupleQueueConstructor,
-                                                                                            maxSingleThreadedTupleQueueSize );
+                                                                                            tupleQueues,
+                                                                                            tupleQueueManagerConfig.getTupleQueueCapacity
+                                                                                                                            () );
 
         singleOperatorTupleQueues.put( key, operatorTupleQueue );
         LOGGER.info( "created default tuple queue for regionId={} replicaIndex={} operatorId={}", regionId, replicaIndex, operatorId );
 
         return operatorTupleQueue;
+    }
+
+    private String toOperatorTupleQueueId ( final String operatorId, final int replicaIndex )
+    {
+        return operatorId + "_replica" + replicaIndex;
     }
 
     @Override
@@ -141,8 +153,6 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
                     regionId,
                     operatorId );
 
-        final Function<Integer, TupleQueue> tupleQueueConstructor = getTupleQueueConstructor( SINGLE_THREADED );
-
         final int inputPortCount = operatorDef.inputPortCount();
 
         final PartitionedOperatorTupleQueue[] operatorTupleQueues = new PartitionedOperatorTupleQueue[ replicaCount ];
@@ -154,8 +164,7 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
         {
             final TupleQueueContainer[] containers = createTupleQueueContainers( operatorId,
                                                                                  inputPortCount,
-                                                                                 partitionDistribution.getPartitionCount(),
-                                                                                 tupleQueueConstructor );
+                                                                                 partitionDistribution.getPartitionCount() );
             final int[] partitions = partitionDistribution.getDistribution();
 
             operatorTupleQueues[ replicaIndex ] = new PartitionedOperatorTupleQueue( operatorId,
@@ -184,13 +193,6 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
         final Pair<Integer, String> key = Pair.of( regionId, operatorId );
         final PartitionedOperatorTupleQueue[] operatorTupleQueues = this.partitionedOperatorTupleQueues.get( key );
         return operatorTupleQueues != null ? Arrays.copyOf( operatorTupleQueues, operatorTupleQueues.length ) : null;
-    }
-
-    private Function<Integer, TupleQueue> getTupleQueueConstructor ( final ThreadingPreference threadingPreference )
-    {
-        return threadingPreference == SINGLE_THREADED
-               ? ( portIndex ) -> new SingleThreadedTupleQueue( tupleQueueManagerConfig.getTupleQueueInitialSize() )
-               : ( portIndex ) -> new MultiThreadedTupleQueue( tupleQueueManagerConfig.getTupleQueueInitialSize() );
     }
 
     @Override
@@ -339,41 +341,49 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
                     replicaIndex,
                     operatorId );
 
-        final ThreadingPreference threadingPreference = operatorTupleQueue.getThreadingPreference(), newThreadingPreference;
+        final ThreadingPreference threadingPreference = operatorTupleQueue.getThreadingPreference();
 
-        final Function<Integer, TupleQueue> tupleQueueConstructor;
-
-        if ( threadingPreference == MULTI_THREADED )
+        final TupleQueue[] tupleQueues = new TupleQueue[ operatorTupleQueue.getInputPortCount() ];
+        if ( threadingPreference == SINGLE_THREADED )
         {
-            newThreadingPreference = SINGLE_THREADED;
-            tupleQueueConstructor = ( portIndex ) ->
+            int capacity = tupleQueueManagerConfig.getTupleQueueCapacity();
+            for ( int portIndex = 0; portIndex < operatorTupleQueue.getInputPortCount(); portIndex++ )
             {
-                final TupleQueue q = operatorTupleQueue.getTupleQueue( portIndex );
-                final MultiThreadedTupleQueue tupleQueue = (MultiThreadedTupleQueue) q;
-                return tupleQueue.toSingleThreadedTupleQueue();
-            };
+                final TupleQueue currentQueue = operatorTupleQueue.getTupleQueue( portIndex );
+                capacity = max( capacity, currentQueue.size() );
+            }
+
+            for ( int portIndex = 0; portIndex < operatorTupleQueue.getInputPortCount(); portIndex++ )
+            {
+                final TupleQueue currentQueue = operatorTupleQueue.getTupleQueue( portIndex );
+                final MultiThreadedTupleQueue newQueue = new MultiThreadedTupleQueue( capacity );
+                drain( currentQueue, newQueue );
+                tupleQueues[ portIndex ] = newQueue;
+            }
         }
-        else if ( threadingPreference == SINGLE_THREADED )
+        else if ( threadingPreference == MULTI_THREADED )
         {
-            newThreadingPreference = MULTI_THREADED;
-            tupleQueueConstructor = ( portIndex ) ->
+            for ( int portIndex = 0; portIndex < operatorTupleQueue.getInputPortCount(); portIndex++ )
             {
-                final TupleQueue q = operatorTupleQueue.getTupleQueue( portIndex );
-                final SingleThreadedTupleQueue tupleQueue = (SingleThreadedTupleQueue) q;
-                return tupleQueue.toMultiThreadedTupleQueue( tupleQueueManagerConfig.getTupleQueueInitialSize() );
-            };
+                final TupleQueue currentQueue = operatorTupleQueue.getTupleQueue( portIndex );
+                final int capacity = max( tupleQueueManagerConfig.getTupleQueueCapacity(), currentQueue.size() );
+                final SingleThreadedTupleQueue newQueue = new SingleThreadedTupleQueue( capacity );
+                drain( currentQueue, newQueue );
+                tupleQueues[ portIndex ] = newQueue;
+            }
         }
         else
         {
             throw new IllegalStateException( "regionId=" + regionId + " has invalid threading preference: " + threadingPreference );
         }
 
-        final DefaultOperatorTupleQueue newOperatorTupleQueue = new DefaultOperatorTupleQueue( operatorId,
+        final ThreadingPreference newThreadingPreference = threadingPreference.reverse();
+
+        final String operatorTupleQueueId = toOperatorTupleQueueId( operatorId, replicaIndex );
+        final DefaultOperatorTupleQueue newOperatorTupleQueue = new DefaultOperatorTupleQueue( operatorTupleQueueId,
                                                                                                operatorTupleQueue.getInputPortCount(),
-                                                                                               newThreadingPreference,
-                                                                                               tupleQueueConstructor,
-                                                                                               tupleQueueManagerConfig
-                                                                                                       .getMaxSingleThreadedTupleQueueSize() );
+                                                                                               newThreadingPreference, tupleQueues,
+                                                                                               tupleQueueManagerConfig.getTupleQueueCapacity() );
 
         singleOperatorTupleQueues.put( tupleQueueId, newOperatorTupleQueue );
         LOGGER.info( "{} default tuple queue is switched to {} for regionId={} replicaIndex={} operatorId={}",
@@ -386,15 +396,22 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
         return newOperatorTupleQueue;
     }
 
-    private TupleQueueContainer[] createTupleQueueContainers ( final String operatorId,
-                                                               final int inputPortCount,
-                                                               final int partitionCount,
-                                                               final Function<Integer, TupleQueue> tupleQueueConstructor )
+    private void drain ( final TupleQueue sourceQueue, final TupleQueue targetQueue )
+    {
+        Tuple tuple;
+        while ( ( tuple = sourceQueue.poll() ) != null )
+        {
+            final boolean offered = targetQueue.offer( tuple );
+            assert offered;
+        }
+    }
+
+    private TupleQueueContainer[] createTupleQueueContainers ( final String operatorId, final int inputPortCount, final int partitionCount )
     {
         final TupleQueueContainer[] containers = new TupleQueueContainer[ partitionCount ];
         for ( int i = 0; i < partitionCount; i++ )
         {
-            containers[ i ] = new TupleQueueContainer( operatorId, inputPortCount, i, tupleQueueConstructor );
+            containers[ i ] = new TupleQueueContainer( operatorId, inputPortCount, i );
         }
 
         tupleQueueContainersByOperatorId.put( operatorId, containers );
