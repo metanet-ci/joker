@@ -42,7 +42,7 @@ public class PipelineTest extends AbstractJokerTest
         when( pipelineReplica1.init( upstreamContext ) ).thenReturn( new SchedulingStrategy[] { initialSchedulingStrategy } );
         final RegionConfig regionConfig = mock( RegionConfig.class );
         when( regionConfig.getReplicaCount() ).thenReturn( 2 );
-        when( regionConfig.getOperatorCountByPipelineId( pipelineId.pipelineId ) ).thenReturn( 1 );
+        when( regionConfig.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 1 );
         final Pipeline pipeline = new Pipeline( pipelineId, regionConfig, pipelineReplicas );
         pipeline.setUpstreamContext( upstreamContext );
         pipeline.init();
@@ -64,7 +64,7 @@ public class PipelineTest extends AbstractJokerTest
         when( pipelineReplica1.init( upstreamContext ) ).thenReturn( new SchedulingStrategy[] { initialSchedulingStrategy2 } );
         final RegionConfig regionConfig = mock( RegionConfig.class );
         when( regionConfig.getReplicaCount() ).thenReturn( 2 );
-        when( regionConfig.getOperatorCountByPipelineId( pipelineId.pipelineId ) ).thenReturn( 1 );
+        when( regionConfig.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 1 );
 
         final Pipeline pipeline = new Pipeline( pipelineId, regionConfig, pipelineReplicas );
         pipeline.setUpstreamContext( upstreamContext );
@@ -99,7 +99,7 @@ public class PipelineTest extends AbstractJokerTest
         when( pipelineReplica1.init( upstreamContext ) ).thenReturn( new SchedulingStrategy[] { initialSchedulingStrategy } );
         final RegionConfig regionConfig = mock( RegionConfig.class );
         when( regionConfig.getReplicaCount() ).thenReturn( 2 );
-        when( regionConfig.getOperatorCountByPipelineId( pipelineId.pipelineId ) ).thenReturn( 1 );
+        when( regionConfig.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 1 );
         final Pipeline pipeline = new Pipeline( pipelineId, regionConfig, pipelineReplicas );
         pipeline.setUpstreamContext( upstreamContext );
         pipeline.init();
@@ -130,7 +130,7 @@ public class PipelineTest extends AbstractJokerTest
         when( pipelineReplica1.init( upstreamContext ) ).thenReturn( new SchedulingStrategy[] { initialSchedulingStrategy } );
         final RegionConfig regionConfig = mock( RegionConfig.class );
         when( regionConfig.getReplicaCount() ).thenReturn( 2 );
-        when( regionConfig.getOperatorCountByPipelineId( pipelineId.pipelineId ) ).thenReturn( 1 );
+        when( regionConfig.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 1 );
         final Pipeline pipeline = new Pipeline( pipelineId, regionConfig, pipelineReplicas );
         pipeline.setUpstreamContext( upstreamContext );
         pipeline.init();
@@ -170,7 +170,7 @@ public class PipelineTest extends AbstractJokerTest
         when( pipelineReplica1.init( upstreamContext ) ).thenReturn( new SchedulingStrategy[] { initialSchedulingStrategy } );
         final RegionConfig regionConfig = mock( RegionConfig.class );
         when( regionConfig.getReplicaCount() ).thenReturn( 2 );
-        when( regionConfig.getOperatorCountByPipelineId( pipelineId.pipelineId ) ).thenReturn( 1 );
+        when( regionConfig.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 1 );
         final Pipeline pipeline = new Pipeline( pipelineId, regionConfig, pipelineReplicas );
         pipeline.setUpstreamContext( upstreamContext );
         pipeline.init();
@@ -195,7 +195,7 @@ public class PipelineTest extends AbstractJokerTest
         when( pipelineReplica1.init( upstreamContext ) ).thenReturn( new SchedulingStrategy[] { initialSchedulingStrategy } );
         final RegionConfig regionConfig = mock( RegionConfig.class );
         when( regionConfig.getReplicaCount() ).thenReturn( 2 );
-        when( regionConfig.getOperatorCountByPipelineId( pipelineId.pipelineId ) ).thenReturn( 1 );
+        when( regionConfig.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 1 );
         final Pipeline pipeline = new Pipeline( pipelineId, regionConfig, pipelineReplicas );
         pipeline.setUpstreamContext( upstreamContext );
         pipeline.init();
@@ -234,7 +234,7 @@ public class PipelineTest extends AbstractJokerTest
         when( pipelineReplica1.init( upstreamContext ) ).thenReturn( new SchedulingStrategy[] { initialSchedulingStrategy } );
         final RegionConfig regionConfig = mock( RegionConfig.class );
         when( regionConfig.getReplicaCount() ).thenReturn( 2 );
-        when( regionConfig.getOperatorCountByPipelineId( pipelineId.pipelineId ) ).thenReturn( 1 );
+        when( regionConfig.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 1 );
         final Pipeline pipeline = new Pipeline( pipelineId, regionConfig, pipelineReplicas );
         pipeline.setUpstreamContext( upstreamContext );
         pipeline.init();
@@ -271,7 +271,8 @@ public class PipelineTest extends AbstractJokerTest
         when( supervisor.getUpstreamContext( pipelineReplicaId1 ) ).thenReturn( newUpstreamContext );
 
         final OperatorDef operatorDef = mock( OperatorDef.class );
-        when( regionConfig.getOperatorDefByPipelineId( pipelineId.pipelineId, 0 ) ).thenReturn( operatorDef );
+        when( regionConfig.getOperatorDefsByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( new OperatorDef[] {
+                operatorDef } );
 
         pipeline.handleUpstreamContextUpdated( newUpstreamContext );
 

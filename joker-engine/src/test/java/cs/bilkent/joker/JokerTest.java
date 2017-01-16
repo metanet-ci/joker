@@ -12,9 +12,11 @@ import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import cs.bilkent.joker.Joker.JokerBuilder;
 import cs.bilkent.joker.engine.config.JokerConfig;
+import cs.bilkent.joker.engine.flow.FlowDeploymentDef;
 import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
@@ -58,7 +60,7 @@ public class JokerTest extends AbstractJokerTest
 
     private static final int PARTITIONED_STATEFUL_REGION_REPLICA_COUNT = 4;
 
-    private static final int KEY_RANGE = 1000;
+    private static final int KEY_RANGE = 10000;
 
     private static final int VALUE_RANGE = 5;
 
@@ -153,13 +155,15 @@ public class JokerTest extends AbstractJokerTest
                                                                                              PARTITIONED_STATEFUL_REGION_REPLICA_COUNT );
         final Joker joker = new JokerBuilder().setRegionConfigFactory( regionConfigFactory ).setJokerConfig( jokerConfig ).build();
 
-        joker.run( flowExample.flow );
+        final FlowDeploymentDef flowDep = joker.run( flowExample.flow );
 
         sleepUninterruptibly( 15, SECONDS );
 
-        final List<PipelineId> pipelineIdsToMerge = asList( new PipelineId( 1, 0 ), new PipelineId( 1, 1 ) );
+        final RegionConfig region = flowDep.getOperatorRegion( flowExample.join.id() );
+        final List<PipelineId> pipelineIdsToMerge = region.getPipelineIds();
+        checkState( pipelineIdsToMerge.size() > 1 );
 
-        joker.mergePipelines( pipelineIdsToMerge ).get( 15, SECONDS );
+        joker.mergePipelines( flowDep.getVersion(), pipelineIdsToMerge ).get( 15, SECONDS );
 
         sleepUninterruptibly( 15, SECONDS );
 
@@ -188,11 +192,12 @@ public class JokerTest extends AbstractJokerTest
                                                                                                PARTITIONED_STATEFUL_REGION_REPLICA_COUNT );
         final Joker joker = new JokerBuilder().setRegionConfigFactory( regionConfigFactory ).setJokerConfig( jokerConfig ).build();
 
-        joker.run( flowExample.flow );
+        final FlowDeploymentDef flowDep = joker.run( flowExample.flow );
 
         sleepUninterruptibly( 15, SECONDS );
 
-        joker.splitPipeline( new PipelineId( 1, 0 ), asList( 1, 2 ) ).get( 15, SECONDS );
+        final RegionConfig region = flowDep.getOperatorRegion( flowExample.join.id() );
+        joker.splitPipeline( flowDep.getVersion(), region.getPipelineIds().get( 0 ), asList( 1, 2 ) ).get( 15, SECONDS );
 
         sleepUninterruptibly( 15, SECONDS );
 
@@ -221,12 +226,19 @@ public class JokerTest extends AbstractJokerTest
                                                                                                PARTITIONED_STATEFUL_REGION_REPLICA_COUNT );
         final Joker joker = new JokerBuilder().setRegionConfigFactory( regionConfigFactory ).setJokerConfig( jokerConfig ).build();
 
-        joker.run( flowExample.flow );
+        FlowDeploymentDef flowDep = joker.run( flowExample.flow );
 
         sleepUninterruptibly( 15, SECONDS );
 
-        joker.splitPipeline( new PipelineId( 1, 0 ), asList( 1, 2 ) ).get( 15, SECONDS );
-        joker.mergePipelines( asList( new PipelineId( 1, 0 ), new PipelineId( 1, 1 ), new PipelineId( 1, 2 ) ) ).get( 15, SECONDS );
+        RegionConfig region = flowDep.getOperatorRegion( flowExample.join.id() );
+        checkState( region.getPipelineIds().size() == 1 );
+        flowDep = joker.splitPipeline( flowDep.getVersion(), region.getPipelineIds().get( 0 ), asList( 1, 2 ) ).get( 15, SECONDS );
+        region = flowDep.getOperatorRegion( flowExample.join.id() );
+        checkState( region.getPipelineIds().size() == 3 );
+
+        sleepUninterruptibly( 15, SECONDS );
+
+        joker.mergePipelines( flowDep.getVersion(), region.getPipelineIds() ).get( 15, SECONDS );
 
         sleepUninterruptibly( 15, SECONDS );
 
@@ -255,14 +267,22 @@ public class JokerTest extends AbstractJokerTest
                                                                                              PARTITIONED_STATEFUL_REGION_REPLICA_COUNT );
         final Joker joker = new JokerBuilder().setRegionConfigFactory( regionConfigFactory ).setJokerConfig( jokerConfig ).build();
 
-        joker.run( flowExample.flow );
+        FlowDeploymentDef flowDep = joker.run( flowExample.flow );
 
         sleepUninterruptibly( 15, SECONDS );
 
-        final List<PipelineId> pipelineIdsToMerge = asList( new PipelineId( 1, 0 ), new PipelineId( 1, 1 ) );
+        RegionConfig region = flowDep.getOperatorRegion( flowExample.join.id() );
+        final List<PipelineId> pipelineIdsToMerge = region.getPipelineIds();
+        checkState( pipelineIdsToMerge.size() == 2 );
 
-        joker.mergePipelines( pipelineIdsToMerge ).get( 15, SECONDS );
-        joker.splitPipeline( new PipelineId( 1, 0 ), asList( 1, 2 ) ).get( 15, SECONDS );
+        flowDep = joker.mergePipelines( flowDep.getVersion(), pipelineIdsToMerge ).get( 15, SECONDS );
+        region = flowDep.getOperatorRegion( flowExample.join.id() );
+        final List<PipelineId> pipelineIdsToSplit = region.getPipelineIds();
+        checkState( pipelineIdsToSplit.size() == 1 );
+
+        sleepUninterruptibly( 15, SECONDS );
+
+        joker.splitPipeline( flowDep.getVersion(), pipelineIdsToSplit.get( 0 ), asList( 1, 2 ) ).get( 15, SECONDS );
 
         sleepUninterruptibly( 15, SECONDS );
 
@@ -291,25 +311,29 @@ public class JokerTest extends AbstractJokerTest
                                                                                                PARTITIONED_STATEFUL_REGION_REPLICA_COUNT );
         final Joker joker = new JokerBuilder().setRegionConfigFactory( regionConfigFactory ).setJokerConfig( jokerConfig ).build();
 
-        joker.run( flowExample.flow );
+        FlowDeploymentDef flowDep = joker.run( flowExample.flow );
 
-        sleepUninterruptibly( 5, SECONDS );
+        sleepUninterruptibly( 15, SECONDS );
 
-        joker.rebalanceRegion( 1, PARTITIONED_STATEFUL_REGION_REPLICA_COUNT / 2 ).get( 15, SECONDS );
+        RegionConfig region = flowDep.getOperatorRegion( flowExample.join.id() );
+        flowDep = joker.rebalanceRegion( flowDep.getVersion(), region.getRegionId(), region.getReplicaCount() / 2 ).get( 15, SECONDS );
 
-        sleepUninterruptibly( 5, SECONDS );
+        sleepUninterruptibly( 15, SECONDS );
 
-        joker.rebalanceRegion( 1, PARTITIONED_STATEFUL_REGION_REPLICA_COUNT ).get( 15, SECONDS );
+        region = flowDep.getOperatorRegion( flowExample.join.id() );
+        flowDep = joker.rebalanceRegion( flowDep.getVersion(), region.getRegionId(), region.getReplicaCount() * 2 ).get( 15, SECONDS );
 
-        sleepUninterruptibly( 5, SECONDS );
+        sleepUninterruptibly( 15, SECONDS );
 
-        joker.rebalanceRegion( 1, PARTITIONED_STATEFUL_REGION_REPLICA_COUNT / 2 ).get( 15, SECONDS );
+        region = flowDep.getOperatorRegion( flowExample.join.id() );
+        flowDep = joker.rebalanceRegion( flowDep.getVersion(), region.getRegionId(), region.getReplicaCount() / 2 ).get( 15, SECONDS );
 
-        sleepUninterruptibly( 5, SECONDS );
+        sleepUninterruptibly( 15, SECONDS );
 
-        joker.rebalanceRegion( 1, PARTITIONED_STATEFUL_REGION_REPLICA_COUNT ).get( 15, SECONDS );
+        region = flowDep.getOperatorRegion( flowExample.join.id() );
+        joker.rebalanceRegion( flowDep.getVersion(), region.getRegionId(), region.getReplicaCount() * 2 ).get( 15, SECONDS );
 
-        sleepUninterruptibly( 10, SECONDS );
+        sleepUninterruptibly( 15, SECONDS );
 
         joker.shutdown().get( 60, SECONDS );
 
@@ -337,25 +361,33 @@ public class JokerTest extends AbstractJokerTest
                                                                                                PARTITIONED_STATEFUL_REGION_REPLICA_COUNT );
         final Joker joker = new JokerBuilder().setRegionConfigFactory( regionConfigFactory ).setJokerConfig( jokerConfig ).build();
 
-        joker.run( flowExample.flow );
+        FlowDeploymentDef flowDep = joker.run( flowExample.flow );
 
-        sleepUninterruptibly( 5, SECONDS );
+        sleepUninterruptibly( 15, SECONDS );
 
-        joker.rebalanceRegion( 1, PARTITIONED_STATEFUL_REGION_REPLICA_COUNT / 2 ).get( 60, SECONDS );
+        RegionConfig region = flowDep.getOperatorRegion( flowExample.join.id() );
+        flowDep = joker.rebalanceRegion( flowDep.getVersion(), region.getRegionId(), region.getReplicaCount() / 2 ).get( 60, SECONDS );
 
-        sleepUninterruptibly( 5, SECONDS );
+        sleepUninterruptibly( 15, SECONDS );
 
-        joker.splitPipeline( new PipelineId( 1, 0 ), asList( 1, 2 ) ).get( 15, SECONDS );
+        region = flowDep.getOperatorRegion( flowExample.join.id() );
+        final List<PipelineId> pipelineIdsToSplit = region.getPipelineIds();
+        checkState( pipelineIdsToSplit.size() == 1 );
+        flowDep = joker.splitPipeline( flowDep.getVersion(), pipelineIdsToSplit.get( 0 ), asList( 1, 2 ) ).get( 15, SECONDS );
 
-        sleepUninterruptibly( 5, SECONDS );
+        sleepUninterruptibly( 15, SECONDS );
 
-        joker.mergePipelines( asList( new PipelineId( 1, 0 ), new PipelineId( 1, 1 ), new PipelineId( 1, 2 ) ) ).get( 15, SECONDS );
+        region = flowDep.getOperatorRegion( flowExample.join.id() );
+        final List<PipelineId> pipelineIdsToMerge = region.getPipelineIds();
+        checkState( pipelineIdsToMerge.size() == 3 );
+        flowDep = joker.mergePipelines( flowDep.getVersion(), pipelineIdsToMerge ).get( 15, SECONDS );
 
-        sleepUninterruptibly( 5, SECONDS );
+        sleepUninterruptibly( 15, SECONDS );
 
-        joker.rebalanceRegion( 1, PARTITIONED_STATEFUL_REGION_REPLICA_COUNT ).get( 15, SECONDS );
+        region = flowDep.getOperatorRegion( flowExample.join.id() );
+        joker.rebalanceRegion( flowDep.getVersion(), region.getRegionId(), region.getReplicaCount() * 2 ).get( 15, SECONDS );
 
-        sleepUninterruptibly( 10, SECONDS );
+        sleepUninterruptibly( 15, SECONDS );
 
         joker.shutdown().get( 60, SECONDS );
 
@@ -587,6 +619,8 @@ public class JokerTest extends AbstractJokerTest
 
         final ValueCollector valueCollector = new ValueCollector( "valueCollector", KEY_RANGE );
 
+        final OperatorDef join;
+
         final FlowDef flow;
 
         FlowExample1 ()
@@ -623,10 +657,10 @@ public class JokerTest extends AbstractJokerTest
                       .addOutputField( 0, "key", Integer.class )
                       .addOutputField( 0, "value", Integer.class );
 
-            final OperatorDef join = OperatorDefBuilder.newInstance( "joiner", JoinOperator.class )
-                                                       .setExtendingSchema( joinSchema )
-                                                       .setPartitionFieldNames( singletonList( "key" ) )
-                                                       .build();
+            join = OperatorDefBuilder.newInstance( "joiner", JoinOperator.class )
+                                     .setExtendingSchema( joinSchema )
+                                     .setPartitionFieldNames( singletonList( "key" ) )
+                                     .build();
 
             final OperatorRuntimeSchemaBuilder summerSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
             summerSchema.addInputField( 0, "key", Integer.class )

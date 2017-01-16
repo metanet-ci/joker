@@ -1,8 +1,12 @@
 package cs.bilkent.joker.engine.pipeline;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkState;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETED;
 
 public class PipelineReplicaCompletionTracker implements OperatorReplicaListener
@@ -15,12 +19,18 @@ public class PipelineReplicaCompletionTracker implements OperatorReplicaListener
 
     private final int operatorCount;
 
+    private final Set<String> runningOperatorIds = new HashSet<>();
+
     private int completedOperatorCount;
 
-    public PipelineReplicaCompletionTracker ( final PipelineReplicaId pipelineReplicaId, final int operatorCount )
+    public PipelineReplicaCompletionTracker ( final PipelineReplicaId pipelineReplicaId, final OperatorReplica[] operators )
     {
         this.pipelineReplicaId = pipelineReplicaId;
-        this.operatorCount = operatorCount;
+        this.operatorCount = operators.length;
+        for ( OperatorReplica operator : operators )
+        {
+            runningOperatorIds.add( operator.getOperatorDef().id() );
+        }
     }
 
     @Override
@@ -32,14 +42,16 @@ public class PipelineReplicaCompletionTracker implements OperatorReplicaListener
             return;
         }
 
-        if ( completedOperatorCount == operatorCount )
-        {
-            LOGGER.error( "{} moves to {} status although all operators of {} have already moved",
-                          operatorId,
-                          COMPLETED,
-                          pipelineReplicaId );
-            return;
-        }
+        checkState( runningOperatorIds.remove( operatorId ),
+                    "Operator: %s is already completed in PipelineReplica %s",
+                    operatorId,
+                    pipelineReplicaId );
+        checkState( completedOperatorCount < operatorCount,
+                    "%s moves to %s status although all operators of %s have already %s",
+                    operatorId,
+                    COMPLETED,
+                    pipelineReplicaId,
+                    COMPLETED );
 
         LOGGER.info( "{}:{} is completed", pipelineReplicaId, operatorId );
         if ( ++completedOperatorCount == operatorCount )

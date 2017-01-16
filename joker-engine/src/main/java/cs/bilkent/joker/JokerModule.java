@@ -1,5 +1,9 @@
 package cs.bilkent.joker;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.OperatingSystemMXBean;
+import java.lang.management.RuntimeMXBean;
+import java.lang.management.ThreadMXBean;
 import java.util.UUID;
 
 import com.google.inject.AbstractModule;
@@ -10,6 +14,8 @@ import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_ID;
 import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_THREAD_GROUP_NAME;
 import cs.bilkent.joker.engine.kvstore.OperatorKVStoreManager;
 import cs.bilkent.joker.engine.kvstore.impl.OperatorKVStoreManagerImpl;
+import cs.bilkent.joker.engine.metric.MetricManager;
+import cs.bilkent.joker.engine.metric.impl.MetricManagerImpl;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractorFactory;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
@@ -80,6 +86,7 @@ public class JokerModule extends AbstractModule
         bind( Supervisor.class ).to( SupervisorImpl.class );
         bind( PartitionKeyExtractorFactory.class ).to( PartitionKeyExtractorFactoryImpl.class );
         bind( PipelineManager.class ).to( PipelineManagerImpl.class );
+        bind( MetricManager.class ).to( MetricManagerImpl.class );
         bind( FlowDefOptimizer.class ).to( FlowDefOptimizerImpl.class );
         bind( PipelineTransformer.class ).to( PipelineTransformerImpl.class );
         if ( regionConfigFactory != null )
@@ -92,6 +99,9 @@ public class JokerModule extends AbstractModule
         }
         bind( JokerConfig.class ).toInstance( config );
         bind( ThreadGroup.class ).annotatedWith( named( JOKER_THREAD_GROUP_NAME ) ).toInstance( new ThreadGroup( "Joker" ) );
+        bind( ThreadMXBean.class ).toInstance( ManagementFactory.getThreadMXBean() );
+        bind( RuntimeMXBean.class ).toInstance( ManagementFactory.getRuntimeMXBean() );
+        bind( OperatingSystemMXBean.class ).toInstance( ManagementFactory.getOperatingSystemMXBean() );
         bind( IdGenerator.class ).toInstance( new IdGenerator() );
         bind( DownstreamTupleSenderFailureFlag.class ).toInstance( new DownstreamTupleSenderFailureFlag() );
         bind( Object.class ).annotatedWith( named( JOKER_ID ) ).toInstance( jokerId );

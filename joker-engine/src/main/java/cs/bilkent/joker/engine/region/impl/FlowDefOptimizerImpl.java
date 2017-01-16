@@ -22,6 +22,8 @@ import cs.bilkent.joker.engine.config.FlowDefOptimizerConfig;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.region.FlowDefOptimizer;
 import cs.bilkent.joker.engine.region.RegionDef;
+import static cs.bilkent.joker.engine.util.RegionUtil.getFirstOperator;
+import static cs.bilkent.joker.engine.util.RegionUtil.getLastOperator;
 import static cs.bilkent.joker.engine.util.RegionUtil.getRegionByLastOperator;
 import static cs.bilkent.joker.engine.util.RegionUtil.sortTopologically;
 import cs.bilkent.joker.flow.FlowDef;
@@ -133,7 +135,7 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
     {
         for ( RegionDef currentRegion : regions )
         {
-            final OperatorDef firstOperator = currentRegion.getFirstOperator();
+            final OperatorDef firstOperator = getFirstOperator( currentRegion );
             final List<OperatorDef> upstreamOperators = getUpstreamOperators( operators, connections, firstOperator.id() );
             if ( upstreamOperators.size() == 1 )
             {
@@ -163,7 +165,7 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
 
                 // region is STATELESS
 
-                if ( getDownstreamOperators( operators, connections, upstreamRegion.getLastOperator().id() ).size() == 1 )
+                if ( getDownstreamOperators( operators, connections, getLastOperator( upstreamRegion ).id() ).size() == 1 )
                 {
                     final OperatorType newRegionType;
                     if ( upstreamRegion.getRegionType() == PARTITIONED_STATEFUL )
@@ -240,7 +242,7 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
                                                final List<RegionDef> optimizedRegions,
                                                final RegionDef region )
     {
-        final OperatorDef firstOperator = region.getFirstOperator();
+        final OperatorDef firstOperator = getFirstOperator( region );
         final List<OperatorDef> upstreamOperators = getUpstreamOperators( operators, connections, firstOperator.id() );
         final int upstreamOperatorCount = upstreamOperators.size();
         if ( upstreamOperatorCount > 1 )
@@ -339,7 +341,7 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
                     }
                 }
 
-                for ( Entry<Port, Port> e : downstreamConnections.get( region.getLastOperator().id() ).entries() )
+                for ( Entry<Port, Port> e : downstreamConnections.get( getLastOperator( region ).id() ).entries() )
                 {
                     final OperatorDef duplicateOperator = duplicateOperators.get( duplicateOperators.size() - 1 );
                     final Port duplicateSourcePort = new Port( duplicateOperator.id(), e.getKey().portIndex );

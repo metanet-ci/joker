@@ -2,19 +2,19 @@ package cs.bilkent.joker.engine.pipeline.impl;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import javax.annotation.concurrent.NotThreadSafe;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -31,6 +31,8 @@ import cs.bilkent.joker.engine.config.JokerConfig;
 import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_THREAD_GROUP_NAME;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.exception.JokerException;
+import cs.bilkent.joker.engine.flow.FlowDeploymentDef;
+import cs.bilkent.joker.engine.metric.PipelineMeter;
 import cs.bilkent.joker.engine.partition.PartitionDistribution;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractorFactory;
@@ -62,6 +64,7 @@ import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.region.RegionManager;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
+import static cs.bilkent.joker.engine.util.RegionUtil.getFirstOperator;
 import static cs.bilkent.joker.engine.util.RegionUtil.sortTopologically;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.Port;
@@ -78,15 +81,19 @@ import static java.lang.Math.min;
 import static java.util.Collections.reverse;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.sort;
+import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toList;
 
 @Singleton
+@NotThreadSafe
 public class PipelineManagerImpl implements PipelineManager
 {
 
     private static final Logger LOGGER = LoggerFactory.getLogger( PipelineManagerImpl.class );
 
     private static final int DOWNSTREAM_TUPLE_SENDER_CONSTRUCTOR_COUNT = 2;
+
+    private static final int INITIAL_FLOW_VERSION = -1;
 
 
     private final JokerConfig jokerConfig;
@@ -107,9 +114,13 @@ public class PipelineManagerImpl implements PipelineManager
     private final Function6<List<Pair<Integer, Integer>>, Integer, int[], OperatorTupleQueue[], PartitionKeyExtractor,
                                    DownstreamTupleSender>[] partitionedDownstreamTupleSenderConstructors = new Function6[ 6 ];
 
+    private Supervisor supervisor;
+
+    private int flowVersion = INITIAL_FLOW_VERSION;
+
     private FlowDef flow;
 
-    private List<RegionDef> regionDefs;
+    private final Map<Integer, RegionConfig> regionConfigs = new HashMap<>();
 
     private final Map<PipelineId, Pipeline> pipelines = new ConcurrentHashMap<>();
 
@@ -130,6 +141,12 @@ public class PipelineManagerImpl implements PipelineManager
         this.downstreamTupleSenderFailureFlag = downstreamTupleSenderFailureFlag;
         this.jokerThreadGroup = jokerThreadGroup;
         createDownstreamTupleSenderFactories();
+    }
+
+    @Inject
+    public void setSupervisor ( final Supervisor supervisor )
+    {
+        this.supervisor = supervisor;
     }
 
     private void createDownstreamTupleSenderFactories ()
@@ -189,28 +206,62 @@ public class PipelineManagerImpl implements PipelineManager
     }
 
     @Override
-    public void start ( final Supervisor supervisor,
-                        final FlowDef flow,
-                        final List<RegionDef> regionDefs,
-                        final List<RegionConfig> regionConfigs )
+    public void start ( final FlowDef flow, final List<RegionConfig> regionConfigs )
     {
         try
         {
-            checkState( status == FlowStatus.INITIAL, "cannot startPipelineReplicaRunnerThreads since status is %s", status );
-            checkState( this.flow == null, "flow is already assigned!" );
-            checkState( this.regionDefs == null, "region defs are already assigned!" );
+            checkState( status == FlowStatus.INITIAL, "cannot start pipeline replica runner threads since status is %s", status );
             this.flow = flow;
-            this.regionDefs = regionDefs;
             createPipelines( flow, regionConfigs );
             initPipelines();
-            createPipelineReplicaRunners( supervisor );
+            startPipelineReplicaRunners( supervisor );
             status = FlowStatus.RUNNING;
+            incrementFlowVersion();
         }
         catch ( Exception e )
         {
             status = FlowStatus.INITIALIZATION_FAILED;
             throw new InitializationException( "Flow start failed", e );
         }
+    }
+
+    @Override
+    public FlowDeploymentDef getFlowDeploymentDef ()
+    {
+        final FlowStatus status = this.status;
+        checkState( status == FlowStatus.RUNNING || status == FlowStatus.SHUTTING_DOWN,
+                    "cannot get flow deployment def since status is %s",
+                    status );
+        return new FlowDeploymentDef( flowVersion, flow, regionConfigs.values() );
+    }
+
+    @Override
+    public List<PipelineMeter> getAllPipelineMetersOrFail ()
+    {
+        final List<PipelineMeter> pipelineMeters = pipelines.values().stream().map( Pipeline::getPipelineMeter ).collect( toList() );
+        checkState( pipelineMeters.size() > 0, "there is no pipeline meters!" );
+        return pipelineMeters;
+    }
+
+    @Override
+    public List<PipelineMeter> getRegionPipelineMetersOrFail ( final int regionId )
+    {
+        final List<PipelineMeter> meters = pipelines.values()
+                                                    .stream()
+                                                    .filter( p -> p.getRegionDef().getRegionId() == regionId )
+                                                    .map( Pipeline::getPipelineMeter )
+                                                    .collect( toList() );
+        checkArgument( meters.size() > 0, "No pipelines found for regionId=%s", regionId );
+        return meters;
+    }
+
+    @Override
+    public PipelineMeter getPipelineMeterOrFail ( final PipelineId pipelineId )
+    {
+        final Pipeline pipeline = pipelines.get( pipelineId );
+        checkArgument( pipeline != null, "Pipeline %s not found", pipelineId );
+
+        return pipeline.getPipelineMeter();
     }
 
     private void initPipelines ()
@@ -397,10 +448,20 @@ public class PipelineManagerImpl implements PipelineManager
     }
 
     @Override
-    public void mergePipelines ( final Supervisor supervisor, final List<PipelineId> pipelineIds )
+    public void mergePipelines ( final int flowVersion, final List<PipelineId> pipelineIds )
     {
-        checkState( status == FlowStatus.RUNNING, "cannot merge pipelines %s since status is %s", pipelineIds, status );
-        LOGGER.info( "Will try to merge pipelines: {}", pipelineIds );
+        checkArgument( flowVersion == this.flowVersion,
+                       "cannot merge pipelines %s since given flow version %s is not equal to the flow version: %s",
+                       pipelineIds,
+                       flowVersion,
+                       this.flowVersion );
+        checkState( status == FlowStatus.RUNNING,
+                    "cannot merge pipelines %s with flow version %s since status is %s",
+                    pipelineIds,
+                    flowVersion,
+                    status );
+
+        LOGGER.info( "Will try to merge pipelines {} with flow version: {}", pipelineIds, flowVersion );
 
         regionManager.validatePipelineMergeParameters( pipelineIds );
 
@@ -414,8 +475,8 @@ public class PipelineManagerImpl implements PipelineManager
         try
         {
             final Region region = regionManager.mergePipelines( pipelineIds );
+            regionConfigs.put( region.getRegionId(), region.getConfig() );
             final PipelineReplica[] pipelineReplicas = region.getPipelineReplicasByPipelineId( firstPipelineId );
-
             final Pipeline pipeline = new Pipeline( firstPipelineId,
                                                     region.getConfig(),
                                                     pipelineReplicas,
@@ -424,24 +485,34 @@ public class PipelineManagerImpl implements PipelineManager
             addPipeline( pipeline );
             createDownstreamTupleSenders( flow, pipeline );
             pipeline.startPipelineReplicaRunners( jokerConfig, supervisor, jokerThreadGroup );
+            incrementFlowVersion();
         }
         catch ( Exception e )
         {
-            throw new JokerException( "Failed during merging pipelines: " + pipelineIds, e );
+            throw new JokerException( "Failed during merging pipelines: " + pipelineIds + " with flow version: " + flowVersion, e );
         }
     }
 
     @Override
-    public void splitPipeline ( final Supervisor supervisor,
-                                final PipelineId pipelineIdToSplit,
-                                final List<Integer> pipelineOperatorIndices )
+    public void splitPipeline ( final int flowVersion, final PipelineId pipelineIdToSplit, final List<Integer> pipelineOperatorIndices )
     {
+        checkArgument( flowVersion == this.flowVersion,
+                       "cannot split pipeline %s to %s since given flow version %s is not equal to the flow version: %s",
+                       pipelineIdToSplit,
+                       pipelineOperatorIndices,
+                       flowVersion,
+                       this.flowVersion );
         checkState( status == FlowStatus.RUNNING,
-                    "cannot split pipeline %s into %s since status is %s",
+                    "cannot split pipeline %s into %s with flow version %s since status is %s",
                     pipelineIdToSplit,
                     pipelineOperatorIndices,
+                    flowVersion,
                     status );
-        LOGGER.info( "Will try to split pipeline: {} into: {}", pipelineIdToSplit, pipelineOperatorIndices );
+
+        LOGGER.info( "Will try to split pipeline: {} into: {} with flow version {}",
+                     pipelineIdToSplit,
+                     pipelineOperatorIndices,
+                     flowVersion );
 
         regionManager.validatePipelineSplitParameters( pipelineIdToSplit, pipelineOperatorIndices );
 
@@ -450,6 +521,7 @@ public class PipelineManagerImpl implements PipelineManager
         try
         {
             final Region region = regionManager.splitPipeline( pipelineIdToSplit, pipelineOperatorIndices );
+            regionConfigs.put( region.getRegionId(), region.getConfig() );
             final List<Pipeline> newPipelines = new ArrayList<>();
             for ( int pipelineIndex = 0; pipelineIndex < region.getConfig().getPipelineCount(); pipelineIndex++ )
             {
@@ -478,24 +550,54 @@ public class PipelineManagerImpl implements PipelineManager
                 LOGGER.info( "Starting new pipeline {}", pipeline.getId() );
                 pipeline.startPipelineReplicaRunners( jokerConfig, supervisor, jokerThreadGroup );
             }
+
+            incrementFlowVersion();
         }
         catch ( Exception e )
         {
-            throw new JokerException( "Failed during splitting pipeline: " + pipelineIdToSplit + " into: " + pipelineOperatorIndices, e );
+            throw new JokerException( "Failed during splitting pipeline: " + pipelineIdToSplit + " into: " + pipelineOperatorIndices
+                                      + " with flow version: " + flowVersion, e );
         }
     }
 
-    @Override
-    public void rebalanceRegion ( final Supervisor supervisor, final int regionId, final int newReplicaCount )
+    private void incrementFlowVersion ()
     {
+        flowVersion++;
+        LOGGER.info( "Flow version is updated to {}", flowVersion );
+    }
+
+    @Override
+    public void rebalanceRegion ( final int flowVersion, final int regionId, final int newReplicaCount )
+    {
+        checkArgument( flowVersion == this.flowVersion,
+                       "cannot rebalance region %s to %s replicas since given flow version %s is not equal to the flow version: %s",
+                       regionId,
+                       newReplicaCount,
+                       flowVersion,
+                       this.flowVersion );
         checkState( status == FlowStatus.RUNNING,
-                    "cannot rebalance region %s to %s replicas since status is %s",
+                    "cannot rebalance region %s to %s replicas with flow version %s since status is %s",
                     regionId,
                     newReplicaCount,
+                    flowVersion,
                     status );
-        final RegionDef regionDef = getRegionDefToRebalanceOrFail( regionId, newReplicaCount );
+        final RegionDef regionDef = getRegionDefOrFail( regionId );
+        checkArgument( newReplicaCount > 0,
+                       "cannot rebalance region %s with flow version %s since new replica count is %s",
+                       regionId,
+                       flowVersion,
+                       newReplicaCount );
+        checkArgument( regionDef.getRegionType() == PARTITIONED_STATEFUL,
+                       "cannot rebalance region %s to new replica count %s with flow version %s since region is %s",
+                       regionId,
+                       newReplicaCount,
+                       flowVersion,
+                       regionDef.getRegionType() );
 
-        LOGGER.info( "Will try to rebalance region: {} new replica count: {}", regionId, newReplicaCount );
+        LOGGER.info( "Will try to rebalance region: {} new replica count: {} with flow version {}",
+                     regionId,
+                     newReplicaCount,
+                     flowVersion );
 
         final Collection<Pipeline> upstreamPipelines = pauseUpstreamPipelines( regionDef );
         stopAndReleasePipelines( regionDef );
@@ -504,6 +606,7 @@ public class PipelineManagerImpl implements PipelineManager
         {
             final List<Pipeline> newPipelines = new ArrayList<>();
             final Region region = regionManager.rebalanceRegion( flow, regionDef.getRegionId(), newReplicaCount );
+            regionConfigs.put( region.getRegionId(), region.getConfig() );
 
             for ( int pipelineIndex = 0; pipelineIndex < region.getConfig().getPipelineCount(); pipelineIndex++ )
             {
@@ -529,40 +632,28 @@ public class PipelineManagerImpl implements PipelineManager
                 LOGGER.info( "Starting new pipeline {}", pipeline.getId() );
                 pipeline.startPipelineReplicaRunners( jokerConfig, supervisor, jokerThreadGroup );
             }
+
+            for ( Pipeline pausedPipeline : upstreamPipelines )
+            {
+                createDownstreamTupleSenders( flow, pausedPipeline );
+            }
+
+            incrementFlowVersion();
+
+            resumePipelines( upstreamPipelines );
         }
         catch ( Exception e )
         {
-            throw new JokerException( "Failed during rebalancing region: " + regionId + " to new replica count: " + newReplicaCount, e );
+            throw new JokerException( "Failed during rebalancing region: " + regionId + " to new replica count: " + newReplicaCount
+                                      + " with flow version: " + flowVersion, e );
         }
-
-        for ( Pipeline pausedPipeline : upstreamPipelines )
-        {
-            createDownstreamTupleSenders( flow, pausedPipeline );
-        }
-
-        resumePipelines( upstreamPipelines );
     }
 
-    private RegionDef getRegionDefToRebalanceOrFail ( final int regionId, final int newReplicaCount )
+    private RegionDef getRegionDefOrFail ( final int regionId )
     {
-        checkArgument( newReplicaCount > 0, "cannot rebalance region %s since new replica count is %s", regionId, newReplicaCount );
-
-        final Optional<RegionDef> regionDefOpt = regionDefs.stream().filter( r -> r.getRegionId() == regionId ).findFirst();
-
-        if ( regionDefOpt.isPresent() )
-        {
-            final RegionDef regionDef = regionDefOpt.get();
-            checkArgument( regionDef.getRegionType() == PARTITIONED_STATEFUL,
-                           "cannot rebalance region %s to new replica count %s since it is %s",
-                           regionId,
-                           newReplicaCount,
-                           regionDef.getRegionType() );
-
-            return regionDef;
-        }
-
-        throw new IllegalArgumentException( "cannot rebalance region " + regionId + " to new replica count " + newReplicaCount
-                                            + " since region not found" );
+        final RegionConfig regionConfig = regionConfigs.get( regionId );
+        checkArgument( regionConfig != null, " region: %s not found!", regionId );
+        return regionConfig.getRegionDef();
     }
 
     private void addPipeline ( final Pipeline pipeline )
@@ -601,13 +692,13 @@ public class PipelineManagerImpl implements PipelineManager
         final List<PipelineId> pipelineIds = new ArrayList<>();
         for ( Pipeline pipeline : this.pipelines.values() )
         {
-            if ( regionDef.getRegionId() == pipeline.getId().regionId )
+            if ( regionDef.getRegionId() == pipeline.getId().getRegionId() )
             {
                 pipelineIds.add( pipeline.getId() );
             }
         }
 
-        pipelineIds.sort( Comparator.comparingInt( p -> p.pipelineId ) );
+        pipelineIds.sort( PipelineId::compareTo );
         stopAndReleasePipelines( pipelineIds );
     }
 
@@ -615,7 +706,7 @@ public class PipelineManagerImpl implements PipelineManager
     {
         final Collection<Pipeline> upstream = new ArrayList<>();
         final Set<String> upstreamOperatorIds = new HashSet<>();
-        for ( Collection<Port> c : flow.getUpstreamConnections( regionDef.getFirstOperator().id() ).values() )
+        for ( Collection<Port> c : flow.getUpstreamConnections( getFirstOperator( regionDef ).id() ).values() )
         {
             for ( Port p : c )
             {
@@ -661,7 +752,7 @@ public class PipelineManagerImpl implements PipelineManager
         final Multimap<Integer, PipelineId> regionIds = HashMultimap.create();
         for ( PipelineId id : pipelines.keySet() )
         {
-            regionIds.put( id.regionId, id );
+            regionIds.put( id.getRegionId(), id );
         }
 
         for ( Integer regionId : new ArrayList<>( regionIds.keySet() ) )
@@ -688,6 +779,7 @@ public class PipelineManagerImpl implements PipelineManager
                          regionConfig.getReplicaCount() );
 
             final Region region = regionManager.createRegion( flow, regionConfig );
+            this.regionConfigs.put( region.getRegionId(), regionConfig );
             for ( int pipelineIndex = 0; pipelineIndex < regionConfig.getPipelineCount(); pipelineIndex++ )
             {
                 final PipelineReplica[] pipelineReplicas = region.getPipelineReplicas( pipelineIndex );
@@ -760,7 +852,7 @@ public class PipelineManagerImpl implements PipelineManager
                 final OperatorTupleQueue[] pipelineTupleQueues = getPipelineTupleQueues( downstreamOperator );
                 final int j = min( pairs.size(), DOWNSTREAM_TUPLE_SENDER_CONSTRUCTOR_COUNT );
 
-                if ( pipeline.getId().regionId == downstreamPipeline.getId().regionId )
+                if ( pipeline.getId().getRegionId() == downstreamPipeline.getId().getRegionId() )
                 {
                     final OperatorTupleQueue pipelineTupleQueue = pipelineTupleQueues[ replicaIndex ];
                     sendersToDownstreamOperators[ i ] = defaultDownstreamTupleSenderConstructors[ j ].apply( pairs, pipelineTupleQueue );
@@ -881,7 +973,8 @@ public class PipelineManagerImpl implements PipelineManager
     private int[] getPartitionDistribution ( final OperatorDef operator )
     {
         final Pipeline pipeline = getPipeline( operator, 0 );
-        final PartitionDistribution partitionDistribution = partitionService.getPartitionDistributionOrFail( pipeline.getId().regionId );
+        final PartitionDistribution partitionDistribution = partitionService.getPartitionDistributionOrFail( pipeline.getId()
+                                                                                                                     .getRegionId() );
         return partitionDistribution.getDistribution();
     }
 
@@ -964,7 +1057,7 @@ public class PipelineManagerImpl implements PipelineManager
         return upstreamContext;
     }
 
-    private void createPipelineReplicaRunners ( final Supervisor supervisor )
+    private void startPipelineReplicaRunners ( final Supervisor supervisor )
     {
         for ( Pipeline pipeline : pipelines.values() )
         {
@@ -1041,6 +1134,7 @@ public class PipelineManagerImpl implements PipelineManager
     {
         final List<Pipeline> pipelines = new ArrayList<>();
 
+        final List<RegionDef> regionDefs = regionConfigs.values().stream().map( RegionConfig::getRegionDef ).collect( toList() );
         for ( RegionDef regionDef : sortTopologically( flow.getOperatorsMap(), flow.getConnections(), regionDefs ) )
         {
             final List<Pipeline> regionPipelines = new ArrayList<>();
@@ -1052,7 +1146,7 @@ public class PipelineManagerImpl implements PipelineManager
                 }
             }
 
-            regionPipelines.sort( Comparator.comparingInt( p -> p.getId().pipelineId ) );
+            regionPipelines.sort( comparing( Pipeline::getId, PipelineId::compareTo ) );
             pipelines.addAll( regionPipelines );
         }
 

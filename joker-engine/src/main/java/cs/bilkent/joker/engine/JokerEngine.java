@@ -6,6 +6,7 @@ import java.util.concurrent.Future;
 import javax.inject.Inject;
 
 import cs.bilkent.joker.engine.exception.InitializationException;
+import cs.bilkent.joker.engine.flow.FlowDeploymentDef;
 import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.region.FlowDefOptimizer;
 import cs.bilkent.joker.engine.region.RegionConfig;
@@ -38,11 +39,11 @@ public class JokerEngine
         this.supervisor = supervisor;
     }
 
-    public void run ( final FlowDef flow ) throws InitializationException
+    public FlowDeploymentDef run ( final FlowDef flow ) throws InitializationException
     {
         final Pair<FlowDef, List<RegionDef>> result = flowDefOptimizer.optimize( flow, regionDefFormer.createRegions( flow ) );
         final List<RegionConfig> regionConfigs = regionConfigFactory.createRegionConfigs( result._2 );
-        supervisor.start( result._1, result._2, regionConfigs );
+        return supervisor.start( result._1, regionConfigs );
     }
 
     public FlowStatus getStatus ()
@@ -55,19 +56,21 @@ public class JokerEngine
         return supervisor.shutdown();
     }
 
-    public Future<Void> mergePipelines ( final List<PipelineId> pipelineIds )
+    public Future<FlowDeploymentDef> mergePipelines ( final int flowVersion, final List<PipelineId> pipelineIds )
     {
-        return supervisor.mergePipelines( pipelineIds );
+        return supervisor.mergePipelines( flowVersion, pipelineIds );
     }
 
-    public Future<Void> splitPipeline ( final PipelineId pipelineId, final List<Integer> pipelineOperatorIndices )
+    public Future<FlowDeploymentDef> splitPipeline ( final int flowVersion,
+                                                     final PipelineId pipelineId,
+                                                     final List<Integer> pipelineOperatorIndices )
     {
-        return supervisor.splitPipeline( pipelineId, pipelineOperatorIndices );
+        return supervisor.splitPipeline( flowVersion, pipelineId, pipelineOperatorIndices );
     }
 
-    public Future<Void> rebalanceRegion ( final int regionId, final int newReplicaCount )
+    public Future<FlowDeploymentDef> rebalanceRegion ( final int flowVersion, final int regionId, final int newReplicaCount )
     {
-        return supervisor.rebalanceRegion( regionId, newReplicaCount );
+        return supervisor.rebalanceRegion( flowVersion, regionId, newReplicaCount );
     }
 
 }

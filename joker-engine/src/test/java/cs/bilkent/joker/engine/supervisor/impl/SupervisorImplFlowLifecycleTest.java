@@ -81,7 +81,7 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
         final RegionConfig regionConfig1 = new RegionConfig( regions.get( 0 ), singletonList( 0 ), 1 );
         final RegionConfig regionConfig2 = new RegionConfig( regions.get( 1 ), singletonList( 0 ), 1 );
 
-        supervisor.start( flowDef, regions, asList( regionConfig1, regionConfig2 ) );
+        supervisor.start( flowDef, asList( regionConfig1, regionConfig2 ) );
 
         for ( Pipeline pipeline : pipelineManager.getPipelines() )
         {
@@ -121,7 +121,7 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
             regionConfigs.add( new RegionConfig( region, singletonList( 0 ), replicaCount ) );
         }
 
-        supervisor.start( flowDef, regions, regionConfigs );
+        supervisor.start( flowDef, regionConfigs );
 
         supervisor.shutdown().get( 30, TimeUnit.SECONDS );
     }
@@ -140,7 +140,7 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
 
         try
         {
-            supervisor.start( flowDef, regions, asList( regionConfig1, regionConfig2 ) );
+            supervisor.start( flowDef, asList( regionConfig1, regionConfig2 ) );
             fail();
         }
         catch ( InitializationException e )
@@ -163,7 +163,7 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
         final RegionConfig regionConfig1 = new RegionConfig( regions.get( 0 ), singletonList( 0 ), 1 );
         final RegionConfig regionConfig2 = new RegionConfig( regions.get( 1 ), singletonList( 0 ), 1 );
 
-        supervisor.start( flowDef, regions, asList( regionConfig1, regionConfig2 ) );
+        supervisor.start( flowDef, asList( regionConfig1, regionConfig2 ) );
         assertTrueEventually( () -> assertEquals( FlowStatus.SHUT_DOWN, supervisor.getFlowStatus() ) );
 
         supervisor.shutdown().get( 30, TimeUnit.SECONDS );
@@ -181,7 +181,7 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
         final RegionConfig regionConfig1 = new RegionConfig( regions.get( 0 ), singletonList( 0 ), 1 );
         final RegionConfig regionConfig2 = new RegionConfig( regions.get( 1 ), singletonList( 0 ), 1 );
 
-        supervisor.start( flowDef, regions, asList( regionConfig1, regionConfig2 ) );
+        supervisor.start( flowDef, asList( regionConfig1, regionConfig2 ) );
 
         supervisor.shutdown().get( 30, TimeUnit.SECONDS );
     }

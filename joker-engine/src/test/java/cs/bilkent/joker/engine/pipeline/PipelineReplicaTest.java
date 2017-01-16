@@ -8,6 +8,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.exception.InitializationException;
+import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIAL;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.RUNNING;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.SHUT_DOWN;
@@ -65,12 +66,28 @@ public class PipelineReplicaTest extends AbstractJokerTest
     public void before ()
     {
         final OperatorDef operatorDef0 = mock( OperatorDef.class );
+        final OperatorDef operatorDef1 = mock( OperatorDef.class );
+        final OperatorDef operatorDef2 = mock( OperatorDef.class );
         when( operator0.getOperatorDef() ).thenReturn( operatorDef0 );
         when( operatorDef0.inputPortCount() ).thenReturn( 1 );
+        when( operatorDef0.id() ).thenReturn( "op0" );
+        when( operator1.getOperatorDef() ).thenReturn( operatorDef1 );
+        when( operatorDef1.inputPortCount() ).thenReturn( 1 );
+        when( operatorDef1.id() ).thenReturn( "op1" );
+        when( operator2.getOperatorDef() ).thenReturn( operatorDef2 );
+        when( operatorDef2.inputPortCount() ).thenReturn( 1 );
+        when( operatorDef2.id() ).thenReturn( "op2" );
+
+        final PipelineReplicaId pipelineReplicaId = new PipelineReplicaId( new PipelineId( 0, 0 ), 0 );
+        final PipelineReplicaMeter pipelineReplicaMeter = new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(),
+                                                                                    pipelineReplicaId,
+                                                                                    operatorDef0,
+                                                                                    operatorDef2 );
         pipeline = new PipelineReplica( config,
-                                        new PipelineReplicaId( new PipelineId( 0, 0 ), 0 ),
+                                        pipelineReplicaId,
                                         new OperatorReplica[] { operator0, operator1, operator2 },
-                                        pipelineTupleQueue );
+                                        pipelineTupleQueue,
+                                        pipelineReplicaMeter );
 
         final Tuple input1 = new Tuple();
         input1.set( "k1", "v1" );

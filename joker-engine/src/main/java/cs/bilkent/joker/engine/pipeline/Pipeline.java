@@ -15,6 +15,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.exception.InitializationException;
+import cs.bilkent.joker.engine.metric.PipelineMeter;
+import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETED;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETING;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIAL;
@@ -148,9 +150,10 @@ public class Pipeline
         return regionConfig.getRegionDef();
     }
 
-    public OperatorDef getOperatorDef ( int operatorIndex )
+    public OperatorDef getOperatorDef ( final int operatorIndex )
     {
-        return regionConfig.getOperatorDefByPipelineId( id.pipelineId, operatorIndex );
+        final OperatorDef[] operatorDefs = regionConfig.getOperatorDefsByPipelineStartIndex( id.getPipelineStartIndex() );
+        return operatorDefs[ operatorIndex ];
     }
 
     public OperatorDef getFirstOperatorDef ()
@@ -160,13 +163,13 @@ public class Pipeline
 
     public OperatorDef getLastOperatorDef ()
     {
-        final int operatorCount = regionConfig.getOperatorCountByPipelineId( id.pipelineId );
-        return regionConfig.getOperatorDefByPipelineId( id.pipelineId, operatorCount - 1 );
+        final int count = regionConfig.getOperatorCountByPipelineStartIndex( id.getPipelineStartIndex() );
+        return getOperatorDef( count - 1 );
     }
 
     public int getOperatorCount ()
     {
-        return regionConfig.getOperatorCountByPipelineId( id.pipelineId );
+        return regionConfig.getOperatorCountByPipelineStartIndex( id.getPipelineStartIndex() );
     }
 
     public OperatorReplicaStatus getPipelineStatus ()
@@ -186,7 +189,7 @@ public class Pipeline
 
     public int getOperatorIndex ( final OperatorDef operator )
     {
-        final OperatorDef[] operatorDefs = regionConfig.getOperatorDefsByPipelineId( id.pipelineId );
+        final OperatorDef[] operatorDefs = regionConfig.getOperatorDefsByPipelineStartIndex( id.getPipelineStartIndex() );
         for ( int i = 0; i < operatorDefs.length; i++ )
         {
             if ( operatorDefs[ i ].equals( operator ) )
@@ -521,6 +524,22 @@ public class Pipeline
         runnerStatus = PipelineReplicaRunnerStatus.RUNNING;
 
         return failures;
+    }
+
+    public PipelineMeter getPipelineMeter ()
+    {
+        final int replicaCount = getReplicaCount();
+        final OperatorDef[] operatorDefs = regionConfig.getOperatorDefsByPipelineStartIndex( id.getPipelineStartIndex() );
+        final long[] threadIds = new long[ replicaCount ];
+        final PipelineReplicaMeter[] replicaMeters = new PipelineReplicaMeter[ replicaCount ];
+
+        for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
+        {
+            threadIds[ replicaIndex ] = threads[ replicaIndex ].getId();
+            replicaMeters[ replicaIndex ] = replicas[ replicaIndex ].getMeter();
+        }
+
+        return new PipelineMeter( id, operatorDefs, replicaCount, threadIds, replicaMeters );
     }
 
     public List<Exception> stopPipelineReplicaRunners ( final long timeoutInMillis )

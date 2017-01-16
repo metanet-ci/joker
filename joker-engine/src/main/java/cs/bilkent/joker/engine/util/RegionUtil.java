@@ -37,7 +37,7 @@ public class RegionUtil
 
             sorted.add( region );
 
-            final String lastOperatorId = region.getLastOperator().id();
+            final String lastOperatorId = getLastOperator( region ).id();
 
             final Iterator<Entry<Port, Port>> it2 = connections.iterator();
             while ( it2.hasNext() )
@@ -91,7 +91,7 @@ public class RegionUtil
     {
         for ( RegionDef region : regions )
         {
-            if ( region.getLastOperator().equals( operator ) )
+            if ( getLastOperator( region ).equals( operator ) )
             {
                 return region;
             }
@@ -104,13 +104,23 @@ public class RegionUtil
     {
         for ( RegionDef region : regions )
         {
-            if ( region.getFirstOperator().equals( operator ) )
+            if ( getFirstOperator( region ).equals( operator ) )
             {
                 return region;
             }
         }
 
         throw new IllegalStateException( "No region found for operator " + operator.id() );
+    }
+
+    public static OperatorDef getFirstOperator ( final RegionDef regionDef )
+    {
+        return regionDef.getOperators().get( 0 );
+    }
+
+    public static OperatorDef getLastOperator ( final RegionDef regionDef )
+    {
+        return regionDef.getOperators().get( regionDef.getOperatorCount() - 1 );
     }
 
 }

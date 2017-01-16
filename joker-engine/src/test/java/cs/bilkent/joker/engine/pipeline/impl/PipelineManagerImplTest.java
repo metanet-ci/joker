@@ -155,7 +155,7 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         final RegionDef statelessRegionDef = findRegion( regions, STATELESS );
         final RegionConfig regionConfig1 = new RegionConfig( partitionedStatefulRegionDef, singletonList( 0 ), 2 );
         final RegionConfig regionConfig2 = new RegionConfig( statefulRegionDef, singletonList( 0 ), 1 );
-        final RegionConfig regionConfig3 = new RegionConfig( statelessRegionDef, singletonList( 0 ), 2 );
+        final RegionConfig regionConfig3 = new RegionConfig( statelessRegionDef, singletonList( 0 ), 1 );
         final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, asList( regionConfig1, regionConfig2, regionConfig3 ) );
 
         assertEquals( 3, pipelines.size() );
@@ -200,13 +200,13 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         if ( ( (Supplier<OperatorTupleQueue>) senders1[ 0 ] ).get().equals( pipeline2.getPipelineReplica( 0 ).getPipelineTupleQueue() ) )
         {
             assertEquals( ( (Supplier<OperatorTupleQueue>) senders1[ 1 ] ).get(),
-                          pipeline3.getPipelineReplica( 1 ).getPipelineTupleQueue() );
+                          pipeline3.getPipelineReplica( 0 ).getPipelineTupleQueue() );
         }
         else if ( ( (Supplier<OperatorTupleQueue>) senders1[ 1 ] ).get()
                                                                   .equals( pipeline2.getPipelineReplica( 0 ).getPipelineTupleQueue() ) )
         {
             assertEquals( ( (Supplier<OperatorTupleQueue>) senders1[ 0 ] ).get(),
-                          pipeline3.getPipelineReplica( 1 ).getPipelineTupleQueue() );
+                          pipeline3.getPipelineReplica( 0 ).getPipelineTupleQueue() );
         }
         else
         {

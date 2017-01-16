@@ -1,10 +1,15 @@
 package cs.bilkent.joker.engine.region;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.operator.OperatorDef;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
+import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
+import static java.util.Collections.unmodifiableList;
+import static java.util.stream.Collectors.toList;
 
 public class RegionConfig
 {
@@ -17,10 +22,29 @@ public class RegionConfig
 
     public RegionConfig ( final RegionDef regionDef, final List<Integer> pipelineStartIndices, final int replicaCount )
     {
-        checkArgument( regionDef.getRegionType() == STATEFUL ? replicaCount == 1 : replicaCount > 0 );
+        checkArgument( ( regionDef.getRegionType() == STATEFUL || regionDef.getRegionType() == STATELESS )
+                       ? replicaCount == 1
+                       : replicaCount > 0 );
+        validatePipelineStartIndices( regionDef.getOperators(), pipelineStartIndices );
         this.regionDef = regionDef;
         this.replicaCount = replicaCount;
-        this.pipelineStartIndices = pipelineStartIndices;
+        this.pipelineStartIndices = unmodifiableList( new ArrayList<>( pipelineStartIndices ) );
+    }
+
+    private void validatePipelineStartIndices ( final List<OperatorDef> operators, final List<Integer> pipelineStartIndices )
+    {
+        if ( pipelineStartIndices.get( 0 ) != 0 )
+        {
+            pipelineStartIndices.add( 0, 0 );
+        }
+        checkArgument( pipelineStartIndices.size() <= operators.size() );
+        int i = -1;
+        for ( int startIndex : pipelineStartIndices )
+        {
+            checkArgument( startIndex > i, "invalid pipeline start indices: ", pipelineStartIndices );
+            i = startIndex;
+        }
+        checkArgument( i < operators.size() );
     }
 
     public int getRegionId ()
@@ -43,6 +67,11 @@ public class RegionConfig
         return pipelineStartIndices.size();
     }
 
+    public List<PipelineId> getPipelineIds ()
+    {
+        return pipelineStartIndices.stream().map( i -> new PipelineId( regionDef.getRegionId(), i ) ).collect( toList() );
+    }
+
     public List<Integer> getPipelineStartIndices ()
     {
         return pipelineStartIndices;
@@ -53,45 +82,28 @@ public class RegionConfig
         return pipelineStartIndices.get( pipelineIndex );
     }
 
-    public int getPipelineIndex ( final int pipelineId )
+    public int getPipelineIndex ( final int pipelineStartIndex )
     {
-        for ( int pipelineIndex = 0; pipelineIndex < pipelineStartIndices.size(); pipelineIndex++ )
-        {
-            if ( pipelineStartIndices.get( pipelineIndex ) == pipelineId )
-            {
-                return pipelineIndex;
-            }
-        }
+        final int index = pipelineStartIndices.indexOf( pipelineStartIndex );
+        checkArgument( index != -1, "invalid pipeline start index: " + pipelineStartIndex );
 
-        throw new IllegalArgumentException( "invalid pipeline id: " + pipelineId );
+        return index;
     }
 
-    public OperatorDef getOperatorDefByPipelineId ( final int pipelineId, final int operatorIndex )
+    public int getOperatorCountByPipelineStartIndex ( final int pipelineStartIndex )
     {
-        return getOperatorDefsByPipelineIndex( pipelineId )[ operatorIndex ];
-    }
-
-    public OperatorDef[] getOperatorDefsByPipelineId ( final int pipelineId )
-    {
-        for ( int pipelineIndex = 0; pipelineIndex < pipelineStartIndices.size(); pipelineIndex++ )
-        {
-            if ( pipelineStartIndices.get( pipelineIndex ) == pipelineId )
-            {
-                return getOperatorDefsByPipelineIndex( pipelineIndex );
-            }
-        }
-
-        throw new IllegalArgumentException( "invalid pipeline id: " + pipelineId );
-    }
-
-    public int getOperatorCountByPipelineId ( final int pipelineId )
-    {
-        return getOperatorDefsByPipelineId( pipelineId ).length;
+        return getOperatorDefsByPipelineStartIndex( pipelineStartIndex ).length;
     }
 
     public int getOperatorCountByPipelineIndex ( final int pipelineIndex )
     {
         return getOperatorDefsByPipelineIndex( pipelineIndex ).length;
+    }
+
+    public OperatorDef[] getOperatorDefsByPipelineStartIndex ( final int pipelineStartIndex )
+    {
+        final int index = getPipelineIndex( pipelineStartIndex );
+        return getOperatorDefsByPipelineIndex( index );
     }
 
     public OperatorDef[] getOperatorDefsByPipelineIndex ( final int pipelineIndex )

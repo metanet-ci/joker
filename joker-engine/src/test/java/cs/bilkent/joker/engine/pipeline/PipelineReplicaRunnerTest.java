@@ -14,6 +14,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import cs.bilkent.joker.engine.config.JokerConfig;
+import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
 import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.COMPLETED;
 import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.PAUSED;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
@@ -76,7 +77,14 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
         when( operatorDef.inputPortCount() ).thenReturn( inputOutputPortCount );
         when( operatorDef.outputPortCount() ).thenReturn( inputOutputPortCount );
         final JokerConfig config = new JokerConfig();
-        pipeline = new PipelineReplica( config, id, new OperatorReplica[] { operator }, mock( OperatorTupleQueue.class ) );
+        pipeline = new PipelineReplica( config,
+                                        id,
+                                        new OperatorReplica[] { operator },
+                                        mock( OperatorTupleQueue.class ),
+                                        new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(),
+                                                                  id,
+                                                                  operatorDef,
+                                                                  operatorDef ) );
         pipeline.init( upstreamContext );
         runner = new PipelineReplicaRunner( config, pipeline, supervisor, downstreamTupleSender );
 

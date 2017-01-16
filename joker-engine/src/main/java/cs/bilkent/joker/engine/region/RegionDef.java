@@ -95,16 +95,6 @@ public class RegionDef
         return operators.size();
     }
 
-    public OperatorDef getFirstOperator ()
-    {
-        return operators.get( 0 );
-    }
-
-    public OperatorDef getLastOperator ()
-    {
-        return operators.get( operators.size() - 1 );
-    }
-
     @Override
     public boolean equals ( final Object o )
     {

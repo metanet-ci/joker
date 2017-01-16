@@ -8,7 +8,7 @@ public class JokerException extends RuntimeException
         super( msg );
     }
 
-    public JokerException ( final String msg, final Exception cause )
+    public JokerException ( final String msg, final Throwable cause )
     {
         super( msg, cause );
     }

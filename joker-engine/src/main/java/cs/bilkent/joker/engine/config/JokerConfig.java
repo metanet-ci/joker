@@ -29,6 +29,8 @@ public class JokerConfig
 
     private final RegionManagerConfig regionManagerConfig;
 
+    private final MetricManagerConfig metricManagerConfig;
+
     public JokerConfig ()
     {
         this( ConfigFactory.load() );
@@ -45,6 +47,7 @@ public class JokerConfig
         this.flowDefOptimizerConfig = new FlowDefOptimizerConfig( engineConfig );
         this.pipelineManagerConfig = new PipelineManagerConfig( engineConfig );
         this.regionManagerConfig = new RegionManagerConfig( engineConfig );
+        this.metricManagerConfig = new MetricManagerConfig( engineConfig );
     }
 
     public Config getRootConfig ()
@@ -85,6 +88,11 @@ public class JokerConfig
     public RegionManagerConfig getRegionManagerConfig ()
     {
         return regionManagerConfig;
+    }
+
+    public MetricManagerConfig getMetricManagerConfig ()
+    {
+        return metricManagerConfig;
     }
 
 }

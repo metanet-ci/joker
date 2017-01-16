@@ -8,6 +8,7 @@ import cs.bilkent.joker.engine.config.JokerConfig;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.SINGLE_THREADED;
 import cs.bilkent.joker.engine.kvstore.impl.OperatorKVStoreManagerImpl;
+import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractorFactory;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
@@ -22,6 +23,7 @@ import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.Region;
 import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
+import static cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.assertPipelineReplicaMeter;
 import cs.bilkent.joker.engine.tuplequeue.impl.OperatorTupleQueueManagerImpl;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool.BlockingTupleQueueDrainerPool;
@@ -87,7 +89,6 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
     @Test
     public void shouldMergeAllPipelinesOfStatefulRegion ()
     {
-
         final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatelessInput0Output1Operator.class ).build();
         final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatefulInput1Output1Operator.class ).build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatelessInput1Output1Operator.class ).build();
@@ -127,12 +128,15 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         pipelineReplicas[ 2 ].getOperator( 0 ).getQueue().offer( 0, singletonList( newTuple( "key4", "val4" ) ) );
         pipelineReplicas[ 2 ].getOperator( 0 ).getOperatorKvStore().getKVStore( null ).set( "key4", "val4" );
 
+        final PipelineReplicaMeter pipelineReplicaMeter = pipelineReplicas[ 0 ].getMeter();
+
         final Region newRegion = pipelineTransformer.mergePipelines( region, asList( 0, 2, 4 ) );
 
         assertThat( newRegion.getConfig().getReplicaCount(), equalTo( 1 ) );
         assertThat( newRegion.getConfig().getPipelineStartIndices(), equalTo( singletonList( 0 ) ) );
 
         final PipelineReplica[] newPipelineReplicas = newRegion.getReplicaPipelines( 0 );
+        assertThat( newPipelineReplicas.length, equalTo( 1 ) );
         final PipelineReplica newPipelineReplica = newPipelineReplicas[ 0 ];
         final OperatorReplica pipelineOperator0 = newPipelineReplica.getOperator( 0 );
         final OperatorReplica pipelineOperator1 = newPipelineReplica.getOperator( 1 );
@@ -159,12 +163,18 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator4.getQueue() ).getThreadingPreference(), equalTo( SINGLE_THREADED ) );
         assertTrue( pipelineOperator4.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
         assertThat( pipelineOperator4.getOperatorKvStore().getKVStore( null ).get( "key4" ), equalTo( "val4" ) );
+
+        final PipelineReplicaMeter meter = newPipelineReplica.getMeter();
+        assertThat( meter.getHeadOperatorId(), equalTo( pipelineOperator0.getOperatorDef().id() ) );
+        assertThat( meter.getConsumedPortCount(), equalTo( pipelineOperator0.getOperatorDef().inputPortCount() ) );
+        assertThat( meter.getTailOperatorId(), equalTo( pipelineOperator4.getOperatorDef().id() ) );
+        assertThat( meter.getProducedPortCount(), equalTo( pipelineOperator4.getOperatorDef().outputPortCount() ) );
+        assertPipelineReplicaMeter( newPipelineReplica );
     }
 
     @Test
     public void shouldMergeAllPipelinesOfPartitionedStatefulRegion ()
     {
-
         final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatelessInput0Output1Operator.class ).build();
         final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", PartitionedStatefulInput1Output1Operator.class )
                                                            .setPartitionFieldNames( singletonList( "field" ) )
@@ -211,6 +221,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertThat( newRegion.getConfig().getPipelineStartIndices(), equalTo( singletonList( 0 ) ) );
 
         final PipelineReplica[] newPipelineReplicas = newRegion.getReplicaPipelines( 0 );
+        assertThat( newPipelineReplicas.length, equalTo( 1 ) );
         final PipelineReplica newPipelineReplica = newPipelineReplicas[ 0 ];
         final OperatorReplica pipelineOperator1 = newPipelineReplica.getOperator( 1 );
         final OperatorReplica pipelineOperator2 = newPipelineReplica.getOperator( 2 );
@@ -225,12 +236,25 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertThat( singletonList( newTuple( "field", "val2" ) ), equalTo( drainDefaultPortGreedily( pipelineOperator2 ) ) );
         assertThat( singletonList( newTuple( "field", "val3" ) ), equalTo( drainDefaultPortGreedily( pipelineOperator3 ) ) );
         assertThat( singletonList( newTuple( "field", "val4" ) ), equalTo( drainDefaultPortGreedily( pipelineOperator4 ) ) );
+
+        final PipelineReplicaMeter pipelineReplicaMeter = newPipelineReplica.getMeter();
+        final OperatorDef[] mergedOperatorDefs = newRegion.getConfig().getOperatorDefsByPipelineStartIndex( 0 );
+
+        assertThat( pipelineReplicaMeter.getHeadOperatorId(), equalTo( mergedOperatorDefs[ 0 ].id() ) );
+        assertThat( pipelineReplicaMeter.getConsumedPortCount(), equalTo( mergedOperatorDefs[ 0 ].inputPortCount() ) );
+        assertThat( pipelineReplicaMeter.getTailOperatorId(), equalTo( mergedOperatorDefs[ mergedOperatorDefs.length - 1 ].id() ) );
+        assertThat( pipelineReplicaMeter.getProducedPortCount(),
+                    equalTo( mergedOperatorDefs[ mergedOperatorDefs.length - 1 ].outputPortCount() ) );
+
+        assertPipelineReplicaMeter( newPipelineReplica );
     }
 
     @Test
     public void shouldMergeSingleOperatorPipelines ()
     {
-        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatelessInput0Output1Operator.class ).build();
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", PartitionedStatefulInput1Output1Operator.class )
+                                                           .setPartitionFieldNames( singletonList( "field" ) )
+                                                           .build();
         final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessInput1Output1Operator.class ).build();
@@ -250,9 +274,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
                                                  .connect( "op4", "op5" )
                                                  .build();
 
-        final RegionDef regionDef = new RegionDef( REGION_ID,
-                                                   STATELESS,
-                                                   emptyList(),
+        final RegionDef regionDef = new RegionDef( REGION_ID, PARTITIONED_STATEFUL, singletonList( "field" ),
                                                    asList( operatorDef1, operatorDef2, operatorDef3, operatorDef4, operatorDef5 ) );
 
         final int replicaCount = 2;
@@ -265,6 +287,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
         {
             final PipelineReplica[] newPipelineReplicas = newRegion.getReplicaPipelines( replicaIndex );
+            assertThat( newPipelineReplicas.length, equalTo( 1 ) );
             final PipelineReplica newPipelineReplica = newPipelineReplicas[ 0 ];
             final OperatorReplica pipelineOperator0 = newPipelineReplica.getOperator( 0 );
             final OperatorReplica pipelineOperator1 = newPipelineReplica.getOperator( 1 );
@@ -288,13 +311,22 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
             assertTrue( pipelineOperator4.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
             assertThat( pipelineOperator4.getOutputSupplier().getClass(),
                         equalTo( config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass() ) );
+
+            final PipelineReplicaMeter meter = newPipelineReplica.getMeter();
+            assertThat( meter.getHeadOperatorId(), equalTo( pipelineOperator0.getOperatorDef().id() ) );
+            assertThat( meter.getConsumedPortCount(), equalTo( pipelineOperator0.getOperatorDef().inputPortCount() ) );
+            assertThat( meter.getTailOperatorId(), equalTo( pipelineOperator4.getOperatorDef().id() ) );
+            assertThat( meter.getProducedPortCount(), equalTo( pipelineOperator4.getOperatorDef().outputPortCount() ) );
+            assertPipelineReplicaMeter( newPipelineReplica );
         }
     }
 
     @Test
     public void shouldCopyNonMergedPipelinesAtHeadOfTheRegion ()
     {
-        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatelessInput0Output1Operator.class ).build();
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", PartitionedStatefulInput1Output1Operator.class )
+                                                           .setPartitionFieldNames( singletonList( "field" ) )
+                                                           .build();
         final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessInput1Output1Operator.class ).build();
@@ -314,9 +346,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
                                                  .connect( "op4", "op5" )
                                                  .build();
 
-        final RegionDef regionDef = new RegionDef( REGION_ID,
-                                                   STATELESS,
-                                                   emptyList(),
+        final RegionDef regionDef = new RegionDef( REGION_ID, PARTITIONED_STATEFUL, singletonList( "field" ),
                                                    asList( operatorDef1, operatorDef2, operatorDef3, operatorDef4, operatorDef5 ) );
 
         final RegionConfig regionConfig = new RegionConfig( regionDef, asList( 0, 2, 3, 4 ), 2 );
@@ -332,7 +362,9 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
     @Test
     public void shouldCopyNonMergedPipelinesAtTailOfTheRegion ()
     {
-        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatelessInput0Output1Operator.class ).build();
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", PartitionedStatefulInput1Output1Operator.class )
+                                                           .setPartitionFieldNames( singletonList( "field" ) )
+                                                           .build();
         final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessInput1Output1Operator.class ).build();
@@ -352,9 +384,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
                                                  .connect( "op4", "op5" )
                                                  .build();
 
-        final RegionDef regionDef = new RegionDef( REGION_ID,
-                                                   STATELESS,
-                                                   emptyList(),
+        final RegionDef regionDef = new RegionDef( REGION_ID, PARTITIONED_STATEFUL, singletonList( "field" ),
                                                    asList( operatorDef1, operatorDef2, operatorDef3, operatorDef4, operatorDef5 ) );
 
         final RegionConfig regionConfig = new RegionConfig( regionDef, asList( 0, 2, 3, 4 ), 2 );
@@ -370,15 +400,15 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
     @Test
     public void testCheckPipelineStartIndicesToMerge ()
     {
-        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op0", PartitionedStatefulInput1Output1Operator.class )
+                                                           .setPartitionFieldNames( singletonList( "field" ) )
+                                                           .build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef4 = OperatorDefBuilder.newInstance( "op4", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef5 = OperatorDefBuilder.newInstance( "op5", StatelessInput1Output1Operator.class ).build();
 
-        final RegionDef regionDef = new RegionDef( REGION_ID,
-                                                   STATELESS,
-                                                   emptyList(),
+        final RegionDef regionDef = new RegionDef( REGION_ID, PARTITIONED_STATEFUL, singletonList( "field" ),
                                                    asList( operatorDef1, operatorDef2, operatorDef3, operatorDef4, operatorDef5 ) );
 
         final RegionConfig regionConfig = new RegionConfig( regionDef, asList( 0, 2, 3, 4 ), 2 );
@@ -470,6 +500,29 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator4.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
         assertTrue( pipelineOperator4.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
         assertThat( pipelineOperator4.getOperatorKvStore().getKVStore( null ).get( "key4" ), equalTo( "val4" ) );
+
+        final PipelineReplicaMeter meter0 = newPipelineReplicas[ 0 ].getMeter();
+        assertThat( meter0.getHeadOperatorId(), equalTo( pipelineOperator0.getOperatorDef().id() ) );
+        assertThat( meter0.getConsumedPortCount(), equalTo( pipelineOperator0.getOperatorDef().inputPortCount() ) );
+        assertThat( meter0.getTailOperatorId(), equalTo( pipelineOperator1.getOperatorDef().id() ) );
+        assertThat( meter0.getProducedPortCount(), equalTo( pipelineOperator1.getOperatorDef().outputPortCount() ) );
+
+        final PipelineReplicaMeter meter1 = newPipelineReplicas[ 1 ].getMeter();
+        assertThat( meter1.getHeadOperatorId(), equalTo( pipelineOperator2.getOperatorDef().id() ) );
+        assertThat( meter1.getConsumedPortCount(), equalTo( pipelineOperator2.getOperatorDef().inputPortCount() ) );
+        assertThat( meter1.getTailOperatorId(), equalTo( pipelineOperator3.getOperatorDef().id() ) );
+        assertThat( meter1.getProducedPortCount(), equalTo( pipelineOperator3.getOperatorDef().outputPortCount() ) );
+
+        final PipelineReplicaMeter meter2 = newPipelineReplicas[ 2 ].getMeter();
+        assertThat( meter2.getHeadOperatorId(), equalTo( pipelineOperator4.getOperatorDef().id() ) );
+        assertThat( meter2.getConsumedPortCount(), equalTo( pipelineOperator4.getOperatorDef().inputPortCount() ) );
+        assertThat( meter2.getTailOperatorId(), equalTo( pipelineOperator4.getOperatorDef().id() ) );
+        assertThat( meter2.getProducedPortCount(), equalTo( pipelineOperator4.getOperatorDef().outputPortCount() ) );
+
+        for ( PipelineReplica newPipelineReplica : newPipelineReplicas )
+        {
+            assertPipelineReplicaMeter( newPipelineReplica );
+        }
     }
 
     @Test
@@ -554,12 +607,37 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertTrue( newPipelineReplicas[ 2 ].getSelfPipelineTupleQueue() instanceof DefaultOperatorTupleQueue );
         assertTrue( pipelineOperator4.getQueue() instanceof PartitionedOperatorTupleQueue );
         assertTrue( pipelineOperator4.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
+
+        final PipelineReplicaMeter meter0 = newPipelineReplicas[ 0 ].getMeter();
+        assertThat( meter0.getHeadOperatorId(), equalTo( pipelineOperator0.getOperatorDef().id() ) );
+        assertThat( meter0.getConsumedPortCount(), equalTo( pipelineOperator0.getOperatorDef().inputPortCount() ) );
+        assertThat( meter0.getTailOperatorId(), equalTo( pipelineOperator1.getOperatorDef().id() ) );
+        assertThat( meter0.getProducedPortCount(), equalTo( pipelineOperator1.getOperatorDef().outputPortCount() ) );
+
+        final PipelineReplicaMeter meter1 = newPipelineReplicas[ 1 ].getMeter();
+        assertThat( meter1.getHeadOperatorId(), equalTo( pipelineOperator2.getOperatorDef().id() ) );
+        assertThat( meter1.getConsumedPortCount(), equalTo( pipelineOperator2.getOperatorDef().inputPortCount() ) );
+        assertThat( meter1.getTailOperatorId(), equalTo( pipelineOperator3.getOperatorDef().id() ) );
+        assertThat( meter1.getProducedPortCount(), equalTo( pipelineOperator3.getOperatorDef().outputPortCount() ) );
+
+        final PipelineReplicaMeter meter2 = newPipelineReplicas[ 2 ].getMeter();
+        assertThat( meter2.getHeadOperatorId(), equalTo( pipelineOperator4.getOperatorDef().id() ) );
+        assertThat( meter2.getConsumedPortCount(), equalTo( pipelineOperator4.getOperatorDef().inputPortCount() ) );
+        assertThat( meter2.getTailOperatorId(), equalTo( pipelineOperator4.getOperatorDef().id() ) );
+        assertThat( meter2.getProducedPortCount(), equalTo( pipelineOperator4.getOperatorDef().outputPortCount() ) );
+
+        for ( PipelineReplica p : newPipelineReplicas )
+        {
+            assertPipelineReplicaMeter( p );
+        }
     }
 
     @Test
     public void shouldSplitPipelineIntoSingleOperatorPipelines ()
     {
-        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatelessInput0Output1Operator.class ).build();
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", PartitionedStatefulInput1Output1Operator.class )
+                                                           .setPartitionFieldNames( singletonList( "field" ) )
+                                                           .build();
         final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessInput1Output1Operator.class ).build();
@@ -579,9 +657,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
                                                  .connect( "op4", "op5" )
                                                  .build();
 
-        final RegionDef regionDef = new RegionDef( REGION_ID,
-                                                   STATELESS,
-                                                   emptyList(),
+        final RegionDef regionDef = new RegionDef( REGION_ID, PARTITIONED_STATEFUL, singletonList( "field" ),
                                                    asList( operatorDef1, operatorDef2, operatorDef3, operatorDef4, operatorDef5 ) );
 
         final int replicaCount = 2;
@@ -630,13 +706,26 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
             assertTrue( pipelineOperator4.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
             assertThat( pipelineOperator4.getOutputSupplier().getClass(),
                         equalTo( config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass() ) );
+
+            for ( PipelineReplica newPipelineReplica : newPipelineReplicas )
+            {
+                final PipelineReplicaMeter meter = newPipelineReplica.getMeter();
+                final OperatorReplica operator = newPipelineReplica.getOperator( 0 );
+                assertThat( meter.getHeadOperatorId(), equalTo( operator.getOperatorDef().id() ) );
+                assertThat( meter.getConsumedPortCount(), equalTo( operator.getOperatorDef().inputPortCount() ) );
+                assertThat( meter.getTailOperatorId(), equalTo( operator.getOperatorDef().id() ) );
+                assertThat( meter.getProducedPortCount(), equalTo( operator.getOperatorDef().outputPortCount() ) );
+                assertPipelineReplicaMeter( newPipelineReplica );
+            }
         }
     }
 
     @Test
     public void shouldCopyNonSplitPipelinesAtHeadOfTheRegion ()
     {
-        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatelessInput0Output1Operator.class ).build();
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", PartitionedStatefulInput1Output1Operator.class )
+                                                           .setPartitionFieldNames( singletonList( "field" ) )
+                                                           .build();
         final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessInput1Output1Operator.class ).build();
@@ -656,9 +745,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
                                                  .connect( "op4", "op5" )
                                                  .build();
 
-        final RegionDef regionDef = new RegionDef( REGION_ID,
-                                                   STATELESS,
-                                                   emptyList(),
+        final RegionDef regionDef = new RegionDef( REGION_ID, PARTITIONED_STATEFUL, singletonList( "field" ),
                                                    asList( operatorDef1, operatorDef2, operatorDef3, operatorDef4, operatorDef5 ) );
 
         final RegionConfig regionConfig = new RegionConfig( regionDef, asList( 0, 1, 2 ), 2 );
@@ -674,7 +761,9 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
     @Test
     public void shouldCopyNonSplitPipelinesAtTailOfTheRegion ()
     {
-        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatelessInput0Output1Operator.class ).build();
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", PartitionedStatefulInput1Output1Operator.class )
+                                                           .setPartitionFieldNames( singletonList( "field" ) )
+                                                           .build();
         final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessInput1Output1Operator.class ).build();
@@ -694,9 +783,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
                                                  .connect( "op4", "op5" )
                                                  .build();
 
-        final RegionDef regionDef = new RegionDef( REGION_ID,
-                                                   STATELESS,
-                                                   emptyList(),
+        final RegionDef regionDef = new RegionDef( REGION_ID, PARTITIONED_STATEFUL, singletonList( "field" ),
                                                    asList( operatorDef1, operatorDef2, operatorDef3, operatorDef4, operatorDef5 ) );
 
         final RegionConfig regionConfig = new RegionConfig( regionDef, asList( 0, 3, 4 ), 2 );
@@ -712,7 +799,9 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
     @Test
     public void testCheckPipelineStartIndicesToSplit ()
     {
-        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", PartitionedStatefulInput1Output1Operator.class )
+                                                           .setPartitionFieldNames( singletonList( "field" ) )
+                                                           .build();
         final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessInput1Output1Operator.class ).build();
@@ -720,9 +809,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         final OperatorDef operatorDef5 = OperatorDefBuilder.newInstance( "op5", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef6 = OperatorDefBuilder.newInstance( "op6", StatelessInput1Output1Operator.class ).build();
 
-        final RegionDef regionDef = new RegionDef( REGION_ID,
-                                                   STATELESS,
-                                                   emptyList(),
+        final RegionDef regionDef = new RegionDef( REGION_ID, PARTITIONED_STATEFUL, singletonList( "field" ),
                                                    asList( operatorDef0,
                                                            operatorDef1,
                                                            operatorDef2,

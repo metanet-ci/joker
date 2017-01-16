@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.FlowStatus;
 import cs.bilkent.joker.engine.JokerEngine;
 import cs.bilkent.joker.engine.config.JokerConfig;
+import cs.bilkent.joker.engine.flow.FlowDeploymentDef;
 import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.region.RegionConfigFactory;
 import cs.bilkent.joker.flow.FlowDef;
@@ -39,9 +40,9 @@ public class Joker
         this.engine = injector.getInstance( JokerEngine.class );
     }
 
-    public void run ( final FlowDef flow )
+    public FlowDeploymentDef run ( final FlowDef flow )
     {
-        engine.run( flow );
+        return engine.run( flow );
     }
 
     public FlowStatus getStatus ()
@@ -49,19 +50,21 @@ public class Joker
         return engine.getStatus();
     }
 
-    public Future<Void> mergePipelines ( final List<PipelineId> pipelineIds )
+    public Future<FlowDeploymentDef> mergePipelines ( final int flowVersion, final List<PipelineId> pipelineIds )
     {
-        return engine.mergePipelines( pipelineIds );
+        return engine.mergePipelines( flowVersion, pipelineIds );
     }
 
-    public Future<Void> splitPipeline ( final PipelineId pipelineId, final List<Integer> pipelineOperatorIndices )
+    public Future<FlowDeploymentDef> splitPipeline ( final int flowVersion,
+                                                     final PipelineId pipelineId,
+                                                     final List<Integer> pipelineOperatorIndices )
     {
-        return engine.splitPipeline( pipelineId, pipelineOperatorIndices );
+        return engine.splitPipeline( flowVersion, pipelineId, pipelineOperatorIndices );
     }
 
-    public Future<Void> rebalanceRegion ( final int regionId, final int newReplicaCount )
+    public Future<FlowDeploymentDef> rebalanceRegion ( final int flowVersion, final int regionId, final int newReplicaCount )
     {
-        return engine.rebalanceRegion( regionId, newReplicaCount );
+        return engine.rebalanceRegion( flowVersion, regionId, newReplicaCount );
     }
 
     public Future<Void> shutdown ()

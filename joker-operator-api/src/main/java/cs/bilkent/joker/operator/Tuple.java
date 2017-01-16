@@ -50,7 +50,7 @@ public final class Tuple implements Fields<String>
         }
         catch ( Exception e )
         {
-            System.err.println( "Static initialization: " + Tuple.class.getSimpleName() + " initial capacity failed " );
+            System.err.println( "Static initialization: " + Tuple.class.getSimpleName() + " initial capacity failed" );
             e.printStackTrace();
         }
 

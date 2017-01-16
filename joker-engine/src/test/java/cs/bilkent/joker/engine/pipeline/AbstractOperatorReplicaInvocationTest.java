@@ -6,7 +6,9 @@ import java.util.function.Supplier;
 import org.junit.Before;
 import org.mockito.Mock;
 
+import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.kvstore.OperatorKVStore;
+import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
 import cs.bilkent.joker.engine.partition.PartitionKey;
 import cs.bilkent.joker.engine.partition.impl.PartitionKey1;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaInitializationTest.newUpstreamContextInstance;
@@ -26,6 +28,7 @@ import cs.bilkent.joker.test.AbstractJokerTest;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -56,6 +59,8 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
     @Mock
     protected Supplier<TuplesImpl> outputSupplier;
 
+    protected final JokerConfig config = new JokerConfig();
+
     protected final PartitionKey key = new PartitionKey1( new Object() );
 
     protected final InvocationContextImpl invocationContext = new InvocationContextImpl();
@@ -67,9 +72,10 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
     @Before
     public void before ()
     {
-        operatorReplica = new OperatorReplica( new PipelineReplicaId( new PipelineId( 0, 0 ), 0 ), operatorDef, queue, operatorKvStore,
+        final PipelineReplicaId pipelineReplicaId = new PipelineReplicaId( new PipelineId( 0, 0 ), 0 );
+        operatorReplica = new OperatorReplica( pipelineReplicaId, operatorDef, queue, operatorKvStore,
                                                drainerPool,
-                                               outputSupplier,
+                                               outputSupplier, mock( PipelineReplicaMeter.class ),
                                                invocationContext );
 
         applyDefaultMocks();

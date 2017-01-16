@@ -23,6 +23,7 @@ import cs.bilkent.joker.engine.kvstore.OperatorKVStoreManager;
 import cs.bilkent.joker.engine.kvstore.impl.DefaultOperatorKVStore;
 import cs.bilkent.joker.engine.kvstore.impl.EmptyOperatorKVStore;
 import cs.bilkent.joker.engine.kvstore.impl.PartitionedOperatorKVStore;
+import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
 import cs.bilkent.joker.engine.partition.PartitionDistribution;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractorFactory;
@@ -54,7 +55,6 @@ import cs.bilkent.joker.operator.impl.TuplesImpl;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
-import static java.lang.Integer.compare;
 import static java.lang.Math.max;
 import static java.lang.System.arraycopy;
 import static java.util.stream.Collectors.toList;
@@ -134,6 +134,15 @@ public class RegionManagerImpl implements RegionManager
             final PipelineReplicaId[] pipelineReplicaIds = createPipelineReplicaIds( regionId, replicaCount, pipelineId );
             final int forwardKeyLimit = regionConfig.getRegionDef().getPartitionFieldNames().size();
 
+            final PipelineReplicaMeter[] replicaMeters = new PipelineReplicaMeter[ replicaCount ];
+            for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
+            {
+                replicaMeters[ replicaIndex ] = new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(),
+                                                                          pipelineReplicaIds[ replicaIndex ],
+                                                                          operatorDefs[ 0 ],
+                                                                          operatorDefs[ operatorCount - 1 ] );
+            }
+
             for ( int operatorIndex = 0; operatorIndex < operatorCount; operatorIndex++ )
             {
                 final OperatorDef operatorDef = operatorDefs[ operatorIndex ];
@@ -163,13 +172,14 @@ public class RegionManagerImpl implements RegionManager
                                                                                              operatorTupleQueues[ replicaIndex ],
                                                                                              operatorKvStores[ replicaIndex ],
                                                                                              drainerPools[ replicaIndex ],
-                                                                                             outputSuppliers[ replicaIndex ] );
+                                                                                             outputSuppliers[ replicaIndex ],
+                                                                                             replicaMeters[ replicaIndex ] );
                 }
             }
 
             for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
             {
-                LOGGER.info( "Creating pipeline instance for regionId={} replicaIndex={} pipelineIndex={} pipelineId={}",
+                LOGGER.info( "Creating pipeline instance for regionId={} replicaIndex={} pipelineIndex={} pipelineStartIndex={}",
                              regionId,
                              replicaIndex,
                              pipelineIndex,
@@ -183,7 +193,8 @@ public class RegionManagerImpl implements RegionManager
                 pipelineReplicas[ pipelineIndex ][ replicaIndex ] = new PipelineReplica( config,
                                                                                          pipelineReplicaIds[ replicaIndex ],
                                                                                          pipelineOperatorReplicas,
-                                                                                         pipelineTupleQueue );
+                                                                                         pipelineTupleQueue,
+                                                                                         replicaMeters[ replicaIndex ] );
             }
         }
 
@@ -203,20 +214,16 @@ public class RegionManagerImpl implements RegionManager
         checkArgument( pipelineIds != null && pipelineIds.size() > 1 );
 
         final List<PipelineId> pipelineIdsSorted = new ArrayList<>( pipelineIds );
-        pipelineIdsSorted.sort( ( o1, o2 ) ->
-                                {
-                                    final int c = compare( o1.regionId, o2.regionId );
-                                    return c != 0 ? c : compare( o1.pipelineId, o2.pipelineId );
-                                } );
+        pipelineIdsSorted.sort( PipelineId::compareTo );
 
-        checkArgument( pipelineIdsSorted.get( 0 ).regionId == pipelineIdsSorted.get( pipelineIdsSorted.size() - 1 ).regionId,
+        checkArgument( pipelineIdsSorted.get( 0 ).getRegionId() == pipelineIdsSorted.get( pipelineIdsSorted.size() - 1 ).getRegionId(),
                        "multiple region ids in %s",
                        pipelineIds );
-        checkArgument( pipelineIdsSorted.stream().map( id -> id.pipelineId ).distinct().count() == pipelineIds.size(),
+        checkArgument( pipelineIdsSorted.stream().map( PipelineId::getPipelineStartIndex ).distinct().count() == pipelineIds.size(),
                        "duplicate pipeline ids in %s",
                        pipelineIds );
 
-        final Region region = regions.get( pipelineIdsSorted.get( 0 ).regionId );
+        final Region region = regions.get( pipelineIdsSorted.get( 0 ).getRegionId() );
         checkArgument( region != null, "no region found for %s", pipelineIds );
 
         return pipelineIdsSorted;
@@ -226,7 +233,7 @@ public class RegionManagerImpl implements RegionManager
     public Region mergePipelines ( final List<PipelineId> pipelineIdsToMerge )
     {
         final List<Integer> startIndicesToMerge = getMergeablePipelineStartIndices( pipelineIdsToMerge );
-        final int regionId = pipelineIdsToMerge.get( 0 ).regionId;
+        final int regionId = pipelineIdsToMerge.get( 0 ).getRegionId();
 
         final Region region = regions.remove( regionId );
 
@@ -247,11 +254,11 @@ public class RegionManagerImpl implements RegionManager
         checkArgument( pipelineOperatorIndicesToSplit != null && pipelineOperatorIndicesToSplit.size() > 1,
                        "there must be at least 2 operator split indices for Pipeline %s",
                        pipelineId );
-        final Region region = regions.get( pipelineId.regionId );
+        final Region region = regions.get( pipelineId.getRegionId() );
         checkArgument( region != null, "invalid Pipeline %s to split", pipelineId );
 
         int curr = 0;
-        final int operatorCount = region.getConfig().getOperatorCountByPipelineId( pipelineId.pipelineId );
+        final int operatorCount = region.getConfig().getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() );
         for ( int p : pipelineOperatorIndicesToSplit )
         {
             checkArgument( p > curr && p < operatorCount );
@@ -259,10 +266,10 @@ public class RegionManagerImpl implements RegionManager
         }
 
         final List<Integer> pipelineStartIndicesToSplit = new ArrayList<>();
-        pipelineStartIndicesToSplit.add( pipelineId.pipelineId );
+        pipelineStartIndicesToSplit.add( pipelineId.getPipelineStartIndex() );
         for ( int i : pipelineOperatorIndicesToSplit )
         {
-            pipelineStartIndicesToSplit.add( pipelineId.pipelineId + i );
+            pipelineStartIndicesToSplit.add( pipelineId.getPipelineStartIndex() + i );
         }
 
         return pipelineStartIndicesToSplit;
@@ -272,7 +279,7 @@ public class RegionManagerImpl implements RegionManager
     public Region splitPipeline ( final PipelineId pipelineId, final List<Integer> pipelineOperatorIndicesToSplit )
     {
         final List<Integer> pipelineStartIndicesToSplit = getPipelineStartIndicesToSplit( pipelineId, pipelineOperatorIndicesToSplit );
-        final int regionId = pipelineId.regionId;
+        final int regionId = pipelineId.getRegionId();
 
         final Region region = regions.remove( regionId );
         final Region newRegion = pipelineTransformer.splitPipeline( region, pipelineStartIndicesToSplit );
@@ -569,7 +576,10 @@ public class RegionManagerImpl implements RegionManager
 
                 final OperatorReplica[] operatorReplicas = new OperatorReplica[ operatorCount ];
                 final PipelineReplicaId pipelineReplicaId = new PipelineReplicaId( new PipelineId( regionId, pipelineId ), replicaIndex );
-
+                final PipelineReplicaMeter replicaMeter = new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(),
+                                                                                    pipelineReplicaId,
+                                                                                    operatorDefs[ 0 ],
+                                                                                    operatorDefs[ operatorCount - 1 ] );
                 for ( int operatorIndex = 0; operatorIndex < operatorCount; operatorIndex++ )
                 {
                     final OperatorDef operatorDef = operatorDefs[ operatorIndex ];
@@ -641,8 +651,7 @@ public class RegionManagerImpl implements RegionManager
                                                                              operatorDef,
                                                                              operatorTupleQueue,
                                                                              operatorKVStore,
-                                                                             drainerPool,
-                                                                             outputSupplier );
+                                                                             drainerPool, outputSupplier, replicaMeter );
                 }
 
                 final OperatorTupleQueue pipelineTupleQueue = createPipelineTupleQueue( flow, regionId, replicaIndex, operatorReplicas );
@@ -650,7 +659,8 @@ public class RegionManagerImpl implements RegionManager
                 newPipelineReplicas[ pipelineIndex ][ replicaIndex ] = new PipelineReplica( config,
                                                                                             pipelineReplicaId,
                                                                                             operatorReplicas,
-                                                                                            pipelineTupleQueue );
+                                                                                            pipelineTupleQueue,
+                                                                                            replicaMeter );
             }
         }
 
@@ -710,9 +720,9 @@ public class RegionManagerImpl implements RegionManager
     private List<Integer> getMergeablePipelineStartIndices ( final List<PipelineId> pipelineIds )
     {
         final List<PipelineId> pipelineIdsSorted = getMergeablePipelineIds( pipelineIds );
-        final Region region = regions.get( pipelineIds.get( 0 ).regionId );
+        final Region region = regions.get( pipelineIds.get( 0 ).getRegionId() );
 
-        final List<Integer> startIndicesToMerge = pipelineIdsSorted.stream().map( p -> p.pipelineId ).collect( toList() );
+        final List<Integer> startIndicesToMerge = pipelineIdsSorted.stream().map( PipelineId::getPipelineStartIndex ).collect( toList() );
         final RegionConfig regionConfig = region.getConfig();
 
         if ( !pipelineTransformer.checkPipelineStartIndicesToMerge( regionConfig, startIndicesToMerge ) )

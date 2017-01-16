@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.config.TupleQueueDrainerConfig;
 import cs.bilkent.joker.engine.exception.InitializationException;
+import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIAL;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.RUNNING;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.SHUT_DOWN;
@@ -25,6 +26,7 @@ import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.MultiPortDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.NopDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.operator.EmptyOperatorTupleQueue;
+import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
@@ -51,6 +53,8 @@ public class PipelineReplica
 
     private final OperatorTupleQueue pipelineTupleQueue;
 
+    private final PipelineReplicaMeter meter;
+
     private final int operatorCount;
 
     private final int pipelineInputPortCount;
@@ -70,16 +74,18 @@ public class PipelineReplica
     public PipelineReplica ( final JokerConfig config,
                              final PipelineReplicaId id,
                              final OperatorReplica[] operators,
-                             final OperatorTupleQueue pipelineTupleQueue )
+                             final OperatorTupleQueue pipelineTupleQueue,
+                             final PipelineReplicaMeter meter )
     {
         this.config = config;
         this.id = id;
         this.operators = Arrays.copyOf( operators, operators.length );
         this.operatorCount = operators.length;
         this.pipelineTupleQueue = pipelineTupleQueue;
+        this.meter = meter;
         this.pipelineInputPortCount = operators[ 0 ].getOperatorDef().inputPortCount();
         this.upstreamInputPorts = new int[ pipelineInputPortCount ];
-        this.pipelineReplicaCompletionTracker = new PipelineReplicaCompletionTracker( id, operators.length );
+        this.pipelineReplicaCompletionTracker = new PipelineReplicaCompletionTracker( id, operators );
         for ( OperatorReplica operator : operators )
         {
             operator.setOperatorReplicaListener( this.pipelineReplicaCompletionTracker );
@@ -90,9 +96,10 @@ public class PipelineReplica
                              final PipelineReplicaId id,
                              final OperatorReplica[] operators,
                              final OperatorTupleQueue pipelineTupleQueue,
+                             final PipelineReplicaMeter meter,
                              final UpstreamContext upstreamContext )
     {
-        this( config, id, operators, pipelineTupleQueue );
+        this( config, id, operators, pipelineTupleQueue, meter );
         initUpstreamDrainer();
         this.status = RUNNING;
         setPipelineUpstreamContext( upstreamContext );
@@ -273,6 +280,7 @@ public class PipelineReplica
 
     public TuplesImpl invoke ()
     {
+        meter.tick();
         upstreamDrainer.reset();
         pipelineTupleQueue.drain( drainerMaySkipBlocking, upstreamDrainer );
         TuplesImpl tuples = upstreamDrainer.getResult();
@@ -326,11 +334,11 @@ public class PipelineReplica
         }
     }
 
-    public PipelineReplica duplicate ( final OperatorReplica[] operators )
+    public PipelineReplica duplicate ( final PipelineReplicaMeter meter, final OperatorReplica[] operators )
     {
         checkState( this.status == RUNNING, "Cannot duplicate pipeline replica %s because in %s status", this.id, this.status );
 
-        final PipelineReplica duplicate = new PipelineReplica( this.config, this.id, operators, this.pipelineTupleQueue );
+        final PipelineReplica duplicate = new PipelineReplica( this.config, this.id, operators, this.pipelineTupleQueue, meter );
         duplicate.status = this.status;
         duplicate.upstreamDrainer = this.upstreamDrainer;
         duplicate.pipelineUpstreamContext = this.pipelineUpstreamContext;
@@ -357,6 +365,11 @@ public class PipelineReplica
         return operators[ index ];
     }
 
+    public OperatorDef getOperatorDef ( final int index )
+    {
+        return getOperator( index ).getOperatorDef();
+    }
+
     public OperatorReplica[] getOperators ()
     {
         return Arrays.copyOf( operators, operators.length );
@@ -370,6 +383,11 @@ public class PipelineReplica
     public OperatorReplicaStatus getStatus ()
     {
         return status;
+    }
+
+    public PipelineReplicaMeter getMeter ()
+    {
+        return meter;
     }
 
     SchedulingStrategy[] getSchedulingStrategies ()

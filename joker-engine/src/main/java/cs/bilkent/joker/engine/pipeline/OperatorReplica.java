@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.kvstore.OperatorKVStore;
+import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
 import cs.bilkent.joker.engine.partition.PartitionKey;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETED;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETING;
@@ -43,7 +44,6 @@ import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ANY_PORT;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
-import cs.bilkent.joker.operator.spec.OperatorType;
 
 /**
  * Manages runtime state of an {@link Operator} defined in a {@link FlowDef} and provides methods for operator invocation.
@@ -57,8 +57,6 @@ public class OperatorReplica
 {
 
     private static final Logger LOGGER = LoggerFactory.getLogger( OperatorReplica.class );
-
-    private static final int OVERLOADED_INVOCATION_MASK = 31;
 
 
     private final PipelineReplicaId pipelineReplicaId;
@@ -76,6 +74,8 @@ public class OperatorReplica
     private final InvocationContextImpl invocationContext;
 
     private final Supplier<TuplesImpl> outputSupplier;
+
+    private final PipelineReplicaMeter meter;
 
     private OperatorReplicaStatus status = INITIAL;
 
@@ -99,20 +99,15 @@ public class OperatorReplica
 
     private boolean operatorInvokedOnLastAttempt;
 
-    private int invocationCount;
-
-    private int overloadedInvocationCount;
-
-    private int operatorInvocationCount;
-
     public OperatorReplica ( final PipelineReplicaId pipelineReplicaId,
                              final OperatorDef operatorDef,
                              final OperatorTupleQueue queue,
                              final OperatorKVStore operatorKvStore,
                              final TupleQueueDrainerPool drainerPool,
-                             final Supplier<TuplesImpl> outputSupplier )
+                             final Supplier<TuplesImpl> outputSupplier,
+                             final PipelineReplicaMeter meter )
     {
-        this( pipelineReplicaId, operatorDef, queue, operatorKvStore, drainerPool, outputSupplier, new InvocationContextImpl() );
+        this( pipelineReplicaId, operatorDef, queue, operatorKvStore, drainerPool, outputSupplier, meter, new InvocationContextImpl() );
     }
 
     public OperatorReplica ( final PipelineReplicaId pipelineReplicaId,
@@ -121,6 +116,7 @@ public class OperatorReplica
                              final OperatorKVStore operatorKvStore,
                              final TupleQueueDrainerPool drainerPool,
                              final Supplier<TuplesImpl> outputSupplier,
+                             final PipelineReplicaMeter meter,
                              final InvocationContextImpl invocationContext )
     {
         this.pipelineReplicaId = pipelineReplicaId;
@@ -130,6 +126,7 @@ public class OperatorReplica
         this.operatorKvStore = operatorKvStore;
         this.drainerPool = drainerPool;
         this.outputSupplier = outputSupplier;
+        this.meter = meter;
         this.invocationContext = invocationContext;
     }
 
@@ -263,11 +260,7 @@ public class OperatorReplica
 
         TuplesImpl input, output = null;
 
-        final boolean singleInvocation = !( shouldCheckQueueOverload() && queue.isOverloaded() );
-        if ( !singleInvocation )
-        {
-            overloadedInvocationCount++;
-        }
+        final boolean singleInvocation = !( meter.isTicked() && queue.isOverloaded() );
 
         while ( true )
         {
@@ -345,12 +338,9 @@ public class OperatorReplica
             }
         }
 
-        return output;
-    }
+        meter.addProducedTuples( operatorDef.id(), output );
 
-    private boolean shouldCheckQueueOverload ()
-    {
-        return ( invocationCount++ & OVERLOADED_INVOCATION_MASK ) == 0;
+        return output;
     }
 
     private void setQueueTupleCountsForGreedyDraining ()
@@ -390,8 +380,10 @@ public class OperatorReplica
         final KVStore kvStore = operatorKvStore.getKVStore( key );
         final TuplesImpl invocationOutput = output != null ? output : outputSupplier.get();
         invocationContext.setInvocationParameters( reason, input, invocationOutput, kvStore );
+        meter.addConsumedTuples( operatorDef.id(), input );
+        meter.startOperatorInvocation( operatorDef.id() );
         operator.invoke( invocationContext );
-        operatorInvocationCount++;
+        meter.completeOperatorInvocation( operatorDef.id() );
 
         return invocationOutput;
     }
@@ -482,12 +474,8 @@ public class OperatorReplica
         {
             if ( operator != null )
             {
-                LOGGER.info( "Operator {} is invoked {} times. invocation count: {}, overloaded invocation count: {}",
-                             operatorName,
-                             operatorInvocationCount,
-                             invocationCount,
-                             overloadedInvocationCount );
                 operator.shutdown();
+                LOGGER.info( "Operator {} is shut down.", operatorName );
             }
         }
         catch ( Exception e )
@@ -503,9 +491,11 @@ public class OperatorReplica
         }
     }
 
-    public OperatorReplica duplicate ( final PipelineReplicaId pipelineReplicaId, final OperatorTupleQueue queue,
+    public OperatorReplica duplicate ( final PipelineReplicaId pipelineReplicaId,
+                                       final OperatorTupleQueue queue,
                                        final TupleQueueDrainerPool drainerPool,
-                                       final Supplier<TuplesImpl> outputSupplier )
+                                       final Supplier<TuplesImpl> outputSupplier,
+                                       final PipelineReplicaMeter meter )
     {
         checkState( this.status == RUNNING,
                     "cannot duplicate %s to %s because status is %s",
@@ -515,7 +505,8 @@ public class OperatorReplica
 
         final OperatorReplica duplicate = new OperatorReplica( pipelineReplicaId, this.operatorDef, queue, this.operatorKvStore,
                                                                drainerPool,
-                                                               outputSupplier );
+                                                               outputSupplier,
+                                                               meter );
 
         duplicate.status = this.status;
         duplicate.upstreamContext = this.upstreamContext;
@@ -542,9 +533,9 @@ public class OperatorReplica
         return operatorDef;
     }
 
-    public OperatorType getOperatorType ()
+    public PipelineReplicaMeter getMeter ()
     {
-        return operatorDef.operatorType();
+        return meter;
     }
 
     public SchedulingStrategy getInitialSchedulingStrategy ()

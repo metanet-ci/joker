@@ -13,23 +13,28 @@ import javax.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.FlowStatus;
 import static cs.bilkent.joker.engine.FlowStatus.SHUT_DOWN;
 import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_THREAD_GROUP_NAME;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.exception.JokerException;
+import cs.bilkent.joker.engine.flow.FlowDeploymentDef;
+import cs.bilkent.joker.engine.metric.MetricManager;
+import cs.bilkent.joker.engine.metric.PipelineMeter;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
 import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineManager;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.joker.engine.pipeline.UpstreamContext;
 import cs.bilkent.joker.engine.region.RegionConfig;
-import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import static cs.bilkent.joker.engine.util.ExceptionUtils.checkInterruption;
 import cs.bilkent.joker.flow.FlowDef;
+import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Collectors.toList;
 
 @Singleton
 @ThreadSafe
@@ -41,22 +46,30 @@ public class SupervisorImpl implements Supervisor
     private static final long HEARTBEAT_LOG_PERIOD = SECONDS.toMillis( 15 );
 
 
-    private final Object monitor = new Object();
+    private final MetricManager metricManager;
 
-    private final PipelineManager pipelineManager;
-
-    private final BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>( Integer.MAX_VALUE );
+    private PipelineManager pipelineManager;
 
     private final Thread supervisorThread;
+
+    private final Object monitor = new Object();
+
+    private final BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>( Integer.MAX_VALUE );
 
     private CompletableFuture<Void> shutdownFuture;
 
 
     @Inject
-    public SupervisorImpl ( final PipelineManager pipelineManager, @Named( JOKER_THREAD_GROUP_NAME ) final ThreadGroup jokerThreadGroup )
+    public SupervisorImpl ( final MetricManager metricManager, @Named( JOKER_THREAD_GROUP_NAME ) final ThreadGroup jokerThreadGroup )
+    {
+        this.metricManager = metricManager;
+        this.supervisorThread = new Thread( jokerThreadGroup, new TaskRunner(), jokerThreadGroup.getName() + "-Supervisor" );
+    }
+
+    @Inject
+    public void setPipelineManager ( final PipelineManager pipelineManager )
     {
         this.pipelineManager = pipelineManager;
-        this.supervisorThread = new Thread( jokerThreadGroup, new TaskRunner(), jokerThreadGroup.getName() + "-Supervisor" );
     }
 
     public FlowStatus getFlowStatus ()
@@ -64,15 +77,17 @@ public class SupervisorImpl implements Supervisor
         return pipelineManager.getFlowStatus();
     }
 
-    public void start ( final FlowDef flow,
-                        final List<RegionDef> regionDefs,
-                        final List<RegionConfig> regionConfigs ) throws InitializationException
+    public FlowDeploymentDef start ( final FlowDef flow, final List<RegionConfig> regionConfigs ) throws InitializationException
     {
         synchronized ( monitor )
         {
             try
             {
-                pipelineManager.start( this, flow, regionDefs, regionConfigs );
+                pipelineManager.start( flow, regionConfigs );
+                final FlowDeploymentDef flowDeploymentDef = pipelineManager.getFlowDeploymentDef();
+                metricManager.start( flowDeploymentDef.getVersion(), pipelineManager.getAllPipelineMetersOrFail() );
+                supervisorThread.start();
+                return flowDeploymentDef;
             }
             catch ( InitializationException e )
             {
@@ -81,8 +96,6 @@ public class SupervisorImpl implements Supervisor
                 throw e;
             }
         }
-
-        supervisorThread.start();
     }
 
     public Future<Void> shutdown ()
@@ -94,7 +107,7 @@ public class SupervisorImpl implements Supervisor
             if ( shutdownFuture == null )
             {
                 shutdownFuture = new CompletableFuture<>();
-                final boolean result = queue.offer( pipelineManager::triggerShutdown );
+                final boolean result = queue.offer( this::doShutdown );
                 assert result : "offer failed for trigger shutdown";
                 LOGGER.info( "trigger shutdown task offered" );
             }
@@ -103,127 +116,180 @@ public class SupervisorImpl implements Supervisor
         }
     }
 
-    public Future<Void> mergePipelines ( final List<PipelineId> pipelineIdsToMerge )
+    private void doShutdown ()
     {
-        final CompletableFuture<Void> future = new CompletableFuture<>();
+        metricManager.shutdown();
+        pipelineManager.triggerShutdown();
+    }
+
+    public Future<FlowDeploymentDef> mergePipelines ( final int flowVersion, final List<PipelineId> pipelineIdsToMerge )
+    {
+        final CompletableFuture<FlowDeploymentDef> future = new CompletableFuture<>();
         synchronized ( monitor )
         {
-            checkState( isDeploymentChangeOK(),
-                        "cannot merge pipelines %s since %s and shutdown future is %s",
-                        pipelineIdsToMerge,
+            checkState( isDeploymentChangeable(), "cannot merge pipelines %s with flow version %s since %s and shutdown future is %s",
+                        pipelineIdsToMerge, flowVersion,
                         pipelineManager.getFlowStatus(),
                         shutdownFuture );
 
-            final boolean result = queue.offer( () -> doMergePipelines( future, pipelineIdsToMerge ) );
-            assert result : "offer failed for merge pipelines " + pipelineIdsToMerge;
-            LOGGER.info( "merge pipelines {} task offered", pipelineIdsToMerge );
+            final boolean result = queue.offer( () -> doMergePipelines( future, flowVersion, pipelineIdsToMerge ) );
+            assert result : "offer failed for merge pipelines " + pipelineIdsToMerge + " with flow version " + flowVersion;
+            LOGGER.info( "merge pipelines {} with flow version {} task offered", pipelineIdsToMerge, flowVersion );
         }
 
         return future;
     }
 
-    public Future<Void> splitPipeline ( final PipelineId pipelineId, final List<Integer> pipelineOperatorIndices )
+    public Future<FlowDeploymentDef> splitPipeline ( final int flowVersion,
+                                                     final PipelineId pipelineId,
+                                                     final List<Integer> pipelineOperatorIndices )
     {
-        final CompletableFuture<Void> future = new CompletableFuture<>();
+        final CompletableFuture<FlowDeploymentDef> future = new CompletableFuture<>();
         synchronized ( monitor )
         {
-            checkState( isDeploymentChangeOK(),
-                        "cannot split pipeline %s into %s since %s and shutdown future is %s",
+            checkState( isDeploymentChangeable(),
+                        "cannot split pipeline %s into %s with flow version %s since %s and shutdown future is %s",
                         pipelineId,
                         pipelineOperatorIndices,
+                        flowVersion,
                         pipelineManager.getFlowStatus(),
                         shutdownFuture );
 
-            final boolean result = queue.offer( () -> doSplitPipeline( future, pipelineId, pipelineOperatorIndices ) );
-            assert result : "offer failed for split pipeline " + pipelineId + " into " + pipelineOperatorIndices;
-            LOGGER.info( "split pipeline {} into {} task offered", pipelineId, pipelineOperatorIndices );
+            final boolean result = queue.offer( () -> doSplitPipeline( future, flowVersion, pipelineId, pipelineOperatorIndices ) );
+            assert result : "offer failed for split pipeline " + pipelineId + " into " + pipelineOperatorIndices + " with flow version "
+                            + flowVersion;
+            LOGGER.info( "split pipeline {} into {} with flow version {} task offered", pipelineId, pipelineOperatorIndices, flowVersion );
         }
 
         return future;
     }
 
-    public Future<Void> rebalanceRegion ( final int regionId, final int newReplicaCount )
+    public Future<FlowDeploymentDef> rebalanceRegion ( final int flowVersion, final int regionId, final int newReplicaCount )
     {
-        final CompletableFuture<Void> future = new CompletableFuture<>();
+        final CompletableFuture<FlowDeploymentDef> future = new CompletableFuture<>();
         synchronized ( monitor )
         {
-            checkState( isDeploymentChangeOK(),
-                        "cannot rebalance region %s to new replica count %s since %s and shutdown future is %s",
+            checkState( isDeploymentChangeable(),
+                        "cannot rebalance region %s to new replica count %s with flow version %s since %s and shutdown future is %s",
                         regionId,
                         newReplicaCount,
+                        flowVersion,
                         pipelineManager.getFlowStatus(),
                         shutdownFuture );
 
-            final boolean result = queue.offer( () -> doRebalanceRegion( future, regionId, newReplicaCount ) );
-            assert result : "offer failed for rebalance region " + regionId + " to new replica count: " + newReplicaCount;
-            LOGGER.info( "rebalance region {} to new replica count {} task offered", regionId, newReplicaCount );
+            final boolean result = queue.offer( () -> doRebalanceRegion( future, flowVersion, regionId, newReplicaCount ) );
+            assert result :
+                    "offer failed for rebalance region " + regionId + " to new replica count: " + newReplicaCount + " with flow version "
+                    + flowVersion;
+            LOGGER.info( "rebalance region {} to new replica count {} with flow version {} task offered",
+                         regionId,
+                         newReplicaCount,
+                         flowVersion );
         }
 
         return future;
     }
 
-    private boolean isDeploymentChangeOK ()
+    private boolean isDeploymentChangeable ()
     {
         return isInitialized() && ( shutdownFuture == null );
     }
 
-    private void doMergePipelines ( final CompletableFuture<Void> future, final List<PipelineId> pipelineIdsToMerge )
+    private void doMergePipelines ( final CompletableFuture<FlowDeploymentDef> future,
+                                    final int flowVersion,
+                                    final List<PipelineId> pipelineIdsToMerge )
     {
         try
         {
-            pipelineManager.mergePipelines( this, pipelineIdsToMerge );
-            future.complete( null );
+            metricManager.pause();
+
+            pipelineManager.mergePipelines( flowVersion, pipelineIdsToMerge );
+
+            final FlowDeploymentDef flowDeploymentDef = pipelineManager.getFlowDeploymentDef();
+            final PipelineMeter pipelineMeter = pipelineManager.getPipelineMeterOrFail( pipelineIdsToMerge.get( 0 ) );
+            metricManager.resume( flowDeploymentDef.getVersion(), pipelineIdsToMerge, singletonList( pipelineMeter ) );
+            future.complete( flowDeploymentDef );
         }
         catch ( IllegalArgumentException e )
         {
-            LOGGER.error( "Merge pipelines " + pipelineIdsToMerge + " failed", e );
+            LOGGER.error( "Merge pipelines " + pipelineIdsToMerge + " with flow version: " + flowVersion + " failed", e );
             future.completeExceptionally( e );
         }
         catch ( JokerException e )
         {
-            LOGGER.error( "Merge pipelines " + pipelineIdsToMerge + " failed", e );
+            LOGGER.error( "Merge pipelines " + pipelineIdsToMerge + " with flow version: " + flowVersion + " failed", e );
             future.completeExceptionally( e );
             throw e;
         }
     }
 
-    private void doSplitPipeline ( final CompletableFuture<Void> future,
+    private void doSplitPipeline ( final CompletableFuture<FlowDeploymentDef> future, final int flowVersion,
                                    final PipelineId pipelineId,
                                    final List<Integer> pipelineOperatorIndices )
     {
         try
         {
-            pipelineManager.splitPipeline( this, pipelineId, pipelineOperatorIndices );
-            future.complete( null );
+            final RegionConfig regionConfig = pipelineManager.getFlowDeploymentDef().getRegionConfig( pipelineId.getRegionId() );
+            checkArgument( regionConfig != null, "Region of PipelineId %s not found to split", pipelineId );
+            final List<PipelineId> unchangedPipelineIds = regionConfig.getPipelineIds();
+            final boolean validPipelineId = unchangedPipelineIds.remove( pipelineId );
+            checkArgument( validPipelineId, "Invalid PipelineId %s to split", pipelineId );
+
+            metricManager.pause();
+            pipelineManager.splitPipeline( flowVersion, pipelineId, pipelineOperatorIndices );
+
+            final FlowDeploymentDef flowDeploymentDef = pipelineManager.getFlowDeploymentDef();
+            final List<PipelineMeter> newPipelineMeters = pipelineManager.getRegionPipelineMetersOrFail( pipelineId.getRegionId() )
+                                                                         .stream()
+                                                                         .filter( p -> !unchangedPipelineIds.contains( p.getPipelineId() ) )
+                                                                         .collect( toList() );
+            metricManager.resume( flowDeploymentDef.getVersion(), singletonList( pipelineId ), newPipelineMeters );
+            future.complete( flowDeploymentDef );
         }
         catch ( IllegalArgumentException e )
         {
-            LOGGER.error( "Split pipeline " + pipelineId + " into " + pipelineOperatorIndices + " failed", e );
+            LOGGER.error(
+                    "Split pipeline " + pipelineId + " into " + pipelineOperatorIndices + " with flow version: " + flowVersion + " failed",
+                    e );
             future.completeExceptionally( e );
         }
         catch ( JokerException e )
         {
-            LOGGER.error( "Split pipeline " + pipelineId + " into " + pipelineOperatorIndices + " failed", e );
+            LOGGER.error(
+                    "Split pipeline " + pipelineId + " into " + pipelineOperatorIndices + " with flow version: " + flowVersion + " failed",
+                    e );
             future.completeExceptionally( e );
             throw e;
         }
     }
 
-    private void doRebalanceRegion ( final CompletableFuture<Void> future, final int regionId, final int newReplicaCount )
+    private void doRebalanceRegion ( final CompletableFuture<FlowDeploymentDef> future,
+                                     final int flowVersion,
+                                     final int regionId,
+                                     final int newReplicaCount )
     {
         try
         {
-            pipelineManager.rebalanceRegion( this, regionId, newReplicaCount );
-            future.complete( null );
+            metricManager.pause();
+
+            pipelineManager.rebalanceRegion( flowVersion, regionId, newReplicaCount );
+
+            final FlowDeploymentDef flowDeploymentDef = pipelineManager.getFlowDeploymentDef();
+            final RegionConfig regionConfig = flowDeploymentDef.getRegionConfig( regionId );
+            final List<PipelineMeter> pipelineMeters = pipelineManager.getRegionPipelineMetersOrFail( regionId );
+            metricManager.resume( flowDeploymentDef.getVersion(), regionConfig.getPipelineIds(), pipelineMeters );
+            future.complete( flowDeploymentDef );
         }
         catch ( IllegalArgumentException e )
         {
-            LOGGER.error( "Rebalance region" + regionId + " to new replica count: " + newReplicaCount + " failed", e );
+            LOGGER.error( "Rebalance region " + regionId + " to new replica count: " + newReplicaCount + " with flow version " + flowVersion
+                          + " failed", e );
             future.completeExceptionally( e );
         }
         catch ( JokerException e )
         {
-            LOGGER.error( "Rebalance region" + regionId + " to new replica count: " + newReplicaCount + " failed", e );
+            LOGGER.error( "Rebalance region " + regionId + " to new replica count: " + newReplicaCount + " with flow version " + flowVersion
+                          + " failed", e );
             future.completeExceptionally( e );
             throw e;
         }
@@ -302,6 +368,7 @@ public class SupervisorImpl implements Supervisor
 
     private void doNotifyPipelineReplicaFailed ( final PipelineReplicaId id, final Throwable failure )
     {
+        metricManager.shutdown();
         pipelineManager.handlePipelineReplicaFailed( id, failure );
         completeShutdown( failure );
     }
