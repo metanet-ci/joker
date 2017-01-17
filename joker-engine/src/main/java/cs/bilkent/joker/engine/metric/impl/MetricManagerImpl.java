@@ -1,8 +1,10 @@
 package cs.bilkent.joker.engine.metric.impl;
 
+import java.io.File;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.management.RuntimeMXBean;
 import java.lang.management.ThreadMXBean;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -26,6 +28,7 @@ import javax.inject.Singleton;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.codahale.metrics.CsvReporter;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
@@ -81,11 +84,15 @@ public class MetricManagerImpl implements MetricManager
 
     private final AtomicInteger samplingFlag = new AtomicInteger( TASK_INITIAL );
 
+    private volatile CsvReporter csvReporter;
+
     private volatile Histogram scanOperatorsHistogram;
 
     private volatile Histogram scanMetricsHistogram;
 
     private volatile int iteration;
+
+    private volatile boolean pause;
 
     @Inject
     public MetricManagerImpl ( final JokerConfig jokerConfig,
@@ -186,7 +193,7 @@ public class MetricManagerImpl implements MetricManager
             }
             catch ( RejectedExecutionException e )
             {
-                throw new IllegalStateException( command + " failed because metric collector is already shut down!", e );
+                throw new JokerException( command + " failed because metric collector is already shut down!", e );
             }
         }
     }
@@ -204,13 +211,27 @@ public class MetricManagerImpl implements MetricManager
         }
     }
 
+    private void createCsvReporter ()
+    {
+        final String metricsDirName = new SimpleDateFormat( "'metrics_'yyyy_MM_dd_HH_mm_ss_SSS" ).format( new Date() );
+        final String baseDir = metricManagerConfig.getCsvReportBaseDir();
+        final String dir = baseDir + metricsDirName;
+        final File directory = new File( dir );
+        checkState( !directory.exists(), "Metrics dir %s already exists!", dir );
+        final boolean dirCreated = directory.mkdir();
+        checkState( dirCreated, "Metrics dir %s could not be created! Please make sure base dir: %s exists", dir, baseDir );
+        LOGGER.info( "Metrics directory: {} is created", dir );
+        csvReporter = CsvReporter.forRegistry( metricRegistry ).build( directory );
+        csvReporter.start( metricManagerConfig.getCsvReportPeriodInMillis(), MILLISECONDS );
+    }
+
     private class SamplePipelines implements Runnable
     {
 
         @Override
         public void run ()
         {
-            if ( !samplingFlag.compareAndSet( TASK_RUNNABLE, TASK_RUNNING ) )
+            if ( pause || !samplingFlag.compareAndSet( TASK_RUNNABLE, TASK_RUNNING ) )
             {
                 return;
             }
@@ -247,7 +268,7 @@ public class MetricManagerImpl implements MetricManager
         @Override
         public void run ()
         {
-            if ( !metricsFlag.compareAndSet( TASK_RUNNABLE, TASK_RUNNING ) )
+            if ( pause || !metricsFlag.compareAndSet( TASK_RUNNABLE, TASK_RUNNING ) )
             {
                 return;
             }
@@ -452,7 +473,9 @@ public class MetricManagerImpl implements MetricManager
             for ( PipelineMeter pipelineMeter : pipelineMeters )
             {
                 final PipelineId pipelineId = pipelineMeter.getPipelineId();
-                pipelineMetricsMap.put( pipelineId, new PipelineMetrics( flowVersion, pipelineMeter ) );
+                final PipelineMetrics metrics = new PipelineMetrics( flowVersion, pipelineMeter );
+                metrics.register( metricRegistry );
+                pipelineMetricsMap.put( pipelineId, metrics );
                 LOGGER.info( "Started tracking Pipeline {} with {} replicas and flow version {}",
                              pipelineId,
                              pipelineMeter.getReplicaCount(),
@@ -463,6 +486,11 @@ public class MetricManagerImpl implements MetricManager
 
             metricsFlag.set( TASK_RUNNABLE );
             samplingFlag.set( TASK_RUNNABLE );
+
+            if ( metricManagerConfig.isCsvReportEnabled() )
+            {
+                createCsvReporter();
+            }
 
             return null;
         }
@@ -478,12 +506,14 @@ public class MetricManagerImpl implements MetricManager
         {
             final int metricsFlagState = metricsFlag.get();
             final int samplingFlagState = samplingFlag.get();
+            LOGGER.info( "Metric collector is pausing. {} {}", metricsFlagState, samplingFlagState );
             checkState( !( metricsFlagState == TASK_PAUSED || samplingFlagState == TASK_PAUSED || metricsFlagState == TASK_INITIAL
                            || samplingFlagState == TASK_INITIAL ),
                         "cannot pause metric collector since metrics flag is %s and sampling flag is %s",
                         metricsFlagState,
                         samplingFlagState );
 
+            pause = true;
             setTaskPaused( metricsFlag );
             setTaskPaused( samplingFlag );
 
@@ -521,13 +551,12 @@ public class MetricManagerImpl implements MetricManager
                         metricsFlagState,
                         samplingFlagState );
 
-            iteration = 0;
-
             pipelineIdsToRemove.sort( PipelineId::compareTo );
 
             for ( PipelineId pipelineId : pipelineIdsToRemove )
             {
                 final PipelineMetrics pipelineMetrics = pipelineMetricsMap.remove( pipelineId );
+                pipelineMetrics.deregister( metricRegistry );
                 checkState( pipelineMetrics != null, "Pipeline %s not found in the tracked pipelines!", pipelineId );
                 LOGGER.info( "Removed pipeline metrics of Pipeline {}", pipelineId );
             }
@@ -537,14 +566,21 @@ public class MetricManagerImpl implements MetricManager
             for ( PipelineMeter pipelineMeter : newPipelineMeters )
             {
                 final PipelineId pipelineId = pipelineMeter.getPipelineId();
-                pipelineMetricsMap.put( pipelineId, new PipelineMetrics( flowVersion, pipelineMeter ) );
-                LOGGER.info( "Started tracking new Pipeline {} with {} replicas", pipelineId, pipelineMeter.getReplicaCount() );
+                final PipelineMetrics pipelineMetrics = new PipelineMetrics( flowVersion, pipelineMeter );
+                pipelineMetrics.register( metricRegistry );
+                pipelineMetricsMap.put( pipelineId, pipelineMetrics );
+                LOGGER.info( "Started tracking new Pipeline {} with {} replicas and flow version {}",
+                             pipelineId,
+                             pipelineMeter.getReplicaCount(),
+                             flowVersion );
             }
 
             LOGGER.info( "Metric collector is resumed" );
 
+            iteration = 0;
             metricsFlag.set( TASK_RUNNABLE );
             samplingFlag.set( TASK_RUNNABLE );
+            pause = false;
 
             return null;
         }
@@ -567,9 +603,14 @@ public class MetricManagerImpl implements MetricManager
             setTaskPaused( samplingFlag );
 
             pipelineMetricsMap.clear();
-            iteration = 0;
-
             metricRegistry.removeMatching( MetricFilter.ALL );
+
+            if ( csvReporter != null )
+            {
+                csvReporter.stop();
+            }
+
+            iteration = 0;
 
             LOGGER.info( "Metric collector is shut down." );
 

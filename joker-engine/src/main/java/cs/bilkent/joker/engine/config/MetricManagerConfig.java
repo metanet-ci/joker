@@ -1,5 +1,7 @@
 package cs.bilkent.joker.engine.config;
 
+import java.io.File;
+
 import com.typesafe.config.Config;
 
 public class MetricManagerConfig
@@ -15,6 +17,12 @@ public class MetricManagerConfig
 
     public static final String OPERATOR_INVOCATION_SAMPLING_IN_MICROS = "operatorInvocationSamplingPeriodInMicros";
 
+    public static final String CSV_REPORT_ENABLED = "csvReportEnabled";
+
+    public static final String CSV_REPORT_PERIOD_IN_MILLIS = "csvReportPeriodInMillis";
+
+    public static final String CSV_REPORT_BASE_DIR = "csvReportBaseDir";
+
 
     private final long tickMask;
 
@@ -24,6 +32,12 @@ public class MetricManagerConfig
 
     private final long operatorInvocationSamplingPeriodInMicros;
 
+    private final boolean csvReportEnabled;
+
+    private final long csvReportPeriodInMillis;
+
+    private final String csvReportBaseDir;
+
     MetricManagerConfig ( final Config parentConfig )
     {
         final Config config = parentConfig.getConfig( CONFIG_NAME );
@@ -31,6 +45,10 @@ public class MetricManagerConfig
         this.warmupIterations = config.getInt( WARMUP_ITERATIONS );
         this.pipelineMetricsScanningPeriodInMillis = config.getLong( PIPELINE_METRICS_SCANNING_PERIOD_IN_MILLIS );
         this.operatorInvocationSamplingPeriodInMicros = config.getLong( OPERATOR_INVOCATION_SAMPLING_IN_MICROS );
+        this.csvReportEnabled = config.getBoolean( CSV_REPORT_ENABLED );
+        this.csvReportPeriodInMillis = config.getLong( CSV_REPORT_PERIOD_IN_MILLIS );
+        final String csvReportBaseDir = config.getString( CSV_REPORT_BASE_DIR );
+        this.csvReportBaseDir = csvReportBaseDir.endsWith( File.separator ) ? csvReportBaseDir : csvReportBaseDir + File.separator;
     }
 
     public long getTickMask ()
@@ -51,6 +69,21 @@ public class MetricManagerConfig
     public long getOperatorInvocationSamplingPeriodInMicros ()
     {
         return operatorInvocationSamplingPeriodInMicros;
+    }
+
+    public boolean isCsvReportEnabled ()
+    {
+        return csvReportEnabled;
+    }
+
+    public long getCsvReportPeriodInMillis ()
+    {
+        return csvReportPeriodInMillis;
+    }
+
+    public String getCsvReportBaseDir ()
+    {
+        return csvReportBaseDir;
     }
 
 }

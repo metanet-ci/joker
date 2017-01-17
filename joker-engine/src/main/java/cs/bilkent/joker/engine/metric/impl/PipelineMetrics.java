@@ -1,18 +1,26 @@
 package cs.bilkent.joker.engine.metric.impl;
 
 import java.lang.management.ThreadMXBean;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.codahale.metrics.Gauge;
+import com.codahale.metrics.MetricRegistry;
+import com.google.common.base.Joiner;
 
 import cs.bilkent.joker.engine.metric.PipelineMeter;
 import static cs.bilkent.joker.engine.metric.PipelineMeter.NO_OPERATOR_INDEX;
 import static cs.bilkent.joker.engine.metric.PipelineMeter.PIPELINE_EXECUTION_INDEX;
+import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 import static java.lang.System.arraycopy;
 import static java.util.Arrays.fill;
+import static java.util.Collections.addAll;
 
 class PipelineMetrics
 {
@@ -106,6 +114,80 @@ class PipelineMetrics
         }
 
         this.snapshot = newPipelineMetricsSnapshot();
+    }
+
+    void register ( final MetricRegistry metricRegistry )
+    {
+        final PipelineId pipelineId = pipelineMeter.getPipelineId();
+
+        for ( int replicaIndex = 0; replicaIndex < pipelineMeter.getReplicaCount(); replicaIndex++ )
+        {
+            final int r = replicaIndex;
+            final Supplier<Double> cpuGauge = () -> snapshot.getCpuUtilizationRatio( r );
+            metricRegistry.register( getMetricName( replicaIndex, "cpu" ), new PipelineGauge<>( pipelineId, cpuGauge ) );
+
+            final Supplier<Double> pipelineCostGauge = () -> snapshot.getPipelineCost( r );
+            metricRegistry.register( getMetricName( replicaIndex, "cost", "p" ), new PipelineGauge<>( pipelineId, pipelineCostGauge ) );
+
+            for ( int operatorIndex = 0; operatorIndex < pipelineMeter.getOperatorCount(); operatorIndex++ )
+            {
+                final int o = operatorIndex;
+                final Supplier<Double> operatorCostGauge = () -> snapshot.getOperatorCost( r, o );
+                metricRegistry.register( getMetricName( replicaIndex, "cost", "op", operatorIndex ),
+                                         new PipelineGauge<>( pipelineId, operatorCostGauge ) );
+            }
+
+            for ( int portIndex = 0; portIndex < pipelineMeter.getConsumedPortCount(); portIndex++ )
+            {
+                final int p = portIndex;
+                final Supplier<Long> throughputGauge = () -> snapshot.getConsumeThroughput( r, p );
+                metricRegistry.register( getMetricName( replicaIndex, "thr", "cs", portIndex ),
+                                         new PipelineGauge<>( pipelineId, throughputGauge ) );
+            }
+
+            for ( int portIndex = 0; portIndex < pipelineMeter.getProducedPortCount(); portIndex++ )
+            {
+                final int p = portIndex;
+                final Supplier<Long> throughputGauge = () -> snapshot.getProduceThroughput( r, p );
+                metricRegistry.register( getMetricName( replicaIndex, "thr", "pr", portIndex ),
+                                         new PipelineGauge<>( pipelineId, throughputGauge ) );
+            }
+        }
+
+    }
+
+    void deregister ( final MetricRegistry metricRegistry )
+    {
+        metricRegistry.removeMatching( ( name, metric ) ->
+                                       {
+                                           if ( metric instanceof PipelineGauge )
+                                           {
+                                               final PipelineGauge gauge = (PipelineGauge) metric;
+
+                                               return gauge.id.equals( pipelineMeter.getPipelineId() );
+                                           }
+
+                                           return false;
+                                       } );
+    }
+
+    private String getMetricName ( final int replicaIndex, Object... vals )
+    {
+        final List<Object> parts = new ArrayList<>();
+        parts.add( "r" );
+        parts.add( pipelineMeter.getPipelineId().getRegionId() );
+        parts.add( "p" );
+        parts.add( pipelineMeter.getPipelineId().getPipelineStartIndex() );
+        parts.add( "r" );
+        parts.add( replicaIndex );
+        parts.add( "f" );
+        parts.add( flowVersion );
+        if ( vals != null )
+        {
+            addAll( parts, vals );
+        }
+
+        return Joiner.on( "_" ).join( parts );
     }
 
     // called by metrics thread
@@ -368,4 +450,27 @@ class PipelineMetrics
                       double[] operatorCosts );
 
     }
+
+
+    static class PipelineGauge<T> implements Gauge<T>
+    {
+
+        private final PipelineId id;
+
+        private final Supplier<T> gauge;
+
+        public PipelineGauge ( final PipelineId id, final Supplier<T> gauge )
+        {
+            this.id = id;
+            this.gauge = gauge;
+        }
+
+        @Override
+        public T getValue ()
+        {
+            return gauge.get();
+        }
+
+    }
+
 }
