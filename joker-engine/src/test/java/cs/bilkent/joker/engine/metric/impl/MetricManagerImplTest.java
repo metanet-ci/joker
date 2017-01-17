@@ -147,7 +147,7 @@ public class MetricManagerImplTest extends AbstractJokerTest
             metricManager.pause();
             fail();
         }
-        catch ( IllegalStateException ignored )
+        catch ( JokerException ignored )
         {
 
         }
@@ -165,7 +165,7 @@ public class MetricManagerImplTest extends AbstractJokerTest
             metricManager.resume( 0, emptyList(), emptyList() );
             fail();
         }
-        catch ( IllegalStateException ignored )
+        catch ( JokerException ignored )
         {
 
         }
