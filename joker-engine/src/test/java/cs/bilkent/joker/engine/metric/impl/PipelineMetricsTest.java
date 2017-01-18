@@ -34,6 +34,8 @@ public class PipelineMetricsTest extends AbstractJokerTest
 
     private static final int PRODUCED_PORT_COUNT = 1;
 
+    private static final int HISTORY_SIZE = 10;
+
     private static final PipelineId PIPELINE_ID = new PipelineId( 10, 20 );
 
     @Mock
@@ -53,13 +55,13 @@ public class PipelineMetricsTest extends AbstractJokerTest
         when( meter.getConsumedPortCount() ).thenReturn( CONSUMED_PORT_COUNT );
         when( meter.getProducedPortCount() ).thenReturn( PRODUCED_PORT_COUNT );
 
-        metrics = new PipelineMetrics( FLOW_VERSION, meter );
+        metrics = new PipelineMetrics( FLOW_VERSION, meter, HISTORY_SIZE );
     }
 
     @Test
     public void shouldSetInitialSnapshot ()
     {
-        final PipelineMetricsSnapshot snapshot = metrics.getSnapshot();
+        final PipelineMetricsSnapshot snapshot = metrics.getRecentSnapshot();
 
         assertNotNull( snapshot );
 
@@ -89,7 +91,7 @@ public class PipelineMetricsTest extends AbstractJokerTest
     {
         metrics.initialize( threadMXBean );
 
-        final PipelineMetricsSnapshot snapshot = metrics.getSnapshot();
+        final PipelineMetricsSnapshot snapshot = metrics.getRecentSnapshot();
 
         assertNotNull( snapshot );
 
@@ -131,7 +133,7 @@ public class PipelineMetricsTest extends AbstractJokerTest
 
         metrics.update( newThreadCpuTimes, systemTimeDiff );
 
-        final PipelineMetricsSnapshot snapshot = metrics.getSnapshot();
+        final PipelineMetricsSnapshot snapshot = metrics.getRecentSnapshot();
         for ( int replicaIndex = 0; replicaIndex < REPLICA_COUNT; replicaIndex++ )
         {
             final double expected =
@@ -159,7 +161,7 @@ public class PipelineMetricsTest extends AbstractJokerTest
         metrics.update( newThreadCpuTimes, systemTimeDiff );
         metrics.update( newThreadCpuTimes2, systemTimeDiff );
 
-        final PipelineMetricsSnapshot snapshot = metrics.getSnapshot();
+        final PipelineMetricsSnapshot snapshot = metrics.getRecentSnapshot();
         for ( int replicaIndex = 0; replicaIndex < REPLICA_COUNT; replicaIndex++ )
         {
             final double expected =
@@ -200,7 +202,7 @@ public class PipelineMetricsTest extends AbstractJokerTest
 
         metrics.update( new long[ REPLICA_COUNT ], 10 );
 
-        final PipelineMetricsSnapshot snapshot = metrics.getSnapshot();
+        final PipelineMetricsSnapshot snapshot = metrics.getRecentSnapshot();
         assertEquals( 0.4, snapshot.getPipelineCost( 0 ), 0.01 );
         assertEquals( 0.3, snapshot.getOperatorCost( 0, 0 ), 0.01 );
         assertEquals( 0.2, snapshot.getOperatorCost( 0, 1 ), 0.01 );
@@ -270,7 +272,7 @@ public class PipelineMetricsTest extends AbstractJokerTest
 
         metrics.update( new long[ REPLICA_COUNT ], 10 );
 
-        final PipelineMetricsSnapshot snapshot = metrics.getSnapshot();
+        final PipelineMetricsSnapshot snapshot = metrics.getRecentSnapshot();
         assertEquals( 0.1, snapshot.getPipelineCost( 0 ), 0.01 );
         assertEquals( 0.2, snapshot.getOperatorCost( 0, 0 ), 0.01 );
         assertEquals( 0.3, snapshot.getOperatorCost( 0, 1 ), 0.01 );

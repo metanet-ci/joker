@@ -183,7 +183,7 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
     @Override
     public void clear ()
     {
-        LOGGER.info( "Clearing partitioned tuple queues of operator: {} with drainable key count: ", operatorId, totalDrainableKeyCount );
+        LOGGER.debug( "Clearing partitioned tuple queues of operator: {} with drainable key count: ", operatorId, totalDrainableKeyCount );
 
         for ( TupleQueueContainer container : tupleQueueContainers )
         {

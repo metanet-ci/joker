@@ -473,7 +473,7 @@ public class MetricManagerImpl implements MetricManager
             for ( PipelineMeter pipelineMeter : pipelineMeters )
             {
                 final PipelineId pipelineId = pipelineMeter.getPipelineId();
-                final PipelineMetrics metrics = new PipelineMetrics( flowVersion, pipelineMeter );
+                final PipelineMetrics metrics = new PipelineMetrics( flowVersion, pipelineMeter, metricManagerConfig.getHistorySize() );
                 metrics.register( metricRegistry );
                 pipelineMetricsMap.put( pipelineId, metrics );
                 LOGGER.info( "Started tracking Pipeline {} with {} replicas and flow version {}",
@@ -566,9 +566,9 @@ public class MetricManagerImpl implements MetricManager
             for ( PipelineMeter pipelineMeter : newPipelineMeters )
             {
                 final PipelineId pipelineId = pipelineMeter.getPipelineId();
-                final PipelineMetrics pipelineMetrics = new PipelineMetrics( flowVersion, pipelineMeter );
-                pipelineMetrics.register( metricRegistry );
-                pipelineMetricsMap.put( pipelineId, pipelineMetrics );
+                final PipelineMetrics metrics = new PipelineMetrics( flowVersion, pipelineMeter, metricManagerConfig.getHistorySize() );
+                metrics.register( metricRegistry );
+                pipelineMetricsMap.put( pipelineId, metrics );
                 LOGGER.info( "Started tracking new Pipeline {} with {} replicas and flow version {}",
                              pipelineId,
                              pipelineMeter.getReplicaCount(),

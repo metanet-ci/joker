@@ -17,6 +17,8 @@ public class MetricManagerConfig
 
     public static final String OPERATOR_INVOCATION_SAMPLING_IN_MICROS = "operatorInvocationSamplingPeriodInMicros";
 
+    public static final String HISTORY_SIZE = "historySize";
+
     public static final String CSV_REPORT_ENABLED = "csvReportEnabled";
 
     public static final String CSV_REPORT_PERIOD_IN_MILLIS = "csvReportPeriodInMillis";
@@ -32,6 +34,8 @@ public class MetricManagerConfig
 
     private final long operatorInvocationSamplingPeriodInMicros;
 
+    private final int historySize;
+
     private final boolean csvReportEnabled;
 
     private final long csvReportPeriodInMillis;
@@ -45,6 +49,7 @@ public class MetricManagerConfig
         this.warmupIterations = config.getInt( WARMUP_ITERATIONS );
         this.pipelineMetricsScanningPeriodInMillis = config.getLong( PIPELINE_METRICS_SCANNING_PERIOD_IN_MILLIS );
         this.operatorInvocationSamplingPeriodInMicros = config.getLong( OPERATOR_INVOCATION_SAMPLING_IN_MICROS );
+        this.historySize = config.getInt( HISTORY_SIZE );
         this.csvReportEnabled = config.getBoolean( CSV_REPORT_ENABLED );
         this.csvReportPeriodInMillis = config.getLong( CSV_REPORT_PERIOD_IN_MILLIS );
         final String csvReportBaseDir = config.getString( CSV_REPORT_BASE_DIR );
@@ -69,6 +74,11 @@ public class MetricManagerConfig
     public long getOperatorInvocationSamplingPeriodInMicros ()
     {
         return operatorInvocationSamplingPeriodInMicros;
+    }
+
+    public int getHistorySize ()
+    {
+        return historySize;
     }
 
     public boolean isCsvReportEnabled ()

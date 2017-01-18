@@ -19,6 +19,7 @@ import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 import static java.lang.System.arraycopy;
+import static java.util.Arrays.asList;
 import static java.util.Arrays.fill;
 import static java.util.Collections.addAll;
 
@@ -57,9 +58,9 @@ class PipelineMetrics
     // this field is used to provide happens-before relationship among these two threads.
     private volatile int sampling;
 
-    private volatile PipelineMetricsSnapshot snapshot;
+    private volatile PipelineMetricsHistory history;
 
-    PipelineMetrics ( final int flowVersion, final PipelineMeter pipelineMeter )
+    PipelineMetrics ( final int flowVersion, final PipelineMeter pipelineMeter, final int historySize )
     {
         this.flowVersion = flowVersion;
         this.pipelineMeter = pipelineMeter;
@@ -70,7 +71,7 @@ class PipelineMetrics
         this.threadCpuTimes = new long[ pipelineMeter.getReplicaCount() ];
         this.consumeThroughputs = new long[ pipelineMeter.getReplicaCount() ][ pipelineMeter.getConsumedPortCount() ];
         this.produceThroughputs = new long[ pipelineMeter.getReplicaCount() ][ pipelineMeter.getProducedPortCount() ];
-        this.snapshot = newPipelineMetricsSnapshot();
+        this.history = new PipelineMetricsHistory( newPipelineMetricsSnapshot(), historySize );
     }
 
     private PipelineMetricsSnapshot newPipelineMetricsSnapshot ()
@@ -113,7 +114,8 @@ class PipelineMetrics
             pipelineMeter.getProducedTupleCounts( replicaIndex, this.produceThroughputs[ replicaIndex ] );
         }
 
-        this.snapshot = newPipelineMetricsSnapshot();
+        final int historySize = this.history.historySize();
+        this.history = new PipelineMetricsHistory( newPipelineMetricsSnapshot(), historySize );
     }
 
     void register ( final MetricRegistry metricRegistry )
@@ -123,16 +125,16 @@ class PipelineMetrics
         for ( int replicaIndex = 0; replicaIndex < pipelineMeter.getReplicaCount(); replicaIndex++ )
         {
             final int r = replicaIndex;
-            final Supplier<Double> cpuGauge = () -> snapshot.getCpuUtilizationRatio( r );
+            final Supplier<Double> cpuGauge = () -> getRecentSnapshot().getCpuUtilizationRatio( r );
             metricRegistry.register( getMetricName( replicaIndex, "cpu" ), new PipelineGauge<>( pipelineId, cpuGauge ) );
 
-            final Supplier<Double> pipelineCostGauge = () -> snapshot.getPipelineCost( r );
+            final Supplier<Double> pipelineCostGauge = () -> getRecentSnapshot().getPipelineCost( r );
             metricRegistry.register( getMetricName( replicaIndex, "cost", "p" ), new PipelineGauge<>( pipelineId, pipelineCostGauge ) );
 
             for ( int operatorIndex = 0; operatorIndex < pipelineMeter.getOperatorCount(); operatorIndex++ )
             {
                 final int o = operatorIndex;
-                final Supplier<Double> operatorCostGauge = () -> snapshot.getOperatorCost( r, o );
+                final Supplier<Double> operatorCostGauge = () -> getRecentSnapshot().getOperatorCost( r, o );
                 metricRegistry.register( getMetricName( replicaIndex, "cost", "op", operatorIndex ),
                                          new PipelineGauge<>( pipelineId, operatorCostGauge ) );
             }
@@ -140,7 +142,7 @@ class PipelineMetrics
             for ( int portIndex = 0; portIndex < pipelineMeter.getConsumedPortCount(); portIndex++ )
             {
                 final int p = portIndex;
-                final Supplier<Long> throughputGauge = () -> snapshot.getConsumeThroughput( r, p );
+                final Supplier<Long> throughputGauge = () -> getRecentSnapshot().getConsumeThroughput( r, p );
                 metricRegistry.register( getMetricName( replicaIndex, "thr", "cs", portIndex ),
                                          new PipelineGauge<>( pipelineId, throughputGauge ) );
             }
@@ -148,7 +150,7 @@ class PipelineMetrics
             for ( int portIndex = 0; portIndex < pipelineMeter.getProducedPortCount(); portIndex++ )
             {
                 final int p = portIndex;
-                final Supplier<Long> throughputGauge = () -> snapshot.getProduceThroughput( r, p );
+                final Supplier<Long> throughputGauge = () -> getRecentSnapshot().getProduceThroughput( r, p );
                 metricRegistry.register( getMetricName( replicaIndex, "thr", "pr", portIndex ),
                                          new PipelineGauge<>( pipelineId, throughputGauge ) );
             }
@@ -205,7 +207,8 @@ class PipelineMetrics
         updateThreadUtilizationRatios( newReplicaCpuTimes, systemTimeDiff, snapshot );
         updateCosts( snapshot );
         updateThroughputs( snapshot );
-        this.snapshot = snapshot;
+        final PipelineMetricsHistory history = this.history;
+        this.history = history.add( snapshot );
     }
 
     private void updateThreadUtilizationRatios ( final long[] newReplicaCpuTimes,
@@ -327,8 +330,7 @@ class PipelineMetrics
 
     void visit ( final PipelineMetricsVisitor visitor )
     {
-        final PipelineMetricsSnapshot snapshot = this.snapshot;
-
+        final PipelineMetricsSnapshot snapshot = getRecentSnapshot();
         for ( int replicaIndex = 0; replicaIndex < pipelineMeter.getReplicaCount(); replicaIndex++ )
         {
             final PipelineReplicaId pipelineReplicaId = pipelineMeter.getPipelineReplicaId( replicaIndex );
@@ -348,9 +350,14 @@ class PipelineMetrics
         }
     }
 
-    PipelineMetricsSnapshot getSnapshot ()
+    PipelineMetricsSnapshot getRecentSnapshot ()
     {
-        return snapshot;
+        return history.getRecentSnapshot();
+    }
+
+    List<PipelineMetricsSnapshot> getHistory ()
+    {
+        return history.getSnapshots();
     }
 
     static class PipelineMetricsSnapshot
@@ -390,47 +397,47 @@ class PipelineMetrics
             this.pipelineCosts = new double[ replicaCount ];
         }
 
-        public int getReplicaCount ()
+        int getReplicaCount ()
         {
             return replicaCount;
         }
 
-        public int getOperatorCount ()
+        int getOperatorCount ()
         {
             return operatorCount;
         }
 
-        public int getConsumedPortCount ()
+        int getConsumedPortCount ()
         {
             return consumedPortCount;
         }
 
-        public int getProducedPortCount ()
+        int getProducedPortCount ()
         {
             return producedPortCount;
         }
 
-        public double getPipelineCost ( final int replicaIndex )
+        double getPipelineCost ( final int replicaIndex )
         {
             return pipelineCosts[ replicaIndex ];
         }
 
-        public double getOperatorCost ( final int replicaIndex, final int operatorIndex )
+        double getOperatorCost ( final int replicaIndex, final int operatorIndex )
         {
             return operatorCosts[ replicaIndex ][ operatorIndex ];
         }
 
-        public double getCpuUtilizationRatio ( final int replicaIndex )
+        double getCpuUtilizationRatio ( final int replicaIndex )
         {
             return cpuUtilizationRatios[ replicaIndex ];
         }
 
-        public long getConsumeThroughput ( final int replicaIndex, final int portIndex )
+        long getConsumeThroughput ( final int replicaIndex, final int portIndex )
         {
             return consumeThroughputs[ replicaIndex ][ portIndex ];
         }
 
-        public long getProduceThroughput ( final int replicaIndex, final int portIndex )
+        long getProduceThroughput ( final int replicaIndex, final int portIndex )
         {
             return produceThroughputs[ replicaIndex ][ portIndex ];
         }
@@ -459,7 +466,7 @@ class PipelineMetrics
 
         private final Supplier<T> gauge;
 
-        public PipelineGauge ( final PipelineId id, final Supplier<T> gauge )
+        PipelineGauge ( final PipelineId id, final Supplier<T> gauge )
         {
             this.id = id;
             this.gauge = gauge;
@@ -469,6 +476,60 @@ class PipelineMetrics
         public T getValue ()
         {
             return gauge.get();
+        }
+
+    }
+
+
+    public static class PipelineMetricsHistory
+    {
+
+        private final PipelineMetricsSnapshot initial;
+
+        private final PipelineMetricsSnapshot[] snapshots;
+
+        private final int count;
+
+        PipelineMetricsHistory ( final PipelineMetricsSnapshot initial, final int historySize )
+        {
+            this( initial, new PipelineMetricsSnapshot[ historySize ], 0 );
+        }
+
+        private PipelineMetricsHistory ( final PipelineMetricsSnapshot initial, final PipelineMetricsSnapshot[] snapshots, final int count )
+        {
+            this.initial = initial;
+            this.snapshots = snapshots;
+            this.count = count;
+        }
+
+        public PipelineMetricsHistory add ( final PipelineMetricsSnapshot snapshot )
+        {
+            final PipelineMetricsSnapshot[] snapshots = new PipelineMetricsSnapshot[ this.snapshots.length ];
+            snapshots[ 0 ] = snapshot;
+            final int length = max( 0, min( this.count, this.snapshots.length - 1 ) );
+            arraycopy( this.snapshots, 0, snapshots, 1, length );
+
+            return new PipelineMetricsHistory( initial, snapshots, length + 1 );
+        }
+
+        PipelineMetricsSnapshot getRecentSnapshot ()
+        {
+            return count > 0 ? snapshots[ 0 ] : initial;
+        }
+
+        int getCount ()
+        {
+            return count;
+        }
+
+        int historySize ()
+        {
+            return snapshots.length;
+        }
+
+        List<PipelineMetricsSnapshot> getSnapshots ()
+        {
+            return asList( snapshots ).subList( 0, count );
         }
 
     }

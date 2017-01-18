@@ -87,7 +87,7 @@ public class DefaultOperatorTupleQueue implements OperatorTupleQueue
     @Override
     public void clear ()
     {
-        LOGGER.info( "Clearing tuple queues of operator: {}", operatorId );
+        LOGGER.debug( "Clearing tuple queues of operator: {}", operatorId );
 
         for ( int portIndex = 0; portIndex < getInputPortCount(); portIndex++ )
         {
