@@ -265,7 +265,7 @@ public class RegionDefFormerImpl implements RegionDefFormer
         if ( downstreamOperators.size() == 1 )
         {
             final OperatorDef downstream = downstreamOperators.iterator().next();
-            final Map<Port, Collection<Port>> upstream = flow.getUpstreamConnections( downstream.id() );
+            final Map<Port, Set<Port>> upstream = flow.getUpstreamConnections( downstream.id() );
             final Set<String> upstreamOperatorIds = new HashSet<>();
             for ( Collection<Port> u : upstream.values() )
             {

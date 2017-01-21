@@ -381,7 +381,7 @@ public class PipelineManagerImpl implements PipelineManager
     {
         final OperatorDef firstOperator = pipeline.getFirstOperatorDef();
         final UpstreamConnectionStatus[] statuses = new UpstreamConnectionStatus[ firstOperator.inputPortCount() ];
-        for ( Entry<Port, Collection<Port>> entry : flow.getUpstreamConnections( firstOperator.id() ).entrySet() )
+        for ( Entry<Port, Set<Port>> entry : flow.getUpstreamConnections( firstOperator.id() ).entrySet() )
         {
             final Collection<Port> upstreamPorts = entry.getValue();
             final UpstreamConnectionStatus status;
@@ -935,7 +935,7 @@ public class PipelineManagerImpl implements PipelineManager
                                                                                              final OperatorDef operator )
     {
         final Map<String, List<Pair<Integer, Integer>>> result = new LinkedHashMap<>();
-        final Map<Port, Collection<Port>> connections = flow.getDownstreamConnections( operator.id() );
+        final Map<Port, Set<Port>> connections = flow.getDownstreamConnections( operator.id() );
         final Set<String> downstreamOperatorIds = new HashSet<>();
         for ( Collection<Port> c : connections.values() )
         {
@@ -947,7 +947,7 @@ public class PipelineManagerImpl implements PipelineManager
 
         for ( String downstreamOperatorId : downstreamOperatorIdsSorted )
         {
-            for ( Entry<Port, Collection<Port>> e : connections.entrySet() )
+            for ( Entry<Port, Set<Port>> e : connections.entrySet() )
             {
                 final Port upstreamPort = e.getKey();
                 e.getValue()
@@ -1021,7 +1021,7 @@ public class PipelineManagerImpl implements PipelineManager
         else
         {
             final UpstreamConnectionStatus[] statuses = new UpstreamConnectionStatus[ firstOperator.inputPortCount() ];
-            final Map<Port, Collection<Port>> upstreamConnections = flow.getUpstreamConnections( firstOperator.id() );
+            final Map<Port, Set<Port>> upstreamConnections = flow.getUpstreamConnections( firstOperator.id() );
             for ( int portIndex = 0; portIndex < firstOperator.inputPortCount(); portIndex++ )
             {
                 UpstreamConnectionStatus status = CLOSED;

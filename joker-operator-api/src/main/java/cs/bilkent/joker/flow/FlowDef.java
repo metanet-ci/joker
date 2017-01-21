@@ -17,7 +17,7 @@ import static cs.bilkent.joker.com.google.common.base.Preconditions.checkArgumen
 import static cs.bilkent.joker.com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.operator.OperatorDef;
 import static java.util.Collections.unmodifiableMap;
-import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 
 
 public final class FlowDef
@@ -118,9 +118,9 @@ public final class FlowDef
         return c;
     }
 
-    public Map<Port, Collection<Port>> getUpstreamConnections ( final String operatorId )
+    public Map<Port, Set<Port>> getUpstreamConnections ( final String operatorId )
     {
-        final Map<Port, Collection<Port>> upstream = new HashMap<>();
+        final Map<Port, Set<Port>> upstream = new HashMap<>();
         for ( Entry<Port, Set<Port>> e : connections.entrySet() )
         {
             for ( Port p : e.getValue() )
@@ -135,14 +135,14 @@ public final class FlowDef
         return upstream;
     }
 
-    public Collection<Port> getUpstreamConnections ( final Port port )
+    public Set<Port> getUpstreamConnections ( final Port port )
     {
-        return getUpstreamConnectionsStream( port ).collect( toList() );
+        return getUpstreamConnectionsStream( port ).collect( toSet() );
     }
 
-    public Map<Port, Collection<Port>> getDownstreamConnections ( final String operatorId )
+    public Map<Port, Set<Port>> getDownstreamConnections ( final String operatorId )
     {
-        final Map<Port, Collection<Port>> downstream = new HashMap<>();
+        final Map<Port, Set<Port>> downstream = new HashMap<>();
 
         for ( Entry<Port, Set<Port>> e : connections.entrySet() )
         {
@@ -156,9 +156,9 @@ public final class FlowDef
         return downstream;
     }
 
-    public Collection<Port> getDownstreamConnections ( final Port port )
+    public Set<Port> getDownstreamConnections ( final Port port )
     {
-        return getDownstreamConnectionsStream( port ).collect( toList() );
+        return getDownstreamConnectionsStream( port ).collect( toSet() );
     }
 
     private Stream<Port> getUpstreamConnectionsStream ( final Port port )
