@@ -104,9 +104,9 @@ public final class FlowDef
         checkState( operators.size() == visited.size(), "there are multiple DAGs in the flow!" );
     }
 
-    public Collection<Entry<Port, Port>> getConnections ()
+    public Set<Entry<Port, Port>> getConnections ()
     {
-        final Collection<Entry<Port, Port>> c = new HashSet<>();
+        final Set<Entry<Port, Port>> c = new HashSet<>();
         for ( Entry<Port, Set<Port>> e : connections.entrySet() )
         {
             for ( Port p : e.getValue() )

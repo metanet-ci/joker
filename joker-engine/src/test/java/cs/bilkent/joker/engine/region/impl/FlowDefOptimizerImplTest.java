@@ -2,17 +2,17 @@ package cs.bilkent.joker.engine.region.impl;
 
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
+import static cs.bilkent.joker.engine.region.impl.FlowDefOptimizerImpl.toDuplicateOperatorId;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
 import cs.bilkent.joker.flow.Port;
@@ -34,7 +34,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class FlowDefOptimizerImplTest extends AbstractJokerTest
@@ -96,7 +96,7 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldMergeStatefulAndStatelessRegionsAfterOptimization ()
+    public void shouldMergeStatefulAndStatelessRegionsAfterDuplicationForUpstream ()
     {
         final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator.class ).build();
         final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator.class ).build();
@@ -110,9 +110,9 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
                                                  .build();
 
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
-
         final Map<String, OperatorDef> operators = flow.getOperatorsMap();
-        final Collection<Entry<Port, Port>> connections = flow.getConnections();
+        final Set<Entry<Port, Port>> connections = flow.getConnections();
+
         flowOptimizer.duplicateStatelessRegions( operators, connections, regions );
         flowOptimizer.mergeRegions( operators, connections, regions );
 
@@ -124,6 +124,38 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
         final RegionDef region2 = regions.get( 1 );
         assertEquals( STATEFUL, region2.getRegionType() );
         assertEquals( asList( StatefulOperator.class, StatelessOperator.class ),
+                      region2.getOperators().stream().map( OperatorDef::operatorClazz ).collect( toList() ) );
+    }
+
+    @Test
+    public void shouldMergeStatefulAndStatelessRegionsAfterDownstream ()
+    {
+        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator.class ).build();
+        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator.class ).build();
+        final OperatorDef stateless = OperatorDefBuilder.newInstance( "stateless", StatelessOperator.class ).build();
+
+        final FlowDef flow = new FlowDefBuilder().add( stateful1 )
+                                                 .add( stateful2 )
+                                                 .add( stateless )
+                                                 .connect( "stateless", "stateful1" )
+                                                 .connect( "stateless", "stateful2" )
+                                                 .build();
+
+        final List<RegionDef> regions = regionDefFormer.createRegions( flow );
+        final Map<String, OperatorDef> operators = flow.getOperatorsMap();
+        final Set<Entry<Port, Port>> connections = flow.getConnections();
+
+        flowOptimizer.duplicateStatelessRegions( operators, connections, regions );
+        flowOptimizer.mergeRegions( operators, connections, regions );
+
+        assertEquals( 2, regions.size() );
+        final RegionDef region1 = regions.get( 0 );
+        assertEquals( STATEFUL, region1.getRegionType() );
+        assertEquals( asList( StatelessOperator.class, StatefulOperator.class ),
+                      region1.getOperators().stream().map( OperatorDef::operatorClazz ).collect( toList() ) );
+        final RegionDef region2 = regions.get( 1 );
+        assertEquals( STATEFUL, region2.getRegionType() );
+        assertEquals( asList( StatelessOperator.class, StatefulOperator.class ),
                       region2.getOperators().stream().map( OperatorDef::operatorClazz ).collect( toList() ) );
     }
 
@@ -231,7 +263,7 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldMergePartitionedStatefulAndStatelessRegionsAfterOptimization ()
+    public void shouldMergePartitionedStatefulAndStatelessRegionsAfterDuplication ()
     {
         final OperatorDef partitionedStateful1 = OperatorDefBuilder.newInstance( "partitionedStateful1", PartitionedStatefulOperator.class )
                                                                    .setExtendingSchema( schema )
@@ -256,7 +288,8 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
 
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
         final Map<String, OperatorDef> operators = flow.getOperatorsMap();
-        final Collection<Entry<Port, Port>> connections = flow.getConnections();
+        final Set<Entry<Port, Port>> connections = flow.getConnections();
+
         flowOptimizer.duplicateStatelessRegions( operators, connections, regions );
         flowOptimizer.mergeRegions( operators, connections, regions );
 
@@ -272,7 +305,120 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldOptimizeStatelessRegion ()
+    public void shouldDuplicateStatelessRegionWithMultipleUpstreamRegions ()
+    {
+        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator.class ).build();
+        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator.class ).build();
+        final OperatorDef stateless1 = OperatorDefBuilder.newInstance( "stateless1", StatelessOperator.class ).build();
+        final OperatorDef stateless2 = OperatorDefBuilder.newInstance( "stateless2", StatelessOperator.class ).build();
+        final OperatorDef stateless3 = OperatorDefBuilder.newInstance( "stateless3", StatelessOperator.class ).build();
+        final OperatorDef stateful3 = OperatorDefBuilder.newInstance( "stateful3", StatefulOperator.class ).build();
+
+        final FlowDef flow = new FlowDefBuilder().add( stateful1 )
+                                                 .add( stateful2 )
+                                                 .add( stateless1 )
+                                                 .add( stateless2 )
+                                                 .add( stateless3 )
+                                                 .add( stateful3 )
+                                                 .connect( "stateful1", "stateless1" )
+                                                 .connect( "stateful2", "stateless1" )
+                                                 .connect( "stateless1", "stateless2" )
+                                                 .connect( "stateless2", "stateless3" )
+                                                 .connect( "stateless3", "stateful3", 0 )
+                                                 .connect( "stateless3", "stateful3", 1 )
+                                                 .build();
+
+        final List<RegionDef> regions = regionDefFormer.createRegions( flow );
+        final Set<Entry<Port, Port>> connections = flow.getConnections();
+        final Map<String, OperatorDef> operators = flow.getOperatorsMap();
+
+        flowOptimizer.duplicateStatelessRegions( operators, connections, regions );
+
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless1, 0 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless1, 1 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless2, 0 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless2, 1 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless3, 0 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless3, 1 ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful1.id(), 0 ),
+                                                             new Port( toDuplicateOperatorId( stateless1, 0 ), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful2.id(), 0 ),
+                                                             new Port( toDuplicateOperatorId( stateless1, 1 ), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless3, 0 ), 0 ),
+                                                             new Port( stateful3.id(), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless3, 0 ), 0 ),
+                                                             new Port( stateful3.id(), 1 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless3, 1 ), 0 ),
+                                                             new Port( stateful3.id(), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless3, 1 ), 0 ),
+                                                             new Port( stateful3.id(), 1 ) ) ) );
+
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless1, 0 ), 0 ),
+                                                             new Port( toDuplicateOperatorId( stateless2, 0 ), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless2, 0 ), 0 ),
+                                                             new Port( toDuplicateOperatorId( stateless3, 0 ), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless1, 1 ), 0 ),
+                                                             new Port( toDuplicateOperatorId( stateless2, 1 ), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless2, 1 ), 0 ),
+                                                             new Port( toDuplicateOperatorId( stateless3, 1 ), 0 ) ) ) );
+    }
+
+    @Test
+    public void shouldDuplicateStatelessRegionWithMultipleDownstreamRegions ()
+    {
+        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator.class ).build();
+        final OperatorDef stateless1 = OperatorDefBuilder.newInstance( "stateless1", StatelessOperator.class ).build();
+        final OperatorDef stateless2 = OperatorDefBuilder.newInstance( "stateless2", StatelessOperator.class ).build();
+        final OperatorDef stateless3 = OperatorDefBuilder.newInstance( "stateless3", StatelessOperator.class ).build();
+        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator.class ).build();
+        final OperatorDef stateful3 = OperatorDefBuilder.newInstance( "stateful3", StatefulOperator.class ).build();
+
+        final FlowDef flow = new FlowDefBuilder().add( stateful1 )
+                                                 .add( stateless1 )
+                                                 .add( stateless2 )
+                                                 .add( stateless3 )
+                                                 .add( stateful2 )
+                                                 .add( stateful3 )
+                                                 .connect( "stateful1", 0, "stateless1" )
+                                                 .connect( "stateful1", 1, "stateless1" )
+                                                 .connect( "stateless1", "stateless2" )
+                                                 .connect( "stateless2", "stateless3" )
+                                                 .connect( "stateless3", "stateful2" )
+                                                 .connect( "stateless3", "stateful3" )
+                                                 .build();
+
+        final List<RegionDef> regions = regionDefFormer.createRegions( flow );
+        final Set<Entry<Port, Port>> connections = flow.getConnections();
+        final Map<String, OperatorDef> operators = flow.getOperatorsMap();
+
+        flowOptimizer.duplicateStatelessRegions( operators, connections, regions );
+
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless1, 0 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless1, 1 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless2, 0 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless2, 1 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless3, 0 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless3, 1 ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful1.id(), 0 ),
+                                                             new Port( toDuplicateOperatorId( stateless1, 0 ), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful1.id(), 1 ),
+                                                             new Port( toDuplicateOperatorId( stateless1, 0 ), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless3, 0 ), 0 ),
+                                                             new Port( stateful2.id(), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless3, 1 ), 0 ),
+                                                             new Port( stateful3.id(), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless1, 0 ), 0 ),
+                                                             new Port( toDuplicateOperatorId( stateless2, 0 ), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless2, 0 ), 0 ),
+                                                             new Port( toDuplicateOperatorId( stateless3, 0 ), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless1, 1 ), 0 ),
+                                                             new Port( toDuplicateOperatorId( stateless2, 1 ), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless2, 1 ), 0 ),
+                                                             new Port( toDuplicateOperatorId( stateless3, 1 ), 0 ) ) ) );
+    }
+
+    @Test
+    public void shouldDuplicateStatelessRegionWithMultipleUpstreamAndDownstreamRegions ()
     {
         final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator.class ).build();
         final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator.class ).build();
@@ -298,171 +444,106 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
                                                  .build();
 
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
-        final Collection<Entry<Port, Port>> connections = flow.getConnections();
-
+        final Set<Entry<Port, Port>> connections = flow.getConnections();
         final Map<String, OperatorDef> operators = flow.getOperatorsMap();
+
         flowOptimizer.duplicateStatelessRegions( operators, connections, regions );
 
-        final List<RegionDef> statelessRegions = regions.stream().filter( r -> r.getRegionType() == STATELESS ).collect( toList() );
-        assertEquals( 2, statelessRegions.size() );
-        assertStatelessRegions( stateless1, stateless2, stateless3, operators, connections, statelessRegions, false );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless1, 0, 0 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless1, 0, 1 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless1, 1, 0 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless1, 1, 1 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless2, 0, 0 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless2, 0, 1 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless2, 1, 0 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless2, 1, 1 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless3, 0, 0 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless3, 0, 1 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless3, 1, 0 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless3, 1, 1 ) ) );
+
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful1.id(), 0 ),
+                                                             new Port( toDuplicateOperatorId( stateless1, 0, 0 ), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful1.id(), 0 ),
+                                                             new Port( toDuplicateOperatorId( stateless1, 0, 1 ), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful2.id(), 0 ),
+                                                             new Port( toDuplicateOperatorId( stateless1, 1, 0 ), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful2.id(), 0 ),
+                                                             new Port( toDuplicateOperatorId( stateless1, 1, 1 ), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless3, 0, 0 ), 0 ),
+                                                             new Port( stateful3.id(), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless3, 0, 1 ), 0 ),
+                                                             new Port( stateful4.id(), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless3, 1, 0 ), 0 ),
+                                                             new Port( stateful3.id(), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless3, 1, 1 ), 0 ),
+                                                             new Port( stateful4.id(), 0 ) ) ) );
     }
 
     @Test
-    public void shouldOptimizeMultipleStatelessRegions ()
+    public void shouldDuplicateMultipleStatelessRegions ()
     {
-        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator.class ).build();
-        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator.class ).build();
         final OperatorDef stateless1 = OperatorDefBuilder.newInstance( "stateless1", StatelessOperator.class ).build();
         final OperatorDef stateless2 = OperatorDefBuilder.newInstance( "stateless2", StatelessOperator.class ).build();
         final OperatorDef stateless3 = OperatorDefBuilder.newInstance( "stateless3", StatelessOperator.class ).build();
-        final OperatorDef stateful3 = OperatorDefBuilder.newInstance( "stateful3", StatefulOperator.class ).build();
-        final OperatorDef stateful4 = OperatorDefBuilder.newInstance( "stateful4", StatefulOperator.class ).build();
+        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator.class ).build();
+        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator.class ).build();
         final OperatorDef stateless4 = OperatorDefBuilder.newInstance( "stateless4", StatelessOperator2.class ).build();
         final OperatorDef stateless5 = OperatorDefBuilder.newInstance( "stateless5", StatelessOperator2.class ).build();
 
-        final FlowDef flow = new FlowDefBuilder().add( stateful1 )
-                                                 .add( stateful2 )
-                                                 .add( stateless1 )
+        final FlowDef flow = new FlowDefBuilder().add( stateless1 )
                                                  .add( stateless2 )
                                                  .add( stateless3 )
-                                                 .add( stateful3 )
-                                                 .add( stateful4 )
+                                                 .add( stateful1 )
+                                                 .add( stateful2 )
                                                  .add( stateless4 )
                                                  .add( stateless5 )
-                                                 .connect( "stateful1", "stateless1" )
-                                                 .connect( "stateful2", "stateless1" )
                                                  .connect( "stateless1", "stateless2" )
                                                  .connect( "stateless2", "stateless3" )
-                                                 .connect( "stateless3", "stateful3" )
-                                                 .connect( "stateless3", "stateful4" )
-                                                 .connect( "stateless3", "stateless4" )
+                                                 .connect( "stateless3", "stateful1" )
+                                                 .connect( "stateless3", "stateful2" )
+                                                 .connect( "stateful1", "stateless4" )
+                                                 .connect( "stateful2", "stateless4" )
                                                  .connect( "stateless4", "stateless5" )
                                                  .build();
 
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
-        final Collection<Entry<Port, Port>> connections = new HashSet<>( flow.getConnections() );
-
+        final Set<Entry<Port, Port>> connections = flow.getConnections();
         final Map<String, OperatorDef> operators = flow.getOperatorsMap();
+
         flowOptimizer.duplicateStatelessRegions( operators, connections, regions );
 
-        final List<RegionDef> statelessRegions = regions.stream().filter( r -> r.getRegionType() == STATELESS ).collect( toList() );
-        assertEquals( 4, statelessRegions.size() );
-        assertStatelessRegions( stateless1, stateless2, stateless3, operators, connections, statelessRegions, true );
-        assertStatelessRegions( stateless4, stateless5, operators, connections, statelessRegions );
-    }
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless1, 0 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless1, 1 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless2, 0 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless2, 1 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless3, 0 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless3, 1 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless4, 0 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless4, 1 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless5, 0 ) ) );
+        assertNotNull( operators.get( toDuplicateOperatorId( stateless5, 1 ) ) );
 
-    private void assertStatelessRegions ( final OperatorDef stateless1,
-                                          final OperatorDef stateless2,
-                                          final OperatorDef stateless3,
-                                          final Map<String, OperatorDef> optimizedOperators,
-                                          final Collection<Entry<Port, Port>> optimizedConnections,
-                                          final List<RegionDef> statelessRegions,
-                                          final boolean expectedNonMatchingStatelessRegion )
-    {
-        boolean stateful1ConnectionExists = false, stateful2ConnectionExists = false;
-        for ( RegionDef region : statelessRegions )
-        {
-            if ( region.getOperatorCount() != 3 )
-            {
-                assertTrue( expectedNonMatchingStatelessRegion );
-                continue;
-            }
-
-            final List<OperatorDef> operators = region.getOperators();
-
-            final OperatorDef optimizedStateless1 = operators.get( 0 );
-            final OperatorDef optimizedStateless2 = operators.get( 1 );
-            final OperatorDef optimizedStateless3 = operators.get( 2 );
-
-            assertEquals( StatelessOperator.class, optimizedStateless1.operatorClazz() );
-            assertEquals( StatelessOperator.class, optimizedStateless2.operatorClazz() );
-            assertEquals( StatelessOperator.class, optimizedStateless3.operatorClazz() );
-
-            assertTrue( optimizedOperators.containsKey( optimizedStateless1.id() ) );
-            assertTrue( optimizedOperators.containsKey( optimizedStateless2.id() ) );
-            assertTrue( optimizedOperators.containsKey( optimizedStateless3.id() ) );
-
-            final Collection<Port> stateful1DownstreamConnections = getDownstream( optimizedConnections, new Port( "stateful1", 0 ) );
-            final Collection<Port> stateful2DownstreamConnections = getDownstream( optimizedConnections, new Port( "stateful2", 0 ) );
-            assertEquals( 1, stateful1DownstreamConnections.size() );
-            assertEquals( 1, stateful2DownstreamConnections.size() );
-            final Port stateful1DownstreamPort = stateful1DownstreamConnections.iterator().next();
-            if ( stateful1DownstreamPort.operatorId.equals( optimizedStateless1.id() ) )
-            {
-                stateful1ConnectionExists = true;
-            }
-            else
-            {
-                final Port stateful2DownstreamPort = stateful2DownstreamConnections.iterator().next();
-                if ( stateful2DownstreamPort.operatorId.equals( optimizedStateless1.id() ) )
-                {
-                    stateful2ConnectionExists = true;
-                }
-            }
-
-            assertTrue( optimizedConnections.contains( new SimpleEntry<>( new Port( optimizedStateless1.id(), 0 ),
-                                                                          new Port( optimizedStateless2.id(), 0 ) ) ) );
-            assertTrue( optimizedConnections.contains( new SimpleEntry<>( new Port( optimizedStateless2.id(), 0 ),
-                                                                          new Port( optimizedStateless3.id(), 0 ) ) ) );
-            assertTrue( optimizedConnections.contains( new SimpleEntry<>( new Port( optimizedStateless3.id(), 0 ),
-                                                                          new Port( "stateful3", 0 ) ) ) );
-            assertTrue( optimizedConnections.contains( new SimpleEntry<>( new Port( optimizedStateless3.id(), 0 ),
-                                                                          new Port( "stateful4", 0 ) ) ) );
-        }
-
-        assertTrue( stateful1ConnectionExists );
-        assertTrue( stateful2ConnectionExists );
-
-        assertFalse( optimizedOperators.containsKey( stateless1.id() ) );
-        assertFalse( optimizedOperators.containsKey( stateless2.id() ) );
-        assertFalse( optimizedOperators.containsKey( stateless3.id() ) );
-    }
-
-    private Collection<Port> getDownstream ( final Collection<Entry<Port, Port>> connections, final Port upstream )
-    {
-        final Collection<Port> downstream = new ArrayList<>();
-        for ( Entry<Port, Port> e : connections )
-        {
-            if ( e.getKey().equals( upstream ) )
-            {
-                downstream.add( e.getValue() );
-            }
-        }
-
-        return downstream;
-    }
-
-    private void assertStatelessRegions ( final OperatorDef stateless1,
-                                          final OperatorDef stateless2,
-                                          final Map<String, OperatorDef> optimizedOperators,
-                                          final Collection<Entry<Port, Port>> optimizedConnections,
-                                          final List<RegionDef> statelessRegions )
-    {
-        for ( RegionDef region : statelessRegions )
-        {
-            if ( region.getOperatorCount() != 2 )
-            {
-                continue;
-            }
-
-            final List<OperatorDef> operators = region.getOperators();
-
-            final OperatorDef optimizedStateless1 = operators.get( 0 );
-            final OperatorDef optimizedStateless2 = operators.get( 1 );
-
-            assertEquals( StatelessOperator2.class, optimizedStateless1.operatorClazz() );
-            assertEquals( StatelessOperator2.class, optimizedStateless2.operatorClazz() );
-
-            assertTrue( optimizedOperators.containsKey( optimizedStateless1.id() ) );
-            assertTrue( optimizedOperators.containsKey( optimizedStateless2.id() ) );
-
-            assertTrue( optimizedConnections.contains( new SimpleEntry<>( new Port( optimizedStateless1.id(), 0 ),
-                                                                          new Port( optimizedStateless2.id(), 0 ) ) ) );
-        }
-
-        assertFalse( optimizedOperators.containsKey( stateless1.id() ) );
-        assertFalse( optimizedOperators.containsKey( stateless2.id() ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless3, 0 ), 0 ),
+                                                             new Port( stateful1.id(), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless3, 1 ), 0 ),
+                                                             new Port( stateful2.id(), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful1.id(), 0 ),
+                                                             new Port( toDuplicateOperatorId( stateless4, 0 ), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful2.id(), 0 ),
+                                                             new Port( toDuplicateOperatorId( stateless4, 1 ), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless1, 0 ), 0 ),
+                                                             new Port( toDuplicateOperatorId( stateless2, 0 ), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless2, 0 ), 0 ),
+                                                             new Port( toDuplicateOperatorId( stateless3, 0 ), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless1, 1 ), 0 ),
+                                                             new Port( toDuplicateOperatorId( stateless2, 1 ), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless2, 1 ), 0 ),
+                                                             new Port( toDuplicateOperatorId( stateless3, 1 ), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless4, 0 ), 0 ),
+                                                             new Port( toDuplicateOperatorId( stateless5, 0 ), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless4, 1 ), 0 ),
+                                                             new Port( toDuplicateOperatorId( stateless5, 1 ), 0 ) ) ) );
     }
 
     @OperatorSpec( inputPortCount = 1, outputPortCount = 1, type = STATELESS )
@@ -501,7 +582,7 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
     }
 
 
-    @OperatorSpec( inputPortCount = 1, outputPortCount = 1, type = STATEFUL )
+    @OperatorSpec( inputPortCount = 2, outputPortCount = 2, type = STATEFUL )
     private static class StatefulOperator implements Operator
     {
 

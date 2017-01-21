@@ -100,7 +100,7 @@ public class RegionUtil
         throw new IllegalStateException( "No region found for operator " + operator.id() );
     }
 
-    private static RegionDef getRegionByFirstOperator ( final List<RegionDef> regions, final OperatorDef operator )
+    public static RegionDef getRegionByFirstOperator ( final List<RegionDef> regions, final OperatorDef operator )
     {
         for ( RegionDef region : regions )
         {

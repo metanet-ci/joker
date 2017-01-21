@@ -56,7 +56,7 @@ public class PipelineOperatorPortCountsTest extends AbstractJokerTest
     public void init ()
     {
         final String configPath = JokerConfig.ENGINE_CONFIG_NAME + "." + FlowDefOptimizerConfig.CONFIG_NAME + "."
-                                  + FlowDefOptimizerConfig.MERGE_STATELESS_REGIONS_WITH_STATEFUL_REGIONS;
+                                  + FlowDefOptimizerConfig.MERGE_REGIONS;
 
         final Config flowDeploymentConfig = ConfigFactory.empty().withValue( configPath, ConfigValueFactory.fromAnyRef( TRUE ) );
 
