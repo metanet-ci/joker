@@ -83,7 +83,7 @@ public class PipelineReplica
         this.operatorCount = operators.length;
         this.pipelineTupleQueue = pipelineTupleQueue;
         this.meter = meter;
-        this.pipelineInputPortCount = operators[ 0 ].getOperatorDef().inputPortCount();
+        this.pipelineInputPortCount = operators[ 0 ].getOperatorDef().getInputPortCount();
         this.upstreamInputPorts = new int[ pipelineInputPortCount ];
         this.pipelineReplicaCompletionTracker = new PipelineReplicaCompletionTracker( id, operators );
         for ( OperatorReplica operator : operators )
@@ -233,7 +233,7 @@ public class PipelineReplica
             tupleCounts[ i ] = schedulingStrategy.getTupleCount( portIndex );
         }
 
-        final MultiPortDrainer drainer = operator.getOperatorDef().operatorType() == PARTITIONED_STATEFUL
+        final MultiPortDrainer drainer = operator.getOperatorDef().getOperatorType() == PARTITIONED_STATEFUL
                                          ? (MultiPortDrainer) upstreamDrainer
                                          : (MultiPortDrainer) operator.getDrainer();
         LOGGER.info( "{} is updating drainer parameters: {}, input ports: {}, tuple counts: {}",
@@ -343,7 +343,7 @@ public class PipelineReplica
         duplicate.upstreamDrainer = this.upstreamDrainer;
         duplicate.pipelineUpstreamContext = this.pipelineUpstreamContext;
 
-        final List<String> operatorNames = Arrays.stream( operators ).map( o -> o.getOperatorDef().id() ).collect( toList() );
+        final List<String> operatorNames = Arrays.stream( operators ).map( o -> o.getOperatorDef().getId() ).collect( toList() );
 
         LOGGER.info( "Pipeline {} is duplicated with {} operators: {}", this.id, operators.length, operatorNames );
 

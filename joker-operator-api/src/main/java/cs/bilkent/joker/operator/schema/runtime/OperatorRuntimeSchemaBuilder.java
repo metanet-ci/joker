@@ -4,12 +4,14 @@ package cs.bilkent.joker.operator.schema.runtime;
 import java.util.Arrays;
 import java.util.List;
 
-import static cs.bilkent.joker.com.google.common.base.Preconditions.checkArgument;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.operator.schema.annotation.OperatorSchema;
 import cs.bilkent.joker.operator.schema.annotation.PortSchema;
 import static java.util.stream.Collectors.toList;
 
-
+/**
+ * Builder for {@link OperatorRuntimeSchema}
+ */
 public final class OperatorRuntimeSchemaBuilder
 {
 
@@ -17,6 +19,14 @@ public final class OperatorRuntimeSchemaBuilder
 
     private final PortRuntimeSchemaBuilder[] outputSchemaBuilders;
 
+    /**
+     * Creates a runtime schema builder with no design time schema
+     *
+     * @param inputPortCount
+     *         input port count of the operator
+     * @param outputPortCount
+     *         output port count of the operator
+     */
     public OperatorRuntimeSchemaBuilder ( final int inputPortCount, final int outputPortCount )
     {
         checkArgument( inputPortCount >= 0, "input port count must be non-negative" );
@@ -25,6 +35,16 @@ public final class OperatorRuntimeSchemaBuilder
         this.outputSchemaBuilders = new PortRuntimeSchemaBuilder[ outputPortCount ];
     }
 
+    /**
+     * Creates a runtime schema builder which is initiated with a design time schema
+     *
+     * @param inputPortCount
+     *         input port count of the operator
+     * @param outputPortCount
+     *         output port count of the operator
+     * @param operatorSchema
+     *         design time schema of the operator
+     */
     public OperatorRuntimeSchemaBuilder ( final int inputPortCount, final int outputPortCount, final OperatorSchema operatorSchema )
     {
         checkArgument( inputPortCount >= 0, "input port count must be non-negative" );
@@ -38,42 +58,73 @@ public final class OperatorRuntimeSchemaBuilder
         }
     }
 
-    private void addToBuilder ( final PortRuntimeSchemaBuilder[] builders, final PortSchema[] portSchemas )
-    {
-        for ( PortSchema portSchema : portSchemas )
-        {
-            final int portIndex = portSchema.portIndex();
-            checkArgument( builders[ portIndex ] == null, "port index: " + portIndex + " has multiple schemas!" );
-            final List<RuntimeSchemaField> fields = Arrays.stream( portSchema.fields() )
-                                                          .map( f -> new RuntimeSchemaField( f.name(), f.type() ) )
-                                                          .collect( toList() );
-            final PortRuntimeSchemaBuilder builder = new PortRuntimeSchemaBuilder( portSchema.scope(), fields );
-            builders[ portIndex ] = builder;
-        }
-    }
-
+    /**
+     * Returns a builder object to be used for extending schema of the given input port
+     *
+     * @param portIndex
+     *         input port of the operator
+     *
+     * @return the builder object for schema of the input port
+     */
     public PortRuntimeSchemaBuilder getInputPortSchemaBuilder ( final int portIndex )
     {
         return getOrCreate( inputSchemaBuilders, portIndex );
     }
 
+    /**
+     * Returns a builder object to be used for extending schema of the given output port
+     *
+     * @param portIndex
+     *         output port of the operator
+     *
+     * @return the builder object for schema of the output port
+     */
     public PortRuntimeSchemaBuilder getOutputPortSchemaBuilder ( final int portIndex )
     {
         return getOrCreate( outputSchemaBuilders, portIndex );
     }
 
+    /**
+     * Add a new field to schema of the given input port
+     *
+     * @param portIndex
+     *         input port to add the field
+     * @param fieldName
+     *         name of the field
+     * @param type
+     *         type of the field
+     *
+     * @return the current builder object
+     */
     public OperatorRuntimeSchemaBuilder addInputField ( final int portIndex, final String fieldName, final Class<?> type )
     {
         getOrCreate( inputSchemaBuilders, portIndex ).addField( fieldName, type );
         return this;
     }
 
+    /**
+     * Add a new field to schema of the given output port
+     *
+     * @param portIndex
+     *         output port to add the field
+     * @param fieldName
+     *         name of the field
+     * @param type
+     *         type of the field
+     *
+     * @return the current builder object
+     */
     public OperatorRuntimeSchemaBuilder addOutputField ( final int portIndex, final String fieldName, final Class<?> type )
     {
         getOrCreate( outputSchemaBuilders, portIndex ).addField( fieldName, type );
         return this;
     }
 
+    /**
+     * Builds the {@link OperatorRuntimeSchema} object for the operator using the field definitions given for input and output ports
+     *
+     * @return the {@link OperatorRuntimeSchema} object built for the operator using the field definitions given for input and output ports
+     */
     public OperatorRuntimeSchema build ()
     {
         final PortRuntimeSchema[] inputSchemas = new PortRuntimeSchema[ inputSchemaBuilders.length ];
@@ -92,6 +143,20 @@ public final class OperatorRuntimeSchemaBuilder
         }
 
         return new OperatorRuntimeSchema( Arrays.asList( inputSchemas ), Arrays.asList( outputSchemas ) );
+    }
+
+    private void addToBuilder ( final PortRuntimeSchemaBuilder[] builders, final PortSchema[] portSchemas )
+    {
+        for ( PortSchema portSchema : portSchemas )
+        {
+            final int portIndex = portSchema.portIndex();
+            checkArgument( builders[ portIndex ] == null, "port index: " + portIndex + " has multiple schemas!" );
+            final List<RuntimeSchemaField> fields = Arrays.stream( portSchema.fields() )
+                                                          .map( f -> new RuntimeSchemaField( f.name(), f.type() ) )
+                                                          .collect( toList() );
+            final PortRuntimeSchemaBuilder builder = new PortRuntimeSchemaBuilder( portSchema.scope(), fields );
+            builders[ portIndex ] = builder;
+        }
     }
 
     private PortRuntimeSchemaBuilder getOrCreate ( final PortRuntimeSchemaBuilder[] builders, final int portIndex )

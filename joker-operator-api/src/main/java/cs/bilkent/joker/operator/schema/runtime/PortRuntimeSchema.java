@@ -21,6 +21,12 @@ public final class PortRuntimeSchema implements TupleSchema
 
     private final Map<String, Integer> fieldIndices = new HashMap<>();
 
+    /**
+     * Creates the {@code PortRuntimeSchema} using the given field definitions. Sorts the fields by field name.
+     *
+     * @param fields
+     *         to be included in the created {@code PortRuntimeSchema}
+     */
     public PortRuntimeSchema ( final List<RuntimeSchemaField> fields )
     {
         final ArrayList<RuntimeSchemaField> f = new ArrayList<>( fields );
@@ -32,18 +38,36 @@ public final class PortRuntimeSchema implements TupleSchema
         }
     }
 
+    /**
+     * Returns the number of fields in the port schema
+     *
+     * @return the number of fields in the port schema
+     */
     @Override
     public int getFieldCount ()
     {
         return fields.size();
     }
 
+    /**
+     * Returns the fields in the port, sorted by field name
+     *
+     * @return the fields in the port, sorted by field name
+     */
     @Override
     public List<RuntimeSchemaField> getFields ()
     {
         return fields;
     }
 
+    /**
+     * Returns index of the given field
+     *
+     * @param fieldName
+     *         to get the index
+     *
+     * @return index of the given field
+     */
     @Override
     public int getFieldIndex ( final String fieldName )
     {
@@ -51,6 +75,14 @@ public final class PortRuntimeSchema implements TupleSchema
         return index != null ? index : FIELD_NOT_FOUND;
     }
 
+    /**
+     * Returns the field name at the given index
+     *
+     * @param fieldIndex
+     *         to get the field name
+     *
+     * @return the field name at the given index
+     */
     @Override
     public String getFieldAt ( final int fieldIndex )
     {
@@ -58,12 +90,33 @@ public final class PortRuntimeSchema implements TupleSchema
     }
 
     /**
-     * Checks if all of the fields in the other schema has a corresponding compatible field in this schema or not
+     * Returns the {@link RuntimeSchemaField} for the given field name
+     *
+     * @param fieldName
+     *         to get the {@link RuntimeSchemaField} object
+     *
+     * @return the {@link RuntimeSchemaField} for the given field name
+     */
+    public RuntimeSchemaField getField ( final String fieldName )
+    {
+        for ( RuntimeSchemaField thisField : this.fields )
+        {
+            if ( thisField.name.equals( fieldName ) )
+            {
+                return thisField;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Checks if all of the fields in the argument have compatible fields in this schema
      *
      * @param other
      *         schema to check
      *
-     * @return true if all of the fields in the other schema has a corresponding compatible field in this schema
+     * @return true if all of the fields in the argument have compatible fields in this schema
      */
     public boolean isCompatibleWith ( final PortRuntimeSchema other )
     {
@@ -86,19 +139,6 @@ public final class PortRuntimeSchema implements TupleSchema
         }
 
         return true;
-    }
-
-    public RuntimeSchemaField getField ( final String fieldName )
-    {
-        for ( RuntimeSchemaField thisField : this.fields )
-        {
-            if ( thisField.name.equals( fieldName ) )
-            {
-                return thisField;
-            }
-        }
-
-        return null;
     }
 
     @Override

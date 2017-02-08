@@ -72,8 +72,8 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
                                                mock( Supplier.class ), mock( PipelineReplicaMeter.class ),
                                                new InvocationContextImpl() );
 
-        when( operatorDef.id() ).thenReturn( "op1" );
-        when( operatorDef.outputPortCount() ).thenReturn( outputPortCount );
+        when( operatorDef.getId() ).thenReturn( "op1" );
+        when( operatorDef.getOutputPortCount() ).thenReturn( outputPortCount );
         when( operatorDef.createOperator() ).thenReturn( operator );
         when( drainerPool.acquire( anyObject() ) ).thenReturn( new NopDrainer() );
     }
@@ -125,7 +125,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
                                                        final SchedulingStrategy schedulingStrategy,
                                                        final UpstreamContext upstreamContext )
     {
-        when( operatorDef.inputPortCount() ).thenReturn( inputPortCount );
+        when( operatorDef.getInputPortCount() ).thenReturn( inputPortCount );
         validUpstreamContext = newUpstreamContextInstance( 0, inputPortCount, ACTIVE );
 
         when( operator.init( any( InitializationContext.class ) ) ).thenReturn( schedulingStrategy );
@@ -213,7 +213,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
                                                   final SchedulingStrategy schedulingStrategy,
                                                   final UpstreamContext upstreamContext )
     {
-        when( operatorDef.inputPortCount() ).thenReturn( inputPortCount );
+        when( operatorDef.getInputPortCount() ).thenReturn( inputPortCount );
         when( operator.init( any( InitializationContext.class ) ) ).thenReturn( schedulingStrategy );
 
         try

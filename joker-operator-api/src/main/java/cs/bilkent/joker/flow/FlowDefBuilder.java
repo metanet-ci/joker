@@ -9,9 +9,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import static cs.bilkent.joker.com.google.common.base.Preconditions.checkArgument;
-import static cs.bilkent.joker.com.google.common.base.Preconditions.checkState;
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
@@ -41,10 +41,9 @@ public final class FlowDefBuilder
     public FlowDefBuilder add ( final OperatorDef operatorDef )
     {
         failIfAlreadyBuilt();
-        checkArgument( !operators.containsKey( operatorDef.id() ),
-                       "only 1 operator can be added with the same operator id: %s",
-                       operatorDef.id() );
-        operators.put( operatorDef.id(), operatorDef );
+        checkArgument( !operators.containsKey( operatorDef.getId() ),
+                       "only 1 operator can be added with the same operator id: %s", operatorDef.getId() );
+        operators.put( operatorDef.getId(), operatorDef );
 
         return this;
     }
@@ -72,10 +71,10 @@ public final class FlowDefBuilder
         failIfAlreadyBuilt();
         failIfEmptyOperatorId( sourceOperatorId );
         failIfNonExistingOperatorId( sourceOperatorId );
-        failIfInvalidPort( operators.get( sourceOperatorId ).outputPortCount(), sourcePort );
+        failIfInvalidPort( operators.get( sourceOperatorId ).getOutputPortCount(), sourcePort );
         failIfEmptyOperatorId( destinationOperatorId );
         failIfNonExistingOperatorId( destinationOperatorId );
-        failIfInvalidPort( operators.get( destinationOperatorId ).inputPortCount(), destinationPort );
+        failIfInvalidPort( operators.get( destinationOperatorId ).getInputPortCount(), destinationPort );
         checkArgument( !sourceOperatorId.equals( destinationOperatorId ), "operator ids must be different!" );
         failIfConnected( destinationOperatorId, sourceOperatorId );
         failIfIncompatibleSchemas( sourceOperatorId, sourcePort, destinationOperatorId, destinationPort );
@@ -142,8 +141,8 @@ public final class FlowDefBuilder
                                              final String destinationOperatorId,
                                              final int destinationPort )
     {
-        final OperatorRuntimeSchema sourceOperatorSchema = operators.get( sourceOperatorId ).schema();
-        final OperatorRuntimeSchema targetOperatorSchema = operators.get( destinationOperatorId ).schema();
+        final OperatorRuntimeSchema sourceOperatorSchema = operators.get( sourceOperatorId ).getSchema();
+        final OperatorRuntimeSchema targetOperatorSchema = operators.get( destinationOperatorId ).getSchema();
         checkState( sourceOperatorSchema.getOutputSchema( sourcePort )
                                         .isCompatibleWith( targetOperatorSchema.getInputSchema( destinationPort ) ),
                     "incompatible schemas between source %s and destination %s",

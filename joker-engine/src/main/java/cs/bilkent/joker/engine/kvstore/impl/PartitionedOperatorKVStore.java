@@ -7,10 +7,10 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static cs.bilkent.joker.com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.kvstore.OperatorKVStore;
 import cs.bilkent.joker.engine.partition.PartitionKey;
 import static cs.bilkent.joker.engine.partition.PartitionUtil.getPartitionId;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 
 public class PartitionedOperatorKVStore implements OperatorKVStore

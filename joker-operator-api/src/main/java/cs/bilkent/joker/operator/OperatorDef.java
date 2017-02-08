@@ -4,13 +4,18 @@ package cs.bilkent.joker.operator;
 import java.util.ArrayList;
 import java.util.List;
 
-import static cs.bilkent.joker.com.google.common.base.Preconditions.checkArgument;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
 import cs.bilkent.joker.operator.spec.OperatorType;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
 
 // TODO MAKE FINAL
+
+
+/**
+ * Contains the information that specifies all aspects of an operator that will be executed in the system
+ */
 public class OperatorDef
 {
     private final String id;
@@ -60,42 +65,42 @@ public class OperatorDef
         return clazz.newInstance();
     }
 
-    public String id ()
+    public String getId ()
     {
         return id;
     }
 
-    public Class<? extends Operator> operatorClazz ()
+    public Class<? extends Operator> getOperatorClazz ()
     {
         return clazz;
     }
 
-    public OperatorType operatorType ()
+    public OperatorType getOperatorType ()
     {
         return type;
     }
 
-    public int inputPortCount ()
+    public int getInputPortCount ()
     {
         return inputPortCount;
     }
 
-    public int outputPortCount ()
+    public int getOutputPortCount ()
     {
         return outputPortCount;
     }
 
-    public OperatorRuntimeSchema schema ()
+    public OperatorRuntimeSchema getSchema ()
     {
         return schema;
     }
 
-    public OperatorConfig config ()
+    public OperatorConfig getConfig ()
     {
         return config;
     }
 
-    public List<String> partitionFieldNames ()
+    public List<String> getPartitionFieldNames ()
     {
         return partitionFieldNames;
     }

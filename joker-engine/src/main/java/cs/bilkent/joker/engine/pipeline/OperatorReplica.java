@@ -120,7 +120,7 @@ public class OperatorReplica
                              final InvocationContextImpl invocationContext )
     {
         this.pipelineReplicaId = pipelineReplicaId;
-        this.operatorName = pipelineReplicaId.toString() + ".Operator<" + operatorDef.id() + ">";
+        this.operatorName = pipelineReplicaId.toString() + ".Operator<" + operatorDef.getId() + ">";
         this.queue = queue;
         this.operatorDef = operatorDef;
         this.operatorKvStore = operatorKvStore;
@@ -165,7 +165,7 @@ public class OperatorReplica
     private void setStatus ( final OperatorReplicaStatus status )
     {
         this.status = status;
-        listener.onStatusChange( operatorDef.id(), status );
+        listener.onStatusChange( operatorDef.getId(), status );
     }
 
     /**
@@ -174,13 +174,13 @@ public class OperatorReplica
      */
     private void initializeOperator ( final UpstreamContext upstreamContext )
     {
-        final boolean[] upstreamConnectionStatuses = upstreamContext.getUpstreamConnectionStatuses( operatorDef.inputPortCount() );
-        final InitializationContext initContext = new InitializationContextImpl( operatorDef.id(),
-                                                                                 operatorDef.inputPortCount(),
-                                                                                 operatorDef.outputPortCount(),
-                                                                                 operatorDef.partitionFieldNames(),
-                                                                                 operatorDef.schema(),
-                                                                                 operatorDef.config(),
+        final boolean[] upstreamConnectionStatuses = upstreamContext.getUpstreamConnectionStatuses( operatorDef.getInputPortCount() );
+        final InitializationContext initContext = new InitializationContextImpl( operatorDef.getId(),
+                                                                                 operatorDef.getInputPortCount(),
+                                                                                 operatorDef.getOutputPortCount(),
+                                                                                 operatorDef.getPartitionFieldNames(),
+                                                                                 operatorDef.getSchema(),
+                                                                                 operatorDef.getConfig(),
                                                                                  upstreamConnectionStatuses );
         final SchedulingStrategy schedulingStrategy = operator.init( initContext );
         upstreamContext.verifyOrFail( operatorDef, schedulingStrategy );
@@ -205,7 +205,7 @@ public class OperatorReplica
     private void setSelfUpstreamContext ( final UpstreamConnectionStatus status )
     {
         final int version = selfUpstreamContext != null ? selfUpstreamContext.getVersion() + 1 : 0;
-        final UpstreamConnectionStatus[] selfStatuses = new UpstreamConnectionStatus[ operatorDef.outputPortCount() ];
+        final UpstreamConnectionStatus[] selfStatuses = new UpstreamConnectionStatus[ operatorDef.getOutputPortCount() ];
         Arrays.fill( selfStatuses, 0, selfStatuses.length, status );
         selfUpstreamContext = new UpstreamContext( version, selfStatuses );
     }
@@ -317,7 +317,7 @@ public class OperatorReplica
                 // status = COMPLETING
                 if ( handleNewUpstreamContext( upstreamContext ) )
                 {
-                    output = invokeOperator( INPUT_PORT_CLOSED, new TuplesImpl( operatorDef.inputPortCount() ), output, null );
+                    output = invokeOperator( INPUT_PORT_CLOSED, new TuplesImpl( operatorDef.getInputPortCount() ), output, null );
                 }
                 else
                 {
@@ -338,14 +338,14 @@ public class OperatorReplica
             }
         }
 
-        meter.addProducedTuples( operatorDef.id(), output );
+        meter.addProducedTuples( operatorDef.getId(), output );
 
         return output;
     }
 
     private void setQueueTupleCountsForGreedyDraining ()
     {
-        final int[] tupleCounts = new int[ operatorDef.inputPortCount() ];
+        final int[] tupleCounts = new int[ operatorDef.getInputPortCount() ];
         Arrays.fill( tupleCounts, 1 );
         queue.setTupleCounts( tupleCounts, ANY_PORT );
     }
@@ -380,10 +380,10 @@ public class OperatorReplica
         final KVStore kvStore = operatorKvStore.getKVStore( key );
         final TuplesImpl invocationOutput = output != null ? output : outputSupplier.get();
         invocationContext.setInvocationParameters( reason, input, invocationOutput, kvStore );
-        meter.addConsumedTuples( operatorDef.id(), input );
-        meter.startOperatorInvocation( operatorDef.id() );
+        meter.addConsumedTuples( operatorDef.getId(), input );
+        meter.startOperatorInvocation( operatorDef.getId() );
         operator.invoke( invocationContext );
-        meter.completeOperatorInvocation( operatorDef.id() );
+        meter.completeOperatorInvocation( operatorDef.getId() );
 
         return invocationOutput;
     }
@@ -434,7 +434,7 @@ public class OperatorReplica
     {
         checkArgument( upstreamContext != null, "upstream context is null! operator ", operatorName );
         this.upstreamContext = upstreamContext;
-        invocationContext.setUpstreamConnectionStatuses( upstreamContext.getUpstreamConnectionStatuses( operatorDef.inputPortCount() ) );
+        invocationContext.setUpstreamConnectionStatuses( upstreamContext.getUpstreamConnectionStatuses( operatorDef.getInputPortCount() ) );
     }
 
     /**
@@ -616,7 +616,7 @@ public class OperatorReplica
     @Override
     public String toString ()
     {
-        return "OperatorReplica{" + "operatorName='" + operatorName + '\'' + ", operatorType=" + operatorDef.operatorType() + ", queue="
+        return "OperatorReplica{" + "operatorName='" + operatorName + '\'' + ", operatorType=" + operatorDef.getOperatorType() + ", queue="
                + queue.getClass().getSimpleName() + ", drainer=" + ( drainer != null ? drainer.getClass().getSimpleName() : null )
                + ", status=" + status + ", upstreamContext=" + upstreamContext + ", selfUpstreamContext=" + selfUpstreamContext
                + ", completionReason=" + completionReason + ", initialSchedulingStrategy=" + initialSchedulingStrategy

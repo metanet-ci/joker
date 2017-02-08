@@ -5,9 +5,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
-import static cs.bilkent.joker.com.google.common.base.Preconditions.checkArgument;
-import static cs.bilkent.joker.com.google.common.base.Preconditions.checkState;
+import cs.bilkent.joker.flow.Port;
 import static cs.bilkent.joker.flow.Port.DYNAMIC_PORT_COUNT;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.operator.schema.annotation.OperatorSchema;
 import cs.bilkent.joker.operator.schema.annotation.PortSchema;
 import cs.bilkent.joker.operator.schema.annotation.SchemaField;
@@ -23,9 +24,22 @@ import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import static java.util.stream.Collectors.toList;
 
 
+/**
+ * Used for defining an operator during flow generation
+ */
 public final class OperatorDefBuilder
 {
 
+    /**
+     * Creates the builder object using the given operator id and class
+     *
+     * @param id
+     *         id of the operator to be build
+     * @param clazz
+     *         class of the operator to be build
+     *
+     * @return builder to be used for specifying the operator definition
+     */
     public static OperatorDefBuilder newInstance ( final String id, final Class<? extends Operator> clazz )
     {
         failIfEmptyOperatorId( id );
@@ -63,6 +77,7 @@ public final class OperatorDefBuilder
         if ( spec.outputPortCount() != DYNAMIC_PORT_COUNT )
         {
             failIfInvalidPortCount( spec.type(), spec.outputPortCount(), "output" );
+            failIfStatelessOperatorWithNoOutputPorts( spec.type(), spec.outputPortCount(), "output" );
         }
 
         return new OperatorDefBuilder( id, clazz, spec, schema );
@@ -104,15 +119,18 @@ public final class OperatorDefBuilder
 
     private static void failIfInvalidPortCount ( final OperatorType type, final int portCount, final String portType )
     {
-        checkArgument( portCount >= DYNAMIC_PORT_COUNT,
-                       "invalid " + portType + " port count: " + portCount + " for " + type + " operator" );
+        checkArgument( portCount >= DYNAMIC_PORT_COUNT, "invalid " + portType + " port count: " + portCount + " for " + type + " operator" );
     }
 
-    private static void failIfStatelessOperatorWithMultipleInputPorts ( final OperatorType type,
-                                                                        final int portCount,
-                                                                        final String portType )
+    private static void failIfStatelessOperatorWithMultipleInputPorts ( final OperatorType type, final int portCount, final String
+                                                                                                                              portType )
     {
         checkArgument( type != STATELESS || portCount <= 1, STATELESS + " operators can have 1 " + portType + " ports!" );
+    }
+
+    private static void failIfStatelessOperatorWithNoOutputPorts ( final OperatorType type, final int portCount, final String portType )
+    {
+        checkArgument( type != STATELESS || portCount > 0, STATELESS + " operators should have at least 1 " + portType + " ports!" );
     }
 
     private static int getPortIndexCount ( final PortSchema[] portSchemas )
@@ -139,10 +157,7 @@ public final class OperatorDefBuilder
 
     private List<String> partitionFieldNames;
 
-    private OperatorDefBuilder ( final String id,
-                                 final Class<? extends Operator> clazz,
-                                 final OperatorSpec spec,
-                                 final OperatorSchema schema )
+    private OperatorDefBuilder ( final String id, final Class<? extends Operator> clazz, final OperatorSpec spec, final OperatorSchema schema )
     {
         this.id = id;
         this.clazz = clazz;
@@ -152,6 +167,19 @@ public final class OperatorDefBuilder
         this.schema = schema;
     }
 
+    /**
+     * Sets input port count if the operator has {@link Port#DYNAMIC_PORT_COUNT} for its input port count.
+     *
+     * @param inputPortCount
+     *         to be set
+     *
+     * @return the current builder object
+     *
+     * @throws IllegalArgumentException
+     *         if the method argument is an invalid input port count
+     * @throws IllegalStateException
+     *         if the input port count is already set
+     */
     public OperatorDefBuilder setInputPortCount ( final int inputPortCount )
     {
         checkState( this.inputPortCount == DYNAMIC_PORT_COUNT, "input port count can be set only once" );
@@ -162,15 +190,43 @@ public final class OperatorDefBuilder
         return this;
     }
 
+    /**
+     * Sets output port count if the operator has {@link Port#DYNAMIC_PORT_COUNT} for its output port count.
+     *
+     * @param outputPortCount
+     *         to be set
+     *
+     * @return the current builder object
+     *
+     * @throws IllegalArgumentException
+     *         if the method argument is an invalid output port count
+     * @throws IllegalStateException
+     *         if the output port count is already set
+     */
     public OperatorDefBuilder setOutputPortCount ( final int outputPortCount )
     {
         checkState( this.outputPortCount == DYNAMIC_PORT_COUNT, "output port count can be set only once" );
         checkArgument( outputPortCount >= 0, "output port count must be non-negative" );
         failIfInvalidPortCount( type, outputPortCount, "output" );
+        failIfStatelessOperatorWithNoOutputPorts( type, outputPortCount, "output" );
         this.outputPortCount = outputPortCount;
         return this;
     }
 
+    /**
+     * Sets config object of the operator. Internally, the config argument is not copied. Therefore, it is recommended to
+     * treat the config object as effectively final after provided to this method as an argument.
+     *
+     * @param config
+     *         to be set for the operator
+     *
+     * @return the current builder object
+     *
+     * @throws IllegalArgumentException
+     *         if the method argument is null
+     * @throws IllegalStateException
+     *         if the operator config is already set
+     */
     public OperatorDefBuilder setConfig ( final OperatorConfig config )
     {
         checkState( this.config == null, "config can be set only once" );
@@ -179,12 +235,45 @@ public final class OperatorDefBuilder
         return this;
     }
 
+    /**
+     * Extends runtime schema of the operator by building the extending schema using the {@link OperatorRuntimeSchemaBuilder} argument.
+     * It is recommended to treat the schema object as effectively final after provided to this method as an argument.
+     * Please see {@link #setExtendingSchema(OperatorRuntimeSchema)} for more information
+     *
+     * @param extendingSchemaBuilder
+     *         the builder object to build the extending schema
+     *
+     * @return the current builder object
+     *
+     * @throws IllegalArgumentException
+     *         if the method argument is null
+     */
     public OperatorDefBuilder setExtendingSchema ( final OperatorRuntimeSchemaBuilder extendingSchemaBuilder )
     {
         checkArgument( extendingSchemaBuilder != null, "extending schema builder can not be null" );
         return setExtendingSchema( extendingSchemaBuilder.build() );
     }
 
+    /**
+     * Extends runtime schema of the operator
+     *
+     * @param extendingSchema
+     *         the schema object with field definitions which will be added to the underlying operator's input and output ports
+     *
+     * @return the current builder object
+     *
+     * @throws IllegalArgumentException
+     *         if one of the following conditions hold:
+     *         - the method argument is null
+     *         - input port count of the extending schema is different than the underlying operator's input port count
+     *         - output port count of the extending schema is different than the underlying operator's output port count
+     *         - the extending schema tries to add a field which is already present in the compile-time schema of the underlying operator
+     * @throws IllegalStateException
+     *         if one of the following conditions hold:
+     *         - extending schema is already set
+     *         - input port count of the underlying operator is not specified yet
+     *         - output port count of the underlying operator is not specified yet
+     */
     public OperatorDefBuilder setExtendingSchema ( final OperatorRuntimeSchema extendingSchema )
     {
         checkArgument( extendingSchema != null, "extending schema argument can not be null" );
@@ -199,16 +288,31 @@ public final class OperatorDefBuilder
             }
             for ( int portIndex = 0; portIndex < extendingSchema.getOutputPortCount(); portIndex++ )
             {
-                failIfExtendingSchemaContainsDuplicateField( portIndex,
-                                                             extendingSchema.getOutputSchema( portIndex ),
-                                                             this.schema.outputs() );
+                failIfExtendingSchemaContainsDuplicateField( portIndex, extendingSchema.getOutputSchema( portIndex ), this.schema.outputs() );
             }
         }
         this.extendingSchema = extendingSchema;
         return this;
     }
 
-
+    /**
+     * Sets the partition field names
+     *
+     * @param partitionFieldNames
+     *         partition field names to be set for {@link OperatorType#PARTITIONED_STATEFUL} operator
+     *
+     * @return the current builder object
+     *
+     * @throws IllegalArgumentException
+     *         if one of the following conditions hold:
+     *         - the method argument is null
+     *         - the underlying operator in the builder is {@link OperatorType#PARTITIONED_STATEFUL} and the method argument is null or
+     *         empty
+     *         - the underlying operator in the builder is not {@link OperatorType#PARTITIONED_STATEFUL} and the method argument is
+     *         non-empty
+     *         - a partition key field specified in the method argument does not exist in all input ports of the operator, or it exists
+     *         with different types on different input ports
+     */
     public OperatorDefBuilder setPartitionFieldNames ( final List<String> partitionFieldNames )
     {
         checkArgument( partitionFieldNames != null, "partition field names must be non-null" );
@@ -221,6 +325,15 @@ public final class OperatorDefBuilder
         return this;
     }
 
+    /**
+     * Builds the {@link OperatorDef} object with the current status of the builder
+     *
+     * @return {@link OperatorDef} object which is build with the current status of the builder
+     *
+     * @throws IllegalStateException
+     *         if input port count or output port count is not set, or partition field names are not
+     *         specified for {@link OperatorType#PARTITIONED_STATEFUL} operator
+     */
     public OperatorDef build ()
     {
         checkState( inputPortCount != DYNAMIC_PORT_COUNT, "input port count must be set" );
@@ -243,14 +356,13 @@ public final class OperatorDefBuilder
         checkArgument( schemaSize <= portCount, "number of port schemas in extending schema exceeds port count of operator" );
     }
 
-    private void failIfExtendingSchemaContainsDuplicateField ( final int portIndex,
-                                                               final PortRuntimeSchema runtimeSchema,
-                                                               final PortSchema[] portSchemas )
+    private void failIfExtendingSchemaContainsDuplicateField ( final int portIndex, final PortRuntimeSchema runtimeSchema, final PortSchema[] portSchemas )
     {
         if ( portSchemas != null )
         {
             final List<String> runtimeSchemaFieldNames = runtimeSchema.getFields().stream().map( field -> field.name ).collect( toList() );
-            final boolean duplicate = Arrays.stream( portSchemas ).filter( portSchema -> portSchema.portIndex() == portIndex )
+            final boolean duplicate = Arrays.stream( portSchemas )
+                                            .filter( portSchema -> portSchema.portIndex() == portIndex )
                                             .flatMap( portSchema -> Arrays.stream( portSchema.fields() ).map( SchemaField::name ) )
                                             .anyMatch( runtimeSchemaFieldNames::contains );
             checkArgument( !duplicate, runtimeSchema + " contains duplicate fields with OperatorSchema" );
@@ -351,8 +463,7 @@ public final class OperatorDefBuilder
         return schemaBuilder.build();
     }
 
-    private void addToSchema ( final List<PortRuntimeSchema> portSchemas,
-                               final Function<Integer, PortRuntimeSchemaBuilder> portSchemaBuilderProvider )
+    private void addToSchema ( final List<PortRuntimeSchema> portSchemas, final Function<Integer, PortRuntimeSchemaBuilder> portSchemaBuilderProvider )
     {
         for ( int portIndex = 0; portIndex < portSchemas.size(); portIndex++ )
         {

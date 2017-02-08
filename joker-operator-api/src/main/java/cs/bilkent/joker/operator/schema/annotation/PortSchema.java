@@ -3,36 +3,35 @@ package cs.bilkent.joker.operator.schema.annotation;
 
 import java.lang.annotation.Retention;
 
-import cs.bilkent.joker.flow.FlowDefBuilder;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 
 /**
- * Annotation to define the schema of an input / output port of an operator at design time.
+ * Annotation to define the schema of an input port or output port of an operator at design time.
  */
 @Retention( RUNTIME )
 public @interface PortSchema
 {
 
     /**
-     * Port index of the defined schema
+     * Port index of the schema
      *
-     * @return port index of the defined schema
+     * @return port index of the schema
      */
     int portIndex ();
 
     /**
-     * Scope of the schema. All field names that are guaranteed to be present in the runtime maybe defined in design time, or
-     * list of the field names can be extended while composing the flow via {@link FlowDefBuilder}
+     * Scope of the schema. All fields can be explicitly defined in design time,
+     * or they can be extended while composing the flow in the runtime.
      *
      * @return scope of the schema
      */
     PortSchemaScope scope ();
 
     /**
-     * Array of the fields defined in the port schema. For each field, a name and a type is defined.
+     * Array of the fields defined in the port schema. For each field, name and type are required.
      *
-     * @return array of the fields defined in the port schema
+     * @return array of the fields defined for the port
      */
     SchemaField[] fields ();
 

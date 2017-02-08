@@ -81,8 +81,7 @@ public class UpstreamContext
         }
         catch ( IllegalStateException e )
         {
-            LOGGER.info( "{} not invokable anymore. scheduling strategy: {} upstream context: {} error: {}",
-                         operatorDef.id(),
+            LOGGER.info( "{} not invokable anymore. scheduling strategy: {} upstream context: {} error: {}", operatorDef.getId(),
                          schedulingStrategy,
                          this,
                          e.getMessage() );
@@ -94,23 +93,20 @@ public class UpstreamContext
     {
         if ( schedulingStrategy instanceof ScheduleWhenAvailable )
         {
-            checkState( operatorDef.inputPortCount() == 0,
+            checkState( operatorDef.getInputPortCount() == 0,
                         "%s cannot be used by operator: %s with input port count: %s",
-                        ScheduleWhenAvailable.class.getSimpleName(),
-                        operatorDef.id(),
-                        operatorDef.inputPortCount() );
-            checkState( version == 0, "upstream context is closed for 0 input port operator: %s", operatorDef.id() );
+                        ScheduleWhenAvailable.class.getSimpleName(), operatorDef.getId(), operatorDef.getInputPortCount() );
+            checkState( version == 0, "upstream context is closed for 0 input port operator: %s", operatorDef.getId() );
         }
         else if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
         {
-            checkState( operatorDef.inputPortCount() > 0,
-                        "0 input port operator: %s cannot use %s",
-                        operatorDef.id(),
+            checkState( operatorDef.getInputPortCount() > 0,
+                        "0 input port operator: %s cannot use %s", operatorDef.getId(),
                         ScheduleWhenTuplesAvailable.class.getSimpleName() );
             final ScheduleWhenTuplesAvailable s = (ScheduleWhenTuplesAvailable) schedulingStrategy;
             if ( s.getTupleAvailabilityByPort() == ANY_PORT )
             {
-                for ( int i = 0; i < operatorDef.inputPortCount(); i++ )
+                for ( int i = 0; i < operatorDef.getInputPortCount(); i++ )
                 {
                     if ( s.getTupleCount( i ) > 0 && getUpstreamConnectionStatus( i ) == ACTIVE )
                     {
@@ -122,7 +118,7 @@ public class UpstreamContext
             }
             else if ( s.getTupleAvailabilityByPort() == ALL_PORTS )
             {
-                for ( int i = 0; i < operatorDef.inputPortCount(); i++ )
+                for ( int i = 0; i < operatorDef.getInputPortCount(); i++ )
                 {
                     checkState( getUpstreamConnectionStatus( i ) == ACTIVE,
                                 "SchedulingStrategy %s is not invokable anymore since there is closed port",
@@ -136,7 +132,7 @@ public class UpstreamContext
         }
         else
         {
-            throw new IllegalStateException( operatorDef.id() + " returns invalid initial scheduling strategy: " + schedulingStrategy );
+            throw new IllegalStateException( operatorDef.getId() + " returns invalid initial scheduling strategy: " + schedulingStrategy );
         }
     }
 

@@ -74,22 +74,18 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
         checkArgument( threadingPreference != null,
                        "No threading preference is given! regionId %s, replicaIndex %s operatorId %s",
                        regionId,
-                       replicaIndex,
-                       operatorDef.id() );
-        checkArgument( operatorDef.operatorType() != PARTITIONED_STATEFUL || threadingPreference == MULTI_THREADED,
+                       replicaIndex, operatorDef.getId() );
+        checkArgument( operatorDef.getOperatorType() != PARTITIONED_STATEFUL || threadingPreference == MULTI_THREADED,
                        "invalid <operator type, threading preference> pair! regionId %s operatorId %s operatorType %s threadingPreference"
                        + " %s ",
-                       regionId,
-                       operatorDef.id(),
-                       operatorDef.operatorType(),
+                       regionId, operatorDef.getId(), operatorDef.getOperatorType(),
                        threadingPreference );
         checkArgument( replicaIndex >= 0,
                        "invalid replica index! regionId %s, replicaIndex %s operatorId %s",
                        regionId,
-                       replicaIndex,
-                       operatorDef.id() );
+                       replicaIndex, operatorDef.getId() );
 
-        final String operatorId = operatorDef.id();
+        final String operatorId = operatorDef.getId();
         final Triple<Integer, Integer, String> key = Triple.of( regionId, replicaIndex, operatorId );
         checkState( !singleOperatorTupleQueues.containsKey( key ),
                     "default operator tuple queue already exists for regionId %s operatorId %s replicaIndex %s",
@@ -97,7 +93,7 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
                     operatorId,
                     replicaIndex );
 
-        final int inputPortCount = operatorDef.inputPortCount();
+        final int inputPortCount = operatorDef.getInputPortCount();
         final TupleQueue[] tupleQueues = new TupleQueue[ inputPortCount ];
         for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
         {
@@ -140,8 +136,8 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
         final int replicaCount = partitionDistribution.getReplicaCount();
         checkArgument( operatorDef != null, "No operator definition! regionId %s, replicaCount %s", regionId, replicaCount );
 
-        final String operatorId = operatorDef.id();
-        checkArgument( operatorDef.operatorType() == PARTITIONED_STATEFUL,
+        final String operatorId = operatorDef.getId();
+        checkArgument( operatorDef.getOperatorType() == PARTITIONED_STATEFUL,
                        "invalid operator type: %s ! regionId %s operatorId %s",
                        regionId,
                        operatorId );
@@ -153,10 +149,10 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
                     regionId,
                     operatorId );
 
-        final int inputPortCount = operatorDef.inputPortCount();
+        final int inputPortCount = operatorDef.getInputPortCount();
 
         final PartitionedOperatorTupleQueue[] operatorTupleQueues = new PartitionedOperatorTupleQueue[ replicaCount ];
-        final List<String> partitionFieldNames = operatorDef.partitionFieldNames();
+        final List<String> partitionFieldNames = operatorDef.getPartitionFieldNames();
         final PartitionKeyExtractor partitionKeyExtractor = partitionKeyExtractorFactory.createPartitionKeyExtractor( partitionFieldNames,
                                                                                                                       forwardKeyLimit );
 
@@ -201,7 +197,7 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
                                                                           final PartitionDistribution currentPartitionDistribution,
                                                                           final PartitionDistribution newPartitionDistribution )
     {
-        final String operatorId = operatorDef.id();
+        final String operatorId = operatorDef.getId();
         final Pair<Integer, String> key = Pair.of( regionId, operatorId );
         PartitionedOperatorTupleQueue[] queues = this.partitionedOperatorTupleQueues.get( key );
         checkState( queues != null, "partitioned operator tuple queues do not exist for regionId=%s operatorId=%s", regionId, operatorId );

@@ -1,17 +1,18 @@
-package cs.bilkent.joker.engine.region;
+package cs.bilkent.joker.engine.flow;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.pipeline.PipelineId;
+import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.operator.OperatorDef;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import static java.util.Collections.unmodifiableList;
 import static java.util.stream.Collectors.toList;
 
-public class RegionConfig
+public class RegionExecutionPlan
 {
 
     private final RegionDef regionDef;
@@ -20,7 +21,7 @@ public class RegionConfig
 
     private final List<Integer> pipelineStartIndices;
 
-    public RegionConfig ( final RegionDef regionDef, final List<Integer> pipelineStartIndices, final int replicaCount )
+    public RegionExecutionPlan ( final RegionDef regionDef, final List<Integer> pipelineStartIndices, final int replicaCount )
     {
         checkArgument( ( regionDef.getRegionType() == STATEFUL || regionDef.getRegionType() == STATELESS )
                        ? replicaCount == 1
@@ -121,7 +122,7 @@ public class RegionConfig
     @Override
     public String toString ()
     {
-        return "RegionConfig{" + "regionDef=" + regionDef + ", replicaCount=" + replicaCount + ", pipelineStartIndices="
+        return "RegionExecutionPlan{" + "regionDef=" + regionDef + ", replicaCount=" + replicaCount + ", pipelineStartIndices="
                + pipelineStartIndices + '}';
     }
 

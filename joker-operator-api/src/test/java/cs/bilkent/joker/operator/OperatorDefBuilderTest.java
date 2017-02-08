@@ -59,6 +59,18 @@ public class OperatorDefBuilderTest extends AbstractJokerTest
         OperatorDefBuilder.newInstance( "op1", OperatorWithNoSpec.class );
     }
 
+    @Test( expected = IllegalArgumentException.class )
+    public void shouldNotBuildBuilderWithMultipleInputPortStatelessOperator ()
+    {
+        OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithMultipleInputPortCount.class );
+    }
+
+    @Test( expected = IllegalArgumentException.class )
+    public void shouldNotBuildBuilderWithZeroOutputPortStatelessOperator ()
+    {
+        OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithZeroOutputPortCount.class );
+    }
+
     @Test( expected = IllegalStateException.class )
     public void shouldNotBuildOperatorDefWithInvalidFixedInputCountAndNoConfig ()
     {
@@ -101,16 +113,16 @@ public class OperatorDefBuilderTest extends AbstractJokerTest
         OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setOutputPortCount( 2 );
     }
 
+    @Test( expected = IllegalArgumentException.class )
+    public void shouldNotSetZeroOutputPortCountForStatelessOperator ()
+    {
+        OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setOutputPortCount( 0 );
+    }
+
     @Test( expected = IllegalStateException.class )
     public void shouldNotBuildOperatorDefWithDynamicOutputPortCount ()
     {
         OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithDynamicPortCounts.class ).setInputPortCount( 1 ).build();
-    }
-
-    @Test( expected = IllegalArgumentException.class )
-    public void shouldNotBuildBuilderWithMultipleInputPortCount ()
-    {
-        OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithMultipleInputPortCount.class );
     }
 
     @Test
@@ -128,7 +140,7 @@ public class OperatorDefBuilderTest extends AbstractJokerTest
     @Test
     public void shouldBuildBuilderWithZeroInputOutputPortCount ()
     {
-        OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithZeroInputOutputPortCount.class );
+        OperatorDefBuilder.newInstance( "op1", StatefulOperatorWithZeroInputOutputPortCount.class );
     }
 
     @Test( expected = IllegalArgumentException.class )
@@ -258,7 +270,7 @@ public class OperatorDefBuilderTest extends AbstractJokerTest
                                                          .setPartitionFieldNames( partitionFieldNames )
                                                          .build();
 
-        assertTrue( partitionFieldNames.equals( definition.partitionFieldNames() ) );
+        assertTrue( partitionFieldNames.equals( definition.getPartitionFieldNames() ) );
     }
 
     @Test( expected = IllegalStateException.class )
@@ -342,7 +354,7 @@ public class OperatorDefBuilderTest extends AbstractJokerTest
                                                          .setExtendingSchema( schemaBuilder.build() )
                                                          .setPartitionFieldNames( singletonList( "field1" ) )
                                                          .build();
-        final OperatorRuntimeSchema schema = definition.schema();
+        final OperatorRuntimeSchema schema = definition.getSchema();
         assertThat( schema.getOutputSchemas(), hasSize( 1 ) );
         final PortRuntimeSchema outputSchema = schema.getOutputSchema( DEFAULT_PORT_INDEX );
         final List<RuntimeSchemaField> outputFields = outputSchema.getFields();
@@ -358,7 +370,7 @@ public class OperatorDefBuilderTest extends AbstractJokerTest
         final OperatorDef definition = OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorWithExactInputPortSchema.class )
                                                          .setPartitionFieldNames( singletonList( "field1" ) )
                                                          .build();
-        final OperatorRuntimeSchema schema = definition.schema();
+        final OperatorRuntimeSchema schema = definition.getSchema();
         assertThat( schema.getInputSchemas(), hasSize( 1 ) );
         final PortRuntimeSchema inputSchema = schema.getInputSchema( DEFAULT_PORT_INDEX );
         final List<RuntimeSchemaField> inputFields = inputSchema.getFields();
@@ -377,13 +389,13 @@ public class OperatorDefBuilderTest extends AbstractJokerTest
         final OperatorDef definition = OperatorDefBuilder.newInstance( "op1", StatefulOperatorWithFixedPortCounts.class ).build();
         assertNotNull( definition );
 
-        final OperatorRuntimeSchema schema = definition.schema();
-        for ( int portIndex = 0; portIndex < definition.inputPortCount(); portIndex++ )
+        final OperatorRuntimeSchema schema = definition.getSchema();
+        for ( int portIndex = 0; portIndex < definition.getInputPortCount(); portIndex++ )
         {
             final PortRuntimeSchema inputSchema = schema.getInputSchema( portIndex );
             assertTrue( inputSchema.getFields().isEmpty() );
         }
-        for ( int portIndex = 0; portIndex < definition.outputPortCount(); portIndex++ )
+        for ( int portIndex = 0; portIndex < definition.getOutputPortCount(); portIndex++ )
         {
             final PortRuntimeSchema outputSchema = schema.getOutputSchema( portIndex );
             assertTrue( outputSchema.getFields().isEmpty() );
@@ -476,6 +488,13 @@ public class OperatorDefBuilderTest extends AbstractJokerTest
     }
 
 
+    @OperatorSpec( type = OperatorType.STATELESS, outputPortCount = 0 )
+    public static class StatelessOperatorWithZeroOutputPortCount extends NopOperator
+    {
+
+    }
+
+
     @OperatorSpec( type = OperatorType.STATELESS, inputPortCount = 1, outputPortCount = 1 )
     public static class StatelessOperatorWithSingleInputOutputPortCount extends NopOperator
     {
@@ -483,8 +502,8 @@ public class OperatorDefBuilderTest extends AbstractJokerTest
     }
 
 
-    @OperatorSpec( type = OperatorType.STATELESS, inputPortCount = 0, outputPortCount = 1 )
-    public static class StatelessOperatorWithZeroInputOutputPortCount extends NopOperator
+    @OperatorSpec( type = OperatorType.STATEFUL, inputPortCount = 0, outputPortCount = 0 )
+    public static class StatefulOperatorWithZeroInputOutputPortCount extends NopOperator
     {
 
     }

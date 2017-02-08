@@ -10,10 +10,10 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import cs.bilkent.joker.Joker;
 import cs.bilkent.joker.Joker.JokerBuilder;
 import cs.bilkent.joker.engine.config.JokerConfig;
+import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.migration.MigrationService;
-import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
-import cs.bilkent.joker.engine.region.impl.AbstractRegionConfigFactory;
+import cs.bilkent.joker.engine.region.impl.AbstractRegionExecutionPlanFactory;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
 import cs.bilkent.joker.operator.OperatorConfig;
@@ -41,7 +41,9 @@ public class StaticPCJJokerInstancefactory implements PCJJokerInstanceFactory
     public Joker createJokerInstance ( final Object jokerId, final MigrationService migrationService )
     {
         final JokerConfig jokerConfig = new JokerConfig();
-        final Joker joker = new JokerBuilder( jokerConfig ).setRegionConfigFactory( new StaticRegionConfigFactory( jokerConfig, 2 ) )
+        final Joker joker = new JokerBuilder( jokerConfig ).setRegionExecutionPlanFactory( new StaticRegionExecutionPlanFactory(
+                jokerConfig,
+                                                                                                                                 2 ) )
                                                            .setJokerId( jokerId )
                                                            .build();
         final Random random = new Random();
@@ -77,25 +79,25 @@ public class StaticPCJJokerInstancefactory implements PCJJokerInstanceFactory
         return joker;
     }
 
-    static class StaticRegionConfigFactory extends AbstractRegionConfigFactory
+    static class StaticRegionExecutionPlanFactory extends AbstractRegionExecutionPlanFactory
     {
 
         private final int replicaCount;
 
-        public StaticRegionConfigFactory ( final JokerConfig jokerConfig, final int replicaCount )
+        public StaticRegionExecutionPlanFactory ( final JokerConfig jokerConfig, final int replicaCount )
         {
             super( jokerConfig );
             this.replicaCount = replicaCount;
         }
 
         @Override
-        protected RegionConfig createRegionConfig ( final RegionDef regionDef )
+        protected RegionExecutionPlan createRegionExecutionPlan ( final RegionDef regionDef )
         {
             final int replicaCount = regionDef.getRegionType() == PARTITIONED_STATEFUL ? this.replicaCount : 1;
             final int operatorCount = regionDef.getOperatorCount();
             final List<Integer> pipelineStartIndices = operatorCount == 1 ? singletonList( 0 ) : asList( 0, operatorCount / 2 );
 
-            return new RegionConfig( regionDef, pipelineStartIndices, replicaCount );
+            return new RegionExecutionPlan( regionDef, pipelineStartIndices, replicaCount );
         }
     }
 

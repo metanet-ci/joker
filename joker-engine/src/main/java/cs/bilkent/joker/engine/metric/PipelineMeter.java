@@ -47,7 +47,7 @@ public class PipelineMeter
         this.operatorIds = new ArrayList<>( operatorDefs.length );
         for ( OperatorDef operatorDef : operatorDefs )
         {
-            this.operatorIds.add( operatorDef.id() );
+            this.operatorIds.add( operatorDef.getId() );
         }
 
         this.replicaCount = replicaCount;
@@ -56,10 +56,10 @@ public class PipelineMeter
         for ( PipelineReplicaMeter replicaMeter : pipelineReplicaMeters )
         {
             checkArgument( replicaMeter.getPipelineReplicaId().pipelineId.equals( pipelineId ) );
-            checkArgument( replicaMeter.getHeadOperatorId().equals( operatorDefs[ 0 ].id() ) );
-            checkArgument( replicaMeter.getConsumedPortCount() == operatorDefs[ 0 ].inputPortCount() );
-            checkArgument( replicaMeter.getTailOperatorId().equals( operatorDefs[ operatorDefs.length - 1 ].id() ) );
-            checkArgument( replicaMeter.getProducedPortCount() == operatorDefs[ operatorDefs.length - 1 ].outputPortCount() );
+            checkArgument( replicaMeter.getHeadOperatorId().equals( operatorDefs[ 0 ].getId() ) );
+            checkArgument( replicaMeter.getConsumedPortCount() == operatorDefs[ 0 ].getInputPortCount() );
+            checkArgument( replicaMeter.getTailOperatorId().equals( operatorDefs[ operatorDefs.length - 1 ].getId() ) );
+            checkArgument( replicaMeter.getProducedPortCount() == operatorDefs[ operatorDefs.length - 1 ].getOutputPortCount() );
         }
     }
 

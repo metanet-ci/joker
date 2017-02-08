@@ -47,7 +47,7 @@ public class BargainIndexOperatorTest extends AbstractJokerTest
                                                           .build();
         operator = (BargainIndexOperator) operatorDef.createOperator();
         final InitializationContextImpl initContext = new InitializationContextImpl();
-        initContext.setRuntimeSchema( operatorDef.schema() );
+        initContext.setRuntimeSchema( operatorDef.getSchema() );
         operator.init( initContext );
     }
 

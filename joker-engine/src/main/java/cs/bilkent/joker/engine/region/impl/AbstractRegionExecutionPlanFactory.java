@@ -5,42 +5,42 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.config.JokerConfig;
-import cs.bilkent.joker.engine.region.RegionConfig;
-import cs.bilkent.joker.engine.region.RegionConfigFactory;
+import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.region.RegionDef;
+import cs.bilkent.joker.engine.region.RegionExecutionPlanFactory;
 import static cs.bilkent.joker.engine.util.ExceptionUtils.checkInterruption;
 import cs.bilkent.joker.operator.OperatorDef;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 
-public abstract class AbstractRegionConfigFactory implements RegionConfigFactory
+public abstract class AbstractRegionExecutionPlanFactory implements RegionExecutionPlanFactory
 {
 
     final int maxReplicaCount;
 
-    protected AbstractRegionConfigFactory ( JokerConfig jokerConfig )
+    protected AbstractRegionExecutionPlanFactory ( JokerConfig jokerConfig )
     {
         this.maxReplicaCount = jokerConfig.getFlowDefOptimizerConfig().getMaxReplicaCount();
     }
 
     @Override
-    public List<RegionConfig> createRegionConfigs ( final List<RegionDef> regionDefs )
+    public List<RegionExecutionPlan> createRegionExecutionPlans ( final List<RegionDef> regionDefs )
     {
         try
         {
             init();
-            final List<RegionConfig> regionConfigs = new ArrayList<>();
+            final List<RegionExecutionPlan> regionExecutionPlans = new ArrayList<>();
             for ( RegionDef regionDef : regionDefs )
             {
-                final RegionConfig regionConfig = createRegionConfig( regionDef );
+                final RegionExecutionPlan regionExecutionPlan = createRegionExecutionPlan( regionDef );
 
-                final int replicaCount = regionConfig.getReplicaCount();
+                final int replicaCount = regionExecutionPlan.getReplicaCount();
                 validateReplicaCount( regionDef, replicaCount );
-                validatePipelineStartIndices( regionDef.getOperators(), regionConfig.getPipelineStartIndices() );
+                validatePipelineStartIndices( regionDef.getOperators(), regionExecutionPlan.getPipelineStartIndices() );
 
-                regionConfigs.add( regionConfig );
+                regionExecutionPlans.add( regionExecutionPlan );
             }
 
-            return regionConfigs;
+            return regionExecutionPlans;
         }
         finally
         {
@@ -56,7 +56,7 @@ public abstract class AbstractRegionConfigFactory implements RegionConfigFactory
 
     }
 
-    protected abstract RegionConfig createRegionConfig ( RegionDef regionDef );
+    protected abstract RegionExecutionPlan createRegionExecutionPlan ( RegionDef regionDef );
 
     final void validatePipelineStartIndices ( final List<OperatorDef> operators, final List<Integer> pipelineStartIndices )
     {

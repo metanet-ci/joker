@@ -29,7 +29,7 @@ public class PipelineReplicaCompletionTracker implements OperatorReplicaListener
         this.operatorCount = operators.length;
         for ( OperatorReplica operator : operators )
         {
-            runningOperatorIds.add( operator.getOperatorDef().id() );
+            runningOperatorIds.add( operator.getOperatorDef().getId() );
         }
     }
 

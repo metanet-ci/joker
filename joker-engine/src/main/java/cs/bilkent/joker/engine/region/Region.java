@@ -2,20 +2,21 @@ package cs.bilkent.joker.engine.region;
 
 import java.util.Arrays;
 
+import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
 
 public class Region
 {
 
-    private final RegionConfig config;
+    private final RegionExecutionPlan executionPlan;
 
     // [pipelineIndex, replicaIndex]
     private final PipelineReplica[][] pipelines;
 
-    public Region ( final RegionConfig config, final PipelineReplica[][] pipelines )
+    public Region ( final RegionExecutionPlan executionPlan, final PipelineReplica[][] pipelines )
     {
-        this.config = config;
+        this.executionPlan = executionPlan;
         this.pipelines = Arrays.copyOf( pipelines, pipelines.length );
         for ( int i = 0; i < pipelines.length; i++ )
         {
@@ -25,23 +26,23 @@ public class Region
 
     public int getRegionId ()
     {
-        return config.getRegionId();
+        return executionPlan.getRegionId();
     }
 
-    public RegionConfig getConfig ()
+    public RegionExecutionPlan getExecutionPlan ()
     {
-        return config;
+        return executionPlan;
     }
 
     public RegionDef getRegionDef ()
     {
-        return config.getRegionDef();
+        return executionPlan.getRegionDef();
     }
 
     public PipelineReplica[] getReplicaPipelines ( final int replicaIndex )
     {
-        final PipelineReplica[] p = new PipelineReplica[ config.getPipelineCount() ];
-        for ( int i = 0; i < config.getPipelineCount(); i++ )
+        final PipelineReplica[] p = new PipelineReplica[ executionPlan.getPipelineCount() ];
+        for ( int i = 0; i < executionPlan.getPipelineCount(); i++ )
         {
             p[ i ] = pipelines[ i ][ replicaIndex ];
         }
@@ -55,11 +56,11 @@ public class Region
 
     public PipelineReplica[] getPipelineReplicasByPipelineId ( final PipelineId pipelineId )
     {
-        for ( int i = 0; i < config.getPipelineCount(); i++ )
+        for ( int i = 0; i < executionPlan.getPipelineCount(); i++ )
         {
             if ( pipelines[ i ][ 0 ].id().pipelineId.equals( pipelineId ) )
             {
-                return Arrays.copyOf( pipelines[ i ], config.getReplicaCount() );
+                return Arrays.copyOf( pipelines[ i ], executionPlan.getReplicaCount() );
             }
         }
 

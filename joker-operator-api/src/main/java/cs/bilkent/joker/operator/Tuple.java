@@ -10,20 +10,21 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.BiConsumer;
 
-import static cs.bilkent.joker.com.google.common.base.Preconditions.checkArgument;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.operator.schema.runtime.RuntimeSchemaField;
 import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import static cs.bilkent.joker.operator.schema.runtime.TupleSchema.FIELD_NOT_FOUND;
 
 
 /**
- * {@code Tuple} is the main data structure to manipulate data in Joker. A tuple is a mapping of keys to values
- * where each value can be any type. Tuples are partially-schemaful, which means that they can specify the fields that are guaranteed
- * to exist, using {@link TupleSchema} objects, and they can also contain additional arbitrary fields.
+ * {@code Tuple} is the main data structure to manipulate computation data. A tuple is a mapping of keys to values
+ * where keys are strings and values are any types. Tuples are semi-schemaful, which means that they can specify the fields that are
+ * guaranteed to exist, using {@link TupleSchema} objects, and they can also contain additional arbitrary fields.
+ * <p/>
  * If a {@code Tuple} object is created to be sent to an output port of an operator, corresponding {@link TupleSchema} object,
  * which can be accessed via {@link InitializationContext#getOutputPortSchema(int)} method, should be provided to the tuple. If not
- * specified, an empty schema will be used by default. It is recommended to specify schema objects properly as they will decrease
- * memory overhead of the tuples and make field accesses in constant time.
+ * specified, an empty schema will be used by default, which can cause negative performance effects on the downstream. It is recommended
+ * to specify schema objects properly as they will decrease memory overhead of the tuples and make field accesses in constant time.
  */
 public final class Tuple implements Fields<String>
 {

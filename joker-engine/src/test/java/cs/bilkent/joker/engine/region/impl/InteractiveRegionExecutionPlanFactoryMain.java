@@ -8,9 +8,9 @@ import java.util.function.Consumer;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import cs.bilkent.joker.engine.config.JokerConfig;
-import cs.bilkent.joker.engine.region.RegionConfigFactory;
 import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
+import cs.bilkent.joker.engine.region.RegionExecutionPlanFactory;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
 import cs.bilkent.joker.operator.OperatorConfig;
@@ -27,7 +27,7 @@ import static cs.bilkent.joker.operators.TupleCountBasedWindowReducerOperator.AC
 import static cs.bilkent.joker.operators.TupleCountBasedWindowReducerOperator.REDUCER_CONFIG_PARAMETER;
 import static java.util.Collections.singletonList;
 
-public class InteractiveRegionConfigFactoryMain
+public class InteractiveRegionExecutionPlanFactoryMain
 {
 
     public static void main ( String[] args )
@@ -36,7 +36,7 @@ public class InteractiveRegionConfigFactoryMain
         final IdGenerator idGenerator = new IdGenerator();
         final RegionDefFormer regionFormer = new RegionDefFormerImpl( idGenerator );
         final JokerConfig jokerConfig = new JokerConfig();
-        final RegionConfigFactory regionConfigFactory = new InteractiveRegionConfigFactory( jokerConfig );
+        final RegionExecutionPlanFactory regionExecutionPlanFactory = new InteractiveRegionExecutionPlanFactory( jokerConfig );
 
         final OperatorConfig beaconConfig = new OperatorConfig();
         beaconConfig.set( BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER, 10 );
@@ -90,7 +90,7 @@ public class InteractiveRegionConfigFactoryMain
 
         final List<RegionDef> regions = regionFormer.createRegions( flow );
 
-        regionConfigFactory.createRegionConfigs( regions );
+        regionExecutionPlanFactory.createRegionExecutionPlans( regions );
     }
 
 }

@@ -12,8 +12,8 @@ import cs.bilkent.joker.operator.Operator;
 
 
 /**
- * Defines type and input / output port counts of {@link Operator} implementations. The runtime engine utilizes given {@link OperatorSpec}
- * annotations to understand computational requirements of the operators, and to provide necessary capabilities.
+ * Defines type, input port count and output port count of {@link Operator} implementations. The runtime reads {@link OperatorSpec}
+ * annotations to understand behavior of the operators, and to provide necessary capabilities during the execution.
  * <p>
  * {@code OperatorSpec} annotation is mandatory for the operators.
  *
@@ -27,9 +27,9 @@ public @interface OperatorSpec
 {
 
     /**
-     * Specifies type of the operator that defines its state-related characteristics
+     * Specifies how the operator performs its computation
      *
-     * @return type of the operator that defines its state-related characteristics
+     * @return type of the operator which specifies how the operator performs its computation
      */
     OperatorType type ();
 

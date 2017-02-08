@@ -61,10 +61,10 @@ public class RegionDef
         final Set<OperatorType> allowedOperatorTypes = REGION_OPERATOR_TYPES.get( regionType );
         for ( OperatorDef operator : operators )
         {
-            checkArgument( allowedOperatorTypes.contains( operator.operatorType() ),
+            checkArgument( allowedOperatorTypes.contains( operator.getOperatorType() ),
                            "%s Operator: %s is not allowed in %s region. Allowed operator types: %s",
-                           operator.operatorType(),
-                           operator.id(),
+                           operator.getOperatorType(),
+                           operator.getId(),
                            regionType,
                            allowedOperatorTypes );
         }

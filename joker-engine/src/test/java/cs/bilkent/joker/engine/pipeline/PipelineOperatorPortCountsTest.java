@@ -13,9 +13,9 @@ import com.typesafe.config.ConfigValueFactory;
 import cs.bilkent.joker.JokerModule;
 import cs.bilkent.joker.engine.config.FlowDefOptimizerConfig;
 import cs.bilkent.joker.engine.config.JokerConfig;
+import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.region.FlowDefOptimizer;
 import cs.bilkent.joker.engine.region.Region;
-import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
 import cs.bilkent.joker.engine.region.RegionManager;
@@ -58,9 +58,9 @@ public class PipelineOperatorPortCountsTest extends AbstractJokerTest
         final String configPath = JokerConfig.ENGINE_CONFIG_NAME + "." + FlowDefOptimizerConfig.CONFIG_NAME + "."
                                   + FlowDefOptimizerConfig.MERGE_REGIONS;
 
-        final Config flowDeploymentConfig = ConfigFactory.empty().withValue( configPath, ConfigValueFactory.fromAnyRef( TRUE ) );
+        final Config flowDefOptimizerConfig = ConfigFactory.empty().withValue( configPath, ConfigValueFactory.fromAnyRef( TRUE ) );
 
-        final Config config = ConfigFactory.load().withoutPath( configPath ).withFallback( flowDeploymentConfig );
+        final Config config = ConfigFactory.load().withoutPath( configPath ).withFallback( flowDefOptimizerConfig );
 
         injector = Guice.createInjector( new JokerModule( new JokerConfig( config ) ) );
         regionDefFormer = injector.getInstance( RegionDefFormer.class );
@@ -122,11 +122,11 @@ public class PipelineOperatorPortCountsTest extends AbstractJokerTest
         assertThat( regionDefs, hasSize( 1 ) );
 
         final RegionDef regionDef = regionDefs.get( 0 );
-        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 1 );
 
-        final Region region = regionManager.createRegion( flow, regionConfig );
+        final Region region = regionManager.createRegion( flow, regionExecutionPlan );
         final PipelineReplica[] pipelineReplicas = region.getPipelineReplicas( 0 );
-        final Pipeline pipeline = new Pipeline( pipelineReplicas[ 0 ].id().pipelineId, regionConfig, pipelineReplicas );
+        final Pipeline pipeline = new Pipeline( pipelineReplicas[ 0 ].id().pipelineId, regionExecutionPlan, pipelineReplicas );
         pipeline.setUpstreamContext( new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ) );
         pipeline.init();
 

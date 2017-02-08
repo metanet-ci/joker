@@ -31,10 +31,10 @@ public class PipelineReplicaMeter
     {
         this.ticker = new Ticker( tickMask );
         this.pipelineReplicaId = pipelineReplicaId;
-        this.headOperatorId = headOperatorDef.id();
-        this.tailOperatorId = tailOperatorDef.id();
-        this.consumedPortCount = headOperatorDef.inputPortCount();
-        this.producedPortCount = tailOperatorDef.outputPortCount();
+        this.headOperatorId = headOperatorDef.getId();
+        this.tailOperatorId = tailOperatorDef.getId();
+        this.consumedPortCount = headOperatorDef.getInputPortCount();
+        this.producedPortCount = tailOperatorDef.getOutputPortCount();
         this.consumedTupleCounts = new long[ consumedPortCount ];
         this.producedTupleCounts = new long[ producedPortCount ];
     }

@@ -13,6 +13,7 @@ import org.junit.runners.Parameterized.Parameters;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.SINGLE_THREADED;
+import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.kvstore.impl.OperatorKVStoreManagerImpl;
 import cs.bilkent.joker.engine.partition.PartitionDistribution;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
@@ -28,7 +29,6 @@ import cs.bilkent.joker.engine.pipeline.PipelineReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.Region;
-import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.FlowExample6;
 import static cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.FlowExample6.PARTITION_KEY_FIELD;
@@ -110,8 +110,8 @@ public class RegionRebalancingTest extends AbstractJokerTest
 
         final List<RegionDef> regionDefs = regionDefFormer.createRegions( flowExample6.flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( regionDef, asList( 0, 1 ), initialReplicaCount );
-        final Region region = regionManager.createRegion( flowExample6.flow, regionConfig );
+        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, asList( 0, 1 ), initialReplicaCount );
+        final Region region = regionManager.createRegion( flowExample6.flow, regionExecutionPlan );
 
         final PipelineReplica[] pipelineReplicas0 = region.getPipelineReplicas( 0 );
         final PipelineReplica[] pipelineReplicas1 = region.getPipelineReplicas( 1 );
@@ -132,14 +132,11 @@ public class RegionRebalancingTest extends AbstractJokerTest
             for ( int replicaIndex = initialReplicaCount; replicaIndex < rebalancedReplicaCount; replicaIndex++ )
             {
                 assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(),
-                                                                                    replicaIndex,
-                                                                                    flowExample6.operatorDef1.id() ) );
+                                                                                    replicaIndex, flowExample6.operatorDef1.getId() ) );
                 assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(),
-                                                                                    replicaIndex,
-                                                                                    flowExample6.operatorDef2.id() ) );
+                                                                                    replicaIndex, flowExample6.operatorDef2.getId() ) );
                 assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(),
-                                                                                    replicaIndex,
-                                                                                    flowExample6.operatorDef3.id() ) );
+                                                                                    replicaIndex, flowExample6.operatorDef3.getId() ) );
             }
         }
     }
@@ -148,13 +145,13 @@ public class RegionRebalancingTest extends AbstractJokerTest
     {
         assertNotNull( region );
 
-        for ( int replicaIndex = 0; replicaIndex < region.getConfig().getReplicaCount(); replicaIndex++ )
+        for ( int replicaIndex = 0; replicaIndex < region.getExecutionPlan().getReplicaCount(); replicaIndex++ )
         {
             final PipelineReplica[] pipelines = region.getReplicaPipelines( replicaIndex );
             assertEquals( 2, pipelines.length );
             final PipelineReplica pipeline0 = pipelines[ 0 ];
             final PipelineReplica pipeline1 = pipelines[ 1 ];
-            assertDefaultOperatorTupleQueue( pipeline0, flowExample6.operatorDef1.inputPortCount() );
+            assertDefaultOperatorTupleQueue( pipeline0, flowExample6.operatorDef1.getInputPortCount() );
             assertEmptySelfPipelineTupleQueue( pipeline0 );
 
             assertEquals( new PipelineReplicaId( new PipelineId( regionDef.getRegionId(), 0 ), replicaIndex ), pipeline0.id() );
@@ -164,7 +161,7 @@ public class RegionRebalancingTest extends AbstractJokerTest
 
             final OperatorReplica operatorReplica1 = pipeline0.getOperator( 0 );
             assertOperatorDef( operatorReplica1, flowExample6.operatorDef1 );
-            assertDefaultOperatorTupleQueue( operatorReplica1, flowExample6.operatorDef1.inputPortCount(), MULTI_THREADED );
+            assertDefaultOperatorTupleQueue( operatorReplica1, flowExample6.operatorDef1.getInputPortCount(), MULTI_THREADED );
             assertEmptytOperatorKVStore( operatorReplica1 );
             assertBlockingTupleQueueDrainerPool( operatorReplica1 );
             assertLastOperatorOutputSupplier( config, operatorReplica1 );
@@ -178,7 +175,7 @@ public class RegionRebalancingTest extends AbstractJokerTest
 
             final OperatorReplica operatorReplica3 = pipeline1.getOperator( 1 );
             assertOperatorDef( operatorReplica3, flowExample6.operatorDef3 );
-            assertDefaultOperatorTupleQueue( operatorReplica3, flowExample6.operatorDef3.inputPortCount(), SINGLE_THREADED );
+            assertDefaultOperatorTupleQueue( operatorReplica3, flowExample6.operatorDef3.getInputPortCount(), SINGLE_THREADED );
             assertEmptytOperatorKVStore( operatorReplica3 );
             assertNonBlockingTupleQueueDrainerPool( operatorReplica3 );
             assertLastOperatorOutputSupplier( config, operatorReplica3 );
@@ -190,7 +187,7 @@ public class RegionRebalancingTest extends AbstractJokerTest
         {
             final OperatorReplica operator = pipelineReplica.getOperator( 0 );
 
-            final GreedyDrainer drainer = new GreedyDrainer( operator.getOperatorDef().inputPortCount() );
+            final GreedyDrainer drainer = new GreedyDrainer( operator.getOperatorDef().getInputPortCount() );
             pipelineReplica.getSelfPipelineTupleQueue().drain( drainer );
             final TuplesImpl result = drainer.getResult();
             assertTrue( result == null || result.isEmpty() );
@@ -217,7 +214,7 @@ public class RegionRebalancingTest extends AbstractJokerTest
     private void drainOperatorTupleQueue ( final Set<Object> keys1, final OperatorReplica operator )
     {
         final OperatorTupleQueue operatorTupleQueue = operator.getQueue();
-        final GreedyDrainer drainer = new GreedyDrainer( operator.getOperatorDef().inputPortCount() );
+        final GreedyDrainer drainer = new GreedyDrainer( operator.getOperatorDef().getInputPortCount() );
         operatorTupleQueue.drain( drainer );
         final TuplesImpl result = drainer.getResult();
         if ( result != null && result.isNonEmpty() )

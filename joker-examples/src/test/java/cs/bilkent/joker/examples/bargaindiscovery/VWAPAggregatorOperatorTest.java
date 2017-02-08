@@ -57,7 +57,7 @@ public class VWAPAggregatorOperatorTest extends AbstractJokerTest
                                                           .build();
 
         operator = (VWAPAggregatorOperator) operatorDef.createOperator();
-        initContext.setRuntimeSchema( operatorDef.schema() );
+        initContext.setRuntimeSchema( operatorDef.getSchema() );
     }
 
     @Test( expected = IllegalArgumentException.class )

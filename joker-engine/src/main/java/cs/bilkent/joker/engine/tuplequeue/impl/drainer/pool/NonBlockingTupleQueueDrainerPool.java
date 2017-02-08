@@ -44,9 +44,9 @@ public class NonBlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
 
     public NonBlockingTupleQueueDrainerPool ( final JokerConfig config, final OperatorDef operatorDef )
     {
-        this.operatorId = operatorDef.id();
-        this.inputPortCount = operatorDef.inputPortCount();
-        this.operatorType = operatorDef.operatorType();
+        this.operatorId = operatorDef.getId();
+        this.inputPortCount = operatorDef.getInputPortCount();
+        this.operatorType = operatorDef.getOperatorType();
 
         final int maxBatchSize = config.getTupleQueueDrainerConfig().getMaxBatchSize();
 

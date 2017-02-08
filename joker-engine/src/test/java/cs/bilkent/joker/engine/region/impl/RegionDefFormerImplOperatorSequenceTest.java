@@ -51,8 +51,8 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
 
         final List<OperatorDef> operators = operatorSequences.iterator().next();
         assertThat( operators, hasSize( 2 ) );
-        assertThat( operators.get( 0 ).id(), equalTo( "o1" ) );
-        assertThat( operators.get( 1 ).id(), equalTo( "o2" ) );
+        assertThat( operators.get( 0 ).getId(), equalTo( "o1" ) );
+        assertThat( operators.get( 1 ).getId(), equalTo( "o2" ) );
     }
 
     @Test
@@ -75,9 +75,9 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
 
         final List<OperatorDef> operators = operatorSequences.iterator().next();
         assertThat( operators, hasSize( 3 ) );
-        assertThat( operators.get( 0 ).id(), equalTo( "o1" ) );
-        assertThat( operators.get( 1 ).id(), equalTo( "o2" ) );
-        assertThat( operators.get( 2 ).id(), equalTo( "o3" ) );
+        assertThat( operators.get( 0 ).getId(), equalTo( "o1" ) );
+        assertThat( operators.get( 1 ).getId(), equalTo( "o2" ) );
+        assertThat( operators.get( 2 ).getId(), equalTo( "o3" ) );
     }
 
     @Test
@@ -307,8 +307,8 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
                                                                             {
                                                                                 final List<String> sequenceOperatorIds = operatorSequence
                                                                                                                                  .stream()
-                                                                                                                                         .map( OperatorDef::id )
-                                                                                                                                         .collect(
+                                                                                                                                 .map( OperatorDef::getId )
+                                                                                                                                 .collect(
                                                                                                                                                  toList() );
                                                                                 return sequenceOperatorIds.equals( expectedOperatorIds );
                                                                             } );

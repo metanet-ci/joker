@@ -41,8 +41,8 @@ public class BlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
 
     public BlockingTupleQueueDrainerPool ( final JokerConfig config, final OperatorDef operatorDef )
     {
-        this.operatorId = operatorDef.id();
-        this.inputPortCount = operatorDef.inputPortCount();
+        this.operatorId = operatorDef.getId();
+        this.inputPortCount = operatorDef.getInputPortCount();
 
         final TupleQueueDrainerConfig tupleQueueDrainerConfig = config.getTupleQueueDrainerConfig();
         final int maxBatchSize = tupleQueueDrainerConfig.getMaxBatchSize();

@@ -25,12 +25,12 @@ import cs.bilkent.joker.engine.pipeline.PipelineManager;
 import cs.bilkent.joker.engine.pipeline.impl.PipelineManagerImpl;
 import cs.bilkent.joker.engine.region.FlowDefOptimizer;
 import cs.bilkent.joker.engine.region.PipelineTransformer;
-import cs.bilkent.joker.engine.region.RegionConfigFactory;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
+import cs.bilkent.joker.engine.region.RegionExecutionPlanFactory;
 import cs.bilkent.joker.engine.region.RegionManager;
 import cs.bilkent.joker.engine.region.impl.FlowDefOptimizerImpl;
 import cs.bilkent.joker.engine.region.impl.IdGenerator;
-import cs.bilkent.joker.engine.region.impl.InteractiveRegionConfigFactory;
+import cs.bilkent.joker.engine.region.impl.InteractiveRegionExecutionPlanFactory;
 import cs.bilkent.joker.engine.region.impl.PipelineTransformerImpl;
 import cs.bilkent.joker.engine.region.impl.RegionDefFormerImpl;
 import cs.bilkent.joker.engine.region.impl.RegionManagerImpl;
@@ -46,18 +46,18 @@ public class JokerModule extends AbstractModule
 
     private final JokerConfig config;
 
-    private final RegionConfigFactory regionConfigFactory;
+    private final RegionExecutionPlanFactory regionExecutionPlanFactory;
 
     public JokerModule ( final JokerConfig config )
     {
         this( UUID.randomUUID().toString(), config, null );
     }
 
-    public JokerModule ( final Object jokerId, final JokerConfig config, final RegionConfigFactory regionConfigFactory )
+    public JokerModule ( final Object jokerId, final JokerConfig config, final RegionExecutionPlanFactory regionExecutionPlanFactory )
     {
         this.jokerId = jokerId;
         this.config = config;
-        this.regionConfigFactory = regionConfigFactory;
+        this.regionExecutionPlanFactory = regionExecutionPlanFactory;
     }
 
     public Object getJokerId ()
@@ -70,9 +70,9 @@ public class JokerModule extends AbstractModule
         return config;
     }
 
-    public RegionConfigFactory getRegionConfigFactory ()
+    public RegionExecutionPlanFactory getRegionExecutionPlanFactory ()
     {
-        return regionConfigFactory;
+        return regionExecutionPlanFactory;
     }
 
     @Override
@@ -89,13 +89,13 @@ public class JokerModule extends AbstractModule
         bind( MetricManager.class ).to( MetricManagerImpl.class );
         bind( FlowDefOptimizer.class ).to( FlowDefOptimizerImpl.class );
         bind( PipelineTransformer.class ).to( PipelineTransformerImpl.class );
-        if ( regionConfigFactory != null )
+        if ( regionExecutionPlanFactory != null )
         {
-            bind( RegionConfigFactory.class ).toInstance( regionConfigFactory );
+            bind( RegionExecutionPlanFactory.class ).toInstance( regionExecutionPlanFactory );
         }
         else
         {
-            bind( RegionConfigFactory.class ).to( InteractiveRegionConfigFactory.class );
+            bind( RegionExecutionPlanFactory.class ).to( InteractiveRegionExecutionPlanFactory.class );
         }
         bind( JokerConfig.class ).toInstance( config );
         bind( ThreadGroup.class ).annotatedWith( named( JOKER_THREAD_GROUP_NAME ) ).toInstance( new ThreadGroup( "Joker" ) );

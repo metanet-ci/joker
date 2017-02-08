@@ -111,9 +111,9 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
 
     private boolean containsAllFieldNamesOnInputPort ( final OperatorDef operator, final List<String> fieldNames )
     {
-        checkState( operator.operatorType() == STATELESS && operator.inputPortCount() == 1 );
+        checkState( operator.getOperatorType() == STATELESS && operator.getInputPortCount() == 1 );
 
-        final PortRuntimeSchema inputSchema = operator.schema().getInputSchema( 0 );
+        final PortRuntimeSchema inputSchema = operator.getSchema().getInputSchema( 0 );
         return fieldNames.stream().allMatch( fieldName -> inputSchema.getField( fieldName ) != null );
     }
 
@@ -134,7 +134,7 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
         for ( RegionDef currentRegion : regions )
         {
             final OperatorDef firstOperator = getFirstOperator( currentRegion );
-            final List<OperatorDef> upstreamOperators = getUpstreamOperators( operators, connections, firstOperator.id() );
+            final List<OperatorDef> upstreamOperators = getUpstreamOperators( operators, connections, firstOperator.getId() );
             if ( upstreamOperators.size() == 1 )
             {
                 final RegionDef upstreamRegion = getRegionByLastOperator( regions, upstreamOperators.get( 0 ) );
@@ -163,7 +163,7 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
 
                 // region is STATELESS
 
-                if ( getDownstreamOperators( operators, connections, getLastOperator( upstreamRegion ).id() ).size() == 1 )
+                if ( getDownstreamOperators( operators, connections, getLastOperator( upstreamRegion ).getId() ).size() == 1 )
                 {
                     final OperatorType newRegionType;
                     if ( upstreamRegion.getRegionType() == PARTITIONED_STATEFUL )
@@ -240,10 +240,10 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
                                                final RegionDef region )
     {
         final OperatorDef firstOperator = getFirstOperator( region );
-        final List<OperatorDef> upstreamOperators = getUpstreamOperators( operators, connections, firstOperator.id() );
+        final List<OperatorDef> upstreamOperators = getUpstreamOperators( operators, connections, firstOperator.getId() );
 
         final OperatorDef lastOperator = getLastOperator( region );
-        final List<OperatorDef> downstreamOperators = getDownstreamOperators( operators, connections, lastOperator.id() );
+        final List<OperatorDef> downstreamOperators = getDownstreamOperators( operators, connections, lastOperator.getId() );
 
         final int upstreamOperatorCount = upstreamOperators.size(), downstreamOperatorCount = downstreamOperators.size(), duplicateCount;
         if ( upstreamOperatorCount < 2 )
@@ -263,8 +263,7 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
 
         LOGGER.debug( "Creating {} duplicates of {} with its first operator {}, upstream operator count: {} downstream operator count: {}",
                       duplicateCount,
-                      region,
-                      firstOperator.id(),
+                      region, firstOperator.getId(),
                       upstreamOperatorCount,
                       downstreamOperatorCount );
 
@@ -274,11 +273,11 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
         final List<OperatorDef> regionOperators = region.getOperators();
         for ( OperatorDef o : regionOperators )
         {
-            operators.remove( o.id() );
-            LOGGER.debug( "Removing operator {}", o.id() );
+            operators.remove( o.getId() );
+            LOGGER.debug( "Removing operator {}", o.getId() );
         }
 
-        final Multimap<Port, Port> upstreamConnections = getUpstreamConnections( connections, firstOperator.id() );
+        final Multimap<Port, Port> upstreamConnections = getUpstreamConnections( connections, firstOperator.getId() );
         for ( Entry<Port, Port> e : upstreamConnections.entries() )
         {
             LOGGER.debug( "Removing upstream connection <{}, {}>", e.getValue(), e.getKey() );
@@ -288,8 +287,8 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
 
         for ( OperatorDef o : regionOperators )
         {
-            final Multimap<Port, Port> d = getDownstreamConnections( connections, o.id() );
-            downstreamConnections.put( o.id(), d );
+            final Multimap<Port, Port> d = getDownstreamConnections( connections, o.getId() );
+            downstreamConnections.put( o.getId(), d );
             for ( Entry<Port, Port> e : d.entries() )
             {
                 LOGGER.debug( "Removing downstream connection <{}, {}>", e.getKey(), e.getValue() );
@@ -306,16 +305,16 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
             {
                 final String duplicateOperatorId = toDuplicateOperatorId( o, duplicateIndex );
                 final OperatorDef duplicateOperator = new OperatorDef( duplicateOperatorId,
-                                                                       o.operatorClazz(),
-                                                                       o.operatorType(),
-                                                                       o.inputPortCount(),
-                                                                       o.outputPortCount(),
-                                                                       o.schema(),
-                                                                       o.config(),
-                                                                       o.partitionFieldNames() );
+                                                                       o.getOperatorClazz(),
+                                                                       o.getOperatorType(),
+                                                                       o.getInputPortCount(),
+                                                                       o.getOutputPortCount(),
+                                                                       o.getSchema(),
+                                                                       o.getConfig(),
+                                                                       o.getPartitionFieldNames() );
                 duplicateOperators.add( duplicateOperator );
                 operators.put( duplicateOperatorId, duplicateOperator );
-                LOGGER.debug( "Operator {} is duplicated with id {}", o.id(), duplicateOperatorId );
+                LOGGER.debug( "Operator {} is duplicated with id {}", o.getId(), duplicateOperatorId );
             }
 
             final RegionDef regionDuplicate = new RegionDef( idGenerator.nextId(),
@@ -329,9 +328,9 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
                 final OperatorDef upstreamOperator = upstreamOperators.get( duplicateIndex );
                 for ( Entry<Port, Port> e : upstreamConnections.entries() )
                 {
-                    if ( e.getValue().operatorId.equals( upstreamOperator.id() ) )
+                    if ( e.getValue().operatorId.equals( upstreamOperator.getId() ) )
                     {
-                        final Port duplicateDestinationPort = new Port( duplicateOperators.get( 0 ).id(), e.getKey().portIndex );
+                        final Port duplicateDestinationPort = new Port( duplicateOperators.get( 0 ).getId(), e.getKey().portIndex );
                         connections.add( new SimpleEntry<>( e.getValue(), duplicateDestinationPort ) );
                         LOGGER.debug( "Connection < {} , {} > is duplicated as < {} , {} >",
                                       e.getValue(),
@@ -345,7 +344,7 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
             {
                 for ( Entry<Port, Port> e : upstreamConnections.entries() )
                 {
-                    final Port duplicateDestinationPort = new Port( duplicateOperators.get( 0 ).id(), e.getKey().portIndex );
+                    final Port duplicateDestinationPort = new Port( duplicateOperators.get( 0 ).getId(), e.getKey().portIndex );
                     connections.add( new SimpleEntry<>( e.getValue(), duplicateDestinationPort ) );
                     LOGGER.debug( "Connection < {} , {} > is duplicated as < {} , {} >",
                                   e.getValue(),
@@ -360,10 +359,10 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
                 final OperatorDef duplicateOperator = duplicateOperators.get( i );
                 final OperatorDef originalOperator = regionOperators.get( i );
 
-                for ( Entry<Port, Port> e : downstreamConnections.get( originalOperator.id() ).entries() )
+                for ( Entry<Port, Port> e : downstreamConnections.get( originalOperator.getId() ).entries() )
                 {
-                    final Port sourcePort = new Port( duplicateOperator.id(), e.getKey().portIndex );
-                    final Port destinationPort = new Port( duplicateOperators.get( i + 1 ).id(), e.getValue().portIndex );
+                    final Port sourcePort = new Port( duplicateOperator.getId(), e.getKey().portIndex );
+                    final Port destinationPort = new Port( duplicateOperators.get( i + 1 ).getId(), e.getValue().portIndex );
                     connections.add( new SimpleEntry<>( sourcePort, destinationPort ) );
                     LOGGER.debug( "Connection < {} , {} > is duplicated as < {} , {} >",
                                   e.getKey(),
@@ -375,10 +374,10 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
 
             if ( upstreamOperators.size() == duplicateCount )
             {
-                for ( Entry<Port, Port> e : downstreamConnections.get( getLastOperator( region ).id() ).entries() )
+                for ( Entry<Port, Port> e : downstreamConnections.get( getLastOperator( region ).getId() ).entries() )
                 {
                     final OperatorDef duplicateOperator = duplicateOperators.get( duplicateOperators.size() - 1 );
-                    final Port duplicateSourcePort = new Port( duplicateOperator.id(), e.getKey().portIndex );
+                    final Port duplicateSourcePort = new Port( duplicateOperator.getId(), e.getKey().portIndex );
                     connections.add( new SimpleEntry<>( duplicateSourcePort, e.getValue() ) );
                     LOGGER.debug( "Connection < {} , {} > is duplicated as < {} , {} >", e.getKey(), e.getValue(), duplicateSourcePort, e.getValue() );
                 }
@@ -386,10 +385,10 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
             else
             {
                 final OperatorDef downstreamOperator = downstreamOperators.get( duplicateIndex );
-                final String duplicateOperatorId = duplicateOperators.get( duplicateOperators.size() - 1 ).id();
-                for ( Entry<Port, Port> e : downstreamConnections.get( getLastOperator( region ).id() ).entries() )
+                final String duplicateOperatorId = duplicateOperators.get( duplicateOperators.size() - 1 ).getId();
+                for ( Entry<Port, Port> e : downstreamConnections.get( getLastOperator( region ).getId() ).entries() )
                 {
-                    if ( e.getValue().operatorId.equals( downstreamOperator.id() ) )
+                    if ( e.getValue().operatorId.equals( downstreamOperator.getId() ) )
                     {
                         final Port duplicateSourcePort = new Port( duplicateOperatorId, e.getKey().portIndex );
                         connections.add( new SimpleEntry<>( duplicateSourcePort, e.getValue() ) );
@@ -420,7 +419,7 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
             }
         }
 
-        upstream.sort( comparing( OperatorDef::id ) );
+        upstream.sort( comparing( OperatorDef::getId ) );
 
         return upstream;
     }
@@ -438,7 +437,7 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
             }
         }
 
-        downstream.sort( comparing( OperatorDef::id ) );
+        downstream.sort( comparing( OperatorDef::getId ) );
 
         return downstream;
     }
@@ -473,7 +472,7 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
 
     static String toDuplicateOperatorId ( final OperatorDef o, final int... duplicateIndex )
     {
-        final StringBuilder sb = new StringBuilder( o.id() );
+        final StringBuilder sb = new StringBuilder( o.getId() );
         for ( int d : duplicateIndex )
         {
             sb.append( "_d" ).append( d );

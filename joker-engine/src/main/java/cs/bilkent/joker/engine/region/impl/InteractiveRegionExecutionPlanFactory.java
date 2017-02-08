@@ -15,7 +15,7 @@ import com.google.common.base.Splitter;
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.exception.InitializationException;
-import cs.bilkent.joker.engine.region.RegionConfig;
+import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.region.RegionDef;
 import static cs.bilkent.joker.engine.util.ExceptionUtils.checkInterruption;
 import cs.bilkent.joker.operator.OperatorDef;
@@ -24,13 +24,13 @@ import static java.util.stream.Collectors.toList;
 
 @Singleton
 @NotThreadSafe
-public class InteractiveRegionConfigFactory extends AbstractRegionConfigFactory
+public class InteractiveRegionExecutionPlanFactory extends AbstractRegionExecutionPlanFactory
 {
 
     private BufferedReader br;
 
     @Inject
-    public InteractiveRegionConfigFactory ( final JokerConfig jokerConfig )
+    public InteractiveRegionExecutionPlanFactory ( final JokerConfig jokerConfig )
     {
         super( jokerConfig );
     }
@@ -48,22 +48,22 @@ public class InteractiveRegionConfigFactory extends AbstractRegionConfigFactory
     }
 
     @Override
-    protected RegionConfig createRegionConfig ( final RegionDef regionDef )
+    protected RegionExecutionPlan createRegionExecutionPlan ( final RegionDef regionDef )
     {
         checkArgument( regionDef != null, "null region def!" );
 
         try
         {
-            System.out.println( "Region config for " + regionDef.getRegionType() + " region..." );
+            System.out.println( "Region execution plan for " + regionDef.getRegionType() + " region..." );
             final int replicaCount = readReplicaCount( regionDef );
             final List<Integer> pipelineStartIndices = readPipelineStartIndices( regionDef );
 
-            return new RegionConfig( regionDef, pipelineStartIndices, replicaCount );
+            return new RegionExecutionPlan( regionDef, pipelineStartIndices, replicaCount );
         }
         catch ( Exception e )
         {
             checkInterruption( e );
-            throw new InitializationException( "create region configs failed for " + regionDef, e );
+            throw new InitializationException( "create region execution plan failed for " + regionDef, e );
         }
     }
 
@@ -79,7 +79,7 @@ public class InteractiveRegionConfigFactory extends AbstractRegionConfigFactory
         final List<OperatorDef> operators = region.getOperators();
         for ( int i = 0; i < operators.size(); i++ )
         {
-            System.out.println( "Operator " + i + ": " + operators.get( i ).id() );
+            System.out.println( "Operator " + i + ": " + operators.get( i ).getId() );
         }
 
         final List<Integer> pipelineStartIndices;

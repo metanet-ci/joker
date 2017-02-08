@@ -3,17 +3,17 @@ package cs.bilkent.joker.engine.pipeline;
 import java.util.List;
 
 import cs.bilkent.joker.engine.FlowStatus;
-import cs.bilkent.joker.engine.flow.FlowDeploymentDef;
+import cs.bilkent.joker.engine.flow.FlowExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.metric.PipelineMeter;
-import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.flow.FlowDef;
 
 public interface PipelineManager
 {
 
-    void start ( FlowDef flow, List<RegionConfig> regionConfigs );
+    void start ( FlowDef flow, List<RegionExecutionPlan> regionExecutionPlans );
 
-    FlowDeploymentDef getFlowDeploymentDef ();
+    FlowExecutionPlan getFlowExecutionPlan ();
 
     List<PipelineMeter> getAllPipelineMetersOrFail ();
 

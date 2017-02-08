@@ -12,7 +12,7 @@
  * the License.
  */
 
-package cs.bilkent.joker.com.google.common.base;
+package cs.bilkent.joker.impl.com.google.common.base;
 
 import javax.annotation.Nullable;
 

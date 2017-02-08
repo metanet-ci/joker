@@ -5,20 +5,20 @@ import cs.bilkent.joker.flow.FlowDef;
 
 
 /**
- * Enum to define scope of the fields given in a {@link PortSchema} instance.
+ * Defines scope of the fields given in a {@link PortSchema}
  */
 public enum PortSchemaScope
 {
 
     /**
-     * All of the {@link SchemaField} instances for the port schema is defined in design time and no more
-     * fields can be added to the port schema while composing the {@link FlowDef}.
+     * All of the fields in the port schema is defined in design time and no more
+     * fields can be added to the port schema while composing the {@link FlowDef} in the runtime.
      */
     EXACT_FIELD_SET,
 
     /**
-     * There might be some fields defined in design time for the port schema. Additionally, there might be
-     * some additional fields that can be added to the port schema while composing the {@link FlowDef}.
+     * There can be some fields defined in design time for the port schema.
+     * Additionally, more fields can be added to the port schema while composing the {@link FlowDef} in the runtime.
      */
     EXTENDABLE_FIELD_SET
 

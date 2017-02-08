@@ -48,7 +48,7 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
     {
         final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "op", ExponentialMovingAverageAggregationOperator.class ).build();
         operator = (ExponentialMovingAverageAggregationOperator) operatorDef.createOperator();
-        initContext.setRuntimeSchema( operatorDef.schema() );
+        initContext.setRuntimeSchema( operatorDef.getSchema() );
     }
 
     @Test( expected = IllegalArgumentException.class )

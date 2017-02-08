@@ -15,6 +15,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.exception.InitializationException;
+import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.metric.PipelineMeter;
 import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETED;
@@ -23,7 +24,6 @@ import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIAL;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.RUNNING;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.SHUT_DOWN;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus;
-import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import static cs.bilkent.joker.engine.util.ExceptionUtils.checkInterruption;
@@ -40,7 +40,7 @@ public class Pipeline
 
     private final PipelineId id;
 
-    private final RegionConfig regionConfig;
+    private final RegionExecutionPlan regionExecutionPlan;
 
     private PipelineReplica[] replicas;
 
@@ -60,11 +60,11 @@ public class Pipeline
 
     private volatile UpstreamContext upstreamContext;
 
-    public Pipeline ( final PipelineId id, final RegionConfig regionConfig, final PipelineReplica[] pipelineReplicas )
+    public Pipeline ( final PipelineId id, final RegionExecutionPlan regionExecutionPlan, final PipelineReplica[] pipelineReplicas )
     {
         this.id = id;
-        this.regionConfig = regionConfig;
-        final int replicaCount = regionConfig.getReplicaCount();
+        this.regionExecutionPlan = regionExecutionPlan;
+        final int replicaCount = regionExecutionPlan.getReplicaCount();
         this.replicas = new PipelineReplica[ replicaCount ];
         arraycopy( pipelineReplicas, 0, this.replicas, 0, replicaCount );
         this.threads = new Thread[ replicaCount ];
@@ -75,15 +75,14 @@ public class Pipeline
         this.downstreamTupleSenders = new DownstreamTupleSender[ replicaCount ];
     }
 
-    public Pipeline ( final PipelineId id,
-                      final RegionConfig regionConfig,
+    public Pipeline ( final PipelineId id, final RegionExecutionPlan regionExecutionPlan,
                       final PipelineReplica[] pipelineReplicas,
                       final SchedulingStrategy initialSchedulingStrategy,
                       final UpstreamContext upstreamContext )
     {
         this.id = id;
-        this.regionConfig = regionConfig;
-        final int replicaCount = regionConfig.getReplicaCount();
+        this.regionExecutionPlan = regionExecutionPlan;
+        final int replicaCount = regionExecutionPlan.getReplicaCount();
         this.replicas = new PipelineReplica[ replicaCount ];
         arraycopy( pipelineReplicas, 0, this.replicas, 0, replicaCount );
         this.threads = new Thread[ replicaCount ];
@@ -147,12 +146,12 @@ public class Pipeline
 
     public RegionDef getRegionDef ()
     {
-        return regionConfig.getRegionDef();
+        return regionExecutionPlan.getRegionDef();
     }
 
     public OperatorDef getOperatorDef ( final int operatorIndex )
     {
-        final OperatorDef[] operatorDefs = regionConfig.getOperatorDefsByPipelineStartIndex( id.getPipelineStartIndex() );
+        final OperatorDef[] operatorDefs = regionExecutionPlan.getOperatorDefsByPipelineStartIndex( id.getPipelineStartIndex() );
         return operatorDefs[ operatorIndex ];
     }
 
@@ -163,13 +162,13 @@ public class Pipeline
 
     public OperatorDef getLastOperatorDef ()
     {
-        final int count = regionConfig.getOperatorCountByPipelineStartIndex( id.getPipelineStartIndex() );
+        final int count = regionExecutionPlan.getOperatorCountByPipelineStartIndex( id.getPipelineStartIndex() );
         return getOperatorDef( count - 1 );
     }
 
     public int getOperatorCount ()
     {
-        return regionConfig.getOperatorCountByPipelineStartIndex( id.getPipelineStartIndex() );
+        return regionExecutionPlan.getOperatorCountByPipelineStartIndex( id.getPipelineStartIndex() );
     }
 
     public OperatorReplicaStatus getPipelineStatus ()
@@ -189,7 +188,7 @@ public class Pipeline
 
     public int getOperatorIndex ( final OperatorDef operator )
     {
-        final OperatorDef[] operatorDefs = regionConfig.getOperatorDefsByPipelineStartIndex( id.getPipelineStartIndex() );
+        final OperatorDef[] operatorDefs = regionExecutionPlan.getOperatorDefsByPipelineStartIndex( id.getPipelineStartIndex() );
         for ( int i = 0; i < operatorDefs.length; i++ )
         {
             if ( operatorDefs[ i ].equals( operator ) )
@@ -529,7 +528,7 @@ public class Pipeline
     public PipelineMeter getPipelineMeter ()
     {
         final int replicaCount = getReplicaCount();
-        final OperatorDef[] operatorDefs = regionConfig.getOperatorDefsByPipelineStartIndex( id.getPipelineStartIndex() );
+        final OperatorDef[] operatorDefs = regionExecutionPlan.getOperatorDefsByPipelineStartIndex( id.getPipelineStartIndex() );
         final long[] threadIds = new long[ replicaCount ];
         final PipelineReplicaMeter[] replicaMeters = new PipelineReplicaMeter[ replicaCount ];
 

@@ -120,11 +120,11 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
         final RegionDef region1 = regions.get( 0 );
         assertEquals( STATEFUL, region1.getRegionType() );
         assertEquals( asList( StatefulOperator.class, StatelessOperator.class ),
-                      region1.getOperators().stream().map( OperatorDef::operatorClazz ).collect( toList() ) );
+                      region1.getOperators().stream().map( OperatorDef::getOperatorClazz ).collect( toList() ) );
         final RegionDef region2 = regions.get( 1 );
         assertEquals( STATEFUL, region2.getRegionType() );
         assertEquals( asList( StatefulOperator.class, StatelessOperator.class ),
-                      region2.getOperators().stream().map( OperatorDef::operatorClazz ).collect( toList() ) );
+                      region2.getOperators().stream().map( OperatorDef::getOperatorClazz ).collect( toList() ) );
     }
 
     @Test
@@ -152,11 +152,11 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
         final RegionDef region1 = regions.get( 0 );
         assertEquals( STATEFUL, region1.getRegionType() );
         assertEquals( asList( StatelessOperator.class, StatefulOperator.class ),
-                      region1.getOperators().stream().map( OperatorDef::operatorClazz ).collect( toList() ) );
+                      region1.getOperators().stream().map( OperatorDef::getOperatorClazz ).collect( toList() ) );
         final RegionDef region2 = regions.get( 1 );
         assertEquals( STATEFUL, region2.getRegionType() );
         assertEquals( asList( StatelessOperator.class, StatefulOperator.class ),
-                      region2.getOperators().stream().map( OperatorDef::operatorClazz ).collect( toList() ) );
+                      region2.getOperators().stream().map( OperatorDef::getOperatorClazz ).collect( toList() ) );
     }
 
     @Test
@@ -252,8 +252,7 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
 
         final List<RegionDef> regions = new ArrayList<>();
         regions.add( new RegionDef( 0,
-                                    PARTITIONED_STATEFUL,
-                                    partitionedStateful.partitionFieldNames(),
+                                    PARTITIONED_STATEFUL, partitionedStateful.getPartitionFieldNames(),
                                     singletonList( partitionedStateful ) ) );
         regions.add( new RegionDef( 1, STATELESS, emptyList(), singletonList( stateless ) ) );
 
@@ -297,11 +296,11 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
         final RegionDef region1 = regions.get( 0 );
         assertEquals( PARTITIONED_STATEFUL, region1.getRegionType() );
         assertEquals( asList( PartitionedStatefulOperator.class, StatelessOperator.class ),
-                      region1.getOperators().stream().map( OperatorDef::operatorClazz ).collect( toList() ) );
+                      region1.getOperators().stream().map( OperatorDef::getOperatorClazz ).collect( toList() ) );
         final RegionDef region2 = regions.get( 1 );
         assertEquals( PARTITIONED_STATEFUL, region2.getRegionType() );
         assertEquals( asList( PartitionedStatefulOperator.class, StatelessOperator.class ),
-                      region2.getOperators().stream().map( OperatorDef::operatorClazz ).collect( toList() ) );
+                      region2.getOperators().stream().map( OperatorDef::getOperatorClazz ).collect( toList() ) );
     }
 
     @Test
@@ -340,18 +339,18 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
         assertNotNull( operators.get( toDuplicateOperatorId( stateless2, 1 ) ) );
         assertNotNull( operators.get( toDuplicateOperatorId( stateless3, 0 ) ) );
         assertNotNull( operators.get( toDuplicateOperatorId( stateless3, 1 ) ) );
-        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful1.id(), 0 ),
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful1.getId(), 0 ),
                                                              new Port( toDuplicateOperatorId( stateless1, 0 ), 0 ) ) ) );
-        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful2.id(), 0 ),
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful2.getId(), 0 ),
                                                              new Port( toDuplicateOperatorId( stateless1, 1 ), 0 ) ) ) );
         assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless3, 0 ), 0 ),
-                                                             new Port( stateful3.id(), 0 ) ) ) );
+                                                             new Port( stateful3.getId(), 0 ) ) ) );
         assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless3, 0 ), 0 ),
-                                                             new Port( stateful3.id(), 1 ) ) ) );
+                                                             new Port( stateful3.getId(), 1 ) ) ) );
         assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless3, 1 ), 0 ),
-                                                             new Port( stateful3.id(), 0 ) ) ) );
+                                                             new Port( stateful3.getId(), 0 ) ) ) );
         assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless3, 1 ), 0 ),
-                                                             new Port( stateful3.id(), 1 ) ) ) );
+                                                             new Port( stateful3.getId(), 1 ) ) ) );
 
         assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless1, 0 ), 0 ),
                                                              new Port( toDuplicateOperatorId( stateless2, 0 ), 0 ) ) ) );
@@ -399,14 +398,14 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
         assertNotNull( operators.get( toDuplicateOperatorId( stateless2, 1 ) ) );
         assertNotNull( operators.get( toDuplicateOperatorId( stateless3, 0 ) ) );
         assertNotNull( operators.get( toDuplicateOperatorId( stateless3, 1 ) ) );
-        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful1.id(), 0 ),
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful1.getId(), 0 ),
                                                              new Port( toDuplicateOperatorId( stateless1, 0 ), 0 ) ) ) );
-        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful1.id(), 1 ),
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful1.getId(), 1 ),
                                                              new Port( toDuplicateOperatorId( stateless1, 0 ), 0 ) ) ) );
         assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless3, 0 ), 0 ),
-                                                             new Port( stateful2.id(), 0 ) ) ) );
+                                                             new Port( stateful2.getId(), 0 ) ) ) );
         assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless3, 1 ), 0 ),
-                                                             new Port( stateful3.id(), 0 ) ) ) );
+                                                             new Port( stateful3.getId(), 0 ) ) ) );
         assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless1, 0 ), 0 ),
                                                              new Port( toDuplicateOperatorId( stateless2, 0 ), 0 ) ) ) );
         assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless2, 0 ), 0 ),
@@ -462,22 +461,22 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
         assertNotNull( operators.get( toDuplicateOperatorId( stateless3, 1, 0 ) ) );
         assertNotNull( operators.get( toDuplicateOperatorId( stateless3, 1, 1 ) ) );
 
-        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful1.id(), 0 ),
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful1.getId(), 0 ),
                                                              new Port( toDuplicateOperatorId( stateless1, 0, 0 ), 0 ) ) ) );
-        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful1.id(), 0 ),
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful1.getId(), 0 ),
                                                              new Port( toDuplicateOperatorId( stateless1, 0, 1 ), 0 ) ) ) );
-        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful2.id(), 0 ),
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful2.getId(), 0 ),
                                                              new Port( toDuplicateOperatorId( stateless1, 1, 0 ), 0 ) ) ) );
-        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful2.id(), 0 ),
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful2.getId(), 0 ),
                                                              new Port( toDuplicateOperatorId( stateless1, 1, 1 ), 0 ) ) ) );
         assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless3, 0, 0 ), 0 ),
-                                                             new Port( stateful3.id(), 0 ) ) ) );
+                                                             new Port( stateful3.getId(), 0 ) ) ) );
         assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless3, 0, 1 ), 0 ),
-                                                             new Port( stateful4.id(), 0 ) ) ) );
+                                                             new Port( stateful4.getId(), 0 ) ) ) );
         assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless3, 1, 0 ), 0 ),
-                                                             new Port( stateful3.id(), 0 ) ) ) );
+                                                             new Port( stateful3.getId(), 0 ) ) ) );
         assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless3, 1, 1 ), 0 ),
-                                                             new Port( stateful4.id(), 0 ) ) ) );
+                                                             new Port( stateful4.getId(), 0 ) ) ) );
     }
 
     @Test
@@ -525,12 +524,12 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
         assertNotNull( operators.get( toDuplicateOperatorId( stateless5, 1 ) ) );
 
         assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless3, 0 ), 0 ),
-                                                             new Port( stateful1.id(), 0 ) ) ) );
+                                                             new Port( stateful1.getId(), 0 ) ) ) );
         assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless3, 1 ), 0 ),
-                                                             new Port( stateful2.id(), 0 ) ) ) );
-        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful1.id(), 0 ),
+                                                             new Port( stateful2.getId(), 0 ) ) ) );
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful1.getId(), 0 ),
                                                              new Port( toDuplicateOperatorId( stateless4, 0 ), 0 ) ) ) );
-        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful2.id(), 0 ),
+        assertTrue( connections.contains( new SimpleEntry<>( new Port( stateful2.getId(), 0 ),
                                                              new Port( toDuplicateOperatorId( stateless4, 1 ), 0 ) ) ) );
         assertTrue( connections.contains( new SimpleEntry<>( new Port( toDuplicateOperatorId( stateless1, 0 ), 0 ),
                                                              new Port( toDuplicateOperatorId( stateless2, 0 ), 0 ) ) ) );

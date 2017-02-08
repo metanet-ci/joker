@@ -16,6 +16,7 @@ import cs.bilkent.joker.JokerModule;
 import cs.bilkent.joker.engine.FlowStatus;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.exception.InitializationException;
+import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus;
 import cs.bilkent.joker.engine.pipeline.Pipeline;
 import cs.bilkent.joker.engine.pipeline.PipelineManager;
@@ -24,7 +25,6 @@ import cs.bilkent.joker.engine.pipeline.impl.PipelineManagerImpl;
 import cs.bilkent.joker.engine.pipeline.impl.PipelineManagerImplTest.PartitionedStatefulOperatorInput2Output2;
 import cs.bilkent.joker.engine.pipeline.impl.PipelineManagerImplTest.StatefulOperatorInput0Output1;
 import cs.bilkent.joker.engine.pipeline.impl.PipelineManagerImplTest.StatefulOperatorInput1Output1;
-import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
 import cs.bilkent.joker.flow.FlowDef;
@@ -71,17 +71,17 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
     }
 
     @Test
-    public void testFlowDeploymentWithTwoSubsequentRegions () throws ExecutionException, InterruptedException, TimeoutException
+    public void testFlowExecutionWithTwoSubsequentRegions () throws ExecutionException, InterruptedException, TimeoutException
     {
         final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatefulOperatorInput0Output1.class ).build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatefulOperatorInput1Output1.class ).build();
 
         final FlowDef flowDef = new FlowDefBuilder().add( operatorDef1 ).add( operatorDef2 ).connect( "op1", "op2" ).build();
         final List<RegionDef> regions = regionDefFormer.createRegions( flowDef );
-        final RegionConfig regionConfig1 = new RegionConfig( regions.get( 0 ), singletonList( 0 ), 1 );
-        final RegionConfig regionConfig2 = new RegionConfig( regions.get( 1 ), singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( regions.get( 0 ), singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( regions.get( 1 ), singletonList( 0 ), 1 );
 
-        supervisor.start( flowDef, asList( regionConfig1, regionConfig2 ) );
+        supervisor.start( flowDef, asList( regionExecutionPlan1, regionExecutionPlan2 ) );
 
         for ( Pipeline pipeline : pipelineManager.getPipelines() )
         {
@@ -99,7 +99,7 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
     }
 
     @Test
-    public void testFlowDeploymentWithRegionWithMultipleUpstreamRegions () throws ExecutionException, InterruptedException, TimeoutException
+    public void testFlowExecutionWithRegionWithMultipleUpstreamRegions () throws ExecutionException, InterruptedException, TimeoutException
     {
         final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatefulOperatorInput0Output1.class ).build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatefulOperatorInput0Output1.class ).build();
@@ -114,20 +114,20 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
                                                     .connect( "op2", 0, "op3", 1 )
                                                     .build();
         final List<RegionDef> regions = regionDefFormer.createRegions( flowDef );
-        final List<RegionConfig> regionConfigs = new ArrayList<>();
+        final List<RegionExecutionPlan> regionExecutionPlans = new ArrayList<>();
         for ( RegionDef region : regions )
         {
             final int replicaCount = region.getRegionType() == PARTITIONED_STATEFUL ? 4 : 1;
-            regionConfigs.add( new RegionConfig( region, singletonList( 0 ), replicaCount ) );
+            regionExecutionPlans.add( new RegionExecutionPlan( region, singletonList( 0 ), replicaCount ) );
         }
 
-        supervisor.start( flowDef, regionConfigs );
+        supervisor.start( flowDef, regionExecutionPlans );
 
         supervisor.shutdown().get( 30, TimeUnit.SECONDS );
     }
 
     @Test( expected = IllegalStateException.class )
-    public void testFlowDeploymentFailed () throws ExecutionException, InterruptedException, TimeoutException
+    public void testFlowExecutionFailed () throws ExecutionException, InterruptedException, TimeoutException
     {
         final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatefulOperatorInput0Output1.class ).build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", FailingOnInitializationStatefulOperatorInput1Output1.class )
@@ -135,12 +135,12 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
 
         final FlowDef flowDef = new FlowDefBuilder().add( operatorDef1 ).add( operatorDef2 ).connect( "op1", "op2" ).build();
         final List<RegionDef> regions = regionDefFormer.createRegions( flowDef );
-        final RegionConfig regionConfig1 = new RegionConfig( regions.get( 0 ), singletonList( 0 ), 1 );
-        final RegionConfig regionConfig2 = new RegionConfig( regions.get( 1 ), singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( regions.get( 0 ), singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( regions.get( 1 ), singletonList( 0 ), 1 );
 
         try
         {
-            supervisor.start( flowDef, asList( regionConfig1, regionConfig2 ) );
+            supervisor.start( flowDef, asList( regionExecutionPlan1, regionExecutionPlan2 ) );
             fail();
         }
         catch ( InitializationException e )
@@ -160,10 +160,10 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
 
         final FlowDef flowDef = new FlowDefBuilder().add( operatorDef1 ).add( operatorDef2 ).connect( "op1", "op2" ).build();
         final List<RegionDef> regions = regionDefFormer.createRegions( flowDef );
-        final RegionConfig regionConfig1 = new RegionConfig( regions.get( 0 ), singletonList( 0 ), 1 );
-        final RegionConfig regionConfig2 = new RegionConfig( regions.get( 1 ), singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( regions.get( 0 ), singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( regions.get( 1 ), singletonList( 0 ), 1 );
 
-        supervisor.start( flowDef, asList( regionConfig1, regionConfig2 ) );
+        supervisor.start( flowDef, asList( regionExecutionPlan1, regionExecutionPlan2 ) );
         assertTrueEventually( () -> assertEquals( FlowStatus.SHUT_DOWN, supervisor.getFlowStatus() ) );
 
         supervisor.shutdown().get( 30, TimeUnit.SECONDS );
@@ -178,10 +178,10 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
 
         final FlowDef flowDef = new FlowDefBuilder().add( operatorDef1 ).add( operatorDef2 ).connect( "op1", "op2" ).build();
         final List<RegionDef> regions = regionDefFormer.createRegions( flowDef );
-        final RegionConfig regionConfig1 = new RegionConfig( regions.get( 0 ), singletonList( 0 ), 1 );
-        final RegionConfig regionConfig2 = new RegionConfig( regions.get( 1 ), singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( regions.get( 0 ), singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( regions.get( 1 ), singletonList( 0 ), 1 );
 
-        supervisor.start( flowDef, asList( regionConfig1, regionConfig2 ) );
+        supervisor.start( flowDef, asList( regionExecutionPlan1, regionExecutionPlan2 ) );
 
         supervisor.shutdown().get( 30, TimeUnit.SECONDS );
     }

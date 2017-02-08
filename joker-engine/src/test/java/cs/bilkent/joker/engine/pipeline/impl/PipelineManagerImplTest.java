@@ -11,6 +11,7 @@ import com.google.inject.Injector;
 
 import cs.bilkent.joker.JokerModule;
 import cs.bilkent.joker.engine.config.JokerConfig;
+import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIAL;
 import cs.bilkent.joker.engine.pipeline.Pipeline;
@@ -23,7 +24,6 @@ import cs.bilkent.joker.engine.pipeline.impl.PipelineManagerImpl.NopDownstreamTu
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.CompositeDownstreamTupleSender;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.DownstreamTupleSender1;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDownstreamTupleSender1;
-import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
@@ -83,9 +83,9 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         final FlowDef flow = new FlowDefBuilder().add( operatorDef ).build();
 
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
-        final RegionConfig regionConfig = new RegionConfig( regions.get( 0 ), singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regions.get( 0 ), singletonList( 0 ), 1 );
 
-        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, singletonList( regionConfig ) );
+        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, singletonList( regionExecutionPlan ) );
 
         assertEquals( 1, pipelines.size() );
 
@@ -110,9 +110,9 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         assertEquals( 2, regions.size() );
         final RegionDef partitionedStatefulRegionDef = findRegion( regions, PARTITIONED_STATEFUL );
         final RegionDef statefulRegionDef = findRegion( regions, STATEFUL );
-        final RegionConfig regionConfig1 = new RegionConfig( partitionedStatefulRegionDef, singletonList( 0 ), 2 );
-        final RegionConfig regionConfig2 = new RegionConfig( statefulRegionDef, singletonList( 0 ), 1 );
-        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, asList( regionConfig1, regionConfig2 ) );
+        final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( partitionedStatefulRegionDef, singletonList( 0 ), 2 );
+        final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( statefulRegionDef, singletonList( 0 ), 1 );
+        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, asList( regionExecutionPlan1, regionExecutionPlan2 ) );
 
         assertEquals( 2, pipelines.size() );
 
@@ -153,10 +153,13 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         final RegionDef partitionedStatefulRegionDef = findRegion( regions, PARTITIONED_STATEFUL );
         final RegionDef statefulRegionDef = findRegion( regions, STATEFUL );
         final RegionDef statelessRegionDef = findRegion( regions, STATELESS );
-        final RegionConfig regionConfig1 = new RegionConfig( partitionedStatefulRegionDef, singletonList( 0 ), 2 );
-        final RegionConfig regionConfig2 = new RegionConfig( statefulRegionDef, singletonList( 0 ), 1 );
-        final RegionConfig regionConfig3 = new RegionConfig( statelessRegionDef, singletonList( 0 ), 1 );
-        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, asList( regionConfig1, regionConfig2, regionConfig3 ) );
+        final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( partitionedStatefulRegionDef, singletonList( 0 ), 2 );
+        final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( statefulRegionDef, singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan3 = new RegionExecutionPlan( statelessRegionDef, singletonList( 0 ), 1 );
+        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow,
+                                                                          asList( regionExecutionPlan1,
+                                                                                  regionExecutionPlan2,
+                                                                                  regionExecutionPlan3 ) );
 
         assertEquals( 3, pipelines.size() );
 
@@ -233,10 +236,10 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         assertEquals( 2, regions.size() );
         final RegionDef statefulRegionDef = findRegion( regions, STATEFUL );
         final RegionDef partitionedStatefulRegionDef = findRegion( regions, PARTITIONED_STATEFUL );
-        final RegionConfig regionConfig1 = new RegionConfig( statefulRegionDef, singletonList( 0 ), 1 );
-        final RegionConfig regionConfig2 = new RegionConfig( partitionedStatefulRegionDef, asList( 0, 1 ), 2 );
+        final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( statefulRegionDef, singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( partitionedStatefulRegionDef, asList( 0, 1 ), 2 );
 
-        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, asList( regionConfig1, regionConfig2 ) );
+        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, asList( regionExecutionPlan1, regionExecutionPlan2 ) );
 
         assertEquals( 3, pipelines.size() );
 
@@ -294,10 +297,10 @@ public class PipelineManagerImplTest extends AbstractJokerTest
 
         final RegionDef statefulRegionDef = findRegion( regions, STATEFUL );
         final RegionDef partitionedStatefulRegionDef = findRegion( regions, PARTITIONED_STATEFUL );
-        final RegionConfig regionConfig1 = new RegionConfig( statefulRegionDef, singletonList( 0 ), 1 );
-        final RegionConfig regionConfig2 = new RegionConfig( partitionedStatefulRegionDef, asList( 0, 1 ), 2 );
+        final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( statefulRegionDef, singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( partitionedStatefulRegionDef, asList( 0, 1 ), 2 );
 
-        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, asList( regionConfig1, regionConfig2 ) );
+        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, asList( regionExecutionPlan1, regionExecutionPlan2 ) );
 
         assertEquals( 3, pipelines.size() );
 
@@ -359,11 +362,14 @@ public class PipelineManagerImplTest extends AbstractJokerTest
 
         final RegionDef statefulRegionDef1 = statefulRegionDefs.get( 0 ), statefulRegionDef2 = statefulRegionDefs.get( 1 );
 
-        final RegionConfig regionConfig1 = new RegionConfig( statefulRegionDef1, singletonList( 0 ), 1 );
-        final RegionConfig regionConfig2 = new RegionConfig( statefulRegionDef2, singletonList( 0 ), 1 );
-        final RegionConfig regionConfig3 = new RegionConfig( statelessRegionDef, singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( statefulRegionDef1, singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( statefulRegionDef2, singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan3 = new RegionExecutionPlan( statelessRegionDef, singletonList( 0 ), 1 );
 
-        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, asList( regionConfig1, regionConfig2, regionConfig3 ) );
+        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow,
+                                                                          asList( regionExecutionPlan1,
+                                                                                  regionExecutionPlan2,
+                                                                                  regionExecutionPlan3 ) );
 
         final Pipeline pipeline1 = pipelines.get( 0 );
         final Pipeline pipeline2 = pipelines.get( 1 );
@@ -415,11 +421,14 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         final RegionDef statelessRegionDef = findRegion( regions, STATELESS );
         final RegionDef partitionedStatefulRegionDef = findRegion( regions, PARTITIONED_STATEFUL );
 
-        final RegionConfig regionConfig1 = new RegionConfig( statefulRegionDef, singletonList( 0 ), 1 );
-        final RegionConfig regionConfig2 = new RegionConfig( statelessRegionDef, singletonList( 0 ), 1 );
-        final RegionConfig regionConfig3 = new RegionConfig( partitionedStatefulRegionDef, singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( statefulRegionDef, singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( statelessRegionDef, singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan3 = new RegionExecutionPlan( partitionedStatefulRegionDef, singletonList( 0 ), 1 );
 
-        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, asList( regionConfig1, regionConfig2, regionConfig3 ) );
+        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow,
+                                                                          asList( regionExecutionPlan1,
+                                                                                  regionExecutionPlan2,
+                                                                                  regionExecutionPlan3 ) );
 
         final Pipeline pipeline1 = pipelines.get( 0 );
         final Pipeline pipeline2 = pipelines.get( 1 );

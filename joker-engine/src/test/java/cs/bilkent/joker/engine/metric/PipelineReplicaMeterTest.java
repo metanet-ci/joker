@@ -31,11 +31,11 @@ public class PipelineReplicaMeterTest extends AbstractJokerTest
     public void init ()
     {
         final OperatorDef headOperatorDef = mock( OperatorDef.class );
-        when( headOperatorDef.id() ).thenReturn( headOperatorId );
-        when( headOperatorDef.inputPortCount() ).thenReturn( 2 );
+        when( headOperatorDef.getId() ).thenReturn( headOperatorId );
+        when( headOperatorDef.getInputPortCount() ).thenReturn( 2 );
         final OperatorDef tailOperatorDef = mock( OperatorDef.class );
-        when( tailOperatorDef.id() ).thenReturn( tailOperatorId );
-        when( tailOperatorDef.outputPortCount() ).thenReturn( 1 );
+        when( tailOperatorDef.getId() ).thenReturn( tailOperatorId );
+        when( tailOperatorDef.getOutputPortCount() ).thenReturn( 1 );
         pipelineReplicaMeter = new PipelineReplicaMeter( 1, PIPELINE_REPLICA_ID, headOperatorDef, tailOperatorDef );
     }
 

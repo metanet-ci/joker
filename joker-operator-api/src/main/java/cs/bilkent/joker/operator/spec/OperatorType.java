@@ -20,32 +20,31 @@ public enum OperatorType
 {
 
     /**
-     * Specifies that an operator does not maintain any internal state while processing tuples. Based on this fact, the runtime engine
-     * may create multiple instances of a {@code STATELESS} operator as it sees fit.
+     * Specifies that an operator does not maintain any internal state while processing tuples. Based on this fact,
+     * the runtime may create multiple instances of a {@code STATELESS} operator as it sees fit.
      * <p>
      * The engine does not provide any state manipulation capabilities to an operator defined as {@code STATELESS}.
      * No {@link KVStore} implementation can be accessed via {@link InvocationContext#getKVStore()} for an invocation
      * of a {@code STATELESS} operator.
      * <p>
-     * A {@code STATELESS} operator can have at most 1 input port.
+     * A {@code STATELESS} operator can have at most 1 input port. It can have multiple output ports.
      */
     STATELESS,
 
     /**
-     * Specifies that an operator maintains internal state which can be partitioned by a user-defined key. Based on this fact, the runtime
-     * engine can divide the key space into partitions and map these partitions to instances of a {@code PARTITIONED_STATEFUL} operator.
+     * Specifies that an operator maintains computation state which can be partitioned by a user-defined key. Operator state must be
+     * manipulated using the provided {@link KVStore} implementation which can be accessed via {@link InvocationContext#getKVStore()}
+     * method. It is the runtime's responsibility to maintain lifecycle of the {@link KVStore} objects to simplify development of
+     * stateful computations. Operators should not cache the {@link KVStore} object within the operator instance, because the runtime
+     * can provide different {@link KVStore} instances for each invocation.
      * <p>
-     * Operator state must be manipulated using the provided {@link KVStore} implementation given via {@link InvocationContext#getKVStore()}
-     * method. It is the runtime engine's responsibility to maintain lifecycle of the {@link KVStore} objects to simplify development of
-     * stateful computations.
+     * Ordering guarantees are given for the tuples of a particular partition key. For instance, if 2 tuples A and B, which are produced
+     * in an upstream operator, hit the same partition key, they will be processed as A and B in the {@code PARTITIONED_STATEFUL}
+     * downstream operator. On the other hand, there is no ordering guarantee among them if they are tuples of different partition keys.
+     * If tuples A and B hit different partition keys, {@code PARTITIONED_STATEFUL} downstream operator can process B first, and then A.
      * <p>
-     * The engine does not provide any ordering guarantees for the tuples with different partition keys. However,
-     * ordering guarantees are given for the tuples of a particular partition key. For instance, if 2 tuples belong to the same
-     * partition key, they will be processed due to their creation order. On the other hand, there is no ordering guarantee among them if
-     * they are tuples of different partition keys.
-     * <p>
-     * For an operator defined as {@code PARTITIONED_STATEFUL}, all {@link Operator#invoke(InvocationContext)}
-     * invocations are guaranteed to be done with tuples which have the same partition key.
+     * For a {@code PARTITIONED_STATEFUL} operator, all {@link Operator#invoke(InvocationContext)} invocations are
+     * guaranteed to be done with tuples which have the same partition key.
      * <p>
      * A list of partition field names must be provided during the operator composition via {@link OperatorDef} and {@link FlowDef}.
      *
@@ -55,13 +54,12 @@ public enum OperatorType
     PARTITIONED_STATEFUL,
 
     /**
-     * Specifies that an operator maintains global state, which cannot be partitioned by any key. It means that the runtime engine
-     * is going to maintain a single instance of a {@code STATEFUL} operator at any time, even if the operator can be instantiated
-     * multiple times, based on scaling decisions of the runtime engine.
+     * Specifies that an operator maintains a global computation state. It means that the runtime maintains a single instance of a
+     * {@code STATEFUL} operator at any time.
      * <p>
-     * An operator implementation must manipulate its local state using the {@link KVStore} implementation given via
-     * {@link InvocationContext#getKVStore()} method. There will be a singleton {@link KVStore} object that will keep all of operator's
-     * state.
+     * An operator implementation must manipulate its computation state using the {@link KVStore} implementation accessed via
+     * {@link InvocationContext#getKVStore()} method. Operators should not cache the {@link KVStore} object within the operator instance,
+     * because the runtime can provide different {@link KVStore} instances for each invocation.
      *
      * @see KVStore
      * @see InvocationContext

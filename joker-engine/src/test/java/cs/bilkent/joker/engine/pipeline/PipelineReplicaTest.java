@@ -69,14 +69,14 @@ public class PipelineReplicaTest extends AbstractJokerTest
         final OperatorDef operatorDef1 = mock( OperatorDef.class );
         final OperatorDef operatorDef2 = mock( OperatorDef.class );
         when( operator0.getOperatorDef() ).thenReturn( operatorDef0 );
-        when( operatorDef0.inputPortCount() ).thenReturn( 1 );
-        when( operatorDef0.id() ).thenReturn( "op0" );
+        when( operatorDef0.getInputPortCount() ).thenReturn( 1 );
+        when( operatorDef0.getId() ).thenReturn( "op0" );
         when( operator1.getOperatorDef() ).thenReturn( operatorDef1 );
-        when( operatorDef1.inputPortCount() ).thenReturn( 1 );
-        when( operatorDef1.id() ).thenReturn( "op1" );
+        when( operatorDef1.getInputPortCount() ).thenReturn( 1 );
+        when( operatorDef1.getId() ).thenReturn( "op1" );
         when( operator2.getOperatorDef() ).thenReturn( operatorDef2 );
-        when( operatorDef2.inputPortCount() ).thenReturn( 1 );
-        when( operatorDef2.id() ).thenReturn( "op2" );
+        when( operatorDef2.getInputPortCount() ).thenReturn( 1 );
+        when( operatorDef2.getId() ).thenReturn( "op2" );
 
         final PipelineReplicaId pipelineReplicaId = new PipelineReplicaId( new PipelineId( 0, 0 ), 0 );
         final PipelineReplicaMeter pipelineReplicaMeter = new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(),

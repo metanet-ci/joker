@@ -33,8 +33,7 @@ public interface OperatorTupleQueueManager
     {
         return createPartitionedOperatorTupleQueues( regionId,
                                                      operatorDef,
-                                                     partitionDistribution,
-                                                     operatorDef.partitionFieldNames().size() );
+                                                     partitionDistribution, operatorDef.getPartitionFieldNames().size() );
     }
 
     OperatorTupleQueue[] createPartitionedOperatorTupleQueues ( int regionId,

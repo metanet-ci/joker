@@ -83,7 +83,7 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
 
     void applyDefaultMocks ()
     {
-        when( operatorDef.id() ).thenReturn( "op1" );
+        when( operatorDef.getId() ).thenReturn( "op1" );
         when( drainerPool.acquire( any( SchedulingStrategy.class ) ) ).thenReturn( drainer );
         when( drainer.getKey() ).thenReturn( key );
         when( operatorKvStore.getKVStore( key ) ).thenReturn( kvStore );
@@ -100,8 +100,8 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
 
     private void mockOperatorDef ( final int inputPortCount, final int outputPortCount )
     {
-        when( operatorDef.inputPortCount() ).thenReturn( inputPortCount );
-        when( operatorDef.outputPortCount() ).thenReturn( outputPortCount );
+        when( operatorDef.getInputPortCount() ).thenReturn( inputPortCount );
+        when( operatorDef.getOutputPortCount() ).thenReturn( outputPortCount );
         try
         {
             when( operatorDef.createOperator() ).thenReturn( operator );

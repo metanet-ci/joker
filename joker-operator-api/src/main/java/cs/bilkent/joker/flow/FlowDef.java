@@ -13,8 +13,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static cs.bilkent.joker.com.google.common.base.Preconditions.checkArgument;
-import static cs.bilkent.joker.com.google.common.base.Preconditions.checkState;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.operator.OperatorDef;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.stream.Collectors.toSet;

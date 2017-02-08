@@ -12,9 +12,9 @@ import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.FlowStatus;
 import cs.bilkent.joker.engine.JokerEngine;
 import cs.bilkent.joker.engine.config.JokerConfig;
-import cs.bilkent.joker.engine.flow.FlowDeploymentDef;
+import cs.bilkent.joker.engine.flow.FlowExecutionPlan;
 import cs.bilkent.joker.engine.pipeline.PipelineId;
-import cs.bilkent.joker.engine.region.RegionConfigFactory;
+import cs.bilkent.joker.engine.region.RegionExecutionPlanFactory;
 import cs.bilkent.joker.flow.FlowDef;
 
 public class Joker
@@ -34,13 +34,13 @@ public class Joker
         this( UUID.randomUUID().toString(), config, null );
     }
 
-    private Joker ( final Object jokerId, final JokerConfig config, final RegionConfigFactory regionConfigFactory )
+    private Joker ( final Object jokerId, final JokerConfig config, final RegionExecutionPlanFactory regionExecutionPlanFactory )
     {
-        this.injector = Guice.createInjector( new JokerModule( jokerId, config, regionConfigFactory ) );
+        this.injector = Guice.createInjector( new JokerModule( jokerId, config, regionExecutionPlanFactory ) );
         this.engine = injector.getInstance( JokerEngine.class );
     }
 
-    public FlowDeploymentDef run ( final FlowDef flow )
+    public FlowExecutionPlan run ( final FlowDef flow )
     {
         return engine.run( flow );
     }
@@ -50,19 +50,19 @@ public class Joker
         return engine.getStatus();
     }
 
-    public Future<FlowDeploymentDef> mergePipelines ( final int flowVersion, final List<PipelineId> pipelineIds )
+    public Future<FlowExecutionPlan> mergePipelines ( final int flowVersion, final List<PipelineId> pipelineIds )
     {
         return engine.mergePipelines( flowVersion, pipelineIds );
     }
 
-    public Future<FlowDeploymentDef> splitPipeline ( final int flowVersion,
+    public Future<FlowExecutionPlan> splitPipeline ( final int flowVersion,
                                                      final PipelineId pipelineId,
                                                      final List<Integer> pipelineOperatorIndices )
     {
         return engine.splitPipeline( flowVersion, pipelineId, pipelineOperatorIndices );
     }
 
-    public Future<FlowDeploymentDef> rebalanceRegion ( final int flowVersion, final int regionId, final int newReplicaCount )
+    public Future<FlowExecutionPlan> rebalanceRegion ( final int flowVersion, final int regionId, final int newReplicaCount )
     {
         return engine.rebalanceRegion( flowVersion, regionId, newReplicaCount );
     }
@@ -79,7 +79,7 @@ public class Joker
 
         private JokerConfig jokerConfig = new JokerConfig();
 
-        private RegionConfigFactory regionConfigFactory;
+        private RegionExecutionPlanFactory regionExecutionPlanFactory;
 
         private boolean built;
 
@@ -100,11 +100,11 @@ public class Joker
             return this;
         }
 
-        public JokerBuilder setRegionConfigFactory ( final RegionConfigFactory regionConfigFactory )
+        public JokerBuilder setRegionExecutionPlanFactory ( final RegionExecutionPlanFactory regionExecutionPlanFactory )
         {
-            checkArgument( regionConfigFactory != null );
+            checkArgument( regionExecutionPlanFactory != null );
             checkState( !built, "Joker is already built!" );
-            this.regionConfigFactory = regionConfigFactory;
+            this.regionExecutionPlanFactory = regionExecutionPlanFactory;
             return this;
         }
 
@@ -119,7 +119,7 @@ public class Joker
         {
             checkState( !built, "Joker is already built!" );
             built = true;
-            return new Joker( jokerId, jokerConfig, regionConfigFactory );
+            return new Joker( jokerId, jokerConfig, regionExecutionPlanFactory );
         }
 
     }

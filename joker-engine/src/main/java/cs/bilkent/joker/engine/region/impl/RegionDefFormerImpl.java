@@ -63,7 +63,8 @@ public class RegionDefFormerImpl implements RegionDefFormer
 
     List<RegionDef> createRegions ( final List<OperatorDef> operatorSequence )
     {
-        LOGGER.debug( "Creating regions for operator sequence: " + operatorSequence.stream().map( OperatorDef::id ).collect( toList() ) );
+        LOGGER.debug(
+                "Creating regions for operator sequence: " + operatorSequence.stream().map( OperatorDef::getId ).collect( toList() ) );
         final List<RegionDef> regions = new ArrayList<>();
 
         OperatorType regionType = null;
@@ -72,9 +73,9 @@ public class RegionDefFormerImpl implements RegionDefFormer
 
         for ( OperatorDef currentOperator : operatorSequence )
         {
-            LOGGER.debug( "current operator={}", currentOperator.id() );
+            LOGGER.debug( "current operator={}", currentOperator.getId() );
 
-            final OperatorType operatorType = currentOperator.operatorType();
+            final OperatorType operatorType = currentOperator.getOperatorType();
 
             if ( operatorType == STATEFUL )
             {
@@ -118,18 +119,18 @@ public class RegionDefFormerImpl implements RegionDefFormer
                 if ( regionType == null )
                 {
                     regionType = PARTITIONED_STATEFUL;
-                    regionPartitionFieldNames.addAll( currentOperator.partitionFieldNames() );
+                    regionPartitionFieldNames.addAll( currentOperator.getPartitionFieldNames() );
                     regionOperators.add( currentOperator );
                 }
                 else if ( regionType == PARTITIONED_STATEFUL )
                 {
-                    if ( !currentOperator.partitionFieldNames().containsAll( regionPartitionFieldNames ) )
+                    if ( !currentOperator.getPartitionFieldNames().containsAll( regionPartitionFieldNames ) )
                     {
                         regions.add( new RegionDef( idGenerator.nextId(),
                                                     PARTITIONED_STATEFUL,
                                                     regionPartitionFieldNames,
                                                     regionOperators ) );
-                        regionPartitionFieldNames = new ArrayList<>( currentOperator.partitionFieldNames() );
+                        regionPartitionFieldNames = new ArrayList<>( currentOperator.getPartitionFieldNames() );
                         regionOperators = new ArrayList<>();
                     }
 
@@ -143,7 +144,7 @@ public class RegionDefFormerImpl implements RegionDefFormer
                     while ( it.hasPrevious() )
                     {
                         final OperatorDef prev = it.previous();
-                        if ( containsAllFieldNamesOnInputPort( prev, currentOperator.partitionFieldNames() ) )
+                        if ( containsAllFieldNamesOnInputPort( prev, currentOperator.getPartitionFieldNames() ) )
                         {
                             newRegionOperators.add( prev );
                             it.remove();
@@ -163,12 +164,12 @@ public class RegionDefFormerImpl implements RegionDefFormer
                     reverse( newRegionOperators );
                     newRegionOperators.add( currentOperator );
                     regionOperators = newRegionOperators;
-                    regionPartitionFieldNames = new ArrayList<>( currentOperator.partitionFieldNames() );
+                    regionPartitionFieldNames = new ArrayList<>( currentOperator.getPartitionFieldNames() );
                 }
             }
             else
             {
-                throw new IllegalArgumentException( "Invalid operator type for " + currentOperator.id() );
+                throw new IllegalArgumentException( "Invalid operator type for " + currentOperator.getId() );
             }
         }
 
@@ -193,12 +194,12 @@ public class RegionDefFormerImpl implements RegionDefFormer
         while ( ( operator = removeRandomOperator( sequenceStartOperators ) ) != null )
         {
             processedSequenceStartOperators.add( operator );
-            LOGGER.debug( "Starting new sequence with operator={}", operator.id() );
+            LOGGER.debug( "Starting new sequence with operator={}", operator.getId() );
 
             while ( true )
             {
                 currentOperatorSequence.add( operator );
-                LOGGER.debug( "Adding operator={} to current sequence", operator.id() );
+                LOGGER.debug( "Adding operator={} to current sequence", operator.getId() );
 
                 final Collection<OperatorDef> downstreamOperators = getDownstreamOperators( flow, operator );
                 final OperatorDef downstreamOperator = getSingleDownstreamOperatorWithSingleUpstreamOperator( flow, downstreamOperators );
@@ -227,7 +228,7 @@ public class RegionDefFormerImpl implements RegionDefFormer
     private Collection<OperatorDef> getDownstreamOperators ( final FlowDef flow, final OperatorDef operator )
     {
         final Set<OperatorDef> downstream = new HashSet<>();
-        for ( Collection<Port> v : flow.getDownstreamConnections( operator.id() ).values() )
+        for ( Collection<Port> v : flow.getDownstreamConnections( operator.getId() ).values() )
         {
             for ( Port p : v )
             {
@@ -240,9 +241,9 @@ public class RegionDefFormerImpl implements RegionDefFormer
 
     private boolean containsAllFieldNamesOnInputPort ( final OperatorDef operator, final List<String> fieldNames )
     {
-        checkState( operator.operatorType() == STATELESS && operator.inputPortCount() == 1 );
+        checkState( operator.getOperatorType() == STATELESS && operator.getInputPortCount() == 1 );
 
-        final PortRuntimeSchema inputSchema = operator.schema().getInputSchema( 0 );
+        final PortRuntimeSchema inputSchema = operator.getSchema().getInputSchema( 0 );
         return fieldNames.stream().allMatch( fieldName -> inputSchema.getField( fieldName ) != null );
     }
 
@@ -265,7 +266,7 @@ public class RegionDefFormerImpl implements RegionDefFormer
         if ( downstreamOperators.size() == 1 )
         {
             final OperatorDef downstream = downstreamOperators.iterator().next();
-            final Map<Port, Set<Port>> upstream = flow.getUpstreamConnections( downstream.id() );
+            final Map<Port, Set<Port>> upstream = flow.getUpstreamConnections( downstream.getId() );
             final Set<String> upstreamOperatorIds = new HashSet<>();
             for ( Collection<Port> u : upstream.values() )
             {
@@ -284,7 +285,7 @@ public class RegionDefFormerImpl implements RegionDefFormer
 
     private Stream<String> getOperatorIds ( final Collection<OperatorDef> operators )
     {
-        return operators.stream().map( OperatorDef::id );
+        return operators.stream().map( OperatorDef::getId );
     }
 
 }

@@ -8,6 +8,7 @@ import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.config.ThreadingPreference;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.SINGLE_THREADED;
+import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.kvstore.OperatorKVStore;
 import cs.bilkent.joker.engine.kvstore.impl.DefaultOperatorKVStore;
 import cs.bilkent.joker.engine.kvstore.impl.EmptyOperatorKVStore;
@@ -25,7 +26,6 @@ import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
 import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.Region;
-import cs.bilkent.joker.engine.region.RegionConfig;
 import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.impl.OperatorTupleQueueManagerImpl;
@@ -96,14 +96,14 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final List<RegionDef> regionDefs = regionDefFormer.createRegions( flowExample1.flow );
         final RegionDef regionDef = regionDefs.get( 0 );
-        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 1 );
 
-        final Region region = regionManager.createRegion( flowExample1.flow, regionConfig );
+        final Region region = regionManager.createRegion( flowExample1.flow, regionExecutionPlan );
         assertNotNull( region );
         final PipelineReplica[] pipelines = region.getReplicaPipelines( 0 );
         assertEquals( 1, pipelines.length );
         final PipelineReplica pipeline = pipelines[ 0 ];
-        assertEmptyOperatorTupleQueue( pipeline, flowExample1.operatorDef0.inputPortCount() );
+        assertEmptyOperatorTupleQueue( pipeline, flowExample1.operatorDef0.getInputPortCount() );
 
         assertStatelessPipelineWithNoInput( regionDef.getRegionId(), 0, 0, pipeline, flowExample1.operatorDef0, flowExample1.operatorDef1 );
         assertPipelineReplicaMeter( pipeline );
@@ -116,17 +116,17 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final List<RegionDef> regionDefs = regionDefFormer.createRegions( flowExample1.flow );
         final RegionDef regionDef = regionDefs.get( 0 );
-        final RegionConfig regionConfig = new RegionConfig( regionDef, asList( 0, 1 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, asList( 0, 1 ), 1 );
 
-        final Region region = regionManager.createRegion( flowExample1.flow, regionConfig );
+        final Region region = regionManager.createRegion( flowExample1.flow, regionExecutionPlan );
         assertNotNull( region );
         final PipelineReplica[] pipelines = region.getReplicaPipelines( 0 );
         assertEquals( 2, pipelines.length );
         final PipelineReplica pipeline0 = pipelines[ 0 ];
         final PipelineReplica pipeline1 = pipelines[ 1 ];
-        assertEmptyOperatorTupleQueue( pipeline0, flowExample1.operatorDef0.inputPortCount() );
+        assertEmptyOperatorTupleQueue( pipeline0, flowExample1.operatorDef0.getInputPortCount() );
         assertEmptySelfPipelineTupleQueue( pipeline0 );
-        assertDefaultOperatorTupleQueue( pipeline1, flowExample1.operatorDef1.inputPortCount() );
+        assertDefaultOperatorTupleQueue( pipeline1, flowExample1.operatorDef1.getInputPortCount() );
         assertEmptySelfPipelineTupleQueue( pipeline1 );
 
         assertEquals( new PipelineReplicaId( new PipelineId( regionDef.getRegionId(), 0 ), 0 ), pipeline0.id() );
@@ -138,7 +138,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertOperatorDef( operatorReplica0, flowExample1.operatorDef0 );
         assertOperatorDef( operatorReplica1, flowExample1.operatorDef1 );
         assertEmptyOperatorTupleQueue( operatorReplica0 );
-        assertDefaultOperatorTupleQueue( operatorReplica1, flowExample1.operatorDef1.inputPortCount(), MULTI_THREADED );
+        assertDefaultOperatorTupleQueue( operatorReplica1, flowExample1.operatorDef1.getInputPortCount(), MULTI_THREADED );
         assertEmptytOperatorKVStore( operatorReplica0 );
         assertEmptytOperatorKVStore( operatorReplica1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica0 );
@@ -158,15 +158,17 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final List<RegionDef> regionDefs = regionDefFormer.createRegions( flowExample1.flow );
         final RegionDef regionDef = regionDefs.get( 0 );
-        final RegionConfig regionConfig = new RegionConfig( regionDef, asList( 0, 1 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, asList( 0, 1 ), 1 );
 
-        final Region region = regionManager.createRegion( flowExample1.flow, regionConfig );
+        final Region region = regionManager.createRegion( flowExample1.flow, regionExecutionPlan );
 
-        assertNotNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample1.operatorDef1.id() ) );
+        assertNotNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(),
+                                                                               0,
+                                                                               flowExample1.operatorDef1.getId() ) );
 
         regionManager.releaseRegion( region.getRegionId() );
 
-        assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample1.operatorDef1.id() ) );
+        assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample1.operatorDef1.getId() ) );
     }
 
     private void assertStatelessPipelineWithNoInput ( final int regionId,
@@ -183,7 +185,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertOperatorDef( operatorReplica0, operatorDef0 );
         assertOperatorDef( operatorReplica1, operatorDef1 );
         assertEmptyOperatorTupleQueue( operatorReplica0 );
-        assertDefaultOperatorTupleQueue( operatorReplica1, operatorDef1.inputPortCount(), SINGLE_THREADED );
+        assertDefaultOperatorTupleQueue( operatorReplica1, operatorDef1.getInputPortCount(), SINGLE_THREADED );
         assertEmptytOperatorKVStore( operatorReplica0 );
         assertEmptytOperatorKVStore( operatorReplica1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica0 );
@@ -199,14 +201,14 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final List<RegionDef> regionDefs = regionDefFormer.createRegions( flowExample2.flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 1 );
 
-        final Region region = regionManager.createRegion( flowExample2.flow, regionConfig );
+        final Region region = regionManager.createRegion( flowExample2.flow, regionExecutionPlan );
         assertNotNull( region );
         final PipelineReplica[] pipelines = region.getReplicaPipelines( 0 );
         assertEquals( 1, pipelines.length );
         final PipelineReplica pipeline = pipelines[ 0 ];
-        assertDefaultOperatorTupleQueue( pipeline, flowExample2.operatorDef1.inputPortCount() );
+        assertDefaultOperatorTupleQueue( pipeline, flowExample2.operatorDef1.getInputPortCount() );
         assertEmptySelfPipelineTupleQueue( pipeline );
 
         assertEquals( new PipelineReplicaId( new PipelineId( region.getRegionId(), 0 ), 0 ), pipeline.id() );
@@ -215,8 +217,8 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final OperatorReplica operatorReplica2 = pipeline.getOperator( 1 );
         assertOperatorDef( operatorReplica1, flowExample2.operatorDef1 );
         assertOperatorDef( operatorReplica2, flowExample2.operatorDef2 );
-        assertDefaultOperatorTupleQueue( operatorReplica1, flowExample2.operatorDef1.inputPortCount(), MULTI_THREADED );
-        assertDefaultOperatorTupleQueue( operatorReplica2, flowExample2.operatorDef2.inputPortCount(), SINGLE_THREADED );
+        assertDefaultOperatorTupleQueue( operatorReplica1, flowExample2.operatorDef1.getInputPortCount(), MULTI_THREADED );
+        assertDefaultOperatorTupleQueue( operatorReplica2, flowExample2.operatorDef2.getInputPortCount(), SINGLE_THREADED );
         assertEmptytOperatorKVStore( operatorReplica1 );
         assertEmptytOperatorKVStore( operatorReplica2 );
         assertBlockingTupleQueueDrainerPool( operatorReplica1 );
@@ -234,14 +236,14 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final List<RegionDef> regionDefs = regionDefFormer.createRegions( flowExample3.flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 1 );
 
-        final Region region = regionManager.createRegion( flowExample3.flow, regionConfig );
+        final Region region = regionManager.createRegion( flowExample3.flow, regionExecutionPlan );
         assertNotNull( region );
         final PipelineReplica[] pipelines = region.getReplicaPipelines( 0 );
         assertEquals( 1, pipelines.length );
         final PipelineReplica pipeline = pipelines[ 0 ];
-        assertDefaultOperatorTupleQueue( pipeline, flowExample3.operatorDef1.inputPortCount() );
+        assertDefaultOperatorTupleQueue( pipeline, flowExample3.operatorDef1.getInputPortCount() );
         assertEmptySelfPipelineTupleQueue( pipeline );
 
         assertEquals( new PipelineReplicaId( new PipelineId( regionDef.getRegionId(), 0 ), 0 ), pipeline.id() );
@@ -249,7 +251,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final OperatorReplica operatorReplica1 = pipeline.getOperator( 0 );
         assertOperatorDef( operatorReplica1, flowExample3.operatorDef1 );
-        assertDefaultOperatorTupleQueue( operatorReplica1, flowExample3.operatorDef1.inputPortCount(), MULTI_THREADED );
+        assertDefaultOperatorTupleQueue( operatorReplica1, flowExample3.operatorDef1.getInputPortCount(), MULTI_THREADED );
         assertDefaultOperatorKVStore( operatorReplica1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica1 );
         assertLastOperatorOutputSupplier( config, operatorReplica1 );
@@ -268,14 +270,14 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final List<RegionDef> regionDefs = result._2;
 
         final RegionDef regionDef = regionDefs.get( 0 );
-        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 1 );
 
-        final Region region = regionManager.createRegion( flow, regionConfig );
+        final Region region = regionManager.createRegion( flow, regionExecutionPlan );
         assertNotNull( region );
         final PipelineReplica[] pipelines = region.getReplicaPipelines( 0 );
         assertEquals( 1, pipelines.length );
         final PipelineReplica pipeline = pipelines[ 0 ];
-        assertEmptyOperatorTupleQueue( pipeline, flowExample3.operatorDef1.inputPortCount() );
+        assertEmptyOperatorTupleQueue( pipeline, flowExample3.operatorDef1.getInputPortCount() );
         assertEmptySelfPipelineTupleQueue( pipeline );
 
         assertEquals( 2, pipeline.getOperatorCount() );
@@ -289,7 +291,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final OperatorReplica operator1 = pipeline.getOperator( 1 );
         assertOperatorDef( operator1, flowExample3.operatorDef1 );
-        assertDefaultOperatorTupleQueue( operator1, flowExample3.operatorDef1.inputPortCount(), SINGLE_THREADED );
+        assertDefaultOperatorTupleQueue( operator1, flowExample3.operatorDef1.getInputPortCount(), SINGLE_THREADED );
         assertDefaultOperatorKVStore( operator1 );
         assertNonBlockingTupleQueueDrainerPool( operator1 );
         assertLastOperatorOutputSupplier( config, operator1 );
@@ -308,17 +310,19 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final List<RegionDef> regionDefs = result._2;
 
         final RegionDef regionDef = regionDefs.get( 0 );
-        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 1 );
 
-        final Region region = regionManager.createRegion( flow, regionConfig );
+        final Region region = regionManager.createRegion( flow, regionExecutionPlan );
 
-        assertNotNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample3.operatorDef1.id() ) );
-        assertNotNull( operatorKVStoreManager.getDefaultOperatorKVStore( region.getRegionId(), flowExample3.operatorDef1.id() ) );
+        assertNotNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(),
+                                                                               0,
+                                                                               flowExample3.operatorDef1.getId() ) );
+        assertNotNull( operatorKVStoreManager.getDefaultOperatorKVStore( region.getRegionId(), flowExample3.operatorDef1.getId() ) );
 
         regionManager.releaseRegion( region.getRegionId() );
 
-        assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample3.operatorDef1.id() ) );
-        assertNull( operatorKVStoreManager.getDefaultOperatorKVStore( region.getRegionId(), flowExample3.operatorDef1.id() ) );
+        assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample3.operatorDef1.getId() ) );
+        assertNull( operatorKVStoreManager.getDefaultOperatorKVStore( region.getRegionId(), flowExample3.operatorDef1.getId() ) );
     }
 
     @Test
@@ -328,17 +332,19 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final List<RegionDef> regionDefs = regionDefFormer.createRegions( flowExample3.flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 1 );
 
-        final Region region = regionManager.createRegion( flowExample3.flow, regionConfig );
+        final Region region = regionManager.createRegion( flowExample3.flow, regionExecutionPlan );
 
-        assertNotNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample3.operatorDef1.id() ) );
-        assertNotNull( operatorKVStoreManager.getDefaultOperatorKVStore( region.getRegionId(), flowExample3.operatorDef1.id() ) );
+        assertNotNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(),
+                                                                               0,
+                                                                               flowExample3.operatorDef1.getId() ) );
+        assertNotNull( operatorKVStoreManager.getDefaultOperatorKVStore( region.getRegionId(), flowExample3.operatorDef1.getId() ) );
 
         regionManager.releaseRegion( region.getRegionId() );
 
-        assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample3.operatorDef1.id() ) );
-        assertNull( operatorKVStoreManager.getDefaultOperatorKVStore( region.getRegionId(), flowExample3.operatorDef1.id() ) );
+        assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample3.operatorDef1.getId() ) );
+        assertNull( operatorKVStoreManager.getDefaultOperatorKVStore( region.getRegionId(), flowExample3.operatorDef1.getId() ) );
     }
 
     @Test
@@ -348,14 +354,14 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final List<RegionDef> regionDefs = regionDefFormer.createRegions( flowExample4.flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 1 );
 
-        final Region region = regionManager.createRegion( flowExample4.flow, regionConfig );
+        final Region region = regionManager.createRegion( flowExample4.flow, regionExecutionPlan );
         assertNotNull( region );
         final PipelineReplica[] pipelines = region.getReplicaPipelines( 0 );
         assertEquals( 1, pipelines.length );
         final PipelineReplica pipeline = pipelines[ 0 ];
-        assertDefaultOperatorTupleQueue( pipeline, flowExample4.operatorDef1.inputPortCount() );
+        assertDefaultOperatorTupleQueue( pipeline, flowExample4.operatorDef1.getInputPortCount() );
         assertDefaultSelfPipelineTupleQueue( pipeline );
 
         assertEquals( new PipelineReplicaId( new PipelineId( regionDef.getRegionId(), 0 ), 0 ), pipeline.id() );
@@ -378,26 +384,27 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final List<RegionDef> regionDefs = regionDefFormer.createRegions( flowExample4.flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 1 );
 
-        final Region region = regionManager.createRegion( flowExample4.flow, regionConfig );
+        final Region region = regionManager.createRegion( flowExample4.flow, regionExecutionPlan );
 
         final OperatorKVStore[] operatorKvStores = operatorKVStoreManager.getPartitionedOperatorKVStores( region.getRegionId(),
-                                                                                                          flowExample4.operatorDef1.id() );
+                                                                                                          flowExample4.operatorDef1.getId() );
         assertNotNull( operatorKvStores );
         assertEquals( 1, operatorKvStores.length );
 
         final OperatorTupleQueue[] operatorTupleQueues = operatorTupleQueueManager.getPartitionedOperatorTupleQueues( region.getRegionId(),
                                                                                                                       flowExample4.operatorDef1
-                                                                                                                              .id() );
+                                                                                                                              .getId() );
 
         assertNotNull( operatorTupleQueues );
         assertEquals( 1, operatorTupleQueues.length );
 
         regionManager.releaseRegion( region.getRegionId() );
 
-        assertNull( operatorKVStoreManager.getPartitionedOperatorKVStores( region.getRegionId(), flowExample4.operatorDef1.id() ) );
-        assertNull( operatorTupleQueueManager.getPartitionedOperatorTupleQueues( region.getRegionId(), flowExample4.operatorDef1.id() ) );
+        assertNull( operatorKVStoreManager.getPartitionedOperatorKVStores( region.getRegionId(), flowExample4.operatorDef1.getId() ) );
+        assertNull( operatorTupleQueueManager.getPartitionedOperatorTupleQueues( region.getRegionId(),
+                                                                                 flowExample4.operatorDef1.getId() ) );
     }
 
     @Test
@@ -407,17 +414,17 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final List<RegionDef> regionDefs = regionDefFormer.createRegions( flowExample4.flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 2 );
+        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 2 );
 
-        final Region region = regionManager.createRegion( flowExample4.flow, regionConfig );
+        final Region region = regionManager.createRegion( flowExample4.flow, regionExecutionPlan );
         assertNotNull( region );
 
-        for ( int replicaIndex = 0; replicaIndex < regionConfig.getReplicaCount(); replicaIndex++ )
+        for ( int replicaIndex = 0; replicaIndex < regionExecutionPlan.getReplicaCount(); replicaIndex++ )
         {
             final PipelineReplica[] pipelines = region.getReplicaPipelines( replicaIndex );
             assertEquals( 1, pipelines.length );
             final PipelineReplica pipelineReplica = pipelines[ 0 ];
-            assertDefaultOperatorTupleQueue( pipelineReplica, flowExample4.operatorDef1.inputPortCount() );
+            assertDefaultOperatorTupleQueue( pipelineReplica, flowExample4.operatorDef1.getInputPortCount() );
             assertDefaultSelfPipelineTupleQueue( pipelineReplica );
 
             assertEquals( new PipelineReplicaId( new PipelineId( regionDef.getRegionId(), 0 ), replicaIndex ), pipelineReplica.id() );
@@ -441,14 +448,14 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final List<RegionDef> regionDefs = regionDefFormer.createRegions( flowExample5.flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 1 );
 
-        final Region region = regionManager.createRegion( flowExample5.flow, regionConfig );
+        final Region region = regionManager.createRegion( flowExample5.flow, regionExecutionPlan );
         assertNotNull( region );
         final PipelineReplica[] pipelines = region.getReplicaPipelines( 0 );
         assertEquals( 1, pipelines.length );
         final PipelineReplica pipeline = pipelines[ 0 ];
-        assertDefaultOperatorTupleQueue( pipeline, flowExample5.operatorDef1.inputPortCount() );
+        assertDefaultOperatorTupleQueue( pipeline, flowExample5.operatorDef1.getInputPortCount() );
         assertEmptySelfPipelineTupleQueue( pipeline );
 
         assertEquals( new PipelineReplicaId( new PipelineId( regionDef.getRegionId(), 0 ), 0 ), pipeline.id() );
@@ -456,7 +463,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final OperatorReplica operatorReplica1 = pipeline.getOperator( 0 );
         assertOperatorDef( operatorReplica1, flowExample5.operatorDef1 );
-        assertDefaultOperatorTupleQueue( operatorReplica1, flowExample5.operatorDef1.inputPortCount(), MULTI_THREADED );
+        assertDefaultOperatorTupleQueue( operatorReplica1, flowExample5.operatorDef1.getInputPortCount(), MULTI_THREADED );
         assertEmptytOperatorKVStore( operatorReplica1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica1 );
         assertCachedTuplesImplSupplier( operatorReplica1 );
@@ -478,17 +485,17 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final List<RegionDef> regionDefs = regionDefFormer.createRegions( flowExample5.flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 2 );
+        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 2 );
 
-        final Region region = regionManager.createRegion( flowExample5.flow, regionConfig );
+        final Region region = regionManager.createRegion( flowExample5.flow, regionExecutionPlan );
         assertNotNull( region );
 
-        for ( int replicaIndex = 0; replicaIndex < regionConfig.getReplicaCount(); replicaIndex++ )
+        for ( int replicaIndex = 0; replicaIndex < regionExecutionPlan.getReplicaCount(); replicaIndex++ )
         {
             final PipelineReplica[] pipelinesReplica = region.getReplicaPipelines( replicaIndex );
             assertEquals( 1, pipelinesReplica.length );
             final PipelineReplica pipelineReplica0 = pipelinesReplica[ 0 ];
-            assertDefaultOperatorTupleQueue( pipelineReplica0, flowExample5.operatorDef1.inputPortCount() );
+            assertDefaultOperatorTupleQueue( pipelineReplica0, flowExample5.operatorDef1.getInputPortCount() );
             assertEmptySelfPipelineTupleQueue( pipelineReplica0 );
 
             assertEquals( new PipelineReplicaId( new PipelineId( regionDef.getRegionId(), 0 ), replicaIndex ), pipelineReplica0.id() );
@@ -496,7 +503,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
             final OperatorReplica operatorReplica1 = pipelineReplica0.getOperator( 0 );
             assertOperatorDef( operatorReplica1, flowExample5.operatorDef1 );
-            assertDefaultOperatorTupleQueue( operatorReplica1, flowExample5.operatorDef1.inputPortCount(), MULTI_THREADED );
+            assertDefaultOperatorTupleQueue( operatorReplica1, flowExample5.operatorDef1.getInputPortCount(), MULTI_THREADED );
             assertEmptytOperatorKVStore( operatorReplica1 );
             assertBlockingTupleQueueDrainerPool( operatorReplica1 );
             assertCachedTuplesImplSupplier( operatorReplica1 );
@@ -525,28 +532,32 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final List<RegionDef> regionDefs = regionDefFormer.createRegions( flowExample5.flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( regionDef, singletonList( 0 ), 2 );
+        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 2 );
 
-        final Region region = regionManager.createRegion( flowExample5.flow, regionConfig );
+        final Region region = regionManager.createRegion( flowExample5.flow, regionExecutionPlan );
 
-        assertNotNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample5.operatorDef1.id() ) );
-        assertNotNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 1, flowExample5.operatorDef1.id() ) );
+        assertNotNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(),
+                                                                               0,
+                                                                               flowExample5.operatorDef1.getId() ) );
+        assertNotNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(),
+                                                                               1,
+                                                                               flowExample5.operatorDef1.getId() ) );
         final OperatorTupleQueue[] operatorTupleQueues = operatorTupleQueueManager.getPartitionedOperatorTupleQueues( region.getRegionId(),
                                                                                                                       flowExample5.operatorDef2
-                                                                                                                              .id() );
+                                                                                                                              .getId() );
         assertNotNull( operatorTupleQueues );
         assertEquals( 2, operatorTupleQueues.length );
 
         final OperatorKVStore[] operatorKvStores = operatorKVStoreManager.getPartitionedOperatorKVStores( region.getRegionId(),
-                                                                                                          flowExample5.operatorDef2.id() );
+                                                                                                          flowExample5.operatorDef2.getId() );
         assertNotNull( operatorKvStores );
         assertEquals( 2, operatorKvStores.length );
 
         regionManager.releaseRegion( region.getRegionId() );
 
-        assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample5.operatorDef1.id() ) );
-        assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 1, flowExample5.operatorDef1.id() ) );
-        assertNull( operatorKVStoreManager.getPartitionedOperatorKVStores( region.getRegionId(), flowExample5.operatorDef2.id() ) );
+        assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample5.operatorDef1.getId() ) );
+        assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 1, flowExample5.operatorDef1.getId() ) );
+        assertNull( operatorKVStoreManager.getPartitionedOperatorKVStores( region.getRegionId(), flowExample5.operatorDef2.getId() ) );
     }
 
     @Test
@@ -556,17 +567,17 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final List<RegionDef> regionDefs = regionDefFormer.createRegions( flowExample6.flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( regionDef, asList( 0, 1 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, asList( 0, 1 ), 1 );
 
-        final Region region = regionManager.createRegion( flowExample6.flow, regionConfig );
+        final Region region = regionManager.createRegion( flowExample6.flow, regionExecutionPlan );
         assertNotNull( region );
         final PipelineReplica[] pipelines = region.getReplicaPipelines( 0 );
         assertEquals( 2, pipelines.length );
         final PipelineReplica pipeline0 = pipelines[ 0 ];
         final PipelineReplica pipeline1 = pipelines[ 1 ];
-        assertDefaultOperatorTupleQueue( pipeline0, flowExample6.operatorDef1.inputPortCount() );
+        assertDefaultOperatorTupleQueue( pipeline0, flowExample6.operatorDef1.getInputPortCount() );
         assertEmptySelfPipelineTupleQueue( pipeline0 );
-        assertDefaultOperatorTupleQueue( pipeline1, flowExample6.operatorDef2.inputPortCount() );
+        assertDefaultOperatorTupleQueue( pipeline1, flowExample6.operatorDef2.getInputPortCount() );
         assertDefaultSelfPipelineTupleQueue( pipeline1 );
 
         assertEquals( new PipelineReplicaId( new PipelineId( regionDef.getRegionId(), 0 ), 0 ), pipeline0.id() );
@@ -576,7 +587,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final OperatorReplica operatorReplica1 = pipeline0.getOperator( 0 );
         assertOperatorDef( operatorReplica1, flowExample6.operatorDef1 );
-        assertDefaultOperatorTupleQueue( operatorReplica1, flowExample6.operatorDef1.inputPortCount(), MULTI_THREADED );
+        assertDefaultOperatorTupleQueue( operatorReplica1, flowExample6.operatorDef1.getInputPortCount(), MULTI_THREADED );
         assertEmptytOperatorKVStore( operatorReplica1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica1 );
         assertLastOperatorOutputSupplier( config, operatorReplica1 );
@@ -590,7 +601,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final OperatorReplica operatorReplica3 = pipeline1.getOperator( 1 );
         assertOperatorDef( operatorReplica3, flowExample6.operatorDef3 );
-        assertDefaultOperatorTupleQueue( operatorReplica3, flowExample6.operatorDef3.inputPortCount(), SINGLE_THREADED );
+        assertDefaultOperatorTupleQueue( operatorReplica3, flowExample6.operatorDef3.getInputPortCount(), SINGLE_THREADED );
         assertEmptytOperatorKVStore( operatorReplica3 );
         assertNonBlockingTupleQueueDrainerPool( operatorReplica3 );
         assertLastOperatorOutputSupplier( config, operatorReplica3 );
@@ -607,17 +618,17 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final List<RegionDef> regionDefs = regionDefFormer.createRegions( flowExample6.flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( regionDef, asList( 0, 2 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, asList( 0, 2 ), 1 );
 
-        final Region region = regionManager.createRegion( flowExample6.flow, regionConfig );
+        final Region region = regionManager.createRegion( flowExample6.flow, regionExecutionPlan );
         assertNotNull( region );
         final PipelineReplica[] pipelines = region.getReplicaPipelines( 0 );
         assertEquals( 2, pipelines.length );
         final PipelineReplica pipeline0 = pipelines[ 0 ];
         final PipelineReplica pipeline1 = pipelines[ 1 ];
-        assertDefaultOperatorTupleQueue( pipeline0, flowExample6.operatorDef1.inputPortCount() );
+        assertDefaultOperatorTupleQueue( pipeline0, flowExample6.operatorDef1.getInputPortCount() );
         assertEmptySelfPipelineTupleQueue( pipeline0 );
-        assertDefaultOperatorTupleQueue( pipeline1, flowExample6.operatorDef3.inputPortCount() );
+        assertDefaultOperatorTupleQueue( pipeline1, flowExample6.operatorDef3.getInputPortCount() );
         assertEmptySelfPipelineTupleQueue( pipeline0 );
 
         assertEquals( new PipelineReplicaId( new PipelineId( regionDef.getRegionId(), 0 ), 0 ), pipeline0.id() );
@@ -627,7 +638,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final OperatorReplica operatorReplica1 = pipeline0.getOperator( 0 );
         assertOperatorDef( operatorReplica1, flowExample6.operatorDef1 );
-        assertDefaultOperatorTupleQueue( operatorReplica1, flowExample6.operatorDef1.inputPortCount(), MULTI_THREADED );
+        assertDefaultOperatorTupleQueue( operatorReplica1, flowExample6.operatorDef1.getInputPortCount(), MULTI_THREADED );
         assertEmptytOperatorKVStore( operatorReplica1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica1 );
         assertCachedTuplesImplSupplier( operatorReplica1 );
@@ -641,7 +652,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final OperatorReplica operatorReplica3 = pipeline1.getOperator( 0 );
         assertOperatorDef( operatorReplica3, flowExample6.operatorDef3 );
-        assertDefaultOperatorTupleQueue( operatorReplica3, flowExample6.operatorDef3.inputPortCount(), MULTI_THREADED );
+        assertDefaultOperatorTupleQueue( operatorReplica3, flowExample6.operatorDef3.getInputPortCount(), MULTI_THREADED );
         assertEmptytOperatorKVStore( operatorReplica3 );
         assertBlockingTupleQueueDrainerPool( operatorReplica3 );
         assertLastOperatorOutputSupplier( config, operatorReplica3 );
@@ -658,20 +669,20 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final List<RegionDef> regionDefs = regionDefFormer.createRegions( flowExample6.flow );
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionConfig regionConfig = new RegionConfig( regionDef, asList( 0, 1, 2 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, asList( 0, 1, 2 ), 1 );
 
-        final Region region = regionManager.createRegion( flowExample6.flow, regionConfig );
+        final Region region = regionManager.createRegion( flowExample6.flow, regionExecutionPlan );
         assertNotNull( region );
         final PipelineReplica[] pipelines = region.getReplicaPipelines( 0 );
         assertEquals( 3, pipelines.length );
         final PipelineReplica pipeline0 = pipelines[ 0 ];
         final PipelineReplica pipeline1 = pipelines[ 1 ];
         final PipelineReplica pipeline2 = pipelines[ 2 ];
-        assertDefaultOperatorTupleQueue( pipeline0, flowExample6.operatorDef1.inputPortCount() );
+        assertDefaultOperatorTupleQueue( pipeline0, flowExample6.operatorDef1.getInputPortCount() );
         assertEmptySelfPipelineTupleQueue( pipeline0 );
-        assertDefaultOperatorTupleQueue( pipeline1, flowExample6.operatorDef2.inputPortCount() );
+        assertDefaultOperatorTupleQueue( pipeline1, flowExample6.operatorDef2.getInputPortCount() );
         assertDefaultSelfPipelineTupleQueue( pipeline1 );
-        assertDefaultOperatorTupleQueue( pipeline2, flowExample6.operatorDef3.inputPortCount() );
+        assertDefaultOperatorTupleQueue( pipeline2, flowExample6.operatorDef3.getInputPortCount() );
         assertEmptySelfPipelineTupleQueue( pipeline2 );
 
         assertEquals( new PipelineReplicaId( new PipelineId( regionDef.getRegionId(), 0 ), 0 ), pipeline0.id() );
@@ -683,7 +694,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final OperatorReplica operatorReplica1 = pipeline0.getOperator( 0 );
         assertOperatorDef( operatorReplica1, flowExample6.operatorDef1 );
-        assertDefaultOperatorTupleQueue( operatorReplica1, flowExample6.operatorDef1.inputPortCount(), MULTI_THREADED );
+        assertDefaultOperatorTupleQueue( operatorReplica1, flowExample6.operatorDef1.getInputPortCount(), MULTI_THREADED );
         assertEmptytOperatorKVStore( operatorReplica1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica1 );
         assertLastOperatorOutputSupplier( config, operatorReplica1 );
@@ -697,7 +708,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final OperatorReplica operatorReplica3 = pipeline2.getOperator( 0 );
         assertOperatorDef( operatorReplica3, flowExample6.operatorDef3 );
-        assertDefaultOperatorTupleQueue( operatorReplica3, flowExample6.operatorDef3.inputPortCount(), MULTI_THREADED );
+        assertDefaultOperatorTupleQueue( operatorReplica3, flowExample6.operatorDef3.getInputPortCount(), MULTI_THREADED );
         assertEmptytOperatorKVStore( operatorReplica3 );
         assertBlockingTupleQueueDrainerPool( operatorReplica3 );
         assertLastOperatorOutputSupplier( config, operatorReplica3 );
@@ -753,7 +764,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
     {
         final OperatorTupleQueue operatorTupleQueue = operatorReplica.getQueue();
         assertTrue( operatorTupleQueue instanceof EmptyOperatorTupleQueue );
-        assertEquals( operatorReplica.getOperatorDef().id(), operatorTupleQueue.getOperatorId() );
+        assertEquals( operatorReplica.getOperatorDef().getId(), operatorTupleQueue.getOperatorId() );
     }
 
     static void assertDefaultOperatorTupleQueue ( final OperatorReplica operatorReplica,
@@ -770,7 +781,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
     {
         final OperatorTupleQueue operatorTupleQueue = operatorReplica.getQueue();
         assertTrue( operatorTupleQueue instanceof PartitionedOperatorTupleQueue );
-        assertEquals( operatorReplica.getOperatorDef().id(), operatorTupleQueue.getOperatorId() );
+        assertEquals( operatorReplica.getOperatorDef().getId(), operatorTupleQueue.getOperatorId() );
     }
 
     static void assertEmptytOperatorKVStore ( final OperatorReplica operatorReplica )
@@ -782,14 +793,14 @@ public class RegionManagerImplTest extends AbstractJokerTest
     {
         final OperatorKVStore operatorKvStore = operatorReplica.getOperatorKvStore();
         assertTrue( operatorKvStore instanceof DefaultOperatorKVStore );
-        assertEquals( operatorReplica.getOperatorDef().id(), operatorKvStore.getOperatorId() );
+        assertEquals( operatorReplica.getOperatorDef().getId(), operatorKvStore.getOperatorId() );
     }
 
     static void assertPartitionedOperatorKVStore ( final OperatorReplica operatorReplica )
     {
         final OperatorKVStore operatorKvStore = operatorReplica.getOperatorKvStore();
         assertTrue( operatorKvStore instanceof PartitionedOperatorKVStore );
-        assertEquals( operatorReplica.getOperatorDef().id(), operatorKvStore.getOperatorId() );
+        assertEquals( operatorReplica.getOperatorDef().getId(), operatorKvStore.getOperatorId() );
     }
 
     static void assertBlockingTupleQueueDrainerPool ( final OperatorReplica operatorReplica )
