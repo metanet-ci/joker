@@ -17,7 +17,7 @@ import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainerPool;
 import cs.bilkent.joker.operator.InitializationContext;
-import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.OPERATOR_REQUESTED_SHUTDOWN;
+import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SHUTDOWN;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.impl.InvocationContextImpl;
@@ -142,7 +142,7 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
 
             final Field completionReasonField = OperatorReplica.class.getDeclaredField( "completionReason" );
             completionReasonField.setAccessible( true );
-            completionReasonField.set( operatorReplica, OPERATOR_REQUESTED_SHUTDOWN );
+            completionReasonField.set( operatorReplica, SHUTDOWN );
         }
         catch ( Exception e )
         {

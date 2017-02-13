@@ -132,15 +132,6 @@ public interface InvocationContext
                     {
                         return false;
                     }
-                },
-
-        OPERATOR_REQUESTED_SHUTDOWN
-                {
-                    @Override
-                    boolean isSuccessful ()
-                    {
-                        return false;
-                    }
                 };
 
         /**
