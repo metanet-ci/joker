@@ -126,7 +126,7 @@
                     <configuration>
                         <forkCount>2</forkCount>
                         <reuseForks>true</reuseForks>
-                        <argLine>-Xms1G -Xmx4G -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=heap.hprof</argLine>
+                        <argLine>-Xms1G -Xmx4G</argLine>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
                     </configuration>
                 </plugin>

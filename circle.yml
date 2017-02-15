@@ -5,7 +5,7 @@ dependencies:
 
 test:
   override: 
-      - mvn clean cobertura:cobertura test
+      - mvn clean cobertura:cobertura
 
   post:
     - mkdir -p $CIRCLE_ARTIFACTS/joker-engine/surefire-reports
