@@ -1,6 +1,6 @@
 test:
   post:
-    - mkdir -p $CIRCLE_ARTIFACTS/joker-engine/surefire-reports
     - mkdir -p $CIRCLE_ARTIFACTS/joker-engine/cobertura
+    - mkdir -p $CIRCLE_ARTIFACTS/joker-engine/surefire-reports
     - find . -type f -regex "joker-engine/target/surefire-reports/*" -exec cp {} $CIRCLE_ARTIFACTS/joker-engine/surefire-reports/ \;
-	- find . -type f -regex "joker-engine/target/site/cobertura/*" -exec cp {} $CIRCLE_ARTIFACTS/joker-engine/cobertura \;
+    - find . -type f -regex "joker-engine/target/site/cobertura/*" -exec cp {} $CIRCLE_ARTIFACTS/joker-engine/cobertura \;
