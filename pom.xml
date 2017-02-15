@@ -126,7 +126,7 @@
                     <configuration>
                         <forkCount>2</forkCount>
                         <reuseForks>true</reuseForks>
-                        <argLine>-Xms1G -Xmx4G</argLine>
+                        <argLine>-Xms1G -Xmx4G -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=heap.hprof</argLine>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
                     </configuration>
                 </plugin>
@@ -201,6 +201,7 @@
                         <artifactId>maven-surefire-plugin</artifactId>
                         <configuration>
                             <argLine>-Xms1G -Xmx4G -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps -XX:+PrintGCDetails -Xloggc:target/gc.log
+                                -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=heap.hprof
                             </argLine>
                         </configuration>
                     </plugin>
