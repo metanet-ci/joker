@@ -1,5 +1,6 @@
 test:
   post:
-    - mkdir -p $CIRCLE_TEST_REPORTS/junit/
-    - find . -type f -regex ".*/target/.*-reports/.*xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit/ \;
-	- bash <(curl -s https://codecov.io/bash)
+    - mkdir -p $CIRCLE_ARTIFACTS/joker-engine/surefire-reports
+    - mkdir -p $CIRCLE_ARTIFACTS/joker-engine/cobertura
+    - find . -type f -regex "joker-engine/target/surefire-reports/*" -exec cp {} $CIRCLE_ARTIFACTS/joker-engine/surefire-reports/ \;
+	- find . -type f -regex "joker-engine/target/site/cobertura/*" -exec cp {} $CIRCLE_ARTIFACTS/joker-engine/cobertura \;
