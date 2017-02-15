@@ -11,6 +11,7 @@ import java.util.Set;
 
 import org.junit.Test;
 
+import cs.bilkent.joker.operator.impl.InMemoryKVStore;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static org.hamcrest.MatcherAssert.assertThat;

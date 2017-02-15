@@ -5,8 +5,8 @@ import java.util.Map;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import cs.bilkent.joker.engine.partition.PartitionKey;
+import cs.bilkent.joker.operator.impl.InMemoryKVStore;
 import cs.bilkent.joker.operator.kvstore.KVStore;
-import cs.bilkent.joker.operator.kvstore.impl.InMemoryKVStore;
 
 @NotThreadSafe
 public class KVStoreContainer

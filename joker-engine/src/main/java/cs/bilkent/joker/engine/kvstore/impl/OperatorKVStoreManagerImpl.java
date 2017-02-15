@@ -15,8 +15,8 @@ import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.kvstore.OperatorKVStore;
 import cs.bilkent.joker.engine.kvstore.OperatorKVStoreManager;
 import cs.bilkent.joker.engine.partition.PartitionDistribution;
+import cs.bilkent.joker.operator.impl.InMemoryKVStore;
 import cs.bilkent.joker.operator.kvstore.KVStore;
-import cs.bilkent.joker.operator.kvstore.impl.InMemoryKVStore;
 import cs.bilkent.joker.utils.Pair;
 import static java.util.Arrays.copyOf;
 

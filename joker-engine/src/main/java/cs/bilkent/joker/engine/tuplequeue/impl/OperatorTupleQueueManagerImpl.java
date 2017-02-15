@@ -74,16 +74,15 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
         checkArgument( threadingPreference != null,
                        "No threading preference is given! regionId %s, replicaIndex %s operatorId %s",
                        regionId,
-                       replicaIndex, operatorDef.getId() );
+                       replicaIndex,
+                       operatorDef.getId() );
         checkArgument( operatorDef.getOperatorType() != PARTITIONED_STATEFUL || threadingPreference == MULTI_THREADED,
                        "invalid <operator type, threading preference> pair! regionId %s operatorId %s operatorType %s threadingPreference"
-                       + " %s ",
-                       regionId, operatorDef.getId(), operatorDef.getOperatorType(),
+                       + " %s ", regionId, operatorDef.getId(), operatorDef.getOperatorType(),
                        threadingPreference );
         checkArgument( replicaIndex >= 0,
                        "invalid replica index! regionId %s, replicaIndex %s operatorId %s",
-                       regionId,
-                       replicaIndex, operatorDef.getId() );
+                       regionId, replicaIndex, operatorDef.getId() );
 
         final String operatorId = operatorDef.getId();
         final Triple<Integer, Integer, String> key = Triple.of( regionId, replicaIndex, operatorId );
@@ -349,6 +348,15 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
                 capacity = max( capacity, currentQueue.size() );
             }
 
+            if ( capacity != tupleQueueManagerConfig.getTupleQueueCapacity() )
+            {
+                LOGGER.warn( "Extending tuple queues of regionId={} replicaIndex={} operatorId={} to capacity={} while converting to {}",
+                             regionId,
+                             replicaIndex,
+                             operatorId,
+                             MULTI_THREADED );
+            }
+
             for ( int portIndex = 0; portIndex < operatorTupleQueue.getInputPortCount(); portIndex++ )
             {
                 final TupleQueue currentQueue = operatorTupleQueue.getTupleQueue( portIndex );
@@ -363,6 +371,13 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
             {
                 final TupleQueue currentQueue = operatorTupleQueue.getTupleQueue( portIndex );
                 final int capacity = max( tupleQueueManagerConfig.getTupleQueueCapacity(), currentQueue.size() );
+
+                if ( capacity != tupleQueueManagerConfig.getTupleQueueCapacity() )
+                {
+                    LOGGER.warn( "Extending tuple queues of regionId={} replicaIndex={} operatorId={} to capacity={} while converting to "
+                                 + "{}", regionId, replicaIndex, operatorId, SINGLE_THREADED );
+                }
+
                 final SingleThreadedTupleQueue newQueue = new SingleThreadedTupleQueue( capacity );
                 drain( currentQueue, newQueue );
                 tupleQueues[ portIndex ] = newQueue;

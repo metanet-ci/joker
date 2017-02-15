@@ -1,4 +1,4 @@
-package cs.bilkent.joker.operator.kvstore.impl;
+package cs.bilkent.joker.operator.impl;
 
 
 import java.util.HashMap;

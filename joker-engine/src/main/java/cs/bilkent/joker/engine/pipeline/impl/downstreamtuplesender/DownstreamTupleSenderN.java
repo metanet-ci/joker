@@ -58,7 +58,8 @@ public class DownstreamTupleSenderN implements DownstreamTupleSender, Supplier<O
     @Override
     public Future<Void> send ( final TuplesImpl input )
     {
-        reset();
+        fill( fromIndices, 0 );
+        idleStrategy.reset();
         int done = 0;
 
         while ( true )
@@ -104,12 +105,6 @@ public class DownstreamTupleSenderN implements DownstreamTupleSender, Supplier<O
         }
 
         return null;
-    }
-
-    private void reset ()
-    {
-        fill( fromIndices, 0 );
-        idleStrategy.reset();
     }
 
     @Override

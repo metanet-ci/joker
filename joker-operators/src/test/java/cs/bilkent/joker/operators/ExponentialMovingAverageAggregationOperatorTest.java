@@ -8,11 +8,11 @@ import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SUCCE
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.operator.impl.InMemoryKVStore;
 import cs.bilkent.joker.operator.impl.InitializationContextImpl;
 import cs.bilkent.joker.operator.impl.InvocationContextImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
-import cs.bilkent.joker.operator.kvstore.impl.InMemoryKVStore;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
