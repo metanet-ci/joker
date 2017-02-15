@@ -1,4 +1,11 @@
+dependencies:
+  pre:
+    - ./joker-pcj/scripts/installPCJ.sh
+    - mvn install -DskipTests
+
 test:
+  override: 
+	  - mvn clean cobertura:cobertura test
   post:
     - mkdir -p $CIRCLE_ARTIFACTS/joker-engine/surefire-reports
     - mkdir -p $CIRCLE_ARTIFACTS/joker-engine/cobertura
@@ -16,4 +23,8 @@ test:
     - cp -a joker-operator-api/target/site/cobertura/* $CIRCLE_ARTIFACTS/joker-operator-api/cobertura/
     - cp -a joker-operators/target/surefire-reports/* $CIRCLE_ARTIFACTS/joker-operators/surefire-reports/
     - cp -a joker-operators/target/site/cobertura/* $CIRCLE_ARTIFACTS/joker-operators/cobertura/
+	- zip $CIRCLE_ARTIFACTS/joker-engine-surefire.zip joker-engine/target/surefire-reports/* 
+    - zip $CIRCLE_ARTIFACTS/joker-examples-surefire.zip joker-examples/target/surefire-reports/* 
+    - zip $CIRCLE_ARTIFACTS/joker-operator-api-surefire.zip joker-operator-api/target/surefire-reports/* 
+    - zip $CIRCLE_ARTIFACTS/joker-operators-surefire.zip joker-operators/target/surefire-reports/* 
     - bash <(curl -s https://codecov.io/bash)
