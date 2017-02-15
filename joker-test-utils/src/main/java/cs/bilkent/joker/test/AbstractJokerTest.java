@@ -29,14 +29,17 @@ public abstract class AbstractJokerTest
         @Override
         protected void starting ( final Description description )
         {
-            System.out.println( "+ STARTING TEST: " + description.getMethodName() );
+            super.starting( description );
+            System.out.println( "+ STARTED: " + description.getMethodName() );
             start = System.nanoTime();
             super.starting( description );
         }
 
         @Override
-        protected void finished ( final Description description )
+        protected void succeeded ( Description description )
         {
+            super.succeeded( description );
+
             final long durationNanos = System.nanoTime() - start;
             final long durationMicros = durationNanos / 1000;
             final long durationMillis = durationMicros / 1000;
@@ -46,7 +49,24 @@ public abstract class AbstractJokerTest
                                   : ( durationMillis > 0 ? durationMillis : ( durationMicros > 0 ? durationMicros : durationNanos ) );
             final String unit =
                     durationSeconds > 0 ? "secs" : ( durationMillis > 0 ? "millis" : ( durationMicros > 0 ? "micros" : "nanos" ) );
-            System.out.println( "+ COMPLETED TEST: " + description.getMethodName() + " IN " + duration + " " + unit );
+            System.out.println( "+ SUCCEEDED: " + description.getMethodName() + " IN " + duration + " " + unit );
+        }
+
+        @Override
+        protected void failed ( Throwable e, Description description )
+        {
+            super.failed( e, description );
+
+            final long durationNanos = System.nanoTime() - start;
+            final long durationMicros = durationNanos / 1000;
+            final long durationMillis = durationMicros / 1000;
+            final long durationSeconds = durationMillis / 1000;
+            final long duration = durationSeconds > 0
+                                  ? durationSeconds
+                                  : ( durationMillis > 0 ? durationMillis : ( durationMicros > 0 ? durationMicros : durationNanos ) );
+            final String unit =
+                    durationSeconds > 0 ? "secs" : ( durationMillis > 0 ? "millis" : ( durationMicros > 0 ? "micros" : "nanos" ) );
+            System.out.println( "+ FAILED: " + description.getMethodName() + " IN " + duration + " " + unit );
         }
 
     };
