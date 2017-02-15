@@ -20,6 +20,7 @@ import java.util.concurrent.locks.LockSupport;
 
 import org.agrona.hints.ThreadHints;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static java.lang.Math.min;
 
 abstract class BackoffIdleStrategyPrePad
@@ -44,9 +45,7 @@ abstract class BackoffIdleStrategyData extends BackoffIdleStrategyPrePad
 
     protected State state;
 
-    protected long spins;
-    protected long yields;
-    protected long parks;
+    protected long idle;
     protected long parkPeriodNs;
 
     BackoffIdleStrategyData ( final long maxSpins,
@@ -55,9 +54,14 @@ abstract class BackoffIdleStrategyData extends BackoffIdleStrategyPrePad
                               final long minParkPeriodNs,
                               final long maxParkPeriodNs )
     {
+        checkArgument( maxSpins >= 0 );
+        checkArgument( maxYields >= 0 );
+        checkArgument( maxParks >= 0 );
+        checkArgument( minParkPeriodNs > 0 );
+        checkArgument( maxParkPeriodNs >= minParkPeriodNs );
         this.maxSpins = maxSpins;
-        this.maxYields = maxYields;
-        this.maxParks = maxParks;
+        this.maxYields = maxSpins + maxYields;
+        this.maxParks = maxSpins + maxYields + maxParks;
         this.minParkPeriodNs = minParkPeriodNs;
         this.maxParkPeriodNs = maxParkPeriodNs;
     }
@@ -71,7 +75,7 @@ public final class BackoffIdleStrategy extends BackoffIdleStrategyData implement
 
     public static BackoffIdleStrategy newDefaultInstance ()
     {
-        return new BackoffIdleStrategy( 1000, 100, 100, 1, 1 );
+        return new BackoffIdleStrategy( 1000, 100, 50, 1, 4 );
     }
 
     long pad01, pad02, pad03, pad04, pad05, pad06, pad07;
@@ -88,11 +92,11 @@ public final class BackoffIdleStrategy extends BackoffIdleStrategyData implement
      * @param maxParkPeriodNs
      *         to use when parking
      */
-    private BackoffIdleStrategy ( final long maxSpins,
-                                  final long maxYields,
-                                  final long maxParks,
-                                  final long minParkPeriodNs,
-                                  final long maxParkPeriodNs )
+    BackoffIdleStrategy ( final long maxSpins,
+                          final long maxYields,
+                          final long maxParks,
+                          final long minParkPeriodNs,
+                          final long maxParkPeriodNs )
     {
         super( maxSpins, maxYields, maxParks, minParkPeriodNs, maxParkPeriodNs );
         this.state = State.NOT_IDLE;
@@ -105,22 +109,21 @@ public final class BackoffIdleStrategy extends BackoffIdleStrategyData implement
         {
             case NOT_IDLE:
                 state = State.SPINNING;
-                spins++;
+                idle++;
 
                 break;
 
             case SPINNING:
                 ThreadHints.onSpinWait();
-                if ( ++spins > maxSpins )
+                if ( ++idle > maxSpins )
                 {
                     state = State.YIELDING;
-                    yields = 0;
                 }
 
                 break;
 
             case YIELDING:
-                if ( ++yields > maxYields )
+                if ( ++idle > maxYields )
                 {
                     state = State.PARKING;
                     parkPeriodNs = minParkPeriodNs;
@@ -136,7 +139,7 @@ public final class BackoffIdleStrategy extends BackoffIdleStrategyData implement
                 LockSupport.parkNanos( parkPeriodNs );
                 parkPeriodNs = min( parkPeriodNs << 1, maxParkPeriodNs );
 
-                return ++parks > maxParks;
+                return ++idle > maxParks;
         }
 
         return false;
@@ -145,10 +148,14 @@ public final class BackoffIdleStrategy extends BackoffIdleStrategyData implement
     @Override
     public void reset ()
     {
-        spins = 0;
-        yields = 0;
-        parks = 0;
+        idle = 0;
         state = State.NOT_IDLE;
     }
+
+    State getState ()
+    {
+        return state;
+    }
+
 }
 
