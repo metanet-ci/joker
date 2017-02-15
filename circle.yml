@@ -1,3 +1,7 @@
 test:
   post:
+    - mkdir -p $CIRCLE_ARTIFACTS/joker-engine/surefire-reports
+    - mkdir -p $CIRCLE_ARTIFACTS/joker-engine/cobertura
+    - cp joker-engine/target/surefire-reports/* $CIRCLE_ARTIFACTS/joker-engine/surefire-reports/
+    - cp joker-engine/target/site/cobertura/* $CIRCLE_ARTIFACTS/joker-engine/cobertura/
     - bash <(curl -s https://codecov.io/bash)
