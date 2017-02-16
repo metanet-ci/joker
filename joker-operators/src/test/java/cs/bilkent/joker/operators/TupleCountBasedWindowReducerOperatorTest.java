@@ -8,6 +8,9 @@ import org.junit.Test;
 
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
 import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SUCCESS;
+import cs.bilkent.joker.operator.OperatorConfig;
+import cs.bilkent.joker.operator.OperatorDef;
+import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.InMemoryKVStore;
 import cs.bilkent.joker.operator.impl.InitializationContextImpl;
@@ -23,6 +26,7 @@ import static cs.bilkent.joker.operators.TupleCountBasedWindowReducerOperator.TU
 import static cs.bilkent.joker.operators.TupleCountBasedWindowReducerOperator.TUPLE_COUNT_FIELD;
 import static cs.bilkent.joker.operators.TupleCountBasedWindowReducerOperator.WINDOW_FIELD;
 import cs.bilkent.joker.test.AbstractJokerTest;
+import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;
@@ -34,9 +38,6 @@ public class TupleCountBasedWindowReducerOperatorTest extends AbstractJokerTest
 
     private static final String TUPLE_PARTITION_KEY = "key1";
 
-    private final TupleCountBasedWindowReducerOperator operator = new TupleCountBasedWindowReducerOperator();
-
-    private final InitializationContextImpl initContext = new InitializationContextImpl();
 
     private final TuplesImpl input = new TuplesImpl( 1 );
 
@@ -44,7 +45,13 @@ public class TupleCountBasedWindowReducerOperatorTest extends AbstractJokerTest
 
     private final KVStore kvStore = new InMemoryKVStore();
 
-    private final InvocationContextImpl invocationContext = new InvocationContextImpl( SUCCESS, input, output, kvStore );
+    private final InvocationContextImpl invocationContext = new InvocationContextImpl();
+
+    private final OperatorConfig config = new OperatorConfig();
+
+    private TupleCountBasedWindowReducerOperator operator;
+
+    private InitializationContextImpl initContext;
 
     private final BiConsumer<Tuple, Tuple> adder = ( accumulator, val ) ->
     {
@@ -55,13 +62,22 @@ public class TupleCountBasedWindowReducerOperatorTest extends AbstractJokerTest
     private final int tupleCount = 2;
 
     @Before
-    public void init ()
+    public void init () throws InstantiationException, IllegalAccessException
     {
+        invocationContext.setInvocationParameters( SUCCESS, input, output, kvStore );
+
         final OperatorRuntimeSchemaBuilder builder = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        builder.addInputField( 0, "count", Integer.class )
-               .addOutputField( 0, "count", Integer.class )
-               .addOutputField( 0, WINDOW_FIELD, Integer.class );
-        initContext.setRuntimeSchema( builder.build() );
+        builder.addInputField( 0, "key", String.class )
+               .addInputField( 0, "count", Integer.class )
+               .addOutputField( 0, "count", Integer.class );
+
+        final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "op", TupleCountBasedWindowReducerOperator.class )
+                                                          .setConfig( config )
+                                                          .setExtendingSchema( builder )
+                                                          .setPartitionFieldNames( singletonList( "key" ) )
+                                                          .build();
+        operator = (TupleCountBasedWindowReducerOperator) operatorDef.createOperator();
+        initContext = new InitializationContextImpl( operatorDef, new boolean[] { true } );
     }
 
     private Consumer<Tuple> createAccumulatorInitializer ( final int initialValue )
@@ -72,24 +88,24 @@ public class TupleCountBasedWindowReducerOperatorTest extends AbstractJokerTest
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailToInitWithoutReducer ()
     {
-        initContext.getConfig().set( TUPLE_COUNT_CONFIG_PARAMETER, tupleCount );
-        initContext.getConfig().set( ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER, createAccumulatorInitializer( 0 ) );
+        config.set( TUPLE_COUNT_CONFIG_PARAMETER, tupleCount );
+        config.set( ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER, createAccumulatorInitializer( 0 ) );
         operator.init( initContext );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailToInitWithoutTupleCount ()
     {
-        initContext.getConfig().set( REDUCER_CONFIG_PARAMETER, adder );
-        initContext.getConfig().set( ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER, createAccumulatorInitializer( 0 ) );
+        config.set( REDUCER_CONFIG_PARAMETER, adder );
+        config.set( ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER, createAccumulatorInitializer( 0 ) );
         operator.init( initContext );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailToInitWithoutAccumulatorInitializer ()
     {
-        initContext.getConfig().set( TUPLE_COUNT_CONFIG_PARAMETER, tupleCount );
-        initContext.getConfig().set( REDUCER_CONFIG_PARAMETER, adder );
+        config.set( TUPLE_COUNT_CONFIG_PARAMETER, tupleCount );
+        config.set( REDUCER_CONFIG_PARAMETER, adder );
         operator.init( initContext );
     }
 
@@ -97,7 +113,7 @@ public class TupleCountBasedWindowReducerOperatorTest extends AbstractJokerTest
     public void shouldInitSuccessfully ()
     {
         configure();
-        initContext.getConfig().set( ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER, createAccumulatorInitializer( 0 ) );
+        config.set( ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER, createAccumulatorInitializer( 0 ) );
         final SchedulingStrategy strategy = operator.init( initContext );
 
         assertStrategy( strategy );
@@ -107,10 +123,11 @@ public class TupleCountBasedWindowReducerOperatorTest extends AbstractJokerTest
     public void shouldReduceSingleTupleWithInitialValue ()
     {
         configure();
-        initContext.getConfig().set( ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER, createAccumulatorInitializer( 2 ) );
+        config.set( ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER, createAccumulatorInitializer( 2 ) );
         operator.init( initContext );
 
         final Tuple tuple = new Tuple();
+        tuple.set( "key", "key" );
         tuple.set( "count", 1 );
         input.add( tuple );
 
@@ -126,13 +143,15 @@ public class TupleCountBasedWindowReducerOperatorTest extends AbstractJokerTest
     public void shouldReduceMultipleTuplesWithInitialValue ()
     {
         configure();
-        initContext.getConfig().set( ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER, createAccumulatorInitializer( 3 ) );
+        config.set( ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER, createAccumulatorInitializer( 3 ) );
         operator.init( initContext );
 
         final Tuple tuple1 = new Tuple();
+        tuple1.set( "key", "key" );
         tuple1.set( "count", 1 );
         input.add( tuple1 );
         final Tuple tuple2 = new Tuple();
+        tuple2.set( "key", "key" );
         tuple2.set( "count", 2 );
         input.add( tuple2 );
 
@@ -149,16 +168,19 @@ public class TupleCountBasedWindowReducerOperatorTest extends AbstractJokerTest
     public void shouldReduceMultipleTuplesWithInitialValue2 ()
     {
         configure();
-        initContext.getConfig().set( ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER, createAccumulatorInitializer( 4 ) );
+        config.set( ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER, createAccumulatorInitializer( 4 ) );
         operator.init( initContext );
 
         final Tuple tuple1 = new Tuple();
+        tuple1.set( "key", "key" );
         tuple1.set( "count", 1 );
         input.add( tuple1 );
         final Tuple tuple2 = new Tuple();
+        tuple2.set( "key", "key" );
         tuple2.set( "count", 2 );
         input.add( tuple2 );
         final Tuple tuple3 = new Tuple();
+        tuple3.set( "key", "key" );
         tuple3.set( "count", 3 );
         input.add( tuple3 );
 
@@ -173,8 +195,8 @@ public class TupleCountBasedWindowReducerOperatorTest extends AbstractJokerTest
 
     private void configure ()
     {
-        initContext.getConfig().set( REDUCER_CONFIG_PARAMETER, adder );
-        initContext.getConfig().set( TUPLE_COUNT_CONFIG_PARAMETER, tupleCount );
+        config.set( REDUCER_CONFIG_PARAMETER, adder );
+        config.set( TUPLE_COUNT_CONFIG_PARAMETER, tupleCount );
     }
 
     private void assertStrategy ( final SchedulingStrategy strategy )

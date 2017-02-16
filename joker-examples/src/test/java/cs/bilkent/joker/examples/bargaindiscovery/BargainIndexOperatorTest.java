@@ -37,17 +37,18 @@ public class BargainIndexOperatorTest extends AbstractJokerTest
 
     private final KVStore kvStore = new InMemoryKVStore();
 
-    private final InvocationContextImpl invocationContext = new InvocationContextImpl( SUCCESS, input, output, kvStore );
+    private final InvocationContextImpl invocationContext = new InvocationContextImpl();
 
     @Before
     public void init () throws InstantiationException, IllegalAccessException
     {
+        invocationContext.setInvocationParameters( SUCCESS, input, output, kvStore );
+
         final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "op", BargainIndexOperator.class )
                                                           .setPartitionFieldNames( singletonList( TICKER_SYMBOL_FIELD ) )
                                                           .build();
         operator = (BargainIndexOperator) operatorDef.createOperator();
-        final InitializationContextImpl initContext = new InitializationContextImpl();
-        initContext.setRuntimeSchema( operatorDef.getSchema() );
+        final InitializationContextImpl initContext = new InitializationContextImpl( operatorDef, new boolean[] { true, true } );
         operator.init( initContext );
     }
 

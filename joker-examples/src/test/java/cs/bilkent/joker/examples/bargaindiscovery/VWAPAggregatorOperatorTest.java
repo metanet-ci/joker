@@ -17,6 +17,7 @@ import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.
 import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.WINDOW_SIZE_CONfIG_PARAMETER;
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
 import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SUCCESS;
+import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
@@ -36,9 +37,6 @@ public class VWAPAggregatorOperatorTest extends AbstractJokerTest
 
     private static final String TUPLE_PARTITION_KEY = "key1";
 
-    private VWAPAggregatorOperator operator;
-
-    private final InitializationContextImpl initContext = new InitializationContextImpl();
 
     private final TuplesImpl input = new TuplesImpl( 1 );
 
@@ -46,18 +44,27 @@ public class VWAPAggregatorOperatorTest extends AbstractJokerTest
 
     private final KVStore kvStore = new InMemoryKVStore();
 
-    private final InvocationContextImpl invocationContext = new InvocationContextImpl( SUCCESS, input, output, kvStore );
+    private final InvocationContextImpl invocationContext = new InvocationContextImpl();
+
+    private final OperatorConfig config = new OperatorConfig();
+
+    private VWAPAggregatorOperator operator;
+
+    private InitializationContextImpl initContext;
 
 
     @Before
     public void init () throws InstantiationException, IllegalAccessException
     {
+        invocationContext.setInvocationParameters( SUCCESS, input, output, kvStore );
+
         final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "op", VWAPAggregatorOperator.class )
                                                           .setPartitionFieldNames( singletonList( TICKER_SYMBOL_FIELD ) )
+                                                          .setConfig( config )
                                                           .build();
 
         operator = (VWAPAggregatorOperator) operatorDef.createOperator();
-        initContext.setRuntimeSchema( operatorDef.getSchema() );
+        initContext = new InitializationContextImpl( operatorDef, new boolean[] { true } );
     }
 
     @Test( expected = IllegalArgumentException.class )
@@ -140,9 +147,8 @@ public class VWAPAggregatorOperatorTest extends AbstractJokerTest
         final int windowSize = 3;
         final int slideFactor = 2;
 
-        initContext.getConfig().set( WINDOW_SIZE_CONfIG_PARAMETER, windowSize );
-        initContext.getConfig().set( SLIDE_FACTOR_CONfIG_PARAMETER, slideFactor );
-        initContext.setPartitionFieldNames( singletonList( TICKER_SYMBOL_FIELD ) );
+        config.set( WINDOW_SIZE_CONfIG_PARAMETER, windowSize );
+        config.set( SLIDE_FACTOR_CONfIG_PARAMETER, slideFactor );
 
         operator.init( initContext );
     }

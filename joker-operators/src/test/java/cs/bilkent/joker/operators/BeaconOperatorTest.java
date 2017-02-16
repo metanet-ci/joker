@@ -7,6 +7,9 @@ import java.util.function.Consumer;
 import org.junit.Test;
 
 import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SUCCESS;
+import cs.bilkent.joker.operator.OperatorConfig;
+import cs.bilkent.joker.operator.OperatorDef;
+import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.InitializationContextImpl;
 import cs.bilkent.joker.operator.impl.InvocationContextImpl;
@@ -26,26 +29,33 @@ public class BeaconOperatorTest extends AbstractJokerTest
 
     private final Random random = new Random();
 
-    private final BeaconOperator operator = new BeaconOperator();
-
-    private final InitializationContextImpl initContext = new InitializationContextImpl();
 
     @Test
-    public void shouldGenerateTuplesWithRandomCountField ()
+    public void shouldGenerateTuplesWithRandomCountField () throws InstantiationException, IllegalAccessException
     {
         final OperatorRuntimeSchemaBuilder builder = new OperatorRuntimeSchemaBuilder( 0, 1 );
         builder.addOutputField( 0, "count", Integer.class );
-        initContext.setRuntimeSchema( builder.build() );
 
         final int tupleCount = 10;
         final int maxInt = 100;
+        final OperatorConfig config = new OperatorConfig();
         final Consumer<Tuple> populator = tuple -> tuple.set( "count", random.nextInt( maxInt ) );
-        initContext.getConfig().set( TUPLE_POPULATOR_CONFIG_PARAMETER, populator );
-        initContext.getConfig().set( TUPLE_COUNT_CONFIG_PARAMETER, tupleCount );
+        config.set( TUPLE_POPULATOR_CONFIG_PARAMETER, populator );
+        config.set( TUPLE_COUNT_CONFIG_PARAMETER, tupleCount );
+
+        final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "beacon", BeaconOperator.class )
+                                                          .setExtendingSchema( builder )
+                                                          .setConfig( config )
+                                                          .build();
+
+        final InitializationContextImpl initContext = new InitializationContextImpl( operatorDef, new boolean[] {} );
+
+        final BeaconOperator operator = (BeaconOperator) operatorDef.createOperator();
         operator.init( initContext );
 
         final TuplesImpl output = new TuplesImpl( 1 );
-        final InvocationContextImpl invocationContext = new InvocationContextImpl( SUCCESS, null, output );
+        final InvocationContextImpl invocationContext = new InvocationContextImpl();
+        invocationContext.setInvocationParameters( SUCCESS, null, output, null );
 
         operator.invoke( invocationContext );
 

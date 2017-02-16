@@ -11,14 +11,15 @@ import cs.bilkent.joker.operator.InvocationContext.InvocationReason;
 import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.INPUT_PORT_CLOSED;
 import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SHUTDOWN;
 import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SUCCESS;
+import cs.bilkent.joker.operator.OperatorConfig;
+import cs.bilkent.joker.operator.OperatorDef;
+import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.InitializationContextImpl;
 import cs.bilkent.joker.operator.impl.InvocationContextImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
-import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
-import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
 import static cs.bilkent.joker.operators.MapperOperator.MAPPER_CONFIG_PARAMETER;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -30,22 +31,26 @@ import static org.junit.Assert.assertTrue;
 public class MapperOperatorTest extends AbstractJokerTest
 {
 
-    private final MapperOperator operator = new MapperOperator();
-
-    private final InitializationContextImpl initContext = new InitializationContextImpl();
-
-    private final OperatorRuntimeSchema runtimeSchema = new OperatorRuntimeSchemaBuilder( 1, 1 ).build();
-
     private final TuplesImpl input = new TuplesImpl( 1 );
 
     private final TuplesImpl output = new TuplesImpl( 1 );
 
-    private final InvocationContextImpl invocationContext = new InvocationContextImpl( SUCCESS, input, output );
+    private final InvocationContextImpl invocationContext = new InvocationContextImpl();
+
+    private final OperatorConfig config = new OperatorConfig();
+
+    private MapperOperator operator;
+
+    private InitializationContextImpl initContext;
 
     @Before
-    public void init ()
+    public void init () throws InstantiationException, IllegalAccessException
     {
-        initContext.setRuntimeSchema( runtimeSchema );
+        invocationContext.setInvocationParameters( SUCCESS, input, output, null );
+
+        final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "mapper", MapperOperator.class ).setConfig( config ).build();
+        operator = (MapperOperator) operatorDef.createOperator();
+        initContext = new InitializationContextImpl( operatorDef, new boolean[] { true } );
     }
 
     @Test( expected = IllegalArgumentException.class )
@@ -58,7 +63,7 @@ public class MapperOperatorTest extends AbstractJokerTest
     public void shouldInitializeWithMapper ()
     {
         final BiConsumer<Tuple, Tuple> mapper = ( input, output ) -> input.consumeEntries( output::set );
-        initContext.getConfig().set( MAPPER_CONFIG_PARAMETER, mapper );
+        config.set( MAPPER_CONFIG_PARAMETER, mapper );
 
         final SchedulingStrategy strategy = operator.init( initContext );
 
@@ -72,7 +77,7 @@ public class MapperOperatorTest extends AbstractJokerTest
         {
 
         };
-        initContext.getConfig().set( MAPPER_CONFIG_PARAMETER, mapper );
+        config.set( MAPPER_CONFIG_PARAMETER, mapper );
 
         final SchedulingStrategy strategy = operator.init( initContext );
 
@@ -95,35 +100,38 @@ public class MapperOperatorTest extends AbstractJokerTest
         final Tuple tuple = new Tuple();
         tuple.set( "count", 5 );
         input.add( tuple );
-        invocationContext.setReason( SHUTDOWN );
+        invocationContext.setInvocationParameters( SHUTDOWN,
+                                                   invocationContext.getInput(),
+                                                   invocationContext.getOutput(),
+                                                   invocationContext.getKVStore() );
         shouldMultiplyCountValuesBy2( invocationContext );
     }
 
     @Test( expected = ClassCastException.class )
     public void shouldNotMapWithInvalidMapperForSuccessfulInvocation ()
     {
-        shouldNotMapWitHInvalidMapperFor( SUCCESS );
+        shouldNotMapWithInvalidMapperFor( SUCCESS );
     }
 
     @Test( expected = ClassCastException.class )
     public void shouldNotMapWithInvalidMapperForErroneousInvocation ()
     {
-        shouldNotMapWitHInvalidMapperFor( INPUT_PORT_CLOSED );
+        shouldNotMapWithInvalidMapperFor( INPUT_PORT_CLOSED );
     }
 
-    private void shouldNotMapWitHInvalidMapperFor ( final InvocationReason invocationReason )
+    private void shouldNotMapWithInvalidMapperFor ( final InvocationReason invocationReason )
     {
         final BiConsumer<String, String> mapper = ( s1, s2 ) ->
         {
 
         };
-        initContext.getConfig().set( MAPPER_CONFIG_PARAMETER, mapper );
+        config.set( MAPPER_CONFIG_PARAMETER, mapper );
 
         operator.init( initContext );
         final Tuple tuple = new Tuple();
         tuple.set( "count", 5 );
         input.add( tuple );
-        invocationContext.setReason( invocationReason );
+        invocationContext.setInvocationParameters( invocationReason, input, output, invocationContext.getKVStore() );
         operator.invoke( invocationContext );
     }
 
@@ -171,7 +179,7 @@ public class MapperOperatorTest extends AbstractJokerTest
     {
         final BiConsumer<Tuple, Tuple> mapper = ( input1, output1 ) -> output1.set( "count", input1.getInteger( "count" ) * 2 );
 
-        initContext.getConfig().set( MAPPER_CONFIG_PARAMETER, mapper );
+        config.set( MAPPER_CONFIG_PARAMETER, mapper );
         operator.init( initContext );
     }
 

@@ -8,6 +8,9 @@ import org.junit.Test;
 
 import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SHUTDOWN;
 import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SUCCESS;
+import cs.bilkent.joker.operator.OperatorConfig;
+import cs.bilkent.joker.operator.OperatorDef;
+import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.InitializationContextImpl;
 import cs.bilkent.joker.operator.impl.InvocationContextImpl;
@@ -20,6 +23,7 @@ import cs.bilkent.joker.operators.BarrierOperator.TupleValueMergePolicy;
 import static cs.bilkent.joker.operators.BarrierOperator.TupleValueMergePolicy.KEEP_EXISTING_VALUE;
 import static cs.bilkent.joker.operators.BarrierOperator.TupleValueMergePolicy.OVERWRITE_WITH_NEW_VALUE;
 import cs.bilkent.joker.test.AbstractJokerTest;
+import static java.util.Arrays.fill;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -31,7 +35,9 @@ public class BarrierOperatorTest extends AbstractJokerTest
 
     private final BarrierOperator operator = new BarrierOperator();
 
-    private final InitializationContextImpl initContext = new InitializationContextImpl();
+    private final OperatorConfig config = new OperatorConfig();
+
+    private InitializationContextImpl initContext;
 
     private final int[] inputPorts = new int[] { 0, 1, 2 };
 
@@ -41,25 +47,34 @@ public class BarrierOperatorTest extends AbstractJokerTest
 
     private final TuplesImpl output = new TuplesImpl( 3 );
 
-    private final InvocationContextImpl invocationContext = new InvocationContextImpl( SUCCESS, input, output );
+    private final InvocationContextImpl invocationContext = new InvocationContextImpl();
 
     @Before
     public void init ()
     {
-        initContext.setInputPortCount( inputPorts.length );
-        initContext.setRuntimeSchema( schemaBuilder.build() );
+        final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "op", BarrierOperator.class )
+                                                          .setInputPortCount( inputPorts.length )
+                                                          .setExtendingSchema( schemaBuilder )
+                                                          .setConfig( config )
+                                                          .build();
+
+        final boolean[] upstream = new boolean[ inputPorts.length ];
+        fill( upstream, true );
+
+        initContext = new InitializationContextImpl( operatorDef, upstream );
+        invocationContext.setInvocationParameters( SUCCESS, input, output, null );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithNoMergePolicy ()
     {
-        operator.init( new InitializationContextImpl() );
+        operator.init( initContext );
     }
 
     @Test
     public void shouldScheduleOnGivenInputPorts ()
     {
-        initContext.getConfig().set( MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
+        config.set( MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
         final SchedulingStrategy initialStrategy = operator.init( initContext );
         assertSchedulingStrategy( initialStrategy );
     }
@@ -67,7 +82,7 @@ public class BarrierOperatorTest extends AbstractJokerTest
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithMissingTuplesOnSuccessfulInvocation ()
     {
-        initContext.getConfig().set( MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
+        config.set( MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
         operator.init( initContext );
         operator.invoke( invocationContext );
     }
@@ -75,9 +90,9 @@ public class BarrierOperatorTest extends AbstractJokerTest
     @Test
     public void shouldNotFailWithMissingTuplesOnErroneousInvocation ()
     {
-        initContext.getConfig().set( MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
+        config.set( MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
         operator.init( initContext );
-        invocationContext.setReason( SHUTDOWN );
+        invocationContext.setInvocationParameters( SHUTDOWN, input, output, invocationContext.getKVStore() );
 
         populateTuplesWithUniqueFields( input );
         final Tuple tuple = new Tuple();
@@ -94,7 +109,7 @@ public class BarrierOperatorTest extends AbstractJokerTest
     @Test
     public void shouldMergeSingleTuplePerPort ()
     {
-        initContext.getConfig().set( MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
+        config.set( MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
         operator.init( initContext );
 
         populateTuplesWithUniqueFields( input );
@@ -120,7 +135,7 @@ public class BarrierOperatorTest extends AbstractJokerTest
 
     private void testTupleMergeWithMergePolicy ( final TupleValueMergePolicy mergePolicy, final int expectedValue )
     {
-        initContext.getConfig().set( MERGE_POLICY_CONfIG_PARAMETER, mergePolicy );
+        config.set( MERGE_POLICY_CONfIG_PARAMETER, mergePolicy );
         operator.init( initContext );
 
         IntStream.of( inputPorts ).forEach( portIndex ->
@@ -139,7 +154,7 @@ public class BarrierOperatorTest extends AbstractJokerTest
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailForDifferentNumberOfTuplesPerPort ()
     {
-        initContext.getConfig().set( MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
+        config.set( MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
         operator.init( initContext );
 
         IntStream.of( inputPorts ).forEach( portIndex ->
@@ -158,7 +173,7 @@ public class BarrierOperatorTest extends AbstractJokerTest
     @Test
     public void shouldMergeMultipleTuplesPerPort ()
     {
-        initContext.getConfig().set( MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
+        config.set( MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
         operator.init( initContext );
 
         populateTuplesWithUniqueFields( input );

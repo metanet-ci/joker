@@ -175,12 +175,7 @@ public class OperatorReplica
     private void initializeOperator ( final UpstreamContext upstreamContext )
     {
         final boolean[] upstreamConnectionStatuses = upstreamContext.getUpstreamConnectionStatuses( operatorDef.getInputPortCount() );
-        final InitializationContext initContext = new InitializationContextImpl( operatorDef.getId(),
-                                                                                 operatorDef.getInputPortCount(),
-                                                                                 operatorDef.getOutputPortCount(),
-                                                                                 operatorDef.getPartitionFieldNames(),
-                                                                                 operatorDef.getSchema(),
-                                                                                 operatorDef.getConfig(),
+        final InitializationContext initContext = new InitializationContextImpl( operatorDef,
                                                                                  upstreamConnectionStatuses );
         final SchedulingStrategy schedulingStrategy = operator.init( initContext );
         upstreamContext.verifyOrFail( operatorDef, schedulingStrategy );

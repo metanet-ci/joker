@@ -1,68 +1,62 @@
 package cs.bilkent.joker.operators;
 
 import java.util.List;
-import java.util.function.Consumer;
 
 import org.junit.Before;
 import org.junit.Test;
-import com.google.common.base.Supplier;
 
 import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SUCCESS;
 import cs.bilkent.joker.operator.OperatorConfig;
+import cs.bilkent.joker.operator.OperatorDef;
+import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.InitializationContextImpl;
 import cs.bilkent.joker.operator.impl.InvocationContextImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
-import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
-import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
 import static cs.bilkent.joker.operators.FlatMapperOperator.FLAT_MAPPER_CONFIG_PARAMETER;
-import cs.bilkent.joker.operators.FlatMapperOperator.FlatMapperConsumer;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static org.junit.Assert.assertEquals;
 
 public class FlatMapperOperatorTest extends AbstractJokerTest
 {
 
-    private final FlatMapperOperator flatMapperOperator = new FlatMapperOperator();
-
-    private final OperatorConfig operatorConfig = new OperatorConfig();
-
-    private final InitializationContextImpl initContext = new InitializationContextImpl();
-
-    private final OperatorRuntimeSchema runtimeSchema = new OperatorRuntimeSchemaBuilder( 1, 1 ).build();
-
     private final TuplesImpl input = new TuplesImpl( 1 );
 
     private final TuplesImpl output = new TuplesImpl( 1 );
 
-    private final InvocationContextImpl invocationContext = new InvocationContextImpl( SUCCESS, input, output );
+    private final InvocationContextImpl invocationContext = new InvocationContextImpl();
+
+    private final OperatorConfig config = new OperatorConfig();
+
+    private FlatMapperOperator operator;
 
     @Before
-    public void init ()
+    public void init () throws InstantiationException, IllegalAccessException
     {
-        initContext.setRuntimeSchema( runtimeSchema );
-        initContext.setConfig( operatorConfig );
+        invocationContext.setInvocationParameters( SUCCESS, input, output, null );
 
-        final FlatMapperOperator.FlatMapperConsumer flatMapperFunc = new FlatMapperConsumer()
+        final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "flatMapper", FlatMapperOperator.class )
+                                                          .setConfig( config )
+                                                          .build();
+
+        operator = (FlatMapperOperator) operatorDef.createOperator();
+
+        final FlatMapperOperator.FlatMapperConsumer flatMapperFunc = ( input, outputTupleSupplier, outputCollector ) ->
         {
-            @Override
-            public void accept ( final Tuple input, final Supplier<Tuple> outputTupleSupplier, final Consumer<Tuple> outputCollector )
-            {
-                final int val = input.getInteger( "val" );
+            final int val = input.getInteger( "val" );
 
-                final Tuple output1 = outputTupleSupplier.get();
-                output1.set( "val", val + 1 );
-                final Tuple output2 = outputTupleSupplier.get();
-                output2.set( "val", val + 2 );
+            final Tuple output1 = outputTupleSupplier.get();
+            output1.set( "val", val + 1 );
+            final Tuple output2 = outputTupleSupplier.get();
+            output2.set( "val", val + 2 );
 
-                outputCollector.accept( output1 );
-                outputCollector.accept( output2 );
-            }
+            outputCollector.accept( output1 );
+            outputCollector.accept( output2 );
         };
 
-        operatorConfig.set( FLAT_MAPPER_CONFIG_PARAMETER, flatMapperFunc );
-
-        flatMapperOperator.init( initContext );
+        config.set( FLAT_MAPPER_CONFIG_PARAMETER, flatMapperFunc );
+        final InitializationContextImpl initContext = new InitializationContextImpl( operatorDef, new boolean[] { true } );
+        operator.init( initContext );
     }
 
     @Test
@@ -73,7 +67,7 @@ public class FlatMapperOperatorTest extends AbstractJokerTest
         tuple.set( "val", value );
         input.add( tuple );
 
-        flatMapperOperator.invoke( invocationContext );
+        operator.invoke( invocationContext );
 
         final List<Tuple> outputTuples = output.getTuples( 0 );
         assertEquals( 2, outputTuples.size() );

@@ -1,9 +1,9 @@
 package cs.bilkent.joker.operator.impl;
 
-import java.util.Arrays;
-
+import static com.google.common.base.Preconditions.checkNotNull;
 import cs.bilkent.joker.operator.InvocationContext;
 import cs.bilkent.joker.operator.kvstore.KVStore;
+import static java.util.Arrays.copyOf;
 
 
 public class InvocationContextImpl implements InvocationContext
@@ -23,31 +23,12 @@ public class InvocationContextImpl implements InvocationContext
     {
     }
 
-    public InvocationContextImpl ( final InvocationReason reason, final TuplesImpl input, final TuplesImpl output )
-    {
-        this.reason = reason;
-        this.input = input;
-        this.output = output;
-    }
-
-    public InvocationContextImpl ( final InvocationReason reason, final TuplesImpl input, final TuplesImpl output, final KVStore kvStore )
-    {
-        this.input = input;
-        this.output = output;
-        this.reason = reason;
-        this.kvStore = kvStore;
-    }
-
-    public void setReason ( final InvocationReason reason )
-    {
-        this.reason = reason;
-    }
-
     public void setInvocationParameters ( final InvocationReason reason,
                                           final TuplesImpl input,
                                           final TuplesImpl output,
                                           final KVStore kvStore )
     {
+        checkNotNull( reason );
         this.reason = reason;
         this.input = input;
         this.output = output;
@@ -56,7 +37,7 @@ public class InvocationContextImpl implements InvocationContext
 
     public void setUpstreamConnectionStatuses ( final boolean[] upstreamConnectionStatuses )
     {
-        this.upstreamConnectionStatuses = Arrays.copyOf( upstreamConnectionStatuses, upstreamConnectionStatuses.length );
+        this.upstreamConnectionStatuses = copyOf( upstreamConnectionStatuses, upstreamConnectionStatuses.length );
     }
 
     @Override

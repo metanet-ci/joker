@@ -11,6 +11,9 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SUCCESS;
+import cs.bilkent.joker.operator.OperatorConfig;
+import cs.bilkent.joker.operator.OperatorDef;
+import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.InitializationContextImpl;
 import cs.bilkent.joker.operator.impl.InvocationContextImpl;
@@ -31,15 +34,23 @@ public class ConsoleAppenderOperatorTest extends AbstractJokerTest
 
     private PrintStream orgSysOut;
 
-    private final ConsoleAppenderOperator operator = new ConsoleAppenderOperator();
+    private final OperatorConfig config = new OperatorConfig();
 
-    private final InitializationContextImpl initContext = new InitializationContextImpl();
+    private ConsoleAppenderOperator operator;
+
+    private InitializationContextImpl initContext;
 
     @Before
-    public void init ()
+    public void init () throws InstantiationException, IllegalAccessException
     {
         orgSysOut = System.out;
         System.setOut( sysOut );
+
+        final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "appender", ConsoleAppenderOperator.class )
+                                                          .setConfig( config )
+                                                          .build();
+        operator = (ConsoleAppenderOperator) operatorDef.createOperator();
+        initContext = new InitializationContextImpl( operatorDef, new boolean[] { true } );
     }
 
     @After
@@ -61,7 +72,9 @@ public class ConsoleAppenderOperatorTest extends AbstractJokerTest
         input.add( tuple1 );
         input.add( tuple2 );
         final TuplesImpl output = new TuplesImpl( 1 );
-        operator.invoke( new InvocationContextImpl( SUCCESS, input, output ) );
+        final InvocationContextImpl invocationContext = new InvocationContextImpl();
+        invocationContext.setInvocationParameters( SUCCESS, input, output, null );
+        operator.invoke( invocationContext );
 
         assertThat( output, equalTo( input ) );
         verify( sysOut ).println( tuple1.toString() );
@@ -72,7 +85,7 @@ public class ConsoleAppenderOperatorTest extends AbstractJokerTest
     public void shouldPrintTuplesToConsoleWithToStringFunction ()
     {
         final Function<Tuple, String> toStringFunc = ( tuple ) -> tuple.toString().toUpperCase();
-        initContext.getConfig().set( TO_STRING_FUNCTION_CONFIG_PARAMETER, toStringFunc );
+        config.set( TO_STRING_FUNCTION_CONFIG_PARAMETER, toStringFunc );
         operator.init( initContext );
 
         final Tuple tuple1 = new Tuple();
@@ -83,7 +96,9 @@ public class ConsoleAppenderOperatorTest extends AbstractJokerTest
         input.add( tuple1 );
         input.add( tuple2 );
         final TuplesImpl output = new TuplesImpl( 1 );
-        operator.invoke( new InvocationContextImpl( SUCCESS, input, output ) );
+        final InvocationContextImpl invocationContext = new InvocationContextImpl();
+        invocationContext.setInvocationParameters( SUCCESS, input, output, null );
+        operator.invoke( invocationContext );
 
         assertThat( output, equalTo( input ) );
         verify( sysOut ).println( toStringFunc.apply( tuple1 ) );

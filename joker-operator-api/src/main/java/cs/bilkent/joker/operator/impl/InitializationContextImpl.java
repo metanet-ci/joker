@@ -5,6 +5,7 @@ import java.util.List;
 
 import cs.bilkent.joker.operator.InitializationContext;
 import cs.bilkent.joker.operator.OperatorConfig;
+import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
 import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import static java.util.Collections.emptyList;
@@ -26,30 +27,15 @@ public class InitializationContextImpl implements InitializationContext
 
     private boolean[] upstreamConnectionStatuses;
 
-    public InitializationContextImpl ()
+    public InitializationContextImpl ( final OperatorDef operatorDef, final boolean[] upstreamConnectionStatuses )
     {
-    }
-
-    public InitializationContextImpl ( final String id,
-                                       final int inputPortCount,
-                                       final int outputPortCount,
-                                       final List<String> partitionFieldNames,
-                                       final OperatorRuntimeSchema runtimeSchema,
-                                       final OperatorConfig config,
-                                       final boolean[] upstreamConnectionStatuses )
-    {
-        this.id = id;
-        this.inputPortCount = inputPortCount;
-        this.outputPortCount = outputPortCount;
-        this.partitionFieldNames = partitionFieldNames;
-        this.runtimeSchema = runtimeSchema;
-        this.config = config;
+        this.id = operatorDef.getId();
+        this.inputPortCount = operatorDef.getInputPortCount();
+        this.outputPortCount = operatorDef.getOutputPortCount();
+        this.partitionFieldNames = operatorDef.getPartitionFieldNames();
+        this.runtimeSchema = operatorDef.getSchema();
+        this.config = operatorDef.getConfig();
         this.upstreamConnectionStatuses = Arrays.copyOf( upstreamConnectionStatuses, upstreamConnectionStatuses.length );
-    }
-
-    public void setId ( final String id )
-    {
-        this.id = id;
     }
 
     @Override
@@ -98,31 +84,6 @@ public class InitializationContextImpl implements InitializationContext
     public OperatorConfig getConfig ()
     {
         return config;
-    }
-
-    public void setInputPortCount ( final int inputPortCount )
-    {
-        this.inputPortCount = inputPortCount;
-    }
-
-    public void setOutputPortCount ( final int outputPortCount )
-    {
-        this.outputPortCount = outputPortCount;
-    }
-
-    public void setRuntimeSchema ( final OperatorRuntimeSchema runtimeSchema )
-    {
-        this.runtimeSchema = runtimeSchema;
-    }
-
-    public void setPartitionFieldNames ( final List<String> partitionFieldNames )
-    {
-        this.partitionFieldNames = partitionFieldNames;
-    }
-
-    public void setConfig ( final OperatorConfig config )
-    {
-        this.config = config;
     }
 
 }

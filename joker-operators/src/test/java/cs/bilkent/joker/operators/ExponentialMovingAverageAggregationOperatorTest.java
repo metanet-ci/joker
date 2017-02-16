@@ -5,6 +5,7 @@ import org.junit.Test;
 
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
 import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SUCCESS;
+import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
@@ -33,42 +34,48 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
 
     private ExponentialMovingAverageAggregationOperator operator;
 
-    private final InitializationContextImpl initContext = new InitializationContextImpl();
-
     private final TuplesImpl input = new TuplesImpl( 1 );
 
     private final TuplesImpl output = new TuplesImpl( 1 );
 
     private final KVStore kvStore = new InMemoryKVStore();
 
-    private final InvocationContextImpl invocationContext = new InvocationContextImpl( SUCCESS, input, output, kvStore );
+    private final InvocationContextImpl invocationContext = new InvocationContextImpl();
+
+    private final OperatorConfig config = new OperatorConfig();
+
+    private InitializationContextImpl initContext;
 
     @Before
     public void init () throws InstantiationException, IllegalAccessException
     {
-        final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "op", ExponentialMovingAverageAggregationOperator.class ).build();
+        invocationContext.setInvocationParameters( SUCCESS, input, output, kvStore );
+
+        final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "op", ExponentialMovingAverageAggregationOperator.class )
+                                                          .setConfig( config )
+                                                          .build();
         operator = (ExponentialMovingAverageAggregationOperator) operatorDef.createOperator();
-        initContext.setRuntimeSchema( operatorDef.getSchema() );
+        initContext = new InitializationContextImpl( operatorDef, new boolean[] { true } );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithNoTupleCount ()
     {
-        initContext.getConfig().set( FIELD_NAME_CONFIG_PARAMETER, "val" );
+        config.set( FIELD_NAME_CONFIG_PARAMETER, "val" );
         operator.init( initContext );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithNoFieldName ()
     {
-        initContext.getConfig().set( WEIGHT_CONFIG_PARAMETER, .5 );
+        config.set( WEIGHT_CONFIG_PARAMETER, .5 );
         operator.init( initContext );
     }
 
     @Test
     public void shouldInitializeWithProperConfig ()
     {
-        setConfig();
+        configure();
 
         final SchedulingStrategy strategy = operator.init( initContext );
         assertTrue( strategy instanceof ScheduleWhenTuplesAvailable );
@@ -81,7 +88,7 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
     @Test
     public void shouldSetAccumulatorForFirstValue ()
     {
-        setConfig();
+        configure();
 
         operator.init( initContext );
         final Tuple tuple = new Tuple();
@@ -99,7 +106,7 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
     @Test
     public void shouldSetAccumulatorForSecondValue ()
     {
-        setConfig();
+        configure();
         setCurrentAvgInKVStore( 0, 5 );
 
         operator.init( initContext );
@@ -118,7 +125,7 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
     @Test
     public void shouldReturnFirstAverage ()
     {
-        setConfig();
+        configure();
         setCurrentAvgInKVStore( 3, 6 );
 
         operator.init( initContext );
@@ -142,7 +149,7 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
     @Test
     public void shouldReturnSecondAverage ()
     {
-        setConfig();
+        configure();
         setCurrentAvgInKVStore( 4, 10 );
 
         operator.init( initContext );
@@ -165,7 +172,7 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
     @Test
     public void shouldReturnMultipleAverages ()
     {
-        setConfig();
+        configure();
         setCurrentAvgInKVStore( 3, 6 );
 
         operator.init( initContext );
@@ -187,10 +194,10 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
 
     }
 
-    private void setConfig ()
+    private void configure ()
     {
-        initContext.getConfig().set( FIELD_NAME_CONFIG_PARAMETER, "val" );
-        initContext.getConfig().set( WEIGHT_CONFIG_PARAMETER, .5 );
+        config.set( FIELD_NAME_CONFIG_PARAMETER, "val" );
+        config.set( WEIGHT_CONFIG_PARAMETER, .5 );
     }
 
     private void setCurrentAvgInKVStore ( final int tupleCount, final double value )

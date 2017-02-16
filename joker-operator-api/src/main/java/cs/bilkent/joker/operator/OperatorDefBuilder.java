@@ -437,7 +437,7 @@ public final class OperatorDefBuilder
             }
         }
 
-        throw new IllegalArgumentException();
+        throw new IllegalArgumentException( fieldName + " not found in schema of input port: " + portIndex );
     }
 
     private OperatorConfig getConfigOrEmptyConfig ()

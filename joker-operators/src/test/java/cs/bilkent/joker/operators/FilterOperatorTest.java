@@ -3,10 +3,14 @@ package cs.bilkent.joker.operators;
 import java.util.List;
 import java.util.function.Predicate;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SHUTDOWN;
 import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SUCCESS;
+import cs.bilkent.joker.operator.OperatorConfig;
+import cs.bilkent.joker.operator.OperatorDef;
+import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.InitializationContextImpl;
 import cs.bilkent.joker.operator.impl.InvocationContextImpl;
@@ -23,17 +27,29 @@ import static org.junit.Assert.assertTrue;
 public class FilterOperatorTest extends AbstractJokerTest
 {
 
-    private final FilterOperator operator = new FilterOperator();
-
-    private final InitializationContextImpl initContext = new InitializationContextImpl();
-
     private final Predicate<Tuple> positiveCountsPredicate = tuple -> tuple.getInteger( "count" ) > 0;
 
     private final TuplesImpl input = new TuplesImpl( 1 );
 
     private final TuplesImpl output = new TuplesImpl( 1 );
 
-    private final InvocationContextImpl invocationContext = new InvocationContextImpl( SUCCESS, input, output );
+    private final InvocationContextImpl invocationContext = new InvocationContextImpl();
+
+    private final OperatorConfig config = new OperatorConfig();
+
+    private FilterOperator operator;
+
+    private InitializationContextImpl initContext;
+
+    @Before
+    public void init () throws InstantiationException, IllegalAccessException
+    {
+        invocationContext.setInvocationParameters( SUCCESS, input, output, null );
+
+        final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "filter", FilterOperator.class ).setConfig( config ).build();
+        operator = (FilterOperator) operatorDef.createOperator();
+        initContext = new InitializationContextImpl( operatorDef, new boolean[] { true } );
+    }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithNoPredicate ()
@@ -44,7 +60,7 @@ public class FilterOperatorTest extends AbstractJokerTest
     @Test
     public void shouldInitializeWithPredicate ()
     {
-        initContext.getConfig().set( PREDICATE_CONFIG_PARAMETER, positiveCountsPredicate );
+        config.set( PREDICATE_CONFIG_PARAMETER, positiveCountsPredicate );
 
         final SchedulingStrategy strategy = operator.init( initContext );
 
@@ -54,7 +70,7 @@ public class FilterOperatorTest extends AbstractJokerTest
     @Test
     public void shouldInitializeWithInvalidPredicate ()
     {
-        initContext.getConfig().set( PREDICATE_CONFIG_PARAMETER, positiveCountsPredicate );
+        config.set( PREDICATE_CONFIG_PARAMETER, positiveCountsPredicate );
 
         final SchedulingStrategy strategy = operator.init( initContext );
 
@@ -82,13 +98,13 @@ public class FilterOperatorTest extends AbstractJokerTest
         final Tuple tuple2 = new Tuple();
         tuple2.set( "count", 1 );
         input.add( tuple2 );
-        invocationContext.setReason( SHUTDOWN );
+        invocationContext.setInvocationParameters( SHUTDOWN, input, output, invocationContext.getKVStore() );
         shouldFilterTuplesWithPositiveCount( invocationContext );
     }
 
     private void shouldFilterTuplesWithPositiveCount ( final InvocationContextImpl invocationContext )
     {
-        initContext.getConfig().set( PREDICATE_CONFIG_PARAMETER, positiveCountsPredicate );
+        config.set( PREDICATE_CONFIG_PARAMETER, positiveCountsPredicate );
         operator.init( initContext );
 
         operator.invoke( invocationContext );
