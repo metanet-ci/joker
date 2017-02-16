@@ -3,57 +3,53 @@ package cs.bilkent.joker.engine.util;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.flow.Port;
 import cs.bilkent.joker.operator.OperatorDef;
+import static java.util.Comparator.comparing;
+import static java.util.stream.Collectors.toList;
 
 public class RegionUtil
 {
 
     public static List<RegionDef> sortTopologically ( final Map<String, OperatorDef> operators,
-                                                      final Collection<Entry<Port, Port>> connectionsMap,
+                                                      final Collection<Entry<Port, Port>> connections,
                                                       final List<RegionDef> regions )
     {
         final List<RegionDef> sorted = new ArrayList<>();
-        final Collection<RegionDef> curr = new ArrayList<>();
-        final Collection<Entry<Port, Port>> connections = new ArrayList<>( connectionsMap );
+        final List<RegionDef> curr = new ArrayList<>();
+        final Collection<Entry<Port, Port>> connectionsCopy = new HashSet<>( connections );
 
-        for ( OperatorDef o : getOperatorsWithNoInputPorts( operators, connectionsMap ) )
+        for ( OperatorDef o : getOperatorsWithNoInputPorts( operators, connections ) )
         {
-            curr.add( getRegionByFirstOperator( regions, o ) );
+            curr.add( getRegionByFirstOperator( regions, o.getId() ) );
         }
 
         while ( curr.size() > 0 )
         {
-            final Iterator<RegionDef> it1 = curr.iterator();
-            final RegionDef region = it1.next();
-            it1.remove();
-
+            final RegionDef region = curr.remove( 0 );
             sorted.add( region );
 
             final String lastOperatorId = getLastOperator( region ).getId();
 
-            final Iterator<Entry<Port, Port>> it2 = connections.iterator();
-            while ( it2.hasNext() )
-            {
-                final Entry<Port, Port> e = it2.next();
-                if ( !e.getKey().operatorId.equals( lastOperatorId ) )
-                {
-                    continue;
-                }
+            final List<Entry<Port, Port>> downstreamConnections = connectionsCopy.stream()
+                                                                                 .filter( e -> e.getKey().operatorId.equals(
+                                                                                         lastOperatorId ) )
+                                                                                 .sorted( comparing( e -> e.getValue().operatorId ) )
+                                                                                 .collect( toList() );
 
-                it2.remove();
+            for ( Entry<Port, Port> e : downstreamConnections )
+            {
+                connectionsCopy.remove( e );
 
                 final String downstreamOperatorId = e.getValue().operatorId;
-                if ( !checkIfIncomingConnectionExists( connections, downstreamOperatorId ) )
+                if ( !checkIfIncomingConnectionExists( connectionsCopy, downstreamOperatorId ) )
                 {
-                    curr.add( getRegionByFirstOperator( regions, operators.get( downstreamOperatorId ) ) );
+                    curr.add( getRegionByFirstOperator( regions, downstreamOperatorId ) );
                 }
             }
         }
@@ -64,12 +60,14 @@ public class RegionUtil
     private static Collection<OperatorDef> getOperatorsWithNoInputPorts ( final Map<String, OperatorDef> operators,
                                                                           final Collection<Entry<Port, Port>> connections )
     {
-        final Set<OperatorDef> result = new HashSet<>( operators.values() );
+        final List<OperatorDef> result = new ArrayList<>( operators.values() );
         for ( Entry<Port, Port> e : connections )
         {
             final OperatorDef operatorToExclude = operators.get( e.getValue().operatorId );
             result.remove( operatorToExclude );
         }
+
+        result.sort( comparing( OperatorDef::getId ) );
 
         return result;
     }
@@ -100,17 +98,17 @@ public class RegionUtil
         throw new IllegalStateException( "No region found for operator " + operator.getId() );
     }
 
-    public static RegionDef getRegionByFirstOperator ( final List<RegionDef> regions, final OperatorDef operator )
+    public static RegionDef getRegionByFirstOperator ( final List<RegionDef> regions, final String operatorId )
     {
         for ( RegionDef region : regions )
         {
-            if ( getFirstOperator( region ).equals( operator ) )
+            if ( getFirstOperator( region ).getId().equals( operatorId ) )
             {
                 return region;
             }
         }
 
-        throw new IllegalStateException( "No region found for operator " + operator.getId() );
+        throw new IllegalStateException( "No region found for operator " + operatorId );
     }
 
     public static OperatorDef getFirstOperator ( final RegionDef regionDef )

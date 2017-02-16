@@ -60,6 +60,49 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
     }
 
     @Test
+    public void shouldReassignRegionIdsBasedOnTopologicalSort ()
+    {
+        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator.class ).build();
+        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator.class ).build();
+        final OperatorDef stateful3 = OperatorDefBuilder.newInstance( "stateful3", StatefulOperator.class ).build();
+        final OperatorDef stateful4 = OperatorDefBuilder.newInstance( "stateful4", StatefulOperator.class ).build();
+        final OperatorDef stateful5 = OperatorDefBuilder.newInstance( "stateful5", StatefulOperator.class ).build();
+        final OperatorDef stateful6 = OperatorDefBuilder.newInstance( "stateful6", StatefulOperator.class ).build();
+
+        final FlowDef flowDef = new FlowDefBuilder().add( stateful1 )
+                                                    .add( stateful2 )
+                                                    .add( stateful3 )
+                                                    .add( stateful4 )
+                                                    .add( stateful5 )
+                                                    .add( stateful6 )
+                                                    .connect( "stateful1", "stateful4" )
+                                                    .connect( "stateful2", "stateful4" )
+                                                    .connect( "stateful4", "stateful5" )
+                                                    .connect( "stateful3", "stateful5" )
+                                                    .connect( "stateful5", "stateful6" )
+                                                    .build();
+
+        final List<RegionDef> regions = new ArrayList<>();
+        regions.add( new RegionDef( 6, STATEFUL, emptyList(), singletonList( stateful1 ) ) );
+        regions.add( new RegionDef( 5, STATEFUL, emptyList(), singletonList( stateful2 ) ) );
+        regions.add( new RegionDef( 4, STATEFUL, emptyList(), singletonList( stateful3 ) ) );
+        regions.add( new RegionDef( 3, STATEFUL, emptyList(), singletonList( stateful4 ) ) );
+        regions.add( new RegionDef( 2, STATEFUL, emptyList(), singletonList( stateful5 ) ) );
+        regions.add( new RegionDef( 1, STATEFUL, emptyList(), singletonList( stateful6 ) ) );
+
+        final List<RegionDef> sortedRegions = flowOptimizer.reassignRegionIds( flowDef.getOperatorsMap(),
+                                                                               flowDef.getConnections(),
+                                                                               regions );
+
+        assertEquals( new RegionDef( 1, STATEFUL, emptyList(), singletonList( stateful1 ) ), sortedRegions.get( 0 ) );
+        assertEquals( new RegionDef( 2, STATEFUL, emptyList(), singletonList( stateful2 ) ), sortedRegions.get( 1 ) );
+        assertEquals( new RegionDef( 3, STATEFUL, emptyList(), singletonList( stateful3 ) ), sortedRegions.get( 2 ) );
+        assertEquals( new RegionDef( 4, STATEFUL, emptyList(), singletonList( stateful4 ) ), sortedRegions.get( 3 ) );
+        assertEquals( new RegionDef( 5, STATEFUL, emptyList(), singletonList( stateful5 ) ), sortedRegions.get( 4 ) );
+        assertEquals( new RegionDef( 6, STATEFUL, emptyList(), singletonList( stateful6 ) ), sortedRegions.get( 5 ) );
+    }
+
+    @Test
     public void shouldMergeStatelessAndStatefulRegions ()
     {
         final OperatorDef stateless = OperatorDefBuilder.newInstance( "stateless", StatelessOperator.class ).build();
@@ -251,8 +294,7 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
                                                  .build();
 
         final List<RegionDef> regions = new ArrayList<>();
-        regions.add( new RegionDef( 0,
-                                    PARTITIONED_STATEFUL, partitionedStateful.getPartitionFieldNames(),
+        regions.add( new RegionDef( 0, PARTITIONED_STATEFUL, partitionedStateful.getPartitionFieldNames(),
                                     singletonList( partitionedStateful ) ) );
         regions.add( new RegionDef( 1, STATELESS, emptyList(), singletonList( stateless ) ) );
 

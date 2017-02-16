@@ -2,6 +2,7 @@ package cs.bilkent.joker.engine.region.impl;
 
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,7 @@ import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.joker.utils.Pair;
 import static java.util.Comparator.comparing;
+import static java.util.stream.Collectors.toList;
 
 @NotThreadSafe
 @Singleton
@@ -76,7 +78,34 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
             mergeRegions( optimizedOperators, optimizedConnections, optimizedRegions );
         }
 
-        return Pair.of( createFlow( optimizedOperators, optimizedConnections ), optimizedRegions );
+        final FlowDef optimizedFlow = createFlow( optimizedOperators, optimizedConnections );
+        final List<RegionDef> reassignedRegions = reassignRegionIds( optimizedOperators, optimizedConnections, optimizedRegions );
+
+        return Pair.of( optimizedFlow, reassignedRegions );
+    }
+
+    List<RegionDef> reassignRegionIds ( final Map<String, OperatorDef> operators,
+                                        final Collection<Entry<Port, Port>> connections,
+                                        final List<RegionDef> regions )
+    {
+        final List<RegionDef> sortedRegions = sortTopologically( operators, connections, regions );
+        final List<Integer> regionIds = regions.stream().map( RegionDef::getRegionId ).sorted( Integer::compareTo ).collect( toList() );
+
+        final List<RegionDef> reassignedRegions = new ArrayList<>();
+        for ( int i = 0; i < regions.size(); i++ )
+        {
+            final RegionDef regionDef = sortedRegions.get( i );
+            final int regionId = regionIds.get( i );
+
+            final RegionDef regionDefWithNewId = new RegionDef( regionId,
+                                                                regionDef.getRegionType(),
+                                                                regionDef.getPartitionFieldNames(),
+                                                                regionDef.getOperators() );
+
+            reassignedRegions.add( regionDefWithNewId );
+        }
+
+        return reassignedRegions;
     }
 
     private FlowDef createFlow ( final Map<String, OperatorDef> operators, final Set<Entry<Port, Port>> connections )
@@ -262,8 +291,7 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
         }
 
         LOGGER.debug( "Creating {} duplicates of {} with its first operator {}, upstream operator count: {} downstream operator count: {}",
-                      duplicateCount,
-                      region, firstOperator.getId(),
+                      duplicateCount, region, firstOperator.getId(),
                       upstreamOperatorCount,
                       downstreamOperatorCount );
 
@@ -379,7 +407,11 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
                     final OperatorDef duplicateOperator = duplicateOperators.get( duplicateOperators.size() - 1 );
                     final Port duplicateSourcePort = new Port( duplicateOperator.getId(), e.getKey().portIndex );
                     connections.add( new SimpleEntry<>( duplicateSourcePort, e.getValue() ) );
-                    LOGGER.debug( "Connection < {} , {} > is duplicated as < {} , {} >", e.getKey(), e.getValue(), duplicateSourcePort, e.getValue() );
+                    LOGGER.debug( "Connection < {} , {} > is duplicated as < {} , {} >",
+                                  e.getKey(),
+                                  e.getValue(),
+                                  duplicateSourcePort,
+                                  e.getValue() );
                 }
             }
             else

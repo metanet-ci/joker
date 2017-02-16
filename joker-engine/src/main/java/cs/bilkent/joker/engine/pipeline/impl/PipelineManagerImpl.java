@@ -65,7 +65,6 @@ import cs.bilkent.joker.engine.region.RegionManager;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import static cs.bilkent.joker.engine.util.RegionUtil.getFirstOperator;
-import static cs.bilkent.joker.engine.util.RegionUtil.sortTopologically;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.Port;
 import cs.bilkent.joker.operator.OperatorDef;
@@ -829,7 +828,8 @@ public class PipelineManagerImpl implements PipelineManager
         final Map<String, List<Pair<Integer, Integer>>> connectionsByOperatorId = getDownstreamConnectionsByOperatorId( flow,
                                                                                                                         lastOperator );
         LOGGER.info( "Pipeline {} with last operator {} has following downstream connectionsByOperatorId: {}",
-                     pipeline.getId(), lastOperator.getId(),
+                     pipeline.getId(),
+                     lastOperator.getId(),
                      connectionsByOperatorId );
 
         final DownstreamTupleSender[] senders = new DownstreamTupleSender[ pipeline.getReplicaCount() ];
@@ -1075,7 +1075,8 @@ public class PipelineManagerImpl implements PipelineManager
             }
 
             checkArgument( operatorIndex == i,
-                           "Operator {} is expected to be at %s'th index of pipeline %s but it is at %s'th index", operator.getId(),
+                           "Operator {} is expected to be at %s'th index of pipeline %s but it is at %s'th index",
+                           operator.getId(),
                            pipeline.getId(),
                            i );
             return pipeline;
@@ -1107,8 +1108,7 @@ public class PipelineManagerImpl implements PipelineManager
         final Pipeline pipeline = getPipelineOrFail( operator );
         final int operatorIndex = pipeline.getOperatorIndex( operator );
         checkArgument( operatorIndex == expectedOperatorIndex,
-                       "Pipeline %s has operator %s with index %s but expected index is %s",
-                       pipeline.getId(), operator.getId(),
+                       "Pipeline %s has operator %s with index %s but expected index is %s", pipeline.getId(), operator.getId(),
                        operatorIndex,
                        expectedOperatorIndex );
         return pipeline;
@@ -1125,26 +1125,8 @@ public class PipelineManagerImpl implements PipelineManager
 
     private List<Pipeline> getPipelinesTopologicallySorted ()
     {
-        final List<Pipeline> pipelines = new ArrayList<>();
-
-        final List<RegionDef> regionDefs = regionExecutionPlans.values()
-                                                               .stream()
-                                                               .map( RegionExecutionPlan::getRegionDef )
-                                                               .collect( toList() );
-        for ( RegionDef regionDef : sortTopologically( flow.getOperatorsMap(), flow.getConnections(), regionDefs ) )
-        {
-            final List<Pipeline> regionPipelines = new ArrayList<>();
-            for ( Pipeline pipeline : this.pipelines.values() )
-            {
-                if ( pipeline.getRegionDef().equals( regionDef ) )
-                {
-                    regionPipelines.add( pipeline );
-                }
-            }
-
-            regionPipelines.sort( comparing( Pipeline::getId, PipelineId::compareTo ) );
-            pipelines.addAll( regionPipelines );
-        }
+        final List<Pipeline> pipelines = new ArrayList<>( this.pipelines.values() );
+        pipelines.sort( comparing( Pipeline::getId ) );
 
         return pipelines;
     }

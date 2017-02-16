@@ -1,5 +1,7 @@
 package cs.bilkent.joker.engine.pipeline;
 
+import static java.lang.Integer.compare;
+
 public class PipelineId implements Comparable<PipelineId>
 {
 
@@ -68,8 +70,8 @@ public class PipelineId implements Comparable<PipelineId>
     @Override
     public int compareTo ( final PipelineId other )
     {
-        int r = Integer.compare( this.regionId, other.regionId );
-        return r != 0 ? r : Integer.compare( this.pipelineStartIndex, other.pipelineStartIndex );
+        int r = compare( this.regionId, other.regionId );
+        return r != 0 ? r : compare( this.pipelineStartIndex, other.pipelineStartIndex );
     }
 
 }
