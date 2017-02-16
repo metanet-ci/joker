@@ -42,7 +42,7 @@ public class BargainIndexOperatorTest extends AbstractJokerTest
     @Before
     public void init () throws InstantiationException, IllegalAccessException
     {
-        invocationContext.setInvocationParameters( SUCCESS, input, output, kvStore );
+        invocationContext.setInvocationParameters( SUCCESS, input, output, singletonList( TUPLE_PARTITION_KEY ), kvStore );
 
         final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "op", BargainIndexOperator.class )
                                                           .setPartitionFieldNames( singletonList( TICKER_SYMBOL_FIELD ) )

@@ -46,7 +46,7 @@ public class MapperOperatorTest extends AbstractJokerTest
     @Before
     public void init () throws InstantiationException, IllegalAccessException
     {
-        invocationContext.setInvocationParameters( SUCCESS, input, output, null );
+        invocationContext.setInvocationParameters( SUCCESS, input, output );
 
         final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "mapper", MapperOperator.class ).setConfig( config ).build();
         operator = (MapperOperator) operatorDef.createOperator();
@@ -100,10 +100,7 @@ public class MapperOperatorTest extends AbstractJokerTest
         final Tuple tuple = new Tuple();
         tuple.set( "count", 5 );
         input.add( tuple );
-        invocationContext.setInvocationParameters( SHUTDOWN,
-                                                   invocationContext.getInput(),
-                                                   invocationContext.getOutput(),
-                                                   invocationContext.getKVStore() );
+        invocationContext.setInvocationParameters( SHUTDOWN, input, output );
         shouldMultiplyCountValuesBy2( invocationContext );
     }
 
@@ -131,7 +128,7 @@ public class MapperOperatorTest extends AbstractJokerTest
         final Tuple tuple = new Tuple();
         tuple.set( "count", 5 );
         input.add( tuple );
-        invocationContext.setInvocationParameters( invocationReason, input, output, invocationContext.getKVStore() );
+        invocationContext.setInvocationParameters( invocationReason, input, output );
         operator.invoke( invocationContext );
     }
 

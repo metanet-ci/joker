@@ -44,7 +44,7 @@ public class FilterOperatorTest extends AbstractJokerTest
     @Before
     public void init () throws InstantiationException, IllegalAccessException
     {
-        invocationContext.setInvocationParameters( SUCCESS, input, output, null );
+        invocationContext.setInvocationParameters( SUCCESS, input, output );
 
         final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "filter", FilterOperator.class ).setConfig( config ).build();
         operator = (FilterOperator) operatorDef.createOperator();
@@ -98,7 +98,7 @@ public class FilterOperatorTest extends AbstractJokerTest
         final Tuple tuple2 = new Tuple();
         tuple2.set( "count", 1 );
         input.add( tuple2 );
-        invocationContext.setInvocationParameters( SHUTDOWN, input, output, invocationContext.getKVStore() );
+        invocationContext.setInvocationParameters( SHUTDOWN, input, output );
         shouldFilterTuplesWithPositiveCount( invocationContext );
     }
 

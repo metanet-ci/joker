@@ -56,7 +56,7 @@ public class VWAPAggregatorOperatorTest extends AbstractJokerTest
     @Before
     public void init () throws InstantiationException, IllegalAccessException
     {
-        invocationContext.setInvocationParameters( SUCCESS, input, output, kvStore );
+        invocationContext.setInvocationParameters( SUCCESS, input, output, singletonList( TICKER_SYMBOL_FIELD ), kvStore );
 
         final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "op", VWAPAggregatorOperator.class )
                                                           .setPartitionFieldNames( singletonList( TICKER_SYMBOL_FIELD ) )

@@ -73,7 +73,7 @@ public class ConsoleAppenderOperatorTest extends AbstractJokerTest
         input.add( tuple2 );
         final TuplesImpl output = new TuplesImpl( 1 );
         final InvocationContextImpl invocationContext = new InvocationContextImpl();
-        invocationContext.setInvocationParameters( SUCCESS, input, output, null );
+        invocationContext.setInvocationParameters( SUCCESS, input, output );
         operator.invoke( invocationContext );
 
         assertThat( output, equalTo( input ) );
@@ -97,7 +97,7 @@ public class ConsoleAppenderOperatorTest extends AbstractJokerTest
         input.add( tuple2 );
         final TuplesImpl output = new TuplesImpl( 1 );
         final InvocationContextImpl invocationContext = new InvocationContextImpl();
-        invocationContext.setInvocationParameters( SUCCESS, input, output, null );
+        invocationContext.setInvocationParameters( SUCCESS, input, output );
         operator.invoke( invocationContext );
 
         assertThat( output, equalTo( input ) );

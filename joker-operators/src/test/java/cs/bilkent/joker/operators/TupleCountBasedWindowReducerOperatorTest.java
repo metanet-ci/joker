@@ -36,8 +36,6 @@ import static org.junit.Assert.assertTrue;
 public class TupleCountBasedWindowReducerOperatorTest extends AbstractJokerTest
 {
 
-    private static final String TUPLE_PARTITION_KEY = "key1";
-
 
     private final TuplesImpl input = new TuplesImpl( 1 );
 
@@ -64,7 +62,7 @@ public class TupleCountBasedWindowReducerOperatorTest extends AbstractJokerTest
     @Before
     public void init () throws InstantiationException, IllegalAccessException
     {
-        invocationContext.setInvocationParameters( SUCCESS, input, output, kvStore );
+        invocationContext.setInvocationParameters( SUCCESS, input, output, singletonList( "key" ), kvStore );
 
         final OperatorRuntimeSchemaBuilder builder = new OperatorRuntimeSchemaBuilder( 1, 1 );
         builder.addInputField( 0, "key", String.class )
@@ -159,7 +157,7 @@ public class TupleCountBasedWindowReducerOperatorTest extends AbstractJokerTest
 
         assertThat( output.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
 
-        assertOutput( output.getTupleOrFail( DEFAULT_PORT_INDEX, 0 ), TUPLE_PARTITION_KEY, 0, 6 );
+        assertOutput( output.getTupleOrFail( DEFAULT_PORT_INDEX, 0 ), 0, 6 );
         assertWindow( 1, 0 );
         assertAccumulator( 3 );
     }
@@ -188,7 +186,7 @@ public class TupleCountBasedWindowReducerOperatorTest extends AbstractJokerTest
 
         assertThat( output.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
 
-        assertOutput( output.getTupleOrFail( DEFAULT_PORT_INDEX, 0 ), TUPLE_PARTITION_KEY, 0, 7 );
+        assertOutput( output.getTupleOrFail( DEFAULT_PORT_INDEX, 0 ), 0, 7 );
         assertWindow( 1, 1 );
         assertAccumulator( 7 );
     }
@@ -220,7 +218,7 @@ public class TupleCountBasedWindowReducerOperatorTest extends AbstractJokerTest
         assertThat( accumulator.getInteger( "count" ), equalTo( count ) );
     }
 
-    private void assertOutput ( final Tuple tuple, final Object key, final int window, final int count )
+    private void assertOutput ( final Tuple tuple, final int window, final int count )
     {
         assertThat( tuple.getInteger( WINDOW_FIELD ), equalTo( window ) );
         assertThat( tuple.getInteger( "count" ), equalTo( count ) );

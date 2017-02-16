@@ -49,7 +49,7 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
     @Before
     public void init () throws InstantiationException, IllegalAccessException
     {
-        invocationContext.setInvocationParameters( SUCCESS, input, output, kvStore );
+        invocationContext.setInvocationParameters( SUCCESS, input, output, null, kvStore );
 
         final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "op", ExponentialMovingAverageAggregationOperator.class )
                                                           .setConfig( config )

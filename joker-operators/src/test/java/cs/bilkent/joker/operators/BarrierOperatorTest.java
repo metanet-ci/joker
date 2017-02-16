@@ -62,7 +62,7 @@ public class BarrierOperatorTest extends AbstractJokerTest
         fill( upstream, true );
 
         initContext = new InitializationContextImpl( operatorDef, upstream );
-        invocationContext.setInvocationParameters( SUCCESS, input, output, null );
+        invocationContext.setInvocationParameters( SUCCESS, input, output );
     }
 
     @Test( expected = IllegalArgumentException.class )
@@ -92,7 +92,7 @@ public class BarrierOperatorTest extends AbstractJokerTest
     {
         config.set( MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
         operator.init( initContext );
-        invocationContext.setInvocationParameters( SHUTDOWN, input, output, invocationContext.getKVStore() );
+        invocationContext.setInvocationParameters( SHUTDOWN, input, output );
 
         populateTuplesWithUniqueFields( input );
         final Tuple tuple = new Tuple();

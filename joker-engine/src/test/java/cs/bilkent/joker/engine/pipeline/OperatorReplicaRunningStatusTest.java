@@ -28,6 +28,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyList;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -92,6 +93,14 @@ public class OperatorReplicaRunningStatusTest extends AbstractOperatorReplicaInv
             upstreamInput.add( t );
         }
 
+        doAnswer( invocation ->
+                  {
+                      assertThat( invocationContext.getReason(), equalTo( SUCCESS ) );
+                      assertThat( invocationContext.getKVStore(), equalTo( kvStore ) );
+                      assertThat( invocationContext.getInput(), equalTo( operatorInput ) );
+                      return null;
+                  } ).when( operator ).invoke( invocationContext );
+
         final TuplesImpl output = operatorReplica.invoke( upstreamInput, upstreamContext );
 
         if ( inputPortCount > 0 )
@@ -107,10 +116,6 @@ public class OperatorReplicaRunningStatusTest extends AbstractOperatorReplicaInv
         verify( queue ).drain( false, drainer );
         assertOperatorInvocation();
         verify( drainerPool, never() ).release( drainer );
-
-        assertThat( invocationContext.getReason(), equalTo( SUCCESS ) );
-        assertThat( invocationContext.getKVStore(), equalTo( kvStore ) );
-        assertThat( invocationContext.getInput(), equalTo( operatorInput ) );
 
         assertThat( output, equalTo( expectedOutput ) );
         assertThat( operatorReplica.getSchedulingStrategy(), equalTo( initializationStrategy ) );
@@ -137,6 +142,14 @@ public class OperatorReplicaRunningStatusTest extends AbstractOperatorReplicaInv
         expectedOutput.add( tuple );
         when( outputSupplier.get() ).thenReturn( expectedOutput );
 
+        doAnswer( invocation ->
+                  {
+                      assertThat( invocationContext.getReason(), equalTo( SHUTDOWN ) );
+                      assertThat( invocationContext.getKVStore(), equalTo( kvStore ) );
+                      assertThat( invocationContext.getInput(), equalTo( operatorInput ) );
+                      return null;
+                  } ).when( operator ).invoke( invocationContext );
+
         final TuplesImpl upstreamInput = new TuplesImpl( inputPortCount );
         final TuplesImpl output = operatorReplica.invoke( upstreamInput, newUpstreamContext );
 
@@ -144,10 +157,6 @@ public class OperatorReplicaRunningStatusTest extends AbstractOperatorReplicaInv
         verify( queue ).drain( false, drainer );
         assertOperatorInvocation();
         verify( drainerPool ).release( drainer );
-
-        assertThat( invocationContext.getReason(), equalTo( SHUTDOWN ) );
-        assertThat( invocationContext.getKVStore(), equalTo( kvStore ) );
-        assertThat( invocationContext.getInput(), equalTo( operatorInput ) );
 
         assertThat( output, equalTo( expectedOutput ) );
         assertThat( operatorReplica.getSchedulingStrategy(), equalTo( ScheduleNever.INSTANCE ) );
@@ -239,6 +248,14 @@ public class OperatorReplicaRunningStatusTest extends AbstractOperatorReplicaInv
         final Tuple t2 = new Tuple();
         t2.set( "f1", "val1" );
         upstreamInput.add( t2 );
+
+        doAnswer( invocation ->
+                  {
+                      assertThat( invocationContext.getReason(), equalTo( INPUT_PORT_CLOSED ) );
+                      assertThat( invocationContext.getKVStore(), equalTo( kvStore ) );
+                      return null;
+                  } ).when( operator ).invoke( invocationContext );
+
         final TuplesImpl output = operatorReplica.invoke( upstreamInput, newUpstreamContext );
 
         final Tuple expected = new Tuple();
@@ -250,9 +267,6 @@ public class OperatorReplicaRunningStatusTest extends AbstractOperatorReplicaInv
         verify( drainer, times( 2 ) ).reset();
         verify( drainerPool ).release( drainer );
         verify( drainerPool ).acquire( ScheduleWhenAvailable.INSTANCE );
-
-        assertThat( invocationContext.getReason(), equalTo( INPUT_PORT_CLOSED ) );
-        assertThat( invocationContext.getKVStore(), equalTo( kvStore ) );
 
         assertNull( output );
         assertThat( operatorReplica.getCompletionReason(), equalTo( INPUT_PORT_CLOSED ) );

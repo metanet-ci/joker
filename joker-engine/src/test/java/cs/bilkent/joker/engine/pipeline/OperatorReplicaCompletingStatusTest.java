@@ -10,6 +10,7 @@ import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETED;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETING;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
+import cs.bilkent.joker.operator.InvocationContext;
 import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.INPUT_PORT_CLOSED;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -21,6 +22,7 @@ import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
@@ -69,6 +71,15 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
         t3.set( "f1", "val1" );
         upstreamInput.add( t3 );
 
+        doAnswer( invocation ->
+                  {
+                      final InvocationContext invocationContext = invocation.getArgumentAt( 0, InvocationContext.class );
+                      assertThat( invocationContext.getReason(), equalTo( INPUT_PORT_CLOSED ) );
+                      assertThat( invocationContext.getKVStore(), equalTo( kvStore ) );
+                      assertThat( invocationContext.getInput(), equalTo( operatorInput ) );
+                      return null;
+                  } ).when( operator ).invoke( invocationContext );
+
         final TuplesImpl output = operatorReplica.invoke( upstreamInput, invocationUpstreamContext );
 
         final Tuple expected = new Tuple();
@@ -76,10 +87,6 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
         verify( queue ).offer( 0, singletonList( expected ) );
         verify( queue ).drain( false, drainer );
         assertOperatorInvocation();
-
-        assertThat( invocationContext.getReason(), equalTo( INPUT_PORT_CLOSED ) );
-        assertThat( invocationContext.getKVStore(), equalTo( kvStore ) );
-        assertThat( invocationContext.getInput(), equalTo( operatorInput ) );
 
         assertThat( output, equalTo( expectedOutput ) );
         assertThat( operatorReplica.getSchedulingStrategy(), equalTo( ScheduleWhenAvailable.INSTANCE ) );
@@ -130,6 +137,15 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
         final Tuple t1 = new Tuple();
         t1.set( "f1", "val1" );
         upstreamInput.add( t1 );
+
+        doAnswer( invocation ->
+                  {
+                      assertThat( invocationContext.getReason(), equalTo( INPUT_PORT_CLOSED ) );
+                      assertThat( invocationContext.getKVStore(), equalTo( null ) );
+                      assertThat( invocationContext.getInput(), equalTo( new TuplesImpl( inputPortCount ) ) );
+                      return null;
+                  } ).when( operator ).invoke( invocationContext );
+
         final TuplesImpl output = operatorReplica.invoke( upstreamInput, invocationUpstreamContext );
 
         final Tuple expected = new Tuple();
@@ -140,10 +156,6 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
         verify( operator ).invoke( invocationContext );
         verify( drainer ).reset();
         verify( drainerPool, never() ).release( drainer );
-
-        assertThat( invocationContext.getReason(), equalTo( INPUT_PORT_CLOSED ) );
-        assertThat( invocationContext.getKVStore(), equalTo( null ) );
-        assertThat( invocationContext.getInput(), equalTo( new TuplesImpl( inputPortCount ) ) );
 
         assertNull( output );
         assertThat( operatorReplica.getSchedulingStrategy(), equalTo( ScheduleWhenAvailable.INSTANCE ) );
@@ -173,6 +185,15 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
         final Tuple t2 = new Tuple();
         t2.set( "f1", "val1" );
         upstreamInput.add( t2 );
+
+        doAnswer( invocation ->
+                  {
+                      assertThat( invocationContext.getReason(), equalTo( INPUT_PORT_CLOSED ) );
+                      assertThat( invocationContext.getKVStore(), equalTo( null ) );
+                      assertThat( invocationContext.getInput(), equalTo( new TuplesImpl( inputPortCount ) ) );
+                      return null;
+                  } ).when( operator ).invoke( invocationContext );
+
         final TuplesImpl output = operatorReplica.invoke( upstreamInput, invocationUpstreamContext );
 
         final Tuple expected = new Tuple();
@@ -183,10 +204,6 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
         verify( operator ).invoke( invocationContext );
         verify( drainer ).reset();
         verify( drainerPool ).release( drainer );
-
-        assertThat( invocationContext.getReason(), equalTo( INPUT_PORT_CLOSED ) );
-        assertThat( invocationContext.getKVStore(), equalTo( null ) );
-        assertThat( invocationContext.getInput(), equalTo( new TuplesImpl( inputPortCount ) ) );
 
         assertThat( output, equalTo( expectedOutput ) );
         assertThat( operatorReplica.getSchedulingStrategy(), equalTo( ScheduleNever.INSTANCE ) );

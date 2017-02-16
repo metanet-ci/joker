@@ -33,7 +33,7 @@ public class FlatMapperOperatorTest extends AbstractJokerTest
     @Before
     public void init () throws InstantiationException, IllegalAccessException
     {
-        invocationContext.setInvocationParameters( SUCCESS, input, output, null );
+        invocationContext.setInvocationParameters( SUCCESS, input, output );
 
         final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "flatMapper", FlatMapperOperator.class )
                                                           .setConfig( config )

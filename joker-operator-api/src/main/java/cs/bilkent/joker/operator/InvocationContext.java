@@ -1,6 +1,8 @@
 package cs.bilkent.joker.operator;
 
 
+import java.util.List;
+
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.spec.OperatorType;
@@ -26,8 +28,6 @@ public interface InvocationContext
      * @return the {@link Tuples} object which will be used for collecting the tuples produced by the invocation
      */
     Tuples getOutput ();
-
-    // TODO ADD List<Object> getPartitionKey() method.
 
     /**
      * Returns the reason of a particular {@link Operator#invoke(InvocationContext)} method invocation.
@@ -80,6 +80,13 @@ public interface InvocationContext
     {
         return !isInputPortOpen( portIndex );
     }
+
+    /**
+     * Returns the partition key that is present in the {@link Tuple} instances provided as invocation input
+     *
+     * @return the partition key that is present in the {@link Tuple} instances provided as invocation input
+     */
+    List<Object> getPartitionKey ();
 
     /**
      * Returns the {@link KVStore} that can be used for only the current invocation of {@link OperatorType#PARTITIONED_STATEFUL}
