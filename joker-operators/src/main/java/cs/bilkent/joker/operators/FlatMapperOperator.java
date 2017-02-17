@@ -16,6 +16,9 @@ import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 
+/**
+ * Maps an input tuple to a collection of tuples, and flattens them.
+ */
 @OperatorSpec( type = STATELESS, inputPortCount = 1, outputPortCount = 1 )
 public class FlatMapperOperator implements Operator
 {
