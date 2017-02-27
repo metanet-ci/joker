@@ -17,7 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkState;
-import cs.bilkent.joker.engine.region.RegionDef;
+import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.Port;
@@ -187,7 +187,7 @@ public class RegionDefFormerImpl implements RegionDefFormer
         final Collection<List<OperatorDef>> sequences = new ArrayList<>();
 
         final Set<OperatorDef> processedSequenceStartOperators = new HashSet<>();
-        final Set<OperatorDef> sequenceStartOperators = new HashSet<>( flow.getOperatorsWithNoInputPorts() );
+        final Set<OperatorDef> sequenceStartOperators = flow.getSourceOperators();
         List<OperatorDef> currentOperatorSequence = new ArrayList<>();
 
         OperatorDef operator;
@@ -228,11 +228,11 @@ public class RegionDefFormerImpl implements RegionDefFormer
     private Collection<OperatorDef> getDownstreamOperators ( final FlowDef flow, final OperatorDef operator )
     {
         final Set<OperatorDef> downstream = new HashSet<>();
-        for ( Collection<Port> v : flow.getDownstreamConnections( operator.getId() ).values() )
+        for ( Collection<Port> v : flow.getOutboundConnections( operator.getId() ).values() )
         {
             for ( Port p : v )
             {
-                downstream.add( flow.getOperator( p.operatorId ) );
+                downstream.add( flow.getOperator( p.getOperatorId() ) );
             }
         }
 
@@ -266,13 +266,13 @@ public class RegionDefFormerImpl implements RegionDefFormer
         if ( downstreamOperators.size() == 1 )
         {
             final OperatorDef downstream = downstreamOperators.iterator().next();
-            final Map<Port, Set<Port>> upstream = flow.getUpstreamConnections( downstream.getId() );
+            final Map<Port, Set<Port>> upstream = flow.getInboundConnections( downstream.getId() );
             final Set<String> upstreamOperatorIds = new HashSet<>();
             for ( Collection<Port> u : upstream.values() )
             {
                 for ( Port p : u )
                 {
-                    upstreamOperatorIds.add( p.operatorId );
+                    upstreamOperatorIds.add( p.getOperatorId() );
                 }
             }
             return upstreamOperatorIds.size() == 1 ? downstream : null;

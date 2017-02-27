@@ -41,7 +41,7 @@ public final class RuntimeSchemaField
      */
     public boolean isCompatibleWith ( final RuntimeSchemaField other )
     {
-        return name.equals( other.name ) && other.type.isAssignableFrom( this.type );
+        return other != null && name.equals( other.name ) && other.type.isAssignableFrom( this.type );
     }
 
     @Override

@@ -11,10 +11,10 @@ import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Joiner;
 
+import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.metric.PipelineMeter;
 import static cs.bilkent.joker.engine.metric.PipelineMeter.NO_OPERATOR_INDEX;
 import static cs.bilkent.joker.engine.metric.PipelineMeter.PIPELINE_EXECUTION_INDEX;
-import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import static java.lang.Math.max;
 import static java.lang.Math.min;

@@ -1,9 +1,13 @@
-package cs.bilkent.joker.engine.pipeline;
+package cs.bilkent.joker.engine.flow;
 
 import static java.lang.Integer.compare;
 
+/**
+ * Identifies pipeline of a region
+ */
 public class PipelineId implements Comparable<PipelineId>
 {
+
 
     private final int regionId;
 
@@ -21,11 +25,21 @@ public class PipelineId implements Comparable<PipelineId>
         this.hashCode = computeHashCode();
     }
 
+    /**
+     * Returns id of the region
+     *
+     * @return id of the region
+     */
     public int getRegionId ()
     {
         return regionId;
     }
 
+    /**
+     * Returns in-region index of first operator of the pipeline
+     *
+     * @return in-region index of first operator of the pipeline
+     */
     public int getPipelineStartIndex ()
     {
         return pipelineStartIndex;
@@ -56,9 +70,7 @@ public class PipelineId implements Comparable<PipelineId>
 
     private int computeHashCode ()
     {
-        int result = regionId;
-        result = 31 * result + pipelineStartIndex;
-        return result;
+        return 31 * regionId + pipelineStartIndex;
     }
 
     @Override

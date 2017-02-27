@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.junit.Test;
 
-import cs.bilkent.joker.engine.region.RegionDef;
+import cs.bilkent.joker.engine.flow.RegionDef;
 import static cs.bilkent.joker.engine.region.impl.RegionFormerImplRegionDefTest.assertRegion;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;

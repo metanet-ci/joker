@@ -11,7 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import cs.bilkent.joker.engine.config.JokerConfig;
-import cs.bilkent.joker.engine.region.RegionDef;
+import cs.bilkent.joker.engine.flow.RegionDef;
 import static cs.bilkent.joker.engine.region.impl.FlowDefOptimizerImpl.toDuplicateOperatorId;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;

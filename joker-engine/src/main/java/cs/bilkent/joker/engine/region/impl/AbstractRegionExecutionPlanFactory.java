@@ -5,8 +5,8 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.config.JokerConfig;
+import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
-import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.region.RegionExecutionPlanFactory;
 import static cs.bilkent.joker.engine.util.ExceptionUtils.checkInterruption;
 import cs.bilkent.joker.operator.OperatorDef;

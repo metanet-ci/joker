@@ -3,15 +3,18 @@ package cs.bilkent.joker.flow;
 
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 
+/**
+ * Endpoint of a connection which connects two operators
+ */
 public final class Port
 {
     public static final int DYNAMIC_PORT_COUNT = -1;
 
     public static final int DEFAULT_PORT_INDEX = 0;
 
-    public final String operatorId;
+    private final String operatorId;
 
-    public final int portIndex;
+    private final int portIndex;
 
     public Port ( String operatorId, int portIndex )
     {
@@ -36,6 +39,16 @@ public final class Port
         final Port port = (Port) o;
 
         return portIndex == port.portIndex && operatorId.equals( port.operatorId );
+    }
+
+    public String getOperatorId ()
+    {
+        return operatorId;
+    }
+
+    public int getPortIndex ()
+    {
+        return portIndex;
     }
 
     @Override

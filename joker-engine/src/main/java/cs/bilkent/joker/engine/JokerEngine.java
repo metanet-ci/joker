@@ -7,10 +7,10 @@ import javax.inject.Inject;
 
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.flow.FlowExecutionPlan;
+import cs.bilkent.joker.engine.flow.PipelineId;
+import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
-import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.region.FlowDefOptimizer;
-import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
 import cs.bilkent.joker.engine.region.RegionExecutionPlanFactory;
 import cs.bilkent.joker.engine.supervisor.impl.SupervisorImpl;
@@ -41,9 +41,12 @@ public class JokerEngine
 
     public FlowExecutionPlan run ( final FlowDef flow ) throws InitializationException
     {
-        final Pair<FlowDef, List<RegionDef>> result = flowDefOptimizer.optimize( flow, regionDefFormer.createRegions( flow ) );
-        final List<RegionExecutionPlan> regionExecutionPlans = regionExecutionPlanFactory.createRegionExecutionPlans( result._2 );
-        return supervisor.start( result._1, regionExecutionPlans );
+        final List<RegionDef> initialRegions = regionDefFormer.createRegions( flow );
+        final Pair<FlowDef, List<RegionDef>> result = flowDefOptimizer.optimize( flow, initialRegions );
+        final FlowDef optimizedFlow = result._1;
+        final List<RegionDef> optimizedRegions = result._2;
+        final List<RegionExecutionPlan> regionExecutionPlans = regionExecutionPlanFactory.createRegionExecutionPlans( optimizedRegions );
+        return supervisor.start( optimizedFlow, regionExecutionPlans );
     }
 
     public FlowStatus getStatus ()

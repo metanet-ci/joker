@@ -17,9 +17,9 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import cs.bilkent.joker.Joker.JokerBuilder;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.flow.FlowExecutionPlan;
+import cs.bilkent.joker.engine.flow.PipelineId;
+import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
-import cs.bilkent.joker.engine.pipeline.PipelineId;
-import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.region.impl.AbstractRegionExecutionPlanFactory;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
@@ -159,7 +159,7 @@ public class JokerTest extends AbstractJokerTest
 
         sleepUninterruptibly( 15, SECONDS );
 
-        final RegionExecutionPlan regionExecPlan = flowExecPlan.getOperatorRegionExecutionPlan( flowExample.join.getId() );
+        final RegionExecutionPlan regionExecPlan = flowExecPlan.getRegionExecutionPlan( flowExample.join.getId() );
         final List<PipelineId> pipelineIdsToMerge = regionExecPlan.getPipelineIds();
         checkState( pipelineIdsToMerge.size() > 1 );
 
@@ -196,7 +196,7 @@ public class JokerTest extends AbstractJokerTest
 
         sleepUninterruptibly( 15, SECONDS );
 
-        final RegionExecutionPlan regionExecPlan = flowExecPlan.getOperatorRegionExecutionPlan( flowExample.join.getId() );
+        final RegionExecutionPlan regionExecPlan = flowExecPlan.getRegionExecutionPlan( flowExample.join.getId() );
         joker.splitPipeline( flowExecPlan.getVersion(), regionExecPlan.getPipelineIds().get( 0 ), asList( 1, 2 ) ).get( 15, SECONDS );
 
         sleepUninterruptibly( 15, SECONDS );
@@ -230,11 +230,11 @@ public class JokerTest extends AbstractJokerTest
 
         sleepUninterruptibly( 15, SECONDS );
 
-        RegionExecutionPlan regionExecPlan = flowExecPlan.getOperatorRegionExecutionPlan( flowExample.join.getId() );
+        RegionExecutionPlan regionExecPlan = flowExecPlan.getRegionExecutionPlan( flowExample.join.getId() );
         checkState( regionExecPlan.getPipelineIds().size() == 1 );
         flowExecPlan = joker.splitPipeline( flowExecPlan.getVersion(), regionExecPlan.getPipelineIds().get( 0 ), asList( 1, 2 ) )
                             .get( 15, SECONDS );
-        regionExecPlan = flowExecPlan.getOperatorRegionExecutionPlan( flowExample.join.getId() );
+        regionExecPlan = flowExecPlan.getRegionExecutionPlan( flowExample.join.getId() );
         checkState( regionExecPlan.getPipelineIds().size() == 3 );
 
         sleepUninterruptibly( 15, SECONDS );
@@ -272,12 +272,12 @@ public class JokerTest extends AbstractJokerTest
 
         sleepUninterruptibly( 15, SECONDS );
 
-        RegionExecutionPlan regionExecPlan = flowExecPlan.getOperatorRegionExecutionPlan( flowExample.join.getId() );
+        RegionExecutionPlan regionExecPlan = flowExecPlan.getRegionExecutionPlan( flowExample.join.getId() );
         final List<PipelineId> pipelineIdsToMerge = regionExecPlan.getPipelineIds();
         checkState( pipelineIdsToMerge.size() == 2 );
 
         flowExecPlan = joker.mergePipelines( flowExecPlan.getVersion(), pipelineIdsToMerge ).get( 15, SECONDS );
-        regionExecPlan = flowExecPlan.getOperatorRegionExecutionPlan( flowExample.join.getId() );
+        regionExecPlan = flowExecPlan.getRegionExecutionPlan( flowExample.join.getId() );
         final List<PipelineId> pipelineIdsToSplit = regionExecPlan.getPipelineIds();
         checkState( pipelineIdsToSplit.size() == 1 );
 
@@ -316,28 +316,28 @@ public class JokerTest extends AbstractJokerTest
 
         sleepUninterruptibly( 15, SECONDS );
 
-        RegionExecutionPlan regionExecPlan = flowExecPlan.getOperatorRegionExecutionPlan( flowExample.join.getId() );
+        RegionExecutionPlan regionExecPlan = flowExecPlan.getRegionExecutionPlan( flowExample.join.getId() );
         flowExecPlan = joker.rebalanceRegion( flowExecPlan.getVersion(),
                                               regionExecPlan.getRegionId(),
                                               regionExecPlan.getReplicaCount() / 2 ).get( 15, SECONDS );
 
         sleepUninterruptibly( 15, SECONDS );
 
-        regionExecPlan = flowExecPlan.getOperatorRegionExecutionPlan( flowExample.join.getId() );
+        regionExecPlan = flowExecPlan.getRegionExecutionPlan( flowExample.join.getId() );
         flowExecPlan = joker.rebalanceRegion( flowExecPlan.getVersion(),
                                               regionExecPlan.getRegionId(),
                                               regionExecPlan.getReplicaCount() * 2 ).get( 15, SECONDS );
 
         sleepUninterruptibly( 15, SECONDS );
 
-        regionExecPlan = flowExecPlan.getOperatorRegionExecutionPlan( flowExample.join.getId() );
+        regionExecPlan = flowExecPlan.getRegionExecutionPlan( flowExample.join.getId() );
         flowExecPlan = joker.rebalanceRegion( flowExecPlan.getVersion(),
                                               regionExecPlan.getRegionId(),
                                               regionExecPlan.getReplicaCount() / 2 ).get( 15, SECONDS );
 
         sleepUninterruptibly( 15, SECONDS );
 
-        regionExecPlan = flowExecPlan.getOperatorRegionExecutionPlan( flowExample.join.getId() );
+        regionExecPlan = flowExecPlan.getRegionExecutionPlan( flowExample.join.getId() );
         joker.rebalanceRegion( flowExecPlan.getVersion(), regionExecPlan.getRegionId(), regionExecPlan.getReplicaCount() * 2 )
              .get( 15, SECONDS );
 
@@ -373,28 +373,28 @@ public class JokerTest extends AbstractJokerTest
 
         sleepUninterruptibly( 15, SECONDS );
 
-        RegionExecutionPlan regionExecPlan = flowExecPlan.getOperatorRegionExecutionPlan( flowExample.join.getId() );
+        RegionExecutionPlan regionExecPlan = flowExecPlan.getRegionExecutionPlan( flowExample.join.getId() );
         flowExecPlan = joker.rebalanceRegion( flowExecPlan.getVersion(),
                                               regionExecPlan.getRegionId(),
                                               regionExecPlan.getReplicaCount() / 2 ).get( 60, SECONDS );
 
         sleepUninterruptibly( 15, SECONDS );
 
-        regionExecPlan = flowExecPlan.getOperatorRegionExecutionPlan( flowExample.join.getId() );
+        regionExecPlan = flowExecPlan.getRegionExecutionPlan( flowExample.join.getId() );
         final List<PipelineId> pipelineIdsToSplit = regionExecPlan.getPipelineIds();
         checkState( pipelineIdsToSplit.size() == 1 );
         flowExecPlan = joker.splitPipeline( flowExecPlan.getVersion(), pipelineIdsToSplit.get( 0 ), asList( 1, 2 ) ).get( 15, SECONDS );
 
         sleepUninterruptibly( 15, SECONDS );
 
-        regionExecPlan = flowExecPlan.getOperatorRegionExecutionPlan( flowExample.join.getId() );
+        regionExecPlan = flowExecPlan.getRegionExecutionPlan( flowExample.join.getId() );
         final List<PipelineId> pipelineIdsToMerge = regionExecPlan.getPipelineIds();
         checkState( pipelineIdsToMerge.size() == 3 );
         flowExecPlan = joker.mergePipelines( flowExecPlan.getVersion(), pipelineIdsToMerge ).get( 15, SECONDS );
 
         sleepUninterruptibly( 15, SECONDS );
 
-        regionExecPlan = flowExecPlan.getOperatorRegionExecutionPlan( flowExample.join.getId() );
+        regionExecPlan = flowExecPlan.getRegionExecutionPlan( flowExample.join.getId() );
         joker.rebalanceRegion( flowExecPlan.getVersion(), regionExecPlan.getRegionId(), regionExecPlan.getReplicaCount() * 2 )
              .get( 15, SECONDS );
 

@@ -32,6 +32,8 @@ import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_THREAD_GROUP_NAME
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.exception.JokerException;
 import cs.bilkent.joker.engine.flow.FlowExecutionPlan;
+import cs.bilkent.joker.engine.flow.PipelineId;
+import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.metric.PipelineMeter;
 import cs.bilkent.joker.engine.partition.PartitionDistribution;
@@ -46,7 +48,6 @@ import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETING;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIAL;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.RUNNING;
 import cs.bilkent.joker.engine.pipeline.Pipeline;
-import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineManager;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
@@ -60,7 +61,6 @@ import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.DownstreamTup
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDownstreamTupleSender1;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDownstreamTupleSenderN;
 import cs.bilkent.joker.engine.region.Region;
-import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.region.RegionManager;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
@@ -342,10 +342,9 @@ public class PipelineManagerImpl implements PipelineManager
 
     private Collection<Pipeline> getDownstreamPipelines ( final Pipeline upstreamPipeline )
     {
-        return flow.getDownstreamConnections( upstreamPipeline.getLastOperatorDef().getId() )
+        return flow.getOutboundConnections( upstreamPipeline.getLastOperatorDef().getId() )
                    .values()
-                   .stream()
-                   .flatMap( ports -> ports.stream().map( port -> port.operatorId ) )
+                   .stream().flatMap( ports -> ports.stream().map( Port::getOperatorId ) )
                    .distinct()
                    .map( flow::getOperator )
                    .map( this::getPipelineByFirstOperatorOrFail )
@@ -379,7 +378,7 @@ public class PipelineManagerImpl implements PipelineManager
     {
         final OperatorDef firstOperator = pipeline.getFirstOperatorDef();
         final UpstreamConnectionStatus[] statuses = new UpstreamConnectionStatus[ firstOperator.getInputPortCount() ];
-        for ( Entry<Port, Set<Port>> entry : flow.getUpstreamConnections( firstOperator.getId() ).entrySet() )
+        for ( Entry<Port, Set<Port>> entry : flow.getInboundConnections( firstOperator.getId() ).entrySet() )
         {
             final Collection<Port> upstreamPorts = entry.getValue();
             final UpstreamConnectionStatus status;
@@ -389,7 +388,7 @@ public class PipelineManagerImpl implements PipelineManager
             }
             else
             {
-                final List<Pair<OperatorDef, Pipeline>> upstream = upstreamPorts.stream().map( p -> flow.getOperator( p.operatorId ) )
+                final List<Pair<OperatorDef, Pipeline>> upstream = upstreamPorts.stream().map( p -> flow.getOperator( p.getOperatorId() ) )
                                                                                 .map( o -> Pair.of( o, getPipelineOrFail( o ) ) )
                                                                                 .collect( toList() );
 
@@ -405,7 +404,7 @@ public class PipelineManagerImpl implements PipelineManager
                 status = aliveConnPresent ? UpstreamConnectionStatus.ACTIVE : UpstreamConnectionStatus.CLOSED;
             }
 
-            statuses[ entry.getKey().portIndex ] = status;
+            statuses[ entry.getKey().getPortIndex() ] = status;
         }
 
         return statuses;
@@ -438,7 +437,7 @@ public class PipelineManagerImpl implements PipelineManager
         for ( Pipeline pipeline : pipelines.values() )
         {
             final OperatorDef operatorDef = pipeline.getFirstOperatorDef();
-            if ( flow.getUpstreamConnections( operatorDef.getId() ).isEmpty() )
+            if ( flow.getInboundConnections( operatorDef.getId() ).isEmpty() )
             {
                 pipeline.handleUpstreamContextUpdated( new UpstreamContext( 1, new UpstreamConnectionStatus[] {} ) );
             }
@@ -701,11 +700,11 @@ public class PipelineManagerImpl implements PipelineManager
     {
         final Collection<Pipeline> upstream = new ArrayList<>();
         final Set<String> upstreamOperatorIds = new HashSet<>();
-        for ( Collection<Port> c : flow.getUpstreamConnections( getFirstOperator( regionDef ).getId() ).values() )
+        for ( Collection<Port> c : flow.getInboundConnections( getFirstOperator( regionDef ).getId() ).values() )
         {
             for ( Port p : c )
             {
-                upstreamOperatorIds.add( p.operatorId );
+                upstreamOperatorIds.add( p.getOperatorId() );
             }
         }
 
@@ -930,11 +929,11 @@ public class PipelineManagerImpl implements PipelineManager
                                                                                              final OperatorDef operator )
     {
         final Map<String, List<Pair<Integer, Integer>>> result = new LinkedHashMap<>();
-        final Map<Port, Set<Port>> connections = flow.getDownstreamConnections( operator.getId() );
+        final Map<Port, Set<Port>> connections = flow.getOutboundConnections( operator.getId() );
         final Set<String> downstreamOperatorIds = new HashSet<>();
         for ( Collection<Port> c : connections.values() )
         {
-            downstreamOperatorIds.addAll( c.stream().map( p -> p.operatorId ).collect( Collectors.toSet() ) );
+            downstreamOperatorIds.addAll( c.stream().map( Port::getOperatorId ).collect( Collectors.toSet() ) );
         }
 
         final List<String> downstreamOperatorIdsSorted = new ArrayList<>( downstreamOperatorIds );
@@ -946,10 +945,9 @@ public class PipelineManagerImpl implements PipelineManager
             {
                 final Port upstreamPort = e.getKey();
                 e.getValue()
-                 .stream()
-                 .filter( downstreamPort -> downstreamPort.operatorId.equals( downstreamOperatorId ) )
+                 .stream().filter( downstreamPort -> downstreamPort.getOperatorId().equals( downstreamOperatorId ) )
                  .forEach( downstreamPort -> result.computeIfAbsent( downstreamOperatorId, s -> new ArrayList<>() )
-                                                   .add( Pair.of( upstreamPort.portIndex, downstreamPort.portIndex ) ) );
+                                                   .add( Pair.of( upstreamPort.getPortIndex(), downstreamPort.getPortIndex() ) ) );
             }
         }
 
@@ -1016,7 +1014,7 @@ public class PipelineManagerImpl implements PipelineManager
         else
         {
             final UpstreamConnectionStatus[] statuses = new UpstreamConnectionStatus[ firstOperator.getInputPortCount() ];
-            final Map<Port, Set<Port>> upstreamConnections = flow.getUpstreamConnections( firstOperator.getId() );
+            final Map<Port, Set<Port>> upstreamConnections = flow.getInboundConnections( firstOperator.getId() );
             for ( int portIndex = 0; portIndex < firstOperator.getInputPortCount(); portIndex++ )
             {
                 UpstreamConnectionStatus status = CLOSED;
@@ -1029,7 +1027,7 @@ public class PipelineManagerImpl implements PipelineManager
                 {
                     for ( Port upstreamPort : upstreamPorts )
                     {
-                        final OperatorDef upstreamOperator = flow.getOperator( upstreamPort.operatorId );
+                        final OperatorDef upstreamOperator = flow.getOperator( upstreamPort.getOperatorId() );
                         final Pipeline upstreamPipeline = getPipeline( upstreamOperator, -1 );
                         final int operatorIndex = upstreamPipeline.getOperatorIndex( upstreamOperator );
                         checkState( ( upstreamPipeline.getOperatorCount() - 1 ) == operatorIndex,

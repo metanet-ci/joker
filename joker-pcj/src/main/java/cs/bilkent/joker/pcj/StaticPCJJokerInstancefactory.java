@@ -10,9 +10,9 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import cs.bilkent.joker.Joker;
 import cs.bilkent.joker.Joker.JokerBuilder;
 import cs.bilkent.joker.engine.config.JokerConfig;
+import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.migration.MigrationService;
-import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.region.impl.AbstractRegionExecutionPlanFactory;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;

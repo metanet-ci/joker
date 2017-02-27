@@ -126,9 +126,9 @@ public final class FlowDefBuilder
                 {
                     for ( Port p : e.getValue() )
                     {
-                        if ( e.getKey().operatorId.equals( current ) )
+                        if ( e.getKey().getOperatorId().equals( current ) )
                         {
-                            toVisit.add( p.operatorId );
+                            toVisit.add( p.getOperatorId() );
                         }
                     }
                 }

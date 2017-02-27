@@ -1,5 +1,7 @@
 package cs.bilkent.joker.engine.pipeline;
 
+import cs.bilkent.joker.engine.flow.PipelineId;
+
 public class PipelineReplicaId
 {
 

@@ -8,7 +8,7 @@ import java.util.function.Consumer;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import cs.bilkent.joker.engine.config.JokerConfig;
-import cs.bilkent.joker.engine.region.RegionDef;
+import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
 import cs.bilkent.joker.engine.region.RegionExecutionPlanFactory;
 import cs.bilkent.joker.flow.FlowDef;

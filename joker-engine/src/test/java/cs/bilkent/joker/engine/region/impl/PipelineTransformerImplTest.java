@@ -7,6 +7,8 @@ import org.junit.Test;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.SINGLE_THREADED;
+import cs.bilkent.joker.engine.flow.PipelineId;
+import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.kvstore.impl.OperatorKVStoreManagerImpl;
 import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
@@ -15,14 +17,12 @@ import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
 import cs.bilkent.joker.engine.partition.impl.PartitionServiceImpl;
 import cs.bilkent.joker.engine.pipeline.OperatorReplica;
-import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
 import cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus;
 import cs.bilkent.joker.engine.pipeline.UpstreamContext;
 import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
 import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.Region;
-import cs.bilkent.joker.engine.region.RegionDef;
 import static cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.assertPipelineReplicaMeter;
 import cs.bilkent.joker.engine.tuplequeue.impl.OperatorTupleQueueManagerImpl;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
@@ -274,51 +274,48 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
                                                  .connect( "op4", "op5" )
                                                  .build();
 
-        final RegionDef regionDef = new RegionDef( REGION_ID, PARTITIONED_STATEFUL, singletonList( "field" ),
+        final RegionDef regionDef = new RegionDef( REGION_ID, STATELESS, emptyList(),
                                                    asList( operatorDef1, operatorDef2, operatorDef3, operatorDef4, operatorDef5 ) );
 
-        final int replicaCount = 2;
-        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, asList( 0, 1, 2, 3, 4 ), replicaCount );
+        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, asList( 0, 1, 2, 3, 4 ), 1 );
         final Region region = regionManager.createRegion( flow, regionExecutionPlan );
         initialize( region );
 
         final Region newRegion = pipelineTransformer.mergePipelines( region, asList( 0, 1, 2, 3, 4 ) );
 
-        for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
-        {
-            final PipelineReplica[] newPipelineReplicas = newRegion.getReplicaPipelines( replicaIndex );
-            assertThat( newPipelineReplicas.length, equalTo( 1 ) );
-            final PipelineReplica newPipelineReplica = newPipelineReplicas[ 0 ];
-            final OperatorReplica pipelineOperator0 = newPipelineReplica.getOperator( 0 );
-            final OperatorReplica pipelineOperator1 = newPipelineReplica.getOperator( 1 );
-            final OperatorReplica pipelineOperator2 = newPipelineReplica.getOperator( 2 );
-            final OperatorReplica pipelineOperator3 = newPipelineReplica.getOperator( 3 );
-            final OperatorReplica pipelineOperator4 = newPipelineReplica.getOperator( 4 );
+        final PipelineReplica[] newPipelineReplicas = newRegion.getReplicaPipelines( 0 );
+        assertThat( newPipelineReplicas.length, equalTo( 1 ) );
+        final PipelineReplica newPipelineReplica = newPipelineReplicas[ 0 ];
+        final OperatorReplica pipelineOperator0 = newPipelineReplica.getOperator( 0 );
+        final OperatorReplica pipelineOperator1 = newPipelineReplica.getOperator( 1 );
+        final OperatorReplica pipelineOperator2 = newPipelineReplica.getOperator( 2 );
+        final OperatorReplica pipelineOperator3 = newPipelineReplica.getOperator( 3 );
+        final OperatorReplica pipelineOperator4 = newPipelineReplica.getOperator( 4 );
+        final OperatorReplica pipelineOperator5 = newPipelineReplica.getOperator( 4 );
 
-            assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator0.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
-            assertTrue( pipelineOperator0.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
-            assertTrue( pipelineOperator0.getOutputSupplier() instanceof CachedTuplesImplSupplier );
-            assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator1.getQueue() ).getThreadingPreference(), equalTo( SINGLE_THREADED ) );
-            assertTrue( pipelineOperator1.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
-            assertTrue( pipelineOperator1.getOutputSupplier() instanceof CachedTuplesImplSupplier );
-            assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator2.getQueue() ).getThreadingPreference(), equalTo( SINGLE_THREADED ) );
-            assertTrue( pipelineOperator2.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
-            assertTrue( pipelineOperator2.getOutputSupplier() instanceof CachedTuplesImplSupplier );
-            assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator3.getQueue() ).getThreadingPreference(), equalTo( SINGLE_THREADED ) );
-            assertTrue( pipelineOperator3.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
-            assertTrue( pipelineOperator3.getOutputSupplier() instanceof CachedTuplesImplSupplier );
-            assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator4.getQueue() ).getThreadingPreference(), equalTo( SINGLE_THREADED ) );
-            assertTrue( pipelineOperator4.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
-            assertThat( pipelineOperator4.getOutputSupplier().getClass(),
-                        equalTo( config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass() ) );
+        assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator0.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
+        assertTrue( pipelineOperator0.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
+        assertTrue( pipelineOperator0.getOutputSupplier() instanceof CachedTuplesImplSupplier );
+        assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator1.getQueue() ).getThreadingPreference(), equalTo( SINGLE_THREADED ) );
+        assertTrue( pipelineOperator1.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
+        assertTrue( pipelineOperator1.getOutputSupplier() instanceof CachedTuplesImplSupplier );
+        assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator2.getQueue() ).getThreadingPreference(), equalTo( SINGLE_THREADED ) );
+        assertTrue( pipelineOperator2.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
+        assertTrue( pipelineOperator2.getOutputSupplier() instanceof CachedTuplesImplSupplier );
+        assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator3.getQueue() ).getThreadingPreference(), equalTo( SINGLE_THREADED ) );
+        assertTrue( pipelineOperator3.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
+        assertTrue( pipelineOperator3.getOutputSupplier() instanceof CachedTuplesImplSupplier );
+        assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator4.getQueue() ).getThreadingPreference(), equalTo( SINGLE_THREADED ) );
+        assertTrue( pipelineOperator4.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
+        assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator5.getQueue() ).getThreadingPreference(), equalTo( SINGLE_THREADED ) );
+        assertTrue( pipelineOperator5.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
 
-            final PipelineReplicaMeter meter = newPipelineReplica.getMeter();
-            assertThat( meter.getHeadOperatorId(), equalTo( pipelineOperator0.getOperatorDef().getId() ) );
-            assertThat( meter.getConsumedPortCount(), equalTo( pipelineOperator0.getOperatorDef().getInputPortCount() ) );
-            assertThat( meter.getTailOperatorId(), equalTo( pipelineOperator4.getOperatorDef().getId() ) );
-            assertThat( meter.getProducedPortCount(), equalTo( pipelineOperator4.getOperatorDef().getOutputPortCount() ) );
-            assertPipelineReplicaMeter( newPipelineReplica );
-        }
+        final PipelineReplicaMeter meter = newPipelineReplica.getMeter();
+        assertThat( meter.getHeadOperatorId(), equalTo( pipelineOperator0.getOperatorDef().getId() ) );
+        assertThat( meter.getConsumedPortCount(), equalTo( pipelineOperator0.getOperatorDef().getInputPortCount() ) );
+        assertThat( meter.getTailOperatorId(), equalTo( pipelineOperator4.getOperatorDef().getId() ) );
+        assertThat( meter.getProducedPortCount(), equalTo( pipelineOperator4.getOperatorDef().getOutputPortCount() ) );
+        assertPipelineReplicaMeter( newPipelineReplica );
     }
 
     @Test
@@ -347,7 +344,12 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
                                                  .build();
 
         final RegionDef regionDef = new RegionDef( REGION_ID, PARTITIONED_STATEFUL, singletonList( "field" ),
-                                                   asList( operatorDef1, operatorDef2, operatorDef3, operatorDef4, operatorDef5 ) );
+                                                   asList( operatorDef0,
+                                                           operatorDef1,
+                                                           operatorDef2,
+                                                           operatorDef3,
+                                                           operatorDef4,
+                                                           operatorDef5 ) );
 
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, asList( 0, 2, 3, 4 ), 2 );
         final Region region = regionManager.createRegion( flow, regionExecutionPlan );
@@ -385,7 +387,12 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
                                                  .build();
 
         final RegionDef regionDef = new RegionDef( REGION_ID, PARTITIONED_STATEFUL, singletonList( "field" ),
-                                                   asList( operatorDef1, operatorDef2, operatorDef3, operatorDef4, operatorDef5 ) );
+                                                   asList( operatorDef0,
+                                                           operatorDef1,
+                                                           operatorDef2,
+                                                           operatorDef3,
+                                                           operatorDef4,
+                                                           operatorDef5 ) );
 
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, asList( 0, 2, 3, 4 ), 2 );
         final Region region = regionManager.createRegion( flow, regionExecutionPlan );
@@ -657,66 +664,62 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
                                                  .connect( "op4", "op5" )
                                                  .build();
 
-        final RegionDef regionDef = new RegionDef( REGION_ID, PARTITIONED_STATEFUL, singletonList( "field" ),
+        final RegionDef regionDef = new RegionDef( REGION_ID, STATELESS, emptyList(),
                                                    asList( operatorDef1, operatorDef2, operatorDef3, operatorDef4, operatorDef5 ) );
 
-        final int replicaCount = 2;
-        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), replicaCount );
+        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 1 );
         final Region region = regionManager.createRegion( flow, regionExecutionPlan );
         initialize( region );
 
         final Region newRegion = pipelineTransformer.splitPipeline( region, asList( 0, 1, 2, 3, 4 ) );
 
-        for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
+        final PipelineReplica[] newPipelineReplicas = newRegion.getReplicaPipelines( 0 );
+        final OperatorReplica pipelineOperator0 = newPipelineReplicas[ 0 ].getOperator( 0 );
+        final OperatorReplica pipelineOperator1 = newPipelineReplicas[ 1 ].getOperator( 0 );
+        final OperatorReplica pipelineOperator2 = newPipelineReplicas[ 2 ].getOperator( 0 );
+        final OperatorReplica pipelineOperator3 = newPipelineReplicas[ 3 ].getOperator( 0 );
+        final OperatorReplica pipelineOperator4 = newPipelineReplicas[ 4 ].getOperator( 0 );
+
+        assertThat( newPipelineReplicas[ 0 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 0 ) ) );
+        assertTrue( newPipelineReplicas[ 0 ].getSelfPipelineTupleQueue() instanceof EmptyOperatorTupleQueue );
+        assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator0.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
+        assertTrue( pipelineOperator0.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
+        assertThat( pipelineOperator0.getOutputSupplier().getClass(),
+                    equalTo( config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass() ) );
+        assertThat( newPipelineReplicas[ 1 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 1 ) ) );
+        assertTrue( newPipelineReplicas[ 1 ].getSelfPipelineTupleQueue() instanceof EmptyOperatorTupleQueue );
+        assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator1.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
+        assertTrue( pipelineOperator1.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
+        assertThat( pipelineOperator1.getOutputSupplier().getClass(),
+                    equalTo( config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass() ) );
+        assertThat( newPipelineReplicas[ 2 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 2 ) ) );
+        assertTrue( newPipelineReplicas[ 2 ].getSelfPipelineTupleQueue() instanceof EmptyOperatorTupleQueue );
+        assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator2.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
+        assertTrue( pipelineOperator2.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
+        assertThat( pipelineOperator2.getOutputSupplier().getClass(),
+                    equalTo( config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass() ) );
+        assertThat( newPipelineReplicas[ 3 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 3 ) ) );
+        assertTrue( newPipelineReplicas[ 3 ].getSelfPipelineTupleQueue() instanceof EmptyOperatorTupleQueue );
+        assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator3.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
+        assertTrue( pipelineOperator3.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
+        assertThat( pipelineOperator3.getOutputSupplier().getClass(),
+                    equalTo( config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass() ) );
+        assertThat( newPipelineReplicas[ 4 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 4 ) ) );
+        assertTrue( newPipelineReplicas[ 4 ].getSelfPipelineTupleQueue() instanceof EmptyOperatorTupleQueue );
+        assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator4.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
+        assertTrue( pipelineOperator4.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
+        assertThat( pipelineOperator4.getOutputSupplier().getClass(),
+                    equalTo( config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass() ) );
+
+        for ( PipelineReplica newPipelineReplica : newPipelineReplicas )
         {
-            final PipelineReplica[] newPipelineReplicas = newRegion.getReplicaPipelines( replicaIndex );
-            final OperatorReplica pipelineOperator0 = newPipelineReplicas[ 0 ].getOperator( 0 );
-            final OperatorReplica pipelineOperator1 = newPipelineReplicas[ 1 ].getOperator( 0 );
-            final OperatorReplica pipelineOperator2 = newPipelineReplicas[ 2 ].getOperator( 0 );
-            final OperatorReplica pipelineOperator3 = newPipelineReplicas[ 3 ].getOperator( 0 );
-            final OperatorReplica pipelineOperator4 = newPipelineReplicas[ 4 ].getOperator( 0 );
-
-            assertThat( newPipelineReplicas[ 0 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 0 ) ) );
-            assertTrue( newPipelineReplicas[ 0 ].getSelfPipelineTupleQueue() instanceof EmptyOperatorTupleQueue );
-            assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator0.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
-            assertTrue( pipelineOperator0.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
-            assertThat( pipelineOperator0.getOutputSupplier().getClass(),
-                        equalTo( config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass() ) );
-            assertThat( newPipelineReplicas[ 1 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 1 ) ) );
-            assertTrue( newPipelineReplicas[ 1 ].getSelfPipelineTupleQueue() instanceof EmptyOperatorTupleQueue );
-            assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator1.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
-            assertTrue( pipelineOperator1.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
-            assertThat( pipelineOperator1.getOutputSupplier().getClass(),
-                        equalTo( config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass() ) );
-            assertThat( newPipelineReplicas[ 2 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 2 ) ) );
-            assertTrue( newPipelineReplicas[ 2 ].getSelfPipelineTupleQueue() instanceof EmptyOperatorTupleQueue );
-            assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator2.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
-            assertTrue( pipelineOperator2.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
-            assertThat( pipelineOperator2.getOutputSupplier().getClass(),
-                        equalTo( config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass() ) );
-            assertThat( newPipelineReplicas[ 3 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 3 ) ) );
-            assertTrue( newPipelineReplicas[ 3 ].getSelfPipelineTupleQueue() instanceof EmptyOperatorTupleQueue );
-            assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator3.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
-            assertTrue( pipelineOperator3.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
-            assertThat( pipelineOperator3.getOutputSupplier().getClass(),
-                        equalTo( config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass() ) );
-            assertThat( newPipelineReplicas[ 4 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 4 ) ) );
-            assertTrue( newPipelineReplicas[ 4 ].getSelfPipelineTupleQueue() instanceof EmptyOperatorTupleQueue );
-            assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator4.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
-            assertTrue( pipelineOperator4.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
-            assertThat( pipelineOperator4.getOutputSupplier().getClass(),
-                        equalTo( config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass() ) );
-
-            for ( PipelineReplica newPipelineReplica : newPipelineReplicas )
-            {
-                final PipelineReplicaMeter meter = newPipelineReplica.getMeter();
-                final OperatorReplica operator = newPipelineReplica.getOperator( 0 );
-                assertThat( meter.getHeadOperatorId(), equalTo( operator.getOperatorDef().getId() ) );
-                assertThat( meter.getConsumedPortCount(), equalTo( operator.getOperatorDef().getInputPortCount() ) );
-                assertThat( meter.getTailOperatorId(), equalTo( operator.getOperatorDef().getId() ) );
-                assertThat( meter.getProducedPortCount(), equalTo( operator.getOperatorDef().getOutputPortCount() ) );
-                assertPipelineReplicaMeter( newPipelineReplica );
-            }
+            final PipelineReplicaMeter meter = newPipelineReplica.getMeter();
+            final OperatorReplica operator = newPipelineReplica.getOperator( 0 );
+            assertThat( meter.getHeadOperatorId(), equalTo( operator.getOperatorDef().getId() ) );
+            assertThat( meter.getConsumedPortCount(), equalTo( operator.getOperatorDef().getInputPortCount() ) );
+            assertThat( meter.getTailOperatorId(), equalTo( operator.getOperatorDef().getId() ) );
+            assertThat( meter.getProducedPortCount(), equalTo( operator.getOperatorDef().getOutputPortCount() ) );
+            assertPipelineReplicaMeter( newPipelineReplica );
         }
     }
 
@@ -746,7 +749,12 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
                                                  .build();
 
         final RegionDef regionDef = new RegionDef( REGION_ID, PARTITIONED_STATEFUL, singletonList( "field" ),
-                                                   asList( operatorDef1, operatorDef2, operatorDef3, operatorDef4, operatorDef5 ) );
+                                                   asList( operatorDef0,
+                                                           operatorDef1,
+                                                           operatorDef2,
+                                                           operatorDef3,
+                                                           operatorDef4,
+                                                           operatorDef5 ) );
 
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, asList( 0, 1, 2 ), 2 );
         final Region region = regionManager.createRegion( flow, regionExecutionPlan );
@@ -784,7 +792,12 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
                                                  .build();
 
         final RegionDef regionDef = new RegionDef( REGION_ID, PARTITIONED_STATEFUL, singletonList( "field" ),
-                                                   asList( operatorDef1, operatorDef2, operatorDef3, operatorDef4, operatorDef5 ) );
+                                                   asList( operatorDef0,
+                                                           operatorDef1,
+                                                           operatorDef2,
+                                                           operatorDef3,
+                                                           operatorDef4,
+                                                           operatorDef5 ) );
 
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, asList( 0, 3, 4 ), 2 );
         final Region region = regionManager.createRegion( flow, regionExecutionPlan );

@@ -2,7 +2,6 @@ package cs.bilkent.joker.flow;
 
 
 import java.util.AbstractMap.SimpleEntry;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -10,7 +9,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
@@ -19,7 +17,9 @@ import cs.bilkent.joker.operator.OperatorDef;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.stream.Collectors.toSet;
 
-
+/**
+ * Represents a data flow graph which contains user-defined operators and connections among them.
+ */
 public final class FlowDef
 {
     private final Map<String, OperatorDef> operators;
@@ -33,34 +33,57 @@ public final class FlowDef
         this.connections = unmodifiableMap( connections );
     }
 
+    /**
+     * Returns the operator definition given with the operator id
+     *
+     * @param operatorId
+     *         operator id to get the operator definition object
+     *
+     * @return the operator definition given with the operator id
+     */
     public OperatorDef getOperator ( final String operatorId )
     {
         return operators.get( operatorId );
     }
 
-    public Collection<OperatorDef> getOperators ()
+    /**
+     * Returns all operator definitions added to the current {@link FlowDef} object
+     *
+     * @return all operator definitions added to the current {@link FlowDef} object
+     */
+    public Set<OperatorDef> getOperators ()
     {
         return new HashSet<>( operators.values() );
     }
 
+    /**
+     * Returns all operator definitions added to the current {@link FlowDef} object
+     *
+     * @return all operator definitions added to the current {@link FlowDef} object
+     */
     public Map<String, OperatorDef> getOperatorsMap ()
     {
         return new HashMap<>( operators );
     }
 
-    public Collection<OperatorDef> getOperatorsWithNoInputPorts ()
+    /**
+     * Returns the set of operators with no active inbound connection
+     *
+     * @return the set of operators with no active inbound connection
+     */
+    public Set<OperatorDef> getSourceOperators ()
     {
-        final Set<OperatorDef> result = new HashSet<>( operators.values() );
-        for ( Entry<Port, Set<Port>> e : connections.entrySet() )
-        {
-            for ( Port targetPort : e.getValue() )
-            {
-                final OperatorDef operatorToExclude = operators.get( targetPort.operatorId );
-                result.remove( operatorToExclude );
-            }
-        }
+        final Set<String> nonSourceOperators = connections.values()
+                                                          .stream()
+                                                          .flatMap( ports -> ports.stream().map( Port::getOperatorId ) )
+                                                          .collect( toSet() );
 
-        return result;
+        final Set<OperatorDef> sourceOperators = operators.values()
+                                                          .stream()
+                                                          .filter( o -> !nonSourceOperators.contains( o.getId() ) )
+                                                          .collect( toSet() );
+
+        return sourceOperators;
     }
 
     private void validateFlowDef ( final Map<String, OperatorDef> operators, final Map<Port, Set<Port>> connections )
@@ -88,13 +111,13 @@ public final class FlowDef
                 {
                     for ( Port p : e.getValue() )
                     {
-                        if ( e.getKey().operatorId.equals( current ) )
+                        if ( e.getKey().getOperatorId().equals( current ) )
                         {
-                            toVisit.add( p.operatorId );
+                            toVisit.add( p.getOperatorId() );
                         }
-                        else if ( p.operatorId.equals( current ) )
+                        else if ( p.getOperatorId().equals( current ) )
                         {
-                            toVisit.add( e.getKey().operatorId );
+                            toVisit.add( e.getKey().getOperatorId() );
                         }
                     }
                 }
@@ -104,30 +127,44 @@ public final class FlowDef
         checkState( operators.size() == visited.size(), "there are multiple DAGs in the flow!" );
     }
 
+    /**
+     * Returns all connections added to the current {@link FlowDef} object. Each connection is represented with a source and destination
+     * port. Each port contains an operator id and a port index.
+     *
+     * @return all connections added to the current {@link FlowDef} object.
+     */
     public Set<Entry<Port, Port>> getConnections ()
     {
-        final Set<Entry<Port, Port>> c = new HashSet<>();
-        for ( Entry<Port, Set<Port>> e : connections.entrySet() )
+        final Function<Entry<Port, Set<Port>>, Stream<Entry<Port, Port>>> flatMapper = e ->
         {
-            for ( Port p : e.getValue() )
-            {
-                c.add( new SimpleEntry<>( e.getKey(), p ) );
-            }
-        }
+            final Function<Port, Entry<Port, Port>> mapper = k -> new SimpleEntry<>( e.getKey(), k );
+            return e.getValue().stream().map( mapper );
+        };
 
-        return c;
+        return connections.entrySet().stream().flatMap( flatMapper ).collect( toSet() );
     }
 
-    public Map<Port, Set<Port>> getUpstreamConnections ( final String operatorId )
+    /**
+     * Returns all inbound connections of the given operator. Keys are input ports of the given operator, which are destinations of the
+     * connections, and values are sources of the inbound connections.
+     *
+     * @param operatorId
+     *         operator id to get the inbound connections
+     *
+     * @return all inbound connections for the given operator. Keys are input ports of the given operator, which are destinations of the
+     * connections, and values are sources of the inbound connections.
+     */
+    public Map<Port, Set<Port>> getInboundConnections ( final String operatorId )
     {
         final Map<Port, Set<Port>> upstream = new HashMap<>();
         for ( Entry<Port, Set<Port>> e : connections.entrySet() )
         {
-            for ( Port p : e.getValue() )
+            final Port source = e.getKey();
+            for ( Port destination : e.getValue() )
             {
-                if ( p.operatorId.equals( operatorId ) )
+                if ( destination.getOperatorId().equals( operatorId ) )
                 {
-                    upstream.computeIfAbsent( p, port -> new HashSet<>() ).add( e.getKey() );
+                    upstream.computeIfAbsent( destination, port -> new HashSet<>() ).add( source );
                 }
             }
         }
@@ -135,19 +172,37 @@ public final class FlowDef
         return upstream;
     }
 
-    public Set<Port> getUpstreamConnections ( final Port port )
+    /**
+     * Returns sources of all inbound connections for the given operator input port.
+     *
+     * @param port
+     *         operator port to get inbound connections
+     *
+     * @return sources of all inbound connections for the given operator input port.
+     */
+    public Set<Port> getInboundConnections ( final Port port )
     {
-        return getUpstreamConnectionsStream( port ).collect( toSet() );
+        return getConnections().stream().filter( entry -> entry.getValue().equals( port ) ).map( Entry::getKey ).collect( toSet() );
     }
 
-    public Map<Port, Set<Port>> getDownstreamConnections ( final String operatorId )
+    /**
+     * Returns all outbound connections of the given operator. Keys are output ports of the given operator, which are sources of the
+     * connections, and values are destinations of the outbound connections.
+     *
+     * @param operatorId
+     *         operator id to get the outbound connections
+     *
+     * @return all outbound connections of the given operator. Keys are output ports of the given operator, which are sources of the
+     * connections, and values are destinations of the outbound connections.
+     */
+    public Map<Port, Set<Port>> getOutboundConnections ( final String operatorId )
     {
         final Map<Port, Set<Port>> downstream = new HashMap<>();
 
         for ( Entry<Port, Set<Port>> e : connections.entrySet() )
         {
             final Port upstream = e.getKey();
-            if ( upstream.operatorId.equals( operatorId ) )
+            if ( upstream.getOperatorId().equals( operatorId ) )
             {
                 downstream.put( upstream, new HashSet<>( e.getValue() ) );
             }
@@ -156,25 +211,17 @@ public final class FlowDef
         return downstream;
     }
 
-    public Set<Port> getDownstreamConnections ( final Port port )
+    /**
+     * Returns destinations of all outbound connections for the given operator output port.
+     *
+     * @param port
+     *         operator port to get outbound connections
+     *
+     * @return destinations of all outbound connections for the given operator output port.
+     */
+    public Set<Port> getOutboundConnections ( final Port port )
     {
-        return getDownstreamConnectionsStream( port ).collect( toSet() );
-    }
-
-    private Stream<Port> getUpstreamConnectionsStream ( final Port port )
-    {
-        return getConnectionsStream( entry -> entry.getValue().equals( port ), Entry::getKey );
-    }
-
-    private Stream<Port> getDownstreamConnectionsStream ( final Port port )
-    {
-        return connections.get( port ).stream();
-    }
-
-    private Stream<Port> getConnectionsStream ( final Predicate<Entry<Port, Port>> predicate,
-                                                final Function<Entry<Port, Port>, Port> mapper )
-    {
-        return getConnections().stream().filter( predicate ).map( mapper );
+        return connections.get( port ).stream().collect( toSet() );
     }
 
 }

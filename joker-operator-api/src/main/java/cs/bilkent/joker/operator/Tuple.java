@@ -18,7 +18,7 @@ import static cs.bilkent.joker.operator.schema.runtime.TupleSchema.FIELD_NOT_FOU
 
 /**
  * {@code Tuple} is the main data structure to manipulate computation data. A tuple is a mapping of keys to values
- * where keys are strings and values are any types. Tuples are semi-schemaful, which means that they can specify the fields that are
+ * where keys are strings and values are of any type. Tuples are semi-schemaful, which means that they can specify the fields that are
  * guaranteed to exist, using {@link TupleSchema} objects, and they can also contain additional arbitrary fields.
  * <p/>
  * If a {@code Tuple} object is created to be sent to an output port of an operator, corresponding {@link TupleSchema} object,

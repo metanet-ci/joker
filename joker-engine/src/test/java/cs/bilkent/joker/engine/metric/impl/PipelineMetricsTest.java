@@ -8,10 +8,10 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
+import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.metric.PipelineMeter;
 import static cs.bilkent.joker.engine.metric.PipelineMeter.PIPELINE_EXECUTION_INDEX;
 import cs.bilkent.joker.engine.metric.impl.PipelineMetrics.PipelineMetricsSnapshot;
-import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.lang.System.arraycopy;
 import static org.junit.Assert.assertEquals;

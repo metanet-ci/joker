@@ -18,6 +18,8 @@ import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.config.ThreadingPreference;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.SINGLE_THREADED;
+import cs.bilkent.joker.engine.flow.PipelineId;
+import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.kvstore.OperatorKVStore;
 import cs.bilkent.joker.engine.kvstore.OperatorKVStoreManager;
@@ -31,13 +33,11 @@ import cs.bilkent.joker.engine.partition.PartitionKeyExtractorFactory;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import static cs.bilkent.joker.engine.partition.PartitionUtil.getPartitionId;
 import cs.bilkent.joker.engine.pipeline.OperatorReplica;
-import cs.bilkent.joker.engine.pipeline.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
 import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.Region;
-import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.region.RegionManager;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueueManager;
@@ -586,7 +586,7 @@ public class RegionManagerImpl implements RegionManager
                     final boolean isFirstOperator = ( operatorIndex == 0 ), isLastOperator = ( operatorIndex == ( operatorCount - 1 ) );
 
                     final OperatorTupleQueue operatorTupleQueue;
-                    if ( flow.getUpstreamConnections( operatorId ).isEmpty() )
+                    if ( flow.getInboundConnections( operatorId ).isEmpty() )
                     {
                         LOGGER.info( "Creating {} for regionId={} replicaIndex={} operatorId={}",
                                      EmptyOperatorTupleQueue.class.getSimpleName(),
@@ -831,7 +831,7 @@ public class RegionManagerImpl implements RegionManager
         final String operatorId = operatorDef.getId();
         final OperatorTupleQueue[] operatorTupleQueues;
 
-        if ( flow.getUpstreamConnections( operatorId ).isEmpty() )
+        if ( flow.getInboundConnections( operatorId ).isEmpty() )
         {
             LOGGER.info( "Creating {} for regionId={} operatorId={}", EmptyOperatorTupleQueue.class.getSimpleName(), regionId, operatorId );
             operatorTupleQueues = new OperatorTupleQueue[ replicaCount ];
@@ -992,7 +992,7 @@ public class RegionManagerImpl implements RegionManager
                                                           final OperatorReplica[] pipelineOperatorReplicas )
     {
         final OperatorDef firstOperatorDef = pipelineOperatorReplicas[ 0 ].getOperatorDef();
-        if ( flow.getUpstreamConnections( firstOperatorDef.getId() ).isEmpty() )
+        if ( flow.getInboundConnections( firstOperatorDef.getId() ).isEmpty() )
         {
             LOGGER.info( "Creating {} for pipeline tuple queue of regionId={} as pipeline has no input port",
                          EmptyOperatorTupleQueue.class.getSimpleName(),

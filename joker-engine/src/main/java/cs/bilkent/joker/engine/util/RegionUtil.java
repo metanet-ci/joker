@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import cs.bilkent.joker.engine.region.RegionDef;
+import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.flow.Port;
 import cs.bilkent.joker.operator.OperatorDef;
 import static java.util.Comparator.comparing;
@@ -37,16 +37,16 @@ public class RegionUtil
             final String lastOperatorId = getLastOperator( region ).getId();
 
             final List<Entry<Port, Port>> downstreamConnections = connectionsCopy.stream()
-                                                                                 .filter( e -> e.getKey().operatorId.equals(
+                                                                                 .filter( e -> e.getKey().getOperatorId().equals(
                                                                                          lastOperatorId ) )
-                                                                                 .sorted( comparing( e -> e.getValue().operatorId ) )
+                                                                                 .sorted( comparing( e -> e.getValue().getOperatorId() ) )
                                                                                  .collect( toList() );
 
             for ( Entry<Port, Port> e : downstreamConnections )
             {
                 connectionsCopy.remove( e );
 
-                final String downstreamOperatorId = e.getValue().operatorId;
+                final String downstreamOperatorId = e.getValue().getOperatorId();
                 if ( !checkIfIncomingConnectionExists( connectionsCopy, downstreamOperatorId ) )
                 {
                     curr.add( getRegionByFirstOperator( regions, downstreamOperatorId ) );
@@ -63,7 +63,7 @@ public class RegionUtil
         final List<OperatorDef> result = new ArrayList<>( operators.values() );
         for ( Entry<Port, Port> e : connections )
         {
-            final OperatorDef operatorToExclude = operators.get( e.getValue().operatorId );
+            final OperatorDef operatorToExclude = operators.get( e.getValue().getOperatorId() );
             result.remove( operatorToExclude );
         }
 
@@ -76,7 +76,7 @@ public class RegionUtil
     {
         for ( Entry<Port, Port> e : connections )
         {
-            if ( e.getValue().operatorId.equals( operatorId ) )
+            if ( e.getValue().getOperatorId().equals( operatorId ) )
             {
                 return true;
             }

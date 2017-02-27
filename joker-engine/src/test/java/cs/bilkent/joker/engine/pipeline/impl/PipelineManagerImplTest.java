@@ -11,6 +11,7 @@ import com.google.inject.Injector;
 
 import cs.bilkent.joker.JokerModule;
 import cs.bilkent.joker.engine.config.JokerConfig;
+import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIAL;
@@ -24,7 +25,6 @@ import cs.bilkent.joker.engine.pipeline.impl.PipelineManagerImpl.NopDownstreamTu
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.CompositeDownstreamTupleSender;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.DownstreamTupleSender1;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDownstreamTupleSender1;
-import cs.bilkent.joker.engine.region.RegionDef;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.flow.FlowDef;

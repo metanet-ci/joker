@@ -17,6 +17,7 @@ import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
@@ -294,17 +295,30 @@ public class FlowDefBuilderTest extends AbstractJokerTest
         assertNotNull( flowDef.getOperator( "op3" ) );
         assertNotNull( flowDef.getOperator( "op4" ) );
 
-        final Collection<Port> op1Connections = flowDef.getDownstreamConnections( new Port( "op1", 0 ) );
-        assertThat( op1Connections, hasSize( 1 ) );
-        assertThat( op1Connections.iterator().next(), equalTo( new Port( "op2", 0 ) ) );
+        final Collection<Port> op1OutboundConnections = flowDef.getOutboundConnections( new Port( "op1", 0 ) );
+        assertThat( op1OutboundConnections, hasSize( 1 ) );
+        assertThat( op1OutboundConnections.iterator().next(), equalTo( new Port( "op2", 0 ) ) );
+        final Collection<Port> op1InboundConnections = flowDef.getInboundConnections( new Port( "op1", 0 ) );
+        assertThat( op1InboundConnections, hasSize( 0 ) );
 
-        final Collection<Port> op2Connections = flowDef.getDownstreamConnections( new Port( "op2", 0 ) );
-        assertThat( op2Connections, hasSize( 1 ) );
-        assertThat( op2Connections.iterator().next(), equalTo( new Port( "op4", 0 ) ) );
+        final Collection<Port> op2OutboundConnections = flowDef.getOutboundConnections( new Port( "op2", 0 ) );
+        assertThat( op2OutboundConnections, hasSize( 1 ) );
+        assertThat( op2OutboundConnections.iterator().next(), equalTo( new Port( "op4", 0 ) ) );
+        final Collection<Port> op2InboundConnections = flowDef.getInboundConnections( new Port( "op2", 0 ) );
+        assertThat( op2InboundConnections, hasItem( new Port( "op1", 0 ) ) );
 
-        final Collection<Port> op3Connections = flowDef.getDownstreamConnections( new Port( "op3", 0 ) );
-        assertThat( op3Connections, hasSize( 1 ) );
-        assertThat( op3Connections.iterator().next(), equalTo( new Port( "op4", 1 ) ) );
+        final Collection<Port> op3OutboundConnections = flowDef.getOutboundConnections( new Port( "op3", 0 ) );
+        assertThat( op3OutboundConnections, hasSize( 1 ) );
+        assertThat( op3OutboundConnections.iterator().next(), equalTo( new Port( "op4", 1 ) ) );
+        final Collection<Port> op3InboundConnections = flowDef.getInboundConnections( new Port( "op3", 0 ) );
+        assertThat( op3InboundConnections, hasSize( 0 ) );
+
+        final Collection<Port> op4InboundConnections0 = flowDef.getInboundConnections( new Port( "op4", 0 ) );
+        assertThat( op4InboundConnections0, hasSize( 1 ) );
+        assertThat( op4InboundConnections0, hasItem( new Port( "op2", 0 ) ) );
+        final Collection<Port> op4InboundConnections1 = flowDef.getInboundConnections( new Port( "op4", 1 ) );
+        assertThat( op4InboundConnections1, hasSize( 1 ) );
+        assertThat( op4InboundConnections1, hasItem( new Port( "op3", 0 ) ) );
     }
 
     @Test( expected = IllegalStateException.class )

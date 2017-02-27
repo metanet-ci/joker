@@ -12,7 +12,7 @@ import static java.util.Collections.unmodifiableList;
 /**
  * Runtime representation of {@link OperatorSchema}
  */
-public final class OperatorRuntimeSchema
+public class OperatorRuntimeSchema
 {
 
     private final List<PortRuntimeSchema> inputSchemas;

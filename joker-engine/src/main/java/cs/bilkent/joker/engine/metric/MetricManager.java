@@ -2,7 +2,7 @@ package cs.bilkent.joker.engine.metric;
 
 import java.util.List;
 
-import cs.bilkent.joker.engine.pipeline.PipelineId;
+import cs.bilkent.joker.engine.flow.PipelineId;
 
 public interface MetricManager
 {
