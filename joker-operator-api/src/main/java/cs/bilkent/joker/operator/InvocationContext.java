@@ -15,17 +15,18 @@ public interface InvocationContext
 {
 
     /**
-     * Returns the tuples available for processing. Once the invocation of {@link Operator#invoke(InvocationContext)} method is completed,
+     * Returns the READ-ONLY {@link Tuples} available for processing. Once the invocation of {@link Operator#invoke(InvocationContext)}
+     * method is completed,
      * these tuples will be considered as processed.
      *
-     * @return the tuples available for being processed by the operator
+     * @return the READ-ONLY {@link Tuples} object available for processing
      */
     Tuples getInput ();
 
     /**
-     * Returns the {@link Tuples} object which will be used for collecting the tuples produced by the invocation
+     * Returns the WRITE-ONLY {@link Tuples} object which will be used for collecting the tuples produced by the invocation
      *
-     * @return the {@link Tuples} object which will be used for collecting the tuples produced by the invocation
+     * @return the WRITE-ONLY {@link Tuples} object which will be used for collecting the tuples produced by the invocation
      */
     Tuples getOutput ();
 
