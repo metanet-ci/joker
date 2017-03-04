@@ -69,8 +69,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
                                                operatorDef,
                                                mock( OperatorTupleQueue.class ),
                                                mock( OperatorKVStore.class ),
-                                               drainerPool,
-                                               mock( Supplier.class ), mock( PipelineReplicaMeter.class ),
+                                               drainerPool, mock( Supplier.class ), mock( PipelineReplicaMeter.class ),
                                                new InvocationContextImpl() );
 
         when( operatorDef.getId() ).thenReturn( "op1" );

@@ -101,7 +101,9 @@ public class Joker
      *
      * @return future to be notified once the split is completed, along with the new {@link FlowExecutionPlan} after split
      */
-    public Future<FlowExecutionPlan> splitPipeline ( final int flowVersion, final PipelineId pipelineId, final List<Integer> pipelineOperatorIndices )
+    public Future<FlowExecutionPlan> splitPipeline ( final int flowVersion,
+                                                     final PipelineId pipelineId,
+                                                     final List<Integer> pipelineOperatorIndices )
     {
         return engine.splitPipeline( flowVersion, pipelineId, pipelineOperatorIndices );
     }

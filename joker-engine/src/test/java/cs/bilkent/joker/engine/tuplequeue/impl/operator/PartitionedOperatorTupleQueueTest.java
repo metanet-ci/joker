@@ -45,10 +45,12 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
         operatorTupleQueue = new PartitionedOperatorTupleQueue( "op1",
                                                                 INPUT_PORT_COUNT,
                                                                 PARTITION_COUNT,
-                                                                0, TUPLE_QUEUE_CAPACITY,
+                                                                0,
+                                                                TUPLE_QUEUE_CAPACITY,
                                                                 new PartitionKeyExtractor1( singletonList( PARTITION_KEY_FIELD ) ),
                                                                 new TupleQueueContainer[] { container },
-                                                                new int[] { 0 }, MAX_DRAINABLE_KEY_COUNT );
+                                                                new int[] { 0 },
+                                                                MAX_DRAINABLE_KEY_COUNT );
     }
 
     @Test

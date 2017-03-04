@@ -37,8 +37,9 @@ public class RegionUtil
             final String lastOperatorId = getLastOperator( region ).getId();
 
             final List<Entry<Port, Port>> downstreamConnections = connectionsCopy.stream()
-                                                                                 .filter( e -> e.getKey().getOperatorId().equals(
-                                                                                         lastOperatorId ) )
+                                                                                 .filter( e -> e.getKey()
+                                                                                                .getOperatorId()
+                                                                                                .equals( lastOperatorId ) )
                                                                                  .sorted( comparing( e -> e.getValue().getOperatorId() ) )
                                                                                  .collect( toList() );
 

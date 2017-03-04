@@ -128,8 +128,10 @@ public class SupervisorImpl implements Supervisor
         final CompletableFuture<FlowExecutionPlan> future = new CompletableFuture<>();
         synchronized ( monitor )
         {
-            checkState( isDeploymentChangeable(), "cannot merge pipelines %s with flow version %s since %s and shutdown future is %s",
-                        pipelineIdsToMerge, flowVersion,
+            checkState( isDeploymentChangeable(),
+                        "cannot merge pipelines %s with flow version %s since %s and shutdown future is %s",
+                        pipelineIdsToMerge,
+                        flowVersion,
                         pipelineManager.getFlowStatus(),
                         shutdownFuture );
 

@@ -119,11 +119,13 @@ public final class OperatorDefBuilder
 
     private static void failIfInvalidPortCount ( final OperatorType type, final int portCount, final String portType )
     {
-        checkArgument( portCount >= DYNAMIC_PORT_COUNT, "invalid " + portType + " port count: " + portCount + " for " + type + " operator" );
+        checkArgument( portCount >= DYNAMIC_PORT_COUNT,
+                       "invalid " + portType + " port count: " + portCount + " for " + type + " operator" );
     }
 
-    private static void failIfStatelessOperatorWithMultipleInputPorts ( final OperatorType type, final int portCount, final String
-                                                                                                                              portType )
+    private static void failIfStatelessOperatorWithMultipleInputPorts ( final OperatorType type,
+                                                                        final int portCount,
+                                                                        final String portType )
     {
         checkArgument( type != STATELESS || portCount <= 1, STATELESS + " operators can have 1 " + portType + " ports!" );
     }
@@ -157,7 +159,10 @@ public final class OperatorDefBuilder
 
     private List<String> partitionFieldNames;
 
-    private OperatorDefBuilder ( final String id, final Class<? extends Operator> clazz, final OperatorSpec spec, final OperatorSchema schema )
+    private OperatorDefBuilder ( final String id,
+                                 final Class<? extends Operator> clazz,
+                                 final OperatorSpec spec,
+                                 final OperatorSchema schema )
     {
         this.id = id;
         this.clazz = clazz;
@@ -288,7 +293,9 @@ public final class OperatorDefBuilder
             }
             for ( int portIndex = 0; portIndex < extendingSchema.getOutputPortCount(); portIndex++ )
             {
-                failIfExtendingSchemaContainsDuplicateField( portIndex, extendingSchema.getOutputSchema( portIndex ), this.schema.outputs() );
+                failIfExtendingSchemaContainsDuplicateField( portIndex,
+                                                             extendingSchema.getOutputSchema( portIndex ),
+                                                             this.schema.outputs() );
             }
         }
         this.extendingSchema = extendingSchema;
@@ -356,7 +363,9 @@ public final class OperatorDefBuilder
         checkArgument( schemaSize <= portCount, "number of port schemas in extending schema exceeds port count of operator" );
     }
 
-    private void failIfExtendingSchemaContainsDuplicateField ( final int portIndex, final PortRuntimeSchema runtimeSchema, final PortSchema[] portSchemas )
+    private void failIfExtendingSchemaContainsDuplicateField ( final int portIndex,
+                                                               final PortRuntimeSchema runtimeSchema,
+                                                               final PortSchema[] portSchemas )
     {
         if ( portSchemas != null )
         {
@@ -463,7 +472,8 @@ public final class OperatorDefBuilder
         return schemaBuilder.build();
     }
 
-    private void addToSchema ( final List<PortRuntimeSchema> portSchemas, final Function<Integer, PortRuntimeSchemaBuilder> portSchemaBuilderProvider )
+    private void addToSchema ( final List<PortRuntimeSchema> portSchemas,
+                               final Function<Integer, PortRuntimeSchemaBuilder> portSchemaBuilderProvider )
     {
         for ( int portIndex = 0; portIndex < portSchemas.size(); portIndex++ )
         {

@@ -42,7 +42,8 @@ public final class FlowDefBuilder
     {
         failIfAlreadyBuilt();
         checkArgument( !operators.containsKey( operatorDef.getId() ),
-                       "only 1 operator can be added with the same operator id: %s", operatorDef.getId() );
+                       "only 1 operator can be added with the same operator id: %s",
+                       operatorDef.getId() );
         operators.put( operatorDef.getId(), operatorDef );
 
         return this;

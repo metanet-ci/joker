@@ -201,7 +201,9 @@ public class RegionExecutionPlan
     {
         final List<OperatorDef> operators = regionDef.getOperators();
         final int startIndex = pipelineStartIndices.get( pipelineIndex );
-        final int endIndex = pipelineIndex + 1 < pipelineStartIndices.size() ? pipelineStartIndices.get( pipelineIndex + 1 ) : operators.size();
+        final int endIndex = ( pipelineIndex + 1 < pipelineStartIndices.size() )
+                             ? pipelineStartIndices.get( pipelineIndex + 1 )
+                             : operators.size();
         final List<OperatorDef> operatorDefs = operators.subList( startIndex, endIndex );
         final OperatorDef[] operatorDefsArr = new OperatorDef[ operatorDefs.size() ];
         operatorDefs.toArray( operatorDefsArr );

@@ -101,7 +101,6 @@ public interface Fields<K>
      *         type of the associated value
      *
      * @return the associated value
-     *
      */
     default <T> T getOrFail ( K key )
     {

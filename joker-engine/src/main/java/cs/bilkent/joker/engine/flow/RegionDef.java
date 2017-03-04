@@ -53,7 +53,10 @@ public class RegionDef
 
     private final List<OperatorDef> operators;
 
-    public RegionDef ( final int regionId, final OperatorType regionType, final List<String> partitionFieldNames, final List<OperatorDef> operators )
+    public RegionDef ( final int regionId,
+                       final OperatorType regionType,
+                       final List<String> partitionFieldNames,
+                       final List<OperatorDef> operators )
     {
         checkArgument( regionType != null, "regionId=%s region type cannot be null", regionId );
         checkArgument( partitionFieldNames != null,

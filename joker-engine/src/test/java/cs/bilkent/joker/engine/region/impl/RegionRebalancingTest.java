@@ -132,11 +132,14 @@ public class RegionRebalancingTest extends AbstractJokerTest
             for ( int replicaIndex = initialReplicaCount; replicaIndex < rebalancedReplicaCount; replicaIndex++ )
             {
                 assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(),
-                                                                                    replicaIndex, flowExample6.operatorDef1.getId() ) );
+                                                                                    replicaIndex,
+                                                                                    flowExample6.operatorDef1.getId() ) );
                 assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(),
-                                                                                    replicaIndex, flowExample6.operatorDef2.getId() ) );
+                                                                                    replicaIndex,
+                                                                                    flowExample6.operatorDef2.getId() ) );
                 assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(),
-                                                                                    replicaIndex, flowExample6.operatorDef3.getId() ) );
+                                                                                    replicaIndex,
+                                                                                    flowExample6.operatorDef3.getId() ) );
             }
         }
     }

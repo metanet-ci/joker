@@ -72,7 +72,9 @@ public class PipelineTransformerImpl implements PipelineTransformer
         final RegionExecutionPlan regionExecutionPlan = region.getExecutionPlan();
         final RegionDef regionDef = regionExecutionPlan.getRegionDef();
         LOGGER.info( "Merging pipelines: {} of regionId={} with pipeline start indices: {}",
-                     startIndicesToMerge, regionId, regionExecutionPlan.getPipelineStartIndices() );
+                     startIndicesToMerge,
+                     regionId,
+                     regionExecutionPlan.getPipelineStartIndices() );
         if ( !checkPipelineStartIndicesToMerge( regionExecutionPlan, startIndicesToMerge ) )
         {
             throw new IllegalArgumentException( "invalid pipeline start indices to merge: " + startIndicesToMerge
@@ -371,7 +373,9 @@ public class PipelineTransformerImpl implements PipelineTransformer
         final RegionExecutionPlan regionExecutionPlan = region.getExecutionPlan();
         final RegionDef regionDef = regionExecutionPlan.getRegionDef();
         LOGGER.info( "Splitting pipelines: {} of regionId={} with pipeline start indices: {}",
-                     startIndicesToSplit, regionId, regionExecutionPlan.getPipelineStartIndices() );
+                     startIndicesToSplit,
+                     regionId,
+                     regionExecutionPlan.getPipelineStartIndices() );
 
         if ( !checkPipelineStartIndicesToSplit( regionExecutionPlan, startIndicesToSplit ) )
         {
@@ -443,8 +447,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                     if ( firstOperatorDef.getOperatorType() == PARTITIONED_STATEFUL )
                     {
                         LOGGER.info( "Creating {} for pipeline tuple queue of regionId={} replicaIndex={} for pipeline operator={}",
-                                     DefaultOperatorTupleQueue.class.getSimpleName(),
-                                     regionId, replicaIndex, firstOperatorDef.getId() );
+                                     DefaultOperatorTupleQueue.class.getSimpleName(), regionId, replicaIndex, firstOperatorDef.getId() );
                         pipelineTupleQueue = operatorTupleQueueManager.createDefaultOperatorTupleQueue( regionId,
                                                                                                         replicaIndex,
                                                                                                         firstOperatorDef,
@@ -454,7 +457,9 @@ public class PipelineTransformerImpl implements PipelineTransformer
                     {
                         LOGGER.info( "Creating {} for pipeline tuple queue of regionId={} replicaIndex={} as first operator is {}",
                                      EmptyOperatorTupleQueue.class.getSimpleName(),
-                                     regionId, replicaIndex, firstOperatorDef.getOperatorType() );
+                                     regionId,
+                                     replicaIndex,
+                                     firstOperatorDef.getOperatorType() );
                         pipelineTupleQueue = new EmptyOperatorTupleQueue( firstOperatorDef.getId(), firstOperatorDef.getInputPortCount() );
                     }
 

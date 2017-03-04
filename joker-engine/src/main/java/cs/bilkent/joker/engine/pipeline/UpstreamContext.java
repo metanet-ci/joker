@@ -95,13 +95,14 @@ public class UpstreamContext
         {
             checkState( operatorDef.getInputPortCount() == 0,
                         "%s cannot be used by operator: %s with input port count: %s",
-                        ScheduleWhenAvailable.class.getSimpleName(), operatorDef.getId(), operatorDef.getInputPortCount() );
+                        ScheduleWhenAvailable.class.getSimpleName(),
+                        operatorDef.getId(),
+                        operatorDef.getInputPortCount() );
             checkState( version == 0, "upstream context is closed for 0 input port operator: %s", operatorDef.getId() );
         }
         else if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
         {
-            checkState( operatorDef.getInputPortCount() > 0,
-                        "0 input port operator: %s cannot use %s", operatorDef.getId(),
+            checkState( operatorDef.getInputPortCount() > 0, "0 input port operator: %s cannot use %s", operatorDef.getId(),
                         ScheduleWhenTuplesAvailable.class.getSimpleName() );
             final ScheduleWhenTuplesAvailable s = (ScheduleWhenTuplesAvailable) schedulingStrategy;
             if ( s.getTupleAvailabilityByPort() == ANY_PORT )

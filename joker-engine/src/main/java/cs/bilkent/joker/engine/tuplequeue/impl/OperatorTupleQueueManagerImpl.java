@@ -81,8 +81,7 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
                        + " %s ", regionId, operatorDef.getId(), operatorDef.getOperatorType(),
                        threadingPreference );
         checkArgument( replicaIndex >= 0,
-                       "invalid replica index! regionId %s, replicaIndex %s operatorId %s",
-                       regionId, replicaIndex, operatorDef.getId() );
+                       "invalid replica index! regionId %s, replicaIndex %s operatorId %s", regionId, replicaIndex, operatorDef.getId() );
 
         final String operatorId = operatorDef.getId();
         final Triple<Integer, Integer, String> key = Triple.of( regionId, replicaIndex, operatorId );

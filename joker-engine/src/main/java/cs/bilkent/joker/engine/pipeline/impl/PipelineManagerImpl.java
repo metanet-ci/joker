@@ -343,8 +343,7 @@ public class PipelineManagerImpl implements PipelineManager
     private Collection<Pipeline> getDownstreamPipelines ( final Pipeline upstreamPipeline )
     {
         return flow.getOutboundConnections( upstreamPipeline.getLastOperatorDef().getId() )
-                   .values()
-                   .stream().flatMap( ports -> ports.stream().map( Port::getOperatorId ) )
+                   .values().stream().flatMap( ports -> ports.stream().map( Port::getOperatorId ) )
                    .distinct()
                    .map( flow::getOperator )
                    .map( this::getPipelineByFirstOperatorOrFail )
@@ -944,8 +943,7 @@ public class PipelineManagerImpl implements PipelineManager
             for ( Entry<Port, Set<Port>> e : connections.entrySet() )
             {
                 final Port upstreamPort = e.getKey();
-                e.getValue()
-                 .stream().filter( downstreamPort -> downstreamPort.getOperatorId().equals( downstreamOperatorId ) )
+                e.getValue().stream().filter( downstreamPort -> downstreamPort.getOperatorId().equals( downstreamOperatorId ) )
                  .forEach( downstreamPort -> result.computeIfAbsent( downstreamOperatorId, s -> new ArrayList<>() )
                                                    .add( Pair.of( upstreamPort.getPortIndex(), downstreamPort.getPortIndex() ) ) );
             }
@@ -1106,7 +1104,9 @@ public class PipelineManagerImpl implements PipelineManager
         final Pipeline pipeline = getPipelineOrFail( operator );
         final int operatorIndex = pipeline.getOperatorIndex( operator );
         checkArgument( operatorIndex == expectedOperatorIndex,
-                       "Pipeline %s has operator %s with index %s but expected index is %s", pipeline.getId(), operator.getId(),
+                       "Pipeline %s has operator %s with index %s but expected index is %s",
+                       pipeline.getId(),
+                       operator.getId(),
                        operatorIndex,
                        expectedOperatorIndex );
         return pipeline;

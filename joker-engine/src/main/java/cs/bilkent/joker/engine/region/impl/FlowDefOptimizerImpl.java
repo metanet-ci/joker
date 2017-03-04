@@ -294,7 +294,9 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
         }
 
         LOGGER.debug( "Creating {} duplicates of {} with its first operator {}, upstream operator count: {} downstream operator count: {}",
-                      duplicateCount, region, firstOperator.getId(),
+                      duplicateCount,
+                      region,
+                      firstOperator.getId(),
                       upstreamOperatorCount,
                       downstreamOperatorCount );
 

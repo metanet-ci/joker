@@ -59,8 +59,7 @@ public class PartitionedOperatorTupleQueueRebalancingTest extends AbstractJokerT
 
         operatorTupleQueue = new PartitionedOperatorTupleQueue( OPERATOR_ID,
                                                                 INPUT_PORT_COUNT,
-                                                                PARTITION_COUNT,
-                                                                REPLICA_INDEX, 100,
+                                                                PARTITION_COUNT, REPLICA_INDEX, 100,
                                                                 EXTRACTOR,
                                                                 tupleQueueContainers,
                                                                 PARTITION_DISTRIBUTION,
