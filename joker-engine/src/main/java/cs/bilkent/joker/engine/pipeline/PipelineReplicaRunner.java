@@ -431,6 +431,12 @@ public class PipelineReplicaRunner implements Runnable
                 // we are re-reading the command here because it can be updated by one of the API methods before we acquire the lock
                 command = this.command;
 
+                if ( command == null )
+                {
+                    // status should be changed
+                    return this.status;
+                }
+
                 final UpstreamContext pipelineUpstreamContext = supervisor.getUpstreamContext( id );
                 final DownstreamTupleSender downstreamTupleSender = supervisor.getDownstreamTupleSender( id );
 
