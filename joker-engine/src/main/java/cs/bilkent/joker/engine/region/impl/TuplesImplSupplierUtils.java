@@ -9,12 +9,12 @@ import cs.bilkent.joker.operator.impl.TuplesImpl;
 public final class TuplesImplSupplierUtils
 {
 
-    public static Supplier<TuplesImpl> newInstance ( final Class<Supplier<TuplesImpl>> clazz, final int inputPortCount )
+    public static Supplier<TuplesImpl> newInstance ( final Class<Supplier<TuplesImpl>> clazz, final int portCount )
     {
         try
         {
             final Constructor<Supplier<TuplesImpl>> constructor = clazz.getConstructor( int.class );
-            return constructor.newInstance( inputPortCount );
+            return constructor.newInstance( portCount );
         }
         catch ( NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e )
         {

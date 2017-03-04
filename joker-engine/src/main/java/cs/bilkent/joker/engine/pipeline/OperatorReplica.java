@@ -44,6 +44,7 @@ import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ANY_PORT;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
+import static java.lang.Math.min;
 
 /**
  * Manages runtime state of an {@link Operator} defined in a {@link FlowDef} and provides methods for operator invocation.
@@ -349,7 +350,8 @@ public class OperatorReplica
     {
         if ( input != null )
         {
-            for ( int portIndex = 0; portIndex < input.getPortCount(); portIndex++ )
+            final int portCount = min( operatorDef.getInputPortCount(), input.getPortCount() );
+            for ( int portIndex = 0; portIndex < portCount; portIndex++ )
             {
                 final List<Tuple> tuples = input.getTuplesModifiable( portIndex );
                 queue.offer( portIndex, tuples );

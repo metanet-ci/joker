@@ -207,6 +207,19 @@ public class TupleQueueContainer
         return drainableKeys.size();
     }
 
+    public void addAvailableTupleCounts ( final int[] availableTupleCounts )
+    {
+        checkArgument( availableTupleCounts.length == inputPortCount );
+
+        for ( TupleQueue[] tupleQueues : tupleQueuesByKeys.values() )
+        {
+            for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
+            {
+                availableTupleCounts[ portIndex ] += tupleQueues[ portIndex ].size();
+            }
+        }
+    }
+
     public boolean isEmpty ()
     {
         for ( TupleQueue[] tupleQueues : tupleQueuesByKeys.values() )
