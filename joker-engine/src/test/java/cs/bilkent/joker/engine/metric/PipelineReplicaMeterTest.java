@@ -33,10 +33,7 @@ public class PipelineReplicaMeterTest extends AbstractJokerTest
         final OperatorDef headOperatorDef = mock( OperatorDef.class );
         when( headOperatorDef.getId() ).thenReturn( headOperatorId );
         when( headOperatorDef.getInputPortCount() ).thenReturn( 2 );
-        final OperatorDef tailOperatorDef = mock( OperatorDef.class );
-        when( tailOperatorDef.getId() ).thenReturn( tailOperatorId );
-        when( tailOperatorDef.getOutputPortCount() ).thenReturn( 1 );
-        pipelineReplicaMeter = new PipelineReplicaMeter( 1, PIPELINE_REPLICA_ID, headOperatorDef, tailOperatorDef );
+        pipelineReplicaMeter = new PipelineReplicaMeter( 1, PIPELINE_REPLICA_ID, headOperatorDef );
     }
 
     @Test
@@ -124,34 +121,6 @@ public class PipelineReplicaMeterTest extends AbstractJokerTest
         final long[] buffer = new long[] { 0, 0 };
         pipelineReplicaMeter.getConsumedTupleCounts( buffer );
         assertArrayEquals( new long[] { 0, 0 }, buffer );
-    }
-
-    @Test
-    public void shouldCountProducedThroughputOnTailOperator ()
-    {
-        final TuplesImpl tuples = new TuplesImpl( 1 );
-        tuples.add( 0, new Tuple() );
-        tuples.add( 0, new Tuple() );
-
-        pipelineReplicaMeter.addProducedTuples( tailOperatorId, tuples );
-
-        final long[] buffer = new long[] { 0 };
-        pipelineReplicaMeter.getProducedTupleCounts( buffer );
-        assertArrayEquals( new long[] { 2 }, buffer );
-    }
-
-    @Test
-    public void shouldNotCountProducedThroughputOnAnotherOperator ()
-    {
-        final TuplesImpl tuples = new TuplesImpl( 2 );
-        tuples.add( 0, new Tuple() );
-        tuples.add( 1, new Tuple() );
-
-        pipelineReplicaMeter.addProducedTuples( headOperatorId, tuples );
-
-        final long[] buffer = new long[] { 0 };
-        pipelineReplicaMeter.getProducedTupleCounts( buffer );
-        assertArrayEquals( new long[] { 0 }, buffer );
     }
 
 }

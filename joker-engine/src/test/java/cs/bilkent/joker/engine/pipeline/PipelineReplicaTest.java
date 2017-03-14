@@ -81,9 +81,7 @@ public class PipelineReplicaTest extends AbstractJokerTest
 
         final PipelineReplicaId pipelineReplicaId = new PipelineReplicaId( new PipelineId( 0, 0 ), 0 );
         final PipelineReplicaMeter pipelineReplicaMeter = new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(),
-                                                                                    pipelineReplicaId,
-                                                                                    operatorDef0,
-                                                                                    operatorDef2 );
+                                                                                    pipelineReplicaId, operatorDef0 );
         pipeline = new PipelineReplica( config,
                                         pipelineReplicaId,
                                         new OperatorReplica[] { operator0, operator1, operator2 },

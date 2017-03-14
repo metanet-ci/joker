@@ -53,7 +53,6 @@ public class PipelineMetricsTest extends AbstractJokerTest
         when( meter.getReplicaCount() ).thenReturn( REPLICA_COUNT );
         when( meter.getOperatorCount() ).thenReturn( OPERATOR_COUNT );
         when( meter.getConsumedPortCount() ).thenReturn( CONSUMED_PORT_COUNT );
-        when( meter.getProducedPortCount() ).thenReturn( PRODUCED_PORT_COUNT );
 
         metrics = new PipelineMetrics( FLOW_VERSION, meter, HISTORY_SIZE );
     }
@@ -77,11 +76,6 @@ public class PipelineMetricsTest extends AbstractJokerTest
             for ( int portIndex = 0; portIndex < CONSUMED_PORT_COUNT; portIndex++ )
             {
                 assertEquals( 0, snapshot.getConsumeThroughput( replicaIndex, portIndex ) );
-            }
-
-            for ( int portIndex = 0; portIndex < PRODUCED_PORT_COUNT; portIndex++ )
-            {
-                assertEquals( 0, snapshot.getProduceThroughput( replicaIndex, portIndex ) );
             }
         }
     }
@@ -107,11 +101,6 @@ public class PipelineMetricsTest extends AbstractJokerTest
             for ( int portIndex = 0; portIndex < CONSUMED_PORT_COUNT; portIndex++ )
             {
                 assertEquals( 0, snapshot.getConsumeThroughput( replicaIndex, portIndex ) );
-            }
-
-            for ( int portIndex = 0; portIndex < PRODUCED_PORT_COUNT; portIndex++ )
-            {
-                assertEquals( 0, snapshot.getProduceThroughput( replicaIndex, portIndex ) );
             }
         }
     }

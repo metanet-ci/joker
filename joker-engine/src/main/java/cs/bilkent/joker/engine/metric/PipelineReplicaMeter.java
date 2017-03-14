@@ -18,25 +18,20 @@ public class PipelineReplicaMeter
 
     private final PipelineReplicaId pipelineReplicaId;
 
-    private final String headOperatorId, tailOperatorId;
+    private final String headOperatorId;
 
-    private final int consumedPortCount, producedPortCount;
+    private final int consumedPortCount;
 
-    private final long[] consumedTupleCounts, producedTupleCounts;
+    private final long[] consumedTupleCounts;
 
     public PipelineReplicaMeter ( final long tickMask,
-                                  final PipelineReplicaId pipelineReplicaId,
-                                  final OperatorDef headOperatorDef,
-                                  final OperatorDef tailOperatorDef )
+                                  final PipelineReplicaId pipelineReplicaId, final OperatorDef headOperatorDef )
     {
         this.ticker = new Ticker( tickMask );
         this.pipelineReplicaId = pipelineReplicaId;
         this.headOperatorId = headOperatorDef.getId();
-        this.tailOperatorId = tailOperatorDef.getId();
         this.consumedPortCount = headOperatorDef.getInputPortCount();
-        this.producedPortCount = tailOperatorDef.getOutputPortCount();
         this.consumedTupleCounts = new long[ consumedPortCount ];
-        this.producedTupleCounts = new long[ producedPortCount ];
     }
 
     public PipelineReplicaId getPipelineReplicaId ()
@@ -70,37 +65,14 @@ public class PipelineReplicaMeter
         }
     }
 
-    public void addProducedTuples ( final String operatorId, final Tuples tuples )
-    {
-        if ( !tailOperatorId.equals( operatorId ) || tuples == null )
-        {
-            return;
-        }
-
-        for ( int i = 0; i < producedPortCount; i++ )
-        {
-            producedTupleCounts[ i ] += tuples.getTupleCount( i );
-        }
-    }
-
     public String getHeadOperatorId ()
     {
         return headOperatorId;
     }
 
-    public String getTailOperatorId ()
-    {
-        return tailOperatorId;
-    }
-
     public int getConsumedPortCount ()
     {
         return consumedPortCount;
-    }
-
-    public int getProducedPortCount ()
-    {
-        return producedPortCount;
     }
 
     public void getConsumedTupleCounts ( final long[] consumedTupleCounts )
@@ -110,16 +82,6 @@ public class PipelineReplicaMeter
         for ( int i = 0; i < consumedPortCount; i++ )
         {
             consumedTupleCounts[ i ] = this.consumedTupleCounts[ i ];
-        }
-    }
-
-    public void getProducedTupleCounts ( final long[] producedTupleCounts )
-    {
-        checkArgument( producedTupleCounts.length == producedPortCount );
-
-        for ( int i = 0; i < producedPortCount; i++ )
-        {
-            producedTupleCounts[ i ] = this.producedTupleCounts[ i ];
         }
     }
 
@@ -146,7 +108,7 @@ public class PipelineReplicaMeter
         }
     }
 
-    public Object getCurrentlyExecutingComponent ()
+    Object getCurrentlyExecutingComponent ()
     {
         return currentlyInvokedOperator.get();
     }

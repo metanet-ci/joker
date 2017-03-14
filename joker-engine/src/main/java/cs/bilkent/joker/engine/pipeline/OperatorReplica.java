@@ -333,8 +333,6 @@ public class OperatorReplica
             }
         }
 
-        meter.addProducedTuples( operatorDef.getId(), output );
-
         return output;
     }
 

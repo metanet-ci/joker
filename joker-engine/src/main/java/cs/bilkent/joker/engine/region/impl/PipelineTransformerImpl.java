@@ -146,12 +146,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                                                               final List<Integer> startIndicesToMerge )
     {
         final OperatorDef[] firstPipeline = regionExecutionPlan.getOperatorDefsByPipelineStartIndex( startIndicesToMerge.get( 0 ) );
-        final int pipelineCount = startIndicesToMerge.size();
-        final OperatorDef[] lastPipeline = regionExecutionPlan.getOperatorDefsByPipelineStartIndex( startIndicesToMerge.get(
-                pipelineCount - 1 ) );
-        final OperatorDef firstOperator = firstPipeline[ 0 ];
-        final OperatorDef lastOperator = lastPipeline[ lastPipeline.length - 1 ];
-        return new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(), pipelineReplicaId, firstOperator, lastOperator );
+        return new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(), pipelineReplicaId, firstPipeline[ 0 ] );
     }
 
     @Override
@@ -419,11 +414,9 @@ public class PipelineTransformerImpl implements PipelineTransformer
                 final PipelineReplicaId newPipelineReplicaId = new PipelineReplicaId( newPipelineId, replicaIndex );
 
                 final int startOperatorIndex = curr - startIndicesToSplit.get( 0 );
-                final int endOperatorIndex = startOperatorIndex + newOperatorCount - 1;
                 final PipelineReplicaMeter replicaMeter = new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(),
                                                                                     newPipelineReplicaId,
-                                                                                    pipelineReplica.getOperatorDef( startOperatorIndex ),
-                                                                                    pipelineReplica.getOperatorDef( endOperatorIndex ) );
+                                                                                    pipelineReplica.getOperatorDef( startOperatorIndex ) );
 
                 final boolean switchThreadingPreferenceOfFirstOperator = ( i > 0 );
                 duplicateSplitPipelineOperators( pipelineReplica,

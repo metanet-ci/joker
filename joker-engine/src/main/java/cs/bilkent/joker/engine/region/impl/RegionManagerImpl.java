@@ -142,9 +142,7 @@ public class RegionManagerImpl implements RegionManager
             for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
             {
                 replicaMeters[ replicaIndex ] = new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(),
-                                                                          pipelineReplicaIds[ replicaIndex ],
-                                                                          operatorDefs[ 0 ],
-                                                                          operatorDefs[ operatorCount - 1 ] );
+                                                                          pipelineReplicaIds[ replicaIndex ], operatorDefs[ 0 ] );
             }
 
             for ( int operatorIndex = 0; operatorIndex < operatorCount; operatorIndex++ )
@@ -574,9 +572,7 @@ public class RegionManagerImpl implements RegionManager
                 final OperatorReplica[] operatorReplicas = new OperatorReplica[ operatorCount ];
                 final PipelineReplicaId pipelineReplicaId = new PipelineReplicaId( new PipelineId( regionId, pipelineId ), replicaIndex );
                 final PipelineReplicaMeter replicaMeter = new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(),
-                                                                                    pipelineReplicaId,
-                                                                                    operatorDefs[ 0 ],
-                                                                                    operatorDefs[ operatorCount - 1 ] );
+                                                                                    pipelineReplicaId, operatorDefs[ 0 ] );
                 for ( int operatorIndex = 0; operatorIndex < operatorCount; operatorIndex++ )
                 {
                     final OperatorDef operatorDef = operatorDefs[ operatorIndex ];

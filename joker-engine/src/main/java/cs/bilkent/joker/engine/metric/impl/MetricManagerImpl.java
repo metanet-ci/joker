@@ -367,20 +367,18 @@ public class MetricManagerImpl implements MetricManager
 
         private void logPipelineMetrics ( final long timeSpent )
         {
-            final PipelineMetricsVisitor logVisitor = ( pipelineReplicaId, flowVersion, consumeThroughputs, produceThroughputs,
+            final PipelineMetricsVisitor logVisitor = ( pipelineReplicaId, flowVersion, consumeThroughputs,
                                                         threadUtilizationRatio, pipelineCost, operatorCosts ) ->
             {
                 final double cpuUsage = threadUtilizationRatio / numberOfCores;
 
                 final String log = String.format(
-                        "%s -> flow version: %d thread utilization: %.3f cpu usage: %.3f consume: %s produce: " + "%s pipeline"
-                        + " cost: %s " + "operator costs: %s",
+                        "%s -> flow version: %d thread utilization: %.3f cpu usage: %.3f consume: %s pipeline cost: %s operator costs: %s",
                         pipelineReplicaId,
                         flowVersion,
                         threadUtilizationRatio,
                         cpuUsage,
                         Arrays.toString( consumeThroughputs ),
-                        Arrays.toString( produceThroughputs ),
                         pipelineCost,
                         Arrays.toString( operatorCosts ) );
                 LOGGER.info( log );

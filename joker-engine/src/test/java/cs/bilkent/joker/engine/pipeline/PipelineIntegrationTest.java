@@ -120,7 +120,6 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final PipelineReplicaMeter pipelineReplicaMeter = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
                                                                                     pipelineReplicaId1,
-                                                                                    mapperOperatorDef,
                                                                                     mapperOperatorDef );
 
         final OperatorTupleQueue operatorTupleQueue = operatorTupleQueueManager.createDefaultOperatorTupleQueue( REGION_ID,
@@ -194,9 +193,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                 .build();
 
         final PipelineReplicaMeter pipelineReplicaMeter = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
-                                                                                    pipelineReplicaId1,
-                                                                                    mapperOperatorDef,
-                                                                                    filterOperatorDef );
+                                                                                    pipelineReplicaId1, mapperOperatorDef );
 
         final OperatorTupleQueue mapperOperatorTupleQueue = operatorTupleQueueManager.createDefaultOperatorTupleQueue( REGION_ID,
                                                                                                                        REPLICA_INDEX,
@@ -299,9 +296,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                .build();
 
         final PipelineReplicaMeter pipelineReplicaMeter = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
-                                                                                    pipelineReplicaId1,
-                                                                                    generatorOperatorDef,
-                                                                                    stateOperatorDef );
+                                                                                    pipelineReplicaId1, generatorOperatorDef );
 
         final OperatorTupleQueue generatorOperatorTupleQueue = new EmptyOperatorTupleQueue( generatorOperatorDef.getId(),
                                                                                             generatorOperatorDef.getInputPortCount() );
@@ -411,7 +406,6 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final PipelineReplicaMeter pipelineReplicaMeter1 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId1,
-                                                                                     mapperOperatorDef,
                                                                                      mapperOperatorDef );
         final OperatorReplica mapperOperator = new OperatorReplica( pipelineReplicaId1,
                                                                     mapperOperatorDef,
@@ -448,7 +442,6 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final PipelineReplicaMeter pipelineReplicaMeter2 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId2,
-                                                                                     filterOperatorDef,
                                                                                      filterOperatorDef );
         final OperatorReplica filterOperator = new OperatorReplica( pipelineReplicaId2,
                                                                     filterOperatorDef,
@@ -540,7 +533,6 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final PipelineReplicaMeter pipelineReplicaMeter1 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId1,
-                                                                                     generatorOperatorDef1,
                                                                                      generatorOperatorDef1 );
         final OperatorReplica generatorOperator1 = new OperatorReplica( pipelineReplicaId1,
                                                                         generatorOperatorDef1,
@@ -573,7 +565,6 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final PipelineReplicaMeter pipelineReplicaMeter2 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId2,
-                                                                                     generatorOperatorDef2,
                                                                                      generatorOperatorDef2 );
         final OperatorReplica generatorOperator2 = new OperatorReplica( pipelineReplicaId2,
                                                                         generatorOperatorDef2,
@@ -608,9 +599,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                .build();
 
         final PipelineReplicaMeter pipelineReplicaMeter3 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
-                                                                                     pipelineReplicaId3,
-                                                                                     sinkOperatorDef,
-                                                                                     stateOperatorDef );
+                                                                                     pipelineReplicaId3, sinkOperatorDef );
 
         final OperatorTupleQueue sinkOperatorTupleQueue = operatorTupleQueueManager.createDefaultOperatorTupleQueue( REGION_ID,
                                                                                                                      REPLICA_INDEX,
@@ -739,9 +728,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                 .build();
 
         final PipelineReplicaMeter pipelineReplicaMeter1 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
-                                                                                     pipelineReplicaId1,
-                                                                                     generatorOperatorDef,
-                                                                                     passerOperatorDef );
+                                                                                     pipelineReplicaId1, generatorOperatorDef );
 
         final OperatorTupleQueue generatorOperatorTupleQueue = new EmptyOperatorTupleQueue( generatorOperatorDef.getId(),
                                                                                             generatorOperatorDef.getInputPortCount() );
@@ -792,7 +779,6 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final PipelineReplicaMeter pipelineReplicaMeter2 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId2,
-                                                                                     stateOperatorDef,
                                                                                      stateOperatorDef );
         final OperatorReplica stateOperator = new OperatorReplica( pipelineReplicaId2,
                                                                    stateOperatorDef,
