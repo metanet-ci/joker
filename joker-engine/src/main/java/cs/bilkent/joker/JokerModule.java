@@ -28,9 +28,9 @@ import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
 import cs.bilkent.joker.engine.region.RegionExecutionPlanFactory;
 import cs.bilkent.joker.engine.region.RegionManager;
+import cs.bilkent.joker.engine.region.impl.DefaultRegionExecutionPlanFactory;
 import cs.bilkent.joker.engine.region.impl.FlowDefOptimizerImpl;
 import cs.bilkent.joker.engine.region.impl.IdGenerator;
-import cs.bilkent.joker.engine.region.impl.InteractiveRegionExecutionPlanFactory;
 import cs.bilkent.joker.engine.region.impl.PipelineTransformerImpl;
 import cs.bilkent.joker.engine.region.impl.RegionDefFormerImpl;
 import cs.bilkent.joker.engine.region.impl.RegionManagerImpl;
@@ -95,7 +95,7 @@ public class JokerModule extends AbstractModule
         }
         else
         {
-            bind( RegionExecutionPlanFactory.class ).to( InteractiveRegionExecutionPlanFactory.class );
+            bind( RegionExecutionPlanFactory.class ).to( DefaultRegionExecutionPlanFactory.class );
         }
         bind( JokerConfig.class ).toInstance( config );
         bind( ThreadGroup.class ).annotatedWith( named( JOKER_THREAD_GROUP_NAME ) ).toInstance( new ThreadGroup( "Joker" ) );
