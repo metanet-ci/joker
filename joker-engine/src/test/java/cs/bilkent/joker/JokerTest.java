@@ -67,7 +67,7 @@ public class JokerTest extends AbstractJokerTest
     private static final int MULTIPLIER_VALUE = 100;
 
     @Test
-    public void testEndToEndSystem () throws InterruptedException, ExecutionException, TimeoutException
+    public void testStaticExecutionModel () throws InterruptedException, ExecutionException, TimeoutException
     {
         final FlowExample1 flowExample = new FlowExample1();
 
@@ -101,7 +101,7 @@ public class JokerTest extends AbstractJokerTest
 
     @Category( SlowTest.class )
     @Test
-    public void testEndToEndSystemWithStaticFlowOptimization () throws InterruptedException, ExecutionException, TimeoutException
+    public void testStaticExecutionModelWithStaticFlowOptimization () throws InterruptedException, ExecutionException, TimeoutException
     {
         final FlowExample2 flowExample = new FlowExample2();
 
@@ -147,7 +147,7 @@ public class JokerTest extends AbstractJokerTest
 
     @Category( SlowTest.class )
     @Test
-    public void testEndToEndSystemWithMergingPipelines () throws InterruptedException, ExecutionException, TimeoutException
+    public void testPipelineMerge () throws InterruptedException, ExecutionException, TimeoutException
     {
         final FlowExample1 flowExample = new FlowExample1();
         final JokerConfig jokerConfig = new JokerConfig();
@@ -184,7 +184,7 @@ public class JokerTest extends AbstractJokerTest
 
     @Category( SlowTest.class )
     @Test
-    public void testEndToEndSystemWithSplittingPipelines () throws InterruptedException, ExecutionException, TimeoutException
+    public void testPipelineSplit () throws InterruptedException, ExecutionException, TimeoutException
     {
         final FlowExample1 flowExample = new FlowExample1();
         final JokerConfig jokerConfig = new JokerConfig();
@@ -218,7 +218,7 @@ public class JokerTest extends AbstractJokerTest
 
     @Category( SlowTest.class )
     @Test
-    public void testEndToEndSystemWithSplittingAndMergingPipelines () throws InterruptedException, ExecutionException, TimeoutException
+    public void testPipelineSplitThenMerge () throws InterruptedException, ExecutionException, TimeoutException
     {
         final FlowExample1 flowExample = new FlowExample1();
         final JokerConfig jokerConfig = new JokerConfig();
@@ -260,7 +260,7 @@ public class JokerTest extends AbstractJokerTest
 
     @Category( SlowTest.class )
     @Test
-    public void testEndToEndSystemWithMergingAndSplittingPipelines () throws InterruptedException, ExecutionException, TimeoutException
+    public void testPipelineMergeThanSplit () throws InterruptedException, ExecutionException, TimeoutException
     {
         final FlowExample1 flowExample = new FlowExample1();
         final JokerConfig jokerConfig = new JokerConfig();
@@ -304,7 +304,7 @@ public class JokerTest extends AbstractJokerTest
 
     @Category( SlowTest.class )
     @Test
-    public void testEndToEndSystemWithRebalancingRegions () throws InterruptedException, ExecutionException, TimeoutException
+    public void testRegionRebalance () throws InterruptedException, ExecutionException, TimeoutException
     {
         final FlowExample1 flowExample = new FlowExample1();
         final JokerConfig jokerConfig = new JokerConfig();
@@ -360,7 +360,7 @@ public class JokerTest extends AbstractJokerTest
 
     @Category( SlowTest.class )
     @Test
-    public void testEndToEndSystemWithRebalancingRegionsAndMergingSplittingPipelines () throws InterruptedException, ExecutionException,
+    public void testRebalanceRegionThenMergePipelinesThenSplitPipeline () throws InterruptedException, ExecutionException,
                                                                                                            TimeoutException
     {
         final FlowExample1 flowExample = new FlowExample1();
