@@ -253,8 +253,8 @@ public class RegionManagerImpl implements RegionManager
     private List<Integer> getPipelineStartIndicesToSplit ( final PipelineId pipelineId, final List<Integer> pipelineOperatorIndicesToSplit )
     {
         checkArgument( pipelineId != null, "pipeline id to split cannot be null" );
-        checkArgument( pipelineOperatorIndicesToSplit != null && pipelineOperatorIndicesToSplit.size() > 1,
-                       "there must be at least 2 operator split indices for Pipeline %s",
+        checkArgument( pipelineOperatorIndicesToSplit != null && pipelineOperatorIndicesToSplit.size() > 0,
+                       "there must be at least 1 operator split index for Pipeline %s",
                        pipelineId );
         final Region region = regions.get( pipelineId.getRegionId() );
         checkArgument( region != null, "invalid Pipeline %s to split", pipelineId );
