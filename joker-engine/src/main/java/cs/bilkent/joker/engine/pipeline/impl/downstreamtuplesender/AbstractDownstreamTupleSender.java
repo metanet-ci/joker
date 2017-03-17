@@ -24,8 +24,6 @@ public abstract class AbstractDownstreamTupleSender implements DownstreamTupleSe
 
     protected void send ( final OperatorTupleQueue operatorTupleQueue, final int destinationPortIndex, final List<Tuple> tuples )
     {
-        idleStrategy.reset();
-
         final int size = tuples.size();
         int fromIndex = 0;
         while ( true )
@@ -46,7 +44,13 @@ public abstract class AbstractDownstreamTupleSender implements DownstreamTupleSe
                     }
                 }
             }
+            else
+            {
+                idleStrategy.reset();
+            }
         }
+
+        idleStrategy.reset();
     }
 
 }

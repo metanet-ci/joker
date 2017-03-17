@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
+import cs.bilkent.joker.engine.exception.JokerException;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import static cs.bilkent.joker.engine.partition.PartitionUtil.getPartitionId;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
@@ -30,6 +31,8 @@ public abstract class AbstractPartitionedDownstreamTupleSender extends AbstractD
 
     private List<Tuple>[] tupleLists;
 
+    private int[] indices;
+
     AbstractPartitionedDownstreamTupleSender ( final DownstreamTupleSenderFailureFlag failureFlag,
                                                final int partitionCount,
                                                final int[] partitionDistribution,
@@ -43,6 +46,7 @@ public abstract class AbstractPartitionedDownstreamTupleSender extends AbstractD
         this.operatorTupleQueues = Arrays.copyOf( operatorTupleQueues, operatorTupleQueues.length );
         this.partitionKeyExtractor = partitionKeyExtractor;
         this.tupleLists = new List[ operatorTupleQueues.length ];
+        this.indices = new int[ operatorTupleQueues.length ];
         for ( int i = 0; i < operatorTupleQueues.length; i++ )
         {
             tupleLists[ i ] = new ArrayList<>();
@@ -63,14 +67,52 @@ public abstract class AbstractPartitionedDownstreamTupleSender extends AbstractD
             tupleLists[ replicaIndex ].add( tuple );
         }
 
+        int completed;
+        while ( true )
+        {
+            completed = 0;
+            for ( int i = 0; i < replicaCount; i++ )
+            {
+                final List<Tuple> tuples = tupleLists[ i ];
+                int fromIndex = indices[ i ];
+                if ( fromIndex < tuples.size() )
+                {
+                    final int offered = operatorTupleQueues[ i ].offer( destinationPortIndex, tuples, fromIndex );
+                    if ( offered == 0 )
+                    {
+                        if ( idleStrategy.idle() )
+                        {
+                            if ( failureFlag.isFailed() )
+                            {
+                                throw new JokerException( "Not sending tuples to downstream since failure flag is set" );
+                            }
+                        }
+                    }
+                    else
+                    {
+                        idleStrategy.reset();
+                        fromIndex += offered;
+                        indices[ i ] = fromIndex;
+                    }
+                }
+
+                if ( fromIndex == tuples.size() )
+                {
+                    completed++;
+                }
+            }
+
+            if ( completed == replicaCount )
+            {
+                break;
+            }
+        }
+
+        idleStrategy.reset();
         for ( int i = 0; i < replicaCount; i++ )
         {
-            final List<Tuple> tuples = tupleLists[ i ];
-            if ( tuples.size() > 0 )
-            {
-                send( operatorTupleQueues[ i ], destinationPortIndex, tuples );
-                tuples.clear();
-            }
+            tupleLists[ i ].clear();
+            indices[ i ] = 0;
         }
 
         return null;
