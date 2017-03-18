@@ -1,6 +1,5 @@
 package cs.bilkent.joker.engine.metric;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import cs.bilkent.joker.engine.metric.PipelineReplicaMeter.Ticker;
@@ -9,7 +8,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-@Ignore
 public class TickerTest extends AbstractJokerTest
 {
 
