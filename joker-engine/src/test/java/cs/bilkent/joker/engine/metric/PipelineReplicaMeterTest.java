@@ -1,7 +1,6 @@
 package cs.bilkent.joker.engine.metric;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import cs.bilkent.joker.engine.flow.PipelineId;
@@ -16,7 +15,6 @@ import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@Ignore
 public class PipelineReplicaMeterTest extends AbstractJokerTest
 {
 
