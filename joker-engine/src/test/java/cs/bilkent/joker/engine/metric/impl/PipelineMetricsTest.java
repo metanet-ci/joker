@@ -30,9 +30,7 @@ public class PipelineMetricsTest extends AbstractJokerTest
 
     private static final int OPERATOR_COUNT = 3;
 
-    private static final int CONSUMED_PORT_COUNT = 2;
-
-    private static final int PRODUCED_PORT_COUNT = 1;
+    private static final int INPUT_PORT_COUNT = 2;
 
     private static final int HISTORY_SIZE = 10;
 
@@ -52,7 +50,7 @@ public class PipelineMetricsTest extends AbstractJokerTest
         when( meter.getPipelineId() ).thenReturn( PIPELINE_ID );
         when( meter.getReplicaCount() ).thenReturn( REPLICA_COUNT );
         when( meter.getOperatorCount() ).thenReturn( OPERATOR_COUNT );
-        when( meter.getConsumedPortCount() ).thenReturn( CONSUMED_PORT_COUNT );
+        when( meter.getInputPortCount() ).thenReturn( INPUT_PORT_COUNT );
 
         metrics = new PipelineMetrics( FLOW_VERSION, meter, HISTORY_SIZE );
     }
@@ -73,9 +71,9 @@ public class PipelineMetricsTest extends AbstractJokerTest
                 assertEquals( 0, snapshot.getOperatorCost( replicaIndex, operatorIndex ), 0.01 );
             }
 
-            for ( int portIndex = 0; portIndex < CONSUMED_PORT_COUNT; portIndex++ )
+            for ( int portIndex = 0; portIndex < INPUT_PORT_COUNT; portIndex++ )
             {
-                assertEquals( 0, snapshot.getConsumeThroughput( replicaIndex, portIndex ) );
+                assertEquals( 0, snapshot.getInboundThroughput( replicaIndex, portIndex ) );
             }
         }
     }
@@ -98,9 +96,9 @@ public class PipelineMetricsTest extends AbstractJokerTest
                 assertEquals( 0, snapshot.getOperatorCost( replicaIndex, operatorIndex ), 0.01 );
             }
 
-            for ( int portIndex = 0; portIndex < CONSUMED_PORT_COUNT; portIndex++ )
+            for ( int portIndex = 0; portIndex < INPUT_PORT_COUNT; portIndex++ )
             {
-                assertEquals( 0, snapshot.getConsumeThroughput( replicaIndex, portIndex ) );
+                assertEquals( 0, snapshot.getInboundThroughput( replicaIndex, portIndex ) );
             }
         }
     }

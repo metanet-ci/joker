@@ -57,7 +57,7 @@ public class PipelineMeter
         {
             checkArgument( replicaMeter.getPipelineReplicaId().pipelineId.equals( pipelineId ) );
             checkArgument( replicaMeter.getHeadOperatorId().equals( operatorDefs[ 0 ].getId() ) );
-            checkArgument( replicaMeter.getConsumedPortCount() == operatorDefs[ 0 ].getInputPortCount() );
+            checkArgument( replicaMeter.getInputPortCount() == operatorDefs[ 0 ].getInputPortCount() );
         }
     }
 
@@ -81,9 +81,9 @@ public class PipelineMeter
         return replicaCount;
     }
 
-    public int getConsumedPortCount ()
+    public int getInputPortCount ()
     {
-        return pipelineReplicaMeters[ 0 ].getConsumedPortCount();
+        return pipelineReplicaMeters[ 0 ].getInputPortCount();
     }
 
     public int getCurrentlyExecutingComponentIndex ( final ThreadMXBean threadMXBean, final int replicaIndex )
@@ -120,12 +120,12 @@ public class PipelineMeter
         }
     }
 
-    public void getConsumedTupleCounts ( final int replicaIndex, final long[] consumedTupleCounts )
+    public void readInboundThroughput ( final int replicaIndex, final long[] inboundThroughput )
     {
         // happens-before
         final PipelineReplicaMeter pipelineReplicaMeter = pipelineReplicaMeters[ replicaIndex ];
         pipelineReplicaMeter.getCurrentlyExecutingComponent();
-        pipelineReplicaMeter.getConsumedTupleCounts( consumedTupleCounts );
+        pipelineReplicaMeter.readInboundThroughput( inboundThroughput );
     }
 
 }

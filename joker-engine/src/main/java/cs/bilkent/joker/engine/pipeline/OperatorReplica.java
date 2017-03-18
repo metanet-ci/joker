@@ -374,10 +374,9 @@ public class OperatorReplica
         final KVStore kvStore = operatorKvStore.getKVStore( key );
         final TuplesImpl invocationOutput = output != null ? output : outputSupplier.get();
         invocationContext.setInvocationParameters( reason, input, invocationOutput, key, kvStore );
-        meter.addConsumedTuples( operatorDef.getId(), input );
-        meter.startOperatorInvocation( operatorDef.getId() );
+        meter.onInvocationStart( operatorDef.getId(), input );
         operator.invoke( invocationContext );
-        meter.completeOperatorInvocation( operatorDef.getId() );
+        meter.onInvocationComplete( operatorDef.getId() );
         invocationContext.resetInvocationParameters();
 
         return invocationOutput;
