@@ -20,18 +20,17 @@ public class PipelineReplicaMeter
 
     private final String headOperatorId;
 
-    private final int consumedPortCount;
+    private final int inputPortCount;
 
-    private final long[] consumedTupleCounts;
+    private final long[] inboundThroughput;
 
-    public PipelineReplicaMeter ( final long tickMask,
-                                  final PipelineReplicaId pipelineReplicaId, final OperatorDef headOperatorDef )
+    public PipelineReplicaMeter ( final long tickMask, final PipelineReplicaId pipelineReplicaId, final OperatorDef headOperatorDef )
     {
         this.ticker = new Ticker( tickMask );
         this.pipelineReplicaId = pipelineReplicaId;
         this.headOperatorId = headOperatorDef.getId();
-        this.consumedPortCount = headOperatorDef.getInputPortCount();
-        this.consumedTupleCounts = new long[ consumedPortCount ];
+        this.inputPortCount = headOperatorDef.getInputPortCount();
+        this.inboundThroughput = new long[ inputPortCount ];
     }
 
     public PipelineReplicaId getPipelineReplicaId ()
@@ -52,36 +51,23 @@ public class PipelineReplicaMeter
         }
     }
 
-    public void addConsumedTuples ( final String operatorId, final Tuples tuples )
-    {
-        if ( !headOperatorId.equals( operatorId ) )
-        {
-            return;
-        }
-
-        for ( int i = 0; i < consumedPortCount; i++ )
-        {
-            consumedTupleCounts[ i ] += tuples.getTupleCount( i );
-        }
-    }
-
     public String getHeadOperatorId ()
     {
         return headOperatorId;
     }
 
-    public int getConsumedPortCount ()
+    public int getInputPortCount ()
     {
-        return consumedPortCount;
+        return inputPortCount;
     }
 
-    public void getConsumedTupleCounts ( final long[] consumedTupleCounts )
+    public void readInboundThroughput ( final long[] inboundThroughput )
     {
-        checkArgument( consumedTupleCounts.length == consumedPortCount );
+        checkArgument( inboundThroughput.length == inputPortCount );
 
-        for ( int i = 0; i < consumedPortCount; i++ )
+        for ( int i = 0; i < inputPortCount; i++ )
         {
-            consumedTupleCounts[ i ] = this.consumedTupleCounts[ i ];
+            inboundThroughput[ i ] = this.inboundThroughput[ i ];
         }
     }
 
@@ -90,18 +76,23 @@ public class PipelineReplicaMeter
         return ticker.isTicked();
     }
 
-    public void startOperatorInvocation ( final String operatorId )
+    public void onInvocationStart ( final String operatorId, final Tuples tuples )
     {
         checkNotNull( operatorId );
+        checkNotNull( tuples );
+
         if ( ticker.isTicked() )
         {
             casOrFail( pipelineReplicaId, operatorId );
         }
+
+        addTuples( operatorId, tuples );
     }
 
-    public void completeOperatorInvocation ( final String operatorId )
+    public void onInvocationComplete ( final String operatorId )
     {
         checkNotNull( operatorId );
+
         if ( ticker.isTicked() )
         {
             casOrFail( operatorId, pipelineReplicaId );
@@ -117,6 +108,19 @@ public class PipelineReplicaMeter
     {
         final boolean success = currentlyInvokedOperator.compareAndSet( currentVal, nextVal );
         checkState( success, "cannot set ref from %s to %s in pipeline replica meter of %s", currentVal, nextVal, pipelineReplicaId );
+    }
+
+    private void addTuples ( final String operatorId, final Tuples tuples )
+    {
+        if ( !headOperatorId.equals( operatorId ) )
+        {
+            return;
+        }
+
+        for ( int i = 0; i < inputPortCount; i++ )
+        {
+            inboundThroughput[ i ] += tuples.getTupleCount( i );
+        }
     }
 
     static class Ticker

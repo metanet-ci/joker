@@ -367,18 +367,19 @@ public class MetricManagerImpl implements MetricManager
 
         private void logPipelineMetrics ( final long timeSpent )
         {
-            final PipelineMetricsVisitor logVisitor = ( pipelineReplicaId, flowVersion, consumeThroughputs,
-                                                        threadUtilizationRatio, pipelineCost, operatorCosts ) ->
+            final PipelineMetricsVisitor logVisitor = ( pipelineReplicaId, flowVersion, inboundThrougput, threadUtilizationRatio,
+                                                        pipelineCost, operatorCosts ) ->
             {
                 final double cpuUsage = threadUtilizationRatio / numberOfCores;
 
                 final String log = String.format(
-                        "%s -> flow version: %d thread utilization: %.3f cpu usage: %.3f consume: %s pipeline cost: %s operator costs: %s",
+                        "%s -> flow version: %d thread utilization: %.3f cpu usage: %.3f throughput: %s pipeline cost: %s operator costs:"
+                        + " %s",
                         pipelineReplicaId,
                         flowVersion,
                         threadUtilizationRatio,
                         cpuUsage,
-                        Arrays.toString( consumeThroughputs ),
+                        Arrays.toString( inboundThrougput ),
                         pipelineCost,
                         Arrays.toString( operatorCosts ) );
                 LOGGER.info( log );
@@ -395,27 +396,27 @@ public class MetricManagerImpl implements MetricManager
 
             final Snapshot scanMetricsSnapshot = scanMetricsHistogram.getSnapshot();
             final Snapshot scanOperatorsSnapshot = scanOperatorsHistogram.getSnapshot();
-            LOGGER.info( "SCAN METRICS   -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .99: {} .999: {}",
-                         scanMetricsSnapshot.getMin(),
-                         scanMetricsSnapshot.getMax(),
-                         scanMetricsSnapshot.getMean(),
-                         scanMetricsSnapshot.getStdDev(),
-                         scanMetricsSnapshot.getMedian(),
-                         scanMetricsSnapshot.get75thPercentile(),
-                         scanMetricsSnapshot.get95thPercentile(),
-                         scanMetricsSnapshot.get99thPercentile(),
-                         scanMetricsSnapshot.get999thPercentile() );
+            LOGGER.debug( "SCAN METRICS   -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .99: {} .999: {}",
+                          scanMetricsSnapshot.getMin(),
+                          scanMetricsSnapshot.getMax(),
+                          scanMetricsSnapshot.getMean(),
+                          scanMetricsSnapshot.getStdDev(),
+                          scanMetricsSnapshot.getMedian(),
+                          scanMetricsSnapshot.get75thPercentile(),
+                          scanMetricsSnapshot.get95thPercentile(),
+                          scanMetricsSnapshot.get99thPercentile(),
+                          scanMetricsSnapshot.get999thPercentile() );
 
-            LOGGER.info( "SCAN OPERATORS -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .99: {} .999: {}",
-                         scanOperatorsSnapshot.getMin(),
-                         scanOperatorsSnapshot.getMax(),
-                         scanOperatorsSnapshot.getMean(),
-                         scanOperatorsSnapshot.getStdDev(),
-                         scanOperatorsSnapshot.getMedian(),
-                         scanOperatorsSnapshot.get75thPercentile(),
-                         scanOperatorsSnapshot.get95thPercentile(),
-                         scanOperatorsSnapshot.get99thPercentile(),
-                         scanOperatorsSnapshot.get999thPercentile() );
+            LOGGER.debug( "SCAN OPERATORS -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .99: {} .999: {}",
+                          scanOperatorsSnapshot.getMin(),
+                          scanOperatorsSnapshot.getMax(),
+                          scanOperatorsSnapshot.getMean(),
+                          scanOperatorsSnapshot.getStdDev(),
+                          scanOperatorsSnapshot.getMedian(),
+                          scanOperatorsSnapshot.get75thPercentile(),
+                          scanOperatorsSnapshot.get95thPercentile(),
+                          scanOperatorsSnapshot.get99thPercentile(),
+                          scanOperatorsSnapshot.get999thPercentile() );
 
             LOGGER.info( "Time spent (ns): {}", timeSpent );
         }

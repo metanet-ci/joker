@@ -49,7 +49,7 @@ class PipelineMetrics
     private final long[] threadCpuTimes;
 
     // updated and read by metrics thread
-    private final long[][] consumeThroughputs;
+    private final long[][] inboundThroughputs;
 
     // sample counts buffers can be updated in the sampling thread and read in the metrics thread.
     // this field is used to provide happens-before relationship among these two threads.
@@ -66,7 +66,7 @@ class PipelineMetrics
         this.pipelineSampleCounts = new long[ pipelineMeter.getReplicaCount() ];
         this.pipelineSampleCountsBuffer = new long[ pipelineMeter.getReplicaCount() ];
         this.threadCpuTimes = new long[ pipelineMeter.getReplicaCount() ];
-        this.consumeThroughputs = new long[ pipelineMeter.getReplicaCount() ][ pipelineMeter.getConsumedPortCount() ];
+        this.inboundThroughputs = new long[ pipelineMeter.getReplicaCount() ][ pipelineMeter.getInputPortCount() ];
         this.history = new PipelineMetricsHistory( newPipelineMetricsSnapshot(), historySize );
     }
 
@@ -74,8 +74,8 @@ class PipelineMetrics
     {
         final int replicaCount = pipelineMeter.getReplicaCount();
         final int operatorCount = pipelineMeter.getOperatorCount();
-        final int consumedPortCount = pipelineMeter.getConsumedPortCount();
-        return new PipelineMetricsSnapshot( replicaCount, operatorCount, consumedPortCount );
+        final int inputPortCount = pipelineMeter.getInputPortCount();
+        return new PipelineMetricsSnapshot( replicaCount, operatorCount, inputPortCount );
     }
 
     // called by sampler thread
@@ -102,13 +102,12 @@ class PipelineMetrics
         {
             fill( this.operatorSampleCounts[ replicaIndex ], 0 );
             fill( this.operatorSampleCountsBuffer[ replicaIndex ], 0 );
-            fill( this.consumeThroughputs[ replicaIndex ], 0 );
+            fill( this.inboundThroughputs[ replicaIndex ], 0 );
 
-            pipelineMeter.getConsumedTupleCounts( replicaIndex, this.consumeThroughputs[ replicaIndex ] );
+            pipelineMeter.readInboundThroughput( replicaIndex, this.inboundThroughputs[ replicaIndex ] );
         }
 
-        final int historySize = this.history.historySize();
-        this.history = new PipelineMetricsHistory( newPipelineMetricsSnapshot(), historySize );
+        this.history = new PipelineMetricsHistory( newPipelineMetricsSnapshot(), this.history.historySize() );
     }
 
     void register ( final MetricRegistry metricRegistry )
@@ -132,10 +131,10 @@ class PipelineMetrics
                                          new PipelineGauge<>( pipelineId, operatorCostGauge ) );
             }
 
-            for ( int portIndex = 0; portIndex < pipelineMeter.getConsumedPortCount(); portIndex++ )
+            for ( int portIndex = 0; portIndex < pipelineMeter.getInputPortCount(); portIndex++ )
             {
                 final int p = portIndex;
-                final Supplier<Long> throughputGauge = () -> getRecentSnapshot().getConsumeThroughput( r, p );
+                final Supplier<Long> throughputGauge = () -> getRecentSnapshot().getInboundThroughput( r, p );
                 metricRegistry.register( getMetricName( replicaIndex, "thr", "cs", portIndex ),
                                          new PipelineGauge<>( pipelineId, throughputGauge ) );
             }
@@ -258,22 +257,22 @@ class PipelineMetrics
     private void updateThroughputs ( final PipelineMetricsSnapshot snapshot )
     {
         final int replicaCount = pipelineMeter.getReplicaCount();
-        final int consumedPortCount = pipelineMeter.getConsumedPortCount();
+        final int inputPortCount = pipelineMeter.getInputPortCount();
 
         for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
         {
-            final long[] newConsumeThroughputs = new long[ consumedPortCount ];
+            final long[] newInboundThroughputs = new long[ inputPortCount ];
 
-            pipelineMeter.getConsumedTupleCounts( replicaIndex, newConsumeThroughputs );
+            pipelineMeter.readInboundThroughput( replicaIndex, newInboundThroughputs );
 
-            final long[] currConsumeThroughputs = this.consumeThroughputs[ replicaIndex ];
+            final long[] currInboundThroughputs = this.inboundThroughputs[ replicaIndex ];
 
-            for ( int i = 0; i < newConsumeThroughputs.length; i++ )
+            for ( int i = 0; i < newInboundThroughputs.length; i++ )
             {
-                snapshot.consumeThroughputs[ replicaIndex ][ i ] = newConsumeThroughputs[ i ] - currConsumeThroughputs[ i ];
+                snapshot.inboundThroughputs[ replicaIndex ][ i ] = newInboundThroughputs[ i ] - currInboundThroughputs[ i ];
             }
 
-            arraycopy( newConsumeThroughputs, 0, currConsumeThroughputs, 0, consumedPortCount );
+            arraycopy( newInboundThroughputs, 0, currInboundThroughputs, 0, inputPortCount );
         }
     }
 
@@ -308,17 +307,12 @@ class PipelineMetrics
         for ( int replicaIndex = 0; replicaIndex < pipelineMeter.getReplicaCount(); replicaIndex++ )
         {
             final PipelineReplicaId pipelineReplicaId = pipelineMeter.getPipelineReplicaId( replicaIndex );
-            final long[] consumeThroughputs = snapshot.consumeThroughputs[ replicaIndex ];
+            final long[] inboundThroughput = snapshot.inboundThroughputs[ replicaIndex ];
             final double threadUtilizationRatio = snapshot.cpuUtilizationRatios[ replicaIndex ];
             final double pipelineCost = snapshot.pipelineCosts[ replicaIndex ];
             final double[] operatorCosts = snapshot.operatorCosts[ replicaIndex ];
 
-            visitor.handle( pipelineReplicaId,
-                            flowVersion,
-                            consumeThroughputs,
-                            threadUtilizationRatio,
-                            pipelineCost,
-                            operatorCosts );
+            visitor.handle( pipelineReplicaId, flowVersion, inboundThroughput, threadUtilizationRatio, pipelineCost, operatorCosts );
         }
     }
 
@@ -339,24 +333,23 @@ class PipelineMetrics
 
         private final int operatorCount;
 
-        private final int consumedPortCount;
+        private final int inputPortCount;
 
         private final double[] cpuUtilizationRatios;
 
-        private final long[][] consumeThroughputs;
+        private final long[][] inboundThroughputs;
 
         private final double[][] operatorCosts;
 
         private final double[] pipelineCosts;
 
-        PipelineMetricsSnapshot ( final int replicaCount,
-                                  final int operatorCount, final int consumedPortCount )
+        PipelineMetricsSnapshot ( final int replicaCount, final int operatorCount, final int inputPortCount )
         {
             this.replicaCount = replicaCount;
             this.operatorCount = operatorCount;
-            this.consumedPortCount = consumedPortCount;
+            this.inputPortCount = inputPortCount;
             this.cpuUtilizationRatios = new double[ replicaCount ];
-            this.consumeThroughputs = new long[ replicaCount ][ consumedPortCount ];
+            this.inboundThroughputs = new long[ replicaCount ][ inputPortCount ];
             this.operatorCosts = new double[ replicaCount ][ operatorCount ];
             this.pipelineCosts = new double[ replicaCount ];
         }
@@ -371,9 +364,9 @@ class PipelineMetrics
             return operatorCount;
         }
 
-        int getConsumedPortCount ()
+        int getInputPortCount ()
         {
-            return consumedPortCount;
+            return inputPortCount;
         }
 
         double getPipelineCost ( final int replicaIndex )
@@ -391,9 +384,9 @@ class PipelineMetrics
             return cpuUtilizationRatios[ replicaIndex ];
         }
 
-        long getConsumeThroughput ( final int replicaIndex, final int portIndex )
+        long getInboundThroughput ( final int replicaIndex, final int portIndex )
         {
-            return consumeThroughputs[ replicaIndex ][ portIndex ];
+            return inboundThroughputs[ replicaIndex ][ portIndex ];
         }
 
     }
@@ -403,8 +396,7 @@ class PipelineMetrics
     {
 
         void handle ( PipelineReplicaId pipelineReplicaId,
-                      int flowVersion,
-                      long[] consumeThroughputs,
+                      int flowVersion, long[] inboundThroughput,
                       double threadUtilizationRatio,
                       double pipelineCost,
                       double[] operatorCosts );

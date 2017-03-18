@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import com.typesafe.config.Config;
@@ -23,6 +24,7 @@ import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.region.impl.DefaultRegionExecutionPlanFactory;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.operator.InitializationContext;
 import cs.bilkent.joker.operator.InvocationContext;
 import cs.bilkent.joker.operator.Operator;
@@ -53,11 +55,12 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+@Ignore
 @Category( SlowTest.class )
 public class JokerDemo extends AbstractJokerTest
 {
 
-    private static final OperatorType MIDDLE_REGION_TYPE = STATELESS;
+    private static final OperatorType MIDDLE_REGION_TYPE = PARTITIONED_STATEFUL;
 
     private static final int KEY_RANGE = 1000;
 
@@ -133,6 +136,8 @@ public class JokerDemo extends AbstractJokerTest
     @Test
     public void testRegionRebalance () throws InterruptedException, ExecutionException, TimeoutException
     {
+        checkArgument( MIDDLE_REGION_TYPE == PARTITIONED_STATEFUL );
+
         FlowDef flow = flowExample.build();
 
         Joker joker = newJokerInstance();
@@ -167,7 +172,7 @@ public class JokerDemo extends AbstractJokerTest
     {
         for ( RegionExecutionPlan regionExecPlan : flowExecPlan.getRegionExecutionPlans() )
         {
-            if ( regionExecPlan.getRegionDef().getRegionType() == STATELESS )
+            if ( regionExecPlan.getRegionDef().getRegionType() == MIDDLE_REGION_TYPE )
             {
                 return regionExecPlan;
             }
