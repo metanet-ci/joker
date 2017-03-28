@@ -162,9 +162,12 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
         final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator2.class ).build();
         final OperatorDef stateless = OperatorDefBuilder.newInstance( "stateless", StatelessOperator1.class ).build();
 
-        final FlowDef flow = new FlowDefBuilder().add( stateful0 ).add( stateful1 )
+        final FlowDef flow = new FlowDefBuilder().add( stateful0 )
+                                                 .add( stateful1 )
                                                  .add( stateful2 )
-                                                 .add( stateless ).connect( "stateful0", "stateful1" ).connect( "stateful0", "stateful2" )
+                                                 .add( stateless )
+                                                 .connect( "stateful0", "stateful1" )
+                                                 .connect( "stateful0", "stateful2" )
                                                  .connect( "stateful1", "stateless" )
                                                  .connect( "stateful2", "stateless" )
                                                  .build();
@@ -196,8 +199,7 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
         final OperatorDef stateless = OperatorDefBuilder.newInstance( "stateless", StatelessOperator1.class ).build();
 
         final FlowDef flow = new FlowDefBuilder().add( stateful0 ).add( stateful1 )
-                                                 .add( stateful2 )
-                                                 .add( stateless ).connect( "stateful0", "stateless" )
+                                                 .add( stateful2 ).add( stateless ).connect( "stateful0", "stateless" )
                                                  .connect( "stateless", "stateful1" )
                                                  .connect( "stateless", "stateful2" )
                                                  .build();
@@ -233,8 +235,7 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
         final FlowDef flow = new FlowDefBuilder().add( stateful0 ).add( stateful1 )
                                                  .add( stateful2 )
                                                  .add( stateful3 )
-                                                 .add( stateless1 )
-                                                 .add( stateless2 ).connect( "stateful0", "stateful1" )
+                                                 .add( stateless1 ).add( stateless2 ).connect( "stateful0", "stateful1" )
                                                  .connect( "stateful1", "stateless1" )
                                                  .connect( "stateless1", "stateful2" )
                                                  .connect( "stateful2", "stateless2" )
@@ -323,8 +324,10 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
                                                         .setExtendingSchema( statelessSchema )
                                                         .build();
 
-        final FlowDef flow = new FlowDefBuilder().add( stateful ).add( partitionedStateful )
-                                                 .add( stateless ).connect( "stateful", "partitionedStateful" )
+        final FlowDef flow = new FlowDefBuilder().add( stateful )
+                                                 .add( partitionedStateful )
+                                                 .add( stateless )
+                                                 .connect( "stateful", "partitionedStateful" )
                                                  .connect( "partitionedStateful", "stateless" )
                                                  .build();
 

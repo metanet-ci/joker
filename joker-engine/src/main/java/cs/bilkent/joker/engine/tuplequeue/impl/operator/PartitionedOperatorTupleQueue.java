@@ -58,7 +58,9 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
 
     public PartitionedOperatorTupleQueue ( final String operatorId,
                                            final int inputPortCount,
-                                           final int partitionCount, final int replicaIndex, final int tupleQueueCapacity,
+                                           final int partitionCount,
+                                           final int replicaIndex,
+                                           final int tupleQueueCapacity,
                                            final PartitionKeyExtractor partitionKeyExtractor,
                                            final TupleQueueContainer[] tupleQueueContainers,
                                            final int[] partitions,

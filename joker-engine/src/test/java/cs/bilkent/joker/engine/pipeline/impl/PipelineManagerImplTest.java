@@ -153,8 +153,7 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatefulOperatorInput1Output1.class ).build();
         final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessOperatorInput1Output1.class ).build();
         final FlowDef flow = new FlowDefBuilder().add( operatorDef0 ).add( operatorDef1 )
-                                                 .add( operatorDef2 )
-                                                 .add( operatorDef3 ).connect( "op0", "op1" )
+                                                 .add( operatorDef2 ).add( operatorDef3 ).connect( "op0", "op1" )
                                                  .connect( "op1", "op2" )
                                                  .connect( "op1", "op3" )
                                                  .build();
@@ -169,9 +168,11 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( partitionedStatefulRegionDef, singletonList( 0 ), 2 );
         final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( statefulRegionDef1, singletonList( 0 ), 1 );
         final RegionExecutionPlan regionExecutionPlan3 = new RegionExecutionPlan( statelessRegionDef, singletonList( 0 ), 1 );
-        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, asList( regionExecutionPlan0, regionExecutionPlan1,
-                                                                                        regionExecutionPlan2,
-                                                                                        regionExecutionPlan3 ) );
+        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow,
+                                                                          asList( regionExecutionPlan0,
+                                                                                  regionExecutionPlan1,
+                                                                                  regionExecutionPlan2,
+                                                                                  regionExecutionPlan3 ) );
 
         assertEquals( 4, pipelines.size() );
 

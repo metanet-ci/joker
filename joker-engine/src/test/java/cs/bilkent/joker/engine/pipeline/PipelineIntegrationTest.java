@@ -193,7 +193,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                 .build();
 
         final PipelineReplicaMeter pipelineReplicaMeter = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
-                                                                                    pipelineReplicaId1, mapperOperatorDef );
+                                                                                    pipelineReplicaId1,
+                                                                                    mapperOperatorDef );
 
         final OperatorTupleQueue mapperOperatorTupleQueue = operatorTupleQueueManager.createDefaultOperatorTupleQueue( REGION_ID,
                                                                                                                        REPLICA_INDEX,
@@ -296,7 +297,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                .build();
 
         final PipelineReplicaMeter pipelineReplicaMeter = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
-                                                                                    pipelineReplicaId1, generatorOperatorDef );
+                                                                                    pipelineReplicaId1,
+                                                                                    generatorOperatorDef );
 
         final OperatorTupleQueue generatorOperatorTupleQueue = new EmptyOperatorTupleQueue( generatorOperatorDef.getId(),
                                                                                             generatorOperatorDef.getInputPortCount() );
@@ -599,7 +601,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                .build();
 
         final PipelineReplicaMeter pipelineReplicaMeter3 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
-                                                                                     pipelineReplicaId3, sinkOperatorDef );
+                                                                                     pipelineReplicaId3,
+                                                                                     sinkOperatorDef );
 
         final OperatorTupleQueue sinkOperatorTupleQueue = operatorTupleQueueManager.createDefaultOperatorTupleQueue( REGION_ID,
                                                                                                                      REPLICA_INDEX,
@@ -728,7 +731,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                 .build();
 
         final PipelineReplicaMeter pipelineReplicaMeter1 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
-                                                                                     pipelineReplicaId1, generatorOperatorDef );
+                                                                                     pipelineReplicaId1,
+                                                                                     generatorOperatorDef );
 
         final OperatorTupleQueue generatorOperatorTupleQueue = new EmptyOperatorTupleQueue( generatorOperatorDef.getId(),
                                                                                             generatorOperatorDef.getInputPortCount() );

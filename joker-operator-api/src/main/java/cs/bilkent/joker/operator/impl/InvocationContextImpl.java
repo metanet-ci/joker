@@ -33,7 +33,9 @@ public class InvocationContextImpl implements InvocationContext
     }
 
     public void setInvocationParameters ( final InvocationReason reason,
-                                          final TuplesImpl input, final TuplesImpl output, final List<Object> partitionKey,
+                                          final TuplesImpl input,
+                                          final TuplesImpl output,
+                                          final List<Object> partitionKey,
                                           final KVStore kvStore )
     {
         checkNotNull( reason );

@@ -87,8 +87,7 @@ public class PipelineOperatorPortCountsTest extends AbstractJokerTest
         final OperatorDef operator2 = OperatorDefBuilder.newInstance( "op2", StatefulDownstreamOperator.class ).setInputPortCount( 1 )
                                                         .build();
 
-        final FlowDef flow = new FlowDefBuilder().add( operator0 ).add( operator1 )
-                                                 .add( operator2 ).connect( "op0", 0, "op1", 0 )
+        final FlowDef flow = new FlowDefBuilder().add( operator0 ).add( operator1 ).add( operator2 ).connect( "op0", 0, "op1", 0 )
                                                  .connect( "op1", 0, "op2", 0 )
                                                  .connect( "op1", 1, "op2", 0 )
                                                  .build();
@@ -112,8 +111,7 @@ public class PipelineOperatorPortCountsTest extends AbstractJokerTest
         final OperatorDef operator2 = OperatorDefBuilder.newInstance( "op2", StatefulDownstreamOperator.class ).setInputPortCount( 2 )
                                                         .build();
 
-        final FlowDef flow = new FlowDefBuilder().add( operator0 ).add( operator1 )
-                                                 .add( operator2 ).connect( "op0", "op1" )
+        final FlowDef flow = new FlowDefBuilder().add( operator0 ).add( operator1 ).add( operator2 ).connect( "op0", "op1" )
                                                  .connect( "op1", 0, "op2", 0 )
                                                  .connect( "op1", 0, "op2", 1 )
                                                  .build();

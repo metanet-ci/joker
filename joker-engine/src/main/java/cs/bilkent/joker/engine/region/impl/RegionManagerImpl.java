@@ -142,7 +142,8 @@ public class RegionManagerImpl implements RegionManager
             for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
             {
                 replicaMeters[ replicaIndex ] = new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(),
-                                                                          pipelineReplicaIds[ replicaIndex ], operatorDefs[ 0 ] );
+                                                                          pipelineReplicaIds[ replicaIndex ],
+                                                                          operatorDefs[ 0 ] );
             }
 
             for ( int operatorIndex = 0; operatorIndex < operatorCount; operatorIndex++ )
@@ -314,7 +315,9 @@ public class RegionManagerImpl implements RegionManager
         }
 
         LOGGER.info( "Rebalancing regionId={} to new replica count: {} from current replica count: {}",
-                     regionId, newReplicaCount, regionExecutionPlan.getReplicaCount() );
+                     regionId,
+                     newReplicaCount,
+                     regionExecutionPlan.getReplicaCount() );
 
         drainPipelineTupleQueues( region );
 
@@ -433,8 +436,7 @@ public class RegionManagerImpl implements RegionManager
                                                                                  inputPortCount,
                                                                                  newReplicaCount );
 
-                LOGGER.info( "Rebalancing regionId={} {} operator: {} to {} replicas",
-                             regionId, STATELESS, operatorDef.getId(),
+                LOGGER.info( "Rebalancing regionId={} {} operator: {} to {} replicas", regionId, STATELESS, operatorDef.getId(),
                              newReplicaCount );
 
                 if ( newReplicaCount > currentReplicaCount )
@@ -445,8 +447,7 @@ public class RegionManagerImpl implements RegionManager
                         final ThreadingPreference threadingPreference = getThreadingPreference( isFirstOperator );
                         LOGGER.info( "Creating {} {} for regionId={} replicaIndex={} operatorId={}",
                                      threadingPreference,
-                                     DefaultOperatorTupleQueue.class.getSimpleName(),
-                                     regionId, replicaIndex, operatorDef.getId() );
+                                     DefaultOperatorTupleQueue.class.getSimpleName(), regionId, replicaIndex, operatorDef.getId() );
                         operatorTupleQueueManager.createDefaultOperatorTupleQueue( regionId,
                                                                                    replicaIndex,
                                                                                    operatorDef,
@@ -572,7 +573,8 @@ public class RegionManagerImpl implements RegionManager
                 final OperatorReplica[] operatorReplicas = new OperatorReplica[ operatorCount ];
                 final PipelineReplicaId pipelineReplicaId = new PipelineReplicaId( new PipelineId( regionId, pipelineId ), replicaIndex );
                 final PipelineReplicaMeter replicaMeter = new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(),
-                                                                                    pipelineReplicaId, operatorDefs[ 0 ] );
+                                                                                    pipelineReplicaId,
+                                                                                    operatorDefs[ 0 ] );
                 for ( int operatorIndex = 0; operatorIndex < operatorCount; operatorIndex++ )
                 {
                     final OperatorDef operatorDef = operatorDefs[ operatorIndex ];
@@ -643,7 +645,10 @@ public class RegionManagerImpl implements RegionManager
                     operatorReplicas[ operatorIndex ] = new OperatorReplica( pipelineReplicaId,
                                                                              operatorDef,
                                                                              operatorTupleQueue,
-                                                                             operatorKVStore, drainerPool, outputSupplier, replicaMeter );
+                                                                             operatorKVStore,
+                                                                             drainerPool,
+                                                                             outputSupplier,
+                                                                             replicaMeter );
                 }
 
                 final OperatorTupleQueue pipelineTupleQueue = createPipelineTupleQueue( flow, regionId, replicaIndex, operatorReplicas );
@@ -974,9 +979,10 @@ public class RegionManagerImpl implements RegionManager
 
     private Supplier<TuplesImpl> createOutputSupplier ( final OperatorDef operatorDef, final boolean isLastOperator )
     {
-        return isLastOperator ? TuplesImplSupplierUtils.newInstance( pipelineTailOperatorOutputSupplierClass,
-                                                                     operatorDef.getOutputPortCount() )
-                              : new CachedTuplesImplSupplier( operatorDef.getOutputPortCount() );
+        return isLastOperator
+               ? TuplesImplSupplierUtils.newInstance( pipelineTailOperatorOutputSupplierClass,
+                                                      operatorDef.getOutputPortCount() )
+               : new CachedTuplesImplSupplier( operatorDef.getOutputPortCount() );
 
     }
 
@@ -998,7 +1004,9 @@ public class RegionManagerImpl implements RegionManager
             if ( firstOperatorDef.getOperatorType() == PARTITIONED_STATEFUL )
             {
                 LOGGER.info( "Creating {} for pipeline tuple queue of regionId={} for pipeline operator={}",
-                             DefaultOperatorTupleQueue.class.getSimpleName(), regionId, firstOperatorDef.getId() );
+                             DefaultOperatorTupleQueue.class.getSimpleName(),
+                             regionId,
+                             firstOperatorDef.getId() );
                 return operatorTupleQueueManager.createDefaultOperatorTupleQueue( regionId,
                                                                                   replicaIndex,
                                                                                   firstOperatorDef,
@@ -1007,7 +1015,9 @@ public class RegionManagerImpl implements RegionManager
             else
             {
                 LOGGER.info( "Creating {} for pipeline tuple queue of regionId={} as first operator is {}",
-                             EmptyOperatorTupleQueue.class.getSimpleName(), regionId, firstOperatorDef.getOperatorType() );
+                             EmptyOperatorTupleQueue.class.getSimpleName(),
+                             regionId,
+                             firstOperatorDef.getOperatorType() );
                 return new EmptyOperatorTupleQueue( firstOperatorDef.getId(), firstOperatorDef.getInputPortCount() );
             }
         }

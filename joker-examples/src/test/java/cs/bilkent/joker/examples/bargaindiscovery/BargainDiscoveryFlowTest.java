@@ -58,7 +58,8 @@ public class BargainDiscoveryFlowTest extends AbstractJokerTest
                           .addOutputField( 0, TIMESTAMP_FIELD, Long.class );
 
         flowBuilder.add( OperatorDefBuilder.newInstance( "cvwap", MapperOperator.class )
-                                           .setConfig( cvwapConfig ).setExtendingSchema( cvwapSchemaBuilder.build() ) );
+                                           .setConfig( cvwapConfig )
+                                           .setExtendingSchema( cvwapSchemaBuilder.build() ) );
 
         final OperatorDefBuilder bargainIndexOperatorBuilder = OperatorDefBuilder.newInstance( "bargainIndex", BargainIndexOperator.class )
                                                                                  .setPartitionFieldNames( singletonList(

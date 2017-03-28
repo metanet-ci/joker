@@ -82,9 +82,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
                                         id,
                                         new OperatorReplica[] { operator },
                                         mock( OperatorTupleQueue.class ),
-                                        new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(),
-                                                                  id,
-                                                                  operatorDef ) );
+                                        new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(), id, operatorDef ) );
         pipeline.init( upstreamContext );
         runner = new PipelineReplicaRunner( config, pipeline, supervisor, downstreamTupleSender );
 

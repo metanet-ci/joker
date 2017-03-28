@@ -74,8 +74,7 @@ public class RegionDefFormerImplAllRegionsTest extends AbstractJokerTest
          * O1 -----> O2
          */
 
-        final OperatorDef operator1 = OperatorDefBuilder.newInstance( "o1", DoubleOutputPortOperator.class )
-                                                        .build();
+        final OperatorDef operator1 = OperatorDefBuilder.newInstance( "o1", DoubleOutputPortOperator.class ).build();
         final OperatorRuntimeSchemaBuilder mapperSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
         mapperSchema.addInputField( 0, "f", Integer.class );
         final OperatorDef operator2 = OperatorDefBuilder.newInstance( "o2", MapperOperator.class )
@@ -149,7 +148,7 @@ public class RegionDefFormerImplAllRegionsTest extends AbstractJokerTest
 
     @OperatorSpec( type = STATEFUL, inputPortCount = 0, outputPortCount = 2 )
     @OperatorSchema( outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "f", type = Integer.class ) } ),
-                                                                                                                                                                    @PortSchema( portIndex = 1, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "f", type = Integer.class ) } ) } )
+                                 @PortSchema( portIndex = 1, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "f", type = Integer.class ) } ) } )
     private static class DoubleOutputPortOperator implements Operator
     {
 

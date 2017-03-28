@@ -395,8 +395,7 @@ class PipelineMetrics
     interface PipelineMetricsVisitor
     {
 
-        void handle ( PipelineReplicaId pipelineReplicaId,
-                      int flowVersion, long[] inboundThroughput,
+        void handle ( PipelineReplicaId pipelineReplicaId, int flowVersion, long[] inboundThroughput,
                       double threadUtilizationRatio,
                       double pipelineCost,
                       double[] operatorCosts );

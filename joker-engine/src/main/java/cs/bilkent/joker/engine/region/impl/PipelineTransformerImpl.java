@@ -440,7 +440,10 @@ public class PipelineTransformerImpl implements PipelineTransformer
                     if ( firstOperatorDef.getOperatorType() == PARTITIONED_STATEFUL )
                     {
                         LOGGER.info( "Creating {} for pipeline tuple queue of regionId={} replicaIndex={} for pipeline operator={}",
-                                     DefaultOperatorTupleQueue.class.getSimpleName(), regionId, replicaIndex, firstOperatorDef.getId() );
+                                     DefaultOperatorTupleQueue.class.getSimpleName(),
+                                     regionId,
+                                     replicaIndex,
+                                     firstOperatorDef.getId() );
                         pipelineTupleQueue = operatorTupleQueueManager.createDefaultOperatorTupleQueue( regionId,
                                                                                                         replicaIndex,
                                                                                                         firstOperatorDef,

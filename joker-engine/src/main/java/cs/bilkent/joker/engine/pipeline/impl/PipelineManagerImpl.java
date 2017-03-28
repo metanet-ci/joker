@@ -343,7 +343,9 @@ public class PipelineManagerImpl implements PipelineManager
     private Collection<Pipeline> getDownstreamPipelines ( final Pipeline upstreamPipeline )
     {
         return flow.getOutboundConnections( upstreamPipeline.getLastOperatorDef().getId() )
-                   .values().stream().flatMap( ports -> ports.stream().map( Port::getOperatorId ) )
+                   .values()
+                   .stream()
+                   .flatMap( ports -> ports.stream().map( Port::getOperatorId ) )
                    .distinct()
                    .map( flow::getOperator )
                    .map( this::getPipelineByFirstOperatorOrFail )

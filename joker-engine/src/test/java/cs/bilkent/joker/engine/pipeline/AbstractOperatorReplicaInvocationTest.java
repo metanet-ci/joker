@@ -74,8 +74,13 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
     public void before ()
     {
         final PipelineReplicaId pipelineReplicaId = new PipelineReplicaId( new PipelineId( 0, 0 ), 0 );
-        operatorReplica = new OperatorReplica( pipelineReplicaId, operatorDef, queue, operatorKvStore,
-                                               drainerPool, outputSupplier, mock( PipelineReplicaMeter.class ),
+        operatorReplica = new OperatorReplica( pipelineReplicaId,
+                                               operatorDef,
+                                               queue,
+                                               operatorKvStore,
+                                               drainerPool,
+                                               outputSupplier,
+                                               mock( PipelineReplicaMeter.class ),
                                                invocationContext );
 
         applyDefaultMocks();
