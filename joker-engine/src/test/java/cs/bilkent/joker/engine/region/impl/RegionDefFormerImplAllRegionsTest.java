@@ -21,8 +21,9 @@ import cs.bilkent.joker.operator.schema.annotation.SchemaField;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
 import cs.bilkent.joker.operator.spec.OperatorType;
-import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
+import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
+import cs.bilkent.joker.operators.BeaconOperator;
 import cs.bilkent.joker.operators.MapperOperator;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Arrays.asList;
@@ -45,19 +46,23 @@ public class RegionDefFormerImplAllRegionsTest extends AbstractJokerTest
     public void testFlowWithSingleOperatorSequence ()
     {
         /*
-         * O1 --> O2
+         * O1 --> O2 --> O3
          */
 
-        final OperatorDef operator1 = OperatorDefBuilder.newInstance( "o1", MapperOperator.class ).build();
+        final OperatorDef operator1 = OperatorDefBuilder.newInstance( "o1", BeaconOperator.class ).build();
         final OperatorDef operator2 = OperatorDefBuilder.newInstance( "o2", MapperOperator.class ).build();
+        final OperatorDef operator3 = OperatorDefBuilder.newInstance( "o3", MapperOperator.class ).build();
         flowBuilder.add( operator1 );
         flowBuilder.add( operator2 );
+        flowBuilder.add( operator3 );
         flowBuilder.connect( "o1", "o2" );
+        flowBuilder.connect( "o2", "o3" );
         final FlowDef flow = flowBuilder.build();
 
         final List<RegionDef> regions = regionFormer.createRegions( flow );
-        assertThat( regions, hasSize( 1 ) );
-        assertRegion( regions.get( 0 ), STATELESS, emptyList(), asList( operator1, operator2 ) );
+        assertThat( regions, hasSize( 2 ) );
+        assertRegion( regions.get( 0 ), STATEFUL, emptyList(), singletonList( operator1 ) );
+        assertRegion( regions.get( 1 ), STATELESS, emptyList(), asList( operator2, operator3 ) );
     }
 
     @Test
@@ -70,7 +75,6 @@ public class RegionDefFormerImplAllRegionsTest extends AbstractJokerTest
          */
 
         final OperatorDef operator1 = OperatorDefBuilder.newInstance( "o1", DoubleOutputPortOperator.class )
-                                                        .setPartitionFieldNames( singletonList( "f" ) )
                                                         .build();
         final OperatorRuntimeSchemaBuilder mapperSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
         mapperSchema.addInputField( 0, "f", Integer.class );
@@ -83,8 +87,9 @@ public class RegionDefFormerImplAllRegionsTest extends AbstractJokerTest
         final FlowDef flow = flowBuilder.build();
 
         final List<RegionDef> regions = regionFormer.createRegions( flow );
-        assertThat( regions, hasSize( 1 ) );
-        assertRegion( regions.get( 0 ), PARTITIONED_STATEFUL, singletonList( "f" ), asList( operator1, operator2 ) );
+        assertThat( regions, hasSize( 2 ) );
+        assertRegion( regions.get( 0 ), STATEFUL, emptyList(), singletonList( operator1 ) );
+        assertRegion( regions.get( 1 ), STATELESS, emptyList(), singletonList( operator2 ) );
     }
 
     @Test
@@ -98,7 +103,7 @@ public class RegionDefFormerImplAllRegionsTest extends AbstractJokerTest
          *
          */
 
-        final OperatorDef operator1 = OperatorDefBuilder.newInstance( "o1", MapperOperator.class ).build();
+        final OperatorDef operator1 = OperatorDefBuilder.newInstance( "o1", BeaconOperator.class ).build();
         final OperatorDef operator2 = OperatorDefBuilder.newInstance( "o2", MapperOperator.class ).build();
         final OperatorDef operator3 = OperatorDefBuilder.newInstance( "o3", MapperOperator.class ).build();
         final OperatorDef operator4 = OperatorDefBuilder.newInstance( "o4", MapperOperator.class ).build();
@@ -112,8 +117,9 @@ public class RegionDefFormerImplAllRegionsTest extends AbstractJokerTest
 
         final FlowDef flow = flowBuilder.build();
         final List<RegionDef> regions = regionFormer.createRegions( flow );
-        assertThat( regions, hasSize( 3 ) );
-        assertRegionExists( regions, STATELESS, emptyList(), asList( operator1, operator2 ) );
+        assertThat( regions, hasSize( 4 ) );
+        assertRegionExists( regions, STATEFUL, emptyList(), singletonList( operator1 ) );
+        assertRegionExists( regions, STATELESS, emptyList(), singletonList( operator2 ) );
         assertRegionExists( regions, STATELESS, emptyList(), singletonList( operator3 ) );
         assertRegionExists( regions, STATELESS, emptyList(), singletonList( operator4 ) );
     }
@@ -141,8 +147,8 @@ public class RegionDefFormerImplAllRegionsTest extends AbstractJokerTest
         fail();
     }
 
-    @OperatorSpec( type = PARTITIONED_STATEFUL, inputPortCount = 1, outputPortCount = 2 )
-    @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "f", type = Integer.class ) } ) }, outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "f", type = Integer.class ) } ),
+    @OperatorSpec( type = STATEFUL, inputPortCount = 0, outputPortCount = 2 )
+    @OperatorSchema( outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "f", type = Integer.class ) } ),
                                                                                                                                                                     @PortSchema( portIndex = 1, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "f", type = Integer.class ) } ) } )
     private static class DoubleOutputPortOperator implements Operator
     {

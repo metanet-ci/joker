@@ -35,8 +35,8 @@ import static cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.FlowExam
 import static cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.assertBlockingTupleQueueDrainerPool;
 import static cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.assertCachedTuplesImplSupplier;
 import static cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.assertDefaultOperatorTupleQueue;
+import static cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.assertEmptyOperatorKVStore;
 import static cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.assertEmptySelfPipelineTupleQueue;
-import static cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.assertEmptytOperatorKVStore;
 import static cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.assertLastOperatorOutputSupplier;
 import static cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.assertNonBlockingTupleQueueDrainerPool;
 import static cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.assertOperatorDef;
@@ -165,7 +165,7 @@ public class RegionRebalancingTest extends AbstractJokerTest
             final OperatorReplica operatorReplica1 = pipeline0.getOperator( 0 );
             assertOperatorDef( operatorReplica1, flowExample6.operatorDef1 );
             assertDefaultOperatorTupleQueue( operatorReplica1, flowExample6.operatorDef1.getInputPortCount(), MULTI_THREADED );
-            assertEmptytOperatorKVStore( operatorReplica1 );
+            assertEmptyOperatorKVStore( operatorReplica1 );
             assertBlockingTupleQueueDrainerPool( operatorReplica1 );
             assertLastOperatorOutputSupplier( config, operatorReplica1 );
 
@@ -179,7 +179,7 @@ public class RegionRebalancingTest extends AbstractJokerTest
             final OperatorReplica operatorReplica3 = pipeline1.getOperator( 1 );
             assertOperatorDef( operatorReplica3, flowExample6.operatorDef3 );
             assertDefaultOperatorTupleQueue( operatorReplica3, flowExample6.operatorDef3.getInputPortCount(), SINGLE_THREADED );
-            assertEmptytOperatorKVStore( operatorReplica3 );
+            assertEmptyOperatorKVStore( operatorReplica3 );
             assertNonBlockingTupleQueueDrainerPool( operatorReplica3 );
             assertLastOperatorOutputSupplier( config, operatorReplica3 );
         }

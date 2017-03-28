@@ -15,6 +15,8 @@ import cs.bilkent.joker.engine.config.FlowDefOptimizerConfig;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
+import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import cs.bilkent.joker.engine.region.FlowDefOptimizer;
 import cs.bilkent.joker.engine.region.Region;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
@@ -29,6 +31,7 @@ import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAny;
+import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
@@ -71,76 +74,80 @@ public class PipelineOperatorPortCountsTest extends AbstractJokerTest
     @Test
     public void shouldInitializePipelineWhenUpstreamOperatorOutputPortsAreBiggerThanDownstreamOperatorInputPorts ()
     {
-        final int upstreamOutputPortCount = 2;
-        final int downstreamInputPortCount = 1;
+        final OperatorDef operator0 = OperatorDefBuilder.newInstance( "op0", StatelessUpstreamOperator.class )
+                                                        .setInputPortCount( 0 )
+                                                        .setOutputPortCount( 1 )
+                                                        .build();
 
         final OperatorDef operator1 = OperatorDefBuilder.newInstance( "op1", StatelessUpstreamOperator.class )
-                                                        .setOutputPortCount( upstreamOutputPortCount )
+                                                        .setInputPortCount( 1 )
+                                                        .setOutputPortCount( 2 )
                                                         .build();
 
-        final OperatorDef operator2 = OperatorDefBuilder.newInstance( "op2", StatefulDownstreamOperator.class )
-                                                        .setInputPortCount( downstreamInputPortCount )
+        final OperatorDef operator2 = OperatorDefBuilder.newInstance( "op2", StatefulDownstreamOperator.class ).setInputPortCount( 1 )
                                                         .build();
 
-        final FlowDef flow = new FlowDefBuilder().add( operator1 )
-                                                 .add( operator2 )
+        final FlowDef flow = new FlowDefBuilder().add( operator0 ).add( operator1 )
+                                                 .add( operator2 ).connect( "op0", 0, "op1", 0 )
                                                  .connect( "op1", 0, "op2", 0 )
                                                  .connect( "op1", 1, "op2", 0 )
                                                  .build();
 
-        testPipelineInitialization( flow );
+        testPipelineInitialization( flow, new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE, CLOSED } ) );
     }
 
     @Test
     public void shouldInitializePipelineWhenUpstreamOperatorOutputPortsAreSmallerThanDownstreamOperatorInputPorts ()
     {
-        final int upstreamOutputPortCount = 1;
-        final int downstreamInputPortCount = 2;
+        final OperatorDef operator0 = OperatorDefBuilder.newInstance( "op0", StatelessUpstreamOperator.class )
+                                                        .setInputPortCount( 0 )
+                                                        .setOutputPortCount( 1 )
+                                                        .build();
 
         final OperatorDef operator1 = OperatorDefBuilder.newInstance( "op1", StatelessUpstreamOperator.class )
-                                                        .setOutputPortCount( upstreamOutputPortCount )
+                                                        .setInputPortCount( 1 )
+                                                        .setOutputPortCount( 1 )
                                                         .build();
 
-        final OperatorDef operator2 = OperatorDefBuilder.newInstance( "op2", StatefulDownstreamOperator.class )
-                                                        .setInputPortCount( downstreamInputPortCount )
+        final OperatorDef operator2 = OperatorDefBuilder.newInstance( "op2", StatefulDownstreamOperator.class ).setInputPortCount( 2 )
                                                         .build();
 
-        final FlowDef flow = new FlowDefBuilder().add( operator1 )
-                                                 .add( operator2 )
+        final FlowDef flow = new FlowDefBuilder().add( operator0 ).add( operator1 )
+                                                 .add( operator2 ).connect( "op0", "op1" )
                                                  .connect( "op1", 0, "op2", 0 )
                                                  .connect( "op1", 0, "op2", 1 )
                                                  .build();
 
-        testPipelineInitialization( flow );
+        testPipelineInitialization( flow, new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE, CLOSED } ) );
     }
 
-    private void testPipelineInitialization ( final FlowDef flow )
+    private void testPipelineInitialization ( final FlowDef flow, final UpstreamContext upstreamContext )
     {
         final Pair<FlowDef, List<RegionDef>> result = flowDefOptimizer.optimize( flow, regionDefFormer.createRegions( flow ) );
         final List<RegionDef> regionDefs = result._2;
 
-        assertThat( regionDefs, hasSize( 1 ) );
+        assertThat( regionDefs, hasSize( 2 ) );
 
-        final RegionDef regionDef = regionDefs.get( 0 );
+        final RegionDef regionDef = regionDefs.get( 1 );
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 1 );
 
-        final Region region = regionManager.createRegion( flow, regionExecutionPlan );
+        final Region region = regionManager.createRegion( result._1, regionExecutionPlan );
         final PipelineReplica[] pipelineReplicas = region.getPipelineReplicas( 0 );
         final Pipeline pipeline = new Pipeline( pipelineReplicas[ 0 ].id().pipelineId, regionExecutionPlan, pipelineReplicas );
-        pipeline.setUpstreamContext( new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ) );
+        pipeline.setUpstreamContext( upstreamContext );
         pipeline.init();
 
         assertThat( pipelineReplicas[ 0 ].getStatus(), equalTo( OperatorReplicaStatus.RUNNING ) );
     }
 
-    @OperatorSpec( type = STATELESS, inputPortCount = 0 )
+    @OperatorSpec( type = STATELESS )
     public static class StatelessUpstreamOperator implements Operator
     {
 
         @Override
         public SchedulingStrategy init ( final InitializationContext context )
         {
-            return ScheduleWhenAvailable.INSTANCE;
+            return context.getInputPortCount() == 0 ? ScheduleWhenAvailable.INSTANCE : scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
 
         @Override

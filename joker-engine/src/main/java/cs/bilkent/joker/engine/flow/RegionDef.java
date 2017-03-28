@@ -164,6 +164,20 @@ public class RegionDef
     }
 
     /**
+     * Returns index of the given operator if it is present in the region, -1 otherwise
+     *
+     * @param operator
+     *         to get the index in the region
+     *
+     * @return index of the given operator if it is present in the region, -1 otherwise
+     */
+    public int indexOf ( final OperatorDef operator )
+    {
+        checkArgument( operator != null );
+        return operators.indexOf( operator );
+    }
+
+    /**
      * Returns id of the region
      *
      * @return id of the region
@@ -191,6 +205,19 @@ public class RegionDef
     public List<String> getPartitionFieldNames ()
     {
         return partitionFieldNames;
+    }
+
+    /**
+     * Returns the operator with the given index in the region
+     *
+     * @param index
+     *         in the region
+     *
+     * @return the operator with the given index in the region
+     */
+    public OperatorDef getOperator ( final int index )
+    {
+        return operators.get( index );
     }
 
     /**

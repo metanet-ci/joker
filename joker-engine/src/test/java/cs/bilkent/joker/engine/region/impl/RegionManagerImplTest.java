@@ -44,7 +44,9 @@ import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
-import cs.bilkent.joker.operator.spec.OperatorType;
+import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
+import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
+import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import cs.bilkent.joker.utils.Pair;
 import static java.util.Arrays.asList;
@@ -105,93 +107,16 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final PipelineReplica pipeline = pipelines[ 0 ];
         assertEmptyOperatorTupleQueue( pipeline, flowExample1.operatorDef0.getInputPortCount() );
 
-        assertStatelessPipelineWithNoInput( regionDef.getRegionId(), 0, 0, pipeline, flowExample1.operatorDef0, flowExample1.operatorDef1 );
-        assertPipelineReplicaMeter( pipeline );
-    }
-
-    @Test
-    public void test_statelessRegion_multiPipeline_singleReplica_noInputConnection ()
-    {
-        final FlowExample1 flowExample1 = new FlowExample1();
-
-        final List<RegionDef> regionDefs = regionDefFormer.createRegions( flowExample1.flow );
-        final RegionDef regionDef = regionDefs.get( 0 );
-        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, asList( 0, 1 ), 1 );
-
-        final Region region = regionManager.createRegion( flowExample1.flow, regionExecutionPlan );
-        assertNotNull( region );
-        final PipelineReplica[] pipelines = region.getReplicaPipelines( 0 );
-        assertEquals( 2, pipelines.length );
-        final PipelineReplica pipeline0 = pipelines[ 0 ];
-        final PipelineReplica pipeline1 = pipelines[ 1 ];
-        assertEmptyOperatorTupleQueue( pipeline0, flowExample1.operatorDef0.getInputPortCount() );
-        assertEmptySelfPipelineTupleQueue( pipeline0 );
-        assertDefaultOperatorTupleQueue( pipeline1, flowExample1.operatorDef1.getInputPortCount() );
-        assertEmptySelfPipelineTupleQueue( pipeline1 );
-
-        assertEquals( new PipelineReplicaId( new PipelineId( regionDef.getRegionId(), 0 ), 0 ), pipeline0.id() );
-        assertEquals( new PipelineReplicaId( new PipelineId( regionDef.getRegionId(), 1 ), 0 ), pipeline1.id() );
-        assertEquals( 1, pipeline0.getOperatorCount() );
-        assertEquals( 1, pipeline1.getOperatorCount() );
-        final OperatorReplica operatorReplica0 = pipeline0.getOperator( 0 );
-        final OperatorReplica operatorReplica1 = pipeline1.getOperator( 0 );
+        assertEquals( new PipelineReplicaId( new PipelineId( regionDef.getRegionId(), 0 ), 0 ), pipeline.id() );
+        assertEquals( 1, pipeline.getOperatorCount() );
+        final OperatorReplica operatorReplica0 = pipeline.getOperator( 0 );
         assertOperatorDef( operatorReplica0, flowExample1.operatorDef0 );
-        assertOperatorDef( operatorReplica1, flowExample1.operatorDef1 );
         assertEmptyOperatorTupleQueue( operatorReplica0 );
-        assertDefaultOperatorTupleQueue( operatorReplica1, flowExample1.operatorDef1.getInputPortCount(), MULTI_THREADED );
-        assertEmptytOperatorKVStore( operatorReplica0 );
-        assertEmptytOperatorKVStore( operatorReplica1 );
-        assertBlockingTupleQueueDrainerPool( operatorReplica0 );
-        assertBlockingTupleQueueDrainerPool( operatorReplica1 );
+        assertEmptyOperatorKVStore( operatorReplica0 );
+        assertNonBlockingTupleQueueDrainerPool( operatorReplica0 );
         assertLastOperatorOutputSupplier( config, operatorReplica0 );
-        assertLastOperatorOutputSupplier( config, operatorReplica1 );
 
-        assertPipelineReplicaMeter( pipeline0 );
-        assertPipelineReplicaMeter( pipeline1 );
-        assertNotEquals( pipeline0.getMeter(), pipeline1.getMeter() );
-    }
-
-    @Test
-    public void test_release_statelessRegion_multiPipeline_singleReplica_noInputConnection ()
-    {
-        final FlowExample1 flowExample1 = new FlowExample1();
-
-        final List<RegionDef> regionDefs = regionDefFormer.createRegions( flowExample1.flow );
-        final RegionDef regionDef = regionDefs.get( 0 );
-        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, asList( 0, 1 ), 1 );
-
-        final Region region = regionManager.createRegion( flowExample1.flow, regionExecutionPlan );
-
-        assertNotNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(),
-                                                                               0,
-                                                                               flowExample1.operatorDef1.getId() ) );
-
-        regionManager.releaseRegion( region.getRegionId() );
-
-        assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample1.operatorDef1.getId() ) );
-    }
-
-    private void assertStatelessPipelineWithNoInput ( final int regionId,
-                                                      final int replicaIndex,
-                                                      final int pipelineId,
-                                                      final PipelineReplica pipelineReplica,
-                                                      final OperatorDef operatorDef0,
-                                                      final OperatorDef operatorDef1 )
-    {
-        assertEquals( new PipelineReplicaId( new PipelineId( regionId, pipelineId ), replicaIndex ), pipelineReplica.id() );
-        assertEquals( 2, pipelineReplica.getOperatorCount() );
-        final OperatorReplica operatorReplica0 = pipelineReplica.getOperator( 0 );
-        final OperatorReplica operatorReplica1 = pipelineReplica.getOperator( 1 );
-        assertOperatorDef( operatorReplica0, operatorDef0 );
-        assertOperatorDef( operatorReplica1, operatorDef1 );
-        assertEmptyOperatorTupleQueue( operatorReplica0 );
-        assertDefaultOperatorTupleQueue( operatorReplica1, operatorDef1.getInputPortCount(), SINGLE_THREADED );
-        assertEmptytOperatorKVStore( operatorReplica0 );
-        assertEmptytOperatorKVStore( operatorReplica1 );
-        assertBlockingTupleQueueDrainerPool( operatorReplica0 );
-        assertNonBlockingTupleQueueDrainerPool( operatorReplica1 );
-        assertCachedTuplesImplSupplier( operatorReplica0 );
-        assertLastOperatorOutputSupplier( config, operatorReplica1 );
+        assertPipelineReplicaMeter( pipeline );
     }
 
     @Test
@@ -219,8 +144,8 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertOperatorDef( operatorReplica2, flowExample2.operatorDef2 );
         assertDefaultOperatorTupleQueue( operatorReplica1, flowExample2.operatorDef1.getInputPortCount(), MULTI_THREADED );
         assertDefaultOperatorTupleQueue( operatorReplica2, flowExample2.operatorDef2.getInputPortCount(), SINGLE_THREADED );
-        assertEmptytOperatorKVStore( operatorReplica1 );
-        assertEmptytOperatorKVStore( operatorReplica2 );
+        assertEmptyOperatorKVStore( operatorReplica1 );
+        assertEmptyOperatorKVStore( operatorReplica2 );
         assertBlockingTupleQueueDrainerPool( operatorReplica1 );
         assertNonBlockingTupleQueueDrainerPool( operatorReplica2 );
         assertCachedTuplesImplSupplier( operatorReplica1 );
@@ -269,7 +194,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final FlowDef flow = result._1;
         final List<RegionDef> regionDefs = result._2;
 
-        final RegionDef regionDef = regionDefs.get( 0 );
+        final RegionDef regionDef = regionDefs.get( 1 );
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 1 );
 
         final Region region = regionManager.createRegion( flow, regionExecutionPlan );
@@ -277,22 +202,22 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final PipelineReplica[] pipelines = region.getReplicaPipelines( 0 );
         assertEquals( 1, pipelines.length );
         final PipelineReplica pipeline = pipelines[ 0 ];
-        assertEmptyOperatorTupleQueue( pipeline, flowExample3.operatorDef1.getInputPortCount() );
+        assertDefaultOperatorTupleQueue( pipeline, flowExample3.operatorDef1.getInputPortCount() );
         assertEmptySelfPipelineTupleQueue( pipeline );
 
         assertEquals( 2, pipeline.getOperatorCount() );
 
         final OperatorReplica operator0 = pipeline.getOperator( 0 );
-        assertOperatorDef( operator0, flowExample3.operatorDef0 );
-        assertEmptyOperatorTupleQueue( operator0 );
-        assertEmptytOperatorKVStore( operator0 );
+        assertOperatorDef( operator0, flowExample3.operatorDef1 );
+        assertDefaultOperatorTupleQueue( operator0, flowExample3.operatorDef1.getInputPortCount(), MULTI_THREADED );
+        assertDefaultOperatorKVStore( operator0 );
         assertBlockingTupleQueueDrainerPool( operator0 );
         assertCachedTuplesImplSupplier( operator0 );
 
         final OperatorReplica operator1 = pipeline.getOperator( 1 );
-        assertOperatorDef( operator1, flowExample3.operatorDef1 );
-        assertDefaultOperatorTupleQueue( operator1, flowExample3.operatorDef1.getInputPortCount(), SINGLE_THREADED );
-        assertDefaultOperatorKVStore( operator1 );
+        assertOperatorDef( operator1, flowExample3.operatorDef2 );
+        assertDefaultOperatorTupleQueue( operator1, flowExample3.operatorDef2.getInputPortCount(), SINGLE_THREADED );
+        assertEmptyOperatorKVStore( operator1 );
         assertNonBlockingTupleQueueDrainerPool( operator1 );
         assertLastOperatorOutputSupplier( config, operator1 );
 
@@ -309,7 +234,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final FlowDef flow = result._1;
         final List<RegionDef> regionDefs = result._2;
 
-        final RegionDef regionDef = regionDefs.get( 0 );
+        final RegionDef regionDef = regionDefs.get( 1 );
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 1 );
 
         final Region region = regionManager.createRegion( flow, regionExecutionPlan );
@@ -330,21 +255,28 @@ public class RegionManagerImplTest extends AbstractJokerTest
     {
         final FlowExample3 flowExample3 = new FlowExample3();
 
-        final List<RegionDef> regionDefs = regionDefFormer.createRegions( flowExample3.flow );
+        List<RegionDef> r = regionDefFormer.createRegions( flowExample3.flow );
+        Pair<FlowDef, List<RegionDef>> result = flowOptimizer.optimize( flowExample3.flow, r );
+        final List<RegionDef> regionDefs = result._2;
         final RegionDef regionDef = regionDefs.get( 1 );
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 1 );
 
-        final Region region = regionManager.createRegion( flowExample3.flow, regionExecutionPlan );
+        final Region region = regionManager.createRegion( result._1, regionExecutionPlan );
 
         assertNotNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(),
                                                                                0,
                                                                                flowExample3.operatorDef1.getId() ) );
         assertNotNull( operatorKVStoreManager.getDefaultOperatorKVStore( region.getRegionId(), flowExample3.operatorDef1.getId() ) );
 
+        assertNotNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(),
+                                                                               0,
+                                                                               flowExample3.operatorDef2.getId() ) );
+
         regionManager.releaseRegion( region.getRegionId() );
 
         assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample3.operatorDef1.getId() ) );
         assertNull( operatorKVStoreManager.getDefaultOperatorKVStore( region.getRegionId(), flowExample3.operatorDef1.getId() ) );
+        assertNull( operatorTupleQueueManager.getDefaultOperatorTupleQueue( region.getRegionId(), 0, flowExample3.operatorDef2.getId() ) );
     }
 
     @Test
@@ -464,7 +396,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final OperatorReplica operatorReplica1 = pipeline.getOperator( 0 );
         assertOperatorDef( operatorReplica1, flowExample5.operatorDef1 );
         assertDefaultOperatorTupleQueue( operatorReplica1, flowExample5.operatorDef1.getInputPortCount(), MULTI_THREADED );
-        assertEmptytOperatorKVStore( operatorReplica1 );
+        assertEmptyOperatorKVStore( operatorReplica1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica1 );
         assertCachedTuplesImplSupplier( operatorReplica1 );
 
@@ -504,7 +436,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
             final OperatorReplica operatorReplica1 = pipelineReplica0.getOperator( 0 );
             assertOperatorDef( operatorReplica1, flowExample5.operatorDef1 );
             assertDefaultOperatorTupleQueue( operatorReplica1, flowExample5.operatorDef1.getInputPortCount(), MULTI_THREADED );
-            assertEmptytOperatorKVStore( operatorReplica1 );
+            assertEmptyOperatorKVStore( operatorReplica1 );
             assertBlockingTupleQueueDrainerPool( operatorReplica1 );
             assertCachedTuplesImplSupplier( operatorReplica1 );
 
@@ -588,7 +520,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final OperatorReplica operatorReplica1 = pipeline0.getOperator( 0 );
         assertOperatorDef( operatorReplica1, flowExample6.operatorDef1 );
         assertDefaultOperatorTupleQueue( operatorReplica1, flowExample6.operatorDef1.getInputPortCount(), MULTI_THREADED );
-        assertEmptytOperatorKVStore( operatorReplica1 );
+        assertEmptyOperatorKVStore( operatorReplica1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica1 );
         assertLastOperatorOutputSupplier( config, operatorReplica1 );
 
@@ -602,7 +534,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final OperatorReplica operatorReplica3 = pipeline1.getOperator( 1 );
         assertOperatorDef( operatorReplica3, flowExample6.operatorDef3 );
         assertDefaultOperatorTupleQueue( operatorReplica3, flowExample6.operatorDef3.getInputPortCount(), SINGLE_THREADED );
-        assertEmptytOperatorKVStore( operatorReplica3 );
+        assertEmptyOperatorKVStore( operatorReplica3 );
         assertNonBlockingTupleQueueDrainerPool( operatorReplica3 );
         assertLastOperatorOutputSupplier( config, operatorReplica3 );
 
@@ -639,7 +571,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final OperatorReplica operatorReplica1 = pipeline0.getOperator( 0 );
         assertOperatorDef( operatorReplica1, flowExample6.operatorDef1 );
         assertDefaultOperatorTupleQueue( operatorReplica1, flowExample6.operatorDef1.getInputPortCount(), MULTI_THREADED );
-        assertEmptytOperatorKVStore( operatorReplica1 );
+        assertEmptyOperatorKVStore( operatorReplica1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica1 );
         assertCachedTuplesImplSupplier( operatorReplica1 );
 
@@ -653,7 +585,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final OperatorReplica operatorReplica3 = pipeline1.getOperator( 0 );
         assertOperatorDef( operatorReplica3, flowExample6.operatorDef3 );
         assertDefaultOperatorTupleQueue( operatorReplica3, flowExample6.operatorDef3.getInputPortCount(), MULTI_THREADED );
-        assertEmptytOperatorKVStore( operatorReplica3 );
+        assertEmptyOperatorKVStore( operatorReplica3 );
         assertBlockingTupleQueueDrainerPool( operatorReplica3 );
         assertLastOperatorOutputSupplier( config, operatorReplica3 );
 
@@ -695,7 +627,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final OperatorReplica operatorReplica1 = pipeline0.getOperator( 0 );
         assertOperatorDef( operatorReplica1, flowExample6.operatorDef1 );
         assertDefaultOperatorTupleQueue( operatorReplica1, flowExample6.operatorDef1.getInputPortCount(), MULTI_THREADED );
-        assertEmptytOperatorKVStore( operatorReplica1 );
+        assertEmptyOperatorKVStore( operatorReplica1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica1 );
         assertLastOperatorOutputSupplier( config, operatorReplica1 );
 
@@ -709,7 +641,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final OperatorReplica operatorReplica3 = pipeline2.getOperator( 0 );
         assertOperatorDef( operatorReplica3, flowExample6.operatorDef3 );
         assertDefaultOperatorTupleQueue( operatorReplica3, flowExample6.operatorDef3.getInputPortCount(), MULTI_THREADED );
-        assertEmptytOperatorKVStore( operatorReplica3 );
+        assertEmptyOperatorKVStore( operatorReplica3 );
         assertBlockingTupleQueueDrainerPool( operatorReplica3 );
         assertLastOperatorOutputSupplier( config, operatorReplica3 );
 
@@ -784,7 +716,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertEquals( operatorReplica.getOperatorDef().getId(), operatorTupleQueue.getOperatorId() );
     }
 
-    static void assertEmptytOperatorKVStore ( final OperatorReplica operatorReplica )
+    static void assertEmptyOperatorKVStore ( final OperatorReplica operatorReplica )
     {
         assertTrue( operatorReplica.getOperatorKvStore() instanceof EmptyOperatorKVStore );
     }
@@ -824,22 +756,36 @@ public class RegionManagerImplTest extends AbstractJokerTest
                     equalTo( config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass() ) );
     }
 
-    @OperatorSpec( type = OperatorType.STATELESS, inputPortCount = 1, outputPortCount = 1 )
-    static class StatelessOperatorWithSingleInputOutputPortCount extends NopOperator
+    @OperatorSpec( type = STATELESS, inputPortCount = 1, outputPortCount = 1 )
+    static class StatelessOperatorWithSingleInputOutputPort extends NopOperator
     {
 
     }
 
 
-    @OperatorSpec( type = OperatorType.PARTITIONED_STATEFUL, inputPortCount = 2, outputPortCount = 1 )
-    static class PartitionedStatefulOperatorWithSingleInputOutputPortCount extends NopOperator
+    @OperatorSpec( type = STATELESS, inputPortCount = 0, outputPortCount = 1 )
+    static class StatelessOperatorWithZeroInputSingleOutputPort extends NopOperator
     {
 
     }
 
 
-    @OperatorSpec( type = OperatorType.STATEFUL, inputPortCount = 1, outputPortCount = 1 )
-    static class StatefulOperatorWithSingleInputOutputPortCount extends NopOperator
+    @OperatorSpec( type = PARTITIONED_STATEFUL, inputPortCount = 2, outputPortCount = 1 )
+    static class PartitionedStatefulOperatorWithSingleInputOutputPort extends NopOperator
+    {
+
+    }
+
+
+    @OperatorSpec( type = STATEFUL, inputPortCount = 1, outputPortCount = 1 )
+    static class StatefulOperatorWithSingleInputOutputPort extends NopOperator
+    {
+
+    }
+
+
+    @OperatorSpec( type = STATEFUL, inputPortCount = 0, outputPortCount = 1 )
+    static class StatefulOperatorWithZeroInputSingleOutputPort extends NopOperator
     {
 
     }
@@ -867,23 +813,19 @@ public class RegionManagerImplTest extends AbstractJokerTest
     static class FlowExample1
     {
 
-        final Class<StatelessOperatorWithSingleInputOutputPortCount> operatorClazz = StatelessOperatorWithSingleInputOutputPortCount.class;
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatelessOperatorWithZeroInputSingleOutputPort.class )
+                                                           .build();
 
-        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", operatorClazz ).build();
-
-        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", operatorClazz ).build();
-
-        final FlowDef flow = new FlowDefBuilder().add( operatorDef0 ).add( operatorDef1 ).connect( "op0", "op1" ).build();
-
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef0 ).build();
     }
 
 
     public static class FlowExample2
     {
 
-        final Class<StatelessOperatorWithSingleInputOutputPortCount> operatorClazz = StatelessOperatorWithSingleInputOutputPortCount.class;
+        final Class<StatelessOperatorWithSingleInputOutputPort> operatorClazz = StatelessOperatorWithSingleInputOutputPort.class;
 
-        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithSingleInputOutputPortCount.class )
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithZeroInputSingleOutputPort.class )
                                                            .build();
 
         final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", operatorClazz ).build();
@@ -903,13 +845,19 @@ public class RegionManagerImplTest extends AbstractJokerTest
     public static class FlowExample3
     {
 
-        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatelessOperatorWithSingleInputOutputPortCount.class )
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithZeroInputSingleOutputPort.class )
                                                            .build();
 
-        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatefulOperatorWithSingleInputOutputPortCount.class )
-                                                           .build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatefulOperatorWithSingleInputOutputPort.class ).build();
 
-        final FlowDef flow = new FlowDefBuilder().add( operatorDef0 ).add( operatorDef1 ).connect( "op0", "op1" ).build();
+        final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatelessOperatorWithSingleInputOutputPort.class ).build();
+
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef0 )
+                                                 .add( operatorDef1 )
+                                                 .add( operatorDef2 )
+                                                 .connect( "op0", "op1" )
+                                                 .connect( "op1", "op2" )
+                                                 .build();
 
     }
 
@@ -917,7 +865,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
     static class FlowExample4
     {
 
-        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 1, 1 );
+        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 0, 1 );
 
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder1 = new OperatorRuntimeSchemaBuilder( 2, 1 );
 
@@ -927,16 +875,16 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final FlowDef flow;
 
-        public FlowExample4 ()
+        FlowExample4 ()
         {
-            operatorRuntimeSchemaBuilder0.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field2", Integer.class );
+            operatorRuntimeSchemaBuilder0.addOutputField( 0, "field2", Integer.class );
             operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class )
                                          .addInputField( 1, "field2", Integer.class )
                                          .addOutputField( 0, "field3", Integer.class );
-            operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithSingleInputOutputPortCount.class )
+            operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithZeroInputSingleOutputPort.class )
                                              .setExtendingSchema( operatorRuntimeSchemaBuilder0 )
                                              .build();
-            operatorDef1 = OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorWithSingleInputOutputPortCount.class )
+            operatorDef1 = OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorWithSingleInputOutputPort.class )
                                              .setExtendingSchema( operatorRuntimeSchemaBuilder1 )
                                              .setPartitionFieldNames( singletonList( "field2" ) )
                                              .build();
@@ -950,7 +898,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
     static class FlowExample5
     {
 
-        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 1, 1 );
+        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 0, 1 );
 
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder1 = new OperatorRuntimeSchemaBuilder( 1, 1 );
 
@@ -964,20 +912,20 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final FlowDef flow;
 
-        public FlowExample5 ()
+        FlowExample5 ()
         {
-            operatorRuntimeSchemaBuilder0.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field2", Integer.class );
+            operatorRuntimeSchemaBuilder0.addOutputField( 0, "field2", Integer.class );
             operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class ).addOutputField( 0, "field2", Integer.class );
             operatorRuntimeSchemaBuilder2.addInputField( 0, "field2", Integer.class )
                                          .addInputField( 1, "field2", Integer.class )
                                          .addOutputField( 0, "field3", Integer.class );
-            operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithSingleInputOutputPortCount.class )
+            operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithZeroInputSingleOutputPort.class )
                                              .setExtendingSchema( operatorRuntimeSchemaBuilder0 )
                                              .build();
-            operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithSingleInputOutputPortCount.class )
+            operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithSingleInputOutputPort.class )
                                              .setExtendingSchema( operatorRuntimeSchemaBuilder1 )
                                              .build();
-            operatorDef2 = OperatorDefBuilder.newInstance( "op2", PartitionedStatefulOperatorWithSingleInputOutputPortCount.class )
+            operatorDef2 = OperatorDefBuilder.newInstance( "op2", PartitionedStatefulOperatorWithSingleInputOutputPort.class )
                                              .setExtendingSchema( operatorRuntimeSchemaBuilder2 )
                                              .setPartitionFieldNames( singletonList( "field2" ) )
                                              .build();
@@ -997,7 +945,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final static String PARTITION_KEY_FIELD = "field2";
 
-        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 1, 1 );
+        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 0, 1 );
 
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder1 = new OperatorRuntimeSchemaBuilder( 1, 1 );
 
@@ -1015,9 +963,9 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final FlowDef flow;
 
-        public FlowExample6 ()
+        FlowExample6 ()
         {
-            operatorRuntimeSchemaBuilder0.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field2", Integer.class );
+            operatorRuntimeSchemaBuilder0.addOutputField( 0, "field2", Integer.class );
             operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class ).addOutputField( 0, "field2", Integer.class );
             operatorRuntimeSchemaBuilder2.addInputField( 0, "field2", Integer.class )
                                          .addInputField( 1, "field2", Integer.class )
@@ -1026,17 +974,17 @@ public class RegionManagerImplTest extends AbstractJokerTest
             operatorRuntimeSchemaBuilder3.addInputField( 0, "field2", Integer.class )
                                          .addInputField( 0, "field3", Integer.class )
                                          .addOutputField( 0, "field3", Integer.class );
-            operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithSingleInputOutputPortCount.class )
+            operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithZeroInputSingleOutputPort.class )
                                              .setExtendingSchema( operatorRuntimeSchemaBuilder0 )
                                              .build();
-            operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithSingleInputOutputPortCount.class )
+            operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessOperatorWithSingleInputOutputPort.class )
                                              .setExtendingSchema( operatorRuntimeSchemaBuilder1 )
                                              .build();
-            operatorDef2 = OperatorDefBuilder.newInstance( "op2", PartitionedStatefulOperatorWithSingleInputOutputPortCount.class )
+            operatorDef2 = OperatorDefBuilder.newInstance( "op2", PartitionedStatefulOperatorWithSingleInputOutputPort.class )
                                              .setExtendingSchema( operatorRuntimeSchemaBuilder2 )
                                              .setPartitionFieldNames( singletonList( PARTITION_KEY_FIELD ) )
                                              .build();
-            operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessOperatorWithSingleInputOutputPortCount.class )
+            operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessOperatorWithSingleInputOutputPort.class )
                                              .setExtendingSchema( operatorRuntimeSchemaBuilder3 )
                                              .build();
             flow = new FlowDefBuilder().add( operatorDef0 )

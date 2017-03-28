@@ -46,28 +46,32 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
 
     private final FlowDefOptimizerImpl flowOptimizer = new FlowDefOptimizerImpl( new JokerConfig(), idGenerator );
 
-    private final OperatorRuntimeSchemaBuilder schema = new OperatorRuntimeSchemaBuilder( 1, 1 );
+    private final OperatorRuntimeSchemaBuilder schema0 = new OperatorRuntimeSchemaBuilder( 0, 1 );
+
+    private final OperatorRuntimeSchemaBuilder schema1 = new OperatorRuntimeSchemaBuilder( 1, 1 );
 
     private final List<String> partitionFieldNames = asList( "field1", "field2" );
 
     @Before
     public void init ()
     {
-        schema.addInputField( 0, "field1", Integer.class )
-              .addInputField( 0, "field2", Integer.class )
-              .addOutputField( 0, "field1", Integer.class )
-              .addOutputField( 0, "field2", Integer.class );
+        schema0.addOutputField( 0, "field1", Integer.class ).addOutputField( 0, "field2", Integer.class );
+
+        schema1.addInputField( 0, "field1", Integer.class )
+               .addInputField( 0, "field2", Integer.class )
+               .addOutputField( 0, "field1", Integer.class )
+               .addOutputField( 0, "field2", Integer.class );
     }
 
     @Test
     public void shouldReassignRegionIdsBasedOnTopologicalSort ()
     {
-        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator.class ).build();
-        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator.class ).build();
-        final OperatorDef stateful3 = OperatorDefBuilder.newInstance( "stateful3", StatefulOperator.class ).build();
-        final OperatorDef stateful4 = OperatorDefBuilder.newInstance( "stateful4", StatefulOperator.class ).build();
-        final OperatorDef stateful5 = OperatorDefBuilder.newInstance( "stateful5", StatefulOperator.class ).build();
-        final OperatorDef stateful6 = OperatorDefBuilder.newInstance( "stateful6", StatefulOperator.class ).build();
+        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator0.class ).build();
+        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator0.class ).build();
+        final OperatorDef stateful3 = OperatorDefBuilder.newInstance( "stateful3", StatefulOperator0.class ).build();
+        final OperatorDef stateful4 = OperatorDefBuilder.newInstance( "stateful4", StatefulOperator2.class ).build();
+        final OperatorDef stateful5 = OperatorDefBuilder.newInstance( "stateful5", StatefulOperator2.class ).build();
+        final OperatorDef stateful6 = OperatorDefBuilder.newInstance( "stateful6", StatefulOperator2.class ).build();
 
         final FlowDef flowDef = new FlowDefBuilder().add( stateful1 )
                                                     .add( stateful2 )
@@ -105,49 +109,62 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
     @Test
     public void shouldMergeStatelessAndStatefulRegions ()
     {
-        final OperatorDef stateless = OperatorDefBuilder.newInstance( "stateless", StatelessOperator.class ).build();
-        final OperatorDef stateful = OperatorDefBuilder.newInstance( "stateful", StatefulOperator.class ).build();
+        final OperatorDef stateless0 = OperatorDefBuilder.newInstance( "stateless0", StatelessOperator0.class ).build();
+        final OperatorDef stateless1 = OperatorDefBuilder.newInstance( "stateless1", StatelessOperator1.class ).build();
+        final OperatorDef stateful = OperatorDefBuilder.newInstance( "stateful", StatefulOperator2.class ).build();
 
-        final FlowDef flow = new FlowDefBuilder().add( stateless ).add( stateful ).connect( "stateless", "stateful" ).build();
+        final FlowDef flow = new FlowDefBuilder().add( stateless0 )
+                                                 .add( stateless1 )
+                                                 .add( stateful )
+                                                 .connect( "stateless0", "stateless1" )
+                                                 .connect( "stateless1", "stateful" )
+                                                 .build();
 
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
 
         flowOptimizer.mergeRegions( flow.getOperatorsMap(), flow.getConnections(), regions );
 
-        assertEquals( 1, regions.size() );
-        final RegionDef region = regions.get( 0 );
+        assertEquals( 2, regions.size() );
+        final RegionDef region = regions.get( 1 );
         assertEquals( STATEFUL, region.getRegionType() );
-        assertEquals( asList( stateless, stateful ), region.getOperators() );
+        assertEquals( asList( stateless1, stateful ), region.getOperators() );
     }
 
     @Test
     public void shouldMergeStatefulAndStatelessRegions ()
     {
-        final OperatorDef stateful = OperatorDefBuilder.newInstance( "stateful", StatefulOperator.class ).build();
-        final OperatorDef stateless = OperatorDefBuilder.newInstance( "stateless", StatelessOperator.class ).build();
+        final OperatorDef stateful0 = OperatorDefBuilder.newInstance( "stateful0", StatefulOperator0.class ).build();
+        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator2.class ).build();
+        final OperatorDef stateless = OperatorDefBuilder.newInstance( "stateless", StatelessOperator1.class ).build();
 
-        final FlowDef flow = new FlowDefBuilder().add( stateful ).add( stateless ).connect( "stateful", "stateless" ).build();
+        final FlowDef flow = new FlowDefBuilder().add( stateful0 )
+                                                 .add( stateful1 )
+                                                 .add( stateless )
+                                                 .connect( "stateful0", "stateful1" )
+                                                 .connect( "stateful1", "stateless" )
+                                                 .build();
 
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
 
         flowOptimizer.mergeRegions( flow.getOperatorsMap(), flow.getConnections(), regions );
 
-        assertEquals( 1, regions.size() );
-        final RegionDef region = regions.get( 0 );
+        assertEquals( 2, regions.size() );
+        final RegionDef region = regions.get( 1 );
         assertEquals( STATEFUL, region.getRegionType() );
-        assertEquals( asList( stateful, stateless ), region.getOperators() );
+        assertEquals( asList( stateful1, stateless ), region.getOperators() );
     }
 
     @Test
     public void shouldMergeStatefulAndStatelessRegionsAfterDuplicationForUpstream ()
     {
-        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator.class ).build();
-        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator.class ).build();
-        final OperatorDef stateless = OperatorDefBuilder.newInstance( "stateless", StatelessOperator.class ).build();
+        final OperatorDef stateful0 = OperatorDefBuilder.newInstance( "stateful0", StatefulOperator0.class ).build();
+        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator2.class ).build();
+        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator2.class ).build();
+        final OperatorDef stateless = OperatorDefBuilder.newInstance( "stateless", StatelessOperator1.class ).build();
 
-        final FlowDef flow = new FlowDefBuilder().add( stateful1 )
+        final FlowDef flow = new FlowDefBuilder().add( stateful0 ).add( stateful1 )
                                                  .add( stateful2 )
-                                                 .add( stateless )
+                                                 .add( stateless ).connect( "stateful0", "stateful1" ).connect( "stateful0", "stateful2" )
                                                  .connect( "stateful1", "stateless" )
                                                  .connect( "stateful2", "stateless" )
                                                  .build();
@@ -159,27 +176,28 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
         flowOptimizer.duplicateStatelessRegions( operators, connections, regions );
         flowOptimizer.mergeRegions( operators, connections, regions );
 
-        assertEquals( 2, regions.size() );
-        final RegionDef region1 = regions.get( 0 );
+        assertEquals( 3, regions.size() );
+        final RegionDef region1 = regions.get( 1 );
         assertEquals( STATEFUL, region1.getRegionType() );
-        assertEquals( asList( StatefulOperator.class, StatelessOperator.class ),
+        assertEquals( asList( StatefulOperator2.class, StatelessOperator1.class ),
                       region1.getOperators().stream().map( OperatorDef::getOperatorClazz ).collect( toList() ) );
-        final RegionDef region2 = regions.get( 1 );
+        final RegionDef region2 = regions.get( 2 );
         assertEquals( STATEFUL, region2.getRegionType() );
-        assertEquals( asList( StatefulOperator.class, StatelessOperator.class ),
+        assertEquals( asList( StatefulOperator2.class, StatelessOperator1.class ),
                       region2.getOperators().stream().map( OperatorDef::getOperatorClazz ).collect( toList() ) );
     }
 
     @Test
     public void shouldMergeStatefulAndStatelessRegionsAfterDownstream ()
     {
-        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator.class ).build();
-        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator.class ).build();
-        final OperatorDef stateless = OperatorDefBuilder.newInstance( "stateless", StatelessOperator.class ).build();
+        final OperatorDef stateful0 = OperatorDefBuilder.newInstance( "stateful0", StatefulOperator0.class ).build();
+        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator2.class ).build();
+        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator2.class ).build();
+        final OperatorDef stateless = OperatorDefBuilder.newInstance( "stateless", StatelessOperator1.class ).build();
 
-        final FlowDef flow = new FlowDefBuilder().add( stateful1 )
+        final FlowDef flow = new FlowDefBuilder().add( stateful0 ).add( stateful1 )
                                                  .add( stateful2 )
-                                                 .add( stateless )
+                                                 .add( stateless ).connect( "stateful0", "stateless" )
                                                  .connect( "stateless", "stateful1" )
                                                  .connect( "stateless", "stateful2" )
                                                  .build();
@@ -191,31 +209,32 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
         flowOptimizer.duplicateStatelessRegions( operators, connections, regions );
         flowOptimizer.mergeRegions( operators, connections, regions );
 
-        assertEquals( 2, regions.size() );
-        final RegionDef region1 = regions.get( 0 );
+        assertEquals( 3, regions.size() );
+        final RegionDef region1 = regions.get( 1 );
         assertEquals( STATEFUL, region1.getRegionType() );
-        assertEquals( asList( StatelessOperator.class, StatefulOperator.class ),
+        assertEquals( asList( StatelessOperator1.class, StatefulOperator2.class ),
                       region1.getOperators().stream().map( OperatorDef::getOperatorClazz ).collect( toList() ) );
-        final RegionDef region2 = regions.get( 1 );
+        final RegionDef region2 = regions.get( 2 );
         assertEquals( STATEFUL, region2.getRegionType() );
-        assertEquals( asList( StatelessOperator.class, StatefulOperator.class ),
+        assertEquals( asList( StatelessOperator1.class, StatefulOperator2.class ),
                       region2.getOperators().stream().map( OperatorDef::getOperatorClazz ).collect( toList() ) );
     }
 
     @Test
     public void shouldMergeMultipleStatefulAndStatelessRegions ()
     {
-        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator.class ).build();
-        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator.class ).build();
-        final OperatorDef stateful3 = OperatorDefBuilder.newInstance( "stateful3", StatefulOperator.class ).build();
-        final OperatorDef stateless1 = OperatorDefBuilder.newInstance( "stateless1", StatelessOperator.class ).build();
-        final OperatorDef stateless2 = OperatorDefBuilder.newInstance( "stateless2", StatelessOperator.class ).build();
+        final OperatorDef stateful0 = OperatorDefBuilder.newInstance( "stateful0", StatefulOperator0.class ).build();
+        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator2.class ).build();
+        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator2.class ).build();
+        final OperatorDef stateful3 = OperatorDefBuilder.newInstance( "stateful3", StatefulOperator2.class ).build();
+        final OperatorDef stateless1 = OperatorDefBuilder.newInstance( "stateless1", StatelessOperator1.class ).build();
+        final OperatorDef stateless2 = OperatorDefBuilder.newInstance( "stateless2", StatelessOperator1.class ).build();
 
-        final FlowDef flow = new FlowDefBuilder().add( stateful1 )
+        final FlowDef flow = new FlowDefBuilder().add( stateful0 ).add( stateful1 )
                                                  .add( stateful2 )
                                                  .add( stateful3 )
                                                  .add( stateless1 )
-                                                 .add( stateless2 )
+                                                 .add( stateless2 ).connect( "stateful0", "stateful1" )
                                                  .connect( "stateful1", "stateless1" )
                                                  .connect( "stateless1", "stateful2" )
                                                  .connect( "stateful2", "stateless2" )
@@ -226,44 +245,56 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
 
         flowOptimizer.mergeRegions( flow.getOperatorsMap(), flow.getConnections(), regions );
 
-        assertEquals( 1, regions.size() );
-        final RegionDef region = regions.get( 0 );
+        assertEquals( 2, regions.size() );
+        final RegionDef region = regions.get( 1 );
         assertEquals( STATEFUL, region.getRegionType() );
         assertEquals( asList( stateful1, stateless1, stateful2, stateless2, stateful3 ), region.getOperators() );
     }
 
     @Test
-    public void shouldMergeStatefulAndStatefulRegions ()
+    public void shouldMergeStatefulRegions ()
     {
-        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator.class ).build();
-        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator.class ).build();
+        final OperatorDef stateful0 = OperatorDefBuilder.newInstance( "stateful0", StatefulOperator0.class ).build();
+        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator2.class ).build();
+        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator2.class ).build();
 
-        final FlowDef flow = new FlowDefBuilder().add( stateful1 ).add( stateful2 ).connect( "stateful1", "stateful2" ).build();
+        final FlowDef flow = new FlowDefBuilder().add( stateful0 )
+                                                 .add( stateful1 )
+                                                 .add( stateful2 )
+                                                 .connect( "stateful0", "stateful1" )
+                                                 .connect( "stateful1", "stateful2" )
+                                                 .build();
 
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
 
         flowOptimizer.mergeRegions( flow.getOperatorsMap(), flow.getConnections(), regions );
 
-        assertEquals( 1, regions.size() );
-        final RegionDef region = regions.get( 0 );
+        assertEquals( 2, regions.size() );
+        final RegionDef region = regions.get( 1 );
         assertEquals( STATEFUL, region.getRegionType() );
         assertEquals( asList( stateful1, stateful2 ), region.getOperators() );
     }
 
     @Test
-    public void shouldMergeStatelessAndStatelessRegions ()
+    public void shouldMergeStatelessRegions ()
     {
-        final OperatorDef stateless1 = OperatorDefBuilder.newInstance( "stateless1", StatelessOperator.class ).build();
-        final OperatorDef stateless2 = OperatorDefBuilder.newInstance( "stateless2", StatelessOperator.class ).build();
+        final OperatorDef stateful = OperatorDefBuilder.newInstance( "stateful", StatefulOperator0.class ).build();
+        final OperatorDef stateless1 = OperatorDefBuilder.newInstance( "stateless1", StatelessOperator1.class ).build();
+        final OperatorDef stateless2 = OperatorDefBuilder.newInstance( "stateless2", StatelessOperator1.class ).build();
 
-        final FlowDef flow = new FlowDefBuilder().add( stateless1 ).add( stateless2 ).connect( "stateless1", "stateless2" ).build();
+        final FlowDef flow = new FlowDefBuilder().add( stateful )
+                                                 .add( stateless1 )
+                                                 .add( stateless2 )
+                                                 .connect( "stateful", "stateless1" )
+                                                 .connect( "stateless1", "stateless2" )
+                                                 .build();
 
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
 
         flowOptimizer.mergeRegions( flow.getOperatorsMap(), flow.getConnections(), regions );
 
-        assertEquals( 1, regions.size() );
-        final RegionDef region = regions.get( 0 );
+        assertEquals( 2, regions.size() );
+        final RegionDef region = regions.get( 1 );
         assertEquals( STATELESS, region.getRegionType() );
         assertEquals( asList( stateless1, stateless2 ), region.getOperators() );
     }
@@ -271,58 +302,65 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
     @Test
     public void shouldNotMergePartitionedStatefulAndStatelessRegionsWhenPartitionFieldNamesAreNotPresentInStatelessRegion ()
     {
+        final OperatorDef stateful = OperatorDefBuilder.newInstance( "stateful", StatefulOperator0.class )
+                                                       .setExtendingSchema( schema0 )
+                                                       .build();
+
         final OperatorDef partitionedStateful = OperatorDefBuilder.newInstance( "partitionedStateful", PartitionedStatefulOperator.class )
-                                                                  .setExtendingSchema( schema )
+                                                                  .setExtendingSchema( schema1 )
                                                                   .setPartitionFieldNames( partitionFieldNames )
                                                                   .build();
 
         final OperatorRuntimeSchemaBuilder statelessSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
 
-        final RuntimeSchemaField inputField = schema.getInputPortSchemaBuilder( 0 ).getFields().iterator().next();
-        final RuntimeSchemaField outputField = schema.getOutputPortSchemaBuilder( 0 ).getFields().iterator().next();
+        final RuntimeSchemaField inputField = schema1.getInputPortSchemaBuilder( 0 ).getFields().iterator().next();
+        final RuntimeSchemaField outputField = schema1.getOutputPortSchemaBuilder( 0 ).getFields().iterator().next();
 
         statelessSchema.addInputField( 0, inputField.getName(), inputField.getType() );
         statelessSchema.addOutputField( 0, outputField.getName(), outputField.getType() );
 
-        final OperatorDef stateless = OperatorDefBuilder.newInstance( "stateless", StatelessOperator.class )
+        final OperatorDef stateless = OperatorDefBuilder.newInstance( "stateless", StatelessOperator1.class )
                                                         .setExtendingSchema( statelessSchema )
                                                         .build();
 
-        final FlowDef flow = new FlowDefBuilder().add( partitionedStateful )
-                                                 .add( stateless )
+        final FlowDef flow = new FlowDefBuilder().add( stateful ).add( partitionedStateful )
+                                                 .add( stateless ).connect( "stateful", "partitionedStateful" )
                                                  .connect( "partitionedStateful", "stateless" )
                                                  .build();
 
-        final List<RegionDef> regions = new ArrayList<>();
-        regions.add( new RegionDef( 0, PARTITIONED_STATEFUL, partitionedStateful.getPartitionFieldNames(),
-                                    singletonList( partitionedStateful ) ) );
-        regions.add( new RegionDef( 1, STATELESS, emptyList(), singletonList( stateless ) ) );
+        final List<RegionDef> regions = regionDefFormer.createRegions( flow );
 
         flowOptimizer.mergeRegions( flow.getOperatorsMap(), flow.getConnections(), regions );
 
-        assertEquals( 2, regions.size() );
+        assertEquals( 3, regions.size() );
     }
 
     @Test
     public void shouldMergePartitionedStatefulAndStatelessRegionsAfterDuplication ()
     {
+        final OperatorDef stateful = OperatorDefBuilder.newInstance( "stateful", StatefulOperator0.class )
+                                                       .setExtendingSchema( schema0 )
+                                                       .build();
+
         final OperatorDef partitionedStateful1 = OperatorDefBuilder.newInstance( "partitionedStateful1", PartitionedStatefulOperator.class )
-                                                                   .setExtendingSchema( schema )
+                                                                   .setExtendingSchema( schema1 )
                                                                    .setPartitionFieldNames( partitionFieldNames )
                                                                    .build();
 
         final OperatorDef partitionedStateful2 = OperatorDefBuilder.newInstance( "partitionedStateful2", PartitionedStatefulOperator.class )
-                                                                   .setExtendingSchema( schema )
+                                                                   .setExtendingSchema( schema1 )
                                                                    .setPartitionFieldNames( partitionFieldNames )
                                                                    .build();
 
-        final OperatorDef stateless = OperatorDefBuilder.newInstance( "stateless", StatelessOperator.class )
-                                                        .setExtendingSchema( schema )
+        final OperatorDef stateless = OperatorDefBuilder.newInstance( "stateless", StatelessOperator1.class ).setExtendingSchema( schema1 )
                                                         .build();
 
-        final FlowDef flow = new FlowDefBuilder().add( partitionedStateful1 )
+        final FlowDef flow = new FlowDefBuilder().add( stateful )
+                                                 .add( partitionedStateful1 )
                                                  .add( partitionedStateful2 )
                                                  .add( stateless )
+                                                 .connect( "stateful", "partitionedStateful1" )
+                                                 .connect( "stateful", "partitionedStateful2" )
                                                  .connect( "partitionedStateful1", "stateless" )
                                                  .connect( "partitionedStateful2", "stateless" )
                                                  .build();
@@ -334,26 +372,26 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
         flowOptimizer.duplicateStatelessRegions( operators, connections, regions );
         flowOptimizer.mergeRegions( operators, connections, regions );
 
-        assertEquals( 2, regions.size() );
-        final RegionDef region1 = regions.get( 0 );
+        assertEquals( 3, regions.size() );
+        final RegionDef region1 = regions.get( 1 );
         assertEquals( PARTITIONED_STATEFUL, region1.getRegionType() );
-        assertEquals( asList( PartitionedStatefulOperator.class, StatelessOperator.class ),
+        assertEquals( asList( PartitionedStatefulOperator.class, StatelessOperator1.class ),
                       region1.getOperators().stream().map( OperatorDef::getOperatorClazz ).collect( toList() ) );
-        final RegionDef region2 = regions.get( 1 );
+        final RegionDef region2 = regions.get( 2 );
         assertEquals( PARTITIONED_STATEFUL, region2.getRegionType() );
-        assertEquals( asList( PartitionedStatefulOperator.class, StatelessOperator.class ),
+        assertEquals( asList( PartitionedStatefulOperator.class, StatelessOperator1.class ),
                       region2.getOperators().stream().map( OperatorDef::getOperatorClazz ).collect( toList() ) );
     }
 
     @Test
     public void shouldDuplicateStatelessRegionWithMultipleUpstreamRegions ()
     {
-        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator.class ).build();
-        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator.class ).build();
-        final OperatorDef stateless1 = OperatorDefBuilder.newInstance( "stateless1", StatelessOperator.class ).build();
-        final OperatorDef stateless2 = OperatorDefBuilder.newInstance( "stateless2", StatelessOperator.class ).build();
-        final OperatorDef stateless3 = OperatorDefBuilder.newInstance( "stateless3", StatelessOperator.class ).build();
-        final OperatorDef stateful3 = OperatorDefBuilder.newInstance( "stateful3", StatefulOperator.class ).build();
+        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator0.class ).build();
+        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator0.class ).build();
+        final OperatorDef stateless1 = OperatorDefBuilder.newInstance( "stateless1", StatelessOperator1.class ).build();
+        final OperatorDef stateless2 = OperatorDefBuilder.newInstance( "stateless2", StatelessOperator1.class ).build();
+        final OperatorDef stateless3 = OperatorDefBuilder.newInstance( "stateless3", StatelessOperator1.class ).build();
+        final OperatorDef stateful3 = OperatorDefBuilder.newInstance( "stateful3", StatefulOperator2.class ).build();
 
         final FlowDef flow = new FlowDefBuilder().add( stateful1 )
                                                  .add( stateful2 )
@@ -407,12 +445,12 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
     @Test
     public void shouldDuplicateStatelessRegionWithMultipleDownstreamRegions ()
     {
-        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator.class ).build();
-        final OperatorDef stateless1 = OperatorDefBuilder.newInstance( "stateless1", StatelessOperator.class ).build();
-        final OperatorDef stateless2 = OperatorDefBuilder.newInstance( "stateless2", StatelessOperator.class ).build();
-        final OperatorDef stateless3 = OperatorDefBuilder.newInstance( "stateless3", StatelessOperator.class ).build();
-        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator.class ).build();
-        final OperatorDef stateful3 = OperatorDefBuilder.newInstance( "stateful3", StatefulOperator.class ).build();
+        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator0.class ).build();
+        final OperatorDef stateless1 = OperatorDefBuilder.newInstance( "stateless1", StatelessOperator1.class ).build();
+        final OperatorDef stateless2 = OperatorDefBuilder.newInstance( "stateless2", StatelessOperator1.class ).build();
+        final OperatorDef stateless3 = OperatorDefBuilder.newInstance( "stateless3", StatelessOperator1.class ).build();
+        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator2.class ).build();
+        final OperatorDef stateful3 = OperatorDefBuilder.newInstance( "stateful3", StatefulOperator2.class ).build();
 
         final FlowDef flow = new FlowDefBuilder().add( stateful1 )
                                                  .add( stateless1 )
@@ -461,13 +499,13 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
     @Test
     public void shouldDuplicateStatelessRegionWithMultipleUpstreamAndDownstreamRegions ()
     {
-        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator.class ).build();
-        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator.class ).build();
-        final OperatorDef stateless1 = OperatorDefBuilder.newInstance( "stateless1", StatelessOperator.class ).build();
-        final OperatorDef stateless2 = OperatorDefBuilder.newInstance( "stateless2", StatelessOperator.class ).build();
-        final OperatorDef stateless3 = OperatorDefBuilder.newInstance( "stateless3", StatelessOperator.class ).build();
-        final OperatorDef stateful3 = OperatorDefBuilder.newInstance( "stateful3", StatefulOperator.class ).build();
-        final OperatorDef stateful4 = OperatorDefBuilder.newInstance( "stateful4", StatefulOperator.class ).build();
+        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator0.class ).build();
+        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator0.class ).build();
+        final OperatorDef stateless1 = OperatorDefBuilder.newInstance( "stateless1", StatelessOperator1.class ).build();
+        final OperatorDef stateless2 = OperatorDefBuilder.newInstance( "stateless2", StatelessOperator1.class ).build();
+        final OperatorDef stateless3 = OperatorDefBuilder.newInstance( "stateless3", StatelessOperator1.class ).build();
+        final OperatorDef stateful3 = OperatorDefBuilder.newInstance( "stateful3", StatefulOperator2.class ).build();
+        final OperatorDef stateful4 = OperatorDefBuilder.newInstance( "stateful4", StatefulOperator2.class ).build();
 
         final FlowDef flow = new FlowDefBuilder().add( stateful1 )
                                                  .add( stateful2 )
@@ -524,13 +562,13 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
     @Test
     public void shouldDuplicateMultipleStatelessRegions ()
     {
-        final OperatorDef stateless1 = OperatorDefBuilder.newInstance( "stateless1", StatelessOperator.class ).build();
-        final OperatorDef stateless2 = OperatorDefBuilder.newInstance( "stateless2", StatelessOperator.class ).build();
-        final OperatorDef stateless3 = OperatorDefBuilder.newInstance( "stateless3", StatelessOperator.class ).build();
-        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator.class ).build();
-        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator.class ).build();
-        final OperatorDef stateless4 = OperatorDefBuilder.newInstance( "stateless4", StatelessOperator2.class ).build();
-        final OperatorDef stateless5 = OperatorDefBuilder.newInstance( "stateless5", StatelessOperator2.class ).build();
+        final OperatorDef stateless1 = OperatorDefBuilder.newInstance( "stateless1", StatelessOperator0.class ).build();
+        final OperatorDef stateless2 = OperatorDefBuilder.newInstance( "stateless2", StatelessOperator1.class ).build();
+        final OperatorDef stateless3 = OperatorDefBuilder.newInstance( "stateless3", StatelessOperator1.class ).build();
+        final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperator2.class ).build();
+        final OperatorDef stateful2 = OperatorDefBuilder.newInstance( "stateful2", StatefulOperator2.class ).build();
+        final OperatorDef stateless4 = OperatorDefBuilder.newInstance( "stateless4", StatelessOperator1.class ).build();
+        final OperatorDef stateless5 = OperatorDefBuilder.newInstance( "stateless5", StatelessOperator1.class ).build();
 
         final FlowDef flow = new FlowDefBuilder().add( stateless1 )
                                                  .add( stateless2 )
@@ -587,8 +625,8 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
                                                              new Port( toDuplicateOperatorId( stateless5, 1 ), 0 ) ) ) );
     }
 
-    @OperatorSpec( inputPortCount = 1, outputPortCount = 1, type = STATELESS )
-    private static class StatelessOperator2 implements Operator
+    @OperatorSpec( inputPortCount = 0, outputPortCount = 1, type = STATELESS )
+    private static class StatelessOperator0 implements Operator
     {
 
         @Override
@@ -606,7 +644,25 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
 
 
     @OperatorSpec( inputPortCount = 1, outputPortCount = 1, type = STATELESS )
-    private static class StatelessOperator implements Operator
+    private static class StatelessOperator1 implements Operator
+    {
+
+        @Override
+        public SchedulingStrategy init ( final InitializationContext context )
+        {
+            return null;
+        }
+
+        @Override
+        public void invoke ( final InvocationContext invocationContext )
+        {
+        }
+
+    }
+
+
+    @OperatorSpec( inputPortCount = 0, outputPortCount = 2, type = STATEFUL )
+    private static class StatefulOperator0 implements Operator
     {
 
         @Override
@@ -624,7 +680,7 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
 
 
     @OperatorSpec( inputPortCount = 2, outputPortCount = 2, type = STATEFUL )
-    private static class StatefulOperator implements Operator
+    private static class StatefulOperator2 implements Operator
     {
 
         @Override

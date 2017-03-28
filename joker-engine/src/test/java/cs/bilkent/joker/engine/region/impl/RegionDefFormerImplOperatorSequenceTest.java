@@ -14,7 +14,8 @@ import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
-import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
+import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
+import cs.bilkent.joker.operators.BeaconOperator;
 import cs.bilkent.joker.operators.MapperOperator;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Arrays.asList;
@@ -40,7 +41,7 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
          * O1 --> O2
          */
 
-        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", BeaconOperator.class ) );
         flowBuilder.add( OperatorDefBuilder.newInstance( "o2", MapperOperator.class ) );
         flowBuilder.connect( "o1", "o2" );
         final FlowDef flow = flowBuilder.build();
@@ -62,7 +63,7 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
          * O1 --> O2 --> O3
          */
 
-        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", BeaconOperator.class ) );
         flowBuilder.add( OperatorDefBuilder.newInstance( "o2", MapperOperator.class ) );
         flowBuilder.add( OperatorDefBuilder.newInstance( "o3", MapperOperator.class ) );
         flowBuilder.connect( "o1", "o2" );
@@ -93,7 +94,7 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
          *
          */
 
-        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", BeaconOperator.class ) );
         flowBuilder.add( OperatorDefBuilder.newInstance( "o2", MapperOperator.class ) );
         flowBuilder.add( OperatorDefBuilder.newInstance( "o3", MapperOperator.class ) );
         flowBuilder.add( OperatorDefBuilder.newInstance( "o4", MapperOperator.class ) );
@@ -123,10 +124,10 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
          *
          */
 
-        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", BeaconOperator.class ) );
         flowBuilder.add( OperatorDefBuilder.newInstance( "o2", MapperOperator.class ) );
         flowBuilder.add( OperatorDefBuilder.newInstance( "o3", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefBuilder.newInstance( "o4", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o4", BeaconOperator.class ) );
         flowBuilder.add( OperatorDefBuilder.newInstance( "o5", MapperOperator.class ) );
         flowBuilder.connect( "o1", "o2" );
         flowBuilder.connect( "o2", "o3" );
@@ -153,10 +154,10 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
          *
          */
 
-        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", BeaconOperator.class ) );
         flowBuilder.add( OperatorDefBuilder.newInstance( "o2", MapperOperator.class ) );
         flowBuilder.add( OperatorDefBuilder.newInstance( "o3", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefBuilder.newInstance( "o4", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o4", BeaconOperator.class ) );
         flowBuilder.connect( "o1", "o2" );
         flowBuilder.connect( "o2", "o3" );
         flowBuilder.connect( "o4", "o3" );
@@ -183,7 +184,7 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
          *
          */
 
-        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", BeaconOperator.class ) );
         flowBuilder.add( OperatorDefBuilder.newInstance( "o2", MapperOperator.class ) );
         flowBuilder.add( OperatorDefBuilder.newInstance( "o3", MapperOperator.class ) );
         flowBuilder.add( OperatorDefBuilder.newInstance( "o4", MapperOperator.class ) );
@@ -219,7 +220,7 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
          *
          */
 
-        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", BeaconOperator.class ) );
         flowBuilder.add( OperatorDefBuilder.newInstance( "o2", MapperOperator.class ) );
         flowBuilder.add( OperatorDefBuilder.newInstance( "o3", MapperOperator.class ) );
         flowBuilder.add( OperatorDefBuilder.newInstance( "o4", MapperOperator.class ) );
@@ -255,11 +256,11 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
          *
          */
 
-        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", BeaconOperator.class ) );
         flowBuilder.add( OperatorDefBuilder.newInstance( "o2", MapperOperator.class ) );
         flowBuilder.add( OperatorDefBuilder.newInstance( "o3", MapperOperator.class ) );
         flowBuilder.add( OperatorDefBuilder.newInstance( "o4", MapperOperator.class ) );
-        flowBuilder.add( OperatorDefBuilder.newInstance( "o5", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o5", BeaconOperator.class ) );
         flowBuilder.connect( "o1", "o2" );
         flowBuilder.connect( "o1", "o3" );
         flowBuilder.connect( "o2", "o4" );
@@ -289,7 +290,7 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
          *
          */
 
-        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", StatelessOperatorWith2OutputPorts.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", StatefulOperatorWith2OutputPorts.class ) );
         flowBuilder.add( OperatorDefBuilder.newInstance( "o2", MapperOperator.class ) );
         flowBuilder.connect( "o1", 0, "o2" );
         flowBuilder.connect( "o1", 1, "o2" );
@@ -299,6 +300,61 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
         final Collection<List<OperatorDef>> operatorSequences = regionFormer.createOperatorSequences( flow );
         assertThat( operatorSequences, hasSize( 1 ) );
         assertOperatorSequence( asList( "o1", "o2" ), operatorSequences );
+    }
+
+    @Test
+    public void test10 ()
+    {
+         /*
+         * O1 --> O2
+         */
+
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", BeaconOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o2", MapperOperator.class ) );
+        flowBuilder.connect( "o1", "o2" );
+        final FlowDef flow = flowBuilder.build();
+
+        final Collection<List<OperatorDef>> operatorSequences = regionFormer.createOperatorSequences( flow );
+        Collection<List<OperatorDef>> split = regionFormer.splitSourceOperators( operatorSequences );
+
+        assertThat( split, hasSize( 2 ) );
+        assertOperatorSequence( singletonList( "o1" ), split );
+        assertOperatorSequence( singletonList( "o2" ), split );
+    }
+
+    @Test
+    public void testFlow11 ()
+    {
+        /*
+         *
+         * O1 --> O2 --> O3 --> O5
+         *             /
+         * 06 --> O4 --/
+         *
+         */
+
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o1", BeaconOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o2", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o3", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o4", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o5", MapperOperator.class ) );
+        flowBuilder.add( OperatorDefBuilder.newInstance( "o6", BeaconOperator.class ) );
+        flowBuilder.connect( "o1", "o2" );
+        flowBuilder.connect( "o2", "o3" );
+        flowBuilder.connect( "o4", "o3" );
+        flowBuilder.connect( "o3", "o5" );
+        flowBuilder.connect( "o6", "o4" );
+        final FlowDef flow = flowBuilder.build();
+
+        final Collection<List<OperatorDef>> operatorSequences = regionFormer.createOperatorSequences( flow );
+        final Collection<List<OperatorDef>> split = regionFormer.splitSourceOperators( operatorSequences );
+
+        assertThat( split, hasSize( 5 ) );
+        assertOperatorSequence( singletonList( "o1" ), split );
+        assertOperatorSequence( singletonList( "o2" ), split );
+        assertOperatorSequence( asList( "o3", "o5" ), split );
+        assertOperatorSequence( singletonList( "o4" ), split );
+        assertOperatorSequence( singletonList( "o6" ), split );
     }
 
     private void assertOperatorSequence ( final List<String> expectedOperatorIds, Collection<List<OperatorDef>> operatorSequences )
@@ -316,8 +372,8 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
         assertTrue( sequenceExists );
     }
 
-    @OperatorSpec( type = STATELESS, inputPortCount = 1, outputPortCount = 2 )
-    public static class StatelessOperatorWith2OutputPorts implements Operator
+    @OperatorSpec( type = STATEFUL, inputPortCount = 0, outputPortCount = 2 )
+    public static class StatefulOperatorWith2OutputPorts implements Operator
     {
 
         @Override

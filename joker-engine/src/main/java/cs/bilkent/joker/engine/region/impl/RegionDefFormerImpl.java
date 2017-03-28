@@ -53,7 +53,7 @@ public class RegionDefFormerImpl implements RegionDefFormer
     {
         final List<RegionDef> regions = new ArrayList<>();
 
-        for ( List<OperatorDef> operatorSequence : createOperatorSequences( flow ) )
+        for ( List<OperatorDef> operatorSequence : splitSourceOperators( createOperatorSequences( flow ) ) )
         {
             regions.addAll( createRegions( operatorSequence ) );
         }
@@ -223,6 +223,26 @@ public class RegionDefFormerImpl implements RegionDefFormer
         }
 
         return sequences;
+    }
+
+    Collection<List<OperatorDef>> splitSourceOperators ( final Collection<List<OperatorDef>> sequences )
+    {
+        final Collection<List<OperatorDef>> split = new ArrayList<>();
+        for ( List<OperatorDef> operatorDefs : sequences )
+        {
+            checkState( operatorDefs.size() > 0 );
+            if ( operatorDefs.size() == 1 || operatorDefs.get( 0 ).getInputPortCount() > 0 )
+            {
+                split.add( operatorDefs );
+            }
+            else
+            {
+                split.add( operatorDefs.subList( 0, 1 ) );
+                split.add( operatorDefs.subList( 1, operatorDefs.size() ) );
+            }
+        }
+
+        return split;
     }
 
     private Collection<OperatorDef> getDownstreamOperators ( final FlowDef flow, final OperatorDef operator )

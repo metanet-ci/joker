@@ -15,6 +15,7 @@ import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkAr
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.operator.OperatorDef;
 import static java.util.Collections.unmodifiableMap;
+import static java.util.Collections.unmodifiableSet;
 import static java.util.stream.Collectors.toSet;
 
 /**
@@ -29,8 +30,13 @@ public final class FlowDef
     public FlowDef ( final Map<String, OperatorDef> operators, final Map<Port, Set<Port>> connections )
     {
         validateFlowDef( operators, connections );
-        this.operators = unmodifiableMap( operators );
-        this.connections = unmodifiableMap( connections );
+        this.operators = unmodifiableMap( new HashMap<>( operators ) );
+        final Map<Port, Set<Port>> c = new HashMap<>();
+        for ( Entry<Port, Set<Port>> e : connections.entrySet() )
+        {
+            c.put( e.getKey(), unmodifiableSet( new HashSet<>( e.getValue() ) ) );
+        }
+        this.connections = unmodifiableMap( c );
     }
 
     /**
@@ -92,6 +98,7 @@ public final class FlowDef
         checkArgument( connections != null, "connections cannot be null" );
         checkArgument( !operators.isEmpty(), "there should be at least one operator" );
         failIfMultipleIndependentDAGs( operators, connections );
+        failIfNoInboundConnectionForTailOperators( operators, connections );
     }
 
     private void failIfMultipleIndependentDAGs ( final Map<String, OperatorDef> operators, final Map<Port, Set<Port>> connections )
@@ -125,6 +132,39 @@ public final class FlowDef
         }
 
         checkState( operators.size() == visited.size(), "there are multiple DAGs in the flow!" );
+    }
+
+    private void failIfNoInboundConnectionForTailOperators ( final Map<String, OperatorDef> operators,
+                                                             final Map<Port, Set<Port>> connections )
+    {
+        for ( OperatorDef operator : operators.values() )
+        {
+            checkState( checkInboundConnection( connections, operator ),
+                        "Operator: %s with input port count: %s has no inbound connection!",
+                        operator.getId(),
+                        operator.getInputPortCount() );
+        }
+    }
+
+    private boolean checkInboundConnection ( final Map<Port, Set<Port>> connections, final OperatorDef operator )
+    {
+        if ( operator.getInputPortCount() == 0 )
+        {
+            return true;
+        }
+
+        for ( Set<Port> c : connections.values() )
+        {
+            for ( Port p : c )
+            {
+                if ( p.getOperatorId().equals( operator.getId() ) )
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**

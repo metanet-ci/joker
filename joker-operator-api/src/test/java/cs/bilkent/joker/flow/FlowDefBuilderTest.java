@@ -276,7 +276,9 @@ public class FlowDefBuilderTest extends AbstractJokerTest
     @Test
     public void shouldBuildFlow ()
     {
-        builder.add( OperatorDefBuilder.newInstance( "op1", StatefulOperatorWithFixedPortCounts.class ) );
+        builder.add( OperatorDefBuilder.newInstance( "op1", StatefulOperatorWithDynamicPortCounts.class )
+                                       .setInputPortCount( 0 )
+                                       .setOutputPortCount( 1 ) );
         builder.add( OperatorDefBuilder.newInstance( "op2", StatefulOperatorWithFixedPortCounts.class ) );
         builder.add( OperatorDefBuilder.newInstance( "op3", StatefulOperatorWithDynamicPortCounts.class )
                                        .setInputPortCount( 0 )

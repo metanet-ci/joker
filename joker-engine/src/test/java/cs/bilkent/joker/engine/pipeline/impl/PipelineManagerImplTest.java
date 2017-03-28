@@ -43,7 +43,6 @@ import cs.bilkent.joker.operator.schema.annotation.PortSchema;
 import static cs.bilkent.joker.operator.schema.annotation.PortSchemaScope.EXACT_FIELD_SET;
 import cs.bilkent.joker.operator.schema.annotation.SchemaField;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
-import cs.bilkent.joker.operator.spec.OperatorType;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
@@ -101,23 +100,34 @@ public class PipelineManagerImplTest extends AbstractJokerTest
     @Test
     public void test_partitionedStatefulRegion_statefulRegion ()
     {
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorInput0Output1.class ).build();
         final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorInput2Output2.class )
                                                            .setPartitionFieldNames( singletonList( "field1" ) )
                                                            .build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatefulOperatorInput1Output1.class ).build();
-        final FlowDef flow = new FlowDefBuilder().add( operatorDef1 ).add( operatorDef2 ).connect( "op1", "op2" ).build();
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef0 )
+                                                 .add( operatorDef1 )
+                                                 .add( operatorDef2 )
+                                                 .connect( "op0", "op1" )
+                                                 .connect( "op1", "op2" )
+                                                 .build();
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
-        assertEquals( 2, regions.size() );
-        final RegionDef partitionedStatefulRegionDef = findRegion( regions, PARTITIONED_STATEFUL );
-        final RegionDef statefulRegionDef = findRegion( regions, STATEFUL );
+        assertEquals( 3, regions.size() );
+        final RegionDef statefulRegionDef0 = findRegion( regions, operatorDef0 );
+        final RegionDef partitionedStatefulRegionDef = findRegion( regions, operatorDef1 );
+        final RegionDef statefulRegionDef1 = findRegion( regions, operatorDef2 );
+        final RegionExecutionPlan regionExecutionPlan0 = new RegionExecutionPlan( statefulRegionDef0, singletonList( 0 ), 1 );
         final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( partitionedStatefulRegionDef, singletonList( 0 ), 2 );
-        final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( statefulRegionDef, singletonList( 0 ), 1 );
-        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, asList( regionExecutionPlan1, regionExecutionPlan2 ) );
+        final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( statefulRegionDef1, singletonList( 0 ), 1 );
+        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow,
+                                                                          asList( regionExecutionPlan0,
+                                                                                  regionExecutionPlan1,
+                                                                                  regionExecutionPlan2 ) );
 
-        assertEquals( 2, pipelines.size() );
+        assertEquals( 3, pipelines.size() );
 
-        final Pipeline pipeline1 = pipelines.get( 0 );
-        assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { CLOSED, CLOSED } ), pipeline1.getUpstreamContext() );
+        final Pipeline pipeline1 = pipelines.get( 1 );
+        assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE, CLOSED } ), pipeline1.getUpstreamContext() );
         assertEquals( partitionedStatefulRegionDef, pipeline1.getRegionDef() );
         assertEquals( 0, pipeline1.getOperatorIndex( operatorDef1 ) );
         assertNotEquals( pipeline1.getPipelineReplica( 0 ), pipeline1.getPipelineReplica( 1 ) );
@@ -125,7 +135,7 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         assertTrue( pipeline1.getDownstreamTupleSender( 1 ) instanceof DownstreamTupleSender1 );
         assertEquals( INITIAL, pipeline1.getPipelineStatus() );
 
-        final Pipeline pipeline2 = pipelines.get( 1 );
+        final Pipeline pipeline2 = pipelines.get( 2 );
         assertEquals( INITIAL, pipeline2.getPipelineStatus() );
         assertEquals( ( (Supplier<OperatorTupleQueue>) pipeline1.getDownstreamTupleSender( 0 ) ).get(),
                       pipeline2.getPipelineReplica( 0 ).getPipelineTupleQueue() );
@@ -136,42 +146,50 @@ public class PipelineManagerImplTest extends AbstractJokerTest
     @Test
     public void test_partitionedStatefulRegion_statefulRegionAndStatelessRegion ()
     {
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorInput0Output1.class ).build();
         final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", PartitionedStatefulOperatorInput2Output2.class )
                                                            .setPartitionFieldNames( singletonList( "field1" ) )
                                                            .build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatefulOperatorInput1Output1.class ).build();
         final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessOperatorInput1Output1.class ).build();
-        final FlowDef flow = new FlowDefBuilder().add( operatorDef1 )
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef0 ).add( operatorDef1 )
                                                  .add( operatorDef2 )
-                                                 .add( operatorDef3 )
+                                                 .add( operatorDef3 ).connect( "op0", "op1" )
                                                  .connect( "op1", "op2" )
                                                  .connect( "op1", "op3" )
                                                  .build();
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
-        assertEquals( 3, regions.size() );
+        assertEquals( 4, regions.size() );
 
-        final RegionDef partitionedStatefulRegionDef = findRegion( regions, PARTITIONED_STATEFUL );
-        final RegionDef statefulRegionDef = findRegion( regions, STATEFUL );
-        final RegionDef statelessRegionDef = findRegion( regions, STATELESS );
+        final RegionDef statefulRegionDef0 = findRegion( regions, operatorDef0 );
+        final RegionDef partitionedStatefulRegionDef = findRegion( regions, operatorDef1 );
+        final RegionDef statefulRegionDef1 = findRegion( regions, operatorDef2 );
+        final RegionDef statelessRegionDef = findRegion( regions, operatorDef3 );
+        final RegionExecutionPlan regionExecutionPlan0 = new RegionExecutionPlan( statefulRegionDef0, singletonList( 0 ), 1 );
         final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( partitionedStatefulRegionDef, singletonList( 0 ), 2 );
-        final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( statefulRegionDef, singletonList( 0 ), 1 );
+        final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( statefulRegionDef1, singletonList( 0 ), 1 );
         final RegionExecutionPlan regionExecutionPlan3 = new RegionExecutionPlan( statelessRegionDef, singletonList( 0 ), 1 );
-        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow,
-                                                                          asList( regionExecutionPlan1,
-                                                                                  regionExecutionPlan2,
-                                                                                  regionExecutionPlan3 ) );
+        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, asList( regionExecutionPlan0, regionExecutionPlan1,
+                                                                                        regionExecutionPlan2,
+                                                                                        regionExecutionPlan3 ) );
 
-        assertEquals( 3, pipelines.size() );
+        assertEquals( 4, pipelines.size() );
 
-        final Pipeline pipeline1 = pipelines.get( 0 );
-        final Pipeline pipeline2 = pipelines.get( 1 );
-        final Pipeline pipeline3 = pipelines.get( 2 );
+        final Pipeline pipeline0 = pipelines.get( 0 );
+        final Pipeline pipeline1 = pipelines.get( 1 );
+        final Pipeline pipeline2 = pipelines.get( 2 );
+        final Pipeline pipeline3 = pipelines.get( 3 );
 
+        assertEquals( INITIAL, pipeline0.getPipelineStatus() );
         assertEquals( INITIAL, pipeline1.getPipelineStatus() );
         assertEquals( INITIAL, pipeline2.getPipelineStatus() );
         assertEquals( INITIAL, pipeline3.getPipelineStatus() );
 
-        assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { CLOSED, CLOSED } ), pipeline1.getUpstreamContext() );
+        assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ), pipeline0.getUpstreamContext() );
+        assertEquals( statefulRegionDef0, pipeline0.getRegionDef() );
+        assertEquals( 0, pipeline0.getOperatorIndex( operatorDef0 ) );
+
+        assertEquals( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE, CLOSED } ), pipeline1.getUpstreamContext() );
         assertEquals( partitionedStatefulRegionDef, pipeline1.getRegionDef() );
         assertEquals( 0, pipeline1.getOperatorIndex( operatorDef1 ) );
         assertNotEquals( pipeline1.getPipelineReplica( 0 ), pipeline1.getPipelineReplica( 1 ) );
@@ -234,8 +252,8 @@ public class PipelineManagerImplTest extends AbstractJokerTest
 
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
         assertEquals( 2, regions.size() );
-        final RegionDef statefulRegionDef = findRegion( regions, STATEFUL );
-        final RegionDef partitionedStatefulRegionDef = findRegion( regions, PARTITIONED_STATEFUL );
+        final RegionDef statefulRegionDef = findRegion( regions, operatorDef1 );
+        final RegionDef partitionedStatefulRegionDef = findRegion( regions, operatorDef2 );
         final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( statefulRegionDef, singletonList( 0 ), 1 );
         final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( partitionedStatefulRegionDef, asList( 0, 1 ), 2 );
 
@@ -295,8 +313,8 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
         assertEquals( 2, regions.size() );
 
-        final RegionDef statefulRegionDef = findRegion( regions, STATEFUL );
-        final RegionDef partitionedStatefulRegionDef = findRegion( regions, PARTITIONED_STATEFUL );
+        final RegionDef statefulRegionDef = findRegion( regions, operatorDef1 );
+        final RegionDef partitionedStatefulRegionDef = findRegion( regions, operatorDef3 );
         final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( statefulRegionDef, singletonList( 0 ), 1 );
         final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( partitionedStatefulRegionDef, asList( 0, 1 ), 2 );
 
@@ -354,7 +372,7 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
         assertEquals( 3, regions.size() );
 
-        final RegionDef statelessRegionDef = findRegion( regions, STATELESS );
+        final RegionDef statelessRegionDef = findRegion( regions, operatorDef3 );
 
         final List<RegionDef> statefulRegionDefs = regions.stream()
                                                           .filter( regionDef -> regionDef.getRegionType() == STATEFUL )
@@ -417,9 +435,9 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
         assertEquals( 3, regions.size() );
 
-        final RegionDef statefulRegionDef = findRegion( regions, STATEFUL );
-        final RegionDef statelessRegionDef = findRegion( regions, STATELESS );
-        final RegionDef partitionedStatefulRegionDef = findRegion( regions, PARTITIONED_STATEFUL );
+        final RegionDef statefulRegionDef = findRegion( regions, operatorDef1 );
+        final RegionDef statelessRegionDef = findRegion( regions, operatorDef2 );
+        final RegionDef partitionedStatefulRegionDef = findRegion( regions, operatorDef3 );
 
         final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( statefulRegionDef, singletonList( 0 ), 1 );
         final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( statelessRegionDef, singletonList( 0 ), 1 );
@@ -453,9 +471,9 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         assertTrue( pipeline3.getDownstreamTupleSender( 0 ) instanceof NopDownstreamTupleSender );
     }
 
-    private RegionDef findRegion ( Collection<RegionDef> regions, final OperatorType regionType )
+    private RegionDef findRegion ( Collection<RegionDef> regions, final OperatorDef operator )
     {
-        return regions.stream().filter( regionDef -> regionDef.getRegionType() == regionType ).findFirst().get();
+        return regions.stream().filter( regionDef -> regionDef.indexOf( operator ) != -1 ).findFirst().get();
     }
 
     @OperatorSpec( type = STATEFUL, inputPortCount = 0, outputPortCount = 1 )

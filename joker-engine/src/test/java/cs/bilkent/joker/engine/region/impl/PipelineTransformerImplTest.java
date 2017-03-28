@@ -247,30 +247,33 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
     @Test
     public void shouldMergeSingleOperatorPipelines ()
     {
-        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", PartitionedStatefulInput1Output1Operator.class )
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulInput0Output1Operator.class ).build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", PartitionedStatefulInput1Output1Operator.class )
                                                            .setPartitionFieldNames( singletonList( "field" ) )
                                                            .build();
-        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef4 = OperatorDefBuilder.newInstance( "op4", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef5 = OperatorDefBuilder.newInstance( "op5", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef6 = OperatorDefBuilder.newInstance( "op6", StatelessInput1Output1Operator.class ).build();
 
         final FlowDef flow = new FlowDefBuilder().add( operatorDef0 )
                                                  .add( operatorDef1 )
                                                  .add( operatorDef2 )
                                                  .add( operatorDef3 )
                                                  .add( operatorDef4 )
-                                                 .add( operatorDef5 )
+                                                 .add( operatorDef5 ).add( operatorDef6 )
                                                  .connect( "op0", "op1" )
                                                  .connect( "op1", "op2" )
                                                  .connect( "op2", "op3" )
                                                  .connect( "op3", "op4" )
-                                                 .connect( "op4", "op5" )
+                                                 .connect( "op4", "op5" ).connect( "op5", "op6" )
                                                  .build();
 
-        final RegionDef regionDef = new RegionDef( REGION_ID, STATELESS, emptyList(),
-                                                   asList( operatorDef1, operatorDef2, operatorDef3, operatorDef4, operatorDef5 ) );
+        final RegionDef regionDef = new RegionDef( REGION_ID,
+                                                   STATELESS,
+                                                   emptyList(),
+                                                   asList( operatorDef2, operatorDef3, operatorDef4, operatorDef5, operatorDef6 ) );
 
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, asList( 0, 1, 2, 3, 4 ), 1 );
         final Region region = regionManager.createRegion( flow, regionExecutionPlan );
@@ -314,35 +317,35 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
     @Test
     public void shouldCopyNonMergedPipelinesAtHeadOfTheRegion ()
     {
-        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", PartitionedStatefulInput1Output1Operator.class )
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulInput0Output1Operator.class ).build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", PartitionedStatefulInput1Output1Operator.class )
                                                            .setPartitionFieldNames( singletonList( "field" ) )
                                                            .build();
-        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef4 = OperatorDefBuilder.newInstance( "op4", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef5 = OperatorDefBuilder.newInstance( "op5", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef6 = OperatorDefBuilder.newInstance( "op6", StatelessInput1Output1Operator.class ).build();
 
         final FlowDef flow = new FlowDefBuilder().add( operatorDef0 )
                                                  .add( operatorDef1 )
                                                  .add( operatorDef2 )
                                                  .add( operatorDef3 )
                                                  .add( operatorDef4 )
-                                                 .add( operatorDef5 )
+                                                 .add( operatorDef5 ).add( operatorDef6 )
                                                  .connect( "op0", "op1" )
                                                  .connect( "op1", "op2" )
                                                  .connect( "op2", "op3" )
                                                  .connect( "op3", "op4" )
-                                                 .connect( "op4", "op5" )
+                                                 .connect( "op4", "op5" ).connect( "op5", "op6" )
                                                  .build();
 
-        final RegionDef regionDef = new RegionDef( REGION_ID, PARTITIONED_STATEFUL, singletonList( "field" ),
-                                                   asList( operatorDef0,
-                                                           operatorDef1,
-                                                           operatorDef2,
-                                                           operatorDef3,
-                                                           operatorDef4,
-                                                           operatorDef5 ) );
+        final RegionDef regionDef = new RegionDef( REGION_ID, PARTITIONED_STATEFUL, singletonList( "field" ), asList( operatorDef1,
+                                                                                                                      operatorDef2,
+                                                                                                                      operatorDef3,
+                                                                                                                      operatorDef4,
+                                                                                                                      operatorDef5,
+                                                                                                                      operatorDef6 ) );
 
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, asList( 0, 2, 3, 4 ), 2 );
         final Region region = regionManager.createRegion( flow, regionExecutionPlan );
@@ -357,35 +360,35 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
     @Test
     public void shouldCopyNonMergedPipelinesAtTailOfTheRegion ()
     {
-        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", PartitionedStatefulInput1Output1Operator.class )
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulInput0Output1Operator.class ).build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", PartitionedStatefulInput1Output1Operator.class )
                                                            .setPartitionFieldNames( singletonList( "field" ) )
                                                            .build();
-        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef4 = OperatorDefBuilder.newInstance( "op4", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef5 = OperatorDefBuilder.newInstance( "op5", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef6 = OperatorDefBuilder.newInstance( "op6", StatelessInput1Output1Operator.class ).build();
 
         final FlowDef flow = new FlowDefBuilder().add( operatorDef0 )
                                                  .add( operatorDef1 )
                                                  .add( operatorDef2 )
                                                  .add( operatorDef3 )
                                                  .add( operatorDef4 )
-                                                 .add( operatorDef5 )
+                                                 .add( operatorDef5 ).add( operatorDef6 )
                                                  .connect( "op0", "op1" )
                                                  .connect( "op1", "op2" )
                                                  .connect( "op2", "op3" )
                                                  .connect( "op3", "op4" )
-                                                 .connect( "op4", "op5" )
+                                                 .connect( "op4", "op5" ).connect( "op5", "op6" )
                                                  .build();
 
-        final RegionDef regionDef = new RegionDef( REGION_ID, PARTITIONED_STATEFUL, singletonList( "field" ),
-                                                   asList( operatorDef0,
-                                                           operatorDef1,
-                                                           operatorDef2,
-                                                           operatorDef3,
-                                                           operatorDef4,
-                                                           operatorDef5 ) );
+        final RegionDef regionDef = new RegionDef( REGION_ID, PARTITIONED_STATEFUL, singletonList( "field" ), asList( operatorDef1,
+                                                                                                                      operatorDef2,
+                                                                                                                      operatorDef3,
+                                                                                                                      operatorDef4,
+                                                                                                                      operatorDef5,
+                                                                                                                      operatorDef6 ) );
 
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, asList( 0, 2, 3, 4 ), 2 );
         final Region region = regionManager.createRegion( flow, regionExecutionPlan );
@@ -623,30 +626,33 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
     @Test
     public void shouldSplitPipelineIntoSingleOperatorPipelines ()
     {
-        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", PartitionedStatefulInput1Output1Operator.class )
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulInput0Output1Operator.class ).build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", PartitionedStatefulInput1Output1Operator.class )
                                                            .setPartitionFieldNames( singletonList( "field" ) )
                                                            .build();
-        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef4 = OperatorDefBuilder.newInstance( "op4", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef5 = OperatorDefBuilder.newInstance( "op5", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef6 = OperatorDefBuilder.newInstance( "op6", StatelessInput1Output1Operator.class ).build();
 
         final FlowDef flow = new FlowDefBuilder().add( operatorDef0 )
                                                  .add( operatorDef1 )
                                                  .add( operatorDef2 )
                                                  .add( operatorDef3 )
                                                  .add( operatorDef4 )
-                                                 .add( operatorDef5 )
+                                                 .add( operatorDef5 ).add( operatorDef6 )
                                                  .connect( "op0", "op1" )
                                                  .connect( "op1", "op2" )
                                                  .connect( "op2", "op3" )
                                                  .connect( "op3", "op4" )
-                                                 .connect( "op4", "op5" )
+                                                 .connect( "op4", "op5" ).connect( "op5", "op6" )
                                                  .build();
 
-        final RegionDef regionDef = new RegionDef( REGION_ID, STATELESS, emptyList(),
-                                                   asList( operatorDef1, operatorDef2, operatorDef3, operatorDef4, operatorDef5 ) );
+        final RegionDef regionDef = new RegionDef( REGION_ID,
+                                                   STATELESS,
+                                                   emptyList(),
+                                                   asList( operatorDef2, operatorDef3, operatorDef4, operatorDef5, operatorDef6 ) );
 
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 1 );
         final Region region = regionManager.createRegion( flow, regionExecutionPlan );
@@ -705,35 +711,35 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
     @Test
     public void shouldCopyNonSplitPipelinesAtHeadOfTheRegion ()
     {
-        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", PartitionedStatefulInput1Output1Operator.class )
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulInput0Output1Operator.class ).build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", PartitionedStatefulInput1Output1Operator.class )
                                                            .setPartitionFieldNames( singletonList( "field" ) )
                                                            .build();
-        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef4 = OperatorDefBuilder.newInstance( "op4", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef5 = OperatorDefBuilder.newInstance( "op5", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef6 = OperatorDefBuilder.newInstance( "op6", StatelessInput1Output1Operator.class ).build();
 
         final FlowDef flow = new FlowDefBuilder().add( operatorDef0 )
                                                  .add( operatorDef1 )
                                                  .add( operatorDef2 )
                                                  .add( operatorDef3 )
                                                  .add( operatorDef4 )
-                                                 .add( operatorDef5 )
+                                                 .add( operatorDef5 ).add( operatorDef6 )
                                                  .connect( "op0", "op1" )
                                                  .connect( "op1", "op2" )
                                                  .connect( "op2", "op3" )
                                                  .connect( "op3", "op4" )
-                                                 .connect( "op4", "op5" )
+                                                 .connect( "op4", "op5" ).connect( "op5", "op6" )
                                                  .build();
 
-        final RegionDef regionDef = new RegionDef( REGION_ID, PARTITIONED_STATEFUL, singletonList( "field" ),
-                                                   asList( operatorDef0,
-                                                           operatorDef1,
-                                                           operatorDef2,
-                                                           operatorDef3,
-                                                           operatorDef4,
-                                                           operatorDef5 ) );
+        final RegionDef regionDef = new RegionDef( REGION_ID, PARTITIONED_STATEFUL, singletonList( "field" ), asList( operatorDef1,
+                                                                                                                      operatorDef2,
+                                                                                                                      operatorDef3,
+                                                                                                                      operatorDef4,
+                                                                                                                      operatorDef5,
+                                                                                                                      operatorDef6 ) );
 
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, asList( 0, 1, 2 ), 2 );
         final Region region = regionManager.createRegion( flow, regionExecutionPlan );
@@ -748,35 +754,35 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
     @Test
     public void shouldCopyNonSplitPipelinesAtTailOfTheRegion ()
     {
-        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", PartitionedStatefulInput1Output1Operator.class )
+        final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulInput0Output1Operator.class ).build();
+        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", PartitionedStatefulInput1Output1Operator.class )
                                                            .setPartitionFieldNames( singletonList( "field" ) )
                                                            .build();
-        final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef4 = OperatorDefBuilder.newInstance( "op4", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef5 = OperatorDefBuilder.newInstance( "op5", StatelessInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef6 = OperatorDefBuilder.newInstance( "op6", StatelessInput1Output1Operator.class ).build();
 
         final FlowDef flow = new FlowDefBuilder().add( operatorDef0 )
                                                  .add( operatorDef1 )
                                                  .add( operatorDef2 )
                                                  .add( operatorDef3 )
                                                  .add( operatorDef4 )
-                                                 .add( operatorDef5 )
+                                                 .add( operatorDef5 ).add( operatorDef6 )
                                                  .connect( "op0", "op1" )
                                                  .connect( "op1", "op2" )
                                                  .connect( "op2", "op3" )
                                                  .connect( "op3", "op4" )
-                                                 .connect( "op4", "op5" )
+                                                 .connect( "op4", "op5" ).connect( "op5", "op6" )
                                                  .build();
 
-        final RegionDef regionDef = new RegionDef( REGION_ID, PARTITIONED_STATEFUL, singletonList( "field" ),
-                                                   asList( operatorDef0,
-                                                           operatorDef1,
-                                                           operatorDef2,
-                                                           operatorDef3,
-                                                           operatorDef4,
-                                                           operatorDef5 ) );
+        final RegionDef regionDef = new RegionDef( REGION_ID, PARTITIONED_STATEFUL, singletonList( "field" ), asList( operatorDef1,
+                                                                                                                      operatorDef2,
+                                                                                                                      operatorDef3,
+                                                                                                                      operatorDef4,
+                                                                                                                      operatorDef5,
+                                                                                                                      operatorDef6 ) );
 
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, asList( 0, 3, 4 ), 2 );
         final Region region = regionManager.createRegion( flow, regionExecutionPlan );
@@ -898,6 +904,20 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
     @OperatorSpec( type = STATEFUL, inputPortCount = 1, outputPortCount = 1 )
     @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field", type = Integer.class ) } ) }, outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field", type = Integer.class ) } ) } )
     public static class StatefulInput1Output1Operator extends NopOperator
+    {
+
+        @Override
+        public SchedulingStrategy init ( final InitializationContext context )
+        {
+            return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
+        }
+
+    }
+
+
+    @OperatorSpec( type = STATEFUL, inputPortCount = 0, outputPortCount = 1 )
+    @OperatorSchema( outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field", type = Integer.class ) } ) } )
+    public static class StatefulInput0Output1Operator extends NopOperator
     {
 
         @Override

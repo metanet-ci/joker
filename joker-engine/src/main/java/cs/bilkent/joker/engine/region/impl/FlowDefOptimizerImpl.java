@@ -171,6 +171,11 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
             {
                 final RegionDef upstreamRegion = getRegionByLastOperator( regions, upstreamOperators.get( 0 ) );
 
+                if ( upstreamRegion.getOperatorCount() == 1 && upstreamRegion.getOperator( 0 ).getInputPortCount() == 0 )
+                {
+                    continue;
+                }
+
                 if ( currentRegion.getRegionType() == PARTITIONED_STATEFUL )
                 {
                     checkArgument( upstreamRegion.getRegionType() != STATELESS,
@@ -202,6 +207,10 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
                     {
                         if ( !containsAllFieldNamesOnInputPort( currentRegion, upstreamRegion.getPartitionFieldNames() ) )
                         {
+                            LOGGER.debug(
+                                    "Will not merge downstream {} with upstream {} because partition fields do not exist in downstream!",
+                                    currentRegion.getRegionType(),
+                                    upstreamRegion.getRegionType() );
                             continue;
                         }
 
