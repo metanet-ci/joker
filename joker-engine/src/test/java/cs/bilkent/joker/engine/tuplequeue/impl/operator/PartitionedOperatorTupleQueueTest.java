@@ -18,9 +18,7 @@ import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
 {
@@ -50,7 +48,8 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
                                                                 new PartitionKeyExtractor1( singletonList( PARTITION_KEY_FIELD ) ),
                                                                 new TupleQueueContainer[] { container },
                                                                 new int[] { 0 },
-                                                                MAX_DRAINABLE_KEY_COUNT );
+                                                                MAX_DRAINABLE_KEY_COUNT,
+                                                                100 );
     }
 
     @Test
@@ -65,7 +64,9 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
         drainer.setParameters( AT_LEAST, new int[] { 0, 1 }, new int[] { 1, 1 } );
 
         assertEquals( 1, operatorTupleQueue.getTotalDrainableKeyCount() );
+
         operatorTupleQueue.drain( drainer );
+
         assertEquals( 0, operatorTupleQueue.getTotalDrainableKeyCount() );
         assertEquals( tuples, drainer.getResult().getTuples( 0 ) );
     }
@@ -126,6 +127,7 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
 
         final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT );
         operatorTupleQueue.drain( drainer );
+
         assertEquals( 0, operatorTupleQueue.getTotalDrainableKeyCount() );
         assertEquals( tuples, drainer.getResult().getTuples( 0 ) );
     }
@@ -142,6 +144,7 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
 
         final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT );
         operatorTupleQueue.drain( drainer );
+
         assertNull( drainer.getResult() );
     }
 
@@ -156,6 +159,7 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
 
         final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT );
         operatorTupleQueue.drain( drainer );
+
         assertEquals( tuples, drainer.getResult().getTuples( 0 ) );
     }
 
@@ -170,7 +174,7 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
 
         operatorTupleQueue.offer( 0, tuples );
 
-        assertTrue( operatorTupleQueue.isOverloaded() );
+        assertEquals( 2, operatorTupleQueue.getDrainCountHint() );
     }
 
     @Test
@@ -186,7 +190,7 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
 
         operatorTupleQueue.offer( 0, tuples );
 
-        assertTrue( operatorTupleQueue.isOverloaded() );
+        assertEquals( 1, operatorTupleQueue.getDrainCountHint() );
     }
 
     @Test
@@ -204,7 +208,7 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
 
         operatorTupleQueue.offer( 0, tuples );
 
-        assertFalse( operatorTupleQueue.isOverloaded() );
+        assertEquals( 0, operatorTupleQueue.getDrainCountHint() );
     }
 
 }

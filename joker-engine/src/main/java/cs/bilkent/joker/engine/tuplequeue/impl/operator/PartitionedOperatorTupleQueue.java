@@ -16,6 +16,7 @@ import cs.bilkent.joker.engine.tuplequeue.impl.TupleQueueContainer;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort;
+import static java.lang.Math.min;
 import static java.util.Arrays.copyOf;
 import static java.util.Arrays.fill;
 
@@ -48,6 +49,8 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
 
     private final int maxDrainableKeyCount;
 
+    private final int drainHint;
+
     private final int availableTupleCounts[];
 
     private int drainablePartitionCount;
@@ -64,7 +67,8 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
                                            final PartitionKeyExtractor partitionKeyExtractor,
                                            final TupleQueueContainer[] tupleQueueContainers,
                                            final int[] partitions,
-                                           final int maxDrainableKeyCount )
+                                           final int maxDrainableKeyCount,
+                                           final int drainHint )
     {
         checkArgument( partitionCount == tupleQueueContainers.length,
                        "mismatching partition count %s and tuple queue container count %s partitioned tuple queue of for operator" + " %s",
@@ -80,6 +84,7 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
                        inputPortCount,
                        operatorId );
         checkArgument( tupleQueueCapacity > 0 );
+        checkArgument( drainHint > 0 );
         this.operatorId = operatorId;
         this.replicaIndex = replicaIndex;
         this.inputPortCount = inputPortCount;
@@ -89,6 +94,7 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
         this.tupleQueueContainers = copyOf( tupleQueueContainers, partitionCount );
         this.availableTupleCounts = new int[ inputPortCount ];
         this.maxDrainableKeyCount = maxDrainableKeyCount;
+        this.drainHint = drainHint;
         for ( int i = 0; i < partitionCount; i++ )
         {
             if ( partitions[ i ] != replicaIndex )
@@ -249,25 +255,6 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
     }
 
     @Override
-    public boolean isOverloaded ()
-    {
-        if ( totalDrainableKeyCount >= maxDrainableKeyCount )
-        {
-            return true;
-        }
-
-        for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
-        {
-            if ( availableTupleCounts[ portIndex ] >= tupleQueueCapacity )
-            {
-                return totalDrainableKeyCount > 0;
-            }
-        }
-
-        return false;
-    }
-
-    @Override
     public boolean isEmpty ()
     {
         for ( int portIndex = 0; portIndex < getInputPortCount(); portIndex++ )
@@ -285,6 +272,30 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
     public void ensureCapacity ( final int capacity )
     {
 
+    }
+
+    @Override
+    public int getDrainCountHint ()
+    {
+        //        if ( !tick )
+        //        {
+        //            return min( totalDrainableKeyCount, drainHint );
+        //        }
+
+        if ( totalDrainableKeyCount >= maxDrainableKeyCount )
+        {
+            return totalDrainableKeyCount;
+        }
+
+        for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
+        {
+            if ( availableTupleCounts[ portIndex ] >= tupleQueueCapacity )
+            {
+                return totalDrainableKeyCount;
+            }
+        }
+
+        return min( totalDrainableKeyCount, drainHint );
     }
 
     int getTotalDrainableKeyCount ()

@@ -255,7 +255,7 @@ public class OperatorReplica
 
         TuplesImpl input, output = null;
 
-        final boolean singleInvocation = !( meter.isTicked() && queue.isOverloaded() );
+        int invocationCount = queue.getDrainCountHint();
 
         while ( true )
         {
@@ -327,7 +327,7 @@ public class OperatorReplica
 
             operatorInvokedOnLastAttempt |= invoked;
 
-            if ( singleInvocation || !invoked || status == COMPLETED )
+            if ( !invoked || --invocationCount < 1 || status == COMPLETED )
             {
                 break;
             }

@@ -79,12 +79,6 @@ public class EmptyOperatorTupleQueue implements OperatorTupleQueue
     }
 
     @Override
-    public boolean isOverloaded ()
-    {
-        return false;
-    }
-
-    @Override
     public boolean isEmpty ()
     {
         return true;
@@ -94,6 +88,12 @@ public class EmptyOperatorTupleQueue implements OperatorTupleQueue
     public void ensureCapacity ( final int capacity )
     {
 
+    }
+
+    @Override
+    public int getDrainCountHint ()
+    {
+        return 1;
     }
 
 }

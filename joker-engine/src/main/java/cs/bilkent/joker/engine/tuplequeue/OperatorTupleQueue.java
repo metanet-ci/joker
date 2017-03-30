@@ -63,10 +63,10 @@ public interface OperatorTupleQueue
 
     void setTupleCounts ( int[] tupleCounts, TupleAvailabilityByPort tupleAvailabilityByPort );
 
-    boolean isOverloaded ();
-
     boolean isEmpty ();
 
     void ensureCapacity ( int capacity );
+
+    int getDrainCountHint ();
 
 }

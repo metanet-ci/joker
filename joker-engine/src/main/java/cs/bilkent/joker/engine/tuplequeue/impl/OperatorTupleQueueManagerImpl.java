@@ -172,7 +172,9 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
                                                                                      partitionKeyExtractor,
                                                                                      containers,
                                                                                      partitions,
-                                                                                     tupleQueueManagerConfig.getMaxDrainableKeyCount() );
+                                                                                     tupleQueueManagerConfig.getMaxDrainableKeyCount(),
+                                                                                     tupleQueueManagerConfig
+                                                                                             .getPartitionedTupleQueueDrainHint() );
         }
 
         partitionedOperatorTupleQueues.put( key, operatorTupleQueues );
@@ -279,7 +281,9 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
                                                                                partitionKeyExtractor,
                                                                                containers,
                                                                                newPartitionDistribution.getDistribution(),
-                                                                               tupleQueueManagerConfig.getMaxDrainableKeyCount() );
+                                                                               tupleQueueManagerConfig.getMaxDrainableKeyCount(),
+                                                                               tupleQueueManagerConfig.getPartitionedTupleQueueDrainHint
+                                                                                                               () );
 
             }
         }

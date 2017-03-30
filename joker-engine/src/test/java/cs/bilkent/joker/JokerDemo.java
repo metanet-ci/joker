@@ -1,5 +1,6 @@
 package cs.bilkent.joker;
 
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -10,6 +11,9 @@ import java.util.function.Consumer;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import com.codahale.metrics.ExponentiallyDecayingReservoir;
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Snapshot;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
@@ -47,7 +51,6 @@ import static cs.bilkent.joker.operators.BeaconOperator.TUPLE_COUNT_CONFIG_PARAM
 import static cs.bilkent.joker.operators.BeaconOperator.TUPLE_POPULATOR_CONFIG_PARAMETER;
 import cs.bilkent.joker.operators.ForEachOperator;
 import static cs.bilkent.joker.operators.ForEachOperator.CONSUMER_FUNCTION_CONFIG_PARAMETER;
-import cs.bilkent.joker.operators.MapperOperator;
 import static cs.bilkent.joker.operators.MapperOperator.MAPPER_CONFIG_PARAMETER;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import cs.bilkent.joker.test.category.SlowTest;
@@ -62,11 +65,11 @@ public class JokerDemo extends AbstractJokerTest
 
     private static final OperatorType MIDDLE_REGION_TYPE = PARTITIONED_STATEFUL;
 
-    private static final int KEY_RANGE = 1000;
+    private static final int KEY_RANGE = 1000000;
 
-    private static final int PARTITIONER_COST = 4096;
+    private static final int PARTITIONER_COST = 128;
 
-    private static final int MULTIPLIER_COST = 4096;
+    private static final int MULTIPLIER_COST = 128;
 
     private final FlowExample flowExample = new FlowExample();
 
@@ -198,7 +201,7 @@ public class JokerDemo extends AbstractJokerTest
 
         private int val = random.nextInt( 10 );
 
-        private int limit = 64;
+        private int limit = 8;
 
         private int count;
 
@@ -360,7 +363,7 @@ public class JokerDemo extends AbstractJokerTest
                                                                             .addOutputField( 0, "val", Double.class )
                                                                             .build();
 
-            OperatorDef multiplier = OperatorDefBuilder.newInstance( "multiplier", MapperOperator.class )
+            OperatorDef multiplier = OperatorDefBuilder.newInstance( "multiplier", MapperOperator2.class )
                                                        .setConfig( multiplierConfig )
                                                        .setExtendingSchema( multiplierSchema )
                                                        .build();
@@ -381,6 +384,66 @@ public class JokerDemo extends AbstractJokerTest
                                        .build();
         }
 
+    }
+
+
+    @OperatorSpec( type = STATELESS, inputPortCount = 1, outputPortCount = 1 )
+    public static class MapperOperator2 implements Operator
+    {
+
+        public static final String MAPPER_CONFIG_PARAMETER = "mapper";
+
+        private static final int DEFAULT_TUPLE_COUNT_CONFIG_VALUE = 1;
+
+
+        private BiConsumer<Tuple, Tuple> mapper;
+
+        private TupleSchema outputSchema;
+
+        private Histogram histogram = new Histogram( new ExponentiallyDecayingReservoir() );
+
+        @Override
+        public SchedulingStrategy init ( final InitializationContext context )
+        {
+            final OperatorConfig config = context.getConfig();
+
+            this.mapper = config.getOrFail( MAPPER_CONFIG_PARAMETER );
+            this.outputSchema = context.getOutputPortSchema( 0 );
+            return scheduleWhenTuplesAvailableOnDefaultPort( DEFAULT_TUPLE_COUNT_CONFIG_VALUE );
+        }
+
+        @Override
+        public void invoke ( final InvocationContext invocationContext )
+        {
+            final Tuples input = invocationContext.getInput();
+            final Tuples output = invocationContext.getOutput();
+
+            List<Tuple> tuples = input.getTuplesByDefaultPort();
+            for ( Tuple tuple : tuples )
+            {
+                final Tuple mapped = new Tuple( outputSchema );
+                mapper.accept( tuple, mapped );
+                output.add( mapped );
+            }
+
+            histogram.update( tuples.size() );
+        }
+
+        @Override
+        public void shutdown ()
+        {
+            Snapshot snapshot = histogram.getSnapshot();
+            System.out.printf( "STATS -> min: %d max: %d mean: %s std dev: %f median: %f .75: %f .95: %f .99: %f .999: %f",
+                               snapshot.getMin(),
+                               snapshot.getMax(),
+                               snapshot.getMean(),
+                               snapshot.getStdDev(),
+                               snapshot.getMedian(),
+                               snapshot.get75thPercentile(),
+                               snapshot.get95thPercentile(),
+                               snapshot.get99thPercentile(),
+                               snapshot.get999thPercentile() );
+        }
     }
 
 }

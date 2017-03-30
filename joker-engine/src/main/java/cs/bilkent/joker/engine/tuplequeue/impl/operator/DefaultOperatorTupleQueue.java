@@ -115,25 +115,6 @@ public class DefaultOperatorTupleQueue implements OperatorTupleQueue
     }
 
     @Override
-    public boolean isOverloaded ()
-    {
-        if ( threadingPreference == MULTI_THREADED )
-        {
-            return false;
-        }
-
-        for ( int portIndex = 0; portIndex < getInputPortCount(); portIndex++ )
-        {
-            if ( tupleQueues[ portIndex ].size() >= tupleQueueCapacity )
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    @Override
     public boolean isEmpty ()
     {
         for ( int portIndex = 0; portIndex < getInputPortCount(); portIndex++ )
@@ -157,6 +138,30 @@ public class DefaultOperatorTupleQueue implements OperatorTupleQueue
                 LOGGER.info( "tuple queue of port index {} of operator {} is extended to {}", portIndex, operatorId, capacity );
             }
         }
+    }
+
+    @Override
+    public int getDrainCountHint ()
+    {
+        //        if ( !( tick && threadingPreference == SINGLE_THREADED ) )
+        //        {
+        //            return 1;
+        //        }
+
+        if ( threadingPreference == MULTI_THREADED )
+        {
+            return 1;
+        }
+
+        for ( int portIndex = 0; portIndex < getInputPortCount(); portIndex++ )
+        {
+            if ( tupleQueues[ portIndex ].size() >= tupleQueueCapacity )
+            {
+                return Integer.MAX_VALUE;
+            }
+        }
+
+        return 1;
     }
 
     public ThreadingPreference getThreadingPreference ()

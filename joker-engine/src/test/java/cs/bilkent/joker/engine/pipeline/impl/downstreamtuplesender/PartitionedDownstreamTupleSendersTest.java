@@ -166,12 +166,6 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
         }
 
         @Override
-        public boolean isOverloaded ()
-        {
-            return false;
-        }
-
-        @Override
         public boolean isEmpty ()
         {
             throw new UnsupportedOperationException();
@@ -181,6 +175,12 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
         public void ensureCapacity ( final int capacity )
         {
 
+        }
+
+        @Override
+        public int getDrainCountHint ()
+        {
+            return 1;
         }
 
     }
