@@ -19,6 +19,8 @@ public class MetricManagerConfig
 
     public static final String HISTORY_SIZE = "historySize";
 
+    public static final String PERIOD_SKEW_TOLERANCE_RATIO = "periodSkewToleranceRatio";
+
     public static final String CSV_REPORT_ENABLED = "csvReportEnabled";
 
     public static final String CSV_REPORT_PERIOD_IN_MILLIS = "csvReportPeriodInMillis";
@@ -36,6 +38,8 @@ public class MetricManagerConfig
 
     private final int historySize;
 
+    private final double periodSkewToleranceRatio;
+
     private final boolean csvReportEnabled;
 
     private final long csvReportPeriodInMillis;
@@ -50,6 +54,7 @@ public class MetricManagerConfig
         this.pipelineMetricsScanningPeriodInMillis = config.getLong( PIPELINE_METRICS_SCANNING_PERIOD_IN_MILLIS );
         this.operatorInvocationSamplingPeriodInMicros = config.getLong( OPERATOR_INVOCATION_SAMPLING_IN_MICROS );
         this.historySize = config.getInt( HISTORY_SIZE );
+        this.periodSkewToleranceRatio = config.getDouble( PERIOD_SKEW_TOLERANCE_RATIO );
         this.csvReportEnabled = config.getBoolean( CSV_REPORT_ENABLED );
         this.csvReportPeriodInMillis = config.getLong( CSV_REPORT_PERIOD_IN_MILLIS );
         final String csvReportBaseDir = config.getString( CSV_REPORT_BASE_DIR );
@@ -79,6 +84,11 @@ public class MetricManagerConfig
     public int getHistorySize ()
     {
         return historySize;
+    }
+
+    public double getPeriodSkewToleranceRatio ()
+    {
+        return periodSkewToleranceRatio;
     }
 
     public boolean isCsvReportEnabled ()

@@ -20,8 +20,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.Supplier;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -33,6 +34,7 @@ import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Snapshot;
+import com.google.common.base.Joiner;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -41,9 +43,14 @@ import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_THREAD_GROUP_NAME
 import cs.bilkent.joker.engine.config.MetricManagerConfig;
 import cs.bilkent.joker.engine.exception.JokerException;
 import cs.bilkent.joker.engine.flow.PipelineId;
+import cs.bilkent.joker.engine.metric.FlowMetricsSnapshot;
 import cs.bilkent.joker.engine.metric.MetricManager;
 import cs.bilkent.joker.engine.metric.PipelineMeter;
-import cs.bilkent.joker.engine.metric.impl.PipelineMetrics.PipelineMetricsVisitor;
+import cs.bilkent.joker.engine.metric.PipelineMetricsHistory;
+import cs.bilkent.joker.engine.metric.PipelineMetricsSnapshot;
+import cs.bilkent.joker.engine.metric.PipelineMetricsSnapshot.PipelineMetricsVisitor;
+import static java.lang.Math.abs;
+import static java.util.Collections.addAll;
 import static java.util.Comparator.comparing;
 import static java.util.concurrent.Executors.newScheduledThreadPool;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
@@ -59,7 +66,11 @@ public class MetricManagerImpl implements MetricManager
 
     private static final int METRICS_SCHEDULER_CORE_POOL_SIZE = 2;
 
-    private static final int TASK_INITIAL = -2, TASK_RUNNING = 1, TASK_PAUSED = -1, TASK_RUNNABLE = 0;
+
+    private enum TaskStatus
+    {
+        INITIAL, RUNNABLE, RUNNING, PAUSED
+    }
 
 
     private final MetricManagerConfig metricManagerConfig;
@@ -80,15 +91,17 @@ public class MetricManagerImpl implements MetricManager
 
     private final ConcurrentMap<PipelineId, PipelineMetrics> pipelineMetricsMap = new ConcurrentHashMap<>();
 
-    private final AtomicInteger metricsFlag = new AtomicInteger( TASK_INITIAL );
+    private final AtomicReference<TaskStatus> metricsFlag = new AtomicReference<>( TaskStatus.INITIAL );
 
-    private final AtomicInteger samplingFlag = new AtomicInteger( TASK_INITIAL );
+    private final AtomicReference<TaskStatus> samplingFlag = new AtomicReference<>( TaskStatus.INITIAL );
 
     private volatile CsvReporter csvReporter;
 
     private volatile Histogram scanOperatorsHistogram;
 
     private volatile Histogram scanMetricsHistogram;
+
+    private volatile FlowMetricsSnapshot flowMetricsSnapshot;
 
     private volatile int iteration;
 
@@ -139,6 +152,12 @@ public class MetricManagerImpl implements MetricManager
     public void resume ( final int flowVersion, final List<PipelineId> pipelineIdsToRemove, final List<PipelineMeter> newPipelineMeters )
     {
         call( new ResumeTasks( flowVersion, pipelineIdsToRemove, newPipelineMeters ), "pausing" );
+    }
+
+    @Override
+    public FlowMetricsSnapshot getFlowMetricsSnapshot ()
+    {
+        return flowMetricsSnapshot;
     }
 
     @Override
@@ -198,11 +217,11 @@ public class MetricManagerImpl implements MetricManager
         }
     }
 
-    private void setTaskPaused ( final AtomicInteger flag )
+    private void setTaskPaused ( final AtomicReference<TaskStatus> flag )
     {
-        while ( !flag.compareAndSet( TASK_RUNNABLE, TASK_PAUSED ) )
+        while ( !flag.compareAndSet( TaskStatus.RUNNABLE, TaskStatus.PAUSED ) )
         {
-            if ( flag.get() == TASK_PAUSED )
+            if ( flag.get() == TaskStatus.PAUSED )
             {
                 break;
             }
@@ -213,6 +232,11 @@ public class MetricManagerImpl implements MetricManager
 
     private void createCsvReporter ()
     {
+        if ( !metricManagerConfig.isCsvReportEnabled() )
+        {
+            return;
+        }
+
         final String metricsDirName = new SimpleDateFormat( "'metrics_'yyyy_MM_dd_HH_mm_ss_SSS" ).format( new Date() );
         final String baseDir = metricManagerConfig.getCsvReportBaseDir();
         final String dir = baseDir + metricsDirName;
@@ -225,13 +249,133 @@ public class MetricManagerImpl implements MetricManager
         csvReporter.start( metricManagerConfig.getCsvReportPeriodInMillis(), MILLISECONDS );
     }
 
+    private void register ( final PipelineMetrics pipelineMetrics )
+    {
+        if ( !metricManagerConfig.isCsvReportEnabled() )
+        {
+            return;
+        }
+
+        final PipelineMeter pipelineMeter = pipelineMetrics.getPipelineMeter();
+        final PipelineId pipelineId = pipelineMeter.getPipelineId();
+        final int period = flowMetricsSnapshot != null ? flowMetricsSnapshot.getPeriod() + 1 : 0;
+
+        for ( int replicaIndex = 0; replicaIndex < pipelineMeter.getReplicaCount(); replicaIndex++ )
+        {
+            final int r = replicaIndex;
+            final String cpuMetricName = getMetricName( pipelineId, pipelineMetrics.getFlowVersion(), replicaIndex, "cpu" );
+            final Supplier<Double> cpuGauge = () ->
+            {
+                final PipelineMetricsSnapshot newestSnapshot = getNewestSnapshot( pipelineId, period );
+                return newestSnapshot != null ? newestSnapshot.getCpuUtilizationRatio( r ) : 0d;
+            };
+            metricRegistry.register( cpuMetricName, new PipelineGauge<>( pipelineId, cpuGauge ) );
+
+            final String pipelineCostMetricName = getMetricName( pipelineId, pipelineMetrics.getFlowVersion(), replicaIndex, "cost", "p" );
+            final Supplier<Double> pipelineCostGauge = () ->
+            {
+                final PipelineMetricsSnapshot newestSnapshot = getNewestSnapshot( pipelineId, period );
+                return newestSnapshot != null ? newestSnapshot.getPipelineCost( r ) : 0d;
+            };
+            metricRegistry.register( pipelineCostMetricName, new PipelineGauge<>( pipelineId, pipelineCostGauge ) );
+
+            for ( int operatorIndex = 0; operatorIndex < pipelineMeter.getOperatorCount(); operatorIndex++ )
+            {
+                final String operatorCostMetricName = getMetricName( pipelineId,
+                                                                     pipelineMetrics.getFlowVersion(),
+                                                                     replicaIndex,
+                                                                     "cost",
+                                                                     "op",
+                                                                     operatorIndex );
+                final int o = operatorIndex;
+                final Supplier<Double> operatorCostGauge = () ->
+                {
+                    final PipelineMetricsSnapshot newestSnapshot = getNewestSnapshot( pipelineId, period );
+                    return newestSnapshot != null ? newestSnapshot.getOperatorCost( r, o ) : 0d;
+                };
+                metricRegistry.register( operatorCostMetricName, new PipelineGauge<>( pipelineId, operatorCostGauge ) );
+            }
+
+            for ( int portIndex = 0; portIndex < pipelineMeter.getInputPortCount(); portIndex++ )
+            {
+                final String metricName = getMetricName( pipelineId,
+                                                         pipelineMetrics.getFlowVersion(),
+                                                         replicaIndex,
+                                                         "thr",
+                                                         "cs",
+                                                         portIndex );
+                final int p = portIndex;
+                final Supplier<Long> throughputGauge = () ->
+                {
+                    final PipelineMetricsSnapshot newestSnapshot = getNewestSnapshot( pipelineId, period );
+                    return newestSnapshot != null ? newestSnapshot.getInboundThroughput( r, p ) : 0;
+                };
+                metricRegistry.register( metricName, new PipelineGauge<>( pipelineId, throughputGauge ) );
+            }
+        }
+    }
+
+    private void deregister ( final PipelineId pipelineId )
+    {
+        if ( !metricManagerConfig.isCsvReportEnabled() )
+        {
+            return;
+        }
+
+        metricRegistry.removeMatching( ( name, metric ) ->
+                                       {
+                                           if ( metric instanceof PipelineGauge )
+                                           {
+                                               final PipelineGauge gauge = (PipelineGauge) metric;
+                                               final boolean match = gauge.getId().equals( pipelineId );
+                                               if ( match )
+                                               {
+                                                   LOGGER.debug( "PipelineGauge: {} will be removed.", gauge.getId() );
+                                               }
+                                               return match;
+                                           }
+
+                                           return false;
+                                       } );
+    }
+
+    private PipelineMetricsSnapshot getNewestSnapshot ( final PipelineId pipelineId, final int period )
+    {
+        if ( flowMetricsSnapshot == null || flowMetricsSnapshot.getPeriod() < period )
+        {
+            return null;
+        }
+
+        final PipelineMetricsHistory pipelineMetricsHistory = flowMetricsSnapshot.getPipelineMetricsHistory( pipelineId );
+        return pipelineMetricsHistory != null ? pipelineMetricsHistory.getLatestSnapshot() : null;
+    }
+
+    private String getMetricName ( final PipelineId pipelineId, final int flowVersion, final int replicaIndex, Object... vals )
+    {
+        final List<Object> parts = new ArrayList<>();
+        parts.add( "r" );
+        parts.add( pipelineId.getRegionId() );
+        parts.add( "p" );
+        parts.add( pipelineId.getPipelineStartIndex() );
+        parts.add( "r" );
+        parts.add( replicaIndex );
+        parts.add( "f" );
+        parts.add( flowVersion );
+        if ( vals != null )
+        {
+            addAll( parts, vals );
+        }
+
+        return Joiner.on( "_" ).join( parts );
+    }
+
     private class SamplePipelines implements Runnable
     {
 
         @Override
         public void run ()
         {
-            if ( pause || !samplingFlag.compareAndSet( TASK_RUNNABLE, TASK_RUNNING ) )
+            if ( pause || !samplingFlag.compareAndSet( TaskStatus.RUNNABLE, TaskStatus.RUNNING ) )
             {
                 return;
             }
@@ -251,9 +395,13 @@ public class MetricManagerImpl implements MetricManager
 
                 scanOperatorsHistogram.update( System.nanoTime() - samplingStartTimeInNanos );
             }
+            catch ( Exception e )
+            {
+                LOGGER.error( "Sample pipelines failed", e );
+            }
             finally
             {
-                samplingFlag.set( TASK_RUNNABLE );
+                samplingFlag.set( TaskStatus.RUNNABLE );
             }
         }
 
@@ -268,7 +416,7 @@ public class MetricManagerImpl implements MetricManager
         @Override
         public void run ()
         {
-            if ( pause || !metricsFlag.compareAndSet( TASK_RUNNABLE, TASK_RUNNING ) )
+            if ( pause || !metricsFlag.compareAndSet( TaskStatus.RUNNABLE, TaskStatus.RUNNING ) )
             {
                 return;
             }
@@ -282,7 +430,7 @@ public class MetricManagerImpl implements MetricManager
                 }
                 else if ( iteration == metricManagerConfig.getWarmupIterations() )
                 {
-                    updateLastSystemTime();
+                    updateLastSystemTime( false );
                     initializePipelineMetrics();
 
                     LOGGER.info( "Initialized..." );
@@ -291,42 +439,57 @@ public class MetricManagerImpl implements MetricManager
                 }
 
                 final long scanStartTimeInNanos = System.nanoTime();
-                long systemTimeDiff = updateLastSystemTime();
-                if ( systemTimeDiff == -1 )
-                {
-                    return;
-                }
+                long systemTimeDiff = updateLastSystemTime( true );
+                final boolean isNewPeriod = ( systemTimeDiff != -1 );
 
                 final Map<PipelineId, long[]> pipelineIdToThreadCpuTimes = collectThreadCpuTimes();
                 systemTimeDiff += ( System.nanoTime() - scanStartTimeInNanos ) / 2;
 
-                updatePipelineMetrics( pipelineIdToThreadCpuTimes, systemTimeDiff );
+                updatePipelineMetrics( pipelineIdToThreadCpuTimes, systemTimeDiff, isNewPeriod );
 
                 final long timeSpent = System.nanoTime() - scanStartTimeInNanos;
                 scanMetricsHistogram.update( timeSpent );
 
-                logPipelineMetrics( timeSpent );
+                if ( isNewPeriod )
+                {
+                    logPipelineMetrics( timeSpent );
+                }
+            }
+            catch ( Exception e )
+            {
+                LOGGER.error( "Scan pipeline metrics failed", e );
             }
             finally
             {
                 iteration++;
-                metricsFlag.set( TASK_RUNNABLE );
+                metricsFlag.set( TaskStatus.RUNNABLE );
             }
         }
 
-        private long updateLastSystemTime ()
+        private long updateLastSystemTime ( final boolean log )
         {
             final long systemNanoTime = System.nanoTime();
-            final long systemTimeDiff = systemNanoTime - lastSystemNanoTime;
-
-            final long periodInMillis = metricManagerConfig.getPipelineMetricsScanningPeriodInMillis();
-            if ( ( (double) systemTimeDiff ) / MILLISECONDS.toNanos( periodInMillis ) < 0.25 )
+            if ( systemNanoTime <= lastSystemNanoTime )
             {
-                LOGGER.warn( "It is too early for measuring pipelines. Time diff (ms): " + NANOSECONDS.toMillis( systemTimeDiff ) );
                 return -1;
             }
 
+            final long systemTimeDiff = systemNanoTime - lastSystemNanoTime;
             lastSystemNanoTime = systemNanoTime;
+
+            final long periodInNanos = MILLISECONDS.toNanos( metricManagerConfig.getPipelineMetricsScanningPeriodInMillis() );
+
+            if ( abs( ( (double) ( systemTimeDiff - periodInNanos ) ) / periodInNanos )
+                 > metricManagerConfig.getPeriodSkewToleranceRatio() )
+            {
+                if ( log )
+                {
+                    LOGGER.warn( "It is too early for measuring pipelines. Time diff (ms): " + NANOSECONDS.toMillis( systemTimeDiff ) );
+                }
+
+                return -1;
+            }
+
             return systemTimeDiff;
         }
 
@@ -336,7 +499,6 @@ public class MetricManagerImpl implements MetricManager
             {
                 final PipelineMetrics pipelineMetrics = pipelineMetricsMap.get( pipelineId );
                 pipelineMetrics.initialize( threadMXBean );
-                pipelineMetricsMap.put( pipelineId, pipelineMetrics );
             }
         }
 
@@ -353,15 +515,41 @@ public class MetricManagerImpl implements MetricManager
             return threadCpuTimes;
         }
 
-        private void updatePipelineMetrics ( final Map<PipelineId, long[]> pipelineIdToThreadCpuTimes, final long systemTimeDiff )
+        private void updatePipelineMetrics ( final Map<PipelineId, long[]> pipelineIdToThreadCpuTimes,
+                                             final long systemTimeDiff,
+                                             final boolean isNewPeriod )
         {
+            final Map<PipelineId, PipelineMetricsHistory> pipelineMetricsHistories = new HashMap<>();
+
             for ( Entry<PipelineId, long[]> e : pipelineIdToThreadCpuTimes.entrySet() )
             {
                 final PipelineId pipelineId = e.getKey();
                 final long[] newThreadCpuTimes = e.getValue();
                 final PipelineMetrics pipelineMetrics = pipelineMetricsMap.get( pipelineId );
 
-                pipelineMetrics.update( newThreadCpuTimes, systemTimeDiff );
+                final PipelineMetricsSnapshot snapshot = pipelineMetrics.update( newThreadCpuTimes, systemTimeDiff );
+                PipelineMetricsHistory newHistory = null;
+                if ( flowMetricsSnapshot != null )
+                {
+                    final PipelineMetricsHistory currentHistory = flowMetricsSnapshot.getPipelineMetricsHistory( pipelineId );
+                    if ( currentHistory != null )
+                    {
+                        newHistory = currentHistory.add( snapshot );
+                    }
+                }
+
+                if ( newHistory == null )
+                {
+                    newHistory = new PipelineMetricsHistory( snapshot, metricManagerConfig.getHistorySize() );
+                }
+
+                pipelineMetricsHistories.put( pipelineId, newHistory );
+            }
+
+            if ( isNewPeriod )
+            {
+                final int newPeriod = flowMetricsSnapshot != null ? flowMetricsSnapshot.getPeriod() + 1 : 0;
+                flowMetricsSnapshot = new FlowMetricsSnapshot( newPeriod, pipelineMetricsHistories );
             }
         }
 
@@ -390,8 +578,8 @@ public class MetricManagerImpl implements MetricManager
 
             for ( PipelineId pipelineId : pipelineIds )
             {
-                final PipelineMetrics pipelineMetrics = pipelineMetricsMap.get( pipelineId );
-                pipelineMetrics.visit( logVisitor );
+                final PipelineMetricsHistory pipelineMetricsHistory = flowMetricsSnapshot.getPipelineMetricsHistory( pipelineId );
+                pipelineMetricsHistory.getLatestSnapshot().visit( logVisitor );
             }
 
             final Snapshot scanMetricsSnapshot = scanMetricsHistogram.getSnapshot();
@@ -418,7 +606,8 @@ public class MetricManagerImpl implements MetricManager
                           scanOperatorsSnapshot.get99thPercentile(),
                           scanOperatorsSnapshot.get999thPercentile() );
 
-            LOGGER.info( "Time spent (ns): {}", timeSpent );
+            final int period = flowMetricsSnapshot != null ? flowMetricsSnapshot.getPeriod() : -1;
+            LOGGER.info( "Time spent (ns): {}. New flow metrics snapshot version: {}", timeSpent, period );
         }
 
     }
@@ -440,11 +629,12 @@ public class MetricManagerImpl implements MetricManager
         @Override
         public Void call ()
         {
-            final int metricsFlagState = metricsFlag.get();
-            final int samplingFlagState = samplingFlag.get();
-            checkState( ( metricsFlagState == TASK_INITIAL && samplingFlagState == TASK_INITIAL ),
+            final TaskStatus metricsFlagStatus = metricsFlag.get();
+            final TaskStatus samplingFlagStatus = samplingFlag.get();
+            checkState( ( metricsFlagStatus == TaskStatus.INITIAL && samplingFlagStatus == TaskStatus.INITIAL ),
                         "cannot start metric collector since metrics flag is %s and sampling flag is %s",
-                        samplingFlagState );
+                        metricsFlagStatus,
+                        samplingFlagStatus );
 
             checkState( threadMXBean.isThreadCpuTimeSupported(), "cannot start metric collector since thread cpu time not supported!" );
             checkState( threadMXBean.isThreadCpuTimeEnabled(), "cannot start metric collector since thread cpu time not enabled!" );
@@ -472,9 +662,9 @@ public class MetricManagerImpl implements MetricManager
             for ( PipelineMeter pipelineMeter : pipelineMeters )
             {
                 final PipelineId pipelineId = pipelineMeter.getPipelineId();
-                final PipelineMetrics metrics = new PipelineMetrics( flowVersion, pipelineMeter, metricManagerConfig.getHistorySize() );
-                metrics.register( metricRegistry );
+                final PipelineMetrics metrics = new PipelineMetrics( flowVersion, pipelineMeter );
                 pipelineMetricsMap.put( pipelineId, metrics );
+                register( metrics );
                 LOGGER.info( "Started tracking Pipeline {} with {} replicas and flow version {}",
                              pipelineId,
                              pipelineMeter.getReplicaCount(),
@@ -483,13 +673,10 @@ public class MetricManagerImpl implements MetricManager
 
             LOGGER.info( "Metrics collector started." );
 
-            metricsFlag.set( TASK_RUNNABLE );
-            samplingFlag.set( TASK_RUNNABLE );
+            metricsFlag.set( TaskStatus.RUNNABLE );
+            samplingFlag.set( TaskStatus.RUNNABLE );
 
-            if ( metricManagerConfig.isCsvReportEnabled() )
-            {
-                createCsvReporter();
-            }
+            createCsvReporter();
 
             return null;
         }
@@ -503,14 +690,14 @@ public class MetricManagerImpl implements MetricManager
         @Override
         public Void call ()
         {
-            final int metricsFlagState = metricsFlag.get();
-            final int samplingFlagState = samplingFlag.get();
-            LOGGER.info( "Metric collector is pausing. {} {}", metricsFlagState, samplingFlagState );
-            checkState( !( metricsFlagState == TASK_PAUSED || samplingFlagState == TASK_PAUSED || metricsFlagState == TASK_INITIAL
-                           || samplingFlagState == TASK_INITIAL ),
+            final TaskStatus metricsFlagStatus = metricsFlag.get();
+            final TaskStatus samplingFlagStatus = samplingFlag.get();
+            LOGGER.info( "Metric collector is pausing. {} {}", metricsFlagStatus, samplingFlagStatus );
+            checkState( !( metricsFlagStatus == TaskStatus.PAUSED || samplingFlagStatus == TaskStatus.PAUSED
+                           || metricsFlagStatus == TaskStatus.INITIAL || samplingFlagStatus == TaskStatus.INITIAL ),
                         "cannot pause metric collector since metrics flag is %s and sampling flag is %s",
-                        metricsFlagState,
-                        samplingFlagState );
+                        metricsFlagStatus,
+                        samplingFlagStatus );
 
             pause = true;
             setTaskPaused( metricsFlag );
@@ -543,19 +730,19 @@ public class MetricManagerImpl implements MetricManager
         @Override
         public Void call ()
         {
-            final int metricsFlagState = metricsFlag.get();
-            final int samplingFlagState = samplingFlag.get();
-            checkState( ( metricsFlagState == TASK_PAUSED && samplingFlagState == TASK_PAUSED ),
+            final TaskStatus metricsFlagStatus = metricsFlag.get();
+            final TaskStatus samplingFlagStatus = samplingFlag.get();
+            checkState( ( metricsFlagStatus == TaskStatus.PAUSED && samplingFlagStatus == TaskStatus.PAUSED ),
                         "cannot resume metric collector since metrics flag is %s and sampling flag is %s",
-                        metricsFlagState,
-                        samplingFlagState );
+                        metricsFlagStatus,
+                        samplingFlagStatus );
 
             pipelineIdsToRemove.sort( PipelineId::compareTo );
 
             for ( PipelineId pipelineId : pipelineIdsToRemove )
             {
                 final PipelineMetrics pipelineMetrics = pipelineMetricsMap.remove( pipelineId );
-                pipelineMetrics.deregister( metricRegistry );
+                deregister( pipelineId );
                 checkState( pipelineMetrics != null, "Pipeline %s not found in the tracked pipelines!", pipelineId );
                 LOGGER.info( "Removed pipeline metrics of Pipeline {}", pipelineId );
             }
@@ -565,9 +752,9 @@ public class MetricManagerImpl implements MetricManager
             for ( PipelineMeter pipelineMeter : newPipelineMeters )
             {
                 final PipelineId pipelineId = pipelineMeter.getPipelineId();
-                final PipelineMetrics metrics = new PipelineMetrics( flowVersion, pipelineMeter, metricManagerConfig.getHistorySize() );
-                metrics.register( metricRegistry );
+                final PipelineMetrics metrics = new PipelineMetrics( flowVersion, pipelineMeter );
                 pipelineMetricsMap.put( pipelineId, metrics );
+                register( metrics );
                 LOGGER.info( "Started tracking new Pipeline {} with {} replicas and flow version {}",
                              pipelineId,
                              pipelineMeter.getReplicaCount(),
@@ -577,8 +764,8 @@ public class MetricManagerImpl implements MetricManager
             LOGGER.info( "Metric collector is resumed" );
 
             iteration = 0;
-            metricsFlag.set( TASK_RUNNABLE );
-            samplingFlag.set( TASK_RUNNABLE );
+            metricsFlag.set( TaskStatus.RUNNABLE );
+            samplingFlag.set( TaskStatus.RUNNABLE );
             pause = false;
 
             return null;
@@ -593,7 +780,7 @@ public class MetricManagerImpl implements MetricManager
         @Override
         public Void call ()
         {
-            if ( metricsFlag.get() == TASK_INITIAL && samplingFlag.get() == TASK_INITIAL )
+            if ( metricsFlag.get() == TaskStatus.INITIAL && samplingFlag.get() == TaskStatus.INITIAL )
             {
                 return null;
             }

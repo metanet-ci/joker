@@ -13,6 +13,8 @@ public interface MetricManager
 
     void resume ( int flowVersion, List<PipelineId> pipelineIdsToRemove, List<PipelineMeter> newPipelineMeters );
 
+    FlowMetricsSnapshot getFlowMetricsSnapshot ();
+
     void shutdown ();
 
 }
