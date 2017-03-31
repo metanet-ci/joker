@@ -60,7 +60,7 @@ public class JokerTest extends AbstractJokerTest
 
     private static final int PARTITIONED_STATEFUL_REGION_REPLICA_COUNT = 4;
 
-    private static final int KEY_RANGE = 100000;
+    private static final int KEY_RANGE = 10000;
 
     private static final int VALUE_RANGE = 5;
 
