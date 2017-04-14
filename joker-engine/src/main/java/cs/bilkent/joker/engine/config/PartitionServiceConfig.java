@@ -38,5 +38,5 @@ public class PartitionServiceConfig
     {
         return "PartitionServiceConfig{" + "partitionCount=" + partitionCount + ", maxReplicaCount=" + maxReplicaCount + '}';
     }
-    
+
 }

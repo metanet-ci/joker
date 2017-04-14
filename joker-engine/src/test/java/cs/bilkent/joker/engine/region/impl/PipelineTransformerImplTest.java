@@ -262,11 +262,15 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
                                                  .add( operatorDef1 )
                                                  .add( operatorDef2 )
                                                  .add( operatorDef3 )
-                                                 .add( operatorDef4 ).add( operatorDef5 ).add( operatorDef6 )
+                                                 .add( operatorDef4 )
+                                                 .add( operatorDef5 )
+                                                 .add( operatorDef6 )
                                                  .connect( "op0", "op1" )
                                                  .connect( "op1", "op2" )
                                                  .connect( "op2", "op3" )
-                                                 .connect( "op3", "op4" ).connect( "op4", "op5" ).connect( "op5", "op6" )
+                                                 .connect( "op3", "op4" )
+                                                 .connect( "op4", "op5" )
+                                                 .connect( "op5", "op6" )
                                                  .build();
 
         final RegionDef regionDef = new RegionDef( REGION_ID,
@@ -330,11 +334,15 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
                                                  .add( operatorDef1 )
                                                  .add( operatorDef2 )
                                                  .add( operatorDef3 )
-                                                 .add( operatorDef4 ).add( operatorDef5 ).add( operatorDef6 )
+                                                 .add( operatorDef4 )
+                                                 .add( operatorDef5 )
+                                                 .add( operatorDef6 )
                                                  .connect( "op0", "op1" )
                                                  .connect( "op1", "op2" )
                                                  .connect( "op2", "op3" )
-                                                 .connect( "op3", "op4" ).connect( "op4", "op5" ).connect( "op5", "op6" )
+                                                 .connect( "op3", "op4" )
+                                                 .connect( "op4", "op5" )
+                                                 .connect( "op5", "op6" )
                                                  .build();
 
         final RegionDef regionDef = new RegionDef( REGION_ID,
@@ -374,11 +382,15 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
                                                  .add( operatorDef1 )
                                                  .add( operatorDef2 )
                                                  .add( operatorDef3 )
-                                                 .add( operatorDef4 ).add( operatorDef5 ).add( operatorDef6 )
+                                                 .add( operatorDef4 )
+                                                 .add( operatorDef5 )
+                                                 .add( operatorDef6 )
                                                  .connect( "op0", "op1" )
                                                  .connect( "op1", "op2" )
                                                  .connect( "op2", "op3" )
-                                                 .connect( "op3", "op4" ).connect( "op4", "op5" ).connect( "op5", "op6" )
+                                                 .connect( "op3", "op4" )
+                                                 .connect( "op4", "op5" )
+                                                 .connect( "op5", "op6" )
                                                  .build();
 
         final RegionDef regionDef = new RegionDef( REGION_ID,
@@ -641,11 +653,15 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
                                                  .add( operatorDef1 )
                                                  .add( operatorDef2 )
                                                  .add( operatorDef3 )
-                                                 .add( operatorDef4 ).add( operatorDef5 ).add( operatorDef6 )
+                                                 .add( operatorDef4 )
+                                                 .add( operatorDef5 )
+                                                 .add( operatorDef6 )
                                                  .connect( "op0", "op1" )
                                                  .connect( "op1", "op2" )
                                                  .connect( "op2", "op3" )
-                                                 .connect( "op3", "op4" ).connect( "op4", "op5" ).connect( "op5", "op6" )
+                                                 .connect( "op3", "op4" )
+                                                 .connect( "op4", "op5" )
+                                                 .connect( "op5", "op6" )
                                                  .build();
 
         final RegionDef regionDef = new RegionDef( REGION_ID,
@@ -724,11 +740,15 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
                                                  .add( operatorDef1 )
                                                  .add( operatorDef2 )
                                                  .add( operatorDef3 )
-                                                 .add( operatorDef4 ).add( operatorDef5 ).add( operatorDef6 )
+                                                 .add( operatorDef4 )
+                                                 .add( operatorDef5 )
+                                                 .add( operatorDef6 )
                                                  .connect( "op0", "op1" )
                                                  .connect( "op1", "op2" )
                                                  .connect( "op2", "op3" )
-                                                 .connect( "op3", "op4" ).connect( "op4", "op5" ).connect( "op5", "op6" )
+                                                 .connect( "op3", "op4" )
+                                                 .connect( "op4", "op5" )
+                                                 .connect( "op5", "op6" )
                                                  .build();
 
         final RegionDef regionDef = new RegionDef( REGION_ID,
@@ -768,11 +788,15 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
                                                  .add( operatorDef1 )
                                                  .add( operatorDef2 )
                                                  .add( operatorDef3 )
-                                                 .add( operatorDef4 ).add( operatorDef5 ).add( operatorDef6 )
+                                                 .add( operatorDef4 )
+                                                 .add( operatorDef5 )
+                                                 .add( operatorDef6 )
                                                  .connect( "op0", "op1" )
                                                  .connect( "op1", "op2" )
                                                  .connect( "op2", "op3" )
-                                                 .connect( "op3", "op4" ).connect( "op4", "op5" ).connect( "op5", "op6" )
+                                                 .connect( "op3", "op4" )
+                                                 .connect( "op4", "op5" )
+                                                 .connect( "op5", "op6" )
                                                  .build();
 
         final RegionDef regionDef = new RegionDef( REGION_ID,

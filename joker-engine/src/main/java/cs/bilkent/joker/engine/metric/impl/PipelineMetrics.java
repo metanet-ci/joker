@@ -130,7 +130,8 @@ class PipelineMetrics
     }
 
     private void updateThreadUtilizationRatios ( final long[] newReplicaCpuTimes,
-                                                 final long systemTimeDiff, final PipelineMetricsSnapshotBuilder builder )
+                                                 final long systemTimeDiff,
+                                                 final PipelineMetricsSnapshotBuilder builder )
     {
         final int replicaCount = pipelineMeter.getReplicaCount();
         for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )

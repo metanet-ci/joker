@@ -86,14 +86,14 @@ public final class OperatorDefBuilder
     private static OperatorSpec getOperatorSpecOrFail ( Class<? extends Operator> clazz )
     {
         final OperatorSpec[] annotations = clazz.getDeclaredAnnotationsByType( OperatorSpec.class );
-        checkArgument( annotations.length == 1, clazz + " must have " + OperatorSpec.class.getSimpleName() + " annotation!" );
+        checkArgument( annotations.length == 1, "%s must have %s annotation!", clazz, OperatorSpec.class.getSimpleName() );
         return annotations[ 0 ];
     }
 
     private static OperatorSchema getOperatorSchema ( Class<? extends Operator> clazz )
     {
         final OperatorSchema[] annotations = clazz.getDeclaredAnnotationsByType( OperatorSchema.class );
-        checkArgument( annotations.length <= 1, clazz + " can have at most 1 " + OperatorSchema.class.getSimpleName() + " annotation!" );
+        checkArgument( annotations.length <= 1, "%s can have at most 1 %s annotation!", clazz, OperatorSchema.class.getSimpleName() );
         return annotations.length > 0 ? annotations[ 0 ] : null;
     }
 
@@ -102,9 +102,9 @@ public final class OperatorDefBuilder
         if ( schema != null )
         {
             checkArgument( schema.inputs().length == getPortIndexCount( schema.inputs() ),
-                           "There are multiple schemas for some input ports in OperatorSpec " );
+                           "There are multiple schemas for some input ports in OperatorSpec" );
             checkArgument( schema.outputs().length == getPortIndexCount( schema.outputs() ),
-                           "There are multiple schemas for some output ports in OperatorSpec " );
+                           "There are multiple schemas for some output ports in OperatorSpec" );
         }
     }
 
@@ -113,7 +113,7 @@ public final class OperatorDefBuilder
         for ( PortSchema portSchema : portSchemas )
         {
             final int portIndex = portSchema.portIndex();
-            checkArgument( portIndex >= 0 && portIndex < portCount, "invalid port index: " + portIndex + " in OperatorSchema" );
+            checkArgument( portIndex >= 0 && portIndex < portCount, "invalid port index: %s in OperatorSchema", portIndex );
         }
     }
 
@@ -127,12 +127,12 @@ public final class OperatorDefBuilder
                                                                         final int portCount,
                                                                         final String portType )
     {
-        checkArgument( type != STATELESS || portCount <= 1, STATELESS + " operators can have 1 " + portType + " ports!" );
+        checkArgument( type != STATELESS || portCount <= 1, "%s operators can have 1 %s ports!", STATELESS, portType );
     }
 
     private static void failIfStatelessOperatorWithNoOutputPorts ( final OperatorType type, final int portCount, final String portType )
     {
-        checkArgument( type != STATELESS || portCount > 0, STATELESS + " operators should have at least 1 " + portType + " ports!" );
+        checkArgument( type != STATELESS || portCount > 0, "%s operators should have at least 1 %s ports!", STATELESS, portType );
     }
 
     private static int getPortIndexCount ( final PortSchema[] portSchemas )

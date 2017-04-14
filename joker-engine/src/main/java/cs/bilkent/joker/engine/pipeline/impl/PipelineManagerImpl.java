@@ -1072,8 +1072,7 @@ public class PipelineManagerImpl implements PipelineManager
                 return pipeline;
             }
 
-            checkArgument( operatorIndex == i,
-                           "Operator {} is expected to be at %s'th index of pipeline %s but it is at %s'th index",
+            checkArgument( operatorIndex == i, "Operator %s is expected to be at %s'th index of pipeline %s but it is at %s'th index",
                            operator.getId(),
                            pipeline.getId(),
                            i );

@@ -923,9 +923,10 @@ public class RegionManagerImpl implements RegionManager
 
     private Supplier<TuplesImpl> createOutputSupplier ( final OperatorDef operatorDef, final boolean isLastOperator )
     {
-        return isLastOperator ? config.getRegionManagerConfig()
-                                      .newPipelineTailOperatorOutputSupplierInstance( operatorDef.getOutputPortCount() )
-                              : new CachedTuplesImplSupplier( operatorDef.getOutputPortCount() );
+        return isLastOperator
+               ? config.getRegionManagerConfig()
+                       .newPipelineTailOperatorOutputSupplierInstance( operatorDef.getOutputPortCount() )
+               : new CachedTuplesImplSupplier( operatorDef.getOutputPortCount() );
 
     }
 

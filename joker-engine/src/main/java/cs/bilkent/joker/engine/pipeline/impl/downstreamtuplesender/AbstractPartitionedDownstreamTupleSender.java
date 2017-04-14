@@ -15,8 +15,7 @@ import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 
-public abstract class AbstractPartitionedDownstreamTupleSender extends AbstractDownstreamTupleSender implements DownstreamTupleSender,
-                                                                                                                Supplier<OperatorTupleQueue[]>
+public abstract class AbstractPartitionedDownstreamTupleSender extends AbstractDownstreamTupleSender implements DownstreamTupleSender, Supplier<OperatorTupleQueue[]>
 {
 
     private final int partitionCount;

@@ -490,7 +490,7 @@ public class MetricManagerImpl implements MetricManager
             {
                 if ( log )
                 {
-                    LOGGER.warn( "It is too early for measuring pipelines. Time diff (ms): " + NANOSECONDS.toMillis( systemTimeDiff ) );
+                    LOGGER.warn( "It is too early for measuring pipelines. Time diff (ms): {}", NANOSECONDS.toMillis( systemTimeDiff ) );
                 }
 
                 return -1;

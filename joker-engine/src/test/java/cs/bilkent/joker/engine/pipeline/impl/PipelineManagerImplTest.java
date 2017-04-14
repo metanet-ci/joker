@@ -152,8 +152,11 @@ public class PipelineManagerImplTest extends AbstractJokerTest
                                                            .build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatefulOperatorInput1Output1.class ).build();
         final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatelessOperatorInput1Output1.class ).build();
-        final FlowDef flow = new FlowDefBuilder().add( operatorDef0 ).add( operatorDef1 )
-                                                 .add( operatorDef2 ).add( operatorDef3 ).connect( "op0", "op1" )
+        final FlowDef flow = new FlowDefBuilder().add( operatorDef0 )
+                                                 .add( operatorDef1 )
+                                                 .add( operatorDef2 )
+                                                 .add( operatorDef3 )
+                                                 .connect( "op0", "op1" )
                                                  .connect( "op1", "op2" )
                                                  .connect( "op1", "op3" )
                                                  .build();

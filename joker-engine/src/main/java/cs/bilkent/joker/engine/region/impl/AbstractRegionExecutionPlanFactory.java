@@ -68,7 +68,7 @@ public abstract class AbstractRegionExecutionPlanFactory implements RegionExecut
         int i = -1;
         for ( int startIndex : pipelineStartIndices )
         {
-            checkArgument( startIndex > i, "invalid pipeline start indices: ", pipelineStartIndices );
+            checkArgument( startIndex > i, "invalid pipeline start indices: %s", pipelineStartIndices );
             i = startIndex;
         }
         checkArgument( i < operators.size() );

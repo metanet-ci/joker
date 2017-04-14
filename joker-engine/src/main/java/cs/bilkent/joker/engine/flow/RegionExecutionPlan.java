@@ -158,7 +158,7 @@ public class RegionExecutionPlan
     public int getPipelineIndex ( final int pipelineStartIndex )
     {
         final int index = pipelineStartIndices.indexOf( pipelineStartIndex );
-        checkArgument( index != -1, "invalid pipeline start index: " + pipelineStartIndex );
+        checkArgument( index != -1, "invalid pipeline start index: %s", pipelineStartIndex );
 
         return index;
     }

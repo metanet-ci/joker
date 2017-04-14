@@ -158,8 +158,7 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
     {
         when( regionDef.isSource() ).thenReturn( true );
 
-        final AdaptationAction action = context.resolveIfBottleneck( bottleneckPredicate,
-                                                                     singletonList( bottleneckResolver0 ) );
+        final AdaptationAction action = context.resolveIfBottleneck( bottleneckPredicate, singletonList( bottleneckResolver0 ) );
 
         assertNull( action );
     }
@@ -172,8 +171,7 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
 
         context.updateRegionMetrics( regionExecutionPlan, singletonList( pipelineMetrics1 ), loadChangePredicate );
 
-        final AdaptationAction action = context.resolveIfBottleneck( bottleneckPredicate,
-                                                                     singletonList( bottleneckResolver0 ) );
+        final AdaptationAction action = context.resolveIfBottleneck( bottleneckPredicate, singletonList( bottleneckResolver0 ) );
 
         assertNull( action );
         verify( bottleneckPredicate ).test( pipelineMetrics1 );
@@ -190,8 +188,7 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
 
         context.updateRegionMetrics( regionExecutionPlan, singletonList( pipelineMetrics1 ), loadChangePredicate );
 
-        final AdaptationAction action = context.resolveIfBottleneck( bottleneckPredicate,
-                                                                     singletonList( bottleneckResolver0 ) );
+        final AdaptationAction action = context.resolveIfBottleneck( bottleneckPredicate, singletonList( bottleneckResolver0 ) );
 
         assertNull( action );
         verify( bottleneckPredicate ).test( pipelineMetrics1 );
@@ -213,8 +210,7 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
         when( bottleneckResolver0.resolve( regionExecutionPlan, pipelineMetrics1 ) ).thenReturn( action );
         when( action.getNewRegionExecutionPlan() ).thenReturn( newRegionExecutionPlan );
 
-        final AdaptationAction result = context.resolveIfBottleneck( bottleneckPredicate,
-                                                                     singletonList( bottleneckResolver0 ) );
+        final AdaptationAction result = context.resolveIfBottleneck( bottleneckPredicate, singletonList( bottleneckResolver0 ) );
 
         assertThat( result, equalTo( action ) );
         verify( bottleneckResolver0 ).resolve( regionExecutionPlan, pipelineMetrics1 );
@@ -278,8 +274,7 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
         when( pipelineMetrics2.getPipelineId() ).thenReturn( pipelineId0 );
         when( adaptationEvaluationPredicate.test( pipelineMetrics1, pipelineMetrics2 ) ).thenReturn( true );
 
-        final AdaptationAction rollback = context.evaluateAdaptation( pipelineMetrics2,
-                                                                      adaptationEvaluationPredicate );
+        final AdaptationAction rollback = context.evaluateAdaptation( pipelineMetrics2, adaptationEvaluationPredicate );
 
         assertNull( rollback );
         verify( adaptationEvaluationPredicate ).test( pipelineMetrics1, pipelineMetrics2 );
@@ -312,8 +307,7 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
         final AdaptationAction rollback = mock( AdaptationAction.class );
         when( action.rollback() ).thenReturn( rollback );
 
-        final AdaptationAction result = context.evaluateAdaptation( pipelineMetrics2,
-                                                                    adaptationEvaluationPredicate );
+        final AdaptationAction result = context.evaluateAdaptation( pipelineMetrics2, adaptationEvaluationPredicate );
 
         assertThat( result, equalTo( rollback ) );
         assertThat( context.getAdaptingPipelineId(), equalTo( pipelineId0 ) );
@@ -446,8 +440,7 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
 
         context.evaluateAdaptation( pipelineMetrics2, adaptationEvaluationPredicate );
 
-        final AdaptationAction result = context.resolveIfBottleneck( bottleneckPredicate,
-                                                                     singletonList( bottleneckResolver0 ) );
+        final AdaptationAction result = context.resolveIfBottleneck( bottleneckPredicate, singletonList( bottleneckResolver0 ) );
 
         assertNull( result );
         verify( bottleneckResolver0, times( 2 ) ).resolve( regionExecutionPlan, pipelineMetrics1 );

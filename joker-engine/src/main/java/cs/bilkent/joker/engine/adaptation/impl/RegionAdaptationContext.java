@@ -202,16 +202,14 @@ public class RegionAdaptationContext
         {
             finalizeAdaptation( newPipelineMetrics );
             LOGGER.info( "Adaptation is beneficial for bottleneck pipeline {} of Region {} with new metrics: {} bottleneck metrics: {} ",
-                         newPipelineMetrics.getPipelineId(),
-                         getRegionId(), newPipelineMetrics, bottleneckPipelineMetrics );
+                         newPipelineMetrics.getPipelineId(), getRegionId(), newPipelineMetrics, bottleneckPipelineMetrics );
 
             return null;
         }
         else
         {
             LOGGER.info( "Adaptation is not beneficial for bottleneck pipeline {} of Region {} with new metrics: {} bottleneck metrics: {}",
-                         newPipelineMetrics.getPipelineId(),
-                         getRegionId(), newPipelineMetrics, bottleneckPipelineMetrics );
+                         newPipelineMetrics.getPipelineId(), getRegionId(), newPipelineMetrics, bottleneckPipelineMetrics );
 
             final AdaptationAction rollback = rollbackAdaptation();
             checkState( rollback != null );
