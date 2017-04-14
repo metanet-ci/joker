@@ -1,8 +1,17 @@
 package cs.bilkent.joker.engine.metric;
 
+import java.util.Arrays;
+import java.util.stream.DoubleStream;
+import java.util.stream.LongStream;
+import javax.annotation.concurrent.NotThreadSafe;
+
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
+import static java.lang.Double.NaN;
 import static java.lang.Math.min;
+import static java.util.Arrays.stream;
+import static java.util.stream.IntStream.range;
 
 public class PipelineMetricsSnapshot
 {
@@ -42,6 +51,37 @@ public class PipelineMetricsSnapshot
         this.pipelineCosts = new double[ replicaCount ];
     }
 
+    PipelineMetricsSnapshot ( final PipelineId pipelineId,
+                              final int flowVersion,
+                              final int replicaCount,
+                              final int operatorCount,
+                              final int inputPortCount,
+                              final double[] cpuUtilizationRatios,
+                              final long[][] inboundThroughputs,
+                              final double[][] operatorCosts,
+                              final double[] pipelineCosts )
+    {
+        this.pipelineId = pipelineId;
+        this.flowVersion = flowVersion;
+        this.replicaCount = replicaCount;
+        this.operatorCount = operatorCount;
+        this.inputPortCount = inputPortCount;
+        this.cpuUtilizationRatios = cpuUtilizationRatios;
+        this.inboundThroughputs = inboundThroughputs;
+        this.operatorCosts = operatorCosts;
+        this.pipelineCosts = pipelineCosts;
+    }
+
+    public PipelineId getPipelineId ()
+    {
+        return pipelineId;
+    }
+
+    public int getFlowVersion ()
+    {
+        return flowVersion;
+    }
+
     public int getReplicaCount ()
     {
         return replicaCount;
@@ -57,14 +97,19 @@ public class PipelineMetricsSnapshot
         return inputPortCount;
     }
 
+    public double getAvgPipelineCost ()
+    {
+        if ( replicaCount == 1 )
+        {
+            return pipelineCosts[ 0 ];
+        }
+
+        return stream( pipelineCosts ).average().orElse( NaN );
+    }
+
     public double getPipelineCost ( final int replicaIndex )
     {
         return pipelineCosts[ replicaIndex ];
-    }
-
-    public void setPipelineCost ( final int replicaIndex, final double pipelineCost )
-    {
-        pipelineCosts[ replicaIndex ] = min( pipelineCost, 1d );
     }
 
     public double[] getOperatorCosts ( final int replicaIndex )
@@ -72,9 +117,9 @@ public class PipelineMetricsSnapshot
         return operatorCosts[ replicaIndex ];
     }
 
-    public void setOperatorCost ( final int replicaIndex, final int operatorIndex, final double operatorCost )
+    public double[] getAvgOperatorCosts ()
     {
-        operatorCosts[ replicaIndex ][ operatorIndex ] = min( operatorCost, 1d );
+        return range( 0, operatorCount ).mapToDouble( this::getAvgOperatorCost ).toArray();
     }
 
     public double getOperatorCost ( final int replicaIndex, final int operatorIndex )
@@ -82,14 +127,24 @@ public class PipelineMetricsSnapshot
         return operatorCosts[ replicaIndex ][ operatorIndex ];
     }
 
+    public double getAvgOperatorCost ( final int operatorIndex )
+    {
+        if ( replicaCount == 1 )
+        {
+            return operatorCosts[ 0 ][ operatorIndex ];
+        }
+
+        return stream( operatorCosts ).flatMapToDouble( replica -> DoubleStream.of( replica[ operatorIndex ] ) ).average().orElse( NaN );
+    }
+
     public double getCpuUtilizationRatio ( final int replicaIndex )
     {
         return cpuUtilizationRatios[ replicaIndex ];
     }
 
-    public void setCpuUtilizationRatio ( final int replicaIndex, final double cpuUtilizationRatio )
+    public double getAvgCpuUtilizationRatio ()
     {
-        cpuUtilizationRatios[ replicaIndex ] = min( cpuUtilizationRatio, 1d );
+        return stream( cpuUtilizationRatios ).average().orElse( NaN );
     }
 
     public long[] getInboundThroughputs ( final int replicaIndex )
@@ -97,14 +152,24 @@ public class PipelineMetricsSnapshot
         return inboundThroughputs[ replicaIndex ];
     }
 
-    public void setInboundThroughput ( final int replicaIndex, final int portIndex, final long throughput )
+    public long[] getAvgInboundThroughputs ()
     {
-        inboundThroughputs[ replicaIndex ][ portIndex ] = throughput;
+        return range( 0, inputPortCount ).mapToLong( this::getAvgInboundThroughput ).toArray();
     }
 
     public long getInboundThroughput ( final int replicaIndex, final int portIndex )
     {
         return inboundThroughputs[ replicaIndex ][ portIndex ];
+    }
+
+    public long getAvgInboundThroughput ( final int portIndex )
+    {
+        if ( replicaCount == 1 )
+        {
+            return inboundThroughputs[ 0 ][ portIndex ];
+        }
+
+        return (long) stream( inboundThroughputs ).flatMapToLong( replica -> LongStream.of( replica[ portIndex ] ) ).average().orElse( -1 );
     }
 
     public void visit ( final PipelineMetricsVisitor visitor )
@@ -121,6 +186,14 @@ public class PipelineMetricsSnapshot
         }
     }
 
+    @Override
+    public String toString ()
+    {
+        return "PipelineMetricsSnapshot{" + "pipelineId=" + pipelineId + ", flowVersion=" + flowVersion + ", cpuUtilizationRatios="
+               + Arrays.toString( cpuUtilizationRatios ) + ", inboundThroughputs=" + Arrays.toString( inboundThroughputs )
+               + ", operatorCosts=" + Arrays.toString( operatorCosts ) + ", pipelineCosts=" + Arrays.toString( pipelineCosts ) + '}';
+    }
+
     public interface PipelineMetricsVisitor
     {
 
@@ -130,6 +203,65 @@ public class PipelineMetricsSnapshot
                       double threadUtilizationRatio,
                       double pipelineCost,
                       double[] operatorCosts );
+
+    }
+
+
+    @NotThreadSafe
+    public static class PipelineMetricsSnapshotBuilder
+    {
+
+        private final PipelineMetricsSnapshot snapshot;
+
+        private boolean building = true;
+
+        public PipelineMetricsSnapshotBuilder ( final PipelineId pipelineId,
+                                                final int flowVersion,
+                                                final int replicaCount,
+                                                final int operatorCount,
+                                                final int inputPortCount )
+        {
+            this.snapshot = new PipelineMetricsSnapshot( pipelineId, flowVersion, replicaCount, operatorCount, inputPortCount );
+        }
+
+        public PipelineMetricsSnapshotBuilder setPipelineCost ( final int replicaIndex, final double pipelineCost )
+        {
+            checkArgument( building );
+            snapshot.pipelineCosts[ replicaIndex ] = min( pipelineCost, 1d );
+
+            return this;
+        }
+
+        public PipelineMetricsSnapshotBuilder setOperatorCost ( final int replicaIndex, final int operatorIndex, final double operatorCost )
+        {
+            checkArgument( building );
+            snapshot.operatorCosts[ replicaIndex ][ operatorIndex ] = min( operatorCost, 1d );
+
+            return this;
+        }
+
+        public PipelineMetricsSnapshotBuilder setCpuUtilizationRatio ( final int replicaIndex, final double cpuUtilizationRatio )
+        {
+            checkArgument( building );
+            snapshot.cpuUtilizationRatios[ replicaIndex ] = min( cpuUtilizationRatio, 1d );
+
+            return this;
+        }
+
+        public PipelineMetricsSnapshotBuilder setInboundThroughput ( final int replicaIndex, final int portIndex, final long throughput )
+        {
+            checkArgument( building );
+            snapshot.inboundThroughputs[ replicaIndex ][ portIndex ] = throughput;
+
+            return this;
+        }
+
+        public PipelineMetricsSnapshot build ()
+        {
+            checkArgument( building );
+            building = false;
+            return snapshot;
+        }
 
     }
 

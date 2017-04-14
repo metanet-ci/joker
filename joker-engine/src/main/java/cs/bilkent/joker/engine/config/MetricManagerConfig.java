@@ -106,4 +106,14 @@ public class MetricManagerConfig
         return csvReportBaseDir;
     }
 
+    @Override
+    public String toString ()
+    {
+        return "MetricManagerConfig{" + "tickMask=" + tickMask + ", warmupIterations=" + warmupIterations
+               + ", pipelineMetricsScanningPeriodInMillis=" + pipelineMetricsScanningPeriodInMillis
+               + ", operatorInvocationSamplingPeriodInMicros=" + operatorInvocationSamplingPeriodInMicros + ", historySize=" + historySize
+               + ", periodSkewToleranceRatio=" + periodSkewToleranceRatio + ", csvReportEnabled=" + csvReportEnabled
+               + ", csvReportPeriodInMillis=" + csvReportPeriodInMillis + ", csvReportBaseDir='" + csvReportBaseDir + '\'' + '}';
+    }
+
 }

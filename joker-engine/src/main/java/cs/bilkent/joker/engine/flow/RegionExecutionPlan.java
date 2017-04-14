@@ -4,8 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
+import static cs.bilkent.joker.engine.region.impl.RegionExecutionPlanUtil.checkPipelineStartIndicesToMerge;
+import static cs.bilkent.joker.engine.region.impl.RegionExecutionPlanUtil.checkPipelineStartIndicesToSplit;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.spec.OperatorType;
+import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import static java.util.Collections.unmodifiableList;
@@ -80,6 +84,11 @@ public class RegionExecutionPlan
         return regionDef;
     }
 
+    public OperatorType getRegionType ()
+    {
+        return regionDef.getRegionType();
+    }
+
     /**
      * Returns replica count of the region execution plan
      *
@@ -131,6 +140,11 @@ public class RegionExecutionPlan
     public int getPipelineStartIndex ( final int pipelineIndex )
     {
         return pipelineStartIndices.get( pipelineIndex );
+    }
+
+    public PipelineId getPipelineId ( final int pipelineIndex )
+    {
+        return new PipelineId( getRegionId(), getPipelineStartIndex( pipelineIndex ) );
     }
 
     /**
@@ -210,11 +224,98 @@ public class RegionExecutionPlan
         return operatorDefsArr;
     }
 
+    public RegionExecutionPlan withNewReplicaCount ( int newReplicaCount )
+    {
+        checkArgument( newReplicaCount > 0 );
+        if ( newReplicaCount == replicaCount )
+        {
+            return this;
+        }
+
+        checkState( regionDef.getRegionType() == PARTITIONED_STATEFUL );
+        return new RegionExecutionPlan( regionDef, pipelineStartIndices, newReplicaCount );
+    }
+
+    public RegionExecutionPlan withMergedPipelines ( final List<Integer> pipelineStartIndicesToMerge )
+    {
+        checkArgument( checkPipelineStartIndicesToMerge( this, pipelineStartIndicesToMerge ),
+                       "invalid pipeline start indices to merge: %s current pipeline start indices: %s regionId=%s",
+                       pipelineStartIndicesToMerge,
+                       getPipelineStartIndices(),
+                       getRegionId() );
+
+        return new RegionExecutionPlan( regionDef, getPipelineStartIndicesAfterMerge( pipelineStartIndicesToMerge ), replicaCount );
+    }
+
+    public RegionExecutionPlan withSplitPipeline ( final List<Integer> pipelineStartIndicesToSplit )
+    {
+        checkArgument( checkPipelineStartIndicesToSplit( this, pipelineStartIndicesToSplit ),
+                       "invalid pipeline start indices to split: %s current pipeline start indices: %s regionId=%s",
+                       pipelineStartIndicesToSplit,
+                       getPipelineStartIndices(),
+                       getRegionId() );
+
+        return new RegionExecutionPlan( regionDef, getPipelineStartIndicesAfterSplit( pipelineStartIndicesToSplit ), replicaCount );
+    }
+
+    private List<Integer> getPipelineStartIndicesAfterMerge ( final List<Integer> pipelineStartIndicesToMerge )
+    {
+        final List<Integer> newPipelineStartIndices = new ArrayList<>();
+        final List<Integer> excluded = pipelineStartIndicesToMerge.subList( 1, pipelineStartIndicesToMerge.size() );
+        for ( int startIndex : pipelineStartIndices )
+        {
+            if ( !excluded.contains( startIndex ) )
+            {
+                newPipelineStartIndices.add( startIndex );
+            }
+        }
+
+        return newPipelineStartIndices;
+    }
+
+    private List<Integer> getPipelineStartIndicesAfterSplit ( final List<Integer> startIndicesToSplit )
+    {
+        final int firstPipelineIndex = getPipelineIndex( startIndicesToSplit.get( 0 ) );
+        final List<Integer> newPipelineStartIndices = new ArrayList<>( getPipelineStartIndices() );
+        for ( int i = 1; i < startIndicesToSplit.size(); i++ )
+        {
+            newPipelineStartIndices.add( firstPipelineIndex + i, startIndicesToSplit.get( i ) );
+        }
+        return newPipelineStartIndices;
+    }
+
     @Override
     public String toString ()
     {
         return "RegionExecutionPlan{" + "regionDef=" + regionDef + ", replicaCount=" + replicaCount + ", pipelineStartIndices="
                + pipelineStartIndices + '}';
+    }
+
+    @Override
+    public boolean equals ( final Object o )
+    {
+        if ( this == o )
+        {
+            return true;
+        }
+        if ( o == null || getClass() != o.getClass() )
+        {
+            return false;
+        }
+
+        final RegionExecutionPlan that = (RegionExecutionPlan) o;
+
+        return replicaCount == that.replicaCount && regionDef.equals( that.regionDef )
+               && pipelineStartIndices.equals( that.pipelineStartIndices );
+    }
+
+    @Override
+    public int hashCode ()
+    {
+        int result = regionDef.hashCode();
+        result = 31 * result + replicaCount;
+        result = 31 * result + pipelineStartIndices.hashCode();
+        return result;
     }
 
 }

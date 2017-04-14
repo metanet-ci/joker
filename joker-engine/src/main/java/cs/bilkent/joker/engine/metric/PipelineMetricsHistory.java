@@ -2,6 +2,7 @@ package cs.bilkent.joker.engine.metric;
 
 import java.util.List;
 
+import cs.bilkent.joker.engine.flow.PipelineId;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 import static java.lang.System.arraycopy;
@@ -55,6 +56,36 @@ public class PipelineMetricsHistory
     public List<PipelineMetricsSnapshot> getSnapshots ()
     {
         return asList( snapshots ).subList( 0, count );
+    }
+
+    public int getRegionId ()
+    {
+        return getPipelineId().getRegionId();
+    }
+
+    public PipelineId getPipelineId ()
+    {
+        return getLatestSnapshot().getPipelineId();
+    }
+
+    public int getFlowVersion ()
+    {
+        return getLatestSnapshot().getFlowVersion();
+    }
+
+    public int getReplicaCount ()
+    {
+        return getLatestSnapshot().getReplicaCount();
+    }
+
+    public int getOperatorCount ()
+    {
+        return getLatestSnapshot().getOperatorCount();
+    }
+
+    public int getInputPortCount ()
+    {
+        return getLatestSnapshot().getInputPortCount();
     }
 
 }

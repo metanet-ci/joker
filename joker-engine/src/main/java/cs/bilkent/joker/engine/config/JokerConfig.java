@@ -13,7 +13,7 @@ public class JokerConfig
     public static final String JOKER_ID = "jokerId";
 
 
-    private final Config config;
+    private final Config rootConfig;
 
     private final TupleQueueManagerConfig tupleQueueManagerConfig;
 
@@ -31,15 +31,17 @@ public class JokerConfig
 
     private final MetricManagerConfig metricManagerConfig;
 
+    private final AdaptationConfig adaptationConfig;
+
     public JokerConfig ()
     {
         this( ConfigFactory.load() );
     }
 
-    public JokerConfig ( final Config config )
+    public JokerConfig ( final Config rootConfig )
     {
-        this.config = config;
-        final Config engineConfig = config.getConfig( ENGINE_CONFIG_NAME );
+        this.rootConfig = rootConfig;
+        final Config engineConfig = rootConfig.getConfig( ENGINE_CONFIG_NAME );
         this.tupleQueueManagerConfig = new TupleQueueManagerConfig( engineConfig );
         this.tupleQueueDrainerConfig = new TupleQueueDrainerConfig( engineConfig );
         this.pipelineReplicaRunnerConfig = new PipelineReplicaRunnerConfig( engineConfig );
@@ -48,11 +50,12 @@ public class JokerConfig
         this.pipelineManagerConfig = new PipelineManagerConfig( engineConfig );
         this.regionManagerConfig = new RegionManagerConfig( engineConfig );
         this.metricManagerConfig = new MetricManagerConfig( engineConfig );
+        this.adaptationConfig = new AdaptationConfig( engineConfig );
     }
 
     public Config getRootConfig ()
     {
-        return config;
+        return rootConfig;
     }
 
     public TupleQueueManagerConfig getTupleQueueManagerConfig ()
@@ -93,6 +96,28 @@ public class JokerConfig
     public MetricManagerConfig getMetricManagerConfig ()
     {
         return metricManagerConfig;
+    }
+
+    public AdaptationConfig getAdaptationConfig ()
+    {
+        return adaptationConfig;
+    }
+
+    @Override
+    public String toString ()
+    {
+        return "JokerConfig{" + getConfigString() + '}';
+    }
+
+    public String toExcessiveString ()
+    {
+        return "JokerConfig{" + getConfigString() + ", rootConfig=" + rootConfig + '}';
+    }
+
+    private String getConfigString ()
+    {
+        return tupleQueueManagerConfig + ", " + tupleQueueDrainerConfig + ", " + pipelineReplicaRunnerConfig + ", " + partitionServiceConfig
+               + ", " + flowDefOptimizerConfig + ", " + pipelineManagerConfig + ", " + regionManagerConfig + ", " + metricManagerConfig;
     }
 
 }

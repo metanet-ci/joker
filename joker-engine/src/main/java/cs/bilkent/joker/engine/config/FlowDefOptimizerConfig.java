@@ -11,21 +11,16 @@ public class FlowDefOptimizerConfig
 
     public static final String MERGE_REGIONS = "mergeRegions";
 
-    public static final String MAX_REPLICA_COUNT = "maxReplicaCount";
-
 
     private final boolean duplicateStatelessRegionsEnabled;
 
     private final boolean mergeRegionsEnabled;
-
-    private final int maxReplicaCount;
 
     FlowDefOptimizerConfig ( final Config parentConfig )
     {
         final Config config = parentConfig.getConfig( CONFIG_NAME );
         this.duplicateStatelessRegionsEnabled = config.getBoolean( DUPLICATE_STATELESS_REGIONS );
         this.mergeRegionsEnabled = config.getBoolean( MERGE_REGIONS );
-        this.maxReplicaCount = config.getInt( MAX_REPLICA_COUNT );
     }
 
     public boolean isDuplicateStatelessRegionsEnabled ()
@@ -38,9 +33,11 @@ public class FlowDefOptimizerConfig
         return mergeRegionsEnabled;
     }
 
-    public int getMaxReplicaCount ()
+    @Override
+    public String toString ()
     {
-        return maxReplicaCount;
+        return "FlowDefOptimizerConfig{" + "duplicateStatelessRegionsEnabled=" + duplicateStatelessRegionsEnabled + ", mergeRegionsEnabled="
+               + mergeRegionsEnabled + '}';
     }
 
 }

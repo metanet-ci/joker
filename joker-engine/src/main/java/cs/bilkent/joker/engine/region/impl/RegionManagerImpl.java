@@ -1,6 +1,5 @@
 package cs.bilkent.joker.engine.region.impl;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +38,8 @@ import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSuppl
 import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.Region;
 import cs.bilkent.joker.engine.region.RegionManager;
+import static cs.bilkent.joker.engine.region.impl.RegionExecutionPlanUtil.getMergeablePipelineStartIndices;
+import static cs.bilkent.joker.engine.region.impl.RegionExecutionPlanUtil.getPipelineStartIndicesToSplit;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueueManager;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainerPool;
@@ -57,7 +58,6 @@ import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import static java.lang.Math.max;
 import static java.lang.System.arraycopy;
-import static java.util.stream.Collectors.toList;
 
 @Singleton
 @NotThreadSafe
@@ -68,8 +68,6 @@ public class RegionManagerImpl implements RegionManager
 
 
     private final JokerConfig config;
-
-    private final Class<Supplier<TuplesImpl>> pipelineTailOperatorOutputSupplierClass;
 
     private final PartitionService partitionService;
 
@@ -92,7 +90,6 @@ public class RegionManagerImpl implements RegionManager
                                final PartitionKeyExtractorFactory partitionKeyExtractorFactory )
     {
         this.config = config;
-        this.pipelineTailOperatorOutputSupplierClass = config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass();
         this.partitionService = partitionService;
         this.operatorKvStoreManager = operatorKvStoreManager;
         this.operatorTupleQueueManager = operatorTupleQueueManager;
@@ -209,36 +206,20 @@ public class RegionManagerImpl implements RegionManager
     @Override
     public void validatePipelineMergeParameters ( final List<PipelineId> pipelineIds )
     {
-        getMergeablePipelineIds( pipelineIds );
-    }
-
-    private List<PipelineId> getMergeablePipelineIds ( final List<PipelineId> pipelineIds )
-    {
-        checkArgument( pipelineIds != null && pipelineIds.size() > 1 );
-
-        final List<PipelineId> pipelineIdsSorted = new ArrayList<>( pipelineIds );
-        pipelineIdsSorted.sort( PipelineId::compareTo );
-
-        checkArgument( pipelineIdsSorted.get( 0 ).getRegionId() == pipelineIdsSorted.get( pipelineIdsSorted.size() - 1 ).getRegionId(),
-                       "multiple region ids in %s",
-                       pipelineIds );
-        checkArgument( pipelineIdsSorted.stream().map( PipelineId::getPipelineStartIndex ).distinct().count() == pipelineIds.size(),
-                       "duplicate pipeline ids in %s",
-                       pipelineIds );
-
-        final Region region = regions.get( pipelineIdsSorted.get( 0 ).getRegionId() );
+        final Region region = regions.get( pipelineIds.get( 0 ).getRegionId() );
         checkArgument( region != null, "no region found for %s", pipelineIds );
-
-        return pipelineIdsSorted;
+        getMergeablePipelineStartIndices( region.getExecutionPlan(), pipelineIds );
     }
 
     @Override
     public Region mergePipelines ( final List<PipelineId> pipelineIdsToMerge )
     {
-        final List<Integer> startIndicesToMerge = getMergeablePipelineStartIndices( pipelineIdsToMerge );
-        final int regionId = pipelineIdsToMerge.get( 0 ).getRegionId();
+        final Region region = regions.get( pipelineIdsToMerge.get( 0 ).getRegionId() );
+        final int regionId = region.getRegionId();
 
-        final Region region = regions.remove( regionId );
+        final List<Integer> startIndicesToMerge = getMergeablePipelineStartIndices( region.getExecutionPlan(), pipelineIdsToMerge );
+
+        regions.remove( regionId );
 
         final Region newRegion = pipelineTransformer.mergePipelines( region, startIndicesToMerge );
         regions.put( regionId, newRegion );
@@ -248,43 +229,21 @@ public class RegionManagerImpl implements RegionManager
     @Override
     public void validatePipelineSplitParameters ( final PipelineId pipelineId, final List<Integer> pipelineOperatorIndicesToSplit )
     {
-        getPipelineStartIndicesToSplit( pipelineId, pipelineOperatorIndicesToSplit );
-    }
-
-    private List<Integer> getPipelineStartIndicesToSplit ( final PipelineId pipelineId, final List<Integer> pipelineOperatorIndicesToSplit )
-    {
-        checkArgument( pipelineId != null, "pipeline id to split cannot be null" );
-        checkArgument( pipelineOperatorIndicesToSplit != null && pipelineOperatorIndicesToSplit.size() > 0,
-                       "there must be at least 1 operator split index for Pipeline %s",
-                       pipelineId );
         final Region region = regions.get( pipelineId.getRegionId() );
         checkArgument( region != null, "invalid Pipeline %s to split", pipelineId );
-
-        int curr = 0;
-        final int operatorCount = region.getExecutionPlan().getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() );
-        for ( int p : pipelineOperatorIndicesToSplit )
-        {
-            checkArgument( p > curr && p < operatorCount );
-            curr = p;
-        }
-
-        final List<Integer> pipelineStartIndicesToSplit = new ArrayList<>();
-        pipelineStartIndicesToSplit.add( pipelineId.getPipelineStartIndex() );
-        for ( int i : pipelineOperatorIndicesToSplit )
-        {
-            pipelineStartIndicesToSplit.add( pipelineId.getPipelineStartIndex() + i );
-        }
-
-        return pipelineStartIndicesToSplit;
+        getPipelineStartIndicesToSplit( region.getExecutionPlan(), pipelineId, pipelineOperatorIndicesToSplit );
     }
 
     @Override
     public Region splitPipeline ( final PipelineId pipelineId, final List<Integer> pipelineOperatorIndicesToSplit )
     {
-        final List<Integer> pipelineStartIndicesToSplit = getPipelineStartIndicesToSplit( pipelineId, pipelineOperatorIndicesToSplit );
+        validatePipelineSplitParameters( pipelineId, pipelineOperatorIndicesToSplit );
         final int regionId = pipelineId.getRegionId();
-
         final Region region = regions.remove( regionId );
+        final List<Integer> pipelineStartIndicesToSplit = getPipelineStartIndicesToSplit( region.getExecutionPlan(),
+                                                                                          pipelineId,
+                                                                                          pipelineOperatorIndicesToSplit );
+
         final Region newRegion = pipelineTransformer.splitPipeline( region, pipelineStartIndicesToSplit );
         regions.put( regionId, newRegion );
 
@@ -326,7 +285,7 @@ public class RegionManagerImpl implements RegionManager
         final Region newRegion;
         if ( regionExecutionPlan.getReplicaCount() < newReplicaCount )
         {
-            newRegion = extendRegionReplicas( flow, region, newReplicaCount );
+            newRegion = expandRegionReplicas( flow, region, newReplicaCount );
         }
         else
         {
@@ -447,7 +406,10 @@ public class RegionManagerImpl implements RegionManager
                         final ThreadingPreference threadingPreference = getThreadingPreference( isFirstOperator );
                         LOGGER.info( "Creating {} {} for regionId={} replicaIndex={} operatorId={}",
                                      threadingPreference,
-                                     DefaultOperatorTupleQueue.class.getSimpleName(), regionId, replicaIndex, operatorDef.getId() );
+                                     DefaultOperatorTupleQueue.class.getSimpleName(),
+                                     regionId,
+                                     replicaIndex,
+                                     operatorDef.getId() );
                         operatorTupleQueueManager.createDefaultOperatorTupleQueue( regionId,
                                                                                    replicaIndex,
                                                                                    operatorDef,
@@ -530,7 +492,7 @@ public class RegionManagerImpl implements RegionManager
 
         if ( capacity != config.getTupleQueueManagerConfig().getTupleQueueCapacity() )
         {
-            LOGGER.info( "Extending tuple queues of regionId={} operator {} to {}", regionId, operatorDef.getId(), capacity );
+            LOGGER.info( "Growing tuple queues of regionId={} operator {} to {}", regionId, operatorDef.getId(), capacity );
         }
 
         for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
@@ -545,7 +507,7 @@ public class RegionManagerImpl implements RegionManager
         }
     }
 
-    private Region extendRegionReplicas ( final FlowDef flow, final Region region, final int newReplicaCount )
+    private Region expandRegionReplicas ( final FlowDef flow, final Region region, final int newReplicaCount )
     {
         final int regionId = region.getRegionId();
         final RegionExecutionPlan regionExecutionPlan = region.getExecutionPlan();
@@ -665,7 +627,7 @@ public class RegionManagerImpl implements RegionManager
                                                                                     regionExecutionPlan.getPipelineStartIndices(),
                                                                                     newReplicaCount );
 
-        LOGGER.info( "regionId={} is extended to {} replicas", regionId, newReplicaCount );
+        LOGGER.info( "regionId={} is expanded to {} replicas", regionId, newReplicaCount );
 
         return new Region( newRegionExecutionPlan, newPipelineReplicas );
     }
@@ -714,24 +676,6 @@ public class RegionManagerImpl implements RegionManager
         LOGGER.info( "regionId={} is shrank to {} replicas", regionId, newReplicaCount );
 
         return new Region( newRegionExecutionPlan, newPipelineReplicas );
-    }
-
-    private List<Integer> getMergeablePipelineStartIndices ( final List<PipelineId> pipelineIds )
-    {
-        final List<PipelineId> pipelineIdsSorted = getMergeablePipelineIds( pipelineIds );
-        final Region region = regions.get( pipelineIds.get( 0 ).getRegionId() );
-
-        final List<Integer> startIndicesToMerge = pipelineIdsSorted.stream().map( PipelineId::getPipelineStartIndex ).collect( toList() );
-        final RegionExecutionPlan regionExecutionPlan = region.getExecutionPlan();
-
-        if ( !pipelineTransformer.checkPipelineStartIndicesToMerge( regionExecutionPlan, startIndicesToMerge ) )
-        {
-            throw new IllegalArgumentException( "invalid pipeline start indices to merge: " + startIndicesToMerge
-                                                + " current pipeline start indices: " + regionExecutionPlan.getPipelineStartIndices()
-                                                + " regionId=" + region.getRegionId() );
-        }
-
-        return startIndicesToMerge;
     }
 
     @Override
@@ -956,7 +900,7 @@ public class RegionManagerImpl implements RegionManager
         if ( isLastOperator )
         {
             LOGGER.info( "Creating {} for last operator of regionId={} operatorId={}",
-                         pipelineTailOperatorOutputSupplierClass.getSimpleName(),
+                         config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass().getSimpleName(),
                          regionId,
                          operatorId );
         }
@@ -979,10 +923,9 @@ public class RegionManagerImpl implements RegionManager
 
     private Supplier<TuplesImpl> createOutputSupplier ( final OperatorDef operatorDef, final boolean isLastOperator )
     {
-        return isLastOperator
-               ? TuplesImplSupplierUtils.newInstance( pipelineTailOperatorOutputSupplierClass,
-                                                      operatorDef.getOutputPortCount() )
-               : new CachedTuplesImplSupplier( operatorDef.getOutputPortCount() );
+        return isLastOperator ? config.getRegionManagerConfig()
+                                      .newPipelineTailOperatorOutputSupplierInstance( operatorDef.getOutputPortCount() )
+                              : new CachedTuplesImplSupplier( operatorDef.getOutputPortCount() );
 
     }
 

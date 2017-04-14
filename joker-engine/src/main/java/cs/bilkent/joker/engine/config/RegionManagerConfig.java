@@ -1,5 +1,7 @@
 package cs.bilkent.joker.engine.config;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.function.Supplier;
 
 import com.typesafe.config.Config;
@@ -34,6 +36,25 @@ public class RegionManagerConfig
     public Class<Supplier<TuplesImpl>> getPipelineTailOperatorOutputSupplierClass ()
     {
         return pipelineTailOperatorOutputSupplierClass;
+    }
+
+    public Supplier<TuplesImpl> newPipelineTailOperatorOutputSupplierInstance ( final int portCount )
+    {
+        try
+        {
+            final Constructor<Supplier<TuplesImpl>> constructor = pipelineTailOperatorOutputSupplierClass.getConstructor( int.class );
+            return constructor.newInstance( portCount );
+        }
+        catch ( NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e )
+        {
+            throw new RuntimeException( "cannot create instance of " + pipelineTailOperatorOutputSupplierClass.getName(), e );
+        }
+    }
+
+    @Override
+    public String toString ()
+    {
+        return "RegionManagerConfig{" + "pipelineTailOperatorOutputSupplierClass=" + pipelineTailOperatorOutputSupplierClass + '}';
     }
 
 }

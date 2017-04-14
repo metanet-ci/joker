@@ -210,7 +210,8 @@ public class SupervisorImpl implements Supervisor
 
             final FlowExecutionPlan flowExecutionPlan = pipelineManager.getFlowExecutionPlan();
             final PipelineMeter pipelineMeter = pipelineManager.getPipelineMeterOrFail( pipelineIdsToMerge.get( 0 ) );
-            metricManager.resume( flowExecutionPlan.getVersion(), pipelineIdsToMerge, singletonList( pipelineMeter ) );
+            metricManager.update( flowExecutionPlan.getVersion(), pipelineIdsToMerge, singletonList( pipelineMeter ) );
+            metricManager.resume();
             future.complete( flowExecutionPlan );
         }
         catch ( IllegalArgumentException e )
@@ -247,7 +248,8 @@ public class SupervisorImpl implements Supervisor
                                                                          .stream()
                                                                          .filter( p -> !unchangedPipelineIds.contains( p.getPipelineId() ) )
                                                                          .collect( toList() );
-            metricManager.resume( flowExecutionPlan.getVersion(), singletonList( pipelineId ), newPipelineMeters );
+            metricManager.update( flowExecutionPlan.getVersion(), singletonList( pipelineId ), newPipelineMeters );
+            metricManager.resume();
             future.complete( flowExecutionPlan );
         }
         catch ( IllegalArgumentException e )
@@ -281,7 +283,8 @@ public class SupervisorImpl implements Supervisor
             final FlowExecutionPlan flowExecutionPlan = pipelineManager.getFlowExecutionPlan();
             final RegionExecutionPlan regionExecutionPlan = flowExecutionPlan.getRegionExecutionPlan( regionId );
             final List<PipelineMeter> pipelineMeters = pipelineManager.getRegionPipelineMetersOrFail( regionId );
-            metricManager.resume( flowExecutionPlan.getVersion(), regionExecutionPlan.getPipelineIds(), pipelineMeters );
+            metricManager.update( flowExecutionPlan.getVersion(), regionExecutionPlan.getPipelineIds(), pipelineMeters );
+            metricManager.resume();
             future.complete( flowExecutionPlan );
         }
         catch ( IllegalArgumentException e )

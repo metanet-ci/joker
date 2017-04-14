@@ -23,6 +23,7 @@ import cs.bilkent.joker.engine.pipeline.UpstreamContext;
 import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
 import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.Region;
+import static cs.bilkent.joker.engine.region.impl.RegionExecutionPlanUtil.checkPipelineStartIndicesToSplit;
 import static cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.assertPipelineReplicaMeter;
 import cs.bilkent.joker.engine.tuplequeue.impl.OperatorTupleQueueManagerImpl;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
@@ -416,14 +417,14 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
 
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, asList( 0, 2, 3, 4 ), 2 );
 
-        assertFalse( pipelineTransformer.checkPipelineStartIndicesToMerge( regionExecutionPlan, singletonList( 0 ) ) );
-        assertFalse( pipelineTransformer.checkPipelineStartIndicesToMerge( regionExecutionPlan, singletonList( -1 ) ) );
-        assertFalse( pipelineTransformer.checkPipelineStartIndicesToMerge( regionExecutionPlan, asList( 0, 2, 4 ) ) );
+        assertFalse( RegionExecutionPlanUtil.checkPipelineStartIndicesToMerge( regionExecutionPlan, singletonList( 0 ) ) );
+        assertFalse( RegionExecutionPlanUtil.checkPipelineStartIndicesToMerge( regionExecutionPlan, singletonList( -1 ) ) );
+        assertFalse( RegionExecutionPlanUtil.checkPipelineStartIndicesToMerge( regionExecutionPlan, asList( 0, 2, 4 ) ) );
 
-        assertTrue( pipelineTransformer.checkPipelineStartIndicesToMerge( regionExecutionPlan, asList( 0, 2 ) ) );
-        assertTrue( pipelineTransformer.checkPipelineStartIndicesToMerge( regionExecutionPlan, asList( 0, 2, 3 ) ) );
-        assertTrue( pipelineTransformer.checkPipelineStartIndicesToMerge( regionExecutionPlan, asList( 0, 2, 3, 4 ) ) );
-        assertTrue( pipelineTransformer.checkPipelineStartIndicesToMerge( regionExecutionPlan, asList( 3, 4 ) ) );
+        assertTrue( RegionExecutionPlanUtil.checkPipelineStartIndicesToMerge( regionExecutionPlan, asList( 0, 2 ) ) );
+        assertTrue( RegionExecutionPlanUtil.checkPipelineStartIndicesToMerge( regionExecutionPlan, asList( 0, 2, 3 ) ) );
+        assertTrue( RegionExecutionPlanUtil.checkPipelineStartIndicesToMerge( regionExecutionPlan, asList( 0, 2, 3, 4 ) ) );
+        assertTrue( RegionExecutionPlanUtil.checkPipelineStartIndicesToMerge( regionExecutionPlan, asList( 3, 4 ) ) );
     }
 
     @Test
@@ -818,14 +819,14 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
 
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, asList( 0, 2, 4 ), 2 );
 
-        assertFalse( pipelineTransformer.checkPipelineStartIndicesToSplit( regionExecutionPlan, singletonList( 0 ) ) );
-        assertFalse( pipelineTransformer.checkPipelineStartIndicesToSplit( regionExecutionPlan, singletonList( -1 ) ) );
-        assertFalse( pipelineTransformer.checkPipelineStartIndicesToSplit( regionExecutionPlan, asList( 0, 1, 2 ) ) );
-        assertFalse( pipelineTransformer.checkPipelineStartIndicesToSplit( regionExecutionPlan, asList( 4, 7 ) ) );
+        assertFalse( checkPipelineStartIndicesToSplit( regionExecutionPlan, singletonList( 0 ) ) );
+        assertFalse( checkPipelineStartIndicesToSplit( regionExecutionPlan, singletonList( -1 ) ) );
+        assertFalse( checkPipelineStartIndicesToSplit( regionExecutionPlan, asList( 0, 1, 2 ) ) );
+        assertFalse( checkPipelineStartIndicesToSplit( regionExecutionPlan, asList( 4, 7 ) ) );
 
-        assertTrue( pipelineTransformer.checkPipelineStartIndicesToSplit( regionExecutionPlan, asList( 0, 1 ) ) );
-        assertTrue( pipelineTransformer.checkPipelineStartIndicesToSplit( regionExecutionPlan, asList( 4, 5 ) ) );
-        assertTrue( pipelineTransformer.checkPipelineStartIndicesToSplit( regionExecutionPlan, asList( 4, 5, 6 ) ) );
+        assertTrue( checkPipelineStartIndicesToSplit( regionExecutionPlan, asList( 0, 1 ) ) );
+        assertTrue( checkPipelineStartIndicesToSplit( regionExecutionPlan, asList( 4, 5 ) ) );
+        assertTrue( checkPipelineStartIndicesToSplit( regionExecutionPlan, asList( 4, 5, 6 ) ) );
     }
 
     private void initialize ( final Region region )

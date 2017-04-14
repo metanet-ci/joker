@@ -18,6 +18,7 @@ import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
+import static java.util.stream.Collectors.toList;
 
 /**
  * Represents a part of the {@link FlowDef}, which consists of a chain of operators. Each region is monitored and scaled independently.
@@ -240,6 +241,16 @@ public class RegionDef
         return operators.size();
     }
 
+    /**
+     * Returns true if the region contains a single operator with no input ports
+     *
+     * @return true if the region contains a single operator with no input ports
+     */
+    public boolean isSource ()
+    {
+        return getOperatorCount() == 1 && getOperator( 0 ).getInputPortCount() == 0;
+    }
+
     @Override
     public boolean equals ( final Object o )
     {
@@ -272,7 +283,7 @@ public class RegionDef
     public String toString ()
     {
         return "RegionDef{" + "regionId=" + regionId + ", regionType=" + regionType + ", partitionFieldNames=" + partitionFieldNames
-               + ", operators=" + operators + '}';
+               + ", operators=" + operators.stream().map( OperatorDef::getId ).collect( toList() ) + '}';
     }
 
 }

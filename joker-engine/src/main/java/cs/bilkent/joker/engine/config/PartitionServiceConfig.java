@@ -9,13 +9,18 @@ public class PartitionServiceConfig
 
     public static final String PARTITION_COUNT = "partitionCount";
 
+    public static final String MAX_REPLICA_COUNT = "maxReplicaCount";
+
 
     private final int partitionCount;
+
+    private final int maxReplicaCount;
 
     PartitionServiceConfig ( final Config parentConfig )
     {
         final Config config = parentConfig.getConfig( CONFIG_NAME );
         this.partitionCount = config.getInt( PARTITION_COUNT );
+        this.maxReplicaCount = config.getInt( MAX_REPLICA_COUNT );
     }
 
     public int getPartitionCount ()
@@ -23,4 +28,15 @@ public class PartitionServiceConfig
         return partitionCount;
     }
 
+    public int getMaxReplicaCount ()
+    {
+        return maxReplicaCount;
+    }
+
+    @Override
+    public String toString ()
+    {
+        return "PartitionServiceConfig{" + "partitionCount=" + partitionCount + ", maxReplicaCount=" + maxReplicaCount + '}';
+    }
+    
 }

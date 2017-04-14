@@ -104,20 +104,20 @@ public class MetricManagerImplTest extends AbstractJokerTest
     {
         metricManager.start( 0, emptyList() );
         metricManager.pause();
-        metricManager.resume( 0, emptyList(), emptyList() );
+        metricManager.resume();
     }
 
     @Test( expected = JokerException.class )
     public void shouldNotResumeBeforePause ()
     {
         metricManager.start( 0, emptyList() );
-        metricManager.resume( 0, emptyList(), emptyList() );
+        metricManager.resume();
     }
 
     @Test( expected = JokerException.class )
     public void shouldNotResumeBeforeStart ()
     {
-        metricManager.resume( 0, emptyList(), emptyList() );
+        metricManager.resume();
     }
 
     @Test
@@ -162,7 +162,7 @@ public class MetricManagerImplTest extends AbstractJokerTest
 
         try
         {
-            metricManager.resume( 0, emptyList(), emptyList() );
+            metricManager.resume();
             fail();
         }
         catch ( JokerException ignored )

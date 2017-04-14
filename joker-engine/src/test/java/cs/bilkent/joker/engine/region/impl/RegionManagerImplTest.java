@@ -810,7 +810,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
     }
 
 
-    static class FlowExample1
+    public static class FlowExample1
     {
 
         final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatelessOperatorWithZeroInputSingleOutputPort.class )
@@ -862,7 +862,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
     }
 
 
-    static class FlowExample4
+    public static class FlowExample4
     {
 
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 0, 1 );
@@ -875,7 +875,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final FlowDef flow;
 
-        FlowExample4 ()
+        public FlowExample4 ()
         {
             operatorRuntimeSchemaBuilder0.addOutputField( 0, "field2", Integer.class );
             operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class )
@@ -895,7 +895,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
     }
 
 
-    static class FlowExample5
+    public static class FlowExample5
     {
 
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 0, 1 );
@@ -912,7 +912,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final FlowDef flow;
 
-        FlowExample5 ()
+        public FlowExample5 ()
         {
             operatorRuntimeSchemaBuilder0.addOutputField( 0, "field2", Integer.class );
             operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class ).addOutputField( 0, "field2", Integer.class );
@@ -940,7 +940,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
     }
 
 
-    static class FlowExample6
+    public static class FlowExample6
     {
 
         final static String PARTITION_KEY_FIELD = "field2";
@@ -963,7 +963,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final FlowDef flow;
 
-        FlowExample6 ()
+        public FlowExample6 ()
         {
             operatorRuntimeSchemaBuilder0.addOutputField( 0, "field2", Integer.class );
             operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class ).addOutputField( 0, "field2", Integer.class );
@@ -995,6 +995,11 @@ public class RegionManagerImplTest extends AbstractJokerTest
                                        .connect( "op1", "op2" )
                                        .connect( "op2", "op3" )
                                        .build();
+        }
+
+        public FlowDef getFlow ()
+        {
+            return flow;
         }
 
     }

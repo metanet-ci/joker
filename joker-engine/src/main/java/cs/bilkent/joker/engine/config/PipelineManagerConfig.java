@@ -23,4 +23,10 @@ public class PipelineManagerConfig
         return runnerCommandTimeoutInMillis;
     }
 
+    @Override
+    public String toString ()
+    {
+        return "PipelineManagerConfig{" + "runnerCommandTimeoutInMillis=" + runnerCommandTimeoutInMillis + '}';
+    }
+
 }

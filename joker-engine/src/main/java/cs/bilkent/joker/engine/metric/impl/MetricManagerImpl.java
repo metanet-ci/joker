@@ -149,9 +149,15 @@ public class MetricManagerImpl implements MetricManager
     }
 
     @Override
-    public void resume ( final int flowVersion, final List<PipelineId> pipelineIdsToRemove, final List<PipelineMeter> newPipelineMeters )
+    public void update ( int flowVersion, List<PipelineId> pipelineIdsToRemove, List<PipelineMeter> newPipelineMeters )
     {
-        call( new ResumeTasks( flowVersion, pipelineIdsToRemove, newPipelineMeters ), "pausing" );
+        call( new UpdatePipelineMeters( flowVersion, pipelineIdsToRemove, newPipelineMeters ), "updating" );
+    }
+
+    @Override
+    public void resume ()
+    {
+        call( new ResumeTasks(), "pausing" );
     }
 
     @Override
@@ -711,7 +717,7 @@ public class MetricManagerImpl implements MetricManager
     }
 
 
-    private class ResumeTasks implements Callable<Void>
+    private class UpdatePipelineMeters implements Callable<Void>
     {
 
         private final int flowVersion;
@@ -720,7 +726,9 @@ public class MetricManagerImpl implements MetricManager
 
         private final List<PipelineMeter> newPipelineMeters;
 
-        ResumeTasks ( final int flowVersion, final List<PipelineId> pipelineIdsToRemove, final List<PipelineMeter> newPipelineMeters )
+        UpdatePipelineMeters ( final int flowVersion,
+                               final List<PipelineId> pipelineIdsToRemove,
+                               final List<PipelineMeter> newPipelineMeters )
         {
             this.flowVersion = flowVersion;
             this.pipelineIdsToRemove = pipelineIdsToRemove;
@@ -760,6 +768,25 @@ public class MetricManagerImpl implements MetricManager
                              pipelineMeter.getReplicaCount(),
                              flowVersion );
             }
+
+            return null;
+        }
+
+    }
+
+
+    private class ResumeTasks implements Callable<Void>
+    {
+
+        @Override
+        public Void call ()
+        {
+            final TaskStatus metricsFlagStatus = metricsFlag.get();
+            final TaskStatus samplingFlagStatus = samplingFlag.get();
+            checkState( ( metricsFlagStatus == TaskStatus.PAUSED && samplingFlagStatus == TaskStatus.PAUSED ),
+                        "cannot resume metric collector since metrics flag is %s and sampling flag is %s",
+                        metricsFlagStatus,
+                        samplingFlagStatus );
 
             LOGGER.info( "Metric collector is resumed" );
 

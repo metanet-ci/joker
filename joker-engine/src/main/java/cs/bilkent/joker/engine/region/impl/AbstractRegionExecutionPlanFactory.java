@@ -19,7 +19,7 @@ public abstract class AbstractRegionExecutionPlanFactory implements RegionExecut
 
     protected AbstractRegionExecutionPlanFactory ( JokerConfig jokerConfig )
     {
-        this.maxReplicaCount = jokerConfig.getFlowDefOptimizerConfig().getMaxReplicaCount();
+        this.maxReplicaCount = jokerConfig.getPartitionServiceConfig().getMaxReplicaCount();
     }
 
     @Override

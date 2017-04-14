@@ -9,6 +9,7 @@ import cs.bilkent.joker.engine.metric.PipelineMeter;
 import static cs.bilkent.joker.engine.metric.PipelineMeter.NO_OPERATOR_INDEX;
 import static cs.bilkent.joker.engine.metric.PipelineMeter.PIPELINE_EXECUTION_INDEX;
 import cs.bilkent.joker.engine.metric.PipelineMetricsSnapshot;
+import cs.bilkent.joker.engine.metric.PipelineMetricsSnapshot.PipelineMetricsSnapshotBuilder;
 import static java.lang.Math.max;
 import static java.lang.System.arraycopy;
 import static java.util.Arrays.fill;
@@ -57,12 +58,16 @@ class PipelineMetrics
         this.inboundThroughputs = new long[ pipelineMeter.getReplicaCount() ][ pipelineMeter.getInputPortCount() ];
     }
 
-    private PipelineMetricsSnapshot newPipelineMetricsSnapshot ()
+    private PipelineMetricsSnapshotBuilder newPipelineMetricsSnapshotBuilder ()
     {
         final int replicaCount = pipelineMeter.getReplicaCount();
         final int operatorCount = pipelineMeter.getOperatorCount();
         final int inputPortCount = pipelineMeter.getInputPortCount();
-        return new PipelineMetricsSnapshot( pipelineMeter.getPipelineId(), flowVersion, replicaCount, operatorCount, inputPortCount );
+        return new PipelineMetricsSnapshotBuilder( pipelineMeter.getPipelineId(),
+                                                   flowVersion,
+                                                   replicaCount,
+                                                   operatorCount,
+                                                   inputPortCount );
     }
 
     // called by sampler thread
@@ -116,17 +121,16 @@ class PipelineMetrics
     // called by metrics thread
     PipelineMetricsSnapshot update ( final long[] newReplicaCpuTimes, final long systemTimeDiff )
     {
-        final PipelineMetricsSnapshot snapshot = newPipelineMetricsSnapshot();
-        updateThreadUtilizationRatios( newReplicaCpuTimes, systemTimeDiff, snapshot );
-        updateCosts( snapshot );
-        updateThroughputs( snapshot );
+        final PipelineMetricsSnapshotBuilder builder = newPipelineMetricsSnapshotBuilder();
+        updateThreadUtilizationRatios( newReplicaCpuTimes, systemTimeDiff, builder );
+        updateCosts( builder );
+        updateThroughputs( builder );
 
-        return snapshot;
+        return builder.build();
     }
 
     private void updateThreadUtilizationRatios ( final long[] newReplicaCpuTimes,
-                                                 final long systemTimeDiff,
-                                                 final PipelineMetricsSnapshot snapshot )
+                                                 final long systemTimeDiff, final PipelineMetricsSnapshotBuilder builder )
     {
         final int replicaCount = pipelineMeter.getReplicaCount();
         for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
@@ -134,13 +138,13 @@ class PipelineMetrics
             final long cpuTimeDiff = newReplicaCpuTimes[ replicaIndex ] - this.threadCpuTimes[ replicaIndex ];
             final long threadCpuTimeDiff = max( 0, cpuTimeDiff );
             final double threadUtilizationRatio = ( (double) threadCpuTimeDiff ) / systemTimeDiff;
-            snapshot.setCpuUtilizationRatio( replicaIndex, threadUtilizationRatio );
+            builder.setCpuUtilizationRatio( replicaIndex, threadUtilizationRatio );
         }
 
         arraycopy( newReplicaCpuTimes, 0, this.threadCpuTimes, 0, replicaCount );
     }
 
-    private void updateCosts ( final PipelineMetricsSnapshot snapshot )
+    private void updateCosts ( final PipelineMetricsSnapshotBuilder builder )
     {
         beforeSampleCountsRead();
 
@@ -162,12 +166,12 @@ class PipelineMetrics
             if ( sampleCountSum > 0 )
             {
                 final double pipelineCost = ( (double) ( pipelineSampleCountBuffer - pipelineSampleCount ) ) / sampleCountSum;
-                snapshot.setPipelineCost( replicaIndex, pipelineCost );
+                builder.setPipelineCost( replicaIndex, pipelineCost );
                 for ( int operatorIndex = 0; operatorIndex < operatorCount; operatorIndex++ )
                 {
                     final long samplingDiff = operatorSampleCountsBuffer[ operatorIndex ] - operatorSampleCounts[ operatorIndex ];
                     final double operatorCost = ( (double) samplingDiff ) / sampleCountSum;
-                    snapshot.setOperatorCost( replicaIndex, operatorIndex, operatorCost );
+                    builder.setOperatorCost( replicaIndex, operatorIndex, operatorCost );
                 }
 
                 this.pipelineSampleCounts[ replicaIndex ] = pipelineSampleCountBuffer;
@@ -175,10 +179,10 @@ class PipelineMetrics
             }
             else
             {
-                snapshot.setPipelineCost( replicaIndex, 0 );
+                builder.setPipelineCost( replicaIndex, 0 );
                 for ( int operatorIndex = 0; operatorIndex < operatorCount; operatorIndex++ )
                 {
-                    snapshot.setOperatorCost( replicaIndex, operatorIndex, 0 );
+                    builder.setOperatorCost( replicaIndex, operatorIndex, 0 );
                 }
 
                 LOGGER.warn( "No sampling data for {}", pipelineMeter.getPipelineReplicaId( replicaIndex ) );
@@ -186,7 +190,7 @@ class PipelineMetrics
         }
     }
 
-    private void updateThroughputs ( final PipelineMetricsSnapshot snapshot )
+    private void updateThroughputs ( final PipelineMetricsSnapshotBuilder builder )
     {
         final int replicaCount = pipelineMeter.getReplicaCount();
         final int inputPortCount = pipelineMeter.getInputPortCount();
@@ -202,7 +206,7 @@ class PipelineMetrics
             for ( int portIndex = 0; portIndex < newInboundThroughputs.length; portIndex++ )
             {
                 long throughput = newInboundThroughputs[ portIndex ] - currInboundThroughputs[ portIndex ];
-                snapshot.setInboundThroughput( replicaIndex, portIndex, throughput );
+                builder.setInboundThroughput( replicaIndex, portIndex, throughput );
             }
 
             arraycopy( newInboundThroughputs, 0, currInboundThroughputs, 0, inputPortCount );

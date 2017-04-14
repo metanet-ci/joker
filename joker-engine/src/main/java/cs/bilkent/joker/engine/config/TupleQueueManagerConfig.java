@@ -43,4 +43,11 @@ public class TupleQueueManagerConfig
         return partitionedTupleQueueDrainHint;
     }
 
+    @Override
+    public String toString ()
+    {
+        return "TupleQueueManagerConfig{" + "tupleQueueCapacity=" + tupleQueueCapacity + ", maxDrainableKeyCount=" + maxDrainableKeyCount
+               + ", partitionedTupleQueueDrainHint=" + partitionedTupleQueueDrainHint + '}';
+    }
+
 }

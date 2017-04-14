@@ -33,4 +33,11 @@ public class TupleQueueDrainerConfig
         return partitionedStatefulPipelineDrainerMaxBatchSize;
     }
 
+    @Override
+    public String toString ()
+    {
+        return "TupleQueueDrainerConfig{" + "maxBatchSize=" + maxBatchSize + ", partitionedStatefulPipelineDrainerMaxBatchSize="
+               + partitionedStatefulPipelineDrainerMaxBatchSize + '}';
+    }
+
 }

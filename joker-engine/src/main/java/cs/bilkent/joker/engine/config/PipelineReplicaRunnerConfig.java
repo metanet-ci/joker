@@ -23,4 +23,10 @@ public class PipelineReplicaRunnerConfig
         return waitTimeoutInMillis;
     }
 
+    @Override
+    public String toString ()
+    {
+        return "PipelineReplicaRunnerConfig{" + "waitTimeoutInMillis=" + waitTimeoutInMillis + '}';
+    }
+
 }

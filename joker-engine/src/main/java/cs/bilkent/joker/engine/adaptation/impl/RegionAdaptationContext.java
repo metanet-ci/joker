@@ -1,0 +1,368 @@
+package cs.bilkent.joker.engine.adaptation.impl;
+
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+
+import cs.bilkent.joker.engine.adaptation.AdaptationAction;
+import cs.bilkent.joker.engine.adaptation.BottleneckResolver;
+import cs.bilkent.joker.engine.flow.PipelineId;
+import cs.bilkent.joker.engine.flow.RegionDef;
+import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.metric.PipelineMetricsSnapshot;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
+import cs.bilkent.joker.utils.Pair;
+import static java.util.Collections.unmodifiableCollection;
+import static java.util.Collections.unmodifiableSet;
+
+public class RegionAdaptationContext
+{
+
+    private static final Logger LOGGER = LoggerFactory.getLogger( RegionExecutionPlan.class );
+
+
+    private final RegionDef regionDef;
+
+    private final Multimap<PipelineId, RegionExecutionPlan> blacklists = HashMultimap.create();
+
+    private final Set<PipelineId> nonResolvablePipelineIds = new HashSet<>();
+
+    private final Map<PipelineId, PipelineMetricsSnapshot> pipelineMetricsByPipelineId = new TreeMap<>();
+
+    private RegionExecutionPlan currentExecutionPlan, baseExecutionPlan;
+
+    private PipelineId adaptingPipelineId;
+
+    private AdaptationAction adaptationAction;
+
+    public RegionAdaptationContext ( final RegionExecutionPlan currentExecutionPlan )
+    {
+        this.regionDef = currentExecutionPlan.getRegionDef();
+        this.currentExecutionPlan = currentExecutionPlan;
+    }
+
+    public int getRegionId ()
+    {
+        return regionDef.getRegionId();
+    }
+
+    public PipelineMetricsSnapshot getPipelineMetrics ( final PipelineId pipelineId )
+    {
+        return pipelineMetricsByPipelineId.get( pipelineId );
+    }
+
+    public Collection<RegionExecutionPlan> getBlacklist ( final PipelineId pipelineId )
+    {
+        return unmodifiableCollection( blacklists.get( pipelineId ) );
+    }
+
+    public Set<PipelineId> getNonResolvablePipelineIds ()
+    {
+        return unmodifiableSet( nonResolvablePipelineIds );
+    }
+
+    public RegionExecutionPlan getCurrentExecutionPlan ()
+    {
+        return currentExecutionPlan;
+    }
+
+    public RegionExecutionPlan getBaseExecutionPlan ()
+    {
+        return baseExecutionPlan;
+    }
+
+    public PipelineId getAdaptingPipelineId ()
+    {
+        return adaptingPipelineId;
+    }
+
+    public AdaptationAction getAdaptationAction ()
+    {
+        return adaptationAction;
+    }
+
+    public void updateRegionMetrics ( final RegionExecutionPlan regionExecutionPlan,
+                                      final List<PipelineMetricsSnapshot> regionMetrics,
+                                      final BiPredicate<PipelineMetricsSnapshot, PipelineMetricsSnapshot> loadChangePredicate )
+    {
+        checkArgument( regionExecutionPlan != null );
+        checkArgument( regionMetrics != null );
+        checkArgument( loadChangePredicate != null );
+        checkState( adaptingPipelineId == null,
+                    "Region metrics cannot be updated while region %s is adapting %s",
+                    getRegionId(),
+                    adaptingPipelineId );
+
+        if ( !regionExecutionPlan.equals( currentExecutionPlan ) )
+        {
+            LOGGER.info( "Execution plan of Region: {} is changed. Prev: {} New: {}",
+                         getRegionId(),
+                         currentExecutionPlan,
+                         regionExecutionPlan );
+            currentExecutionPlan = regionExecutionPlan;
+        }
+
+        final Set<PipelineId> pipelineIdsToDelete = new HashSet<>( pipelineMetricsByPipelineId.keySet() );
+
+        for ( PipelineMetricsSnapshot pipelineMetrics : regionMetrics )
+        {
+            updatePipelineMetrics( pipelineMetrics, loadChangePredicate );
+            pipelineIdsToDelete.remove( pipelineMetrics.getPipelineId() );
+        }
+
+        for ( PipelineId pipelineId : pipelineIdsToDelete )
+        {
+            pipelineMetricsByPipelineId.remove( pipelineId );
+            blacklists.removeAll( pipelineId );
+            nonResolvablePipelineIds.remove( pipelineId );
+        }
+    }
+
+    public AdaptationAction resolveIfBottleneck ( final RegionExecutionPlan regionExecutionPlan,
+                                                  final Predicate<PipelineMetricsSnapshot> bottleneckPredicate,
+                                                  final List<BottleneckResolver> bottleneckResolvers )
+    {
+        checkArgument( regionExecutionPlan != null );
+        checkArgument( bottleneckPredicate != null );
+        checkState( adaptationAction == null,
+                    "Region %s cannot try to resolve bottleneck before evaluation of adaptation action: %s",
+                    getRegionId(),
+                    adaptationAction );
+        checkState( currentExecutionPlan.equals( regionExecutionPlan ),
+                    "Cannot check bottleneck pipeline in Region: %s because of execution plan mismatch! Current: %s New: %s",
+                    getRegionId(),
+                    currentExecutionPlan,
+                    regionExecutionPlan );
+
+        if ( regionDef.isSource() )
+        {
+            return null;
+        }
+
+        final PipelineId bottleneckPipelineId = getBottleneckPipeline( bottleneckPredicate );
+        if ( bottleneckPipelineId == null )
+        {
+            return null;
+        }
+
+        LOGGER.info( "Region {} has a bottleneck pipeline {}", getRegionId(), bottleneckPipelineId );
+
+        final Pair<AdaptationAction, RegionExecutionPlan> bottleneckResolution = resolveBottleneck( bottleneckPipelineId,
+                                                                                                    bottleneckResolvers );
+        if ( bottleneckResolution == null )
+        {
+            nonResolvablePipelineIds.add( bottleneckPipelineId );
+            adaptingPipelineId = null;
+            LOGGER.info( "Region {} has no possible adaptations for bottleneck pipeline: {}", getRegionId(), bottleneckPipelineId );
+
+            return null;
+        }
+
+        baseExecutionPlan = currentExecutionPlan;
+        adaptingPipelineId = bottleneckPipelineId;
+        currentExecutionPlan = bottleneckResolution._2;
+        adaptationAction = bottleneckResolution._1;
+
+        LOGGER.info( "Region {} will try to resolve bottleneck pipeline {} with {}",
+                     getRegionId(),
+                     bottleneckPipelineId,
+                     adaptationAction );
+
+        return adaptationAction;
+    }
+
+    public AdaptationAction evaluateAdaptation ( final RegionExecutionPlan regionExecutionPlan,
+                                                 final PipelineMetricsSnapshot newPipelineMetrics,
+                                                 final BiPredicate<PipelineMetricsSnapshot, PipelineMetricsSnapshot>
+                                                         adaptationEvaluationPredicate )
+    {
+        checkArgument( regionExecutionPlan != null );
+        checkArgument( newPipelineMetrics != null );
+        checkArgument( adaptationEvaluationPredicate != null );
+        checkPipelineId( newPipelineMetrics.getPipelineId() );
+        checkState( newPipelineMetrics.getPipelineId().equals( adaptingPipelineId ),
+                    "Cannot evaluate metrics: %s for Region %s because it is not adapting pipeline: %s",
+                    newPipelineMetrics,
+                    getRegionId(),
+                    adaptingPipelineId );
+        checkState( adaptationAction != null,
+                    "Cannot evaluate metrics: %s for Region %s because adapting pipeline %s has no adaptation action",
+                    newPipelineMetrics,
+                    getRegionId(),
+                    adaptingPipelineId );
+        checkState( currentExecutionPlan.equals( regionExecutionPlan ),
+                    "Cannot evaluate Region: %s because of execution plan mismatch! Current: %s New: %s",
+                    getRegionId(),
+                    currentExecutionPlan,
+                    regionExecutionPlan );
+
+        final PipelineMetricsSnapshot bottleneckPipelineMetrics = pipelineMetricsByPipelineId.get( adaptingPipelineId );
+        checkState( bottleneckPipelineMetrics != null,
+                    "bottleneck pipeline metrics not found for adapting pipeline: %s",
+                    adaptingPipelineId );
+
+        if ( adaptationEvaluationPredicate.test( bottleneckPipelineMetrics, newPipelineMetrics ) )
+        {
+            finalizeAdaptation( newPipelineMetrics );
+            LOGGER.info( "Adaptation is beneficial for bottleneck pipeline {} of Region {} with metrics: {}",
+                         newPipelineMetrics.getPipelineId(),
+                         getRegionId(),
+                         newPipelineMetrics );
+
+            return null;
+        }
+        else
+        {
+            LOGGER.info( "Adaptation is not beneficial for bottleneck pipeline {} of Region {} with metrics: {}",
+                         newPipelineMetrics.getPipelineId(),
+                         getRegionId(),
+                         newPipelineMetrics );
+
+            final AdaptationAction rollback = rollbackAdaptation();
+            checkState( rollback != null );
+
+            return rollback;
+        }
+    }
+
+    private void updatePipelineMetrics ( final PipelineMetricsSnapshot newPipelineMetrics,
+                                         final BiPredicate<PipelineMetricsSnapshot, PipelineMetricsSnapshot> loadChangePredicate )
+    {
+        checkArgument( adaptingPipelineId == null );
+        checkArgument( newPipelineMetrics != null );
+        final PipelineId pipelineId = newPipelineMetrics.getPipelineId();
+        checkPipelineId( pipelineId );
+        checkArgument( loadChangePredicate != null );
+
+        final PipelineMetricsSnapshot prev = pipelineMetricsByPipelineId.put( pipelineId, newPipelineMetrics );
+        if ( loadChangePredicate.test( prev, newPipelineMetrics ) )
+        {
+            LOGGER.info( "Load change detected! Region: {} PipelineId: {} Prev: {}, New: {}",
+                         getRegionId(),
+                         pipelineId,
+                         prev,
+                         newPipelineMetrics );
+            blacklists.removeAll( pipelineId );
+            nonResolvablePipelineIds.remove( pipelineId );
+        }
+    }
+
+    private PipelineId getBottleneckPipeline ( final Predicate<PipelineMetricsSnapshot> bottleneckPredicate )
+    {
+        if ( adaptingPipelineId != null )
+        {
+            return adaptingPipelineId;
+        }
+
+        for ( PipelineMetricsSnapshot pipelineMetrics : pipelineMetricsByPipelineId.values() )
+        {
+            if ( bottleneckPredicate.test( pipelineMetrics ) )
+            {
+                final PipelineId pipelineId = pipelineMetrics.getPipelineId();
+                if ( nonResolvablePipelineIds.contains( pipelineId ) )
+                {
+                    continue;
+                }
+
+                return pipelineId;
+            }
+        }
+
+        return null;
+    }
+
+    private Pair<AdaptationAction, RegionExecutionPlan> resolveBottleneck ( final PipelineId bottleneckPipelineId,
+                                                                            final List<BottleneckResolver> bottleneckResolvers )
+    {
+        final PipelineMetricsSnapshot pipelineMetrics = pipelineMetricsByPipelineId.get( bottleneckPipelineId );
+        checkState( pipelineMetrics != null, "No metrics in Region %s for bottleneck pipeline %s", getRegionId(), bottleneckPipelineId );
+
+        if ( bottleneckResolvers != null && bottleneckResolvers.size() > 0 )
+        {
+            for ( BottleneckResolver bottleneckResolver : bottleneckResolvers )
+            {
+                final Pair<AdaptationAction, RegionExecutionPlan> bottleneckResolution = resolveBottleneck( bottleneckPipelineId,
+                                                                                                            pipelineMetrics,
+                                                                                                            bottleneckResolver );
+                if ( bottleneckResolution != null )
+                {
+                    return bottleneckResolution;
+                }
+            }
+        }
+        else
+        {
+            LOGGER.warn( "Cannot resolve bottleneck pipeline {} of Region {} because there is no bottleneck resolver!",
+                         bottleneckPipelineId,
+                         getRegionId() );
+        }
+
+        return null;
+    }
+
+    private Pair<AdaptationAction, RegionExecutionPlan> resolveBottleneck ( final PipelineId bottleneckPipelineId,
+                                                                            final PipelineMetricsSnapshot pipelineMetrics,
+                                                                            final BottleneckResolver bottleneckResolver )
+    {
+        final AdaptationAction action = bottleneckResolver.resolve( currentExecutionPlan, pipelineMetrics );
+        if ( action == null )
+        {
+            return null;
+        }
+
+        final RegionExecutionPlan newExecutionPlan = action.getNewRegionExecutionPlan();
+        if ( blacklists.containsEntry( bottleneckPipelineId, newExecutionPlan ) )
+        {
+            LOGGER.info( "Region {} cannot resolve bottleneck pipeline {} with {} because it is blacklisted.",
+                         getRegionId(),
+                         bottleneckPipelineId,
+                         action );
+
+            return null;
+        }
+
+        return Pair.of( action, newExecutionPlan );
+    }
+
+    private void finalizeAdaptation ( final PipelineMetricsSnapshot newPipelineMetrics )
+    {
+        pipelineMetricsByPipelineId.put( adaptingPipelineId, newPipelineMetrics );
+        baseExecutionPlan = null;
+        adaptingPipelineId = null;
+        adaptationAction = null;
+    }
+
+    private AdaptationAction rollbackAdaptation ()
+    {
+        addToBlacklist( adaptingPipelineId, currentExecutionPlan );
+        currentExecutionPlan = baseExecutionPlan;
+        baseExecutionPlan = null;
+        final AdaptationAction rollbackAction = adaptationAction.rollback();
+        adaptationAction = null;
+        return rollbackAction;
+    }
+
+    private void addToBlacklist ( final PipelineId pipelineId, final RegionExecutionPlan regionExecutionPlan )
+    {
+        checkArgument( !blacklists.containsEntry( pipelineId, regionExecutionPlan ) );
+        blacklists.put( pipelineId, regionExecutionPlan );
+    }
+
+    private void checkPipelineId ( final PipelineId pipelineId )
+    {
+        checkArgument( pipelineId != null );
+        checkArgument( currentExecutionPlan.getPipelineIds().contains( pipelineId ) );
+    }
+
+}
