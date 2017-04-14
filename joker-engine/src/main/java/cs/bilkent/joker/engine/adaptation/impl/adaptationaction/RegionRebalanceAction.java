@@ -1,14 +1,10 @@
 package cs.bilkent.joker.engine.adaptation.impl.adaptationaction;
 
-import java.util.List;
-
 import cs.bilkent.joker.engine.adaptation.AdaptationAction;
 import cs.bilkent.joker.engine.adaptation.AdaptationPerformer;
-import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
-import cs.bilkent.joker.utils.Pair;
 
 public class RegionRebalanceAction implements AdaptationAction
 {
@@ -26,9 +22,9 @@ public class RegionRebalanceAction implements AdaptationAction
     }
 
     @Override
-    public Pair<List<PipelineId>, List<PipelineId>> apply ( final AdaptationPerformer performer )
+    public void apply ( final AdaptationPerformer performer )
     {
-        return performer.rebalanceRegion( newRegionExecutionPlan.getRegionId(), newRegionExecutionPlan.getReplicaCount() );
+        performer.rebalanceRegion( newRegionExecutionPlan.getRegionId(), newRegionExecutionPlan.getReplicaCount() );
     }
 
     @Override

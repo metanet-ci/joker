@@ -22,14 +22,12 @@ import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.joker.test.AbstractJokerTest;
-import cs.bilkent.joker.utils.Pair;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public class SplitPipelineActionTest extends AbstractJokerTest
 {
@@ -122,17 +120,10 @@ public class SplitPipelineActionTest extends AbstractJokerTest
         final SplitPipelineAction action = new SplitPipelineAction( regionExecutionPlan, splitPipelineId, pipelineOperatorIndices );
 
         final AdaptationPerformer adaptationPerformer = mock( AdaptationPerformer.class );
-        final int regionId = regionExecutionPlan.getRegionId();
-        final Pair<List<PipelineId>, List<PipelineId>> expectedResult = Pair.of( singletonList( splitPipelineId ),
-                                                                                 asList( new PipelineId( regionId, 1 ),
-                                                                                         new PipelineId( regionId, 4 ) ) );
 
-        when( adaptationPerformer.splitPipeline( splitPipelineId, pipelineOperatorIndices ) ).thenReturn( expectedResult );
-
-        final Pair<List<PipelineId>, List<PipelineId>> result = action.apply( adaptationPerformer );
+        action.apply( adaptationPerformer );
 
         verify( adaptationPerformer ).splitPipeline( splitPipelineId, pipelineOperatorIndices );
-        assertThat( result, equalTo( expectedResult ) );
     }
 
 }

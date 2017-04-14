@@ -156,7 +156,7 @@ public class JustInTimeAdaptationManagerTest extends AbstractJokerTest
         when( regionAdaptationContextFactory.apply( sourceRegionExecutionPlan ) ).thenReturn( sourceContext );
         when( regionAdaptationContextFactory.apply( sinkRegionExecutionPlan ) ).thenReturn( sinkContext );
 
-        adaptationManager.initialize( flow, asList( sourceRegionExecutionPlan, sinkRegionExecutionPlan ) );
+        adaptationManager.initialize( asList( sourceRegionExecutionPlan, sinkRegionExecutionPlan ) );
 
         assertThat( adaptationManager.getRegion( sourceRegion.getRegionId() ), equalTo( sourceContext ) );
         assertThat( adaptationManager.getRegion( sinkRegion.getRegionId() ), equalTo( sinkContext ) );
@@ -174,12 +174,8 @@ public class JustInTimeAdaptationManagerTest extends AbstractJokerTest
                                                      loadChangePredicate );
         verify( sinkContext ).updateRegionMetrics( sinkRegionExecutionPlan, singletonList( sinkPipelineMetrics ), loadChangePredicate );
 
-        verify( sourceContext ).resolveIfBottleneck( eq( sourceRegionExecutionPlan ),
-                                                     eq( bottleneckPredicate ),
-                                                     anyListOf( BottleneckResolver.class ) );
-        verify( sinkContext ).resolveIfBottleneck( eq( sinkRegionExecutionPlan ),
-                                                   eq( bottleneckPredicate ),
-                                                   anyListOf( BottleneckResolver.class ) );
+        verify( sourceContext ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
+        verify( sinkContext ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
     }
 
     @Test
@@ -189,9 +185,7 @@ public class JustInTimeAdaptationManagerTest extends AbstractJokerTest
 
         final AdaptationAction action = mock( AdaptationAction.class );
 
-        when( sourceContext.resolveIfBottleneck( eq( sourceRegionExecutionPlan ),
-                                                 eq( bottleneckPredicate ),
-                                                 anyListOf( BottleneckResolver.class ) ) ).thenReturn( action );
+        when( sourceContext.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn( action );
 
         final List<AdaptationAction> result = adaptationManager.apply( asList( sourceRegionExecutionPlan, sinkRegionExecutionPlan ),
                                                                        flowMetrics );
@@ -204,12 +198,8 @@ public class JustInTimeAdaptationManagerTest extends AbstractJokerTest
                                                      loadChangePredicate );
         verify( sinkContext ).updateRegionMetrics( sinkRegionExecutionPlan, singletonList( sinkPipelineMetrics ), loadChangePredicate );
 
-        verify( sourceContext ).resolveIfBottleneck( eq( sourceRegionExecutionPlan ),
-                                                     eq( bottleneckPredicate ),
-                                                     anyListOf( BottleneckResolver.class ) );
-        verify( sinkContext, never() ).resolveIfBottleneck( eq( sinkRegionExecutionPlan ),
-                                                            eq( bottleneckPredicate ),
-                                                            anyListOf( BottleneckResolver.class ) );
+        verify( sourceContext ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
+        verify( sinkContext, never() ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
     }
 
     @Test
@@ -219,9 +209,7 @@ public class JustInTimeAdaptationManagerTest extends AbstractJokerTest
 
         final AdaptationAction action = mock( AdaptationAction.class );
 
-        when( sinkContext.resolveIfBottleneck( eq( sinkRegionExecutionPlan ),
-                                               eq( bottleneckPredicate ),
-                                               anyListOf( BottleneckResolver.class ) ) ).thenReturn( action );
+        when( sinkContext.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn( action );
 
         final List<AdaptationAction> result = adaptationManager.apply( asList( sourceRegionExecutionPlan, sinkRegionExecutionPlan ),
                                                                        flowMetrics );
@@ -234,12 +222,8 @@ public class JustInTimeAdaptationManagerTest extends AbstractJokerTest
                                                      loadChangePredicate );
         verify( sinkContext ).updateRegionMetrics( sinkRegionExecutionPlan, singletonList( sinkPipelineMetrics ), loadChangePredicate );
 
-        verify( sourceContext ).resolveIfBottleneck( eq( sourceRegionExecutionPlan ),
-                                                     eq( bottleneckPredicate ),
-                                                     anyListOf( BottleneckResolver.class ) );
-        verify( sinkContext ).resolveIfBottleneck( eq( sinkRegionExecutionPlan ),
-                                                   eq( bottleneckPredicate ),
-                                                   anyListOf( BottleneckResolver.class ) );
+        verify( sourceContext ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
+        verify( sinkContext ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
     }
 
     @Test
@@ -249,9 +233,7 @@ public class JustInTimeAdaptationManagerTest extends AbstractJokerTest
 
         final AdaptationAction action = mock( AdaptationAction.class );
 
-        when( sourceContext.resolveIfBottleneck( eq( sourceRegionExecutionPlan ),
-                                                 eq( bottleneckPredicate ),
-                                                 anyListOf( BottleneckResolver.class ) ) ).thenReturn( action );
+        when( sourceContext.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn( action );
 
         final List<AdaptationAction> result1 = adaptationManager.apply( asList( sourceRegionExecutionPlan, sinkRegionExecutionPlan ),
                                                                         flowMetrics );
@@ -264,12 +246,8 @@ public class JustInTimeAdaptationManagerTest extends AbstractJokerTest
                                                      loadChangePredicate );
         verify( sinkContext ).updateRegionMetrics( sinkRegionExecutionPlan, singletonList( sinkPipelineMetrics ), loadChangePredicate );
 
-        verify( sourceContext ).resolveIfBottleneck( eq( sourceRegionExecutionPlan ),
-                                                     eq( bottleneckPredicate ),
-                                                     anyListOf( BottleneckResolver.class ) );
-        verify( sinkContext, never() ).resolveIfBottleneck( eq( sinkRegionExecutionPlan ),
-                                                            eq( bottleneckPredicate ),
-                                                            anyListOf( BottleneckResolver.class ) );
+        verify( sourceContext ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
+        verify( sinkContext, never() ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
 
         final PipelineId sourcePipelineId = new PipelineId( sourceRegion.getRegionId(), 0 );
         when( sourceContext.getAdaptingPipelineId() ).thenReturn( sourcePipelineId );
@@ -280,7 +258,7 @@ public class JustInTimeAdaptationManagerTest extends AbstractJokerTest
 
         assertThat( result2, hasSize( 0 ) );
 
-        verify( sourceContext ).evaluateAdaptation( sourceRegionExecutionPlan, sourcePipelineMetrics, adaptationEvaluationPredicate );
+        verify( sourceContext ).evaluateAdaptation( sourcePipelineMetrics, adaptationEvaluationPredicate );
     }
 
     @Test
@@ -291,9 +269,8 @@ public class JustInTimeAdaptationManagerTest extends AbstractJokerTest
         final AdaptationAction action1 = mock( AdaptationAction.class );
         final AdaptationAction action2 = mock( AdaptationAction.class );
 
-        when( sourceContext.resolveIfBottleneck( eq( sourceRegionExecutionPlan ),
-                                                 eq( bottleneckPredicate ),
-                                                 anyListOf( BottleneckResolver.class ) ) ).thenReturn( action1, action2 );
+        when( sourceContext.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn( action1,
+                                                                                                                                  action2 );
 
         final List<AdaptationAction> result1 = adaptationManager.apply( asList( sourceRegionExecutionPlan, sinkRegionExecutionPlan ),
                                                                         flowMetrics );
@@ -307,9 +284,7 @@ public class JustInTimeAdaptationManagerTest extends AbstractJokerTest
 
         final AdaptationAction rollback = mock( AdaptationAction.class );
 
-        when( sourceContext.evaluateAdaptation( sourceRegionExecutionPlan,
-                                                sourcePipelineMetrics,
-                                                adaptationEvaluationPredicate ) ).thenReturn( rollback );
+        when( sourceContext.evaluateAdaptation( sourcePipelineMetrics, adaptationEvaluationPredicate ) ).thenReturn( rollback );
 
         final List<AdaptationAction> result2 = adaptationManager.apply( asList( sourceRegionExecutionPlan, sinkRegionExecutionPlan ),
                                                                         flowMetrics );
@@ -317,7 +292,7 @@ public class JustInTimeAdaptationManagerTest extends AbstractJokerTest
         assertThat( result2, equalTo( asList( rollback, action2 ) ) );
         assertThat( adaptationManager.getAdaptingRegion(), equalTo( sourceContext ) );
 
-        verify( sourceContext ).evaluateAdaptation( sourceRegionExecutionPlan, sourcePipelineMetrics, adaptationEvaluationPredicate );
+        verify( sourceContext ).evaluateAdaptation( sourcePipelineMetrics, adaptationEvaluationPredicate );
     }
 
     @Test
@@ -327,9 +302,9 @@ public class JustInTimeAdaptationManagerTest extends AbstractJokerTest
 
         final AdaptationAction action = mock( AdaptationAction.class );
 
-        when( sourceContext.resolveIfBottleneck( eq( sourceRegionExecutionPlan ),
-                                                 eq( bottleneckPredicate ),
-                                                 anyListOf( BottleneckResolver.class ) ) ).thenReturn( action, null );
+        when( sourceContext.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn( action,
+                                                                                                                                  new AdaptationAction[] {
+                                                                                                                                          null } );
 
         final List<AdaptationAction> result = adaptationManager.apply( asList( sourceRegionExecutionPlan, sinkRegionExecutionPlan ),
                                                                        flowMetrics );
@@ -344,9 +319,7 @@ public class JustInTimeAdaptationManagerTest extends AbstractJokerTest
 
         final AdaptationAction rollback = mock( AdaptationAction.class );
 
-        when( sourceContext.evaluateAdaptation( sourceRegionExecutionPlan,
-                                                sourcePipelineMetrics,
-                                                adaptationEvaluationPredicate ) ).thenReturn( rollback );
+        when( sourceContext.evaluateAdaptation( sourcePipelineMetrics, adaptationEvaluationPredicate ) ).thenReturn( rollback );
 
         final List<AdaptationAction> result2 = adaptationManager.apply( asList( sourceRegionExecutionPlan, sinkRegionExecutionPlan ),
                                                                         flowMetrics );
@@ -354,7 +327,7 @@ public class JustInTimeAdaptationManagerTest extends AbstractJokerTest
         assertThat( result2, equalTo( singletonList( rollback ) ) );
         assertNull( adaptationManager.getAdaptingRegion() );
 
-        verify( sourceContext ).evaluateAdaptation( sourceRegionExecutionPlan, sourcePipelineMetrics, adaptationEvaluationPredicate );
+        verify( sourceContext ).evaluateAdaptation( sourcePipelineMetrics, adaptationEvaluationPredicate );
     }
 
 }

@@ -129,21 +129,14 @@ public class RegionAdaptationContext
         }
     }
 
-    public AdaptationAction resolveIfBottleneck ( final RegionExecutionPlan regionExecutionPlan,
-                                                  final Predicate<PipelineMetricsSnapshot> bottleneckPredicate,
+    public AdaptationAction resolveIfBottleneck ( final Predicate<PipelineMetricsSnapshot> bottleneckPredicate,
                                                   final List<BottleneckResolver> bottleneckResolvers )
     {
-        checkArgument( regionExecutionPlan != null );
         checkArgument( bottleneckPredicate != null );
         checkState( adaptationAction == null,
                     "Region %s cannot try to resolve bottleneck before evaluation of adaptation action: %s",
                     getRegionId(),
                     adaptationAction );
-        checkState( currentExecutionPlan.equals( regionExecutionPlan ),
-                    "Cannot check bottleneck pipeline in Region: %s because of execution plan mismatch! Current: %s New: %s",
-                    getRegionId(),
-                    currentExecutionPlan,
-                    regionExecutionPlan );
 
         if ( regionDef.isSource() )
         {
@@ -182,12 +175,10 @@ public class RegionAdaptationContext
         return adaptationAction;
     }
 
-    public AdaptationAction evaluateAdaptation ( final RegionExecutionPlan regionExecutionPlan,
-                                                 final PipelineMetricsSnapshot newPipelineMetrics,
+    public AdaptationAction evaluateAdaptation ( final PipelineMetricsSnapshot newPipelineMetrics,
                                                  final BiPredicate<PipelineMetricsSnapshot, PipelineMetricsSnapshot>
                                                          adaptationEvaluationPredicate )
     {
-        checkArgument( regionExecutionPlan != null );
         checkArgument( newPipelineMetrics != null );
         checkArgument( adaptationEvaluationPredicate != null );
         checkPipelineId( newPipelineMetrics.getPipelineId() );
@@ -201,11 +192,6 @@ public class RegionAdaptationContext
                     newPipelineMetrics,
                     getRegionId(),
                     adaptingPipelineId );
-        checkState( currentExecutionPlan.equals( regionExecutionPlan ),
-                    "Cannot evaluate Region: %s because of execution plan mismatch! Current: %s New: %s",
-                    getRegionId(),
-                    currentExecutionPlan,
-                    regionExecutionPlan );
 
         final PipelineMetricsSnapshot bottleneckPipelineMetrics = pipelineMetricsByPipelineId.get( adaptingPipelineId );
         checkState( bottleneckPipelineMetrics != null,
@@ -215,19 +201,17 @@ public class RegionAdaptationContext
         if ( adaptationEvaluationPredicate.test( bottleneckPipelineMetrics, newPipelineMetrics ) )
         {
             finalizeAdaptation( newPipelineMetrics );
-            LOGGER.info( "Adaptation is beneficial for bottleneck pipeline {} of Region {} with metrics: {}",
+            LOGGER.info( "Adaptation is beneficial for bottleneck pipeline {} of Region {} with new metrics: {} bottleneck metrics: {} ",
                          newPipelineMetrics.getPipelineId(),
-                         getRegionId(),
-                         newPipelineMetrics );
+                         getRegionId(), newPipelineMetrics, bottleneckPipelineMetrics );
 
             return null;
         }
         else
         {
-            LOGGER.info( "Adaptation is not beneficial for bottleneck pipeline {} of Region {} with metrics: {}",
+            LOGGER.info( "Adaptation is not beneficial for bottleneck pipeline {} of Region {} with new metrics: {} bottleneck metrics: {}",
                          newPipelineMetrics.getPipelineId(),
-                         getRegionId(),
-                         newPipelineMetrics );
+                         getRegionId(), newPipelineMetrics, bottleneckPipelineMetrics );
 
             final AdaptationAction rollback = rollbackAdaptation();
             checkState( rollback != null );

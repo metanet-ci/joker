@@ -17,12 +17,17 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.FlowStatus;
 import static cs.bilkent.joker.engine.FlowStatus.SHUT_DOWN;
+import cs.bilkent.joker.engine.adaptation.AdaptationAction;
+import cs.bilkent.joker.engine.adaptation.AdaptationManager;
+import cs.bilkent.joker.engine.config.JokerConfig;
 import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_THREAD_GROUP_NAME;
+import cs.bilkent.joker.engine.config.MetricManagerConfig;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.exception.JokerException;
 import cs.bilkent.joker.engine.flow.FlowExecutionPlan;
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.metric.FlowMetricsSnapshot;
 import cs.bilkent.joker.engine.metric.MetricManager;
 import cs.bilkent.joker.engine.metric.PipelineMeter;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
@@ -32,6 +37,7 @@ import cs.bilkent.joker.engine.pipeline.UpstreamContext;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import static cs.bilkent.joker.engine.util.ExceptionUtils.checkInterruption;
 import cs.bilkent.joker.flow.FlowDef;
+import cs.bilkent.joker.utils.Pair;
 import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
@@ -45,8 +51,11 @@ public class SupervisorImpl implements Supervisor
 
     private static final long HEARTBEAT_LOG_PERIOD = SECONDS.toMillis( 15 );
 
+    private final JokerConfig config;
 
     private final MetricManager metricManager;
+
+    private final AdaptationManager adaptationManager;
 
     private PipelineManager pipelineManager;
 
@@ -58,11 +67,18 @@ public class SupervisorImpl implements Supervisor
 
     private CompletableFuture<Void> shutdownFuture;
 
+    private int flowPeriod;
+
 
     @Inject
-    public SupervisorImpl ( final MetricManager metricManager, @Named( JOKER_THREAD_GROUP_NAME ) final ThreadGroup jokerThreadGroup )
+    public SupervisorImpl ( final JokerConfig config,
+                            final MetricManager metricManager,
+                            final AdaptationManager adaptationManager,
+                            @Named( JOKER_THREAD_GROUP_NAME ) final ThreadGroup jokerThreadGroup )
     {
+        this.config = config;
         this.metricManager = metricManager;
+        this.adaptationManager = adaptationManager;
         this.supervisorThread = new Thread( jokerThreadGroup, new TaskRunner(), jokerThreadGroup.getName() + "-Supervisor" );
     }
 
@@ -87,6 +103,12 @@ public class SupervisorImpl implements Supervisor
                 pipelineManager.start( flow, regionExecutionPlans );
                 final FlowExecutionPlan flowExecutionPlan = pipelineManager.getFlowExecutionPlan();
                 metricManager.start( flowExecutionPlan.getVersion(), pipelineManager.getAllPipelineMetersOrFail() );
+
+                if ( isAdaptationEnabled() )
+                {
+                    adaptationManager.initialize( flowExecutionPlan.getRegionExecutionPlans() );
+                }
+
                 supervisorThread.start();
                 return flowExecutionPlan;
             }
@@ -134,6 +156,7 @@ public class SupervisorImpl implements Supervisor
                         flowVersion,
                         pipelineManager.getFlowStatus(),
                         shutdownFuture );
+            checkState( !isAdaptationEnabled(), "cannot merge pipelines manually when adaptation is enabled" );
 
             final boolean result = queue.offer( () -> doMergePipelines( future, flowVersion, pipelineIdsToMerge ) );
             assert result : "offer failed for merge pipelines " + pipelineIdsToMerge + " with flow version " + flowVersion;
@@ -157,6 +180,7 @@ public class SupervisorImpl implements Supervisor
                         flowVersion,
                         pipelineManager.getFlowStatus(),
                         shutdownFuture );
+            checkState( !isAdaptationEnabled(), "cannot split pipeline manually when adaptation is enabled" );
 
             final boolean result = queue.offer( () -> doSplitPipeline( future, flowVersion, pipelineId, pipelineOperatorIndices ) );
             assert result : "offer failed for split pipeline " + pipelineId + " into " + pipelineOperatorIndices + " with flow version "
@@ -179,6 +203,7 @@ public class SupervisorImpl implements Supervisor
                         flowVersion,
                         pipelineManager.getFlowStatus(),
                         shutdownFuture );
+            checkState( !isAdaptationEnabled(), "cannot rebalance region manually when adaptation is enabled" );
 
             final boolean result = queue.offer( () -> doRebalanceRegion( future, flowVersion, regionId, newReplicaCount ) );
             assert result :
@@ -425,6 +450,71 @@ public class SupervisorImpl implements Supervisor
         }
     }
 
+    private void checkAdaptation ()
+    {
+        if ( !isAdaptationEnabled() )
+        {
+            return;
+        }
+
+        final FlowMetricsSnapshot flowMetrics = metricManager.getFlowMetrics();
+
+        if ( !shouldCheckAdaptation( flowMetrics ) )
+        {
+            return;
+        }
+
+        FlowExecutionPlan flowExecutionPlan = pipelineManager.getFlowExecutionPlan();
+        final List<AdaptationAction> actions = adaptationManager.apply( flowExecutionPlan.getRegionExecutionPlans(), flowMetrics );
+        if ( actions.isEmpty() )
+        {
+            flowPeriod = flowMetrics.getPeriod();
+            LOGGER.info( "Flow version after adaptation check: {}", flowPeriod );
+            return;
+        }
+
+        metricManager.pause();
+
+        for ( AdaptationAction action : actions )
+        {
+            LOGGER.info( "Performing: {}", action );
+            // new adaptation performer for each iteration is needed to get the latest flow execution version
+            final DefaultAdaptationPerformer performer = new DefaultAdaptationPerformer( pipelineManager );
+            action.apply( performer );
+            final Pair<List<PipelineId>, List<PipelineId>> pipelineIdChanges = performer.getPipelineIdChanges();
+
+            final int regionId = action.getCurrentRegionExecutionPlan().getRegionId();
+            flowExecutionPlan = pipelineManager.getFlowExecutionPlan();
+            final RegionExecutionPlan newRegionExecutionPlan = flowExecutionPlan.getRegionExecutionPlan( regionId );
+            checkState( newRegionExecutionPlan.equals( action.getNewRegionExecutionPlan() ) );
+
+            LOGGER.info( "Region execution plan after adaptation: {}", newRegionExecutionPlan );
+
+            final List<PipelineId> removedPipelineIds = pipelineIdChanges._1;
+            final List<PipelineMeter> addedPipelineMeters = pipelineIdChanges._2.stream()
+                                                                                .map( pipelineManager::getPipelineMeterOrFail )
+                                                                                .collect( toList() );
+
+            metricManager.update( flowExecutionPlan.getVersion(), removedPipelineIds, addedPipelineMeters );
+        }
+
+        flowPeriod = metricManager.getFlowMetrics().getPeriod();
+        LOGGER.info( "Flow version after adaptation: {}", flowPeriod );
+
+        metricManager.resume();
+    }
+
+    private boolean shouldCheckAdaptation ( final FlowMetricsSnapshot flowMetrics )
+    {
+        final MetricManagerConfig metricManagerConfig = config.getMetricManagerConfig();
+        return flowMetrics != null && ( flowMetrics.getPeriod() - flowPeriod ) > metricManagerConfig.getHistorySize();
+    }
+
+    private boolean isAdaptationEnabled ()
+    {
+        return config.getAdaptationConfig().isEnabled();
+    }
+
 
     private class TaskRunner implements Runnable
     {
@@ -438,17 +528,19 @@ public class SupervisorImpl implements Supervisor
             {
                 while ( true )
                 {
-                    final Runnable task = queue.poll( 1, SECONDS );
-                    if ( task != null )
+                    Runnable task = queue.poll( 1, SECONDS );
+                    if ( task == null )
                     {
-                        try
-                        {
-                            task.run();
-                        }
-                        catch ( Exception e )
-                        {
-                            completeShutdown( e );
-                        }
+                        task = SupervisorImpl.this::checkAdaptation;
+                    }
+
+                    try
+                    {
+                        task.run();
+                    }
+                    catch ( Exception e )
+                    {
+                        completeShutdown( e );
                     }
 
                     if ( pipelineManager.getFlowStatus() == SHUT_DOWN )

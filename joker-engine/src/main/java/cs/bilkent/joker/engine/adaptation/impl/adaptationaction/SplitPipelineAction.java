@@ -10,7 +10,6 @@ import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import static cs.bilkent.joker.engine.region.impl.RegionExecutionPlanUtil.getPipelineStartIndicesToSplit;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
-import cs.bilkent.joker.utils.Pair;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.unmodifiableList;
 
@@ -48,9 +47,9 @@ public class SplitPipelineAction implements AdaptationAction
     }
 
     @Override
-    public Pair<List<PipelineId>, List<PipelineId>> apply ( final AdaptationPerformer performer )
+    public void apply ( final AdaptationPerformer performer )
     {
-        return performer.splitPipeline( pipelineId, pipelineOperatorIndices );
+        performer.splitPipeline( pipelineId, pipelineOperatorIndices );
     }
 
     @Override

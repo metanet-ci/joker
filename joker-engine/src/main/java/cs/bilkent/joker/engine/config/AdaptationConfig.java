@@ -26,6 +26,8 @@ public class AdaptationConfig
 
     public static final String CONFIG_NAME = "adaptation";
 
+    public static final String ENABLED = "enabled";
+
     public static final String PIPELINE_METRICS_HISTORY_SUMMARIZER_CLASS = "pipelineMetricsHistorySummarizerClass";
 
     public static final String CPU_UTILIZATION_BOTTLENECK_THRESHOLD = "cpuUtilBottleneckThreshold";
@@ -41,6 +43,8 @@ public class AdaptationConfig
     public static final String SPLIT_UTILITY = "splitUtility";
 
 
+    private final boolean enabled;
+
     private final Class<PipelineMetricsHistorySummarizer> pipelineMetricsHistorySummarizerClass;
 
     private final double cpuUtilBottleneckThreshold, cpuUtilLoadChangeThreshold;
@@ -54,6 +58,7 @@ public class AdaptationConfig
     {
         final Config config = parentConfig.getConfig( CONFIG_NAME );
 
+        this.enabled = config.getBoolean( ENABLED );
         final String className = config.getString( PIPELINE_METRICS_HISTORY_SUMMARIZER_CLASS );
         try
         {
@@ -73,9 +78,9 @@ public class AdaptationConfig
         this.splitUtility = config.getDouble( SPLIT_UTILITY );
     }
 
-    public Class<PipelineMetricsHistorySummarizer> getPipelineMetricsHistorySummarizerClass ()
+    public boolean isEnabled ()
     {
-        return pipelineMetricsHistorySummarizerClass;
+        return enabled;
     }
 
     public PipelineMetricsHistorySummarizer getPipelineMetricsHistorySummarizer ()
@@ -139,8 +144,8 @@ public class AdaptationConfig
 
             for ( int portIndex = 0; portIndex < oldMetrics.getInputPortCount(); portIndex++ )
             {
-                final long throughput = oldMetrics.getAvgInboundThroughput( portIndex );
-                final double throughputDiff = abs( newMetrics.getAvgInboundThroughput( portIndex ) - throughput );
+                final long throughput = oldMetrics.getTotalInboundThroughput( portIndex );
+                final double throughputDiff = abs( newMetrics.getTotalInboundThroughput( portIndex ) - throughput );
                 if ( ( throughputDiff / throughput ) >= throughputLoadChangeThreshold )
                 {
                     return true;
@@ -206,8 +211,9 @@ public class AdaptationConfig
         {
             for ( int portIndex = 0; portIndex < oldMetrics.getInputPortCount(); portIndex++ )
             {
-                final long throughput = oldMetrics.getAvgInboundThroughput( portIndex );
-                if ( ( (double) newMetrics.getAvgInboundThroughput( portIndex ) - throughput ) / throughput >= throughputIncreaseThreshold )
+                final long throughput = oldMetrics.getTotalInboundThroughput( portIndex );
+                if ( ( (double) newMetrics.getTotalInboundThroughput( portIndex ) - throughput ) / throughput
+                     >= throughputIncreaseThreshold )
                 {
                     return true;
                 }

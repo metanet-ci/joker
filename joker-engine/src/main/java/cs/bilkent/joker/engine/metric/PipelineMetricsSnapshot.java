@@ -152,9 +152,9 @@ public class PipelineMetricsSnapshot
         return inboundThroughputs[ replicaIndex ];
     }
 
-    public long[] getAvgInboundThroughputs ()
+    public long[] getTotalInboundThroughputs ()
     {
-        return range( 0, inputPortCount ).mapToLong( this::getAvgInboundThroughput ).toArray();
+        return range( 0, inputPortCount ).mapToLong( this::getTotalInboundThroughput ).toArray();
     }
 
     public long getInboundThroughput ( final int replicaIndex, final int portIndex )
@@ -162,14 +162,14 @@ public class PipelineMetricsSnapshot
         return inboundThroughputs[ replicaIndex ][ portIndex ];
     }
 
-    public long getAvgInboundThroughput ( final int portIndex )
+    public long getTotalInboundThroughput ( final int portIndex )
     {
         if ( replicaCount == 1 )
         {
             return inboundThroughputs[ 0 ][ portIndex ];
         }
 
-        return (long) stream( inboundThroughputs ).flatMapToLong( replica -> LongStream.of( replica[ portIndex ] ) ).average().orElse( -1 );
+        return stream( inboundThroughputs ).flatMapToLong( replica -> LongStream.of( replica[ portIndex ] ) ).sum();
     }
 
     public void visit ( final PipelineMetricsVisitor visitor )
@@ -190,8 +190,8 @@ public class PipelineMetricsSnapshot
     public String toString ()
     {
         return "PipelineMetricsSnapshot{" + "pipelineId=" + pipelineId + ", flowVersion=" + flowVersion + ", cpuUtilizationRatios="
-               + Arrays.toString( cpuUtilizationRatios ) + ", inboundThroughputs=" + Arrays.toString( inboundThroughputs )
-               + ", operatorCosts=" + Arrays.toString( operatorCosts ) + ", pipelineCosts=" + Arrays.toString( pipelineCosts ) + '}';
+               + Arrays.toString( cpuUtilizationRatios ) + ", inboundThroughputs=" + Arrays.deepToString( inboundThroughputs )
+               + ", operatorCosts=" + Arrays.deepToString( operatorCosts ) + ", pipelineCosts=" + Arrays.toString( pipelineCosts ) + '}';
     }
 
     public interface PipelineMetricsVisitor

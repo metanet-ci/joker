@@ -32,14 +32,12 @@ import cs.bilkent.joker.operator.spec.OperatorSpec;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.joker.test.AbstractJokerTest;
-import cs.bilkent.joker.utils.Pair;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public class MergePipelinesActionTest extends AbstractJokerTest
 {
@@ -129,15 +127,10 @@ public class MergePipelinesActionTest extends AbstractJokerTest
         final MergePipelinesAction action = new MergePipelinesAction( regionExecutionPlan, mergedPipelineIds );
 
         final AdaptationPerformer adaptationPerformer = mock( AdaptationPerformer.class );
-        final Pair<List<PipelineId>, List<PipelineId>> expectedResult = Pair.of( mergedPipelineIds,
-                                                                                 singletonList( mergedPipelineIds.get( 0 ) ) );
-        when( adaptationPerformer.mergePipelines( mergedPipelineIds ) ).thenReturn( expectedResult );
 
-        final Pair<List<PipelineId>, List<PipelineId>> result = action.apply( adaptationPerformer );
+        action.apply( adaptationPerformer );
 
         verify( adaptationPerformer ).mergePipelines( mergedPipelineIds );
-        assertThat( result, equalTo( expectedResult ) );
-
     }
 
     @OperatorSpec( type = STATEFUL, inputPortCount = 0, outputPortCount = 1 )

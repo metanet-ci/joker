@@ -7,6 +7,7 @@ import cs.bilkent.joker.engine.flow.FlowExecutionPlan;
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.pipeline.PipelineManager;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.utils.Pair;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
@@ -18,27 +19,29 @@ public class DefaultAdaptationPerformer implements AdaptationPerformer
 
     private final int flowVersion;
 
-    public DefaultAdaptationPerformer ( final PipelineManager pipelineManager, final int flowVersion )
+    private Pair<List<PipelineId>, List<PipelineId>> pipelineIdChanges;
+
+    DefaultAdaptationPerformer ( final PipelineManager pipelineManager )
     {
         this.pipelineManager = pipelineManager;
-        this.flowVersion = flowVersion;
+        this.flowVersion = pipelineManager.getFlowExecutionPlan().getVersion();
     }
 
     @Override
-    public Pair<List<PipelineId>, List<PipelineId>> mergePipelines ( final List<PipelineId> pipelineIds )
+    public void mergePipelines ( final List<PipelineId> pipelineIds )
     {
         pipelineManager.mergePipelines( flowVersion, pipelineIds );
 
-        return Pair.of( pipelineIds, singletonList( pipelineIds.get( 0 ) ) );
+        pipelineIdChanges = Pair.of( pipelineIds, singletonList( pipelineIds.get( 0 ) ) );
     }
 
     @Override
-    public Pair<List<PipelineId>, List<PipelineId>> splitPipeline ( final PipelineId pipelineId,
-                                                                    final List<Integer> pipelineOperatorIndices )
+    public void splitPipeline ( final PipelineId pipelineId, final List<Integer> pipelineOperatorIndices )
     {
         final List<PipelineId> existingPipelineIds = pipelineManager.getFlowExecutionPlan()
                                                                     .getRegionExecutionPlan( pipelineId.getRegionId() )
                                                                     .getPipelineIds();
+        existingPipelineIds.remove( pipelineId );
 
         pipelineManager.splitPipeline( flowVersion, pipelineId, pipelineOperatorIndices );
 
@@ -49,11 +52,11 @@ public class DefaultAdaptationPerformer implements AdaptationPerformer
                                                                .filter( p -> !existingPipelineIds.contains( p ) )
                                                                .collect( toList() );
 
-        return Pair.of( singletonList( pipelineId ), newPipelineIds );
+        pipelineIdChanges = Pair.of( singletonList( pipelineId ), newPipelineIds );
     }
 
     @Override
-    public Pair<List<PipelineId>, List<PipelineId>> rebalanceRegion ( final int regionId, final int newReplicaCount )
+    public void rebalanceRegion ( final int regionId, final int newReplicaCount )
     {
         pipelineManager.rebalanceRegion( flowVersion, regionId, newReplicaCount );
 
@@ -61,7 +64,13 @@ public class DefaultAdaptationPerformer implements AdaptationPerformer
         final RegionExecutionPlan regionExecutionPlan = flowExecutionPlan.getRegionExecutionPlan( regionId );
         final List<PipelineId> pipelineIds = regionExecutionPlan.getPipelineIds();
 
-        return Pair.of( pipelineIds, pipelineIds );
+        pipelineIdChanges = Pair.of( pipelineIds, pipelineIds );
+    }
+
+    Pair<List<PipelineId>, List<PipelineId>> getPipelineIdChanges ()
+    {
+        checkState( pipelineIdChanges != null );
+        return pipelineIdChanges;
     }
 
 }

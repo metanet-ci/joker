@@ -9,7 +9,6 @@ import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import static cs.bilkent.joker.engine.region.impl.RegionExecutionPlanUtil.getMergeablePipelineStartIndices;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
-import cs.bilkent.joker.utils.Pair;
 import static java.util.stream.Collectors.toList;
 
 public class MergePipelinesAction implements AdaptationAction
@@ -38,9 +37,9 @@ public class MergePipelinesAction implements AdaptationAction
     }
 
     @Override
-    public Pair<List<PipelineId>, List<PipelineId>> apply ( final AdaptationPerformer performer )
+    public void apply ( final AdaptationPerformer performer )
     {
-        return performer.mergePipelines( pipelineIds );
+        performer.mergePipelines( pipelineIds );
     }
 
     @Override

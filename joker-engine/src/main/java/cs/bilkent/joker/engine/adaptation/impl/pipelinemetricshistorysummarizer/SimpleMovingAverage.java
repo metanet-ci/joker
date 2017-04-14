@@ -38,7 +38,7 @@ public class SimpleMovingAverage implements PipelineMetricsHistorySummarizer
 
             for ( int i = 0; i < history.getInputPortCount(); i++ )
             {
-                throughputs[ i ] += metrics.getAvgInboundThroughput( i );
+                throughputs[ i ] += metrics.getTotalInboundThroughput( i );
             }
         }
 

@@ -32,7 +32,7 @@ public class LatestPipelineMetrics implements PipelineMetricsHistorySummarizer
 
         for ( int portIndex = 0; portIndex < latestSnapshot.getInputPortCount(); portIndex++ )
         {
-            builder.setInboundThroughput( 0, portIndex, latestSnapshot.getAvgInboundThroughput( portIndex ) );
+            builder.setInboundThroughput( 0, portIndex, latestSnapshot.getTotalInboundThroughput( portIndex ) );
         }
 
         return builder.build();

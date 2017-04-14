@@ -9,6 +9,8 @@ import java.util.UUID;
 import com.google.inject.AbstractModule;
 
 import static com.google.inject.name.Names.named;
+import cs.bilkent.joker.engine.adaptation.AdaptationManager;
+import cs.bilkent.joker.engine.adaptation.impl.JustInTimeAdaptationManager;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_ID;
 import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_THREAD_GROUP_NAME;
@@ -89,6 +91,7 @@ public class JokerModule extends AbstractModule
         bind( MetricManager.class ).to( MetricManagerImpl.class );
         bind( FlowDefOptimizer.class ).to( FlowDefOptimizerImpl.class );
         bind( PipelineTransformer.class ).to( PipelineTransformerImpl.class );
+        bind( AdaptationManager.class ).to( JustInTimeAdaptationManager.class );
         if ( regionExecutionPlanFactory != null )
         {
             bind( RegionExecutionPlanFactory.class ).toInstance( regionExecutionPlanFactory );

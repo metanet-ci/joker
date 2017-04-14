@@ -17,11 +17,12 @@ import cs.bilkent.joker.engine.adaptation.impl.bottleneckresolver.PipelineSplitt
 import cs.bilkent.joker.engine.adaptation.impl.bottleneckresolver.RegionExtender;
 import cs.bilkent.joker.engine.config.AdaptationConfig;
 import cs.bilkent.joker.engine.config.JokerConfig;
+import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.metric.FlowMetricsSnapshot;
 import cs.bilkent.joker.engine.metric.PipelineMetricsHistory;
 import cs.bilkent.joker.engine.metric.PipelineMetricsSnapshot;
-import cs.bilkent.joker.flow.FlowDef;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -73,19 +74,18 @@ public class JustInTimeAdaptationManager implements AdaptationManager
         this.regionAdaptationContextFactory = regionAdaptationContextFactory;
     }
 
-    public RegionAdaptationContext getRegion ( final int regionId )
+    RegionAdaptationContext getRegion ( final int regionId )
     {
         return regions.stream().filter( region -> region.getRegionId() == regionId ).findFirst().orElse( null );
-
     }
 
-    public RegionAdaptationContext getAdaptingRegion ()
+    RegionAdaptationContext getAdaptingRegion ()
     {
         return adaptingRegion;
     }
 
     @Override
-    public void initialize ( final FlowDef flow, final List<RegionExecutionPlan> regionExecutionPlans )
+    public void initialize ( final List<RegionExecutionPlan> regionExecutionPlans )
     {
         checkState( regions == null );
         regions = regionExecutionPlans.stream().map( regionAdaptationContextFactory ).collect( toList() );
@@ -109,10 +109,7 @@ public class JustInTimeAdaptationManager implements AdaptationManager
 
             for ( RegionAdaptationContext region : regions )
             {
-                final RegionExecutionPlan regionExecutionPlan = getRegionExecutionPlan( regionExecutionPlans, region );
-                final AdaptationAction adaptationAction = region.resolveIfBottleneck( regionExecutionPlan,
-                                                                                      bottleneckPredicate,
-                                                                                      bottleneckResolvers );
+                final AdaptationAction adaptationAction = region.resolveIfBottleneck( bottleneckPredicate, bottleneckResolvers );
                 if ( adaptationAction != null )
                 {
                     this.adaptingRegion = region;
@@ -123,30 +120,24 @@ public class JustInTimeAdaptationManager implements AdaptationManager
         }
         else
         {
-            final RegionExecutionPlan regionExecutionPlan = getRegionExecutionPlan( regionExecutionPlans, adaptingRegion );
-            final PipelineMetricsHistory pipelineMetricsHistory = flowMetrics.getPipelineMetricsHistory( adaptingRegion
-                                                                                                                 .getAdaptingPipelineId() );
+            final PipelineId adaptingPipelineId = adaptingRegion.getAdaptingPipelineId();
+            final PipelineMetricsHistory pipelineMetricsHistory = flowMetrics.getPipelineMetricsHistory( adaptingPipelineId );
+            checkArgument( pipelineMetricsHistory != null, "no pipeline metrics history for adapting pipeline: %s", adaptingPipelineId );
             final PipelineMetricsSnapshot pipelineMetrics = pipelineMetricsHistorySummarizer.summarize( pipelineMetricsHistory );
-            final AdaptationAction rollback = adaptingRegion.evaluateAdaptation( regionExecutionPlan,
-                                                                                 pipelineMetrics,
-                                                                                 adaptationEvaluationPredicate );
+            final AdaptationAction rollback = adaptingRegion.evaluateAdaptation( pipelineMetrics, adaptationEvaluationPredicate );
 
             if ( rollback != null )
             {
-                final AdaptationAction adaptationAction = adaptingRegion.resolveIfBottleneck( regionExecutionPlan,
-                                                                                              bottleneckPredicate,
-                                                                                              bottleneckResolvers );
+                final AdaptationAction adaptationAction = adaptingRegion.resolveIfBottleneck( bottleneckPredicate, bottleneckResolvers );
 
                 if ( adaptationAction != null )
                 {
                     return asList( rollback, adaptationAction );
                 }
-                else
-                {
-                    adaptingRegion = null;
 
-                    return singletonList( rollback );
-                }
+                adaptingRegion = null;
+
+                return singletonList( rollback );
             }
 
             adaptingRegion = null;
