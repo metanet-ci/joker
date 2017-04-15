@@ -17,19 +17,19 @@ public abstract class SinglePortDrainer implements TupleQueueDrainer
 
     protected final int maxBatchSize;
 
-    protected final TuplesImpl buffer = new TuplesImpl( 1 );
+    final TuplesImpl buffer = new TuplesImpl( 1 );
 
     protected final List<Tuple> tuples = buffer.getTuplesModifiable( DEFAULT_PORT_INDEX );
 
-    protected int tupleCountToCheck;
+    int tupleCountToCheck;
 
-    protected int tupleCountToPoll;
+    int tupleCountToPoll;
 
     protected TuplesImpl result;
 
     protected PartitionKey key;
 
-    protected SinglePortDrainer ( final int maxBatchSize )
+    SinglePortDrainer ( final int maxBatchSize )
     {
         this.maxBatchSize = maxBatchSize;
     }

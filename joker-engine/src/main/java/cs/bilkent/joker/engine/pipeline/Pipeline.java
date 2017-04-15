@@ -76,10 +76,11 @@ public class Pipeline
         this.downstreamTupleSenders = new DownstreamTupleSender[ replicaCount ];
     }
 
-    public Pipeline ( final PipelineId id, final RegionExecutionPlan regionExecutionPlan,
-                      final PipelineReplica[] pipelineReplicas,
-                      final SchedulingStrategy initialSchedulingStrategy,
-                      final UpstreamContext upstreamContext )
+    private Pipeline ( final PipelineId id,
+                       final RegionExecutionPlan regionExecutionPlan,
+                       final PipelineReplica[] pipelineReplicas,
+                       final SchedulingStrategy initialSchedulingStrategy,
+                       final UpstreamContext upstreamContext )
     {
         this.id = id;
         this.regionExecutionPlan = regionExecutionPlan;
@@ -93,8 +94,8 @@ public class Pipeline
         this.initialSchedulingStrategy = initialSchedulingStrategy;
         this.upstreamContext = upstreamContext;
 
-        final int highestRunningPipelineReplicaIndex = getHighestRunningPipelineReplicaIndex();
-        if ( highestRunningPipelineReplicaIndex == replicas.length - 1 )
+        final int highestRunningStatusReplicaIndex = getHighestRunningStatusReplicaIndex();
+        if ( highestRunningStatusReplicaIndex == replicas.length - 1 )
         {
             this.pipelineStatus = RUNNING;
             fill( this.replicaStatuses, RUNNING );
@@ -102,11 +103,20 @@ public class Pipeline
         else
         {
             final SchedulingStrategy[] schedulingStrategies = this.replicas[ 0 ].getSchedulingStrategies();
-            init( schedulingStrategies, highestRunningPipelineReplicaIndex + 1 );
+            init( schedulingStrategies, highestRunningStatusReplicaIndex + 1 );
         }
     }
 
-    private int getHighestRunningPipelineReplicaIndex ()
+    public static Pipeline createAlreadyRunningPipeline ( final PipelineId id,
+                                                          final RegionExecutionPlan regionExecutionPlan,
+                                                          final PipelineReplica[] pipelineReplicas,
+                                                          final SchedulingStrategy initialSchedulingStrategy,
+                                                          final UpstreamContext upstreamContext )
+    {
+        return new Pipeline( id, regionExecutionPlan, pipelineReplicas, initialSchedulingStrategy, upstreamContext );
+    }
+
+    private int getHighestRunningStatusReplicaIndex ()
     {
         int replicaIndex = 0;
         for ( ; replicaIndex < getReplicaCount(); replicaIndex++ )

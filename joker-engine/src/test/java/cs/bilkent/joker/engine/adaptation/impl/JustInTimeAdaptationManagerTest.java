@@ -22,9 +22,9 @@ import cs.bilkent.joker.engine.config.PartitionServiceConfig;
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
-import cs.bilkent.joker.engine.metric.FlowMetricsSnapshot;
+import cs.bilkent.joker.engine.metric.FlowMetrics;
+import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import cs.bilkent.joker.engine.metric.PipelineMetricsHistory;
-import cs.bilkent.joker.engine.metric.PipelineMetricsSnapshot;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
 import cs.bilkent.joker.engine.region.impl.IdGenerator;
 import cs.bilkent.joker.engine.region.impl.PipelineTransformerImplTest.StatelessInput1Output1Operator;
@@ -76,13 +76,13 @@ public class JustInTimeAdaptationManagerTest extends AbstractJokerTest
     private PipelineMetricsHistorySummarizer pipelineMetricsHistorySummarizer;
 
     @Mock
-    private BiPredicate<PipelineMetricsSnapshot, PipelineMetricsSnapshot> loadChangePredicate;
+    private BiPredicate<PipelineMetrics, PipelineMetrics> loadChangePredicate;
 
     @Mock
-    private Predicate<PipelineMetricsSnapshot> bottleneckPredicate;
+    private Predicate<PipelineMetrics> bottleneckPredicate;
 
     @Mock
-    private BiPredicate<PipelineMetricsSnapshot, PipelineMetricsSnapshot> adaptationEvaluationPredicate;
+    private BiPredicate<PipelineMetrics, PipelineMetrics> adaptationEvaluationPredicate;
 
     @Mock
     private PipelineMetricsHistory sourcePipelineMetricsHistory;
@@ -91,13 +91,13 @@ public class JustInTimeAdaptationManagerTest extends AbstractJokerTest
     private PipelineMetricsHistory sinkPipelineMetricsHistory;
 
     @Mock
-    private PipelineMetricsSnapshot sourcePipelineMetrics;
+    private PipelineMetrics sourcePipelineMetrics;
 
     @Mock
-    private PipelineMetricsSnapshot sinkPipelineMetrics;
+    private PipelineMetrics sinkPipelineMetrics;
 
     @Mock
-    private FlowMetricsSnapshot flowMetrics;
+    private FlowMetrics flowMetrics;
 
     @Mock
     private RegionAdaptationContext sourceContext;

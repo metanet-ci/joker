@@ -11,7 +11,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.metric.PipelineMeter;
 import static cs.bilkent.joker.engine.metric.PipelineMeter.PIPELINE_EXECUTION_INDEX;
-import cs.bilkent.joker.engine.metric.PipelineMetricsSnapshot;
+import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.lang.System.arraycopy;
 import static org.junit.Assert.assertEquals;
@@ -20,7 +20,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 @RunWith( MockitoJUnitRunner.class )
-public class PipelineMetricsTest extends AbstractJokerTest
+public class PipelineMetricsContextTest extends AbstractJokerTest
 {
 
     private static final int FLOW_VERSION = 5;
@@ -41,7 +41,7 @@ public class PipelineMetricsTest extends AbstractJokerTest
     @Mock
     private PipelineMeter meter;
 
-    private PipelineMetrics metrics;
+    private PipelineMetricsContext metrics;
 
     @Before
     public void init ()
@@ -51,7 +51,7 @@ public class PipelineMetricsTest extends AbstractJokerTest
         when( meter.getOperatorCount() ).thenReturn( OPERATOR_COUNT );
         when( meter.getInputPortCount() ).thenReturn( INPUT_PORT_COUNT );
 
-        metrics = new PipelineMetrics( FLOW_VERSION, meter );
+        metrics = new PipelineMetricsContext( FLOW_VERSION, meter );
     }
 
     @Test
@@ -69,7 +69,7 @@ public class PipelineMetricsTest extends AbstractJokerTest
 
         metrics.initialize( threadMXBean );
 
-        final PipelineMetricsSnapshot snapshot = metrics.update( newThreadCpuTimes, systemTimeDiff );
+        final PipelineMetrics snapshot = metrics.update( newThreadCpuTimes, systemTimeDiff );
 
         for ( int replicaIndex = 0; replicaIndex < REPLICA_COUNT; replicaIndex++ )
         {
@@ -96,7 +96,7 @@ public class PipelineMetricsTest extends AbstractJokerTest
         metrics.initialize( threadMXBean );
 
         metrics.update( newThreadCpuTimes, systemTimeDiff );
-        final PipelineMetricsSnapshot snapshot = metrics.update( newThreadCpuTimes2, systemTimeDiff );
+        final PipelineMetrics snapshot = metrics.update( newThreadCpuTimes2, systemTimeDiff );
 
         for ( int replicaIndex = 0; replicaIndex < REPLICA_COUNT; replicaIndex++ )
         {
@@ -136,7 +136,7 @@ public class PipelineMetricsTest extends AbstractJokerTest
             metrics.sample( threadMXBean );
         }
 
-        final PipelineMetricsSnapshot snapshot = metrics.update( new long[ REPLICA_COUNT ], 10 );
+        final PipelineMetrics snapshot = metrics.update( new long[ REPLICA_COUNT ], 10 );
 
         assertEquals( 0.4, snapshot.getPipelineCost( 0 ), 0.01 );
         assertEquals( 0.3, snapshot.getOperatorCost( 0, 0 ), 0.01 );
@@ -205,7 +205,7 @@ public class PipelineMetricsTest extends AbstractJokerTest
             metrics.sample( threadMXBean );
         }
 
-        final PipelineMetricsSnapshot snapshot = metrics.update( new long[ REPLICA_COUNT ], 10 );
+        final PipelineMetrics snapshot = metrics.update( new long[ REPLICA_COUNT ], 10 );
 
         assertEquals( 0.1, snapshot.getPipelineCost( 0 ), 0.01 );
         assertEquals( 0.2, snapshot.getOperatorCost( 0, 0 ), 0.01 );

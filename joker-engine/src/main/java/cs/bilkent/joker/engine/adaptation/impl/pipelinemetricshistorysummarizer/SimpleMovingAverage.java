@@ -1,9 +1,9 @@
 package cs.bilkent.joker.engine.adaptation.impl.pipelinemetricshistorysummarizer;
 
 import cs.bilkent.joker.engine.adaptation.PipelineMetricsHistorySummarizer;
+import cs.bilkent.joker.engine.metric.PipelineMetrics;
+import cs.bilkent.joker.engine.metric.PipelineMetrics.PipelineMetricsBuilder;
 import cs.bilkent.joker.engine.metric.PipelineMetricsHistory;
-import cs.bilkent.joker.engine.metric.PipelineMetricsSnapshot;
-import cs.bilkent.joker.engine.metric.PipelineMetricsSnapshot.PipelineMetricsSnapshotBuilder;
 
 public class SimpleMovingAverage implements PipelineMetricsHistorySummarizer
 {
@@ -13,20 +13,20 @@ public class SimpleMovingAverage implements PipelineMetricsHistorySummarizer
     }
 
     @Override
-    public PipelineMetricsSnapshot summarize ( PipelineMetricsHistory history )
+    public PipelineMetrics summarize ( PipelineMetricsHistory history )
     {
-        final PipelineMetricsSnapshotBuilder builder = new PipelineMetricsSnapshotBuilder( history.getPipelineId(),
-                                                                                           history.getFlowVersion(),
-                                                                                           1,
-                                                                                           history.getOperatorCount(),
-                                                                                           history.getInputPortCount() );
+        final PipelineMetricsBuilder builder = new PipelineMetricsBuilder( history.getPipelineId(),
+                                                                           history.getFlowVersion(),
+                                                                           1,
+                                                                           history.getOperatorCount(),
+                                                                           history.getInputPortCount() );
 
         double cpuUtilRatio = 0;
         double pipelineCost = 0;
         double[] operatorCosts = new double[ history.getOperatorCount() ];
         long[] throughputs = new long[ history.getInputPortCount() ];
 
-        for ( PipelineMetricsSnapshot metrics : history.getSnapshots() )
+        for ( PipelineMetrics metrics : history.getAll() )
         {
             cpuUtilRatio += metrics.getAvgCpuUtilizationRatio();
             pipelineCost += metrics.getAvgPipelineCost();

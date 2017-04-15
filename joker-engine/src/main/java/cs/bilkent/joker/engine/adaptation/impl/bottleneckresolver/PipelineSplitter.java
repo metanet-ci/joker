@@ -7,21 +7,20 @@ import cs.bilkent.joker.engine.adaptation.BottleneckResolver;
 import cs.bilkent.joker.engine.adaptation.impl.adaptationaction.SplitPipelineAction;
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
-import cs.bilkent.joker.engine.metric.PipelineMetricsSnapshot;
+import cs.bilkent.joker.engine.metric.PipelineMetrics;
 
 public class PipelineSplitter implements BottleneckResolver
 {
 
-    private final BiFunction<RegionExecutionPlan, PipelineMetricsSnapshot, Integer> pipelineSplitIndexExtractor;
+    private final BiFunction<RegionExecutionPlan, PipelineMetrics, Integer> pipelineSplitIndexExtractor;
 
-    public PipelineSplitter ( final BiFunction<RegionExecutionPlan, PipelineMetricsSnapshot, Integer> pipelineSplitIndexExtractor )
+    public PipelineSplitter ( final BiFunction<RegionExecutionPlan, PipelineMetrics, Integer> pipelineSplitIndexExtractor )
     {
         this.pipelineSplitIndexExtractor = pipelineSplitIndexExtractor;
     }
 
     @Override
-    public AdaptationAction resolve ( final RegionExecutionPlan regionExecutionPlan,
-                                      final PipelineMetricsSnapshot bottleneckPipelineMetrics )
+    public AdaptationAction resolve ( final RegionExecutionPlan regionExecutionPlan, final PipelineMetrics bottleneckPipelineMetrics )
     {
         final PipelineId pipelineId = bottleneckPipelineMetrics.getPipelineId();
 

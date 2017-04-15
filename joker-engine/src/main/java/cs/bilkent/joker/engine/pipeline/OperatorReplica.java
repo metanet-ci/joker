@@ -1,6 +1,5 @@
 package cs.bilkent.joker.engine.pipeline;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Supplier;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -45,6 +44,7 @@ import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ANY_PORT;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import static java.lang.Math.min;
+import static java.util.Arrays.fill;
 
 /**
  * Manages runtime state of an {@link Operator} defined in a {@link FlowDef} and provides methods for operator invocation.
@@ -59,8 +59,6 @@ public class OperatorReplica
 
     private static final Logger LOGGER = LoggerFactory.getLogger( OperatorReplica.class );
 
-
-    private final PipelineReplicaId pipelineReplicaId;
 
     private final String operatorName;
 
@@ -120,7 +118,6 @@ public class OperatorReplica
                              final PipelineReplicaMeter meter,
                              final InvocationContextImpl invocationContext )
     {
-        this.pipelineReplicaId = pipelineReplicaId;
         this.operatorName = pipelineReplicaId.toString() + ".Operator<" + operatorDef.getId() + ">";
         this.queue = queue;
         this.operatorDef = operatorDef;
@@ -194,14 +191,14 @@ public class OperatorReplica
     }
 
     /**
-     * Sets a new upstream context with an increment version.
+     * Sets a new upstream context with an incremented version.
      * It assigns the given {@link UpstreamConnectionStatus} value to all of its output ports.
      */
     private void setSelfUpstreamContext ( final UpstreamConnectionStatus status )
     {
         final int version = selfUpstreamContext != null ? selfUpstreamContext.getVersion() + 1 : 0;
         final UpstreamConnectionStatus[] selfStatuses = new UpstreamConnectionStatus[ operatorDef.getOutputPortCount() ];
-        Arrays.fill( selfStatuses, 0, selfStatuses.length, status );
+        fill( selfStatuses, 0, selfStatuses.length, status );
         selfUpstreamContext = new UpstreamContext( version, selfStatuses );
     }
 
@@ -339,7 +336,7 @@ public class OperatorReplica
     private void setQueueTupleCountsForGreedyDraining ()
     {
         final int[] tupleCounts = new int[ operatorDef.getInputPortCount() ];
-        Arrays.fill( tupleCounts, 1 );
+        fill( tupleCounts, 1 );
         queue.setTupleCounts( tupleCounts, ANY_PORT );
     }
 

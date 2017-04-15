@@ -13,9 +13,9 @@ import cs.bilkent.joker.operator.Tuple;
 public abstract class AbstractDownstreamTupleSender implements DownstreamTupleSender
 {
 
-    protected final IdleStrategy idleStrategy = BackoffIdleStrategy.newDefaultInstance();
+    final IdleStrategy idleStrategy = BackoffIdleStrategy.newDefaultInstance();
 
-    protected final DownstreamTupleSenderFailureFlag failureFlag;
+    final DownstreamTupleSenderFailureFlag failureFlag;
 
     AbstractDownstreamTupleSender ( final DownstreamTupleSenderFailureFlag failureFlag )
     {

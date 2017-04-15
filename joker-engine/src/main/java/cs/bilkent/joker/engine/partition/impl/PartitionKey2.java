@@ -77,7 +77,7 @@ public class PartitionKey2 extends AbstractList<Object> implements PartitionKey
         return hashCode;
     }
 
-    public static int computeHashCode ( final Object val0, final Object val1 )
+    static int computeHashCode ( final Object val0, final Object val1 )
     {
         return hashTail( hashHead( val0 ), val1 );
     }

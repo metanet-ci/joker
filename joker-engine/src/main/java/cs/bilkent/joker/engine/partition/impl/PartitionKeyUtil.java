@@ -9,7 +9,7 @@ package cs.bilkent.joker.engine.partition.impl;
  *
  *
  */
-public final class PartitionKeyUtil
+final class PartitionKeyUtil
 {
     private PartitionKeyUtil ()
     {
@@ -24,12 +24,12 @@ public final class PartitionKeyUtil
         }
     }
 
-    public static int hashHead ( final Object val )
+    static int hashHead ( final Object val )
     {
         return 31 + val.hashCode();
     }
 
-    public static int hashTail ( final int headHashCode, final Object val )
+    static int hashTail ( final int headHashCode, final Object val )
     {
         return 31 * headHashCode + val.hashCode();
     }

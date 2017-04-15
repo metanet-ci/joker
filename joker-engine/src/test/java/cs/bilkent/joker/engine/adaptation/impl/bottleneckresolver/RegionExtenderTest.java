@@ -7,7 +7,7 @@ import cs.bilkent.joker.engine.adaptation.AdaptationAction;
 import cs.bilkent.joker.engine.adaptation.impl.adaptationaction.RegionRebalanceAction;
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
-import cs.bilkent.joker.engine.metric.PipelineMetricsSnapshot;
+import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
@@ -31,7 +31,7 @@ public class RegionExtenderTest extends AbstractJokerTest
 
     private final PipelineId pipelineId = new PipelineId( 0, 0 );
 
-    private final PipelineMetricsSnapshot bottleneckPipelineMetrics = mock( PipelineMetricsSnapshot.class );
+    private final PipelineMetrics bottleneckPipelineMetrics = mock( PipelineMetrics.class );
 
     private RegionExtender regionExtender = new RegionExtender( MAX_REPLICA_COUNT );
 

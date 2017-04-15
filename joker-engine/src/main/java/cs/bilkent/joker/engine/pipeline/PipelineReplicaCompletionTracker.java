@@ -23,7 +23,7 @@ public class PipelineReplicaCompletionTracker implements OperatorReplicaListener
 
     private int completedOperatorCount;
 
-    public PipelineReplicaCompletionTracker ( final PipelineReplicaId pipelineReplicaId, final OperatorReplica[] operators )
+    PipelineReplicaCompletionTracker ( final PipelineReplicaId pipelineReplicaId, final OperatorReplica[] operators )
     {
         this.pipelineReplicaId = pipelineReplicaId;
         this.operatorCount = operators.length;

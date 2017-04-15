@@ -19,9 +19,9 @@ import cs.bilkent.joker.engine.config.AdaptationConfig;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
-import cs.bilkent.joker.engine.metric.FlowMetricsSnapshot;
+import cs.bilkent.joker.engine.metric.FlowMetrics;
+import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import cs.bilkent.joker.engine.metric.PipelineMetricsHistory;
-import cs.bilkent.joker.engine.metric.PipelineMetricsSnapshot;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
 import static java.util.Arrays.asList;
@@ -41,11 +41,11 @@ public class JustInTimeAdaptationManager implements AdaptationManager
 
     private final List<BottleneckResolver> bottleneckResolvers;
 
-    private final BiPredicate<PipelineMetricsSnapshot, PipelineMetricsSnapshot> loadChangePredicate;
+    private final BiPredicate<PipelineMetrics, PipelineMetrics> loadChangePredicate;
 
-    private final Predicate<PipelineMetricsSnapshot> bottleneckPredicate;
+    private final Predicate<PipelineMetrics> bottleneckPredicate;
 
-    private final BiPredicate<PipelineMetricsSnapshot, PipelineMetricsSnapshot> adaptationEvaluationPredicate;
+    private final BiPredicate<PipelineMetrics, PipelineMetrics> adaptationEvaluationPredicate;
 
     private final Function<RegionExecutionPlan, RegionAdaptationContext> regionAdaptationContextFactory;
 
@@ -64,7 +64,7 @@ public class JustInTimeAdaptationManager implements AdaptationManager
     {
         this.adaptationConfig = config.getAdaptationConfig();
         this.pipelineMetricsHistorySummarizer = adaptationConfig.getPipelineMetricsHistorySummarizer();
-        final BiFunction<RegionExecutionPlan, PipelineMetricsSnapshot, Integer> ext = adaptationConfig.getPipelineSplitIndexExtractor();
+        final BiFunction<RegionExecutionPlan, PipelineMetrics, Integer> ext = adaptationConfig.getPipelineSplitIndexExtractor();
         final BottleneckResolver pipelineSplitter = new PipelineSplitter( ext );
         final BottleneckResolver regionExtender = new RegionExtender( config.getPartitionServiceConfig().getMaxReplicaCount() );
         this.bottleneckResolvers = asList( pipelineSplitter, regionExtender );
@@ -93,17 +93,17 @@ public class JustInTimeAdaptationManager implements AdaptationManager
     }
 
     @Override
-    public List<AdaptationAction> apply ( final List<RegionExecutionPlan> regionExecutionPlans, final FlowMetricsSnapshot flowMetrics )
+    public List<AdaptationAction> apply ( final List<RegionExecutionPlan> regionExecutionPlans, final FlowMetrics flowMetrics )
     {
         if ( adaptingRegion == null )
         {
             for ( RegionAdaptationContext region : regions )
             {
                 final RegionExecutionPlan regionExecutionPlan = getRegionExecutionPlan( regionExecutionPlans, region );
-                final List<PipelineMetricsSnapshot> regionMetrics = flowMetrics.getRegionMetrics( region.getRegionId() )
-                                                                               .stream()
-                                                                               .map( pipelineMetricsHistorySummarizer::summarize )
-                                                                               .collect( toList() );
+                final List<PipelineMetrics> regionMetrics = flowMetrics.getRegionMetrics( region.getRegionId() )
+                                                                       .stream()
+                                                                       .map( pipelineMetricsHistorySummarizer::summarize )
+                                                                       .collect( toList() );
                 region.updateRegionMetrics( regionExecutionPlan, regionMetrics, loadChangePredicate );
             }
 
@@ -123,7 +123,7 @@ public class JustInTimeAdaptationManager implements AdaptationManager
             final PipelineId adaptingPipelineId = adaptingRegion.getAdaptingPipelineId();
             final PipelineMetricsHistory pipelineMetricsHistory = flowMetrics.getPipelineMetricsHistory( adaptingPipelineId );
             checkArgument( pipelineMetricsHistory != null, "no pipeline metrics history for adapting pipeline: %s", adaptingPipelineId );
-            final PipelineMetricsSnapshot pipelineMetrics = pipelineMetricsHistorySummarizer.summarize( pipelineMetricsHistory );
+            final PipelineMetrics pipelineMetrics = pipelineMetricsHistorySummarizer.summarize( pipelineMetricsHistory );
             final AdaptationAction rollback = adaptingRegion.evaluateAdaptation( pipelineMetrics, adaptationEvaluationPredicate );
 
             if ( rollback != null )

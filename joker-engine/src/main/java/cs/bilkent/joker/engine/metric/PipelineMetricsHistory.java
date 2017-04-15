@@ -11,36 +11,36 @@ import static java.util.Arrays.asList;
 public class PipelineMetricsHistory
 {
 
-    private final PipelineMetricsSnapshot[] snapshots;
+    private final PipelineMetrics[] history;
 
     private final int count;
 
-    public PipelineMetricsHistory ( final PipelineMetricsSnapshot initial, final int historySize )
+    public PipelineMetricsHistory ( final PipelineMetrics initial, final int historySize )
     {
-        this.snapshots = new PipelineMetricsSnapshot[ historySize ];
-        this.snapshots[ 0 ] = initial;
+        this.history = new PipelineMetrics[ historySize ];
+        this.history[ 0 ] = initial;
         this.count = 1;
     }
 
-    private PipelineMetricsHistory ( final PipelineMetricsSnapshot[] snapshots, final int count )
+    private PipelineMetricsHistory ( final PipelineMetrics[] history, final int count )
     {
-        this.snapshots = snapshots;
+        this.history = history;
         this.count = count;
     }
 
-    public PipelineMetricsHistory add ( final PipelineMetricsSnapshot snapshot )
+    public PipelineMetricsHistory add ( final PipelineMetrics pipelineMetrics )
     {
-        final PipelineMetricsSnapshot[] snapshots = new PipelineMetricsSnapshot[ this.snapshots.length ];
-        snapshots[ 0 ] = snapshot;
-        final int length = max( 0, min( this.count, this.snapshots.length - 1 ) );
-        arraycopy( this.snapshots, 0, snapshots, 1, length );
+        final PipelineMetrics[] h = new PipelineMetrics[ this.history.length ];
+        h[ 0 ] = pipelineMetrics;
+        final int length = max( 0, min( this.count, this.history.length - 1 ) );
+        arraycopy( this.history, 0, h, 1, length );
 
-        return new PipelineMetricsHistory( snapshots, length + 1 );
+        return new PipelineMetricsHistory( h, length + 1 );
     }
 
-    public PipelineMetricsSnapshot getLatestSnapshot ()
+    public PipelineMetrics getLatest ()
     {
-        return snapshots[ 0 ];
+        return history[ 0 ];
     }
 
     public int getCount ()
@@ -50,12 +50,12 @@ public class PipelineMetricsHistory
 
     public int getHistorySize ()
     {
-        return snapshots.length;
+        return history.length;
     }
 
-    public List<PipelineMetricsSnapshot> getSnapshots ()
+    public List<PipelineMetrics> getAll ()
     {
-        return asList( snapshots ).subList( 0, count );
+        return asList( history ).subList( 0, count );
     }
 
     public int getRegionId ()
@@ -65,27 +65,27 @@ public class PipelineMetricsHistory
 
     public PipelineId getPipelineId ()
     {
-        return getLatestSnapshot().getPipelineId();
+        return getLatest().getPipelineId();
     }
 
     public int getFlowVersion ()
     {
-        return getLatestSnapshot().getFlowVersion();
+        return getLatest().getFlowVersion();
     }
 
     public int getReplicaCount ()
     {
-        return getLatestSnapshot().getReplicaCount();
+        return getLatest().getReplicaCount();
     }
 
     public int getOperatorCount ()
     {
-        return getLatestSnapshot().getOperatorCount();
+        return getLatest().getOperatorCount();
     }
 
     public int getInputPortCount ()
     {
-        return getLatestSnapshot().getInputPortCount();
+        return getLatest().getInputPortCount();
     }
 
 }

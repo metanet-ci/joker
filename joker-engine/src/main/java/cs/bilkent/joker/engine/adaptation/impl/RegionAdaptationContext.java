@@ -19,7 +19,7 @@ import cs.bilkent.joker.engine.adaptation.BottleneckResolver;
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
-import cs.bilkent.joker.engine.metric.PipelineMetricsSnapshot;
+import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.utils.Pair;
@@ -38,7 +38,7 @@ public class RegionAdaptationContext
 
     private final Set<PipelineId> nonResolvablePipelineIds = new HashSet<>();
 
-    private final Map<PipelineId, PipelineMetricsSnapshot> pipelineMetricsByPipelineId = new TreeMap<>();
+    private final Map<PipelineId, PipelineMetrics> pipelineMetricsByPipelineId = new TreeMap<>();
 
     private RegionExecutionPlan currentExecutionPlan, baseExecutionPlan;
 
@@ -46,7 +46,7 @@ public class RegionAdaptationContext
 
     private AdaptationAction adaptationAction;
 
-    public RegionAdaptationContext ( final RegionExecutionPlan currentExecutionPlan )
+    RegionAdaptationContext ( final RegionExecutionPlan currentExecutionPlan )
     {
         this.regionDef = currentExecutionPlan.getRegionDef();
         this.currentExecutionPlan = currentExecutionPlan;
@@ -57,44 +57,44 @@ public class RegionAdaptationContext
         return regionDef.getRegionId();
     }
 
-    public PipelineMetricsSnapshot getPipelineMetrics ( final PipelineId pipelineId )
+    PipelineMetrics getPipelineMetrics ( final PipelineId pipelineId )
     {
         return pipelineMetricsByPipelineId.get( pipelineId );
     }
 
-    public Collection<RegionExecutionPlan> getBlacklist ( final PipelineId pipelineId )
+    Collection<RegionExecutionPlan> getBlacklist ( final PipelineId pipelineId )
     {
         return unmodifiableCollection( blacklists.get( pipelineId ) );
     }
 
-    public Set<PipelineId> getNonResolvablePipelineIds ()
+    Set<PipelineId> getNonResolvablePipelineIds ()
     {
         return unmodifiableSet( nonResolvablePipelineIds );
     }
 
-    public RegionExecutionPlan getCurrentExecutionPlan ()
+    RegionExecutionPlan getCurrentExecutionPlan ()
     {
         return currentExecutionPlan;
     }
 
-    public RegionExecutionPlan getBaseExecutionPlan ()
+    RegionExecutionPlan getBaseExecutionPlan ()
     {
         return baseExecutionPlan;
     }
 
-    public PipelineId getAdaptingPipelineId ()
+    PipelineId getAdaptingPipelineId ()
     {
         return adaptingPipelineId;
     }
 
-    public AdaptationAction getAdaptationAction ()
+    AdaptationAction getAdaptationAction ()
     {
         return adaptationAction;
     }
 
-    public void updateRegionMetrics ( final RegionExecutionPlan regionExecutionPlan,
-                                      final List<PipelineMetricsSnapshot> regionMetrics,
-                                      final BiPredicate<PipelineMetricsSnapshot, PipelineMetricsSnapshot> loadChangePredicate )
+    void updateRegionMetrics ( final RegionExecutionPlan regionExecutionPlan,
+                               final List<PipelineMetrics> regionMetrics,
+                               final BiPredicate<PipelineMetrics, PipelineMetrics> loadChangePredicate )
     {
         checkArgument( regionExecutionPlan != null );
         checkArgument( regionMetrics != null );
@@ -115,7 +115,7 @@ public class RegionAdaptationContext
 
         final Set<PipelineId> pipelineIdsToDelete = new HashSet<>( pipelineMetricsByPipelineId.keySet() );
 
-        for ( PipelineMetricsSnapshot pipelineMetrics : regionMetrics )
+        for ( PipelineMetrics pipelineMetrics : regionMetrics )
         {
             updatePipelineMetrics( pipelineMetrics, loadChangePredicate );
             pipelineIdsToDelete.remove( pipelineMetrics.getPipelineId() );
@@ -129,8 +129,8 @@ public class RegionAdaptationContext
         }
     }
 
-    public AdaptationAction resolveIfBottleneck ( final Predicate<PipelineMetricsSnapshot> bottleneckPredicate,
-                                                  final List<BottleneckResolver> bottleneckResolvers )
+    AdaptationAction resolveIfBottleneck ( final Predicate<PipelineMetrics> bottleneckPredicate,
+                                           final List<BottleneckResolver> bottleneckResolvers )
     {
         checkArgument( bottleneckPredicate != null );
         checkState( adaptationAction == null,
@@ -175,9 +175,8 @@ public class RegionAdaptationContext
         return adaptationAction;
     }
 
-    public AdaptationAction evaluateAdaptation ( final PipelineMetricsSnapshot newPipelineMetrics,
-                                                 final BiPredicate<PipelineMetricsSnapshot, PipelineMetricsSnapshot>
-                                                         adaptationEvaluationPredicate )
+    AdaptationAction evaluateAdaptation ( final PipelineMetrics newPipelineMetrics,
+                                          final BiPredicate<PipelineMetrics, PipelineMetrics> adaptationEvaluationPredicate )
     {
         checkArgument( newPipelineMetrics != null );
         checkArgument( adaptationEvaluationPredicate != null );
@@ -193,7 +192,7 @@ public class RegionAdaptationContext
                     getRegionId(),
                     adaptingPipelineId );
 
-        final PipelineMetricsSnapshot bottleneckPipelineMetrics = pipelineMetricsByPipelineId.get( adaptingPipelineId );
+        final PipelineMetrics bottleneckPipelineMetrics = pipelineMetricsByPipelineId.get( adaptingPipelineId );
         checkState( bottleneckPipelineMetrics != null,
                     "bottleneck pipeline metrics not found for adapting pipeline: %s",
                     adaptingPipelineId );
@@ -202,14 +201,20 @@ public class RegionAdaptationContext
         {
             finalizeAdaptation( newPipelineMetrics );
             LOGGER.info( "Adaptation is beneficial for bottleneck pipeline {} of Region {} with new metrics: {} bottleneck metrics: {} ",
-                         newPipelineMetrics.getPipelineId(), getRegionId(), newPipelineMetrics, bottleneckPipelineMetrics );
+                         newPipelineMetrics.getPipelineId(),
+                         getRegionId(),
+                         newPipelineMetrics,
+                         bottleneckPipelineMetrics );
 
             return null;
         }
         else
         {
             LOGGER.info( "Adaptation is not beneficial for bottleneck pipeline {} of Region {} with new metrics: {} bottleneck metrics: {}",
-                         newPipelineMetrics.getPipelineId(), getRegionId(), newPipelineMetrics, bottleneckPipelineMetrics );
+                         newPipelineMetrics.getPipelineId(),
+                         getRegionId(),
+                         newPipelineMetrics,
+                         bottleneckPipelineMetrics );
 
             final AdaptationAction rollback = rollbackAdaptation();
             checkState( rollback != null );
@@ -218,8 +223,8 @@ public class RegionAdaptationContext
         }
     }
 
-    private void updatePipelineMetrics ( final PipelineMetricsSnapshot newPipelineMetrics,
-                                         final BiPredicate<PipelineMetricsSnapshot, PipelineMetricsSnapshot> loadChangePredicate )
+    private void updatePipelineMetrics ( final PipelineMetrics newPipelineMetrics,
+                                         final BiPredicate<PipelineMetrics, PipelineMetrics> loadChangePredicate )
     {
         checkArgument( adaptingPipelineId == null );
         checkArgument( newPipelineMetrics != null );
@@ -227,7 +232,7 @@ public class RegionAdaptationContext
         checkPipelineId( pipelineId );
         checkArgument( loadChangePredicate != null );
 
-        final PipelineMetricsSnapshot prev = pipelineMetricsByPipelineId.put( pipelineId, newPipelineMetrics );
+        final PipelineMetrics prev = pipelineMetricsByPipelineId.put( pipelineId, newPipelineMetrics );
         if ( loadChangePredicate.test( prev, newPipelineMetrics ) )
         {
             LOGGER.info( "Load change detected! Region: {} PipelineId: {} Prev: {}, New: {}",
@@ -240,14 +245,14 @@ public class RegionAdaptationContext
         }
     }
 
-    private PipelineId getBottleneckPipeline ( final Predicate<PipelineMetricsSnapshot> bottleneckPredicate )
+    private PipelineId getBottleneckPipeline ( final Predicate<PipelineMetrics> bottleneckPredicate )
     {
         if ( adaptingPipelineId != null )
         {
             return adaptingPipelineId;
         }
 
-        for ( PipelineMetricsSnapshot pipelineMetrics : pipelineMetricsByPipelineId.values() )
+        for ( PipelineMetrics pipelineMetrics : pipelineMetricsByPipelineId.values() )
         {
             if ( bottleneckPredicate.test( pipelineMetrics ) )
             {
@@ -267,7 +272,7 @@ public class RegionAdaptationContext
     private Pair<AdaptationAction, RegionExecutionPlan> resolveBottleneck ( final PipelineId bottleneckPipelineId,
                                                                             final List<BottleneckResolver> bottleneckResolvers )
     {
-        final PipelineMetricsSnapshot pipelineMetrics = pipelineMetricsByPipelineId.get( bottleneckPipelineId );
+        final PipelineMetrics pipelineMetrics = pipelineMetricsByPipelineId.get( bottleneckPipelineId );
         checkState( pipelineMetrics != null, "No metrics in Region %s for bottleneck pipeline %s", getRegionId(), bottleneckPipelineId );
 
         if ( bottleneckResolvers != null && bottleneckResolvers.size() > 0 )
@@ -294,7 +299,7 @@ public class RegionAdaptationContext
     }
 
     private Pair<AdaptationAction, RegionExecutionPlan> resolveBottleneck ( final PipelineId bottleneckPipelineId,
-                                                                            final PipelineMetricsSnapshot pipelineMetrics,
+                                                                            final PipelineMetrics pipelineMetrics,
                                                                             final BottleneckResolver bottleneckResolver )
     {
         final AdaptationAction action = bottleneckResolver.resolve( currentExecutionPlan, pipelineMetrics );
@@ -317,7 +322,7 @@ public class RegionAdaptationContext
         return Pair.of( action, newExecutionPlan );
     }
 
-    private void finalizeAdaptation ( final PipelineMetricsSnapshot newPipelineMetrics )
+    private void finalizeAdaptation ( final PipelineMetrics newPipelineMetrics )
     {
         pipelineMetricsByPipelineId.put( adaptingPipelineId, newPipelineMetrics );
         baseExecutionPlan = null;

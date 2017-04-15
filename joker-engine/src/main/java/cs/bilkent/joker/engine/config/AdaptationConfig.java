@@ -13,7 +13,7 @@ import com.typesafe.config.Config;
 import cs.bilkent.joker.engine.adaptation.PipelineMetricsHistorySummarizer;
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
-import cs.bilkent.joker.engine.metric.PipelineMetricsSnapshot;
+import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
 import static java.lang.Math.abs;
 import static java.lang.Math.max;
@@ -126,7 +126,7 @@ public class AdaptationConfig
         return splitUtility;
     }
 
-    public BiPredicate<PipelineMetricsSnapshot, PipelineMetricsSnapshot> getLoadChangePredicate ()
+    public BiPredicate<PipelineMetrics, PipelineMetrics> getLoadChangePredicate ()
     {
         return ( oldMetrics, newMetrics ) ->
         {
@@ -156,12 +156,12 @@ public class AdaptationConfig
         };
     }
 
-    public Predicate<PipelineMetricsSnapshot> getBottleneckPredicate ()
+    public Predicate<PipelineMetrics> getBottleneckPredicate ()
     {
         return pipelineMetrics -> pipelineMetrics.getAvgCpuUtilizationRatio() >= cpuUtilBottleneckThreshold;
     }
 
-    public BiFunction<RegionExecutionPlan, PipelineMetricsSnapshot, Integer> getPipelineSplitIndexExtractor ()
+    public BiFunction<RegionExecutionPlan, PipelineMetrics, Integer> getPipelineSplitIndexExtractor ()
     {
         return ( regionExecutionPlan, pipelineMetrics ) ->
         {
@@ -205,7 +205,7 @@ public class AdaptationConfig
         };
     }
 
-    public BiPredicate<PipelineMetricsSnapshot, PipelineMetricsSnapshot> getAdaptationEvaluationPredicate ()
+    public BiPredicate<PipelineMetrics, PipelineMetrics> getAdaptationEvaluationPredicate ()
     {
         return ( oldMetrics, newMetrics ) ->
         {

@@ -35,7 +35,6 @@ public abstract class MultiPortDrainer implements TupleQueueDrainer
 
     MultiPortDrainer ( final int inputPortCount, final int maxBatchSize )
     {
-        //        checkArgument( inputPortCount > 1, "invalid input port count %s", inputPortCount );
         this.inputPortCount = inputPortCount;
         this.maxBatchSize = maxBatchSize;
         this.buffer = new TuplesImpl( inputPortCount );

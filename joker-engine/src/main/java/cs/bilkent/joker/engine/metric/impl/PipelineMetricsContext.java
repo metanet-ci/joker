@@ -8,16 +8,16 @@ import org.slf4j.LoggerFactory;
 import cs.bilkent.joker.engine.metric.PipelineMeter;
 import static cs.bilkent.joker.engine.metric.PipelineMeter.NO_OPERATOR_INDEX;
 import static cs.bilkent.joker.engine.metric.PipelineMeter.PIPELINE_EXECUTION_INDEX;
-import cs.bilkent.joker.engine.metric.PipelineMetricsSnapshot;
-import cs.bilkent.joker.engine.metric.PipelineMetricsSnapshot.PipelineMetricsSnapshotBuilder;
+import cs.bilkent.joker.engine.metric.PipelineMetrics;
+import cs.bilkent.joker.engine.metric.PipelineMetrics.PipelineMetricsBuilder;
 import static java.lang.Math.max;
 import static java.lang.System.arraycopy;
 import static java.util.Arrays.fill;
 
-class PipelineMetrics
+class PipelineMetricsContext
 {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger( PipelineMetrics.class );
+    private static final Logger LOGGER = LoggerFactory.getLogger( PipelineMetricsContext.class );
 
 
     private final int flowVersion;
@@ -46,7 +46,7 @@ class PipelineMetrics
     // this field is used to provide happens-before relationship among these two threads.
     private volatile int sampling;
 
-    PipelineMetrics ( final int flowVersion, final PipelineMeter pipelineMeter )
+    PipelineMetricsContext ( final int flowVersion, final PipelineMeter pipelineMeter )
     {
         this.flowVersion = flowVersion;
         this.pipelineMeter = pipelineMeter;
@@ -58,16 +58,12 @@ class PipelineMetrics
         this.inboundThroughputs = new long[ pipelineMeter.getReplicaCount() ][ pipelineMeter.getInputPortCount() ];
     }
 
-    private PipelineMetricsSnapshotBuilder newPipelineMetricsSnapshotBuilder ()
+    private PipelineMetricsBuilder newPipelineMetricsBuilder ()
     {
         final int replicaCount = pipelineMeter.getReplicaCount();
         final int operatorCount = pipelineMeter.getOperatorCount();
         final int inputPortCount = pipelineMeter.getInputPortCount();
-        return new PipelineMetricsSnapshotBuilder( pipelineMeter.getPipelineId(),
-                                                   flowVersion,
-                                                   replicaCount,
-                                                   operatorCount,
-                                                   inputPortCount );
+        return new PipelineMetricsBuilder( pipelineMeter.getPipelineId(), flowVersion, replicaCount, operatorCount, inputPortCount );
     }
 
     // called by sampler thread
@@ -119,9 +115,9 @@ class PipelineMetrics
     }
 
     // called by metrics thread
-    PipelineMetricsSnapshot update ( final long[] newReplicaCpuTimes, final long systemTimeDiff )
+    PipelineMetrics update ( final long[] newReplicaCpuTimes, final long systemTimeDiff )
     {
-        final PipelineMetricsSnapshotBuilder builder = newPipelineMetricsSnapshotBuilder();
+        final PipelineMetricsBuilder builder = newPipelineMetricsBuilder();
         updateThreadUtilizationRatios( newReplicaCpuTimes, systemTimeDiff, builder );
         updateCosts( builder );
         updateThroughputs( builder );
@@ -130,8 +126,7 @@ class PipelineMetrics
     }
 
     private void updateThreadUtilizationRatios ( final long[] newReplicaCpuTimes,
-                                                 final long systemTimeDiff,
-                                                 final PipelineMetricsSnapshotBuilder builder )
+                                                 final long systemTimeDiff, final PipelineMetricsBuilder builder )
     {
         final int replicaCount = pipelineMeter.getReplicaCount();
         for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
@@ -145,7 +140,7 @@ class PipelineMetrics
         arraycopy( newReplicaCpuTimes, 0, this.threadCpuTimes, 0, replicaCount );
     }
 
-    private void updateCosts ( final PipelineMetricsSnapshotBuilder builder )
+    private void updateCosts ( final PipelineMetricsBuilder builder )
     {
         beforeSampleCountsRead();
 
@@ -191,7 +186,7 @@ class PipelineMetrics
         }
     }
 
-    private void updateThroughputs ( final PipelineMetricsSnapshotBuilder builder )
+    private void updateThroughputs ( final PipelineMetricsBuilder builder )
     {
         final int replicaCount = pipelineMeter.getReplicaCount();
         final int inputPortCount = pipelineMeter.getInputPortCount();

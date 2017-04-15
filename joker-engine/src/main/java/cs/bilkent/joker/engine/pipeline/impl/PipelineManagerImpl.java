@@ -48,6 +48,7 @@ import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETING;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIAL;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.RUNNING;
 import cs.bilkent.joker.engine.pipeline.Pipeline;
+import static cs.bilkent.joker.engine.pipeline.Pipeline.createAlreadyRunningPipeline;
 import cs.bilkent.joker.engine.pipeline.PipelineManager;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
@@ -475,10 +476,11 @@ public class PipelineManagerImpl implements PipelineManager
             final Region region = regionManager.mergePipelines( pipelineIds );
             regionExecutionPlans.put( region.getRegionId(), region.getExecutionPlan() );
             final PipelineReplica[] pipelineReplicas = region.getPipelineReplicasByPipelineId( firstPipelineId );
-            final Pipeline pipeline = new Pipeline( firstPipelineId, region.getExecutionPlan(),
-                                                    pipelineReplicas,
-                                                    initialSchedulingStrategy,
-                                                    upstreamContext );
+            final Pipeline pipeline = createAlreadyRunningPipeline( firstPipelineId,
+                                                                    region.getExecutionPlan(),
+                                                                    pipelineReplicas,
+                                                                    initialSchedulingStrategy,
+                                                                    upstreamContext );
             addPipeline( pipeline );
             createDownstreamTupleSenders( flow, pipeline );
             pipeline.startPipelineReplicaRunners( jokerConfig, supervisor, jokerThreadGroup );
@@ -527,10 +529,11 @@ public class PipelineManagerImpl implements PipelineManager
                 final PipelineId pipelineId = pipelineReplica.id().pipelineId;
                 if ( !pipelines.containsKey( pipelineId ) )
                 {
-                    final Pipeline pipeline = new Pipeline( pipelineId, region.getExecutionPlan(),
-                                                            pipelineReplicas,
-                                                            pipelineReplica.getOperator( 0 ).getInitialSchedulingStrategy(),
-                                                            pipelineReplica.getPipelineUpstreamContext() );
+                    final Pipeline pipeline = createAlreadyRunningPipeline( pipelineId,
+                                                                            region.getExecutionPlan(),
+                                                                            pipelineReplicas,
+                                                                            pipelineReplica.getOperator( 0 ).getInitialSchedulingStrategy(),
+                                                                            pipelineReplica.getPipelineUpstreamContext() );
                     addPipeline( pipeline );
                     newPipelines.add( pipeline );
                 }
@@ -609,10 +612,11 @@ public class PipelineManagerImpl implements PipelineManager
                 final PipelineReplica[] pipelineReplicas = region.getPipelineReplicas( pipelineIndex );
                 final PipelineReplica pipelineReplica = pipelineReplicas[ 0 ];
                 final PipelineId pipelineId = pipelineReplica.id().pipelineId;
-                final Pipeline pipeline = new Pipeline( pipelineId, region.getExecutionPlan(),
-                                                        pipelineReplicas,
-                                                        pipelineReplica.getOperator( 0 ).getInitialSchedulingStrategy(),
-                                                        pipelineReplica.getPipelineUpstreamContext() );
+                final Pipeline pipeline = createAlreadyRunningPipeline( pipelineId,
+                                                                        region.getExecutionPlan(),
+                                                                        pipelineReplicas,
+                                                                        pipelineReplica.getOperator( 0 ).getInitialSchedulingStrategy(),
+                                                                        pipelineReplica.getPipelineUpstreamContext() );
                 addPipeline( pipeline );
                 newPipelines.add( pipeline );
             }

@@ -9,7 +9,7 @@ import cs.bilkent.joker.engine.adaptation.AdaptationAction;
 import cs.bilkent.joker.engine.adaptation.impl.adaptationaction.SplitPipelineAction;
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
-import cs.bilkent.joker.engine.metric.PipelineMetricsSnapshot;
+import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 public class PipelineSplitterTest extends AbstractJokerTest
 {
 
-    private final BiFunction<RegionExecutionPlan, PipelineMetricsSnapshot, Integer> pipelineSplitIndexExtractor = mock( BiFunction.class );
+    private final BiFunction<RegionExecutionPlan, PipelineMetrics, Integer> pipelineSplitIndexExtractor = mock( BiFunction.class );
 
     private final RegionExecutionPlan regionExecutionPlan = mock( RegionExecutionPlan.class );
 
@@ -31,7 +31,7 @@ public class PipelineSplitterTest extends AbstractJokerTest
 
     private final PipelineId pipelineId = new PipelineId( 0, 0 );
 
-    private final PipelineMetricsSnapshot bottleneckPipelineMetrics = mock( PipelineMetricsSnapshot.class );
+    private final PipelineMetrics bottleneckPipelineMetrics = mock( PipelineMetrics.class );
 
     private PipelineSplitter pipelineSplitter = new PipelineSplitter( pipelineSplitIndexExtractor );
 

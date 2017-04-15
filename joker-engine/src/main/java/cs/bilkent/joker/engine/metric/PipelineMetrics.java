@@ -13,7 +13,7 @@ import static java.lang.Math.min;
 import static java.util.Arrays.stream;
 import static java.util.stream.IntStream.range;
 
-public class PipelineMetricsSnapshot
+public class PipelineMetrics
 {
 
     private final PipelineId pipelineId;
@@ -34,11 +34,11 @@ public class PipelineMetricsSnapshot
 
     private final double[] pipelineCosts;
 
-    public PipelineMetricsSnapshot ( final PipelineId pipelineId,
-                                     final int flowVersion,
-                                     final int replicaCount,
-                                     final int operatorCount,
-                                     final int inputPortCount )
+    public PipelineMetrics ( final PipelineId pipelineId,
+                             final int flowVersion,
+                             final int replicaCount,
+                             final int operatorCount,
+                             final int inputPortCount )
     {
         this.pipelineId = pipelineId;
         this.flowVersion = flowVersion;
@@ -51,15 +51,15 @@ public class PipelineMetricsSnapshot
         this.pipelineCosts = new double[ replicaCount ];
     }
 
-    PipelineMetricsSnapshot ( final PipelineId pipelineId,
-                              final int flowVersion,
-                              final int replicaCount,
-                              final int operatorCount,
-                              final int inputPortCount,
-                              final double[] cpuUtilizationRatios,
-                              final long[][] inboundThroughputs,
-                              final double[][] operatorCosts,
-                              final double[] pipelineCosts )
+    PipelineMetrics ( final PipelineId pipelineId,
+                      final int flowVersion,
+                      final int replicaCount,
+                      final int operatorCount,
+                      final int inputPortCount,
+                      final double[] cpuUtilizationRatios,
+                      final long[][] inboundThroughputs,
+                      final double[][] operatorCosts,
+                      final double[] pipelineCosts )
     {
         this.pipelineId = pipelineId;
         this.flowVersion = flowVersion;
@@ -208,23 +208,23 @@ public class PipelineMetricsSnapshot
 
 
     @NotThreadSafe
-    public static class PipelineMetricsSnapshotBuilder
+    public static class PipelineMetricsBuilder
     {
 
-        private final PipelineMetricsSnapshot snapshot;
+        private final PipelineMetrics snapshot;
 
         private boolean building = true;
 
-        public PipelineMetricsSnapshotBuilder ( final PipelineId pipelineId,
-                                                final int flowVersion,
-                                                final int replicaCount,
-                                                final int operatorCount,
-                                                final int inputPortCount )
+        public PipelineMetricsBuilder ( final PipelineId pipelineId,
+                                        final int flowVersion,
+                                        final int replicaCount,
+                                        final int operatorCount,
+                                        final int inputPortCount )
         {
-            this.snapshot = new PipelineMetricsSnapshot( pipelineId, flowVersion, replicaCount, operatorCount, inputPortCount );
+            this.snapshot = new PipelineMetrics( pipelineId, flowVersion, replicaCount, operatorCount, inputPortCount );
         }
 
-        public PipelineMetricsSnapshotBuilder setPipelineCost ( final int replicaIndex, final double pipelineCost )
+        public PipelineMetricsBuilder setPipelineCost ( final int replicaIndex, final double pipelineCost )
         {
             checkArgument( building );
             snapshot.pipelineCosts[ replicaIndex ] = min( pipelineCost, 1d );
@@ -232,7 +232,7 @@ public class PipelineMetricsSnapshot
             return this;
         }
 
-        public PipelineMetricsSnapshotBuilder setOperatorCost ( final int replicaIndex, final int operatorIndex, final double operatorCost )
+        public PipelineMetricsBuilder setOperatorCost ( final int replicaIndex, final int operatorIndex, final double operatorCost )
         {
             checkArgument( building );
             snapshot.operatorCosts[ replicaIndex ][ operatorIndex ] = min( operatorCost, 1d );
@@ -240,7 +240,7 @@ public class PipelineMetricsSnapshot
             return this;
         }
 
-        public PipelineMetricsSnapshotBuilder setCpuUtilizationRatio ( final int replicaIndex, final double cpuUtilizationRatio )
+        public PipelineMetricsBuilder setCpuUtilizationRatio ( final int replicaIndex, final double cpuUtilizationRatio )
         {
             checkArgument( building );
             snapshot.cpuUtilizationRatios[ replicaIndex ] = min( cpuUtilizationRatio, 1d );
@@ -248,7 +248,7 @@ public class PipelineMetricsSnapshot
             return this;
         }
 
-        public PipelineMetricsSnapshotBuilder setInboundThroughput ( final int replicaIndex, final int portIndex, final long throughput )
+        public PipelineMetricsBuilder setInboundThroughput ( final int replicaIndex, final int portIndex, final long throughput )
         {
             checkArgument( building );
             snapshot.inboundThroughputs[ replicaIndex ][ portIndex ] = throughput;
@@ -256,7 +256,7 @@ public class PipelineMetricsSnapshot
             return this;
         }
 
-        public PipelineMetricsSnapshot build ()
+        public PipelineMetrics build ()
         {
             checkArgument( building );
             building = false;

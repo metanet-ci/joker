@@ -40,8 +40,6 @@ public class PipelineReplicaRunner implements Runnable
 
     private final Object monitor = new Object();
 
-    private final JokerConfig config;
-
     private final PipelineReplica pipeline;
 
     private final PipelineReplicaId id;
@@ -64,7 +62,6 @@ public class PipelineReplicaRunner implements Runnable
                             final Supervisor supervisor,
                             final DownstreamTupleSender downstreamTupleSender )
     {
-        this.config = config;
         this.pipeline = pipeline;
         this.id = pipeline.id();
         this.waitTimeoutInMillis = config.getPipelineReplicaRunnerConfig().getWaitTimeoutInMillis();

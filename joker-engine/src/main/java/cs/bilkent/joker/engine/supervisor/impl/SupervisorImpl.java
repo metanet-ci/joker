@@ -27,7 +27,7 @@ import cs.bilkent.joker.engine.exception.JokerException;
 import cs.bilkent.joker.engine.flow.FlowExecutionPlan;
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
-import cs.bilkent.joker.engine.metric.FlowMetricsSnapshot;
+import cs.bilkent.joker.engine.metric.FlowMetrics;
 import cs.bilkent.joker.engine.metric.MetricManager;
 import cs.bilkent.joker.engine.metric.PipelineMeter;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
@@ -457,7 +457,7 @@ public class SupervisorImpl implements Supervisor
             return;
         }
 
-        final FlowMetricsSnapshot flowMetrics = metricManager.getFlowMetrics();
+        final FlowMetrics flowMetrics = metricManager.getFlowMetrics();
 
         if ( !shouldCheckAdaptation( flowMetrics ) )
         {
@@ -504,7 +504,7 @@ public class SupervisorImpl implements Supervisor
         metricManager.resume();
     }
 
-    private boolean shouldCheckAdaptation ( final FlowMetricsSnapshot flowMetrics )
+    private boolean shouldCheckAdaptation ( final FlowMetrics flowMetrics )
     {
         final MetricManagerConfig metricManagerConfig = config.getMetricManagerConfig();
         return flowMetrics != null && ( flowMetrics.getPeriod() - flowPeriod ) > metricManagerConfig.getHistorySize();
