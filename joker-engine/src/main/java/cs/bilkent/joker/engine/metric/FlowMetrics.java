@@ -49,4 +49,10 @@ public class FlowMetrics
         return metrics;
     }
 
+    @Override
+    public String toString ()
+    {
+        return "FlowMetrics{" + "period=" + period + ", histories=" + histories + '}';
+    }
+
 }

@@ -8,6 +8,7 @@ import cs.bilkent.joker.engine.adaptation.impl.adaptationaction.SplitPipelineAct
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 
 public class PipelineSplitter implements BottleneckResolver
 {
@@ -22,6 +23,9 @@ public class PipelineSplitter implements BottleneckResolver
     @Override
     public AdaptationAction resolve ( final RegionExecutionPlan regionExecutionPlan, final PipelineMetrics bottleneckPipelineMetrics )
     {
+        checkArgument( regionExecutionPlan != null );
+        checkArgument( bottleneckPipelineMetrics != null );
+
         final PipelineId pipelineId = bottleneckPipelineMetrics.getPipelineId();
 
         final int operatorCount = regionExecutionPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() );

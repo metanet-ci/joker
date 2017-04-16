@@ -149,15 +149,12 @@ public class RegionAdaptationContext
             return null;
         }
 
-        LOGGER.info( "Region {} has a bottleneck pipeline {}", getRegionId(), bottleneckPipelineId );
-
         final Pair<AdaptationAction, RegionExecutionPlan> bottleneckResolution = resolveBottleneck( bottleneckPipelineId,
                                                                                                     bottleneckResolvers );
         if ( bottleneckResolution == null )
         {
             nonResolvablePipelineIds.add( bottleneckPipelineId );
             adaptingPipelineId = null;
-            LOGGER.info( "Region {} has no possible adaptations for bottleneck pipeline: {}", getRegionId(), bottleneckPipelineId );
 
             return null;
         }
@@ -166,11 +163,6 @@ public class RegionAdaptationContext
         adaptingPipelineId = bottleneckPipelineId;
         currentExecutionPlan = bottleneckResolution._2;
         adaptationAction = bottleneckResolution._1;
-
-        LOGGER.info( "Region {} will try to resolve bottleneck pipeline {} with {}",
-                     getRegionId(),
-                     bottleneckPipelineId,
-                     adaptationAction );
 
         return adaptationAction;
     }
@@ -191,6 +183,7 @@ public class RegionAdaptationContext
                     newPipelineMetrics,
                     getRegionId(),
                     adaptingPipelineId );
+        checkState( baseExecutionPlan != null );
 
         final PipelineMetrics bottleneckPipelineMetrics = pipelineMetricsByPipelineId.get( adaptingPipelineId );
         checkState( bottleneckPipelineMetrics != null,
@@ -216,10 +209,7 @@ public class RegionAdaptationContext
                          newPipelineMetrics,
                          bottleneckPipelineMetrics );
 
-            final AdaptationAction rollback = rollbackAdaptation();
-            checkState( rollback != null );
-
-            return rollback;
+            return rollbackAdaptation();
         }
     }
 
@@ -262,6 +252,11 @@ public class RegionAdaptationContext
                     continue;
                 }
 
+                LOGGER.info( "Region {} has a bottleneck pipeline {} with metrics: {}",
+                             getRegionId(),
+                             pipelineMetrics.getPipelineId(),
+                             pipelineMetrics );
+
                 return pipelineId;
             }
         }
@@ -284,16 +279,23 @@ public class RegionAdaptationContext
                                                                                                             bottleneckResolver );
                 if ( bottleneckResolution != null )
                 {
+                    LOGGER.info( "Region {} will try to resolve bottleneck pipeline {} with {}",
+                                 getRegionId(),
+                                 bottleneckPipelineId,
+                                 bottleneckResolution._1 );
+
                     return bottleneckResolution;
                 }
             }
         }
         else
         {
-            LOGGER.warn( "Cannot resolve bottleneck pipeline {} of Region {} because there is no bottleneck resolver!",
-                         bottleneckPipelineId,
-                         getRegionId() );
+            LOGGER.error( "Cannot resolve bottleneck pipeline {} of Region {} because there is no bottleneck resolver!",
+                          bottleneckPipelineId,
+                          getRegionId() );
         }
+
+        LOGGER.info( "Region {} has no possible adaptations for bottleneck pipeline: {}", getRegionId(), bottleneckPipelineId );
 
         return null;
     }
@@ -336,6 +338,7 @@ public class RegionAdaptationContext
         currentExecutionPlan = baseExecutionPlan;
         baseExecutionPlan = null;
         final AdaptationAction rollbackAction = adaptationAction.rollback();
+        checkState( rollbackAction != null );
         adaptationAction = null;
         return rollbackAction;
     }

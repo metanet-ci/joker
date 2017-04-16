@@ -1,8 +1,6 @@
 package cs.bilkent.joker.engine.metric;
 
 import java.util.Arrays;
-import java.util.stream.DoubleStream;
-import java.util.stream.LongStream;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import cs.bilkent.joker.engine.flow.PipelineId;
@@ -99,12 +97,13 @@ public class PipelineMetrics
 
     public double getAvgPipelineCost ()
     {
-        if ( replicaCount == 1 )
+        double cost = 0;
+        for ( int replicaIndex = 0; replicaIndex < getReplicaCount(); replicaIndex++ )
         {
-            return pipelineCosts[ 0 ];
+            cost += pipelineCosts[ replicaIndex ];
         }
 
-        return stream( pipelineCosts ).average().orElse( NaN );
+        return cost / getReplicaCount();
     }
 
     public double getPipelineCost ( final int replicaIndex )
@@ -129,12 +128,13 @@ public class PipelineMetrics
 
     public double getAvgOperatorCost ( final int operatorIndex )
     {
-        if ( replicaCount == 1 )
+        double cost = 0;
+        for ( int replicaIndex = 0; replicaIndex < getReplicaCount(); replicaIndex++ )
         {
-            return operatorCosts[ 0 ][ operatorIndex ];
+            cost += operatorCosts[ replicaIndex ][ operatorIndex ];
         }
 
-        return stream( operatorCosts ).flatMapToDouble( replica -> DoubleStream.of( replica[ operatorIndex ] ) ).average().orElse( NaN );
+        return cost / getReplicaCount();
     }
 
     public double getCpuUtilizationRatio ( final int replicaIndex )
@@ -154,7 +154,13 @@ public class PipelineMetrics
 
     public long[] getTotalInboundThroughputs ()
     {
-        return range( 0, inputPortCount ).mapToLong( this::getTotalInboundThroughput ).toArray();
+        final long[] total = new long[ inputPortCount ];
+        for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
+        {
+            total[ portIndex ] = getTotalInboundThroughput( portIndex );
+        }
+
+        return total;
     }
 
     public long getInboundThroughput ( final int replicaIndex, final int portIndex )
@@ -164,12 +170,13 @@ public class PipelineMetrics
 
     public long getTotalInboundThroughput ( final int portIndex )
     {
-        if ( replicaCount == 1 )
+        long sum = 0;
+        for ( int replicaIndex = 0; replicaIndex < getReplicaCount(); replicaIndex++ )
         {
-            return inboundThroughputs[ 0 ][ portIndex ];
+            sum += inboundThroughputs[ replicaIndex ][ portIndex ];
         }
 
-        return stream( inboundThroughputs ).flatMapToLong( replica -> LongStream.of( replica[ portIndex ] ) ).sum();
+        return sum;
     }
 
     public void visit ( final PipelineMetricsVisitor visitor )
@@ -189,7 +196,7 @@ public class PipelineMetrics
     @Override
     public String toString ()
     {
-        return "PipelineMetricsSnapshot{" + "pipelineId=" + pipelineId + ", flowVersion=" + flowVersion + ", cpuUtilizationRatios="
+        return "PipelineMetrics{" + "pipelineId=" + pipelineId + ", flowVersion=" + flowVersion + ", cpuUtilizationRatios="
                + Arrays.toString( cpuUtilizationRatios ) + ", inboundThroughputs=" + Arrays.deepToString( inboundThroughputs )
                + ", operatorCosts=" + Arrays.deepToString( operatorCosts ) + ", pipelineCosts=" + Arrays.toString( pipelineCosts ) + '}';
     }

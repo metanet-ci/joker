@@ -15,16 +15,10 @@ public class SimpleMovingAverage implements PipelineMetricsHistorySummarizer
     @Override
     public PipelineMetrics summarize ( PipelineMetricsHistory history )
     {
-        final PipelineMetricsBuilder builder = new PipelineMetricsBuilder( history.getPipelineId(),
-                                                                           history.getFlowVersion(),
-                                                                           1,
-                                                                           history.getOperatorCount(),
-                                                                           history.getInputPortCount() );
-
         double cpuUtilRatio = 0;
         double pipelineCost = 0;
-        double[] operatorCosts = new double[ history.getOperatorCount() ];
-        long[] throughputs = new long[ history.getInputPortCount() ];
+        final double[] operatorCosts = new double[ history.getOperatorCount() ];
+        final long[] throughputs = new long[ history.getInputPortCount() ];
 
         for ( PipelineMetrics metrics : history.getAll() )
         {
@@ -43,6 +37,12 @@ public class SimpleMovingAverage implements PipelineMetricsHistorySummarizer
         }
 
         final int historySize = history.getCount();
+
+        final PipelineMetricsBuilder builder = new PipelineMetricsBuilder( history.getPipelineId(),
+                                                                           history.getFlowVersion(),
+                                                                           1,
+                                                                           history.getOperatorCount(),
+                                                                           history.getInputPortCount() );
 
         builder.setCpuUtilizationRatio( 0, cpuUtilRatio / historySize ).setPipelineCost( 0, pipelineCost / historySize );
 

@@ -20,11 +20,11 @@ public class MergePipelinesAction implements AdaptationAction
 
     public MergePipelinesAction ( final RegionExecutionPlan regionExecutionPlan, final List<PipelineId> pipelineIds )
     {
+        checkArgument( regionExecutionPlan != null );
+        checkArgument( pipelineIds != null && pipelineIds.size() > 0 );
         this.currentRegionExecutionPlan = regionExecutionPlan;
         final List<Integer> startIndicesToMerge = getMergeablePipelineStartIndices( regionExecutionPlan, pipelineIds );
         this.newRegionExecutionPlan = regionExecutionPlan.withMergedPipelines( startIndicesToMerge );
-
-        checkArgument( pipelineIds != null && pipelineIds.size() > 0 );
         int pipelineStartIndex = -1;
         for ( PipelineId pipelineId : pipelineIds )
         {

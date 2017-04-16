@@ -612,7 +612,7 @@ public class MetricManagerImpl implements MetricManager
                           scanOperatorsSnapshot.get999thPercentile() );
 
             final int period = flowMetrics != null ? flowMetrics.getPeriod() : -1;
-            LOGGER.info( "Time spent (ns): {}. New flow metrics snapshot version: {}", timeSpent, period );
+            LOGGER.info( "Time spent (ns): {}. New flow period: {}", timeSpent, period );
         }
 
     }

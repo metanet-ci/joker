@@ -8,6 +8,7 @@ import cs.bilkent.joker.engine.adaptation.BottleneckResolver;
 import cs.bilkent.joker.engine.adaptation.impl.adaptationaction.RegionRebalanceAction;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 
 public class RegionExtender implements BottleneckResolver
@@ -26,6 +27,9 @@ public class RegionExtender implements BottleneckResolver
     @Override
     public AdaptationAction resolve ( final RegionExecutionPlan regionExecutionPlan, final PipelineMetrics bottleneckPipelineMetrics )
     {
+        checkArgument( regionExecutionPlan != null );
+        checkArgument( bottleneckPipelineMetrics != null );
+
         if ( regionExecutionPlan.getRegionType() != PARTITIONED_STATEFUL )
         {
             return null;

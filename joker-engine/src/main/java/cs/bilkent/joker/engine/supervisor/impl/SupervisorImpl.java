@@ -452,11 +452,6 @@ public class SupervisorImpl implements Supervisor
 
     private void checkAdaptation ()
     {
-        if ( !isAdaptationEnabled() )
-        {
-            return;
-        }
-
         final FlowMetrics flowMetrics = metricManager.getFlowMetrics();
 
         if ( !shouldCheckAdaptation( flowMetrics ) )
@@ -506,6 +501,11 @@ public class SupervisorImpl implements Supervisor
 
     private boolean shouldCheckAdaptation ( final FlowMetrics flowMetrics )
     {
+        if ( !( isAdaptationEnabled() && shutdownFuture == null ) )
+        {
+            return false;
+        }
+
         final MetricManagerConfig metricManagerConfig = config.getMetricManagerConfig();
         return flowMetrics != null && ( flowMetrics.getPeriod() - flowPeriod ) > metricManagerConfig.getHistorySize();
     }
