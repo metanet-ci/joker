@@ -14,15 +14,11 @@ import org.junit.experimental.categories.Category;
 import com.codahale.metrics.ExponentiallyDecayingReservoir;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Snapshot;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import cs.bilkent.joker.Joker.JokerBuilder;
-import static cs.bilkent.joker.engine.config.FlowDefOptimizerConfig.CONFIG_NAME;
-import static cs.bilkent.joker.engine.config.FlowDefOptimizerConfig.MERGE_REGIONS;
 import cs.bilkent.joker.engine.config.JokerConfig;
-import static cs.bilkent.joker.engine.config.JokerConfig.ENGINE_CONFIG_NAME;
+import cs.bilkent.joker.engine.config.JokerConfigBuilder;
 import cs.bilkent.joker.engine.flow.FlowExecutionPlan;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.region.impl.DefaultRegionExecutionPlanFactory;
@@ -163,9 +159,9 @@ public class JokerDemo extends AbstractJokerTest
 
     private Joker newJokerInstance ()
     {
-        Config config = ConfigFactory.parseString( ENGINE_CONFIG_NAME + "." + CONFIG_NAME + "." + MERGE_REGIONS + "=" + Boolean.FALSE )
-                                     .withFallback( ConfigFactory.load() );
-        JokerConfig jokerConfig = new JokerConfig( config );
+        final JokerConfigBuilder configBuilder = new JokerConfigBuilder();
+        configBuilder.getFlowDefOptimizerConfigBuilder().disableMergeRegions();
+        final JokerConfig jokerConfig = configBuilder.build();
         return new JokerBuilder().setJokerConfig( jokerConfig )
                                  .setRegionExecutionPlanFactory( new DefaultRegionExecutionPlanFactory( jokerConfig ) )
                                  .build();

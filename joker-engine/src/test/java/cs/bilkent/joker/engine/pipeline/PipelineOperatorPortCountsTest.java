@@ -6,13 +6,9 @@ import org.junit.Before;
 import org.junit.Test;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigValueFactory;
 
 import cs.bilkent.joker.JokerModule;
-import cs.bilkent.joker.engine.config.FlowDefOptimizerConfig;
-import cs.bilkent.joker.engine.config.JokerConfig;
+import cs.bilkent.joker.engine.config.JokerConfigBuilder;
 import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
@@ -38,7 +34,6 @@ import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import cs.bilkent.joker.utils.Pair;
-import static java.lang.Boolean.TRUE;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -58,14 +53,10 @@ public class PipelineOperatorPortCountsTest extends AbstractJokerTest
     @Before
     public void init ()
     {
-        final String configPath =
-                JokerConfig.ENGINE_CONFIG_NAME + "." + FlowDefOptimizerConfig.CONFIG_NAME + "." + FlowDefOptimizerConfig.MERGE_REGIONS;
+        final JokerConfigBuilder configBuilder = new JokerConfigBuilder();
+        configBuilder.getFlowDefOptimizerConfigBuilder().enableMergeRegions();
 
-        final Config flowDefOptimizerConfig = ConfigFactory.empty().withValue( configPath, ConfigValueFactory.fromAnyRef( TRUE ) );
-
-        final Config config = ConfigFactory.load().withoutPath( configPath ).withFallback( flowDefOptimizerConfig );
-
-        injector = Guice.createInjector( new JokerModule( new JokerConfig( config ) ) );
+        injector = Guice.createInjector( new JokerModule( configBuilder.build() ) );
         regionDefFormer = injector.getInstance( RegionDefFormer.class );
         regionManager = injector.getInstance( RegionManager.class );
         flowDefOptimizer = injector.getInstance( FlowDefOptimizer.class );

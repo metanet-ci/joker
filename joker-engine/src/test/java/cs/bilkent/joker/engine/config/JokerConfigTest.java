@@ -18,7 +18,7 @@ public class JokerConfigTest extends AbstractJokerTest
         final Config config = ConfigFactory.load();
         final JokerConfig jokerConfig = new JokerConfig( config );
 
-        assertTrue( jokerConfig.getPipelineReplicaRunnerConfig().getWaitTimeoutInMillis() > 0 );
+        assertTrue( jokerConfig.getPipelineReplicaRunnerConfig().getRunnerWaitTimeoutInMillis() > 0 );
         assertTrue( jokerConfig.getTupleQueueManagerConfig().getTupleQueueCapacity() > 0 );
     }
 

@@ -5,11 +5,11 @@ import com.typesafe.config.Config;
 public class FlowDefOptimizerConfig
 {
 
-    public static final String CONFIG_NAME = "flowDefOptimizer";
+    static final String CONFIG_NAME = "flowDefOptimizer";
 
-    public static final String DUPLICATE_STATELESS_REGIONS = "duplicateStatelessRegions";
+    static final String DUPLICATE_STATELESS_REGIONS = "duplicateStatelessRegions";
 
-    public static final String MERGE_REGIONS = "mergeRegions";
+    static final String MERGE_REGIONS = "mergeRegions";
 
 
     private final boolean duplicateStatelessRegionsEnabled;

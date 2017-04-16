@@ -24,23 +24,23 @@ public class AdaptationConfig
 
     private static final Logger LOGGER = LoggerFactory.getLogger( AdaptationConfig.class );
 
-    public static final String CONFIG_NAME = "adaptation";
+    static final String CONFIG_NAME = "adaptation";
 
-    public static final String ENABLED = "enabled";
+    static final String ENABLED = "enabled";
 
-    public static final String PIPELINE_METRICS_HISTORY_SUMMARIZER_CLASS = "pipelineMetricsHistorySummarizerClass";
+    static final String PIPELINE_METRICS_HISTORY_SUMMARIZER_CLASS = "pipelineMetricsHistorySummarizerClass";
 
-    public static final String CPU_UTILIZATION_BOTTLENECK_THRESHOLD = "cpuUtilBottleneckThreshold";
+    static final String CPU_UTILIZATION_BOTTLENECK_THRESHOLD = "cpuUtilBottleneckThreshold";
 
-    public static final String CPU_UTILIZATION_LOAD_CHANGE_THRESHOLD = "cpuUtilLoadChangeThreshold";
+    static final String CPU_UTILIZATION_LOAD_CHANGE_THRESHOLD = "cpuUtilLoadChangeThreshold";
 
-    public static final String THROUGHPUT_LOAD_CHANGE_THRESHOLD = "throughputLoadChangeThreshold";
+    static final String THROUGHPUT_LOAD_CHANGE_THRESHOLD = "throughputLoadChangeThreshold";
 
-    public static final String THROUGHPUT_INCREASE_THRESHOLD = "throughputIncreaseThreshold";
+    static final String THROUGHPUT_INCREASE_THRESHOLD = "throughputIncreaseThreshold";
 
-    public static final String PIPELINE_COST_THRESHOLD = "pipelineCostThreshold";
+    static final String PIPELINE_COST_THRESHOLD = "pipelineCostThreshold";
 
-    public static final String SPLIT_UTILITY = "splitUtility";
+    static final String SPLIT_UTILITY = "splitUtility";
 
 
     private final boolean enabled;

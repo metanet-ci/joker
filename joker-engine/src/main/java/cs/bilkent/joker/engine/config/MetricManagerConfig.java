@@ -7,25 +7,25 @@ import com.typesafe.config.Config;
 public class MetricManagerConfig
 {
 
-    public static final String CONFIG_NAME = "metricManager";
+    static final String CONFIG_NAME = "metricManager";
 
-    public static final String TICK_MASK = "tickMask";
+    static final String TICK_MASK = "tickMask";
 
-    public static final String WARMUP_ITERATIONS = "warmupIterations";
+    static final String WARMUP_ITERATIONS = "warmupIterations";
 
-    public static final String PIPELINE_METRICS_SCANNING_PERIOD_IN_MILLIS = "pipelineMetricsScanningPeriodInMillis";
+    static final String PIPELINE_METRICS_SCANNING_PERIOD_IN_MILLIS = "pipelineMetricsScanningPeriodInMillis";
 
-    public static final String OPERATOR_INVOCATION_SAMPLING_IN_MICROS = "operatorInvocationSamplingPeriodInMicros";
+    static final String OPERATOR_INVOCATION_SAMPLING_IN_MICROS = "operatorInvocationSamplingPeriodInMicros";
 
-    public static final String HISTORY_SIZE = "historySize";
+    static final String HISTORY_SIZE = "historySize";
 
-    public static final String PERIOD_SKEW_TOLERANCE_RATIO = "periodSkewToleranceRatio";
+    static final String PERIOD_SKEW_TOLERANCE_RATIO = "periodSkewToleranceRatio";
 
-    public static final String CSV_REPORT_ENABLED = "csvReportEnabled";
+    static final String CSV_REPORT_ENABLED = "csvReportEnabled";
 
-    public static final String CSV_REPORT_PERIOD_IN_MILLIS = "csvReportPeriodInMillis";
+    static final String CSV_REPORT_PERIOD_IN_MILLIS = "csvReportPeriodInMillis";
 
-    public static final String CSV_REPORT_BASE_DIR = "csvReportBaseDir";
+    static final String CSV_REPORT_BASE_DIR = "csvReportBaseDir";
 
 
     private final long tickMask;

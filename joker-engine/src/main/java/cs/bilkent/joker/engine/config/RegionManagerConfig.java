@@ -11,9 +11,9 @@ import cs.bilkent.joker.operator.impl.TuplesImpl;
 public class RegionManagerConfig
 {
 
-    public static final String CONFIG_NAME = "regionManager";
+    static final String CONFIG_NAME = "regionManager";
 
-    public static final String PIPELINE_TAIL_OPERATOR_OUTPUT_SUPPLIER_CLASS = "pipelineTailOperatorOutputSupplierClass";
+    static final String PIPELINE_TAIL_OPERATOR_OUTPUT_SUPPLIER_CLASS = "pipelineTailOperatorOutputSupplierClass";
 
 
     private Class<Supplier<TuplesImpl>> pipelineTailOperatorOutputSupplierClass;

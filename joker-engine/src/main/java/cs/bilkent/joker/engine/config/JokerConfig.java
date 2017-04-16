@@ -6,11 +6,11 @@ import com.typesafe.config.ConfigFactory;
 public class JokerConfig
 {
 
-    public static final String ENGINE_CONFIG_NAME = "joker.engine";
-
     public static final String JOKER_THREAD_GROUP_NAME = "jokerThreadGroup";
 
     public static final String JOKER_ID = "jokerId";
+
+    static final String ENGINE_CONFIG_NAME = "joker.engine";
 
 
     private final Config rootConfig;

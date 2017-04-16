@@ -5,28 +5,28 @@ import com.typesafe.config.Config;
 public class PipelineReplicaRunnerConfig
 {
 
-    public static final String CONFIG_NAME = "pipelineReplicaRunner";
+    static final String CONFIG_NAME = "pipelineReplicaRunner";
 
-    public static final String RUNNER_WAIT_TIMEOUT = "runnerWaitTimeoutInMillis";
+    static final String RUNNER_WAIT_TIMEOUT = "runnerWaitTimeoutInMillis";
 
 
-    private final long waitTimeoutInMillis;
+    private final long runnerWaitTimeoutInMillis;
 
     PipelineReplicaRunnerConfig ( final Config parentConfig )
     {
         final Config config = parentConfig.getConfig( CONFIG_NAME );
-        this.waitTimeoutInMillis = config.getLong( RUNNER_WAIT_TIMEOUT );
+        this.runnerWaitTimeoutInMillis = config.getLong( RUNNER_WAIT_TIMEOUT );
     }
 
-    public long getWaitTimeoutInMillis ()
+    public long getRunnerWaitTimeoutInMillis ()
     {
-        return waitTimeoutInMillis;
+        return runnerWaitTimeoutInMillis;
     }
 
     @Override
     public String toString ()
     {
-        return "PipelineReplicaRunnerConfig{" + "waitTimeoutInMillis=" + waitTimeoutInMillis + '}';
+        return "PipelineReplicaRunnerConfig{" + "runnerWaitTimeoutInMillis=" + runnerWaitTimeoutInMillis + '}';
     }
 
 }

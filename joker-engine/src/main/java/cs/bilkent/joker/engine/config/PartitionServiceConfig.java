@@ -5,11 +5,11 @@ import com.typesafe.config.Config;
 public class PartitionServiceConfig
 {
 
-    public static final String CONFIG_NAME = "partitionService";
+    static final String CONFIG_NAME = "partitionService";
 
-    public static final String PARTITION_COUNT = "partitionCount";
+    static final String PARTITION_COUNT = "partitionCount";
 
-    public static final String MAX_REPLICA_COUNT = "maxReplicaCount";
+    static final String MAX_REPLICA_COUNT = "maxReplicaCount";
 
 
     private final int partitionCount;

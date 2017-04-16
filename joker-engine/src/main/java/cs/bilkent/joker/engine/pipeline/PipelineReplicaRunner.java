@@ -64,7 +64,7 @@ public class PipelineReplicaRunner implements Runnable
     {
         this.pipeline = pipeline;
         this.id = pipeline.id();
-        this.waitTimeoutInMillis = config.getPipelineReplicaRunnerConfig().getWaitTimeoutInMillis();
+        this.waitTimeoutInMillis = config.getPipelineReplicaRunnerConfig().getRunnerWaitTimeoutInMillis();
         this.supervisor = supervisor;
         this.downstreamTupleSender = downstreamTupleSender;
     }

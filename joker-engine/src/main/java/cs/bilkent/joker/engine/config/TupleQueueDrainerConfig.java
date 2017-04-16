@@ -5,11 +5,11 @@ import com.typesafe.config.Config;
 public class TupleQueueDrainerConfig
 {
 
-    public static final String CONFIG_NAME = "tupleQueueDrainer";
+    static final String CONFIG_NAME = "tupleQueueDrainer";
 
-    public static final String MAX_BATCH_SIZE = "maxBatchSize";
+    static final String MAX_BATCH_SIZE = "maxBatchSize";
 
-    public static final String PARTITIONED_STATEFUL_PIPELINE_DRAINER_MAX_BATCH_SIZE = "partitionedStatefulPipelineDrainerMaxBatchSize";
+    static final String PARTITIONED_STATEFUL_PIPELINE_DRAINER_MAX_BATCH_SIZE = "partitionedStatefulPipelineDrainerMaxBatchSize";
 
 
     private final int maxBatchSize;

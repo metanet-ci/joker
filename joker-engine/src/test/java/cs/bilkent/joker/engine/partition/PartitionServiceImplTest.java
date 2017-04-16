@@ -9,14 +9,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 
-import static com.typesafe.config.ConfigValueFactory.fromAnyRef;
-import cs.bilkent.joker.engine.config.JokerConfig;
-import static cs.bilkent.joker.engine.config.JokerConfig.ENGINE_CONFIG_NAME;
-import static cs.bilkent.joker.engine.config.PartitionServiceConfig.CONFIG_NAME;
-import static cs.bilkent.joker.engine.config.PartitionServiceConfig.PARTITION_COUNT;
+import cs.bilkent.joker.engine.config.JokerConfigBuilder;
 import cs.bilkent.joker.engine.partition.impl.PartitionServiceImpl;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Arrays.asList;
@@ -65,11 +59,9 @@ public class PartitionServiceImplTest extends AbstractJokerTest
     @Before
     public void init ()
     {
-        final String configPath = ENGINE_CONFIG_NAME + "." + CONFIG_NAME + "." + PARTITION_COUNT;
-        final Config config = ConfigFactory.load().withoutPath( configPath ).withValue( configPath, fromAnyRef( partitionCount ) );
-
-        final JokerConfig jokerConfig = new JokerConfig( config );
-        this.partitionService = new PartitionServiceImpl( jokerConfig );
+        final JokerConfigBuilder configBuilder = new JokerConfigBuilder();
+        configBuilder.getPartitionServiceConfigBuilder().setPartitionCount( partitionCount );
+        this.partitionService = new PartitionServiceImpl( configBuilder.build() );
     }
 
     @Test

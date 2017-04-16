@@ -5,9 +5,9 @@ import com.typesafe.config.Config;
 public class PipelineManagerConfig
 {
 
-    public static final String CONFIG_NAME = "pipelineManager";
+    static final String CONFIG_NAME = "pipelineManager";
 
-    public static final String RUNNER_COMMAND_TIMEOUT = "runnerCommandTimeoutInMillis";
+    static final String RUNNER_COMMAND_TIMEOUT = "runnerCommandTimeoutInMillis";
 
 
     private final long runnerCommandTimeoutInMillis;
