@@ -32,7 +32,7 @@ import static java.util.stream.Collectors.toList;
 
 @NotThreadSafe
 @Singleton
-public class JustInTimeAdaptationManager implements AdaptationManager
+public class OrganicAdaptationManager implements AdaptationManager
 {
 
     private final AdaptationConfig adaptationConfig;
@@ -54,13 +54,13 @@ public class JustInTimeAdaptationManager implements AdaptationManager
     private RegionAdaptationContext adaptingRegion;
 
     @Inject
-    public JustInTimeAdaptationManager ( final JokerConfig config )
+    public OrganicAdaptationManager ( final JokerConfig config )
     {
         this( config, RegionAdaptationContext::new );
     }
 
-    JustInTimeAdaptationManager ( final JokerConfig config,
-                                  final Function<RegionExecutionPlan, RegionAdaptationContext> regionAdaptationContextFactory )
+    OrganicAdaptationManager ( final JokerConfig config,
+                               final Function<RegionExecutionPlan, RegionAdaptationContext> regionAdaptationContextFactory )
     {
         this.adaptationConfig = config.getAdaptationConfig();
         this.pipelineMetricsHistorySummarizer = adaptationConfig.getPipelineMetricsHistorySummarizer();

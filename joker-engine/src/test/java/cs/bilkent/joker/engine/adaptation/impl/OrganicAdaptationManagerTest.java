@@ -50,7 +50,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith( MockitoJUnitRunner.class )
-public class JustInTimeAdaptationManagerTest extends AbstractJokerTest
+public class OrganicAdaptationManagerTest extends AbstractJokerTest
 {
 
     private final OperatorDef source = OperatorDefBuilder.newInstance( "source", StatefulOperatorInput0Output1.class ).build();
@@ -111,7 +111,7 @@ public class JustInTimeAdaptationManagerTest extends AbstractJokerTest
     @Mock
     private RegionExecutionPlan sinkRegionExecutionPlan;
 
-    private JustInTimeAdaptationManager adaptationManager;
+    private OrganicAdaptationManager adaptationManager;
 
     @Before
     public void init ()
@@ -126,7 +126,7 @@ public class JustInTimeAdaptationManagerTest extends AbstractJokerTest
         when( partitionServiceConfig.getMaxReplicaCount() ).thenReturn( 2 );
         when( config.getPartitionServiceConfig() ).thenReturn( partitionServiceConfig );
 
-        adaptationManager = new JustInTimeAdaptationManager( config, regionAdaptationContextFactory );
+        adaptationManager = new OrganicAdaptationManager( config, regionAdaptationContextFactory );
 
         flow = new FlowDefBuilder().add( source ).add( sink ).connect( source.getId(), sink.getId() ).build();
 
