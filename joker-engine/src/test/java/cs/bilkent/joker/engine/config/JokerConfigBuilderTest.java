@@ -76,15 +76,6 @@ public class JokerConfigBuilderTest extends AbstractJokerTest
     }
 
     @Test
-    public void test_AdaptationConfig_pipelineCostThreshold ()
-    {
-        final double val = 0.85;
-        builder.getAdaptationConfigBuilder().setPipelineCostThreshold( val );
-
-        assertEquals( val, builder.build().getAdaptationConfig().getPipelineCostThreshold(), 0.01 );
-    }
-
-    @Test
     public void test_AdaptationConfig_splitUtility ()
     {
         final double val = 0.85;

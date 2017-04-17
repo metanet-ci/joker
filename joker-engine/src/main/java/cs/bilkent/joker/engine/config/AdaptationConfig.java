@@ -38,8 +38,6 @@ public class AdaptationConfig
 
     static final String THROUGHPUT_INCREASE_THRESHOLD = "throughputIncreaseThreshold";
 
-    static final String PIPELINE_COST_THRESHOLD = "pipelineCostThreshold";
-
     static final String SPLIT_UTILITY = "splitUtility";
 
 
@@ -47,11 +45,15 @@ public class AdaptationConfig
 
     private final Class<PipelineMetricsHistorySummarizer> pipelineMetricsHistorySummarizerClass;
 
-    private final double cpuUtilBottleneckThreshold, cpuUtilLoadChangeThreshold;
+    private final double cpuUtilBottleneckThreshold;
 
-    private final double throughputLoadChangeThreshold, throughputIncreaseThreshold;
+    private final double cpuUtilLoadChangeThreshold;
 
-    private final double pipelineCostThreshold, splitUtility;
+    private final double throughputLoadChangeThreshold;
+
+    private final double throughputIncreaseThreshold;
+
+    private final double splitUtility;
 
 
     AdaptationConfig ( final Config parentConfig )
@@ -62,7 +64,6 @@ public class AdaptationConfig
         final String className = config.getString( PIPELINE_METRICS_HISTORY_SUMMARIZER_CLASS );
         try
         {
-
             this.pipelineMetricsHistorySummarizerClass = (Class<PipelineMetricsHistorySummarizer>) Class.forName( className );
         }
         catch ( ClassNotFoundException e )
@@ -74,7 +75,6 @@ public class AdaptationConfig
         this.cpuUtilLoadChangeThreshold = config.getDouble( CPU_UTILIZATION_LOAD_CHANGE_THRESHOLD );
         this.throughputLoadChangeThreshold = config.getDouble( THROUGHPUT_LOAD_CHANGE_THRESHOLD );
         this.throughputIncreaseThreshold = config.getDouble( THROUGHPUT_INCREASE_THRESHOLD );
-        this.pipelineCostThreshold = config.getDouble( PIPELINE_COST_THRESHOLD );
         this.splitUtility = config.getDouble( SPLIT_UTILITY );
     }
 
@@ -114,11 +114,6 @@ public class AdaptationConfig
     public double getThroughputIncreaseThreshold ()
     {
         return throughputIncreaseThreshold;
-    }
-
-    public double getPipelineCostThreshold ()
-    {
-        return pipelineCostThreshold;
     }
 
     public double getSplitUtility ()
@@ -170,35 +165,32 @@ public class AdaptationConfig
             checkState( operatorCount > 1 );
 
             final double pipelineCost = pipelineMetrics.getAvgPipelineCost();
-            if ( pipelineCost >= pipelineCostThreshold )
-            {
-                LOGGER.warn( "Cannot split Pipeline: {} since pipeline overhead: {} is too high. Operator costs: {}",
-                             pipelineId,
-                             pipelineCost,
-                             pipelineMetrics.getAvgOperatorCosts() );
+            final double totalOperatorCost = max( 0, 1 - pipelineCost );
+            final double[] thr = new double[ operatorCount - 1 ];
 
-                return null;
+            double headUtility = min( 1, pipelineMetrics.getAvgOperatorCost( 0 ) );
+            double tailUtility = max( 0, totalOperatorCost - pipelineMetrics.getAvgOperatorCost( 0 ) );
+            thr[ 0 ] = min( 1 / ( pipelineCost + headUtility ), 1 / ( pipelineCost + tailUtility ) );
+
+            int max = 0;
+
+            for ( int i = 1; i < operatorCount - 1; i++ )
+            {
+                final double operatorCost = pipelineMetrics.getAvgOperatorCost( i );
+                headUtility = min( 1, headUtility + operatorCost );
+                tailUtility = max( 0, tailUtility - operatorCost );
+                thr[ i ] = min( 1 / ( pipelineCost + headUtility ), 1 / ( pipelineCost + tailUtility ) );
+
+                if ( thr[ i ] > thr[ max ] )
+                {
+                    max = i;
+                }
             }
 
-            final double operatorUtility = max( 0, 1 - pipelineCost );
-            double headUtility = min( 1, pipelineMetrics.getAvgOperatorCost( 0 ) );
-            double tailUtility = max( 0, operatorUtility - pipelineMetrics.getAvgOperatorCost( 0 ) );
-
-            for ( int i = 1; i < operatorCount; i++ )
+            if ( ( thr[ max ] - 1 ) >= splitUtility )
             {
-                if ( ( abs( headUtility - tailUtility ) / operatorUtility ) <= splitUtility )
-                {
-                    LOGGER.info( "Pipeline: {} can be split at index: {}. Pipeline cost: {} operator costs: {}",
-                                 pipelineId,
-                                 i,
-                                 pipelineCost,
-                                 pipelineMetrics.getAvgOperatorCosts() );
-
-                    return i;
-                }
-
-                headUtility = min( 1, headUtility + pipelineMetrics.getAvgOperatorCost( i ) );
-                tailUtility = max( 0, tailUtility - pipelineMetrics.getAvgOperatorCost( i ) );
+                LOGGER.info( "Pipeline {} can be split at index: {} with utility: {}", pipelineId, ( max + 1 ), thr[ max ] );
+                return max + 1;
             }
 
             return 0;
@@ -229,7 +221,7 @@ public class AdaptationConfig
         return "AdaptationConfig{" + "pipelineMetricsHistorySummarizerClass=" + pipelineMetricsHistorySummarizerClass
                + ", cpuUtilBottleneckThreshold=" + cpuUtilBottleneckThreshold + ", cpuUtilLoadChangeThreshold=" + cpuUtilLoadChangeThreshold
                + ", throughputLoadChangeThreshold=" + throughputLoadChangeThreshold + ", throughputIncreaseThreshold="
-               + throughputIncreaseThreshold + ", pipelineCostThreshold=" + pipelineCostThreshold + ", splitUtility=" + splitUtility + '}';
+               + throughputIncreaseThreshold + ", splitUtility=" + splitUtility + '}';
     }
 
 }

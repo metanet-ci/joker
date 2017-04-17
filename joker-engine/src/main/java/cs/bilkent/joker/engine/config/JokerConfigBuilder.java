@@ -10,7 +10,6 @@ import com.typesafe.config.ConfigFactory;
 import static cs.bilkent.joker.engine.config.AdaptationConfig.CPU_UTILIZATION_BOTTLENECK_THRESHOLD;
 import static cs.bilkent.joker.engine.config.AdaptationConfig.CPU_UTILIZATION_LOAD_CHANGE_THRESHOLD;
 import static cs.bilkent.joker.engine.config.AdaptationConfig.ENABLED;
-import static cs.bilkent.joker.engine.config.AdaptationConfig.PIPELINE_COST_THRESHOLD;
 import static cs.bilkent.joker.engine.config.AdaptationConfig.PIPELINE_METRICS_HISTORY_SUMMARIZER_CLASS;
 import static cs.bilkent.joker.engine.config.AdaptationConfig.SPLIT_UTILITY;
 import static cs.bilkent.joker.engine.config.AdaptationConfig.THROUGHPUT_INCREASE_THRESHOLD;
@@ -214,13 +213,6 @@ public class JokerConfigBuilder
         public AdaptationConfigBuilder setThroughputIncreaseThreshold ( final double val )
         {
             adaptationConfigVals.put( THROUGHPUT_INCREASE_THRESHOLD, val );
-
-            return this;
-        }
-
-        public AdaptationConfigBuilder setPipelineCostThreshold ( final double val )
-        {
-            adaptationConfigVals.put( PIPELINE_COST_THRESHOLD, val );
 
             return this;
         }
