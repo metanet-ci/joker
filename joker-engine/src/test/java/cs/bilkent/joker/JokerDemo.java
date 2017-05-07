@@ -82,11 +82,11 @@ public class JokerDemo extends AbstractJokerTest
     {
         FlowDef flow = flowExample.build();
 
-        Joker joker = newJokerInstance();
+        Joker joker = newJokerInstance( true );
 
         joker.run( flow );
 
-        sleepUninterruptibly( 30, SECONDS );
+        sleepUninterruptibly( 30000, SECONDS );
 
         joker.shutdown().get( 60, SECONDS );
 
@@ -106,7 +106,7 @@ public class JokerDemo extends AbstractJokerTest
     {
         FlowDef flow = flowExample.build();
 
-        Joker joker = newJokerInstance();
+        Joker joker = newJokerInstance( false );
         FlowExecutionPlan flowExecPlan = joker.run( flow );
 
         sleepUninterruptibly( 40, SECONDS );
@@ -139,7 +139,7 @@ public class JokerDemo extends AbstractJokerTest
 
         FlowDef flow = flowExample.build();
 
-        Joker joker = newJokerInstance();
+        Joker joker = newJokerInstance( false );
         FlowExecutionPlan flowExecPlan = joker.run( flow );
 
         sleepUninterruptibly( 40, SECONDS );
@@ -157,10 +157,15 @@ public class JokerDemo extends AbstractJokerTest
         System.out.println( "Total: " + flowExample.getProcessedTupleCount() + " tuples" );
     }
 
-    private Joker newJokerInstance ()
+    private Joker newJokerInstance ( final boolean enabled )
     {
         final JokerConfigBuilder configBuilder = new JokerConfigBuilder();
-        configBuilder.getFlowDefOptimizerConfigBuilder().disableMergeRegions();
+        if ( enabled )
+        {
+            configBuilder.getAdaptationConfigBuilder().enableAdaptation().enableVisualization();
+            configBuilder.getFlowDefOptimizerConfigBuilder().disableMergeRegions();
+        }
+
         final JokerConfig jokerConfig = configBuilder.build();
         return new JokerBuilder().setJokerConfig( jokerConfig )
                                  .setRegionExecutionPlanFactory( new DefaultRegionExecutionPlanFactory( jokerConfig ) )
@@ -280,6 +285,7 @@ public class JokerDemo extends AbstractJokerTest
                 val *= ( val / 2 );
             }
 
+            output.set( "key", input.get( "key" ) );
             output.set( "val", val );
         }
 
@@ -318,7 +324,7 @@ public class JokerDemo extends AbstractJokerTest
         private FlowDef build ()
         {
             OperatorConfig beaconConfig = new OperatorConfig();
-            beaconConfig.set( TUPLE_COUNT_CONFIG_PARAMETER, 4096 );
+            beaconConfig.set( TUPLE_COUNT_CONFIG_PARAMETER, 4096 * 4 );
             beaconConfig.set( TUPLE_POPULATOR_CONFIG_PARAMETER, new BeaconFn() );
 
             OperatorRuntimeSchemaBuilder beaconSchemaBuilder = new OperatorRuntimeSchemaBuilder( 0, 1 );
@@ -326,7 +332,7 @@ public class JokerDemo extends AbstractJokerTest
                                .addOutputField( 0, "val1", Double.class )
                                .addOutputField( 0, "val2", Double.class );
 
-            OperatorDef beacon = OperatorDefBuilder.newInstance( "beacon", BeaconOperator.class )
+            OperatorDef beacon = OperatorDefBuilder.newInstance( "bc", BeaconOperator.class )
                                                    .setConfig( beaconConfig )
                                                    .setExtendingSchema( beaconSchemaBuilder )
                                                    .build();
@@ -342,7 +348,7 @@ public class JokerDemo extends AbstractJokerTest
             Class<? extends BasePartitionerOperator> partitionerClazz = statelessMiddleRegion
                                                                         ? StatelessPartitionerOperator.class
                                                                         : PartitionedStatefulPartitionerOperator.class;
-            OperatorDef partitioner = OperatorDefBuilder.newInstance( "partitioner", partitionerClazz )
+            OperatorDef partitioner = OperatorDefBuilder.newInstance( "pt", partitionerClazz )
                                                         .setExtendingSchema( partitionerSchemaBuilder )
                                                         .setPartitionFieldNames( statelessMiddleRegion
                                                                                  ? emptyList()
@@ -359,24 +365,38 @@ public class JokerDemo extends AbstractJokerTest
                                                                             .addOutputField( 0, "val", Double.class )
                                                                             .build();
 
-            OperatorDef multiplier = OperatorDefBuilder.newInstance( "multiplier", MapperOperator2.class )
-                                                       .setConfig( multiplierConfig )
-                                                       .setExtendingSchema( multiplierSchema )
-                                                       .build();
+            OperatorDef multiplier1 = OperatorDefBuilder.newInstance( "m1", MapperOperator2.class )
+                                                        .setConfig( multiplierConfig )
+                                                        .setExtendingSchema( multiplierSchema )
+                                                        .build();
+
+            OperatorDef multiplier2 = OperatorDefBuilder.newInstance( "m2", MapperOperator2.class )
+                                                        .setConfig( multiplierConfig )
+                                                        .setExtendingSchema( multiplierSchema )
+                                                        .build();
+
+            OperatorDef multiplier3 = OperatorDefBuilder.newInstance( "m3", MapperOperator2.class )
+                                                        .setConfig( multiplierConfig )
+                                                        .setExtendingSchema( multiplierSchema )
+                                                        .build();
 
             OperatorConfig tupleCounterConfig = new OperatorConfig();
             tupleCounterConfig.set( CONSUMER_FUNCTION_CONFIG_PARAMETER, tupleCounterFn );
-            OperatorDef tupleCounter = OperatorDefBuilder.newInstance( "tupleCounter", ForEachOperator.class )
+            OperatorDef tupleCounter = OperatorDefBuilder.newInstance( "tc", ForEachOperator.class )
                                                          .setConfig( tupleCounterConfig )
                                                          .build();
 
             return new FlowDefBuilder().add( beacon )
                                        .add( partitioner )
-                                       .add( multiplier )
+                                       .add( multiplier1 )
+                                       .add( multiplier2 )
+                                       .add( multiplier3 )
                                        .add( tupleCounter )
-                                       .connect( "beacon", "partitioner" )
-                                       .connect( "partitioner", "multiplier" )
-                                       .connect( "multiplier", "tupleCounter" )
+                                       .connect( "bc", "pt" )
+                                       .connect( "pt", "m1" )
+                                       .connect( "m1", "m2" )
+                                       .connect( "m2", "m3" )
+                                       .connect( "m3", "tc" )
                                        .build();
         }
 

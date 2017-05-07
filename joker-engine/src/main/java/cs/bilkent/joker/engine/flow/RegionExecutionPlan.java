@@ -1,6 +1,7 @@
 package cs.bilkent.joker.engine.flow;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -13,7 +14,9 @@ import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import static java.util.Collections.unmodifiableList;
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.IntStream.range;
 
 /**
  * Represents an execution plan for a {@link RegionDef} object. Each region contains a chain of operators.
@@ -282,6 +285,15 @@ public class RegionExecutionPlan
             newPipelineStartIndices.add( firstPipelineIndex + i, startIndicesToSplit.get( i ) );
         }
         return newPipelineStartIndices;
+    }
+
+    public String toPlanSummaryString ()
+    {
+        return range( 0, getPipelineCount() ).mapToObj( this::getOperatorDefsByPipelineIndex )
+                                             .map( operatorDefs -> Arrays.stream( operatorDefs )
+                                                                         .map( OperatorDef::getId )
+                                                                         .collect( joining( ",", "(", ")" ) ) )
+                                             .collect( joining( ",", "[", "]*" + replicaCount ) );
     }
 
     @Override

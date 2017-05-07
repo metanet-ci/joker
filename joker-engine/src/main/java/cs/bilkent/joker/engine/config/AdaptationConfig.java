@@ -26,7 +26,9 @@ public class AdaptationConfig
 
     static final String CONFIG_NAME = "adaptation";
 
-    static final String ENABLED = "enabled";
+    static final String ADAPTATION_ENABLED = "adaptationEnabled";
+
+    static final String VISUALIZATION_ENABLED = "visualizationEnabled";
 
     static final String PIPELINE_METRICS_HISTORY_SUMMARIZER_CLASS = "pipelineMetricsHistorySummarizerClass";
 
@@ -41,7 +43,9 @@ public class AdaptationConfig
     static final String SPLIT_UTILITY = "splitUtility";
 
 
-    private final boolean enabled;
+    private final boolean adaptationEnabled;
+
+    private final boolean visualizationEnabled;
 
     private final Class<PipelineMetricsHistorySummarizer> pipelineMetricsHistorySummarizerClass;
 
@@ -60,7 +64,8 @@ public class AdaptationConfig
     {
         final Config config = parentConfig.getConfig( CONFIG_NAME );
 
-        this.enabled = config.getBoolean( ENABLED );
+        this.adaptationEnabled = config.getBoolean( ADAPTATION_ENABLED );
+        this.visualizationEnabled = config.getBoolean( VISUALIZATION_ENABLED );
         final String className = config.getString( PIPELINE_METRICS_HISTORY_SUMMARIZER_CLASS );
         try
         {
@@ -78,9 +83,14 @@ public class AdaptationConfig
         this.splitUtility = config.getDouble( SPLIT_UTILITY );
     }
 
-    public boolean isEnabled ()
+    public boolean isAdaptationEnabled ()
     {
-        return enabled;
+        return adaptationEnabled;
+    }
+
+    public boolean isVisualizationEnabled ()
+    {
+        return visualizationEnabled;
     }
 
     public PipelineMetricsHistorySummarizer getPipelineMetricsHistorySummarizer ()

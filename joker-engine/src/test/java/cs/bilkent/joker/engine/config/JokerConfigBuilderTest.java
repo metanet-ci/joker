@@ -16,19 +16,35 @@ public class JokerConfigBuilderTest extends AbstractJokerTest
 
 
     @Test
-    public void test_AdaptationConfig_enabled ()
+    public void test_AdaptationConfig_adaptationEnabled ()
     {
-        builder.getAdaptationConfigBuilder().setEnabled();
+        builder.getAdaptationConfigBuilder().enableAdaptation();
 
-        assertTrue( builder.build().getAdaptationConfig().isEnabled() );
+        assertTrue( builder.build().getAdaptationConfig().isAdaptationEnabled() );
     }
 
     @Test
-    public void test_AdaptationConfig_disabled ()
+    public void test_AdaptationConfig_visualizationDisabled ()
     {
-        builder.getAdaptationConfigBuilder().setDisabled();
+        builder.getAdaptationConfigBuilder().disableVisualization();
 
-        assertFalse( builder.build().getAdaptationConfig().isEnabled() );
+        assertFalse( builder.build().getAdaptationConfig().isVisualizationEnabled() );
+    }
+
+    @Test
+    public void test_AdaptationConfig_visualizationEnabled ()
+    {
+        builder.getAdaptationConfigBuilder().enableVisualization();
+
+        assertTrue( builder.build().getAdaptationConfig().isVisualizationEnabled() );
+    }
+
+    @Test
+    public void test_AdaptationConfig_adaptationDisabled ()
+    {
+        builder.getAdaptationConfigBuilder().disableAdaptation();
+
+        assertFalse( builder.build().getAdaptationConfig().isAdaptationEnabled() );
     }
 
     @Test

@@ -7,6 +7,7 @@ import java.util.List;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.operator.OperatorDef;
 import static java.util.Collections.unmodifiableList;
+import static java.util.stream.Collectors.joining;
 
 /**
  * Represents an execution plan as a list of {@link RegionExecutionPlan} objects, which are determined for a given {@link FlowDef} object.
@@ -133,6 +134,11 @@ public class FlowExecutionPlan
         }
 
         return null;
+    }
+
+    public String toPlanSummaryString ()
+    {
+        return regionExecutionPlans.stream().map( RegionExecutionPlan::toPlanSummaryString ).collect( joining( ",", "{", "}" ) );
     }
 
 }

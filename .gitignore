@@ -17,3 +17,4 @@ performance*.log
 bin/
 joker-paper/output/
 joker-paper/text/paper.log
+flow*.pdf

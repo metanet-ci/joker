@@ -7,13 +7,14 @@ import java.util.Map.Entry;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import static cs.bilkent.joker.engine.config.AdaptationConfig.ADAPTATION_ENABLED;
 import static cs.bilkent.joker.engine.config.AdaptationConfig.CPU_UTILIZATION_BOTTLENECK_THRESHOLD;
 import static cs.bilkent.joker.engine.config.AdaptationConfig.CPU_UTILIZATION_LOAD_CHANGE_THRESHOLD;
-import static cs.bilkent.joker.engine.config.AdaptationConfig.ENABLED;
 import static cs.bilkent.joker.engine.config.AdaptationConfig.PIPELINE_METRICS_HISTORY_SUMMARIZER_CLASS;
 import static cs.bilkent.joker.engine.config.AdaptationConfig.SPLIT_UTILITY;
 import static cs.bilkent.joker.engine.config.AdaptationConfig.THROUGHPUT_INCREASE_THRESHOLD;
 import static cs.bilkent.joker.engine.config.AdaptationConfig.THROUGHPUT_LOAD_CHANGE_THRESHOLD;
+import static cs.bilkent.joker.engine.config.AdaptationConfig.VISUALIZATION_ENABLED;
 import static cs.bilkent.joker.engine.config.FlowDefOptimizerConfig.DUPLICATE_STATELESS_REGIONS;
 import static cs.bilkent.joker.engine.config.FlowDefOptimizerConfig.MERGE_REGIONS;
 import static cs.bilkent.joker.engine.config.JokerConfig.ENGINE_CONFIG_NAME;
@@ -168,16 +169,30 @@ public class JokerConfigBuilder
         {
         }
 
-        public AdaptationConfigBuilder setEnabled ()
+        public AdaptationConfigBuilder enableAdaptation ()
         {
-            adaptationConfigVals.put( ENABLED, true );
+            adaptationConfigVals.put( ADAPTATION_ENABLED, true );
 
             return this;
         }
 
-        public AdaptationConfigBuilder setDisabled ()
+        public AdaptationConfigBuilder disableAdaptation ()
         {
-            adaptationConfigVals.put( ENABLED, false );
+            adaptationConfigVals.put( ADAPTATION_ENABLED, false );
+
+            return this;
+        }
+
+        public AdaptationConfigBuilder enableVisualization ()
+        {
+            adaptationConfigVals.put( VISUALIZATION_ENABLED, true );
+
+            return this;
+        }
+
+        public AdaptationConfigBuilder disableVisualization ()
+        {
+            adaptationConfigVals.put( VISUALIZATION_ENABLED, false );
 
             return this;
         }

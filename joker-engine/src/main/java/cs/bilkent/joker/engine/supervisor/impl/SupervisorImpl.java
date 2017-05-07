@@ -1,5 +1,7 @@
 package cs.bilkent.joker.engine.supervisor.impl;
 
+import java.io.IOException;
+import java.lang.ProcessBuilder.Redirect;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -102,6 +104,8 @@ public class SupervisorImpl implements Supervisor
             {
                 pipelineManager.start( flow, regionExecutionPlans );
                 final FlowExecutionPlan flowExecutionPlan = pipelineManager.getFlowExecutionPlan();
+
+                visualize( flowExecutionPlan );
                 metricManager.start( flowExecutionPlan.getVersion(), pipelineManager.getAllPipelineMetersOrFail() );
 
                 if ( isAdaptationEnabled() )
@@ -110,6 +114,8 @@ public class SupervisorImpl implements Supervisor
                 }
 
                 supervisorThread.start();
+                LOGGER.info( "Initial flow execution plan: {}", flowExecutionPlan.toPlanSummaryString() );
+
                 return flowExecutionPlan;
             }
             catch ( InitializationException e )
@@ -464,7 +470,7 @@ public class SupervisorImpl implements Supervisor
         if ( actions.isEmpty() )
         {
             flowPeriod = flowMetrics.getPeriod();
-            LOGGER.info( "Flow version after adaptation check: {}", flowPeriod );
+            LOGGER.info( "Flow period after adaptation check: {}", flowPeriod );
             return;
         }
 
@@ -483,18 +489,20 @@ public class SupervisorImpl implements Supervisor
             final RegionExecutionPlan newRegionExecutionPlan = flowExecutionPlan.getRegionExecutionPlan( regionId );
             checkState( newRegionExecutionPlan.equals( action.getNewRegionExecutionPlan() ) );
 
-            LOGGER.info( "Region execution plan after adaptation: {}", newRegionExecutionPlan );
+            LOGGER.info( "Region execution plan after adaptation action: {}", newRegionExecutionPlan.toPlanSummaryString() );
 
             final List<PipelineId> removedPipelineIds = pipelineIdChanges._1;
             final List<PipelineMeter> addedPipelineMeters = pipelineIdChanges._2.stream()
                                                                                 .map( pipelineManager::getPipelineMeterOrFail )
                                                                                 .collect( toList() );
 
+            LOGGER.info( "Flow execution plan after adaptation action: {}", flowExecutionPlan.toPlanSummaryString() );
+            visualize( flowExecutionPlan );
             metricManager.update( flowExecutionPlan.getVersion(), removedPipelineIds, addedPipelineMeters );
         }
 
         flowPeriod = metricManager.getFlowMetrics().getPeriod();
-        LOGGER.info( "Flow version after adaptation: {}", flowPeriod );
+        LOGGER.info( "Flow period after adaptation: {}", flowPeriod );
 
         metricManager.resume();
     }
@@ -510,9 +518,51 @@ public class SupervisorImpl implements Supervisor
         return flowMetrics != null && ( flowMetrics.getPeriod() - flowPeriod ) > metricManagerConfig.getHistorySize();
     }
 
+    private void visualize ( final FlowExecutionPlan flowExecutionPlan )
+    {
+        if ( !isVisualizationEnabled() )
+        {
+            return;
+        }
+
+        try
+        {
+            final ProcessBuilder pb = new ProcessBuilder( "python",
+                                                          "viz.py",
+                                                          "-p",
+                                                          flowExecutionPlan.toPlanSummaryString(),
+                                                          "-o",
+                                                          "flow" + flowExecutionPlan.getVersion() + ".pdf" );
+            pb.redirectOutput( Redirect.INHERIT );
+            pb.redirectError( Redirect.INHERIT );
+
+            final Process p = pb.start();
+            p.waitFor();
+
+            if ( p.exitValue() != 0 )
+            {
+                LOGGER.warn( "Cannot visualize {} exit value: {}", flowExecutionPlan.toPlanSummaryString(), p.exitValue() );
+            }
+        }
+        catch ( IOException e )
+        {
+            LOGGER.warn( "Cannot visualize " + flowExecutionPlan.toPlanSummaryString(), e );
+        }
+        catch ( InterruptedException e )
+        {
+            LOGGER.warn( "Interrupted visualization of " + flowExecutionPlan.toPlanSummaryString(), e );
+            Thread.currentThread().interrupt();
+        }
+    }
+
     private boolean isAdaptationEnabled ()
     {
-        return config.getAdaptationConfig().isEnabled();
+        return config.getAdaptationConfig().isAdaptationEnabled();
+    }
+
+    private boolean isVisualizationEnabled ()
+    {
+        return config.getAdaptationConfig().isVisualizationEnabled();
     }
 
 
