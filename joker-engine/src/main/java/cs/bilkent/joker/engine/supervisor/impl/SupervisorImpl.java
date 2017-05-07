@@ -537,7 +537,7 @@ public class SupervisorImpl implements Supervisor
             pb.redirectError( Redirect.INHERIT );
 
             final Process p = pb.start();
-            p.waitFor();
+            p.waitFor( 10, SECONDS );
 
             if ( p.exitValue() != 0 )
             {
