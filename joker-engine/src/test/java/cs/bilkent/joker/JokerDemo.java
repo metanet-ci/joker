@@ -163,8 +163,9 @@ public class JokerDemo extends AbstractJokerTest
         if ( enabled )
         {
             configBuilder.getAdaptationConfigBuilder().enableAdaptation().enableVisualization();
-            configBuilder.getFlowDefOptimizerConfigBuilder().disableMergeRegions();
         }
+
+        configBuilder.getFlowDefOptimizerConfigBuilder().disableMergeRegions();
 
         final JokerConfig jokerConfig = configBuilder.build();
         return new JokerBuilder().setJokerConfig( jokerConfig )
