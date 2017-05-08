@@ -1,7 +1,5 @@
 package cs.bilkent.joker.engine.supervisor.impl;
 
-import java.io.IOException;
-import java.lang.ProcessBuilder.Redirect;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -21,6 +19,7 @@ import cs.bilkent.joker.engine.FlowStatus;
 import static cs.bilkent.joker.engine.FlowStatus.SHUT_DOWN;
 import cs.bilkent.joker.engine.adaptation.AdaptationAction;
 import cs.bilkent.joker.engine.adaptation.AdaptationManager;
+import cs.bilkent.joker.engine.adaptation.AdaptationTracker;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_THREAD_GROUP_NAME;
 import cs.bilkent.joker.engine.config.MetricManagerConfig;
@@ -59,6 +58,8 @@ public class SupervisorImpl implements Supervisor
 
     private final AdaptationManager adaptationManager;
 
+    private final AdaptationTracker adaptationTracker;
+
     private PipelineManager pipelineManager;
 
     private final Thread supervisorThread;
@@ -75,12 +76,13 @@ public class SupervisorImpl implements Supervisor
     @Inject
     public SupervisorImpl ( final JokerConfig config,
                             final MetricManager metricManager,
-                            final AdaptationManager adaptationManager,
+                            final AdaptationManager adaptationManager, final AdaptationTracker adaptationTracker,
                             @Named( JOKER_THREAD_GROUP_NAME ) final ThreadGroup jokerThreadGroup )
     {
         this.config = config;
         this.metricManager = metricManager;
         this.adaptationManager = adaptationManager;
+        this.adaptationTracker = adaptationTracker;
         this.supervisorThread = new Thread( jokerThreadGroup, new TaskRunner(), jokerThreadGroup.getName() + "-Supervisor" );
     }
 
@@ -105,7 +107,8 @@ public class SupervisorImpl implements Supervisor
                 pipelineManager.start( flow, regionExecutionPlans );
                 final FlowExecutionPlan flowExecutionPlan = pipelineManager.getFlowExecutionPlan();
 
-                visualize( flowExecutionPlan );
+                adaptationTracker.init( this::shutdown, flowExecutionPlan );
+
                 metricManager.start( flowExecutionPlan.getVersion(), pipelineManager.getAllPipelineMetersOrFail() );
 
                 if ( isAdaptationEnabled() )
@@ -466,6 +469,9 @@ public class SupervisorImpl implements Supervisor
         }
 
         FlowExecutionPlan flowExecutionPlan = pipelineManager.getFlowExecutionPlan();
+
+        adaptationTracker.onPeriod( flowExecutionPlan, flowMetrics );
+
         final List<AdaptationAction> actions = adaptationManager.apply( flowExecutionPlan.getRegionExecutionPlans(), flowMetrics );
         if ( actions.isEmpty() )
         {
@@ -497,9 +503,10 @@ public class SupervisorImpl implements Supervisor
                                                                                 .collect( toList() );
 
             LOGGER.info( "Flow execution plan after adaptation action: {}", flowExecutionPlan.toPlanSummaryString() );
-            visualize( flowExecutionPlan );
             metricManager.update( flowExecutionPlan.getVersion(), removedPipelineIds, addedPipelineMeters );
         }
+
+        adaptationTracker.onFlowExecutionPlanChange( flowExecutionPlan );
 
         flowPeriod = metricManager.getFlowMetrics().getPeriod();
         LOGGER.info( "Flow period after adaptation: {}", flowPeriod );
@@ -518,53 +525,10 @@ public class SupervisorImpl implements Supervisor
         return flowMetrics != null && ( flowMetrics.getPeriod() - flowPeriod ) > metricManagerConfig.getHistorySize();
     }
 
-    private void visualize ( final FlowExecutionPlan flowExecutionPlan )
-    {
-        if ( !isVisualizationEnabled() )
-        {
-            return;
-        }
-
-        try
-        {
-            final ProcessBuilder pb = new ProcessBuilder( "python",
-                                                          "viz.py",
-                                                          "-p",
-                                                          flowExecutionPlan.toPlanSummaryString(),
-                                                          "-o",
-                                                          "flow" + flowExecutionPlan.getVersion() + ".pdf" );
-            pb.redirectOutput( Redirect.INHERIT );
-            pb.redirectError( Redirect.INHERIT );
-
-            final Process p = pb.start();
-            p.waitFor( 10, SECONDS );
-
-            if ( p.exitValue() != 0 )
-            {
-                LOGGER.warn( "Cannot visualize {} exit value: {}", flowExecutionPlan.toPlanSummaryString(), p.exitValue() );
-            }
-        }
-        catch ( IOException e )
-        {
-            LOGGER.warn( "Cannot visualize " + flowExecutionPlan.toPlanSummaryString(), e );
-        }
-        catch ( InterruptedException e )
-        {
-            LOGGER.warn( "Interrupted visualization of " + flowExecutionPlan.toPlanSummaryString(), e );
-            Thread.currentThread().interrupt();
-        }
-    }
-
     private boolean isAdaptationEnabled ()
     {
         return config.getAdaptationConfig().isAdaptationEnabled();
     }
-
-    private boolean isVisualizationEnabled ()
-    {
-        return config.getAdaptationConfig().isVisualizationEnabled();
-    }
-
 
     private class TaskRunner implements Runnable
     {

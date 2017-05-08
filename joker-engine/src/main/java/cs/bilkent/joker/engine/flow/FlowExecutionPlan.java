@@ -9,6 +9,8 @@ import cs.bilkent.joker.operator.OperatorDef;
 import static java.util.Collections.unmodifiableList;
 import static java.util.stream.Collectors.joining;
 
+// TODO implement equals and hashcode
+
 /**
  * Represents an execution plan as a list of {@link RegionExecutionPlan} objects, which are determined for a given {@link FlowDef} object.
  * Each flow execution plan contains a version number. It is incremented once a new execution plan is created from the current one.

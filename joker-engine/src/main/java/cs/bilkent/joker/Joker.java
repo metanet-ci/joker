@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.FlowStatus;
 import cs.bilkent.joker.engine.JokerEngine;
+import cs.bilkent.joker.engine.adaptation.AdaptationTracker;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.flow.FlowExecutionPlan;
 import cs.bilkent.joker.engine.flow.PipelineId;
@@ -31,19 +32,22 @@ public class Joker
 
     private final Injector injector;
 
-    public Joker ()
+    Joker ()
     {
         this( new JokerConfig() );
     }
 
-    public Joker ( final JokerConfig config )
+    Joker ( final JokerConfig config )
     {
-        this( UUID.randomUUID().toString(), config, null );
+        this( UUID.randomUUID().toString(), config, null, null );
     }
 
-    private Joker ( final Object jokerId, final JokerConfig config, final RegionExecutionPlanFactory regionExecutionPlanFactory )
+    private Joker ( final Object jokerId,
+                    final JokerConfig config,
+                    final RegionExecutionPlanFactory regionExecutionPlanFactory,
+                    final AdaptationTracker adaptationTracker )
     {
-        this.injector = Guice.createInjector( new JokerModule( jokerId, config, regionExecutionPlanFactory ) );
+        this.injector = Guice.createInjector( new JokerModule( jokerId, config, regionExecutionPlanFactory, adaptationTracker ) );
         this.engine = injector.getInstance( JokerEngine.class );
     }
 
@@ -145,6 +149,8 @@ public class Joker
 
         private RegionExecutionPlanFactory regionExecutionPlanFactory;
 
+        private AdaptationTracker adaptationTracker;
+
         private boolean built;
 
         public JokerBuilder ()
@@ -172,6 +178,14 @@ public class Joker
             return this;
         }
 
+        public JokerBuilder setAdaptationTracker ( final AdaptationTracker adaptationTracker )
+        {
+            checkArgument( adaptationTracker != null );
+            checkState( !built, "Joker is already built!" );
+            this.adaptationTracker = adaptationTracker;
+            return this;
+        }
+
         public JokerBuilder setJokerId ( final Object jokerId )
         {
             checkArgument( jokerId != null );
@@ -183,7 +197,7 @@ public class Joker
         {
             checkState( !built, "Joker is already built!" );
             built = true;
-            return new Joker( jokerId, jokerConfig, regionExecutionPlanFactory );
+            return new Joker( jokerId, jokerConfig, regionExecutionPlanFactory, adaptationTracker );
         }
 
     }

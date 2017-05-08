@@ -10,6 +10,8 @@ import com.google.inject.AbstractModule;
 
 import static com.google.inject.name.Names.named;
 import cs.bilkent.joker.engine.adaptation.AdaptationManager;
+import cs.bilkent.joker.engine.adaptation.AdaptationTracker;
+import cs.bilkent.joker.engine.adaptation.impl.DefaultAdaptationTracker;
 import cs.bilkent.joker.engine.adaptation.impl.OrganicAdaptationManager;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_ID;
@@ -50,31 +52,27 @@ public class JokerModule extends AbstractModule
 
     private final RegionExecutionPlanFactory regionExecutionPlanFactory;
 
+    private final AdaptationTracker adaptationTracker;
+
     public JokerModule ( final JokerConfig config )
     {
-        this( UUID.randomUUID().toString(), config, null );
+        this( UUID.randomUUID().toString(), config, null, null );
     }
 
-    public JokerModule ( final Object jokerId, final JokerConfig config, final RegionExecutionPlanFactory regionExecutionPlanFactory )
+    JokerModule ( final Object jokerId,
+                  final JokerConfig config,
+                  final RegionExecutionPlanFactory regionExecutionPlanFactory,
+                  final AdaptationTracker adaptationTracker )
     {
         this.jokerId = jokerId;
         this.config = config;
         this.regionExecutionPlanFactory = regionExecutionPlanFactory;
-    }
-
-    public Object getJokerId ()
-    {
-        return jokerId;
+        this.adaptationTracker = adaptationTracker;
     }
 
     public JokerConfig getConfig ()
     {
         return config;
-    }
-
-    public RegionExecutionPlanFactory getRegionExecutionPlanFactory ()
-    {
-        return regionExecutionPlanFactory;
     }
 
     @Override
@@ -99,6 +97,14 @@ public class JokerModule extends AbstractModule
         else
         {
             bind( RegionExecutionPlanFactory.class ).to( DefaultRegionExecutionPlanFactory.class );
+        }
+        if ( adaptationTracker != null )
+        {
+            bind( AdaptationTracker.class ).toInstance( adaptationTracker );
+        }
+        else
+        {
+            bind( AdaptationTracker.class ).to( DefaultAdaptationTracker.class );
         }
         bind( JokerConfig.class ).toInstance( config );
         bind( ThreadGroup.class ).annotatedWith( named( JOKER_THREAD_GROUP_NAME ) ).toInstance( new ThreadGroup( "Joker" ) );
