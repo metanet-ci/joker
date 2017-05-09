@@ -17,10 +17,13 @@ import com.codahale.metrics.Snapshot;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import cs.bilkent.joker.Joker.JokerBuilder;
+import cs.bilkent.joker.engine.adaptation.impl.adaptationtracker.SmartAdaptationTracker;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.config.JokerConfigBuilder;
 import cs.bilkent.joker.engine.flow.FlowExecutionPlan;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.metric.PipelineMetrics;
+import cs.bilkent.joker.engine.metric.PipelineMetricsHistory;
 import cs.bilkent.joker.engine.region.impl.DefaultRegionExecutionPlanFactory;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
@@ -80,9 +83,9 @@ public class JokerDemo extends AbstractJokerTest
     @Test
     public void testDefaultExecutionModel () throws InterruptedException, ExecutionException, TimeoutException
     {
-        FlowDef flow = flowExample.build();
+        final FlowDef flow = flowExample.build();
 
-        Joker joker = newJokerInstance( true );
+        final Joker joker = newJokerInstance( true );
 
         joker.run( flow );
 
@@ -91,6 +94,66 @@ public class JokerDemo extends AbstractJokerTest
         joker.shutdown().get( 60, SECONDS );
 
         System.out.println( "Total: " + flowExample.getProcessedTupleCount() + " tuples" );
+    }
+
+    @Test
+    public void testAutoShutdown () throws InterruptedException, ExecutionException, TimeoutException
+    {
+        final FlowDef flow = flowExample.build();
+
+        final JokerConfigBuilder configBuilder = new JokerConfigBuilder();
+        configBuilder.getAdaptationConfigBuilder().enableAdaptation().enableVisualization();
+        configBuilder.getFlowDefOptimizerConfigBuilder().disableMergeRegions();
+        final JokerConfig jokerConfig = configBuilder.build();
+
+        final SmartAdaptationTracker adaptationTracker = new SmartAdaptationTracker( jokerConfig );
+
+        final Joker joker = new JokerBuilder().setJokerConfig( jokerConfig )
+                                              .setRegionExecutionPlanFactory( new DefaultRegionExecutionPlanFactory( jokerConfig ) )
+                                              .setAdaptationTracker( adaptationTracker )
+                                              .build();
+
+        joker.run( flow );
+
+        while ( !adaptationTracker.isShutdownTriggered() )
+        {
+            sleepUninterruptibly( 1, SECONDS );
+        }
+
+        joker.shutdown().get( 60, SECONDS );
+
+        logFinalMetrics( adaptationTracker );
+    }
+
+    private void logFinalMetrics ( final SmartAdaptationTracker adaptationTracker )
+    {
+        for ( RegionExecutionPlan regionExecPlan : adaptationTracker.getInitialFlowExecutionPlan().getRegionExecutionPlans() )
+        {
+            if ( regionExecPlan.getRegionDef().isSource() )
+            {
+                continue;
+            }
+
+            final int regionId = regionExecPlan.getRegionId();
+            final PipelineMetricsHistory initialMetricsHistory = adaptationTracker.getInitialFlowMetrics()
+                                                                                  .getRegionMetrics( regionId )
+                                                                                  .get( 0 );
+            final PipelineMetricsHistory finalMetricsHistory = adaptationTracker.getFinalFlowMetrics()
+                                                                                .getRegionMetrics( regionId )
+                                                                                .get( 0 );
+
+            for ( int portIndex = 0; portIndex < initialMetricsHistory.getInputPortCount(); portIndex++ )
+            {
+                final PipelineMetrics initialMetrics = initialMetricsHistory.getLatest();
+                final PipelineMetrics finalMetrics = finalMetricsHistory.getLatest();
+
+                final long initialThroughput = initialMetrics.getTotalInboundThroughput( portIndex );
+                final long finalThroughput = finalMetrics.getTotalInboundThroughput( portIndex );
+                final double ratio = ( (double) finalThroughput ) / initialThroughput;
+                System.out.println( "Region: " + regionId + " portIndex: " + portIndex + " initial throughput: " + initialThroughput
+                                    + " final throughput: " + finalThroughput + " ratio: " + ratio );
+            }
+        }
     }
 
     //
@@ -104,10 +167,10 @@ public class JokerDemo extends AbstractJokerTest
     @Test
     public void testPipelineSplit () throws InterruptedException, ExecutionException, TimeoutException
     {
-        FlowDef flow = flowExample.build();
+        final FlowDef flow = flowExample.build();
 
-        Joker joker = newJokerInstance( false );
-        FlowExecutionPlan flowExecPlan = joker.run( flow );
+        final Joker joker = newJokerInstance( false );
+        final FlowExecutionPlan flowExecPlan = joker.run( flow );
 
         sleepUninterruptibly( 40, SECONDS );
 
@@ -137,14 +200,14 @@ public class JokerDemo extends AbstractJokerTest
     {
         checkArgument( MIDDLE_REGION_TYPE == PARTITIONED_STATEFUL );
 
-        FlowDef flow = flowExample.build();
+        final FlowDef flow = flowExample.build();
 
-        Joker joker = newJokerInstance( false );
-        FlowExecutionPlan flowExecPlan = joker.run( flow );
+        final Joker joker = newJokerInstance( false );
+        final FlowExecutionPlan flowExecPlan = joker.run( flow );
 
         sleepUninterruptibly( 40, SECONDS );
 
-        RegionExecutionPlan regionExecPlan = getMiddleRegionExecPlan( flowExecPlan );
+        final RegionExecutionPlan regionExecPlan = getMiddleRegionExecPlan( flowExecPlan );
 
         joker.rebalanceRegion( flowExecPlan.getVersion(), regionExecPlan.getRegionId(), 2 );
 

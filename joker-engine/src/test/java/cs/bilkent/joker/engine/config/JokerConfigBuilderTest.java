@@ -101,6 +101,15 @@ public class JokerConfigBuilderTest extends AbstractJokerTest
     }
 
     @Test
+    public void test_AdaptationConfig_stablePeriodCountToStop ()
+    {
+        final int val = 20;
+        builder.getAdaptationConfigBuilder().setStablePeriodCountToStop( val );
+
+        assertEquals( val, builder.build().getAdaptationConfig().getStablePeriodCountToStop() );
+    }
+
+    @Test
     public void test_FlowDefOptimizerConfig_duplicateStatelessRegions_enabled ()
     {
         builder.getFlowDefOptimizerConfigBuilder().enableDuplicateStatelessRegions();

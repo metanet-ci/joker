@@ -12,6 +12,7 @@ import static cs.bilkent.joker.engine.config.AdaptationConfig.CPU_UTILIZATION_BO
 import static cs.bilkent.joker.engine.config.AdaptationConfig.CPU_UTILIZATION_LOAD_CHANGE_THRESHOLD;
 import static cs.bilkent.joker.engine.config.AdaptationConfig.PIPELINE_METRICS_HISTORY_SUMMARIZER_CLASS;
 import static cs.bilkent.joker.engine.config.AdaptationConfig.SPLIT_UTILITY;
+import static cs.bilkent.joker.engine.config.AdaptationConfig.STABLE_PERIOD_COUNT_TO_STOP;
 import static cs.bilkent.joker.engine.config.AdaptationConfig.THROUGHPUT_INCREASE_THRESHOLD;
 import static cs.bilkent.joker.engine.config.AdaptationConfig.THROUGHPUT_LOAD_CHANGE_THRESHOLD;
 import static cs.bilkent.joker.engine.config.AdaptationConfig.VISUALIZATION_ENABLED;
@@ -235,6 +236,13 @@ public class JokerConfigBuilder
         public AdaptationConfigBuilder setSplitUtility ( final double val )
         {
             adaptationConfigVals.put( SPLIT_UTILITY, val );
+
+            return this;
+        }
+
+        public AdaptationConfigBuilder setStablePeriodCountToStop ( final int stablePeriodCountToStop )
+        {
+            adaptationConfigVals.put( STABLE_PERIOD_COUNT_TO_STOP, stablePeriodCountToStop );
 
             return this;
         }

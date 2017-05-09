@@ -1,4 +1,4 @@
-package cs.bilkent.joker.engine.adaptation.impl;
+package cs.bilkent.joker.engine.adaptation.impl.adaptationtracker;
 
 import java.io.IOException;
 import java.lang.ProcessBuilder.Redirect;
@@ -13,6 +13,7 @@ import cs.bilkent.joker.engine.config.AdaptationConfig;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.flow.FlowExecutionPlan;
 import cs.bilkent.joker.engine.metric.FlowMetrics;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 @Singleton
@@ -33,7 +34,10 @@ public class DefaultAdaptationTracker implements AdaptationTracker
     @Override
     public void init ( final ShutdownHook hook, final FlowExecutionPlan flowExecutionPlan )
     {
-        if ( !isVisualizationEnabled() )
+        checkArgument( hook != null );
+        checkArgument( flowExecutionPlan != null );
+
+        if ( !isEnabled() )
         {
             return;
         }
@@ -44,12 +48,16 @@ public class DefaultAdaptationTracker implements AdaptationTracker
     @Override
     public void onPeriod ( final FlowExecutionPlan flowExecutionPlan, final FlowMetrics flowMetrics )
     {
+        checkArgument( flowExecutionPlan != null );
+        checkArgument( flowMetrics != null );
     }
 
     @Override
     public void onFlowExecutionPlanChange ( final FlowExecutionPlan newFlowExecutionPlan )
     {
-        if ( !isVisualizationEnabled() )
+        checkArgument( newFlowExecutionPlan != null );
+
+        if ( !isEnabled() )
         {
             return;
         }
@@ -57,18 +65,13 @@ public class DefaultAdaptationTracker implements AdaptationTracker
         visualize( newFlowExecutionPlan );
     }
 
-    private boolean isVisualizationEnabled ()
+    private boolean isEnabled ()
     {
-        return adaptationConfig.isVisualizationEnabled();
+        return adaptationConfig.isAdaptationEnabled() && adaptationConfig.isVisualizationEnabled();
     }
 
     private void visualize ( final FlowExecutionPlan flowExecutionPlan )
     {
-        if ( !isVisualizationEnabled() )
-        {
-            return;
-        }
-
         try
         {
             final ProcessBuilder pb = new ProcessBuilder( "python",

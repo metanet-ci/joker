@@ -42,6 +42,8 @@ public class AdaptationConfig
 
     static final String SPLIT_UTILITY = "splitUtility";
 
+    static final String STABLE_PERIOD_COUNT_TO_STOP = "stablePeriodCountToStop";
+
 
     private final boolean adaptationEnabled;
 
@@ -58,6 +60,8 @@ public class AdaptationConfig
     private final double throughputIncreaseThreshold;
 
     private final double splitUtility;
+
+    private final int stablePeriodCountToStop;
 
 
     AdaptationConfig ( final Config parentConfig )
@@ -81,6 +85,7 @@ public class AdaptationConfig
         this.throughputLoadChangeThreshold = config.getDouble( THROUGHPUT_LOAD_CHANGE_THRESHOLD );
         this.throughputIncreaseThreshold = config.getDouble( THROUGHPUT_INCREASE_THRESHOLD );
         this.splitUtility = config.getDouble( SPLIT_UTILITY );
+        this.stablePeriodCountToStop = config.getInt( STABLE_PERIOD_COUNT_TO_STOP );
     }
 
     public boolean isAdaptationEnabled ()
@@ -129,6 +134,11 @@ public class AdaptationConfig
     public double getSplitUtility ()
     {
         return splitUtility;
+    }
+
+    public int getStablePeriodCountToStop ()
+    {
+        return stablePeriodCountToStop;
     }
 
     public BiPredicate<PipelineMetrics, PipelineMetrics> getLoadChangePredicate ()
