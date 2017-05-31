@@ -5,6 +5,7 @@ import os
 import shutil
 import sys
 import tempfile
+from shutil import copyfile
 
 
 def usage():
@@ -252,7 +253,7 @@ def printProgramLatex(program, file):
                         lastBox = "o%s_%s" % (operator, replica)
                     else:
                         print >> file, "\\node[oper,above of=o%s_%s](o%s_%s){$o_{%s,%s}$};" % (
-                        operator, replica - 1, operator, replica, operator, replica)
+                            operator, replica - 1, operator, replica, operator, replica)
                     operList = operList + ("(o%s_%s)" % (operator, replica))
                 print >> file, "\\node[pipeline,fit=%s] (t%s_%s) {};" % (operList, pipelineIndex, replica)
     print >> file, "\\node[joint,right of=%s](j%s){};" % (lastBox, len(program.getRegions()))
@@ -307,6 +308,6 @@ if __name__ == '__main__':
         os.system("dvips '%s'.dvi > /dev/null 2>&1" % tmpfile)
         os.system("ps2pdf '%s'.ps > /dev/null" % tmpfile)
         os.chdir(mydir)
-        os.rename("%s.pdf" % tmpfile, outputFile)
+        copyfile("%s.pdf" % tmpfile, outputFile)
     finally:
         shutil.rmtree(tmpdir)

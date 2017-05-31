@@ -1,12 +1,12 @@
-package cs.bilkent.joker.engine.adaptation.impl.pipelinemetricshistorysummarizer;
+package cs.bilkent.joker.engine.metric.impl.pipelinemetricshistorysummarizer;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import cs.bilkent.joker.engine.adaptation.PipelineMetricsHistorySummarizer;
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import cs.bilkent.joker.engine.metric.PipelineMetrics.PipelineMetricsBuilder;
 import cs.bilkent.joker.engine.metric.PipelineMetricsHistory;
+import cs.bilkent.joker.engine.metric.PipelineMetricsHistorySummarizer;
 import static java.util.Collections.reverse;
 
 public class ExponentialMovingAverage implements PipelineMetricsHistorySummarizer

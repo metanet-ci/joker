@@ -10,10 +10,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.typesafe.config.Config;
 
-import cs.bilkent.joker.engine.adaptation.PipelineMetricsHistorySummarizer;
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
+import cs.bilkent.joker.engine.metric.PipelineMetricsHistorySummarizer;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
 import static java.lang.Math.abs;
 import static java.lang.Math.max;
@@ -27,6 +27,10 @@ public class AdaptationConfig
     static final String CONFIG_NAME = "adaptation";
 
     static final String ADAPTATION_ENABLED = "adaptationEnabled";
+
+    static final String PIPELINE_SPLIT_ENABLED = "pipelineSplitEnabled";
+
+    static final String REGION_REBALANCE_ENABLED = "regionRebalanceEnabled";
 
     static final String VISUALIZATION_ENABLED = "visualizationEnabled";
 
@@ -46,6 +50,10 @@ public class AdaptationConfig
 
 
     private final boolean adaptationEnabled;
+
+    private final boolean pipelineSplitEnabled;
+
+    private final boolean regionRebalanceEnabled;
 
     private final boolean visualizationEnabled;
 
@@ -69,6 +77,8 @@ public class AdaptationConfig
         final Config config = parentConfig.getConfig( CONFIG_NAME );
 
         this.adaptationEnabled = config.getBoolean( ADAPTATION_ENABLED );
+        this.pipelineSplitEnabled = config.getBoolean( PIPELINE_SPLIT_ENABLED );
+        this.regionRebalanceEnabled = config.getBoolean( REGION_REBALANCE_ENABLED );
         this.visualizationEnabled = config.getBoolean( VISUALIZATION_ENABLED );
         final String className = config.getString( PIPELINE_METRICS_HISTORY_SUMMARIZER_CLASS );
         try
@@ -91,6 +101,16 @@ public class AdaptationConfig
     public boolean isAdaptationEnabled ()
     {
         return adaptationEnabled;
+    }
+
+    public boolean isPipelineSplitEnabled ()
+    {
+        return pipelineSplitEnabled;
+    }
+
+    public boolean isRegionRebalanceEnabled ()
+    {
+        return regionRebalanceEnabled;
     }
 
     public boolean isVisualizationEnabled ()

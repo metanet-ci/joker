@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 
 import cs.bilkent.joker.engine.flow.PipelineId;
 import static java.util.Comparator.comparing;
+import static java.util.stream.Collectors.toList;
 
 public class FlowMetrics
 {
@@ -47,6 +48,12 @@ public class FlowMetrics
         metrics.sort( comparing( PipelineMetricsHistory::getPipelineId ) );
 
         return metrics;
+    }
+
+    public List<PipelineMetrics> getRegionMetrics ( final int regionId,
+                                                    final PipelineMetricsHistorySummarizer pipelineMetricsHistorySummarizer )
+    {
+        return getRegionMetrics( regionId ).stream().map( pipelineMetricsHistorySummarizer::summarize ).collect( toList() );
     }
 
     @Override

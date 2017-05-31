@@ -11,16 +11,26 @@
         <version>0.1</version>
     </parent>
 
-    <properties>
-        <pcj.version>4.1.0-METANET</pcj.version>
-    </properties>
+    <properties/>
 
-    <artifactId>joker-pcj</artifactId>
+    <artifactId>joker-experiments</artifactId>
     <version>0.1</version>
-    <name>joker-pcj</name>
+    <name>joker-experiments</name>
     <url>http://maven.apache.org</url>
 
     <dependencies>
+        <dependency>
+            <groupId>cs.bilkent</groupId>
+            <artifactId>joker-operator-api</artifactId>
+            <version>0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>cs.bilkent</groupId>
+            <artifactId>joker-operators</artifactId>
+            <version>0.1</version>
+        </dependency>
+
         <dependency>
             <groupId>cs.bilkent</groupId>
             <artifactId>joker-engine</artifactId>
@@ -34,36 +44,23 @@
             <version>0.1</version>
         </dependency>
 
-        <dependency>
-            <groupId>icm.edu.pl</groupId>
-            <artifactId>pcj</artifactId>
-            <version>${pcj.version}</version>
-        </dependency>
     </dependencies>
 
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.6</version>
+                <version>3.0.0</version>
                 <configuration>
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
                     </descriptorRefs>
-                    <!-- MainClass in mainfest make a executable jar -->
-                    <archive>
-                        <manifest>
-                            <mainClass>cs.bilkent.joker.pcj.PCJMain</mainClass>
-                        </manifest>
-                    </archive>
-
+                    <appendAssemblyId>false</appendAssemblyId>
                 </configuration>
                 <executions>
                     <execution>
-                        <id>make-assembly</id>
-                        <!-- bind to the packaging phase -->
-                        <phase>package</phase>
+                        <id>make-assembly</id> <!-- this is used for inheritance merges -->
+                        <phase>package</phase> <!-- bind to the packaging phase -->
                         <goals>
                             <goal>single</goal>
                         </goals>

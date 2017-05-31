@@ -40,6 +40,16 @@ public class Pair<T1, T2>
         }
     }
 
+    public T1 firstElement ()
+    {
+        return _1;
+    }
+
+    public T2 secondElement ()
+    {
+        return _2;
+    }
+
     @Override
     public boolean equals ( final Object o )
     {
@@ -73,6 +83,6 @@ public class Pair<T1, T2>
     @Override
     public String toString ()
     {
-        return "Pair{" + "_1=" + _1 + ", _2=" + _2 + '}';
+        return "Pair{" + "" + _1 + ", " + _2 + '}';
     }
 }

@@ -92,4 +92,38 @@ public class SplitPipelineAction implements AdaptationAction
                + newRegionExecutionPlan + ", pipelineId=" + pipelineId + ", pipelineOperatorIndices=" + pipelineOperatorIndices + '}';
     }
 
+    @Override
+    public boolean equals ( final Object o )
+    {
+        if ( this == o )
+        {
+            return true;
+        }
+        if ( o == null || getClass() != o.getClass() )
+        {
+            return false;
+        }
+
+        final SplitPipelineAction that = (SplitPipelineAction) o;
+
+        if ( !currentRegionExecutionPlan.equals( that.currentRegionExecutionPlan ) )
+        {
+            return false;
+        }
+        if ( !pipelineId.equals( that.pipelineId ) )
+        {
+            return false;
+        }
+        return pipelineOperatorIndices.equals( that.pipelineOperatorIndices );
+    }
+
+    @Override
+    public int hashCode ()
+    {
+        int result = currentRegionExecutionPlan.hashCode();
+        result = 31 * result + pipelineId.hashCode();
+        result = 31 * result + pipelineOperatorIndices.hashCode();
+        return result;
+    }
+
 }

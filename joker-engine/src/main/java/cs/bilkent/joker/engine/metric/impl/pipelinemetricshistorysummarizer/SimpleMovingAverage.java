@@ -1,9 +1,9 @@
-package cs.bilkent.joker.engine.adaptation.impl.pipelinemetricshistorysummarizer;
+package cs.bilkent.joker.engine.metric.impl.pipelinemetricshistorysummarizer;
 
-import cs.bilkent.joker.engine.adaptation.PipelineMetricsHistorySummarizer;
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import cs.bilkent.joker.engine.metric.PipelineMetrics.PipelineMetricsBuilder;
 import cs.bilkent.joker.engine.metric.PipelineMetricsHistory;
+import cs.bilkent.joker.engine.metric.PipelineMetricsHistorySummarizer;
 
 public class SimpleMovingAverage implements PipelineMetricsHistorySummarizer
 {

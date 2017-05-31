@@ -9,8 +9,6 @@ import cs.bilkent.joker.operator.OperatorDef;
 import static java.util.Collections.unmodifiableList;
 import static java.util.stream.Collectors.joining;
 
-// TODO implement equals and hashcode
-
 /**
  * Represents an execution plan as a list of {@link RegionExecutionPlan} objects, which are determined for a given {@link FlowDef} object.
  * Each flow execution plan contains a version number. It is incremented once a new execution plan is created from the current one.
@@ -138,9 +136,40 @@ public class FlowExecutionPlan
         return null;
     }
 
+    public int getRegionCount ()
+    {
+        return regionExecutionPlans.size();
+    }
+
     public String toPlanSummaryString ()
     {
         return regionExecutionPlans.stream().map( RegionExecutionPlan::toPlanSummaryString ).collect( joining( ",", "{", "}" ) );
+    }
+
+    @Override
+    public boolean equals ( final Object o )
+    {
+        if ( this == o )
+        {
+            return true;
+        }
+        if ( o == null || getClass() != o.getClass() )
+        {
+            return false;
+        }
+
+        final FlowExecutionPlan that = (FlowExecutionPlan) o;
+
+        return version == that.version && flow.equals( that.flow ) && regionExecutionPlans.equals( that.regionExecutionPlans );
+    }
+
+    @Override
+    public int hashCode ()
+    {
+        int result = version;
+        result = 31 * result + flow.hashCode();
+        result = 31 * result + regionExecutionPlans.hashCode();
+        return result;
     }
 
 }

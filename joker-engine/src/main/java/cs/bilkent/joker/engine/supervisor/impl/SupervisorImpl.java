@@ -76,7 +76,8 @@ public class SupervisorImpl implements Supervisor
     @Inject
     public SupervisorImpl ( final JokerConfig config,
                             final MetricManager metricManager,
-                            final AdaptationManager adaptationManager, final AdaptationTracker adaptationTracker,
+                            final AdaptationManager adaptationManager,
+                            final AdaptationTracker adaptationTracker,
                             @Named( JOKER_THREAD_GROUP_NAME ) final ThreadGroup jokerThreadGroup )
     {
         this.config = config;
@@ -471,6 +472,12 @@ public class SupervisorImpl implements Supervisor
         FlowExecutionPlan flowExecutionPlan = pipelineManager.getFlowExecutionPlan();
 
         adaptationTracker.onPeriod( flowExecutionPlan, flowMetrics );
+
+        // adaptation tracker may have initiated shutdown...
+        if ( shutdownFuture != null )
+        {
+            return;
+        }
 
         final List<AdaptationAction> actions = adaptationManager.apply( flowExecutionPlan.getRegionExecutionPlans(), flowMetrics );
         if ( actions.isEmpty() )

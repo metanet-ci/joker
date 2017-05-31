@@ -46,6 +46,21 @@ public class Triple<T1, T2, T3>
         }
     }
 
+    public T1 firstElement ()
+    {
+        return _1;
+    }
+
+    public T2 secondElement ()
+    {
+        return _2;
+    }
+
+    public T3 thirdElement ()
+    {
+        return _3;
+    }
+
     @Override
     public boolean equals ( final Object o )
     {
@@ -84,6 +99,6 @@ public class Triple<T1, T2, T3>
     @Override
     public String toString ()
     {
-        return "Triple{" + "_1=" + _1 + ", _2=" + _2 + ", _3=" + _3 + '}';
+        return "Triple{" + _1 + ", " + _2 + ", " + _3 + '}';
     }
 }

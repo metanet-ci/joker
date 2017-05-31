@@ -84,12 +84,7 @@ public final class FlowDef
                                                           .flatMap( ports -> ports.stream().map( Port::getOperatorId ) )
                                                           .collect( toSet() );
 
-        final Set<OperatorDef> sourceOperators = operators.values()
-                                                          .stream()
-                                                          .filter( o -> !nonSourceOperators.contains( o.getId() ) )
-                                                          .collect( toSet() );
-
-        return sourceOperators;
+        return operators.values().stream().filter( o -> !nonSourceOperators.contains( o.getId() ) ).collect( toSet() );
     }
 
     private void validateFlowDef ( final Map<String, OperatorDef> operators, final Map<Port, Set<Port>> connections )
@@ -261,7 +256,32 @@ public final class FlowDef
      */
     public Set<Port> getOutboundConnections ( final Port port )
     {
-        return connections.get( port ).stream().collect( toSet() );
+        return new HashSet<>( connections.get( port ) );
+    }
+
+    @Override
+    public boolean equals ( final Object o )
+    {
+        if ( this == o )
+        {
+            return true;
+        }
+        if ( o == null || getClass() != o.getClass() )
+        {
+            return false;
+        }
+
+        final FlowDef flowDef = (FlowDef) o;
+
+        return operators.equals( flowDef.operators ) && connections.equals( flowDef.connections );
+    }
+
+    @Override
+    public int hashCode ()
+    {
+        int result = operators.hashCode();
+        result = 31 * result + connections.hashCode();
+        return result;
     }
 
 }

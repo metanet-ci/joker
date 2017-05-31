@@ -2,7 +2,7 @@ package cs.bilkent.joker.engine.config;
 
 import org.junit.Test;
 
-import cs.bilkent.joker.engine.adaptation.impl.pipelinemetricshistorysummarizer.LatestPipelineMetrics;
+import cs.bilkent.joker.engine.metric.impl.pipelinemetricshistorysummarizer.LatestPipelineMetrics;
 import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.NonCachedTuplesImplSupplier;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static org.junit.Assert.assertEquals;
@@ -24,6 +24,46 @@ public class JokerConfigBuilderTest extends AbstractJokerTest
     }
 
     @Test
+    public void test_AdaptationConfig_adaptationDisabled ()
+    {
+        builder.getAdaptationConfigBuilder().disableAdaptation();
+
+        assertFalse( builder.build().getAdaptationConfig().isAdaptationEnabled() );
+    }
+
+    @Test
+    public void test_AdaptationConfig_pipelineSplitEnabled ()
+    {
+        builder.getAdaptationConfigBuilder().enablePipelineSplit();
+
+        assertTrue( builder.build().getAdaptationConfig().isPipelineSplitEnabled() );
+    }
+
+    @Test
+    public void test_AdaptationConfig_pipelineSplitDisabled ()
+    {
+        builder.getAdaptationConfigBuilder().disablePipelineSplit();
+
+        assertFalse( builder.build().getAdaptationConfig().isPipelineSplitEnabled() );
+    }
+
+    @Test
+    public void test_AdaptationConfig_regionRebalanceEnabled ()
+    {
+        builder.getAdaptationConfigBuilder().enableRegionRebalance();
+
+        assertTrue( builder.build().getAdaptationConfig().isRegionRebalanceEnabled() );
+    }
+
+    @Test
+    public void test_AdaptationConfig_regionRebalanceDisabled ()
+    {
+        builder.getAdaptationConfigBuilder().disableRegionRebalance();
+
+        assertFalse( builder.build().getAdaptationConfig().isRegionRebalanceEnabled() );
+    }
+
+    @Test
     public void test_AdaptationConfig_visualizationDisabled ()
     {
         builder.getAdaptationConfigBuilder().disableVisualization();
@@ -37,14 +77,6 @@ public class JokerConfigBuilderTest extends AbstractJokerTest
         builder.getAdaptationConfigBuilder().enableVisualization();
 
         assertTrue( builder.build().getAdaptationConfig().isVisualizationEnabled() );
-    }
-
-    @Test
-    public void test_AdaptationConfig_adaptationDisabled ()
-    {
-        builder.getAdaptationConfigBuilder().disableAdaptation();
-
-        assertFalse( builder.build().getAdaptationConfig().isAdaptationEnabled() );
     }
 
     @Test

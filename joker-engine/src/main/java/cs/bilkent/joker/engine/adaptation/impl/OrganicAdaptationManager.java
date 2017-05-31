@@ -1,5 +1,6 @@
 package cs.bilkent.joker.engine.adaptation.impl;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
@@ -12,21 +13,17 @@ import javax.inject.Singleton;
 import cs.bilkent.joker.engine.adaptation.AdaptationAction;
 import cs.bilkent.joker.engine.adaptation.AdaptationManager;
 import cs.bilkent.joker.engine.adaptation.BottleneckResolver;
-import cs.bilkent.joker.engine.adaptation.PipelineMetricsHistorySummarizer;
 import cs.bilkent.joker.engine.adaptation.impl.bottleneckresolver.PipelineSplitter;
 import cs.bilkent.joker.engine.adaptation.impl.bottleneckresolver.RegionExtender;
 import cs.bilkent.joker.engine.config.AdaptationConfig;
 import cs.bilkent.joker.engine.config.JokerConfig;
-import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.metric.FlowMetrics;
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
-import cs.bilkent.joker.engine.metric.PipelineMetricsHistory;
-import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
+import cs.bilkent.joker.engine.metric.PipelineMetricsHistorySummarizer;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
-import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
+import static java.util.Collections.unmodifiableList;
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toList;
 
@@ -67,7 +64,22 @@ public class OrganicAdaptationManager implements AdaptationManager
         final BiFunction<RegionExecutionPlan, PipelineMetrics, Integer> ext = adaptationConfig.getPipelineSplitIndexExtractor();
         final BottleneckResolver pipelineSplitter = new PipelineSplitter( ext );
         final BottleneckResolver regionExtender = new RegionExtender( config.getPartitionServiceConfig().getMaxReplicaCount() );
-        this.bottleneckResolvers = asList( pipelineSplitter, regionExtender );
+        final List<BottleneckResolver> bottleneckResolvers = new ArrayList<>();
+        if ( adaptationConfig.isAdaptationEnabled() )
+        {
+            if ( adaptationConfig.isPipelineSplitEnabled() )
+            {
+                bottleneckResolvers.add( pipelineSplitter );
+            }
+            if ( adaptationConfig.isRegionRebalanceEnabled() )
+            {
+                bottleneckResolvers.add( regionExtender );
+            }
+
+            checkState( !bottleneckResolvers.isEmpty(), "there should be at least one bottleneck resolver when adaptation is enabled!" );
+        }
+
+        this.bottleneckResolvers = unmodifiableList( bottleneckResolvers );
         this.loadChangePredicate = adaptationConfig.getLoadChangePredicate();
         this.bottleneckPredicate = adaptationConfig.getBottleneckPredicate();
         this.adaptationEvaluationPredicate = adaptationConfig.getAdaptationEvaluationPredicate();
@@ -99,61 +111,51 @@ public class OrganicAdaptationManager implements AdaptationManager
         {
             for ( RegionAdaptationContext region : regions )
             {
-                final RegionExecutionPlan regionExecutionPlan = getRegionExecutionPlan( regionExecutionPlans, region );
-                final List<PipelineMetrics> regionMetrics = flowMetrics.getRegionMetrics( region.getRegionId() )
-                                                                       .stream()
-                                                                       .map( pipelineMetricsHistorySummarizer::summarize )
-                                                                       .collect( toList() );
-                region.updateRegionMetrics( regionExecutionPlan, regionMetrics, loadChangePredicate );
+                final List<PipelineMetrics> regionMetrics = flowMetrics.getRegionMetrics( region.getRegionId(),
+                                                                                          pipelineMetricsHistorySummarizer );
+                region.updateRegionMetrics( regionMetrics, loadChangePredicate );
             }
 
             for ( RegionAdaptationContext region : regions )
             {
-                final AdaptationAction adaptationAction = region.resolveIfBottleneck( bottleneckPredicate, bottleneckResolvers );
-                if ( adaptationAction != null )
+                final List<AdaptationAction> adaptationActions = region.resolveIfBottleneck( bottleneckPredicate, bottleneckResolvers );
+                if ( !adaptationActions.isEmpty() )
                 {
                     this.adaptingRegion = region;
 
-                    return singletonList( adaptationAction );
+                    return adaptationActions;
                 }
             }
         }
         else
         {
-            final PipelineId adaptingPipelineId = adaptingRegion.getAdaptingPipelineId();
-            final PipelineMetricsHistory pipelineMetricsHistory = flowMetrics.getPipelineMetricsHistory( adaptingPipelineId );
-            checkArgument( pipelineMetricsHistory != null, "no pipeline metrics history for adapting pipeline: %s", adaptingPipelineId );
-            final PipelineMetrics pipelineMetrics = pipelineMetricsHistorySummarizer.summarize( pipelineMetricsHistory );
-            final AdaptationAction rollback = adaptingRegion.evaluateAdaptation( pipelineMetrics, adaptationEvaluationPredicate );
+            final List<PipelineMetrics> regionMetrics = flowMetrics.getRegionMetrics( adaptingRegion.getRegionId(),
+                                                                                      pipelineMetricsHistorySummarizer );
+            final List<AdaptationAction> rollbacks = adaptingRegion.evaluateAdaptation( regionMetrics, adaptationEvaluationPredicate );
 
-            if ( rollback != null )
+            if ( !rollbacks.isEmpty() )
             {
-                final AdaptationAction adaptationAction = adaptingRegion.resolveIfBottleneck( bottleneckPredicate, bottleneckResolvers );
+                final List<AdaptationAction> adaptationActions = adaptingRegion.resolveIfBottleneck( bottleneckPredicate,
+                                                                                                     bottleneckResolvers );
 
-                if ( adaptationAction != null )
+                if ( !adaptationActions.isEmpty() )
                 {
-                    return asList( rollback, adaptationAction );
+                    final List<AdaptationAction> actions = new ArrayList<>();
+                    actions.addAll( rollbacks );
+                    actions.addAll( adaptationActions );
+
+                    return actions;
                 }
 
                 adaptingRegion = null;
 
-                return singletonList( rollback );
+                return rollbacks;
             }
 
             adaptingRegion = null;
         }
 
         return emptyList();
-    }
-
-    private RegionExecutionPlan getRegionExecutionPlan ( final List<RegionExecutionPlan> regionExecutionPlans,
-                                                         final RegionAdaptationContext region )
-    {
-        return regionExecutionPlans.stream()
-                                   .filter( plan -> plan.getRegionId() == region.getRegionId() )
-                                   .findFirst()
-                                   .orElseThrow( () -> new IllegalStateException( "no region execution plan for region: "
-                                                                                  + region.getRegionId() ) );
     }
 
 }

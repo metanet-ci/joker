@@ -79,4 +79,33 @@ public class MergePipelinesAction implements AdaptationAction
                + newRegionExecutionPlan + ", pipelineIds=" + pipelineIds + '}';
     }
 
+    @Override
+    public boolean equals ( final Object o )
+    {
+        if ( this == o )
+        {
+            return true;
+        }
+        if ( o == null || getClass() != o.getClass() )
+        {
+            return false;
+        }
+
+        final MergePipelinesAction action = (MergePipelinesAction) o;
+
+        if ( !currentRegionExecutionPlan.equals( action.currentRegionExecutionPlan ) )
+        {
+            return false;
+        }
+        return pipelineIds.equals( action.pipelineIds );
+    }
+
+    @Override
+    public int hashCode ()
+    {
+        int result = currentRegionExecutionPlan.hashCode();
+        result = 31 * result + pipelineIds.hashCode();
+        return result;
+    }
+
 }

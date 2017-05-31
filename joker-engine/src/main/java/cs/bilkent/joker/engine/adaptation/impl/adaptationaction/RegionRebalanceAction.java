@@ -11,6 +11,8 @@ public class RegionRebalanceAction implements AdaptationAction
 
     private final RegionExecutionPlan currentRegionExecutionPlan, newRegionExecutionPlan;
 
+    private final int newReplicaCount;
+
     public RegionRebalanceAction ( final RegionExecutionPlan regionExecutionPlan, final int newReplicaCount )
     {
         checkArgument( regionExecutionPlan != null );
@@ -18,6 +20,7 @@ public class RegionRebalanceAction implements AdaptationAction
         checkArgument( regionExecutionPlan.getReplicaCount() != newReplicaCount );
         checkArgument( regionExecutionPlan.getRegionType() == PARTITIONED_STATEFUL );
         this.currentRegionExecutionPlan = regionExecutionPlan;
+        this.newReplicaCount = newReplicaCount;
         this.newRegionExecutionPlan = regionExecutionPlan.withNewReplicaCount( newReplicaCount );
     }
 
@@ -50,6 +53,35 @@ public class RegionRebalanceAction implements AdaptationAction
     {
         return "RegionRebalanceAction{" + "currentRegionExecutionPlan=" + currentRegionExecutionPlan + ", newRegionExecutionPlan="
                + newRegionExecutionPlan + '}';
+    }
+
+    @Override
+    public boolean equals ( final Object o )
+    {
+        if ( this == o )
+        {
+            return true;
+        }
+        if ( o == null || getClass() != o.getClass() )
+        {
+            return false;
+        }
+
+        final RegionRebalanceAction that = (RegionRebalanceAction) o;
+
+        if ( newReplicaCount != that.newReplicaCount )
+        {
+            return false;
+        }
+        return currentRegionExecutionPlan.equals( that.currentRegionExecutionPlan );
+    }
+
+    @Override
+    public int hashCode ()
+    {
+        int result = currentRegionExecutionPlan.hashCode();
+        result = 31 * result + newReplicaCount;
+        return result;
     }
 
 }

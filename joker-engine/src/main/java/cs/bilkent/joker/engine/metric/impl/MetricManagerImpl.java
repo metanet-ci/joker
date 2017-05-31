@@ -519,7 +519,8 @@ public class MetricManagerImpl implements MetricManager
         }
 
         private void updatePipelineMetrics ( final Map<PipelineId, long[]> pipelineIdToThreadCpuTimes,
-                                             final long systemTimeDiff, final boolean publish )
+                                             final long systemTimeDiff,
+                                             final boolean publish )
         {
             final Map<PipelineId, PipelineMetricsHistory> pipelineMetricsHistories = new HashMap<>();
 
@@ -571,8 +572,7 @@ public class MetricManagerImpl implements MetricManager
                         + " %s",
                         pipelineReplicaId,
                         flowVersion,
-                        threadUtilizationRatio,
-                        cpuUsage, Arrays.toString( inboundThroughput ),
+                        threadUtilizationRatio, cpuUsage, Arrays.toString( inboundThroughput ),
                         pipelineCost,
                         Arrays.toString( operatorCosts ) );
                 LOGGER.info( log );
