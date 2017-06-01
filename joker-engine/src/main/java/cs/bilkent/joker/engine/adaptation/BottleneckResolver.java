@@ -7,10 +7,11 @@ import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import cs.bilkent.joker.utils.Pair;
 
+@FunctionalInterface
 public interface BottleneckResolver
 {
 
-    List<Pair<AdaptationAction, List<PipelineId>>> resolve ( RegionExecutionPlan regionExecutionPlan,
-                                                             List<PipelineMetrics> bottleneckPipelinesMetrics );
+    List<Pair<AdaptationAction, List<PipelineId>>> resolve ( RegionExecutionPlan regionExecutionPlan, List<PipelineMetrics>
+                                                                                                              bottleneckPipelinesMetrics );
 
 }
