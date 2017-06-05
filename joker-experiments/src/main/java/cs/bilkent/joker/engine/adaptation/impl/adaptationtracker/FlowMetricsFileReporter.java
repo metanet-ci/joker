@@ -1,10 +1,9 @@
 package cs.bilkent.joker.engine.adaptation.impl.adaptationtracker;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Arrays;
+import java.util.function.Consumer;
 
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.adaptation.impl.adaptationtracker.ExperimentalAdaptationTracker.FlowMetricsReporter;
@@ -21,9 +20,6 @@ import cs.bilkent.joker.engine.metric.PipelineMetricsHistorySummarizer;
 public class FlowMetricsFileReporter implements FlowMetricsReporter
 {
 
-    private static final String REPORT_FILE_NAME = "report.txt";
-
-
     private final PipelineMetricsHistorySummarizer pipelineMetricsHistorySummarizer;
 
     private final File dir;
@@ -36,7 +32,103 @@ public class FlowMetricsFileReporter implements FlowMetricsReporter
 
     public void init ()
     {
-        final File reportFile = new File( dir, REPORT_FILE_NAME );
+        createFile( "lock" );
+    }
+
+    @Override
+    public void report ( final FlowExecutionPlan flowExecutionPlan, final FlowMetrics flowMetrics )
+    {
+        writeToFile( "last.txt", writer -> writer.println( flowExecutionPlan.getVersion() ) );
+
+        writeToFile( "flow" + flowExecutionPlan.getVersion() + "_summary.txt", writer ->
+        {
+            writer.println( flowExecutionPlan.toPlanSummaryString() );
+        } );
+
+        writeToFile( "flow" + flowExecutionPlan.getVersion() + "_metricPeriod.txt", writer ->
+        {
+            writer.println( flowMetrics.getPeriod() );
+        } );
+
+        writeToFile( "flow" + flowExecutionPlan.getVersion() + "_regionCount.txt", writer ->
+        {
+            writer.println( flowExecutionPlan.getRegionCount() );
+        } );
+
+        for ( final RegionExecutionPlan regionExecPlan : flowExecutionPlan.getRegionExecutionPlans() )
+        {
+            final String regionFileNamePrefix = "flow" + flowExecutionPlan.getVersion() + "_r" + regionExecPlan.getRegionId();
+            writeToFile( regionFileNamePrefix + "_replicaCount.txt", writer -> writer.println( regionExecPlan.getReplicaCount() ) );
+            writeToFile( regionFileNamePrefix + "_pipelineCount.txt", writer -> writer.println( regionExecPlan.getPipelineCount() ) );
+
+            for ( PipelineId pipelineId : regionExecPlan.getPipelineIds() )
+            {
+                final String pipelineFileNamePrefix = "flow" + flowExecutionPlan.getVersion() + "_p" + pipelineId.getRegionId() + "_"
+                                                      + pipelineId.getPipelineStartIndex();
+
+                writeToFile( pipelineFileNamePrefix + "_operatorCount.txt",
+                             writer -> writer.println( regionExecPlan.getOperatorCountByPipelineStartIndex( pipelineId
+                                                                                                                    .getPipelineStartIndex() ) ) );
+
+                final PipelineMetricsHistory pipelineMetricsHistory = flowMetrics.getPipelineMetricsHistory( pipelineId );
+                final PipelineMetrics pipelineMetrics = pipelineMetricsHistorySummarizer.summarize( pipelineMetricsHistory );
+
+                writeToFile( pipelineFileNamePrefix + "_cpu.txt", writer -> writer.println( pipelineMetrics.getAvgCpuUtilizationRatio() ) );
+
+                final long[] totalInboundThroughputs = pipelineMetrics.getTotalInboundThroughputs();
+                for ( int i = 0; i < pipelineMetrics.getInputPortCount(); i++ )
+                {
+                    final int index = i;
+                    writeToFile( pipelineFileNamePrefix + "_throughput_" + i + ".txt", writer ->
+                    {
+                        writer.println( totalInboundThroughputs[ index ] );
+                    } );
+                }
+
+                writeToFile( pipelineFileNamePrefix + "_costPipeline.txt",
+                             writer -> writer.println( pipelineMetrics.getAvgPipelineCost() ) );
+
+                final double[] avgOperatorCosts = pipelineMetrics.getAvgOperatorCosts();
+                for ( int i = 0; i < pipelineMetrics.getOperatorCount(); i++ )
+                {
+                    final int index = i;
+                    writeToFile( pipelineFileNamePrefix + "_costOperator_" + i + ".txt", writer ->
+                    {
+                        writer.println( avgOperatorCosts[ index ] );
+                    } );
+                }
+            }
+        }
+
+        visualize( flowExecutionPlan, dir.getPath() );
+    }
+
+    private void writeToFile ( final String fileName, final Consumer<PrintWriter> consumer )
+    {
+        final PrintWriter writer;
+
+        try
+        {
+            writer = new PrintWriter( createFile( fileName ) );
+        }
+        catch ( IOException e )
+        {
+            throw new RuntimeException( e );
+        }
+
+        consumer.accept( writer );
+
+        writer.close();
+    }
+
+    private File createFile ( final String fileName )
+    {
+        final File reportFile = new File( dir, fileName );
+        if ( fileName.equals( "last.txt" ) )
+        {
+            return reportFile;
+        }
+
         checkState( !reportFile.exists() );
 
         try
@@ -48,67 +140,8 @@ public class FlowMetricsFileReporter implements FlowMetricsReporter
         {
             throw new RuntimeException( e );
         }
-    }
 
-    @Override
-    public void report ( final FlowExecutionPlan flowExecutionPlan, final FlowMetrics flowMetrics )
-    {
-        final File reportFile = new File( dir, REPORT_FILE_NAME );
-        checkState( reportFile.exists() );
-
-        final PrintWriter writer;
-
-        try
-        {
-            writer = new PrintWriter( new FileWriter( reportFile, true ) );
-        }
-        catch ( IOException e )
-        {
-            throw new RuntimeException( e );
-        }
-
-        writer.println( "FLOW_EXECUTION_PLAN_VERSION" );
-        writer.println( flowExecutionPlan.getVersion() );
-        writer.println( "FLOW_EXECUTION_PLAN_SUMMARY" );
-        writer.println( flowExecutionPlan.toPlanSummaryString() );
-        writer.println( "METRIC_PERIOD" );
-        writer.println( flowMetrics.getPeriod() );
-        writer.println( "REGION_COUNT" );
-        writer.println( flowExecutionPlan.getRegionCount() );
-        for ( RegionExecutionPlan regionExecPlan : flowExecutionPlan.getRegionExecutionPlans() )
-        {
-            writer.println( "REGION_ID" );
-            writer.println( regionExecPlan.getRegionId() );
-            writer.println( "REPLICA_COUNT" );
-            writer.println( regionExecPlan.getReplicaCount() );
-            writer.println( "PIPELINE_COUNT" );
-            writer.println( regionExecPlan.getPipelineCount() );
-            for ( PipelineId pipelineId : regionExecPlan.getPipelineIds() )
-            {
-                writer.println( "PIPELINE_START_INDEX" );
-                writer.println( pipelineId.getPipelineStartIndex() );
-                writer.println( "OPERATOR_COUNT" );
-                writer.println( regionExecPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) );
-
-                final PipelineMetricsHistory pipelineMetricsHistory = flowMetrics.getPipelineMetricsHistory( pipelineId );
-                final PipelineMetrics pipelineMetrics = pipelineMetricsHistorySummarizer.summarize( pipelineMetricsHistory );
-
-                writer.println( "CPU_UTILIZATION_RATIO" );
-                writer.println( pipelineMetrics.getAvgCpuUtilizationRatio() );
-                writer.println( "INPUT_PORT_COUNT" );
-                writer.println( pipelineMetrics.getInputPortCount() );
-                writer.println( "INBOUND_THROUGHPUTS" );
-                writer.println( Arrays.toString( pipelineMetrics.getTotalInboundThroughputs() ) );
-                writer.println( "OPERATOR_COSTS" );
-                writer.println( Arrays.toString( pipelineMetrics.getAvgOperatorCosts() ) );
-                writer.println( "PIPELINE_COST" );
-                writer.println( pipelineMetrics.getAvgPipelineCost() );
-            }
-        }
-
-        writer.close();
-
-        visualize( flowExecutionPlan, dir.getPath() );
+        return reportFile;
     }
 
 }

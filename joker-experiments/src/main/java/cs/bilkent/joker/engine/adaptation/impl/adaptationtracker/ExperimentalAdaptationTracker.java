@@ -98,7 +98,7 @@ public class ExperimentalAdaptationTracker implements AdaptationTracker
         this.flowMetrics = null;
 
         stableCount = 0;
-        LOGGER.info( "Stable count is reset with new flow execution plan: " + newFlowExecutionPlan.toPlanSummaryString() );
+        LOGGER.info( "Stable period count is reset with new flow execution plan: " + newFlowExecutionPlan.toPlanSummaryString() );
     }
 
     public boolean isShutdownTriggered ()

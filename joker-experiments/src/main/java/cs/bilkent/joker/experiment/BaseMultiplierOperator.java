@@ -1,5 +1,7 @@
 package cs.bilkent.joker.experiment;
 
+import java.util.Random;
+
 import cs.bilkent.joker.operator.InitializationContext;
 import cs.bilkent.joker.operator.InvocationContext;
 import cs.bilkent.joker.operator.Operator;
@@ -8,23 +10,42 @@ import cs.bilkent.joker.operator.Tuples;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
+import cs.bilkent.joker.operator.schema.annotation.OperatorSchema;
+import cs.bilkent.joker.operator.schema.annotation.PortSchema;
+import static cs.bilkent.joker.operator.schema.annotation.PortSchemaScope.EXACT_FIELD_SET;
+import static cs.bilkent.joker.operator.schema.annotation.PortSchemaScope.EXTENDABLE_FIELD_SET;
+import cs.bilkent.joker.operator.schema.annotation.SchemaField;
 import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
+import static java.lang.Math.max;
 
+@OperatorSchema( inputs = @PortSchema( portIndex = 0, scope = EXTENDABLE_FIELD_SET, fields = { @SchemaField( name = "key", type = Integer.class ),
+                                                                                               @SchemaField( name = "val1", type = Integer.class ),
+                                                                                               @SchemaField( name = "val2", type = Integer.class ) } ), outputs = @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "key", type = Integer.class ),
+                                                                                                                                                                                                                                  @SchemaField( name = "val1", type = Integer.class ),
+                                                                                                                                                                                                                                  @SchemaField( name = "val2", type = Integer.class ) } ) )
 public abstract class BaseMultiplierOperator implements Operator
 {
 
     static final String MULTIPLICATION_COUNT = "multiplicationCount";
+
+    private static final int RANDOMIZATION_BOUND = 16;
 
 
     private TupleSchema outputSchema;
 
     private int multiplicationCount;
 
+    private int extra;
+
+    private int i;
+
     @Override
     public SchedulingStrategy init ( final InitializationContext context )
     {
         this.outputSchema = context.getOutputPortSchema( 0 );
         this.multiplicationCount = context.getConfig().getInteger( MULTIPLICATION_COUNT );
+        this.extra = max( 1, ( multiplicationCount / 64 ) );
+        i = new Random().nextInt( RANDOMIZATION_BOUND );
         return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
     }
 
@@ -39,9 +60,11 @@ public abstract class BaseMultiplierOperator implements Operator
             Object pKey = tuple.get( "key" );
             summed.set( "key", pKey );
             int sum = tuple.getInteger( "val1" ) + tuple.getInteger( "val2" );
-            for ( int i = 0; i < multiplicationCount; i++ )
+            final int m = getMultiplicationCount();
+            final double val1 = tuple.getDouble( "val1" );
+            for ( int i = 0; i < m; i++ )
             {
-                sum *= tuple.getDouble( "val1" );
+                sum *= val1;
             }
             summed.set( "val1", sum );
             summed.set( "val2", -sum );
@@ -53,6 +76,20 @@ public abstract class BaseMultiplierOperator implements Operator
         {
             final int count = kvStore.getIntegerOrDefault( "count", 0 );
             kvStore.set( "count", count + input.getTupleCount( 0 ) );
+        }
+    }
+
+    private int getMultiplicationCount ()
+    {
+        if ( i == RANDOMIZATION_BOUND )
+        {
+            i = 0;
+            return multiplicationCount + extra;
+        }
+        else
+        {
+            i++;
+            return multiplicationCount;
         }
     }
 
