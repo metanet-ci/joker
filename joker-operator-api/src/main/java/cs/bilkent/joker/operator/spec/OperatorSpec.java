@@ -1,14 +1,15 @@
 package cs.bilkent.joker.operator.spec;
 
 
-import java.lang.annotation.ElementType;
+import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 import cs.bilkent.joker.flow.FlowDef;
 import static cs.bilkent.joker.flow.Port.DYNAMIC_PORT_COUNT;
 import cs.bilkent.joker.operator.Operator;
+import static java.lang.annotation.ElementType.TYPE;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 
 /**
@@ -21,8 +22,9 @@ import cs.bilkent.joker.operator.Operator;
  * @see OperatorType
  * @see FlowDef
  */
-@Retention( RetentionPolicy.RUNTIME )
-@Target( ElementType.TYPE )
+@Retention( RUNTIME )
+@Target( TYPE )
+@Inherited
 public @interface OperatorSpec
 {
 

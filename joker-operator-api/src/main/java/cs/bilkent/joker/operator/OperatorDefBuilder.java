@@ -92,7 +92,7 @@ public final class OperatorDefBuilder
 
     private static OperatorSchema getOperatorSchema ( Class<? extends Operator> clazz )
     {
-        final OperatorSchema[] annotations = clazz.getDeclaredAnnotationsByType( OperatorSchema.class );
+        final OperatorSchema[] annotations = clazz.getAnnotationsByType( OperatorSchema.class );
         checkArgument( annotations.length <= 1, "%s can have at most 1 %s annotation!", clazz, OperatorSchema.class.getSimpleName() );
         return annotations.length > 0 ? annotations[ 0 ] : null;
     }
