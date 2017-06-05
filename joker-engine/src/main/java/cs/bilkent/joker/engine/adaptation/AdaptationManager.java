@@ -8,6 +8,8 @@ import cs.bilkent.joker.engine.metric.FlowMetrics;
 public interface AdaptationManager
 {
 
+    void disableAdaptation ();
+
     void initialize ( List<RegionExecutionPlan> regionExecutionPlans );
 
     List<AdaptationAction> apply ( List<RegionExecutionPlan> regionExecutionPlans, FlowMetrics flowMetrics );

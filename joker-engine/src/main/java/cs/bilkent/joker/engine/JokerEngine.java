@@ -59,6 +59,11 @@ public class JokerEngine
         return supervisor.shutdown();
     }
 
+    public Future<Void> disableAdaptation ()
+    {
+        return supervisor.disableAdaptation();
+    }
+
     public Future<FlowExecutionPlan> mergePipelines ( final int flowVersion, final List<PipelineId> pipelineIds )
     {
         return supervisor.mergePipelines( flowVersion, pipelineIds );

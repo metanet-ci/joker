@@ -116,6 +116,9 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
         when( adaptationConfig.getLoadChangePredicate() ).thenReturn( loadChangePredicate );
         when( adaptationConfig.getBottleneckPredicate() ).thenReturn( bottleneckPredicate );
         when( adaptationConfig.getAdaptationEvaluationPredicate() ).thenReturn( adaptationEvaluationPredicate );
+        when( adaptationConfig.isAdaptationEnabled() ).thenReturn( true );
+        when( adaptationConfig.isPipelineSplitEnabled() ).thenReturn( true );
+        when( adaptationConfig.isRegionRebalanceEnabled() ).thenReturn( true );
 
         final PartitionServiceConfig partitionServiceConfig = mock( PartitionServiceConfig.class );
         when( partitionServiceConfig.getMaxReplicaCount() ).thenReturn( 2 );

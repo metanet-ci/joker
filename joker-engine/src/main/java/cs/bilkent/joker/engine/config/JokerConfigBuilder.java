@@ -214,6 +214,20 @@ public class JokerConfigBuilder
             return this;
         }
 
+        public AdaptationConfigBuilder enablePipelineSplitFirst ()
+        {
+            adaptationConfigVals.put( AdaptationConfig.PIPELINE_SPLIT_FIRST, true );
+
+            return this;
+        }
+
+        public AdaptationConfigBuilder disablePipelineSplitFirst ()
+        {
+            adaptationConfigVals.put( AdaptationConfig.PIPELINE_SPLIT_FIRST, false );
+
+            return this;
+        }
+
         public AdaptationConfigBuilder enableVisualization ()
         {
             adaptationConfigVals.put( VISUALIZATION_ENABLED, true );

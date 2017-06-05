@@ -72,7 +72,6 @@ public class SupervisorImpl implements Supervisor
 
     private int flowPeriod;
 
-
     @Inject
     public SupervisorImpl ( final JokerConfig config,
                             final MetricManager metricManager,
@@ -147,6 +146,31 @@ public class SupervisorImpl implements Supervisor
 
             return shutdownFuture;
         }
+    }
+
+    public Future<Void> disableAdaptation ()
+    {
+        final CompletableFuture<Void> future = new CompletableFuture<>();
+        if ( !isAdaptationEnabled() )
+        {
+            future.complete( null );
+
+            return future;
+        }
+
+        synchronized ( monitor )
+        {
+            checkState( isDeploymentChangeable(),
+                        "cannot disable adaptation since %s and shutdown future is %s",
+                        pipelineManager.getFlowStatus(),
+                        shutdownFuture );
+
+            final boolean result = queue.offer( () -> doDisableAdaptation( future ) );
+            assert result : "offer failed for disable adaptation";
+            LOGGER.info( "disable adaptation task offered" );
+        }
+
+        return future;
     }
 
     private void doShutdown ()
@@ -335,6 +359,13 @@ public class SupervisorImpl implements Supervisor
             future.completeExceptionally( e );
             throw e;
         }
+    }
+
+    private void doDisableAdaptation ( final CompletableFuture<Void> future )
+    {
+        adaptationManager.disableAdaptation();
+        LOGGER.warn( "Adaptation is disabled manually!" );
+        future.complete( null );
     }
 
     private boolean isInitialized ()

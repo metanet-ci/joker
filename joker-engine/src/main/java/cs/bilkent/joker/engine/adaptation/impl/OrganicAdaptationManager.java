@@ -23,6 +23,7 @@ import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import cs.bilkent.joker.engine.metric.PipelineMetricsHistorySummarizer;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.reverse;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toList;
@@ -45,6 +46,8 @@ public class OrganicAdaptationManager implements AdaptationManager
     private final BiPredicate<PipelineMetrics, PipelineMetrics> adaptationEvaluationPredicate;
 
     private final Function<RegionExecutionPlan, RegionAdaptationContext> regionAdaptationContextFactory;
+
+    private boolean adaptationEnabled;
 
     private List<RegionAdaptationContext> regions;
 
@@ -77,6 +80,11 @@ public class OrganicAdaptationManager implements AdaptationManager
             }
 
             checkState( !bottleneckResolvers.isEmpty(), "there should be at least one bottleneck resolver when adaptation is enabled!" );
+
+            if ( !adaptationConfig.isPipelineSplitFirst() )
+            {
+                reverse( bottleneckResolvers );
+            }
         }
 
         this.bottleneckResolvers = unmodifiableList( bottleneckResolvers );
@@ -84,6 +92,7 @@ public class OrganicAdaptationManager implements AdaptationManager
         this.bottleneckPredicate = adaptationConfig.getBottleneckPredicate();
         this.adaptationEvaluationPredicate = adaptationConfig.getAdaptationEvaluationPredicate();
         this.regionAdaptationContextFactory = regionAdaptationContextFactory;
+        this.adaptationEnabled = adaptationConfig.isAdaptationEnabled();
     }
 
     RegionAdaptationContext getRegion ( final int regionId )
@@ -94,6 +103,12 @@ public class OrganicAdaptationManager implements AdaptationManager
     RegionAdaptationContext getAdaptingRegion ()
     {
         return adaptingRegion;
+    }
+
+    @Override
+    public void disableAdaptation ()
+    {
+        adaptationEnabled = false;
     }
 
     @Override
@@ -109,6 +124,11 @@ public class OrganicAdaptationManager implements AdaptationManager
     {
         if ( adaptingRegion == null )
         {
+            if ( !adaptationEnabled )
+            {
+                return emptyList();
+            }
+
             for ( RegionAdaptationContext region : regions )
             {
                 final List<PipelineMetrics> regionMetrics = flowMetrics.getRegionMetrics( region.getRegionId(),

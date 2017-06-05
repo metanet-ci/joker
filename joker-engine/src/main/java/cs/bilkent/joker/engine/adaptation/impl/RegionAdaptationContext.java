@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
@@ -41,7 +42,7 @@ public class RegionAdaptationContext
 
     private final Multimap<PipelineId, AdaptationAction> blacklists = HashMultimap.create();
 
-    private final Set<PipelineId> nonResolvablePipelineIds = new HashSet<>();
+    private final Set<PipelineId> nonResolvablePipelineIds = new TreeSet<>();
 
     private final Map<PipelineId, PipelineMetrics> pipelineMetricsByPipelineId = new TreeMap<>();
 

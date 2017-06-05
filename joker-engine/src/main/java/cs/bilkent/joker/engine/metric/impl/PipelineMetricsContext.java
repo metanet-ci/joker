@@ -11,6 +11,7 @@ import static cs.bilkent.joker.engine.metric.PipelineMeter.PIPELINE_EXECUTION_IN
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import cs.bilkent.joker.engine.metric.PipelineMetrics.PipelineMetricsBuilder;
 import static java.lang.Math.max;
+import static java.lang.Math.min;
 import static java.lang.System.arraycopy;
 import static java.util.Arrays.fill;
 
@@ -162,12 +163,12 @@ class PipelineMetricsContext
 
             if ( sampleCountSum > 0 )
             {
-                final double pipelineCost = ( (double) ( pipelineSampleCountBuffer - pipelineSampleCount ) ) / sampleCountSum;
+                final double pipelineCost = min( 1d, ( (double) ( pipelineSampleCountBuffer - pipelineSampleCount ) ) / sampleCountSum );
                 builder.setPipelineCost( replicaIndex, pipelineCost );
                 for ( int operatorIndex = 0; operatorIndex < operatorCount; operatorIndex++ )
                 {
                     final long samplingDiff = operatorSampleCountsBuffer[ operatorIndex ] - operatorSampleCounts[ operatorIndex ];
-                    final double operatorCost = ( (double) samplingDiff ) / sampleCountSum;
+                    final double operatorCost = min( 1d, ( (double) samplingDiff ) / sampleCountSum );
                     builder.setOperatorCost( replicaIndex, operatorIndex, operatorCost );
                 }
 

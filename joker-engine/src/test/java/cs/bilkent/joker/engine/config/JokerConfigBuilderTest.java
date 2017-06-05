@@ -64,6 +64,22 @@ public class JokerConfigBuilderTest extends AbstractJokerTest
     }
 
     @Test
+    public void test_AdaptationConfig_enablePipelineSplitFirst ()
+    {
+        builder.getAdaptationConfigBuilder().enablePipelineSplitFirst();
+
+        assertTrue( builder.build().getAdaptationConfig().isPipelineSplitFirst() );
+    }
+
+    @Test
+    public void test_AdaptationConfig_disablePipelineSplitFirst ()
+    {
+        builder.getAdaptationConfigBuilder().disablePipelineSplitFirst();
+
+        assertFalse( builder.build().getAdaptationConfig().isPipelineSplitFirst() );
+    }
+
+    @Test
     public void test_AdaptationConfig_visualizationDisabled ()
     {
         builder.getAdaptationConfigBuilder().disableVisualization();

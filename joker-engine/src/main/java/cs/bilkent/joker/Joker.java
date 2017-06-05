@@ -140,6 +140,11 @@ public class Joker
         return engine.shutdown();
     }
 
+    public Future<Void> disableAdaptation ()
+    {
+        return engine.disableAdaptation();
+    }
+
     public static class JokerBuilder
     {
 

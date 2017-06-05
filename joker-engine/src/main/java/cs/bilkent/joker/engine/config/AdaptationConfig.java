@@ -32,6 +32,8 @@ public class AdaptationConfig
 
     static final String REGION_REBALANCE_ENABLED = "regionRebalanceEnabled";
 
+    static final String PIPELINE_SPLIT_FIRST = "pipelineSplitFirst";
+
     static final String VISUALIZATION_ENABLED = "visualizationEnabled";
 
     static final String PIPELINE_METRICS_HISTORY_SUMMARIZER_CLASS = "pipelineMetricsHistorySummarizerClass";
@@ -54,6 +56,8 @@ public class AdaptationConfig
     private final boolean pipelineSplitEnabled;
 
     private final boolean regionRebalanceEnabled;
+
+    private final boolean pipelineSplitFirst;
 
     private final boolean visualizationEnabled;
 
@@ -79,6 +83,7 @@ public class AdaptationConfig
         this.adaptationEnabled = config.getBoolean( ADAPTATION_ENABLED );
         this.pipelineSplitEnabled = config.getBoolean( PIPELINE_SPLIT_ENABLED );
         this.regionRebalanceEnabled = config.getBoolean( REGION_REBALANCE_ENABLED );
+        this.pipelineSplitFirst = config.getBoolean( PIPELINE_SPLIT_FIRST );
         this.visualizationEnabled = config.getBoolean( VISUALIZATION_ENABLED );
         final String className = config.getString( PIPELINE_METRICS_HISTORY_SUMMARIZER_CLASS );
         try
@@ -111,6 +116,11 @@ public class AdaptationConfig
     public boolean isRegionRebalanceEnabled ()
     {
         return regionRebalanceEnabled;
+    }
+
+    public boolean isPipelineSplitFirst ()
+    {
+        return pipelineSplitFirst;
     }
 
     public boolean isVisualizationEnabled ()
