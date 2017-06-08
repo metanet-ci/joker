@@ -40,7 +40,7 @@ import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 
-public class ExperimentRunner
+public class SingleRegionExperimentRunner
 {
 
     private static final int KEY_RANGE = 100000;
