@@ -33,8 +33,6 @@ import static java.util.stream.Collectors.toList;
 public class OrganicAdaptationManager implements AdaptationManager
 {
 
-    private final AdaptationConfig adaptationConfig;
-
     private final PipelineMetricsHistorySummarizer pipelineMetricsHistorySummarizer;
 
     private final List<BottleneckResolver> bottleneckResolvers;
@@ -51,7 +49,7 @@ public class OrganicAdaptationManager implements AdaptationManager
 
     private List<RegionAdaptationContext> regions;
 
-    private RegionAdaptationContext adaptingRegion;
+    private List<RegionAdaptationContext> adaptingRegions = emptyList();
 
     @Inject
     public OrganicAdaptationManager ( final JokerConfig config )
@@ -62,7 +60,7 @@ public class OrganicAdaptationManager implements AdaptationManager
     OrganicAdaptationManager ( final JokerConfig config,
                                final Function<RegionExecutionPlan, RegionAdaptationContext> regionAdaptationContextFactory )
     {
-        this.adaptationConfig = config.getAdaptationConfig();
+        final AdaptationConfig adaptationConfig = config.getAdaptationConfig();
         this.pipelineMetricsHistorySummarizer = adaptationConfig.getPipelineMetricsHistorySummarizer();
         final BiFunction<RegionExecutionPlan, PipelineMetrics, Integer> ext = adaptationConfig.getPipelineSplitIndexExtractor();
         final BottleneckResolver pipelineSplitter = new PipelineSplitter( ext );
@@ -100,9 +98,9 @@ public class OrganicAdaptationManager implements AdaptationManager
         return regions.stream().filter( region -> region.getRegionId() == regionId ).findFirst().orElse( null );
     }
 
-    RegionAdaptationContext getAdaptingRegion ()
+    List<RegionAdaptationContext> getAdaptingRegions ()
     {
-        return adaptingRegion;
+        return unmodifiableList( adaptingRegions );
     }
 
     @Override
@@ -122,7 +120,7 @@ public class OrganicAdaptationManager implements AdaptationManager
     @Override
     public List<AdaptationAction> apply ( final List<RegionExecutionPlan> regionExecutionPlans, final FlowMetrics flowMetrics )
     {
-        if ( adaptingRegion == null )
+        if ( adaptingRegions.isEmpty() )
         {
             if ( !adaptationEnabled )
             {
@@ -136,46 +134,91 @@ public class OrganicAdaptationManager implements AdaptationManager
                 region.updateRegionMetrics( regionMetrics, loadChangePredicate );
             }
 
+            final List<RegionAdaptationContext> newAdaptingRegions = new ArrayList<>();
+            final List<AdaptationAction> newAdaptationActions = new ArrayList<>();
+
             for ( RegionAdaptationContext region : regions )
             {
                 final List<AdaptationAction> adaptationActions = region.resolveIfBottleneck( bottleneckPredicate, bottleneckResolvers );
                 if ( !adaptationActions.isEmpty() )
                 {
-                    this.adaptingRegion = region;
-
-                    return adaptationActions;
+                    newAdaptingRegions.add( region );
+                    newAdaptationActions.addAll( adaptationActions );
                 }
             }
+
+            if ( newAdaptingRegions.isEmpty() )
+            {
+                return emptyList();
+            }
+
+            adaptingRegions = newAdaptingRegions;
+            return unmodifiableList( newAdaptationActions );
         }
         else
         {
-            final List<PipelineMetrics> regionMetrics = flowMetrics.getRegionMetrics( adaptingRegion.getRegionId(),
-                                                                                      pipelineMetricsHistorySummarizer );
-            final List<AdaptationAction> rollbacks = adaptingRegion.evaluateAdaptation( regionMetrics, adaptationEvaluationPredicate );
-
-            if ( !rollbacks.isEmpty() )
+            int nonResolvedIdx = -1;
+            for ( int i = 0; i < adaptingRegions.size(); i++ )
             {
-                final List<AdaptationAction> adaptationActions = adaptingRegion.resolveIfBottleneck( bottleneckPredicate,
-                                                                                                     bottleneckResolvers );
-
-                if ( !adaptationActions.isEmpty() )
+                final RegionAdaptationContext adaptingRegion = adaptingRegions.get( i );
+                final List<PipelineMetrics> regionMetrics = flowMetrics.getRegionMetrics( adaptingRegion.getRegionId(),
+                                                                                          pipelineMetricsHistorySummarizer );
+                final boolean success = adaptingRegion.isAdaptationSuccessful( regionMetrics, adaptationEvaluationPredicate );
+                if ( !success )
                 {
-                    final List<AdaptationAction> actions = new ArrayList<>();
-                    actions.addAll( rollbacks );
-                    actions.addAll( adaptationActions );
-
-                    return actions;
+                    nonResolvedIdx = i;
+                    break;
                 }
-
-                adaptingRegion = null;
-
-                return rollbacks;
             }
 
-            adaptingRegion = null;
-        }
+            if ( nonResolvedIdx == -1 )
+            {
+                for ( RegionAdaptationContext adaptingRegion : adaptingRegions )
+                {
+                    final List<PipelineMetrics> regionMetrics = flowMetrics.getRegionMetrics( adaptingRegion.getRegionId(),
+                                                                                              pipelineMetricsHistorySummarizer );
+                    adaptingRegion.finalizeAdaptation( regionMetrics );
+                }
 
-        return emptyList();
+                adaptingRegions = emptyList();
+                return emptyList();
+            }
+            else
+            {
+                final RegionAdaptationContext nonResolvedRegion = adaptingRegions.get( nonResolvedIdx );
+                final List<AdaptationAction> rollbacks = nonResolvedRegion.rollbackAdaptation( true );
+                final List<AdaptationAction> newAdaptationActions = nonResolvedRegion.resolveIfBottleneck( bottleneckPredicate,
+                                                                                                           bottleneckResolvers );
+
+                final List<AdaptationAction> actions = new ArrayList<>();
+                if ( newAdaptationActions.isEmpty() )
+                {
+                    // we are collecting rollbacks in the reverse order...
+                    for ( int i = adaptingRegions.size() - 1; i > nonResolvedIdx; i-- )
+                    {
+                        final RegionAdaptationContext adaptingRegion = adaptingRegions.get( i );
+                        actions.addAll( adaptingRegion.rollbackAdaptation( false ) );
+                    }
+
+                    actions.addAll( rollbacks );
+
+                    for ( int i = nonResolvedIdx - 1; i >= 0; i-- )
+                    {
+                        final RegionAdaptationContext adaptingRegion = adaptingRegions.get( i );
+                        actions.addAll( adaptingRegion.rollbackAdaptation( false ) );
+                    }
+
+                    adaptingRegions = emptyList();
+                }
+                else
+                {
+                    actions.addAll( rollbacks );
+                    actions.addAll( newAdaptationActions );
+                }
+
+                return unmodifiableList( actions );
+            }
+        }
     }
 
 }

@@ -101,8 +101,10 @@ public class RegionAdaptationContext
     {
         checkArgument( regionMetrics != null );
         checkArgument( loadChangePredicate != null );
-        checkState( adaptationActions.isEmpty(), "Region metrics cannot be updated while region %s has ongoing adaptations: %s",
-                    getRegionId(), adaptationActions );
+        checkState( adaptationActions.isEmpty(),
+                    "Region metrics cannot be updated while region %s has ongoing adaptations: %s",
+                    getRegionId(),
+                    adaptationActions );
 
         for ( PipelineMetrics pipelineMetrics : regionMetrics )
         {
@@ -304,8 +306,8 @@ public class RegionAdaptationContext
         return candidates;
     }
 
-    List<AdaptationAction> evaluateAdaptation ( final List<PipelineMetrics> regionMetrics,
-                                                final BiPredicate<PipelineMetrics, PipelineMetrics> adaptationEvaluationPredicate )
+    boolean isAdaptationSuccessful ( final List<PipelineMetrics> regionMetrics,
+                                     final BiPredicate<PipelineMetrics, PipelineMetrics> adaptationEvaluationPredicate )
     {
         checkArgument( regionMetrics != null );
         checkArgument( adaptationEvaluationPredicate != null );
@@ -319,14 +321,14 @@ public class RegionAdaptationContext
         final PipelineMetrics regionBottleneckInboundMetrics = pipelineMetricsByPipelineId.get( regionNewInboundMetrics.getPipelineId() );
         checkState( regionBottleneckInboundMetrics != null );
 
-        if ( adaptationEvaluationPredicate.test( regionBottleneckInboundMetrics, regionNewInboundMetrics ) )
+        final boolean success = adaptationEvaluationPredicate.test( regionBottleneckInboundMetrics, regionNewInboundMetrics );
+        if ( success )
         {
             LOGGER.info( "Adaptations are beneficial for Region {} with new metrics: {} bottleneck metrics: {} and adaptation actions: {}",
-
-                         getRegionId(), regionNewInboundMetrics, regionBottleneckInboundMetrics, adaptationActions );
-            finalizeAdaptation( regionMetrics );
-
-            return emptyList();
+                         getRegionId(),
+                         regionNewInboundMetrics,
+                         regionBottleneckInboundMetrics,
+                         adaptationActions );
         }
         else
         {
@@ -336,13 +338,20 @@ public class RegionAdaptationContext
                     regionNewInboundMetrics,
                     regionBottleneckInboundMetrics,
                     adaptationActions );
-
-            return rollbackAdaptation();
         }
+
+        return success;
     }
 
-    private void finalizeAdaptation ( final List<PipelineMetrics> regionMetrics )
+    void finalizeAdaptation ( final List<PipelineMetrics> regionMetrics )
     {
+        checkArgument( regionMetrics != null );
+        regionMetrics.stream().map( PipelineMetrics::getPipelineId ).forEach( this::checkPipelineId );
+        checkState( !adaptationActions.isEmpty(),
+                    "Cannot finalize adaptation with metrics: %s for Region %s has no adaptation action",
+                    regionMetrics,
+                    getRegionId() );
+
         final List<PipelineId> adaptingPipelineIds = getAdaptingPipelineIds();
         for ( PipelineMetrics pipelineMetrics : regionMetrics )
         {
@@ -369,13 +378,20 @@ public class RegionAdaptationContext
         }
     }
 
-    private List<AdaptationAction> rollbackAdaptation ()
+    List<AdaptationAction> rollbackAdaptation ( final boolean blacklist )
     {
-        addToBlacklist();
+        checkState( !adaptationActions.isEmpty(), "Cannot rollback adaptation for Region %s has no adaptation action", getRegionId() );
+
+        if ( blacklist )
+        {
+            addToBlacklist();
+        }
+
         currentExecutionPlan = getBaseExecutionPlan();
         checkState( currentExecutionPlan != null );
 
         final List<AdaptationAction> actions = adaptationActions.stream().map( Pair::firstElement ).collect( toList() );
+        checkState( !actions.isEmpty() );
         adaptationActions = emptyList();
 
         reverse( actions );

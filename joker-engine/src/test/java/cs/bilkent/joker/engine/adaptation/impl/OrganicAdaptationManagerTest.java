@@ -14,7 +14,6 @@ import org.mockito.runners.MockitoJUnitRunner;
 import cs.bilkent.joker.engine.adaptation.AdaptationAction;
 import cs.bilkent.joker.engine.adaptation.BottleneckResolver;
 import cs.bilkent.joker.engine.adaptation.impl.adaptationaction.MergePipelinesActionTest.StatefulOperatorInput0Output1;
-import static cs.bilkent.joker.engine.adaptation.impl.adaptationaction.RegionRebalanceActionTest.getRegion;
 import cs.bilkent.joker.engine.config.AdaptationConfig;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.config.PartitionServiceConfig;
@@ -25,23 +24,22 @@ import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import cs.bilkent.joker.engine.metric.PipelineMetricsHistorySummarizer;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
 import cs.bilkent.joker.engine.region.impl.IdGenerator;
+import cs.bilkent.joker.engine.region.impl.PipelineTransformerImplTest.StatefulInput1Output1Operator;
 import cs.bilkent.joker.engine.region.impl.PipelineTransformerImplTest.StatelessInput1Output1Operator;
 import cs.bilkent.joker.engine.region.impl.RegionDefFormerImpl;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
-import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
-import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyListOf;
+import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -52,13 +50,21 @@ import static org.mockito.Mockito.when;
 public class OrganicAdaptationManagerTest extends AbstractJokerTest
 {
 
-    private final OperatorDef source = OperatorDefBuilder.newInstance( "up", StatefulOperatorInput0Output1.class ).build();
+    private final OperatorDef operator1 = OperatorDefBuilder.newInstance( "op1", StatefulOperatorInput0Output1.class ).build();
 
-    private final OperatorDef sink = OperatorDefBuilder.newInstance( "down", StatelessInput1Output1Operator.class ).build();
+    private final OperatorDef operator2 = OperatorDefBuilder.newInstance( "op2", StatelessInput1Output1Operator.class ).build();
 
-    private RegionDef upstreamRegion;
+    private final OperatorDef operator3 = OperatorDefBuilder.newInstance( "op3", StatefulInput1Output1Operator.class ).build();
 
-    private RegionDef downstreamRegion;
+    private final OperatorDef operator4 = OperatorDefBuilder.newInstance( "op4", StatelessInput1Output1Operator.class ).build();
+
+    private RegionDef region1;
+
+    private RegionDef region2;
+
+    private RegionDef region3;
+
+    private RegionDef region4;
 
     @Mock
     private JokerConfig config;
@@ -82,25 +88,43 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
     private BiPredicate<PipelineMetrics, PipelineMetrics> adaptationEvaluationPredicate;
 
     @Mock
-    private PipelineMetrics upstreamPipelineMetrics;
+    private PipelineMetrics region1PipelineMetrics;
 
     @Mock
-    private PipelineMetrics downstreamPipelineMetrics;
+    private PipelineMetrics region2PipelineMetrics;
+
+    @Mock
+    private PipelineMetrics region3PipelineMetrics;
+
+    @Mock
+    private PipelineMetrics region4PipelineMetrics;
 
     @Mock
     private FlowMetrics flowMetrics;
 
     @Mock
-    private RegionAdaptationContext upstreamContext;
+    private RegionAdaptationContext region1Context;
 
     @Mock
-    private RegionAdaptationContext downstreamContext;
+    private RegionAdaptationContext region2Context;
 
     @Mock
-    private RegionExecutionPlan upstreamRegionExecutionPlan;
+    private RegionAdaptationContext region3Context;
 
     @Mock
-    private RegionExecutionPlan downstreamRegionExecutionPlan;
+    private RegionAdaptationContext region4Context;
+
+    @Mock
+    private RegionExecutionPlan region1ExecutionPlan;
+
+    @Mock
+    private RegionExecutionPlan region2ExecutionPlan;
+
+    @Mock
+    private RegionExecutionPlan region3ExecutionPlan;
+
+    @Mock
+    private RegionExecutionPlan region4ExecutionPlan;
 
     private List<RegionExecutionPlan> regionExecutionPlans;
 
@@ -109,7 +133,7 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
     @Before
     public void init ()
     {
-        regionExecutionPlans = asList( upstreamRegionExecutionPlan, downstreamRegionExecutionPlan );
+        regionExecutionPlans = asList( region1ExecutionPlan, region2ExecutionPlan, region3ExecutionPlan, region4ExecutionPlan );
 
         when( config.getAdaptationConfig() ).thenReturn( adaptationConfig );
         when( adaptationConfig.getPipelineMetricsHistorySummarizer() ).thenReturn( pipelineMetricsHistorySummarizer );
@@ -126,37 +150,60 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
 
         adaptationManager = new OrganicAdaptationManager( config, regionAdaptationContextFactory );
 
-        final FlowDef flow = new FlowDefBuilder().add( source ).add( sink ).connect( source.getId(), sink.getId() ).build();
+        final FlowDef flow = new FlowDefBuilder().add( operator1 )
+                                                 .add( operator2 )
+                                                 .add( operator3 )
+                                                 .add( operator4 )
+                                                 .connect( operator1.getId(), operator2.getId() )
+                                                 .connect( operator2.getId(), operator3.getId() )
+                                                 .connect( operator3.getId(), operator4.getId() )
+                                                 .build();
 
         final RegionDefFormer regionDefFormer = new RegionDefFormerImpl( new IdGenerator() );
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
 
-        upstreamRegion = getRegion( regions, STATEFUL );
-        downstreamRegion = getRegion( regions, STATELESS );
+        region1 = getRegion( regions, operator1 );
+        region2 = getRegion( regions, operator2 );
+        region3 = getRegion( regions, operator3 );
+        region4 = getRegion( regions, operator4 );
 
-        when( upstreamContext.getRegionId() ).thenReturn( upstreamRegion.getRegionId() );
-        when( downstreamContext.getRegionId() ).thenReturn( downstreamRegion.getRegionId() );
+        when( region1Context.getRegionId() ).thenReturn( region1.getRegionId() );
+        when( region2Context.getRegionId() ).thenReturn( region2.getRegionId() );
+        when( region3Context.getRegionId() ).thenReturn( region3.getRegionId() );
+        when( region4Context.getRegionId() ).thenReturn( region4.getRegionId() );
 
-        when( flowMetrics.getRegionMetrics( upstreamRegion.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
-                upstreamPipelineMetrics ) );
-        when( flowMetrics.getRegionMetrics( downstreamRegion.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
-                downstreamPipelineMetrics ) );
+        when( flowMetrics.getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
+                region1PipelineMetrics ) );
+        when( flowMetrics.getRegionMetrics( region2.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
+                region2PipelineMetrics ) );
+        when( flowMetrics.getRegionMetrics( region3.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
+                region3PipelineMetrics ) );
+        when( flowMetrics.getRegionMetrics( region4.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
+                region4PipelineMetrics ) );
     }
 
     @Test
     public void shouldInitRegionAdaptationContexts ()
     {
-        when( upstreamRegionExecutionPlan.getRegionDef() ).thenReturn( upstreamRegion );
-        when( downstreamRegionExecutionPlan.getRegionDef() ).thenReturn( downstreamRegion );
-        when( upstreamRegionExecutionPlan.getRegionId() ).thenReturn( upstreamRegion.getRegionId() );
-        when( downstreamRegionExecutionPlan.getRegionId() ).thenReturn( downstreamRegion.getRegionId() );
-        when( regionAdaptationContextFactory.apply( upstreamRegionExecutionPlan ) ).thenReturn( upstreamContext );
-        when( regionAdaptationContextFactory.apply( downstreamRegionExecutionPlan ) ).thenReturn( downstreamContext );
+        when( region1ExecutionPlan.getRegionDef() ).thenReturn( region1 );
+        when( region2ExecutionPlan.getRegionDef() ).thenReturn( region2 );
+        when( region3ExecutionPlan.getRegionDef() ).thenReturn( region3 );
+        when( region4ExecutionPlan.getRegionDef() ).thenReturn( region4 );
+        when( region1ExecutionPlan.getRegionId() ).thenReturn( region1.getRegionId() );
+        when( region2ExecutionPlan.getRegionId() ).thenReturn( region2.getRegionId() );
+        when( region3ExecutionPlan.getRegionId() ).thenReturn( region3.getRegionId() );
+        when( region4ExecutionPlan.getRegionId() ).thenReturn( region4.getRegionId() );
+        when( regionAdaptationContextFactory.apply( region1ExecutionPlan ) ).thenReturn( region1Context );
+        when( regionAdaptationContextFactory.apply( region2ExecutionPlan ) ).thenReturn( region2Context );
+        when( regionAdaptationContextFactory.apply( region3ExecutionPlan ) ).thenReturn( region3Context );
+        when( regionAdaptationContextFactory.apply( region4ExecutionPlan ) ).thenReturn( region4Context );
 
         adaptationManager.initialize( regionExecutionPlans );
 
-        assertThat( adaptationManager.getRegion( upstreamRegion.getRegionId() ), equalTo( upstreamContext ) );
-        assertThat( adaptationManager.getRegion( downstreamRegion.getRegionId() ), equalTo( downstreamContext ) );
+        assertThat( adaptationManager.getRegion( region1.getRegionId() ), equalTo( region1Context ) );
+        assertThat( adaptationManager.getRegion( region2.getRegionId() ), equalTo( region2Context ) );
+        assertThat( adaptationManager.getRegion( region3.getRegionId() ), equalTo( region3Context ) );
+        assertThat( adaptationManager.getRegion( region4.getRegionId() ), equalTo( region4Context ) );
     }
 
     @Test
@@ -166,159 +213,373 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
 
         adaptationManager.apply( regionExecutionPlans, flowMetrics );
 
-        verify( flowMetrics ).getRegionMetrics( upstreamRegion.getRegionId(), pipelineMetricsHistorySummarizer );
-        verify( flowMetrics ).getRegionMetrics( downstreamRegion.getRegionId(), pipelineMetricsHistorySummarizer );
+        verify( flowMetrics ).getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer );
+        verify( flowMetrics ).getRegionMetrics( region2.getRegionId(), pipelineMetricsHistorySummarizer );
+        verify( flowMetrics ).getRegionMetrics( region3.getRegionId(), pipelineMetricsHistorySummarizer );
+        verify( flowMetrics ).getRegionMetrics( region4.getRegionId(), pipelineMetricsHistorySummarizer );
 
-        verify( upstreamContext ).updateRegionMetrics( singletonList( upstreamPipelineMetrics ), loadChangePredicate );
-        verify( downstreamContext ).updateRegionMetrics( singletonList( downstreamPipelineMetrics ), loadChangePredicate );
+        verify( region1Context ).updateRegionMetrics( singletonList( region1PipelineMetrics ), loadChangePredicate );
+        verify( region2Context ).updateRegionMetrics( singletonList( region2PipelineMetrics ), loadChangePredicate );
+        verify( region3Context ).updateRegionMetrics( singletonList( region3PipelineMetrics ), loadChangePredicate );
+        verify( region4Context ).updateRegionMetrics( singletonList( region4PipelineMetrics ), loadChangePredicate );
 
-        verify( upstreamContext ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
-        verify( downstreamContext ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
+        verify( region1Context ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
+        verify( region2Context ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
+        verify( region3Context ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
+        verify( region4Context ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
     }
 
     @Test
-    public void shouldReturnAdaptationActionForUpstreamRegion ()
+    public void shouldReturnAdaptationActionForSingleRegion ()
     {
         shouldInitRegionAdaptationContexts();
 
         final AdaptationAction action = mock( AdaptationAction.class );
 
-        when( upstreamContext.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn(
+        when( region1Context.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn(
                 singletonList( action ) );
+        when( region2Context.resolveIfBottleneck( eq( bottleneckPredicate ),
+                                                  anyListOf( BottleneckResolver.class ) ) ).thenReturn( emptyList() );
+        when( region3Context.resolveIfBottleneck( eq( bottleneckPredicate ),
+                                                  anyListOf( BottleneckResolver.class ) ) ).thenReturn( emptyList() );
+        when( region4Context.resolveIfBottleneck( eq( bottleneckPredicate ),
+                                                  anyListOf( BottleneckResolver.class ) ) ).thenReturn( emptyList() );
 
         final List<AdaptationAction> result = adaptationManager.apply( regionExecutionPlans, flowMetrics );
 
         assertThat( result, equalTo( singletonList( action ) ) );
-        assertThat( adaptationManager.getAdaptingRegion(), equalTo( upstreamContext ) );
 
-        verify( upstreamContext ).updateRegionMetrics( singletonList( upstreamPipelineMetrics ), loadChangePredicate );
-        verify( downstreamContext ).updateRegionMetrics( singletonList( downstreamPipelineMetrics ), loadChangePredicate );
+        assertThat( adaptationManager.getAdaptingRegions(), equalTo( singletonList( region1Context ) ) );
 
-        verify( upstreamContext ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
-        verify( downstreamContext, never() ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
+        verify( region1Context ).updateRegionMetrics( singletonList( region1PipelineMetrics ), loadChangePredicate );
+        verify( region2Context ).updateRegionMetrics( singletonList( region2PipelineMetrics ), loadChangePredicate );
+        verify( region3Context ).updateRegionMetrics( singletonList( region3PipelineMetrics ), loadChangePredicate );
+        verify( region4Context ).updateRegionMetrics( singletonList( region4PipelineMetrics ), loadChangePredicate );
+
+        verify( region1Context ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
+        verify( region2Context ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
+        verify( region3Context ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
+        verify( region4Context ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
     }
 
     @Test
-    public void shouldReturnAdaptationActionForDownstreamRegion ()
+    public void shouldReturnAdaptationActionForMultipleRegions ()
     {
         shouldInitRegionAdaptationContexts();
 
-        final AdaptationAction action = mock( AdaptationAction.class );
+        final AdaptationAction action2 = mock( AdaptationAction.class );
+        final AdaptationAction action3 = mock( AdaptationAction.class );
 
-        when( downstreamContext.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn(
-                singletonList( action ) );
+        when( region1Context.resolveIfBottleneck( eq( bottleneckPredicate ),
+                                                  anyListOf( BottleneckResolver.class ) ) ).thenReturn( emptyList() );
+        when( region2Context.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn(
+                singletonList( action2 ) );
+        when( region3Context.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn(
+                singletonList( action3 ) );
+        when( region4Context.resolveIfBottleneck( eq( bottleneckPredicate ),
+                                                  anyListOf( BottleneckResolver.class ) ) ).thenReturn( emptyList() );
 
         final List<AdaptationAction> result = adaptationManager.apply( regionExecutionPlans, flowMetrics );
 
-        assertThat( result, equalTo( singletonList( action ) ) );
-        assertThat( adaptationManager.getAdaptingRegion(), equalTo( downstreamContext ) );
+        assertThat( result, equalTo( asList( action2, action3 ) ) );
 
-        verify( upstreamContext ).updateRegionMetrics( singletonList( upstreamPipelineMetrics ), loadChangePredicate );
-        verify( downstreamContext ).updateRegionMetrics( singletonList( downstreamPipelineMetrics ), loadChangePredicate );
+        assertThat( adaptationManager.getAdaptingRegions(), equalTo( asList( region2Context, region3Context ) ) );
 
-        verify( upstreamContext ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
-        verify( downstreamContext ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
+        verify( region1Context ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
+        verify( region2Context ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
+        verify( region3Context ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
+        verify( region4Context ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
     }
 
     @Test
-    public void shouldNotRollbackAdaptation ()
+    public void shouldFinalizeAdaptationForSingleRegion ()
     {
         shouldInitRegionAdaptationContexts();
 
         final AdaptationAction action = mock( AdaptationAction.class );
 
-        when( upstreamContext.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn(
+        when( region1Context.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn(
                 singletonList( action ) );
+        when( region2Context.resolveIfBottleneck( eq( bottleneckPredicate ),
+                                                  anyListOf( BottleneckResolver.class ) ) ).thenReturn( emptyList() );
+        when( region3Context.resolveIfBottleneck( eq( bottleneckPredicate ),
+                                                  anyListOf( BottleneckResolver.class ) ) ).thenReturn( emptyList() );
+        when( region4Context.resolveIfBottleneck( eq( bottleneckPredicate ),
+                                                  anyListOf( BottleneckResolver.class ) ) ).thenReturn( emptyList() );
 
         final List<AdaptationAction> result1 = adaptationManager.apply( regionExecutionPlans, flowMetrics );
 
         assertThat( result1, equalTo( singletonList( action ) ) );
-        assertThat( adaptationManager.getAdaptingRegion(), equalTo( upstreamContext ) );
 
-        verify( upstreamContext ).updateRegionMetrics( singletonList( upstreamPipelineMetrics ), loadChangePredicate );
-        verify( downstreamContext ).updateRegionMetrics( singletonList( downstreamPipelineMetrics ), loadChangePredicate );
-
-        verify( upstreamContext ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
-        verify( downstreamContext, never() ).resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) );
+        assertThat( adaptationManager.getAdaptingRegions(), equalTo( singletonList( region1Context ) ) );
 
         final PipelineMetrics newUpstreamPipelineMetrics = mock( PipelineMetrics.class );
-        when( flowMetrics.getRegionMetrics( upstreamRegion.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
-                newUpstreamPipelineMetrics ) );
+        final List<PipelineMetrics> regionMetrics = singletonList( newUpstreamPipelineMetrics );
+        when( flowMetrics.getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( regionMetrics );
+
+        when( region1Context.isAdaptationSuccessful( regionMetrics, adaptationEvaluationPredicate ) ).thenReturn( true );
 
         final List<AdaptationAction> result2 = adaptationManager.apply( regionExecutionPlans, flowMetrics );
 
         assertTrue( result2.isEmpty() );
 
-        verify( upstreamContext ).evaluateAdaptation( singletonList( newUpstreamPipelineMetrics ), adaptationEvaluationPredicate );
+        verify( region1Context ).isAdaptationSuccessful( regionMetrics, adaptationEvaluationPredicate );
+        verify( region1Context ).finalizeAdaptation( regionMetrics );
+        verify( region2Context, never() ).isAdaptationSuccessful( anyObject(), anyObject() );
+        verify( region4Context, never() ).isAdaptationSuccessful( anyObject(), anyObject() );
     }
 
     @Test
-    public void shouldRollbackCurrentAdaptationAndContinueAdaptationIfNewActionFound ()
+    public void shouldFinalizeAdaptationForMultipleRegions ()
+    {
+        shouldInitRegionAdaptationContexts();
+
+        final AdaptationAction action1 = mock( AdaptationAction.class );
+        final AdaptationAction action3 = mock( AdaptationAction.class );
+
+        when( region1Context.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn(
+                singletonList( action1 ) );
+        when( region2Context.resolveIfBottleneck( eq( bottleneckPredicate ),
+                                                  anyListOf( BottleneckResolver.class ) ) ).thenReturn( emptyList() );
+        when( region3Context.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn(
+                singletonList( action3 ) );
+        when( region4Context.resolveIfBottleneck( eq( bottleneckPredicate ),
+                                                  anyListOf( BottleneckResolver.class ) ) ).thenReturn( emptyList() );
+
+        final List<AdaptationAction> result1 = adaptationManager.apply( regionExecutionPlans, flowMetrics );
+
+        assertThat( result1, equalTo( asList( action1, action3 ) ) );
+
+        assertThat( adaptationManager.getAdaptingRegions(), equalTo( asList( region1Context, region3Context ) ) );
+
+        final PipelineMetrics newUpstreamPipelineMetrics1 = mock( PipelineMetrics.class );
+        final PipelineMetrics newUpstreamPipelineMetrics3 = mock( PipelineMetrics.class );
+        final List<PipelineMetrics> region1Metrics = singletonList( newUpstreamPipelineMetrics1 );
+        final List<PipelineMetrics> region3Metrics = singletonList( newUpstreamPipelineMetrics3 );
+        when( flowMetrics.getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( region1Metrics );
+        when( flowMetrics.getRegionMetrics( region3.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( region3Metrics );
+
+        when( region1Context.isAdaptationSuccessful( region1Metrics, adaptationEvaluationPredicate ) ).thenReturn( true );
+        when( region3Context.isAdaptationSuccessful( region3Metrics, adaptationEvaluationPredicate ) ).thenReturn( true );
+
+        final List<AdaptationAction> result2 = adaptationManager.apply( regionExecutionPlans, flowMetrics );
+
+        assertTrue( result2.isEmpty() );
+
+        verify( region1Context ).isAdaptationSuccessful( region1Metrics, adaptationEvaluationPredicate );
+        verify( region1Context ).finalizeAdaptation( region1Metrics );
+        verify( region3Context ).isAdaptationSuccessful( region3Metrics, adaptationEvaluationPredicate );
+        verify( region3Context ).finalizeAdaptation( region3Metrics );
+        verify( region2Context, never() ).isAdaptationSuccessful( anyObject(), anyObject() );
+        verify( region4Context, never() ).isAdaptationSuccessful( anyObject(), anyObject() );
+    }
+
+    @Test
+    public void shouldRollbackCurrentAdaptationAndContinueAdaptationOfSingleRegionWithNewAction ()
     {
         shouldInitRegionAdaptationContexts();
 
         final AdaptationAction action1 = mock( AdaptationAction.class );
         final AdaptationAction action2 = mock( AdaptationAction.class );
 
-        when( upstreamContext.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn(
+        when( region1Context.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn(
                 singletonList( action1 ),
                 singletonList( action2 ) );
+        when( region2Context.resolveIfBottleneck( eq( bottleneckPredicate ),
+                                                  anyListOf( BottleneckResolver.class ) ) ).thenReturn( emptyList() );
+        when( region3Context.resolveIfBottleneck( eq( bottleneckPredicate ),
+                                                  anyListOf( BottleneckResolver.class ) ) ).thenReturn( emptyList() );
+        when( region4Context.resolveIfBottleneck( eq( bottleneckPredicate ),
+                                                  anyListOf( BottleneckResolver.class ) ) ).thenReturn( emptyList() );
 
         final List<AdaptationAction> result1 = adaptationManager.apply( regionExecutionPlans, flowMetrics );
 
         assertThat( result1, equalTo( singletonList( action1 ) ) );
-        assertThat( adaptationManager.getAdaptingRegion(), equalTo( upstreamContext ) );
+        assertThat( adaptationManager.getAdaptingRegions(), equalTo( singletonList( region1Context ) ) );
 
         final PipelineMetrics newUpstreamPipelineMetrics = mock( PipelineMetrics.class );
-        when( flowMetrics.getRegionMetrics( upstreamRegion.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
+        when( flowMetrics.getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
                 newUpstreamPipelineMetrics ) );
 
         final AdaptationAction rollback = mock( AdaptationAction.class );
 
-        when( upstreamContext.evaluateAdaptation( singletonList( newUpstreamPipelineMetrics ), adaptationEvaluationPredicate ) ).thenReturn(
-                singletonList( rollback ) );
+        when( region1Context.rollbackAdaptation( true ) ).thenReturn( singletonList( rollback ) );
 
         final List<AdaptationAction> result2 = adaptationManager.apply( regionExecutionPlans, flowMetrics );
 
         assertThat( result2, equalTo( asList( rollback, action2 ) ) );
-        assertThat( adaptationManager.getAdaptingRegion(), equalTo( upstreamContext ) );
+        assertThat( adaptationManager.getAdaptingRegions(), equalTo( singletonList( region1Context ) ) );
 
-        verify( upstreamContext ).evaluateAdaptation( singletonList( newUpstreamPipelineMetrics ), adaptationEvaluationPredicate );
+        verify( region1Context ).isAdaptationSuccessful( singletonList( newUpstreamPipelineMetrics ), adaptationEvaluationPredicate );
     }
 
     @Test
-    public void shouldRollbackAndFinishCurrentAdaptationIfNewActionNotFound ()
+    public void shouldRollbackAndFinishCurrentAdaptationOfSingleRegionWithNoNewAction ()
     {
         shouldInitRegionAdaptationContexts();
 
         final AdaptationAction action = mock( AdaptationAction.class );
 
-        when( upstreamContext.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn(
+        when( region1Context.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn(
                 singletonList( action ),
                 emptyList() );
+        when( region2Context.resolveIfBottleneck( eq( bottleneckPredicate ),
+                                                  anyListOf( BottleneckResolver.class ) ) ).thenReturn( emptyList() );
+        when( region3Context.resolveIfBottleneck( eq( bottleneckPredicate ),
+                                                  anyListOf( BottleneckResolver.class ) ) ).thenReturn( emptyList() );
+        when( region4Context.resolveIfBottleneck( eq( bottleneckPredicate ),
+                                                  anyListOf( BottleneckResolver.class ) ) ).thenReturn( emptyList() );
 
-        final List<AdaptationAction> result = adaptationManager.apply( asList( upstreamRegionExecutionPlan, downstreamRegionExecutionPlan ),
-                                                                       flowMetrics );
+        final List<AdaptationAction> result = adaptationManager.apply( regionExecutionPlans, flowMetrics );
 
         assertThat( result, equalTo( singletonList( action ) ) );
-        assertThat( adaptationManager.getAdaptingRegion(), equalTo( upstreamContext ) );
+        assertThat( adaptationManager.getAdaptingRegions(), equalTo( singletonList( region1Context ) ) );
 
         final PipelineMetrics newUpstreamPipelineMetrics = mock( PipelineMetrics.class );
-        when( flowMetrics.getRegionMetrics( upstreamRegion.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
+        when( flowMetrics.getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
                 newUpstreamPipelineMetrics ) );
 
         final AdaptationAction rollback = mock( AdaptationAction.class );
 
-        when( upstreamContext.evaluateAdaptation( singletonList( newUpstreamPipelineMetrics ), adaptationEvaluationPredicate ) ).thenReturn(
-                singletonList( rollback ) );
+        when( region1Context.rollbackAdaptation( true ) ).thenReturn( singletonList( rollback ) );
 
-        final List<AdaptationAction> result2 = adaptationManager.apply( asList( upstreamRegionExecutionPlan,
-                                                                                downstreamRegionExecutionPlan ), flowMetrics );
+        final List<AdaptationAction> result2 = adaptationManager.apply( regionExecutionPlans, flowMetrics );
 
         assertThat( result2, equalTo( singletonList( rollback ) ) );
-        assertNull( adaptationManager.getAdaptingRegion() );
+        assertTrue( adaptationManager.getAdaptingRegions().isEmpty() );
 
-        verify( upstreamContext ).evaluateAdaptation( singletonList( newUpstreamPipelineMetrics ), adaptationEvaluationPredicate );
+        verify( region1Context ).isAdaptationSuccessful( singletonList( newUpstreamPipelineMetrics ), adaptationEvaluationPredicate );
+    }
+
+    @Test
+    public void shouldRollbackAndFinishCurrentAdaptationOfMultipleRegionsWithNoNewAction ()
+    {
+        shouldInitRegionAdaptationContexts();
+
+        final AdaptationAction action1 = mock( AdaptationAction.class );
+        final AdaptationAction action2 = mock( AdaptationAction.class );
+        final AdaptationAction action3 = mock( AdaptationAction.class );
+        final AdaptationAction action4 = mock( AdaptationAction.class );
+
+        when( region1Context.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn(
+                singletonList( action1 ) );
+        when( region2Context.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn(
+                singletonList( action2 ),
+                emptyList() );
+        when( region3Context.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn(
+                singletonList( action3 ) );
+        when( region4Context.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn(
+                singletonList( action4 ) );
+
+        final List<AdaptationAction> result = adaptationManager.apply( regionExecutionPlans, flowMetrics );
+
+        assertThat( result, equalTo( asList( action1, action2, action3, action4 ) ) );
+        assertThat( adaptationManager.getAdaptingRegions(),
+                    equalTo( asList( region1Context, region2Context, region3Context, region4Context ) ) );
+
+        final PipelineMetrics newUpstreamPipelineMetrics1 = mock( PipelineMetrics.class );
+        final PipelineMetrics newUpstreamPipelineMetrics2 = mock( PipelineMetrics.class );
+        when( flowMetrics.getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
+                newUpstreamPipelineMetrics1 ) );
+        when( flowMetrics.getRegionMetrics( region2.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
+                newUpstreamPipelineMetrics2 ) );
+
+        final AdaptationAction rollback11 = mock( AdaptationAction.class );
+        final AdaptationAction rollback12 = mock( AdaptationAction.class );
+        final AdaptationAction rollback21 = mock( AdaptationAction.class );
+        final AdaptationAction rollback22 = mock( AdaptationAction.class );
+        final AdaptationAction rollback31 = mock( AdaptationAction.class );
+        final AdaptationAction rollback32 = mock( AdaptationAction.class );
+        final AdaptationAction rollback41 = mock( AdaptationAction.class );
+        final AdaptationAction rollback42 = mock( AdaptationAction.class );
+
+        when( region1Context.isAdaptationSuccessful( singletonList( newUpstreamPipelineMetrics1 ),
+                                                     adaptationEvaluationPredicate ) ).thenReturn( true );
+
+        when( region1Context.rollbackAdaptation( false ) ).thenReturn( asList( rollback11, rollback12 ) );
+        when( region2Context.rollbackAdaptation( true ) ).thenReturn( asList( rollback21, rollback22 ) );
+        when( region3Context.rollbackAdaptation( false ) ).thenReturn( asList( rollback31, rollback32 ) );
+        when( region4Context.rollbackAdaptation( false ) ).thenReturn( asList( rollback41, rollback42 ) );
+
+        final List<AdaptationAction> result2 = adaptationManager.apply( regionExecutionPlans, flowMetrics );
+
+        assertThat( result2,
+                    equalTo( asList( rollback41, rollback42, rollback31, rollback32, rollback21, rollback22, rollback11, rollback12 ) ) );
+        assertTrue( adaptationManager.getAdaptingRegions().isEmpty() );
+
+        verify( region1Context ).isAdaptationSuccessful( singletonList( newUpstreamPipelineMetrics1 ), adaptationEvaluationPredicate );
+        verify( region2Context ).isAdaptationSuccessful( singletonList( newUpstreamPipelineMetrics2 ), adaptationEvaluationPredicate );
+        verify( region3Context, never() ).isAdaptationSuccessful( anyObject(), anyObject() );
+        verify( region4Context, never() ).isAdaptationSuccessful( anyObject(), anyObject() );
+    }
+
+    @Test
+    public void shouldRollbackCurrentAdaptationAndContinueAdaptationOfMultipleRegionsWithNewAction ()
+    {
+        shouldInitRegionAdaptationContexts();
+
+        final AdaptationAction action1 = mock( AdaptationAction.class );
+        final AdaptationAction action21 = mock( AdaptationAction.class );
+        final AdaptationAction action22 = mock( AdaptationAction.class );
+        final AdaptationAction action3 = mock( AdaptationAction.class );
+        final AdaptationAction action4 = mock( AdaptationAction.class );
+
+        when( region1Context.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn(
+                singletonList( action1 ) );
+        when( region2Context.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn(
+                singletonList( action21 ),
+                singletonList( action22 ) );
+        when( region3Context.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn(
+                singletonList( action3 ) );
+        when( region4Context.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn(
+                singletonList( action4 ) );
+
+        final List<AdaptationAction> result = adaptationManager.apply( regionExecutionPlans, flowMetrics );
+
+        assertThat( result, equalTo( asList( action1, action21, action3, action4 ) ) );
+        assertThat( adaptationManager.getAdaptingRegions(),
+                    equalTo( asList( region1Context, region2Context, region3Context, region4Context ) ) );
+
+        final PipelineMetrics newUpstreamPipelineMetrics1 = mock( PipelineMetrics.class );
+        final PipelineMetrics newUpstreamPipelineMetrics2 = mock( PipelineMetrics.class );
+        when( flowMetrics.getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
+                newUpstreamPipelineMetrics1 ) );
+        when( flowMetrics.getRegionMetrics( region2.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
+                newUpstreamPipelineMetrics2 ) );
+
+        final AdaptationAction rollback2 = mock( AdaptationAction.class );
+
+        when( region1Context.isAdaptationSuccessful( singletonList( newUpstreamPipelineMetrics1 ),
+                                                     adaptationEvaluationPredicate ) ).thenReturn( true );
+
+        when( region2Context.rollbackAdaptation( true ) ).thenReturn( singletonList( rollback2 ) );
+
+        final List<AdaptationAction> result2 = adaptationManager.apply( regionExecutionPlans, flowMetrics );
+
+        assertThat( result2, equalTo( asList( rollback2, action22 ) ) );
+        assertThat( adaptationManager.getAdaptingRegions(),
+                    equalTo( asList( region1Context, region2Context, region3Context, region4Context ) ) );
+
+        verify( region1Context ).isAdaptationSuccessful( singletonList( newUpstreamPipelineMetrics1 ), adaptationEvaluationPredicate );
+        verify( region2Context ).isAdaptationSuccessful( singletonList( newUpstreamPipelineMetrics2 ), adaptationEvaluationPredicate );
+        verify( region3Context, never() ).isAdaptationSuccessful( anyObject(), anyObject() );
+        verify( region4Context, never() ).isAdaptationSuccessful( anyObject(), anyObject() );
+        verify( region1Context, never() ).finalizeAdaptation( anyObject() );
+        verify( region2Context, never() ).finalizeAdaptation( anyObject() );
+        verify( region3Context, never() ).finalizeAdaptation( anyObject() );
+        verify( region4Context, never() ).finalizeAdaptation( anyObject() );
+        verify( region1Context, never() ).rollbackAdaptation( false );
+        verify( region1Context, never() ).rollbackAdaptation( true );
+        verify( region2Context ).rollbackAdaptation( true );
+        verify( region3Context, never() ).rollbackAdaptation( false );
+        verify( region3Context, never() ).rollbackAdaptation( true );
+        verify( region4Context, never() ).rollbackAdaptation( false );
+        verify( region4Context, never() ).rollbackAdaptation( true );
+    }
+
+    public static RegionDef getRegion ( final List<RegionDef> regions, final OperatorDef operatorDef )
+    {
+        return regions.stream().filter( r -> r.getOperators().contains( operatorDef ) ).findFirst().orElse( null );
     }
 
 }
