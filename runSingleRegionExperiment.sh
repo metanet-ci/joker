@@ -35,7 +35,7 @@ while [ $operatorCost -le $maxOperatorCost ]; do
     outputDir=$dir"/"$operatorCost
 
 	J="_" 
-	java -Xmx4G -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps -XX:+PrintGCDetails -Xloggc:$outputDir"/gc.log" -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$outputDir"/heap.hprof" -cp joker-experiments/target/joker-experiments-0.1.jar -DtuplesPerKey=16 -Djoker.engine.tupleQueueManager.maxDrainableKeyCount=4096 -Djoker.engine.tupleQueueManager.partitionedTupleQueueDrainHint=256 -DvizPath=joker-engine/viz.py -DreportDir=$outputDir -DoperatorCosts=$operatorCostsStr -Djoker.engine.adaptation.pipelineSplitEnabled=$pipelineSplitEnabled -Djoker.engine.adaptation.regionRebalanceEnabled=$regionRebalanceEnabled -Djoker.engine.adaptation.pipelineSplitFirst=$pipelineSplitFirst cs.bilkent.joker.experiment.SingleRegionExperimentRunner
+	java -Xmx4G -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps -XX:+PrintGCDetails -Xloggc:$outputDir"/gc.log" -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$outputDir"/heap.hprof" -cp joker-experiments/target/joker-experiments-0.1.jar -DflowFactory=cs.bilkent.joker.experiment.SingleRegionFlowDefFactory -DtuplesPerKey=16 -Djoker.engine.tupleQueueManager.maxDrainableKeyCount=4096 -Djoker.engine.tupleQueueManager.partitionedTupleQueueDrainHint=256 -DvizPath=joker-engine/viz.py -DreportDir=$outputDir -DoperatorCosts=$operatorCostsStr -Djoker.engine.adaptation.pipelineSplitEnabled=$pipelineSplitEnabled -Djoker.engine.adaptation.regionRebalanceEnabled=$regionRebalanceEnabled -Djoker.engine.adaptation.pipelineSplitFirst=$pipelineSplitFirst cs.bilkent.joker.experiment.ExperimentRunner
 
 	if [ $? != '0' ]; then
 		echo "JAVA command failed!!!"

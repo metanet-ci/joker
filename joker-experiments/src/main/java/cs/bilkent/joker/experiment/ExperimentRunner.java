@@ -4,9 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -26,21 +24,10 @@ import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.config.JokerConfigBuilder;
 import cs.bilkent.joker.engine.exception.JokerException;
 import cs.bilkent.joker.engine.region.impl.DefaultRegionExecutionPlanFactory;
-import static cs.bilkent.joker.experiment.BaseMultiplierOperator.MULTIPLICATION_COUNT;
-import static cs.bilkent.joker.experiment.MemorizingBeaconOperator.KEYS_PER_INVOCATION_CONFIG_PARAMETER;
-import static cs.bilkent.joker.experiment.MemorizingBeaconOperator.KEY_RANGE_CONFIG_PARAMETER;
-import static cs.bilkent.joker.experiment.MemorizingBeaconOperator.TUPLES_PER_KEY_CONFIG_PARAMETER;
-import static cs.bilkent.joker.experiment.MemorizingBeaconOperator.VALUE_RANGE_CONFIG_PARAMETER;
 import cs.bilkent.joker.flow.FlowDef;
-import cs.bilkent.joker.flow.FlowDefBuilder;
-import cs.bilkent.joker.operator.OperatorConfig;
-import cs.bilkent.joker.operator.OperatorDef;
-import cs.bilkent.joker.operator.OperatorDefBuilder;
-import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static java.util.stream.Collectors.toList;
 
-public class SingleRegionExperimentRunner
+public class ExperimentRunner
 {
 
     private static final int KEY_RANGE = 100000;
@@ -68,15 +55,9 @@ public class SingleRegionExperimentRunner
 
         final JokerConfig jokerConfig = configBuilder.build( config );
 
-        final int keyRange = config.getInt( "keyRange" );
-        final int valueRange = config.getInt( "valueRange" );
-        final int tuplesPerKey = config.getInt( "tuplesPerKey" );
-        final int keysPerInvocation = config.getInt( "keysPerInvocation" );
-        final List<Integer> operatorCosts = Arrays.stream( config.getString( "operatorCosts" ).split( "_" ) )
-                                                  .map( Integer::parseInt )
-                                                  .collect( toList() );
-
-        final FlowDef flow = createFlow( keyRange, valueRange, tuplesPerKey, keysPerInvocation, operatorCosts );
+        final String flowDefFactoryClassName = config.getString( "flowFactory" );
+        final FlowDefFactory flowDefFactory = (FlowDefFactory) Class.forName( flowDefFactoryClassName ).newInstance();
+        final FlowDef flow = flowDefFactory.createFlow( config, jokerConfig );
 
         final String reportDir = config.getString( "reportDir" );
         final FlowMetricsFileReporter reporter = new FlowMetricsFileReporter( jokerConfig, new File( reportDir ) );
@@ -100,51 +81,6 @@ public class SingleRegionExperimentRunner
 
         joker.shutdown().get( 60, SECONDS );
         System.exit( 0 );
-    }
-
-    private static FlowDef createFlow ( final int keyRange,
-                                        final int valueRange,
-                                        final int tuplesPerKey,
-                                        final int keysPerInvocation,
-                                        final List<Integer> operatorCosts )
-    {
-        final FlowDefBuilder flowDefBuilder = new FlowDefBuilder();
-
-        OperatorConfig beaconConfig = new OperatorConfig();
-        beaconConfig.set( KEY_RANGE_CONFIG_PARAMETER, keyRange );
-        beaconConfig.set( VALUE_RANGE_CONFIG_PARAMETER, valueRange );
-        beaconConfig.set( TUPLES_PER_KEY_CONFIG_PARAMETER, tuplesPerKey );
-        beaconConfig.set( KEYS_PER_INVOCATION_CONFIG_PARAMETER, keysPerInvocation );
-
-        OperatorDef beacon = OperatorDefBuilder.newInstance( "bc", MemorizingBeaconOperator.class ).setConfig( beaconConfig ).build();
-
-        flowDefBuilder.add( beacon );
-
-        OperatorConfig ptionerConfig = new OperatorConfig();
-        ptionerConfig.set( MULTIPLICATION_COUNT, operatorCosts.get( 0 ) );
-
-        OperatorDef ptioner = OperatorDefBuilder.newInstance( "m0", PartitionedStatefulMultiplierOperator.class )
-                                                .setConfig( ptionerConfig ).setPartitionFieldNames( singletonList( "key1" ) )
-                                                .build();
-
-        flowDefBuilder.add( ptioner );
-
-        flowDefBuilder.connect( beacon.getId(), ptioner.getId() );
-
-        for ( int i = 1; i < operatorCosts.size(); i++ )
-        {
-            OperatorConfig multiplierConfig = new OperatorConfig();
-            multiplierConfig.set( MULTIPLICATION_COUNT, operatorCosts.get( i ) );
-
-            OperatorDef multiplier = OperatorDefBuilder.newInstance( "m" + i, StatelessMultiplierOperator.class )
-                                                       .setConfig( multiplierConfig )
-                                                       .build();
-
-            flowDefBuilder.add( multiplier );
-            flowDefBuilder.connect( "m" + ( i - 1 ), multiplier.getId() );
-        }
-
-        return flowDefBuilder.build();
     }
 
     private static Thread createCommanderThread ( final Joker joker, final ExperimentalAdaptationTracker adaptationTracker )

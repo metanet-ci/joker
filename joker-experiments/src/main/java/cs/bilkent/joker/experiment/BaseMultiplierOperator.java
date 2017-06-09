@@ -18,8 +18,10 @@ import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import static java.lang.Math.max;
 
 @OperatorSchema( inputs = @PortSchema( portIndex = 0, scope = EXTENDABLE_FIELD_SET, fields = { @SchemaField( name = "key1", type = Integer.class ),
+                                                                                               @SchemaField( name = "key2", type = Integer.class ),
                                                                                                @SchemaField( name = "val1", type = Integer.class ),
                                                                                                @SchemaField( name = "val2", type = Integer.class ) } ), outputs = @PortSchema( portIndex = 0, scope = EXTENDABLE_FIELD_SET, fields = { @SchemaField( name = "key1", type = Integer.class ),
+                                                                                                                                                                                                                                       @SchemaField( name = "key2", type = Integer.class ),
                                                                                                                                                                                                                                        @SchemaField( name = "val1", type = Integer.class ),
                                                                                                                                                                                                                                        @SchemaField( name = "val2", type = Integer.class ) } ) )
 public abstract class BaseMultiplierOperator implements Operator

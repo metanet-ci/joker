@@ -27,6 +27,7 @@ import static java.util.Collections.shuffle;
 
 @OperatorSpec( type = STATEFUL, inputPortCount = 0, outputPortCount = 1 )
 @OperatorSchema( outputs = @PortSchema( portIndex = 0, scope = EXTENDABLE_FIELD_SET, fields = { @SchemaField( name = "key1", type = Integer.class ),
+                                                                                                @SchemaField( name = "key2", type = Integer.class ),
                                                                                                 @SchemaField( name = "val1", type = Integer.class ),
                                                                                                 @SchemaField( name = "val2", type = Integer.class ) } ) )
 public class MemorizingBeaconOperator implements Operator
