@@ -27,7 +27,7 @@ while [ $operatorCost -le $maxOperatorCost ]; do
 	operatorCostsStr=$operatorCost
 	L=`expr $operatorCount - 1`
 	echo $L
-	for i in 1 .. $L
+	for i in $(seq 1 $L);
     do
         operatorCostsStr=$operatorCostsStr"_"$operatorCost
     done
