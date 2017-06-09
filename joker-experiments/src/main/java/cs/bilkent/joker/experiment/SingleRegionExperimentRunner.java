@@ -124,8 +124,7 @@ public class SingleRegionExperimentRunner
         ptionerConfig.set( MULTIPLICATION_COUNT, operatorCosts.get( 0 ) );
 
         OperatorDef ptioner = OperatorDefBuilder.newInstance( "m0", PartitionedStatefulMultiplierOperator.class )
-                                                .setConfig( ptionerConfig )
-                                                .setPartitionFieldNames( singletonList( "key" ) )
+                                                .setConfig( ptionerConfig ).setPartitionFieldNames( singletonList( "key1" ) )
                                                 .build();
 
         flowDefBuilder.add( ptioner );

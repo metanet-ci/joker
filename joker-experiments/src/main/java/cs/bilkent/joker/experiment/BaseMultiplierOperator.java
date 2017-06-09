@@ -12,17 +12,16 @@ import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.s
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.schema.annotation.OperatorSchema;
 import cs.bilkent.joker.operator.schema.annotation.PortSchema;
-import static cs.bilkent.joker.operator.schema.annotation.PortSchemaScope.EXACT_FIELD_SET;
 import static cs.bilkent.joker.operator.schema.annotation.PortSchemaScope.EXTENDABLE_FIELD_SET;
 import cs.bilkent.joker.operator.schema.annotation.SchemaField;
 import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import static java.lang.Math.max;
 
-@OperatorSchema( inputs = @PortSchema( portIndex = 0, scope = EXTENDABLE_FIELD_SET, fields = { @SchemaField( name = "key", type = Integer.class ),
+@OperatorSchema( inputs = @PortSchema( portIndex = 0, scope = EXTENDABLE_FIELD_SET, fields = { @SchemaField( name = "key1", type = Integer.class ),
                                                                                                @SchemaField( name = "val1", type = Integer.class ),
-                                                                                               @SchemaField( name = "val2", type = Integer.class ) } ), outputs = @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "key", type = Integer.class ),
-                                                                                                                                                                                                                                  @SchemaField( name = "val1", type = Integer.class ),
-                                                                                                                                                                                                                                  @SchemaField( name = "val2", type = Integer.class ) } ) )
+                                                                                               @SchemaField( name = "val2", type = Integer.class ) } ), outputs = @PortSchema( portIndex = 0, scope = EXTENDABLE_FIELD_SET, fields = { @SchemaField( name = "key1", type = Integer.class ),
+                                                                                                                                                                                                                                       @SchemaField( name = "val1", type = Integer.class ),
+                                                                                                                                                                                                                                       @SchemaField( name = "val2", type = Integer.class ) } ) )
 public abstract class BaseMultiplierOperator implements Operator
 {
 
@@ -56,9 +55,11 @@ public abstract class BaseMultiplierOperator implements Operator
         Tuples output = invocationContext.getOutput();
         for ( Tuple tuple : input.getTuplesByDefaultPort() )
         {
-            Tuple summed = new Tuple( outputSchema );
-            Object pKey = tuple.get( "key" );
-            summed.set( "key", pKey );
+            final Tuple result = new Tuple( outputSchema );
+            final Object pKey1 = tuple.get( "key1" );
+            final Object pKey2 = tuple.get( "key2" );
+            result.set( "key1", pKey1 );
+            result.set( "key2", pKey2 );
             int sum = tuple.getInteger( "val1" ) + tuple.getInteger( "val2" );
             final int m = getMultiplicationCount();
             final double val1 = tuple.getDouble( "val1" );
@@ -66,9 +67,9 @@ public abstract class BaseMultiplierOperator implements Operator
             {
                 sum *= val1;
             }
-            summed.set( "val1", sum );
-            summed.set( "val2", -sum );
-            output.add( summed );
+            result.set( "val1", sum );
+            result.set( "val2", -sum );
+            output.add( result );
         }
 
         final KVStore kvStore = invocationContext.getKVStore();

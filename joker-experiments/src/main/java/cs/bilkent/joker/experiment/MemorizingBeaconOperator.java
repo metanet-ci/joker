@@ -18,7 +18,7 @@ import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.schema.annotation.OperatorSchema;
 import cs.bilkent.joker.operator.schema.annotation.PortSchema;
-import static cs.bilkent.joker.operator.schema.annotation.PortSchemaScope.EXACT_FIELD_SET;
+import static cs.bilkent.joker.operator.schema.annotation.PortSchemaScope.EXTENDABLE_FIELD_SET;
 import cs.bilkent.joker.operator.schema.annotation.SchemaField;
 import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
@@ -26,9 +26,9 @@ import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static java.util.Collections.shuffle;
 
 @OperatorSpec( type = STATEFUL, inputPortCount = 0, outputPortCount = 1 )
-@OperatorSchema( outputs = @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "key", type = Integer.class ),
-                                                                                           @SchemaField( name = "val1", type = Integer.class ),
-                                                                                           @SchemaField( name = "val2", type = Integer.class ) } ) )
+@OperatorSchema( outputs = @PortSchema( portIndex = 0, scope = EXTENDABLE_FIELD_SET, fields = { @SchemaField( name = "key1", type = Integer.class ),
+                                                                                                @SchemaField( name = "val1", type = Integer.class ),
+                                                                                                @SchemaField( name = "val2", type = Integer.class ) } ) )
 public class MemorizingBeaconOperator implements Operator
 {
 
@@ -137,7 +137,8 @@ public class MemorizingBeaconOperator implements Operator
             for ( int j = 0; j < tuplesPerKey; j++ )
             {
                 final Tuple tuple = new Tuple( outputSchema );
-                tuple.set( "key", key );
+                tuple.set( "key1", key );
+                tuple.set( "key2", key );
                 tuple.set( "val1", value );
                 value = value++ % valueRange;
                 tuple.set( "val2", value );

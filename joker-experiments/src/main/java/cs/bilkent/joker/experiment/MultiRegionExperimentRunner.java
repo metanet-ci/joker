@@ -36,6 +36,8 @@ import cs.bilkent.joker.flow.FlowDefBuilder;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
+import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
@@ -120,59 +122,58 @@ public class MultiRegionExperimentRunner
         beaconConfig.set( TUPLES_PER_KEY_CONFIG_PARAMETER, tuplesPerKey );
         beaconConfig.set( KEYS_PER_INVOCATION_CONFIG_PARAMETER, keysPerInvocation );
 
-        OperatorDef beacon = OperatorDefBuilder.newInstance( "bc", MemorizingBeaconOperator.class ).setConfig( beaconConfig ).build();
+        OperatorRuntimeSchemaBuilder beaconSchemaBuilder = new OperatorRuntimeSchemaBuilder( 0, 1 );
+        beaconSchemaBuilder.addOutputField( 0, "key2", Integer.class );
+
+        OperatorDef beacon = OperatorDefBuilder.newInstance( "bc", MemorizingBeaconOperator.class )
+                                               .setConfig( beaconConfig )
+                                               .setExtendingSchema( beaconSchemaBuilder )
+                                               .build();
 
         flowDefBuilder.add( beacon );
 
-        for ( int i = 0; i < operatorCosts1.size() - 1; i++ )
+        OperatorConfig ptioner1Config = new OperatorConfig();
+        ptioner1Config.set( MULTIPLICATION_COUNT, operatorCosts1.get( 0 ) );
+
+        OperatorRuntimeSchemaBuilder ptioner1SchemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
+        ptioner1SchemaBuilder.addInputField( 0, "key2", Integer.class ).addOutputField( 0, "key2", Integer.class );
+
+        OperatorDef ptioner1 = OperatorDefBuilder.newInstance( "m10", PartitionedStatefulMultiplierOperator.class )
+                                                 .setConfig( ptioner1Config )
+                                                 .setExtendingSchema( ptioner1SchemaBuilder )
+                                                 .setPartitionFieldNames( asList( "key1", "key2" ) )
+                                                 .build();
+
+        flowDefBuilder.add( ptioner1 );
+        flowDefBuilder.connect( beacon.getId(), ptioner1.getId() );
+
+        for ( int i = 1; i < operatorCosts1.size(); i++ )
         {
             OperatorConfig multiplierConfig = new OperatorConfig();
             multiplierConfig.set( MULTIPLICATION_COUNT, operatorCosts1.get( i ) );
 
+            OperatorRuntimeSchemaBuilder multiplierSchemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
+            multiplierSchemaBuilder.addInputField( 0, "key2", Integer.class ).addOutputField( 0, "key2", Integer.class );
+
             OperatorDef multiplier = OperatorDefBuilder.newInstance( "m1" + i, StatelessMultiplierOperator.class )
-                                                       .setConfig( multiplierConfig )
+                                                       .setConfig( multiplierConfig ).setExtendingSchema( multiplierSchemaBuilder )
                                                        .build();
 
             flowDefBuilder.add( multiplier );
-            if ( i == 0 )
-            {
-                flowDefBuilder.connect( beacon.getId(), "m1" + i );
-            }
-            else
-            {
-                flowDefBuilder.connect( "m1" + ( i - 1 ), multiplier.getId() );
-            }
+            flowDefBuilder.connect( "m1" + ( i - 1 ), multiplier.getId() );
         }
 
-        OperatorConfig statefulMultiplierConfig = new OperatorConfig();
-        statefulMultiplierConfig.set( MULTIPLICATION_COUNT, operatorCosts1.get( operatorCosts1.size() - 1 ) );
+        OperatorConfig ptioner2Config = new OperatorConfig();
+        ptioner2Config.set( MULTIPLICATION_COUNT, operatorCosts2.get( 0 ) );
 
-        OperatorDef statefulMultiplier = OperatorDefBuilder.newInstance( "ms", StatefulMultiplierOperator.class )
-                                                           .setConfig( statefulMultiplierConfig )
-                                                           .build();
+        OperatorDef ptioner2 = OperatorDefBuilder.newInstance( "m20", PartitionedStatefulMultiplierOperator.class )
+                                                 .setConfig( ptioner2Config )
+                                                 .setPartitionFieldNames( singletonList( "key1" ) )
+                                                 .build();
 
-        flowDefBuilder.add( statefulMultiplier );
+        flowDefBuilder.add( ptioner2 );
 
-        if ( operatorCosts1.size() == 1 )
-        {
-            flowDefBuilder.connect( beacon.getId(), statefulMultiplier.getId() );
-        }
-        else
-        {
-            flowDefBuilder.connect( "m1" + ( operatorCosts1.size() - 2 ), statefulMultiplier.getId() );
-        }
-
-        OperatorConfig ptionerConfig = new OperatorConfig();
-        ptionerConfig.set( MULTIPLICATION_COUNT, operatorCosts2.get( 0 ) );
-
-        OperatorDef ptioner = OperatorDefBuilder.newInstance( "m20", PartitionedStatefulMultiplierOperator.class )
-                                                .setConfig( ptionerConfig )
-                                                .setPartitionFieldNames( singletonList( "key" ) )
-                                                .build();
-
-        flowDefBuilder.add( ptioner );
-
-        flowDefBuilder.connect( statefulMultiplier.getId(), ptioner.getId() );
+        flowDefBuilder.connect( "m1" + ( operatorCosts1.size() - 1 ), ptioner2.getId() );
 
         for ( int i = 1; i < operatorCosts2.size(); i++ )
         {
