@@ -417,6 +417,7 @@ public class RegionAdaptationContext
     {
         checkArgument( !blacklists.containsEntry( pipelineId, adaptationAction ) );
         blacklists.put( pipelineId, adaptationAction );
+        LOGGER.info( "Region: {} PipelineId: {} adaptation action is added to blacklist: {}", getRegionId(), pipelineId, adaptationAction );
     }
 
     private void checkPipelineId ( final PipelineId pipelineId )
