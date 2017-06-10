@@ -71,8 +71,8 @@ public class ExperimentRunner
 
         joker.run( flow );
 
-        final Thread commander = createCommanderThread( joker, adaptationTracker );
-        commander.start();
+        //        final Thread commander = createCommanderThread( joker, adaptationTracker );
+        //        commander.start();
 
         while ( !adaptationTracker.isShutdownTriggered() )
         {
