@@ -7,7 +7,6 @@ import java.util.function.Consumer;
 
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.adaptation.impl.adaptationtracker.ExperimentalAdaptationTracker.FlowMetricsReporter;
-import static cs.bilkent.joker.engine.adaptation.impl.adaptationtracker.Visualizer.visualize;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.flow.FlowExecutionPlan;
 import cs.bilkent.joker.engine.flow.PipelineId;
@@ -100,7 +99,7 @@ public class FlowMetricsFileReporter implements FlowMetricsReporter
             }
         }
 
-        visualize( flowExecutionPlan, dir.getPath() );
+        //        visualize( flowExecutionPlan, dir.getPath() );
     }
 
     private void writeToFile ( final String fileName, final Consumer<PrintWriter> consumer )
