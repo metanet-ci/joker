@@ -197,7 +197,7 @@ public class OrganicAdaptationManager implements AdaptationManager
                     for ( int i = adaptingRegions.size() - 1; i > nonResolvedIdx; i-- )
                     {
                         final RegionAdaptationContext adaptingRegion = adaptingRegions.get( i );
-                        actions.addAll( adaptingRegion.rollbackAdaptation( false ) );
+                        actions.addAll( adaptingRegion.rollbackAdaptation( true ) );
                     }
 
                     actions.addAll( rollbacks );
@@ -205,7 +205,7 @@ public class OrganicAdaptationManager implements AdaptationManager
                     for ( int i = nonResolvedIdx - 1; i >= 0; i-- )
                     {
                         final RegionAdaptationContext adaptingRegion = adaptingRegions.get( i );
-                        actions.addAll( adaptingRegion.rollbackAdaptation( false ) );
+                        actions.addAll( adaptingRegion.rollbackAdaptation( true ) );
                     }
 
                     adaptingRegions = emptyList();
