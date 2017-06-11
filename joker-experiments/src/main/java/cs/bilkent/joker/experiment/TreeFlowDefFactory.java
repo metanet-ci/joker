@@ -30,17 +30,17 @@ public class TreeFlowDefFactory implements FlowDefFactory
         final int valueRange = config.getInt( "valueRange" );
         final int tuplesPerKey = config.getInt( "tuplesPerKey" );
         final int keysPerInvocation = config.getInt( "keysPerInvocation" );
-        final List<Integer> operatorCostsUp1 = Arrays.stream( config.getString( "operatorCostsUp1" ).split( "_" ) )
-                                                     .map( Integer::parseInt )
-                                                     .collect( toList() );
-        final List<Integer> operatorCostsUp2 = Arrays.stream( config.getString( "operatorCostsUp2" ).split( "_" ) )
-                                                     .map( Integer::parseInt )
-                                                     .collect( toList() );
-        final List<Integer> operatorCostsDown = Arrays.stream( config.getString( "operatorCostsDown" ).split( "_" ) )
-                                                      .map( Integer::parseInt )
-                                                      .collect( toList() );
+        final List<Integer> operatorCostsDown1 = Arrays.stream( config.getString( "operatorCostsDown1" ).split( "_" ) )
+                                                       .map( Integer::parseInt )
+                                                       .collect( toList() );
+        final List<Integer> operatorCostsDown2 = Arrays.stream( config.getString( "operatorCostsDown2" ).split( "_" ) )
+                                                       .map( Integer::parseInt )
+                                                       .collect( toList() );
+        final List<Integer> operatorCostsUp = Arrays.stream( config.getString( "operatorCostsUp" ).split( "_" ) )
+                                                    .map( Integer::parseInt )
+                                                    .collect( toList() );
 
-        final List<List<Integer>> upstreamOperatorCosts = asList( operatorCostsUp1, operatorCostsUp2 );
+        final List<List<Integer>> downstreamOperatorCosts = asList( operatorCostsDown1, operatorCostsDown2 );
 
         final FlowDefBuilder flowDefBuilder = new FlowDefBuilder();
 
@@ -54,57 +54,57 @@ public class TreeFlowDefFactory implements FlowDefFactory
 
         flowDefBuilder.add( beacon );
 
-        OperatorConfig ptioner2Config = new OperatorConfig();
-        ptioner2Config.set( MULTIPLICATION_COUNT, operatorCostsDown.get( 0 ) );
+        OperatorConfig ptioner1Config = new OperatorConfig();
+        ptioner1Config.set( MULTIPLICATION_COUNT, operatorCostsUp.get( 0 ) );
 
-        OperatorDef ptioner2 = OperatorDefBuilder.newInstance( "m20", PartitionedStatefulMultiplierOperator.class )
-                                                 .setConfig( ptioner2Config )
+        OperatorDef ptioner1 = OperatorDefBuilder.newInstance( "m10", PartitionedStatefulMultiplierOperator.class )
+                                                 .setConfig( ptioner1Config )
                                                  .setPartitionFieldNames( singletonList( "key1" ) )
                                                  .build();
 
-        flowDefBuilder.add( ptioner2 );
+        flowDefBuilder.add( ptioner1 );
 
-        for ( int i = 0; i < upstreamOperatorCosts.size(); i++ )
+        flowDefBuilder.connect( beacon.getId(), ptioner1.getId() );
+
+        for ( int i = 1; i < operatorCostsUp.size(); i++ )
         {
-            final List<Integer> operatorCosts = upstreamOperatorCosts.get( i );
-            OperatorConfig ptioner1Config = new OperatorConfig();
-            ptioner1Config.set( MULTIPLICATION_COUNT, operatorCosts.get( 0 ) );
+            OperatorConfig multiplierConfig = new OperatorConfig();
+            multiplierConfig.set( MULTIPLICATION_COUNT, operatorCostsUp.get( i ) );
 
-            OperatorDef ptioner1 = OperatorDefBuilder.newInstance( "m1" + i + "0", PartitionedStatefulMultiplierOperator.class )
-                                                     .setConfig( ptioner1Config )
+            OperatorDef multiplier = OperatorDefBuilder.newInstance( "m1" + i, StatelessMultiplierOperator.class )
+                                                       .setConfig( multiplierConfig )
+                                                       .build();
+
+            flowDefBuilder.add( multiplier );
+            flowDefBuilder.connect( "m1" + ( i - 1 ), multiplier.getId() );
+        }
+
+        for ( int i = 0; i < downstreamOperatorCosts.size(); i++ )
+        {
+            final List<Integer> operatorCosts = downstreamOperatorCosts.get( i );
+            OperatorConfig ptioner3Config = new OperatorConfig();
+            ptioner3Config.set( MULTIPLICATION_COUNT, operatorCosts.get( 0 ) );
+
+            OperatorDef ptioner3 = OperatorDefBuilder.newInstance( "m2" + i + "0", PartitionedStatefulMultiplierOperator.class )
+                                                     .setConfig( ptioner3Config )
                                                      .setPartitionFieldNames( asList( "key1", "key2" ) )
                                                      .build();
 
-            flowDefBuilder.add( ptioner1 );
-            flowDefBuilder.connect( beacon.getId(), ptioner1.getId() );
+            flowDefBuilder.add( ptioner3 );
+            flowDefBuilder.connect( "m1" + ( operatorCostsUp.size() - 1 ), ptioner3.getId() );
 
             for ( int j = 1; j < operatorCosts.size(); j++ )
             {
                 OperatorConfig multiplierConfig = new OperatorConfig();
                 multiplierConfig.set( MULTIPLICATION_COUNT, operatorCosts.get( j ) );
 
-                OperatorDef multiplier = OperatorDefBuilder.newInstance( "m1" + i + "" + j, StatelessMultiplierOperator.class )
+                OperatorDef multiplier = OperatorDefBuilder.newInstance( "m2" + i + "" + j, StatelessMultiplierOperator.class )
                                                            .setConfig( multiplierConfig )
                                                            .build();
 
                 flowDefBuilder.add( multiplier );
-                flowDefBuilder.connect( "m1" + i + "" + ( j - 1 ), multiplier.getId() );
+                flowDefBuilder.connect( "m2" + i + "" + ( j - 1 ), multiplier.getId() );
             }
-
-            flowDefBuilder.connect( "m1" + i + "" + ( operatorCosts.size() - 1 ), ptioner2.getId() );
-        }
-
-        for ( int i = 1; i < operatorCostsDown.size(); i++ )
-        {
-            OperatorConfig multiplierConfig = new OperatorConfig();
-            multiplierConfig.set( MULTIPLICATION_COUNT, operatorCostsDown.get( i ) );
-
-            OperatorDef multiplier = OperatorDefBuilder.newInstance( "m2" + i, StatelessMultiplierOperator.class )
-                                                       .setConfig( multiplierConfig )
-                                                       .build();
-
-            flowDefBuilder.add( multiplier );
-            flowDefBuilder.connect( "m2" + ( i - 1 ), multiplier.getId() );
         }
 
         return flowDefBuilder.build();
