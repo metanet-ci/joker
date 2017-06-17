@@ -508,7 +508,7 @@ public class OperatorReplica
         drainerPool.reset();
         duplicate.drainer = drainerPool.acquire( duplicate.schedulingStrategy );
 
-        LOGGER.info( "{} is duplicated to {}", this.operatorName, duplicate.operatorName );
+        LOGGER.debug( "{} is duplicated to {}", this.operatorName, duplicate.operatorName );
 
         return duplicate;
     }

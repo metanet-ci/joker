@@ -135,7 +135,7 @@ public class DefaultOperatorTupleQueue implements OperatorTupleQueue
         {
             if ( tupleQueues[ portIndex ].ensureCapacity( capacity ) )
             {
-                LOGGER.info( "tuple queue of port index {} of operator {} is extended to {}", portIndex, operatorId, capacity );
+                LOGGER.debug( "tuple queue of port index {} of operator {} is extended to {}", portIndex, operatorId, capacity );
             }
         }
     }

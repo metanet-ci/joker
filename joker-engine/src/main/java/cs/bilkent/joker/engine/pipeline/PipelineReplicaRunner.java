@@ -19,13 +19,8 @@ import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineRep
 import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.RUNNING;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
-import cs.bilkent.joker.operator.scheduling.ScheduleNever;
 import static java.lang.Boolean.TRUE;
 
-/**
- * Execution model of the operators is such that it invokes all of the invokable operators until they set their scheduling strategy to
- * {@link ScheduleNever}. Therefore, some of the operators may be invokable while others complete their execution.
- */
 public class PipelineReplicaRunner implements Runnable
 {
 
@@ -102,7 +97,7 @@ public class PipelineReplicaRunner implements Runnable
                                 id,
                                 status,
                                 type );
-                    LOGGER.info( "{}: {} command is already set", id, PAUSE );
+                    LOGGER.debug( "{}: {} command is already set", id, PAUSE );
                     result = command.future;
                 }
                 else if ( type == RESUME )
@@ -112,7 +107,7 @@ public class PipelineReplicaRunner implements Runnable
                                 id,
                                 status,
                                 type );
-                    LOGGER.info( "{}: Completing pending {} command because of new {} command.", id, RESUME, PAUSE );
+                    LOGGER.debug( "{}: Completing pending {} command because of new {} command.", id, RESUME, PAUSE );
                     command.complete();
                     this.command = null;
                     result = CompletableFuture.completedFuture( TRUE );
@@ -124,7 +119,7 @@ public class PipelineReplicaRunner implements Runnable
                                 id,
                                 status,
                                 type );
-                    LOGGER.info( "{}: switching pending {} command to {}", id, UPDATE_PIPELINE_UPSTREAM_CONTEXT, PAUSE );
+                    LOGGER.debug( "{}: switching pending {} command to {}", id, UPDATE_PIPELINE_UPSTREAM_CONTEXT, PAUSE );
                     command = new PipelineReplicaRunnerCommand( PAUSE, command.future );
                     this.command = command;
                     result = command.future;
@@ -142,12 +137,12 @@ public class PipelineReplicaRunner implements Runnable
             }
             else if ( status == PAUSED )
             {
-                LOGGER.info( "{} is already {}", id, PAUSED );
+                LOGGER.debug( "{} is already {}", id, PAUSED );
                 result = CompletableFuture.completedFuture( TRUE );
             }
             else if ( status == RUNNING )
             {
-                LOGGER.info( "{}: {} command is set", id, PAUSE );
+                LOGGER.debug( "{}: {} command is set", id, PAUSE );
                 command = new PipelineReplicaRunnerCommand( PAUSE );
                 this.command = command;
                 result = command.future;
@@ -181,7 +176,7 @@ public class PipelineReplicaRunner implements Runnable
                                 id,
                                 status,
                                 type );
-                    LOGGER.info( "{}: {} command is already set", id, RESUME );
+                    LOGGER.debug( "{}: {} command is already set", id, RESUME );
                     monitor.notify();
                     result = command.future;
                 }
@@ -192,14 +187,14 @@ public class PipelineReplicaRunner implements Runnable
                                 id,
                                 status,
                                 type );
-                    LOGGER.info( "{}: Completing pending {} command because of new {} command.", id, PAUSE, RESUME );
+                    LOGGER.debug( "{}: Completing pending {} command because of new {} command.", id, PAUSE, RESUME );
                     command.complete();
                     this.command = null;
                     result = CompletableFuture.completedFuture( TRUE );
                 }
                 else if ( type == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
                 {
-                    LOGGER.info( "{}: switching pending {} command to {}", id, UPDATE_PIPELINE_UPSTREAM_CONTEXT, RESUME );
+                    LOGGER.debug( "{}: switching pending {} command to {}", id, UPDATE_PIPELINE_UPSTREAM_CONTEXT, RESUME );
                     command = new PipelineReplicaRunnerCommand( RESUME, command.future );
                     this.command = command;
                     result = command.future;
@@ -217,12 +212,12 @@ public class PipelineReplicaRunner implements Runnable
             }
             else if ( status == RUNNING )
             {
-                LOGGER.info( "{} is already {}", id, RUNNING );
+                LOGGER.debug( "{} is already {}", id, RUNNING );
                 result = CompletableFuture.completedFuture( TRUE );
             }
             else if ( status == PAUSED )
             {
-                LOGGER.info( "{}: {} command is set", id, RESUME );
+                LOGGER.debug( "{}: {} command is set", id, RESUME );
                 command = new PipelineReplicaRunnerCommand( RESUME );
                 this.command = command;
                 result = command.future;
@@ -256,7 +251,7 @@ public class PipelineReplicaRunner implements Runnable
                                 id,
                                 status,
                                 type );
-                    LOGGER.info( "{}: Completing pending {} command because of new {} command.", id, RESUME, STOP );
+                    LOGGER.debug( "{}: Completing pending {} command because of new {} command.", id, RESUME, STOP );
                     command.complete();
                     command = new PipelineReplicaRunnerCommand( STOP );
                     this.command = command;
@@ -269,7 +264,7 @@ public class PipelineReplicaRunner implements Runnable
                                 id,
                                 status,
                                 type );
-                    LOGGER.info( "{}: switching pending {} command to {}", id, PAUSE, STOP );
+                    LOGGER.debug( "{}: switching pending {} command to {}", id, PAUSE, STOP );
                     command = new PipelineReplicaRunnerCommand( STOP, command.future );
                     this.command = command;
                     result = command.future;
@@ -281,7 +276,7 @@ public class PipelineReplicaRunner implements Runnable
                                 id,
                                 status,
                                 type );
-                    LOGGER.info( "{}: switching pending {} command to {}", id, type, STOP );
+                    LOGGER.debug( "{}: switching pending {} command to {}", id, type, STOP );
                     command = new PipelineReplicaRunnerCommand( STOP, command.future );
                     this.command = command;
                     result = command.future;
@@ -293,7 +288,7 @@ public class PipelineReplicaRunner implements Runnable
                                 id,
                                 status,
                                 type );
-                    LOGGER.info( "{}: there is pending {} command already", id, type, STOP );
+                    LOGGER.debug( "{}: there is pending {} command already", id, type, STOP );
                     result = command.future;
                 }
                 else
@@ -309,14 +304,14 @@ public class PipelineReplicaRunner implements Runnable
             }
             else if ( status == PAUSED || status == RUNNING )
             {
-                LOGGER.info( "{}: {} command is set in {} status", id, STOP, status );
+                LOGGER.debug( "{}: {} command is set in {} status", id, STOP, status );
                 command = new PipelineReplicaRunnerCommand( STOP );
                 this.command = command;
                 result = command.future;
             }
             else if ( status == COMPLETED )
             {
-                LOGGER.info( "{} is already {}", id, COMPLETED );
+                LOGGER.debug( "{} is already {}", id, COMPLETED );
                 result = CompletableFuture.completedFuture( TRUE );
             }
             else
@@ -342,7 +337,7 @@ public class PipelineReplicaRunner implements Runnable
             {
                 if ( status != COMPLETED )
                 {
-                    LOGGER.info( "{}: {} command is set", id, UPDATE_PIPELINE_UPSTREAM_CONTEXT );
+                    LOGGER.debug( "{}: {} command is set", id, UPDATE_PIPELINE_UPSTREAM_CONTEXT );
                     command = new PipelineReplicaRunnerCommand( UPDATE_PIPELINE_UPSTREAM_CONTEXT );
                     this.command = command;
                     result = command.future;
@@ -357,7 +352,7 @@ public class PipelineReplicaRunner implements Runnable
             }
             else
             {
-                LOGGER.info( "{}: there is already pending command {}", id, command.type );
+                LOGGER.debug( "{}: there is already pending command {}", id, command.type );
                 result = command.future;
             }
         }
@@ -442,14 +437,14 @@ public class PipelineReplicaRunner implements Runnable
                 if ( commandType == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
                 {
                     update( pipelineUpstreamContext, downstreamTupleSender );
-                    LOGGER.info( "{}: update {} command is handled", id, pipeline.getPipelineUpstreamContext() );
+                    LOGGER.debug( "{}: update {} command is handled", id, pipeline.getPipelineUpstreamContext() );
                     this.command = null;
                     command.complete();
                 }
                 else if ( commandType == STOP )
                 {
                     update( pipelineUpstreamContext, downstreamTupleSender );
-                    LOGGER.info( "{}: stopping while {}", id, status );
+                    LOGGER.debug( "{}: stopping while {}", id, status );
                     status = COMPLETED;
                 }
                 else if ( status == RUNNING )
@@ -457,7 +452,7 @@ public class PipelineReplicaRunner implements Runnable
                     if ( commandType == PAUSE )
                     {
                         update( pipelineUpstreamContext, downstreamTupleSender );
-                        LOGGER.info( "{}: pausing", id );
+                        LOGGER.debug( "{}: pausing", id );
                         command.complete();
                         this.command = null;
                         this.status = PAUSED;
@@ -476,7 +471,7 @@ public class PipelineReplicaRunner implements Runnable
                     if ( commandType == RESUME )
                     {
                         update( pipelineUpstreamContext, downstreamTupleSender );
-                        LOGGER.info( "{}: resuming", id );
+                        LOGGER.debug( "{}: resuming", id );
                         command.complete();
                         this.command = null;
                         this.status = RUNNING;

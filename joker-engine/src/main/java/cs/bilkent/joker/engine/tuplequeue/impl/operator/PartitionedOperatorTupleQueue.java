@@ -149,8 +149,12 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
         final int count = size - startIndex;
         if ( portIndex >= availableTupleCounts.length )
         {
-            System.out.println( "ERROR " + operatorId + " -> rep: " + replicaIndex + " input count: " + inputPortCount + " len: "
-                                + availableTupleCounts.length + " p: " + portIndex );
+            LOGGER.error( "Overflowing port index for operator: {} replica index: {} input port count: {} len: {} port index: {}",
+                          operatorId,
+                          replicaIndex,
+                          inputPortCount,
+                          availableTupleCounts.length,
+                          portIndex );
             if ( count == 0 )
             {
                 return count;
@@ -324,7 +328,7 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
         populateDrainIndices();
 
         final int[] partitionIds = partitions.stream().mapToInt( TupleQueueContainer::getPartitionId ).toArray();
-        LOGGER.info( "partitions={} are acquired by operatorId={} replicaIndex={}", partitionIds, operatorId, replicaIndex );
+        LOGGER.debug( "partitions={} are acquired by operatorId={} replicaIndex={}", partitionIds, operatorId, replicaIndex );
     }
 
     public List<TupleQueueContainer> releasePartitions ( final List<Integer> partitionIds )
@@ -351,7 +355,7 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
 
         populateDrainIndices();
 
-        LOGGER.info( "partitions={} are released by operatorId={} replicaIndex={}", partitionIds, operatorId, replicaIndex );
+        LOGGER.debug( "partitions={} are released by operatorId={} replicaIndex={}", partitionIds, operatorId, replicaIndex );
 
         return released;
     }

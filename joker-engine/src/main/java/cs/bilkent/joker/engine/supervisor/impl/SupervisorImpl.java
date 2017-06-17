@@ -40,6 +40,7 @@ import static cs.bilkent.joker.engine.util.ExceptionUtils.checkInterruption;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.utils.Pair;
 import static java.util.Collections.singletonList;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 
@@ -580,44 +581,65 @@ public class SupervisorImpl implements Supervisor
             {
                 while ( true )
                 {
-                    Runnable task = queue.poll( 1, SECONDS );
-                    if ( task == null )
-                    {
-                        task = SupervisorImpl.this::checkAdaptation;
-                    }
-
-                    try
-                    {
-                        task.run();
-                    }
-                    catch ( Exception e )
-                    {
-                        completeShutdown( e );
-                    }
-
-                    if ( pipelineManager.getFlowStatus() == SHUT_DOWN )
+                    final Runnable task = pollTask();
+                    if ( run( task ) )
                     {
                         break;
                     }
 
-                    final long now = System.currentTimeMillis();
-                    if ( ( now - lastReportTime ) > HEARTBEAT_LOG_PERIOD )
-                    {
-                        LOGGER.info( "Supervisor is up..." );
-                        lastReportTime = now;
-                    }
+                    log();
                 }
 
-                if ( queue.size() > 0 )
-                {
-                    LOGGER.error( "There are {} missed tasks in supervisor queue!", queue.size() );
-                    queue.clear();
-                }
+                clearTaskQueue();
             }
             catch ( InterruptedException e )
             {
                 LOGGER.error( "Supervisor thread is interrupted!" );
                 Thread.currentThread().interrupt();
+            }
+        }
+
+        private Runnable pollTask () throws InterruptedException
+        {
+            Runnable task = queue.poll( 100, MILLISECONDS );
+            if ( task == null )
+            {
+                task = SupervisorImpl.this::checkAdaptation;
+            }
+
+            return task;
+        }
+
+        private boolean run ( final Runnable task )
+        {
+            try
+            {
+                task.run();
+            }
+            catch ( Exception e )
+            {
+                completeShutdown( e );
+            }
+
+            return ( pipelineManager.getFlowStatus() == SHUT_DOWN );
+        }
+
+        private void log ()
+        {
+            final long now = System.currentTimeMillis();
+            if ( ( now - lastReportTime ) > HEARTBEAT_LOG_PERIOD )
+            {
+                LOGGER.info( "Supervisor is up..." );
+                lastReportTime = now;
+            }
+        }
+
+        private void clearTaskQueue ()
+        {
+            if ( queue.size() > 0 )
+            {
+                LOGGER.error( "There are {} missed tasks in supervisor queue!", queue.size() );
+                queue.clear();
             }
         }
 

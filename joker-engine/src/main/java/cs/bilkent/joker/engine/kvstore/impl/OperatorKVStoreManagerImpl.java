@@ -47,7 +47,7 @@ public class OperatorKVStoreManagerImpl implements OperatorKVStoreManager
 
         final DefaultOperatorKVStore operatorKVStore = new DefaultOperatorKVStore( operatorId, new InMemoryKVStore() );
         defaultOperatorKVStores.put( key, operatorKVStore );
-        LOGGER.info( "default kv store is created for operator: {}", operatorId );
+        LOGGER.debug( "default kv store is created for operator: {}", operatorId );
 
         return operatorKVStore;
     }
@@ -90,7 +90,7 @@ public class OperatorKVStoreManagerImpl implements OperatorKVStoreManager
         }
 
         partitionedOperatorKVStores.put( key, operatorKVStores );
-        LOGGER.info( "operator kv store is created with {} kvStores for operator: {}", partitionCount, operatorId );
+        LOGGER.debug( "operator kv store is created with {} kvStores for operator: {}", partitionCount, operatorId );
 
         return operatorKVStores;
     }
@@ -112,10 +112,10 @@ public class OperatorKVStoreManagerImpl implements OperatorKVStoreManager
         kvStores = migratePartitions( currentPartitionDistribution, newPartitionDistribution, kvStores, migratingPartitions );
 
         partitionedOperatorKVStores.put( key, kvStores );
-        LOGGER.info( "partitioned operator kv stores of regionId={} operatorId={} are rebalanced to {} replicas",
-                     regionId,
-                     operatorId,
-                     newPartitionDistribution.getReplicaCount() );
+        LOGGER.debug( "partitioned operator kv stores of regionId={} operatorId={} are rebalanced to {} replicas",
+                      regionId,
+                      operatorId,
+                      newPartitionDistribution.getReplicaCount() );
 
         return kvStores;
     }
@@ -224,7 +224,7 @@ public class OperatorKVStoreManagerImpl implements OperatorKVStoreManager
 
         final KVStore kvStore = operatorKVStore.getKVStore( null );
         kvStore.clear();
-        LOGGER.info( "default kv store of region {} operator {} is released", regionId, operatorId );
+        LOGGER.debug( "default kv store of region {} operator {} is released", regionId, operatorId );
     }
 
     @Override
@@ -237,7 +237,7 @@ public class OperatorKVStoreManagerImpl implements OperatorKVStoreManager
                     operatorId );
 
         releaseKVStoreContainers( regionId, operatorId );
-        LOGGER.info( "partitioned kv stores of region {} operator {} are released", regionId, operatorId );
+        LOGGER.debug( "partitioned kv stores of region {} operator {} are released", regionId, operatorId );
     }
 
     private void releaseKVStoreContainers ( final int regionId, final String operatorId )

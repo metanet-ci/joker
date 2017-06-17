@@ -33,6 +33,7 @@ import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.T
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import cs.bilkent.joker.utils.Pair;
+import static java.util.Arrays.sort;
 import static java.util.stream.Collectors.toList;
 
 /**
@@ -217,7 +218,7 @@ public class PipelineReplica
     {
         if ( operator.getStatus() != RUNNING )
         {
-            LOGGER.warn( "{} can not update drainer parameters as {} is in {} status",
+            LOGGER.warn( "{} cannot update drainer parameters as {} is in {} status",
                          id,
                          operator.getOperatorName(),
                          operator.getStatus() );
@@ -251,7 +252,7 @@ public class PipelineReplica
         {
             s[ i ] = Pair.of( i, pipelineUpstreamContext.getUpstreamConnectionStatus( i ) );
         }
-        Arrays.sort( s, ( o1, o2 ) ->
+        sort( s, ( o1, o2 ) ->
         {
             if ( o1._2 == o2._2 )
             {
@@ -345,7 +346,7 @@ public class PipelineReplica
 
         final List<String> operatorNames = Arrays.stream( operators ).map( o -> o.getOperatorDef().getId() ).collect( toList() );
 
-        LOGGER.info( "Pipeline {} is duplicated with {} operators: {}", this.id, operators.length, operatorNames );
+        LOGGER.debug( "Pipeline {} is duplicated with {} operators: {}", this.id, operators.length, operatorNames );
 
         return duplicate;
     }

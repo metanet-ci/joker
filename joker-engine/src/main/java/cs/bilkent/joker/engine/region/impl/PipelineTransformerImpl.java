@@ -119,7 +119,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
             final List<String> operatorIds = Arrays.stream( newOperatorReplicas ).map( o -> o.getOperatorDef().getId() )
                                                    .collect( Collectors.toList() );
 
-            LOGGER.info( "Duplicating {} with new operators: {}", firstPipelineReplica.id(), operatorIds );
+            LOGGER.debug( "Duplicating {} with new operators: {}", firstPipelineReplica.id(), operatorIds );
 
             newPipelineReplicas[ firstPipelineIndex ][ replicaIndex ] = firstPipelineReplica.duplicate( firstPipelineReplicaMeter,
                                                                                                         newOperatorReplicas );
@@ -162,7 +162,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
         final int before = currentStartIndices.indexOf( startIndicesToMerge.get( 0 ) );
         for ( int i = 0; i < before; i++ )
         {
-            LOGGER.info( "copying non-merged pipelineIndex={} of replicaId={}", i, region.getRegionId() );
+            LOGGER.debug( "copying non-merged pipelineIndex={} of replicaId={}", i, region.getRegionId() );
             arraycopy( region.getPipelineReplicas( i ), 0, newPipelineReplicas[ i ], 0, replicaCount );
         }
 
@@ -170,7 +170,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
         for ( int i = after; i < currentStartIndices.size(); i++ )
         {
             final int j = i - pipelineCountDecrease;
-            LOGGER.info( "copying non-merged pipelineIndex={} to new pipelineIndex={} of replicaId={}", i, j, region.getRegionId() );
+            LOGGER.debug( "copying non-merged pipelineIndex={} to new pipelineIndex={} of replicaId={}", i, j, region.getRegionId() );
             arraycopy( region.getPipelineReplicas( i ), 0, newPipelineReplicas[ j ], 0, replicaCount );
         }
     }
@@ -203,7 +203,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
         final List<String> operatorIds = Arrays.stream( pipelineReplica.getOperators() ).map( o -> o.getOperatorDef().getId() )
                                                .collect( Collectors.toList() );
 
-        LOGGER.info( "Duplicated first pipeline {} to merge. operators: {}", pipelineReplicaId, operatorIds );
+        LOGGER.debug( "Duplicated first pipeline {} to merge. operators: {}", pipelineReplicaId, operatorIds );
 
         return operatorIndex;
     }
@@ -238,9 +238,9 @@ public class PipelineTransformerImpl implements PipelineTransformer
                                                                          operator.getDrainerPool(),
                                                                          outputSupplier,
                                                                          replicaMeter );
-            LOGGER.info( "Duplicating operator {} of {} to {}", operator.getOperatorDef().getId(),
-                         pipelineReplica.id(),
-                         newPipelineReplicaId );
+            LOGGER.debug( "Duplicating operator {} of {} to {}", operator.getOperatorDef().getId(),
+                          pipelineReplica.id(),
+                          newPipelineReplicaId );
 
         }
 
@@ -276,7 +276,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
             firstOperatorQueue = firstOperator.getQueue();
             drainPipelineTupleQueue( pipelineSelfTupleQueue, firstOperatorQueue, firstOperatorDef );
 
-            LOGGER.info( "Drained queue of pipeline {} for merge.", pipelineReplica.id() );
+            LOGGER.debug( "Drained queue of pipeline {} for merge.", pipelineReplica.id() );
             operatorTupleQueueManager.releaseDefaultOperatorTupleQueue( regionId, replicaIndex, firstOperatorDef.getId() );
         }
 
@@ -286,7 +286,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                                                             .newPipelineTailOperatorOutputSupplierInstance( firstOperatorDef
                                                                                                                     .getOutputPortCount() )
                                                     : new CachedTuplesImplSupplier( firstOperatorDef.getOutputPortCount() );
-        LOGGER.info( "Duplicating first operator {} of {} to {}", firstOperatorDef.getId(), pipelineReplica.id(), newPipelineReplicaId );
+        LOGGER.debug( "Duplicating first operator {} of {} to {}", firstOperatorDef.getId(), pipelineReplica.id(), newPipelineReplicaId );
         return firstOperator.duplicate( newPipelineReplicaId, firstOperatorQueue, drainerPool, outputSupplier, replicaMeter );
     }
 
@@ -385,11 +385,11 @@ public class PipelineTransformerImpl implements PipelineTransformer
                     final OperatorTupleQueue pipelineTupleQueue;
                     if ( firstOperatorDef.getOperatorType() == PARTITIONED_STATEFUL )
                     {
-                        LOGGER.info( "Creating {} for pipeline tuple queue of regionId={} replicaIndex={} for pipeline operator={}",
-                                     DefaultOperatorTupleQueue.class.getSimpleName(),
-                                     regionId,
-                                     replicaIndex,
-                                     firstOperatorDef.getId() );
+                        LOGGER.debug( "Creating {} for pipeline tuple queue of regionId={} replicaIndex={} for pipeline operator={}",
+                                      DefaultOperatorTupleQueue.class.getSimpleName(),
+                                      regionId,
+                                      replicaIndex,
+                                      firstOperatorDef.getId() );
                         pipelineTupleQueue = operatorTupleQueueManager.createDefaultOperatorTupleQueue( regionId,
                                                                                                         replicaIndex,
                                                                                                         firstOperatorDef,
@@ -397,11 +397,11 @@ public class PipelineTransformerImpl implements PipelineTransformer
                     }
                     else
                     {
-                        LOGGER.info( "Creating {} for pipeline tuple queue of regionId={} replicaIndex={} as first operator is {}",
-                                     EmptyOperatorTupleQueue.class.getSimpleName(),
-                                     regionId,
-                                     replicaIndex,
-                                     firstOperatorDef.getOperatorType() );
+                        LOGGER.debug( "Creating {} for pipeline tuple queue of regionId={} replicaIndex={} as first operator is {}",
+                                      EmptyOperatorTupleQueue.class.getSimpleName(),
+                                      regionId,
+                                      replicaIndex,
+                                      firstOperatorDef.getOperatorType() );
                         pipelineTupleQueue = new EmptyOperatorTupleQueue( firstOperatorDef.getId(), firstOperatorDef.getInputPortCount() );
                     }
 
@@ -418,7 +418,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                     final List<String> operatorIds = Arrays.stream( newOperatorReplicas ).map( o -> o.getOperatorDef().getId() )
                                                            .collect( Collectors.toList() );
 
-                    LOGGER.info( "Split pipeline {} to split with operators: {}", newPipelineReplicaId, operatorIds );
+                    LOGGER.debug( "Split pipeline {} to split with operators: {}", newPipelineReplicaId, operatorIds );
                 }
 
                 newPipelineReplicas[ firstPipelineIndex + i ][ replicaIndex ] = newPipelineReplica;
@@ -445,7 +445,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
         final int before = currentStartIndices.indexOf( startIndicesToSplit.get( 0 ) );
         for ( int i = 0; i < before; i++ )
         {
-            LOGGER.info( "copying non-split pipelineIndex={} of replicaId={}", i, region.getRegionId() );
+            LOGGER.debug( "copying non-split pipelineIndex={} of replicaId={}", i, region.getRegionId() );
             arraycopy( region.getPipelineReplicas( i ), 0, newPipelineReplicas[ i ], 0, replicaCount );
         }
 
@@ -453,7 +453,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
         for ( int i = after; i < currentStartIndices.size(); i++ )
         {
             final int j = i + pipelineCountIncrease;
-            LOGGER.info( "copying non-split pipelineIndex={} to new pipelineIndex={} of replicaId={}", i, j, region.getRegionId() );
+            LOGGER.debug( "copying non-split pipelineIndex={} to new pipelineIndex={} of replicaId={}", i, j, region.getRegionId() );
             arraycopy( region.getPipelineReplicas( i ), 0, newPipelineReplicas[ j ], 0, replicaCount );
         }
     }
@@ -502,7 +502,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
         final List<String> operatorIds = Arrays.stream( newOperatorReplicas ).map( o -> o.getOperatorDef().getId() )
                                                .collect( Collectors.toList() );
 
-        LOGGER.info( "Duplicated pipeline {} to split. operators: {}", newPipelineReplicaId, operatorIds );
+        LOGGER.debug( "Duplicated pipeline {} to split. operators: {}", newPipelineReplicaId, operatorIds );
     }
 
 }

@@ -82,10 +82,10 @@ public class PartitionServiceImpl implements PartitionService
         final PartitionDistribution partitionDistribution = new PartitionDistribution( distribution );
         distributions.put( regionId, partitionDistribution );
 
-        LOGGER.info( "partition distribution is created for regionId={} replicaCount={} distribution={}",
-                     regionId,
-                     replicaCount,
-                     distribution );
+        LOGGER.debug( "partition distribution is created for regionId={} replicaCount={} distribution={}",
+                      regionId,
+                      replicaCount,
+                      distribution );
 
         return partitionDistribution;
     }
@@ -155,10 +155,10 @@ public class PartitionServiceImpl implements PartitionService
 
         checkDistribution( regionId, distribution );
 
-        LOGGER.info( "partition distribution is rebalanced for regionId={} newReplicaCount={} distribution={}",
-                     regionId,
-                     newReplicaCount,
-                     distribution );
+        LOGGER.debug( "partition distribution is rebalanced for regionId={} newReplicaCount={} distribution={}",
+                      regionId,
+                      newReplicaCount,
+                      distribution );
 
         final PartitionDistribution newDistribution = new PartitionDistribution( distribution );
         distributions.put( regionId, newDistribution );

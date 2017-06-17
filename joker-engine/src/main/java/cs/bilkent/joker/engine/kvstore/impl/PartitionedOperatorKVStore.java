@@ -85,7 +85,7 @@ public class PartitionedOperatorKVStore implements OperatorKVStore
         }
 
         final int[] partitionIds = partitions.stream().mapToInt( KVStoreContainer::getPartitionId ).toArray();
-        LOGGER.info( "partitions={} are acquired by operatorId={} replicaIndex={}", partitionIds, operatorId, replicaIndex );
+        LOGGER.debug( "partitions={} are acquired by operatorId={} replicaIndex={}", partitionIds, operatorId, replicaIndex );
     }
 
     List<KVStoreContainer> releasePartitions ( final List<Integer> partitionIds )
@@ -109,7 +109,7 @@ public class PartitionedOperatorKVStore implements OperatorKVStore
             kvStoreContainers[ partitionId ] = null;
         }
 
-        LOGGER.info( "partitions={} are released by operatorId={} replicaIndex={}", partitionIds, operatorId, replicaIndex );
+        LOGGER.debug( "partitions={} are released by operatorId={} replicaIndex={}", partitionIds, operatorId, replicaIndex );
 
         return left;
     }

@@ -112,7 +112,7 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
                                                                                                                             () );
 
         singleOperatorTupleQueues.put( key, operatorTupleQueue );
-        LOGGER.info( "created default tuple queue for regionId={} replicaIndex={} operatorId={}", regionId, replicaIndex, operatorId );
+        LOGGER.debug( "created default tuple queue for regionId={} replicaIndex={} operatorId={}", regionId, replicaIndex, operatorId );
 
         return operatorTupleQueue;
     }
@@ -178,11 +178,11 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
         }
 
         partitionedOperatorTupleQueues.put( key, operatorTupleQueues );
-        LOGGER.info( "created partitioned tuple queue with partition key extractor {} for regionId={} replicaCount={} operatorId={}",
-                     partitionKeyExtractor.getClass().getSimpleName(),
-                     regionId,
-                     replicaCount,
-                     operatorId );
+        LOGGER.debug( "created partitioned tuple queue with partition key extractor {} for regionId={} replicaCount={} operatorId={}",
+                      partitionKeyExtractor.getClass().getSimpleName(),
+                      regionId,
+                      replicaCount,
+                      operatorId );
 
         return operatorTupleQueues;
     }
@@ -213,10 +213,10 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
         queues = migratePartitions( currentPartitionDistribution, newPartitionDistribution, queues, migratingPartitions );
 
         this.partitionedOperatorTupleQueues.put( key, queues );
-        LOGGER.info( "partitioned operator tuple queues of regionId={} operatorId={} are rebalanced to {} replicas",
-                     regionId,
-                     operatorId,
-                     newPartitionDistribution.getReplicaCount() );
+        LOGGER.debug( "partitioned operator tuple queues of regionId={} operatorId={} are rebalanced to {} replicas",
+                      regionId,
+                      operatorId,
+                      newPartitionDistribution.getReplicaCount() );
 
         return queues;
     }
@@ -407,12 +407,12 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
                                                                                                        .getTupleQueueCapacity() );
 
         singleOperatorTupleQueues.put( tupleQueueId, newOperatorTupleQueue );
-        LOGGER.info( "{} default tuple queue is switched to {} for regionId={} replicaIndex={} operatorId={}",
-                     threadingPreference,
-                     newThreadingPreference,
-                     regionId,
-                     replicaIndex,
-                     operatorId );
+        LOGGER.debug( "{} default tuple queue is switched to {} for regionId={} replicaIndex={} operatorId={}",
+                      threadingPreference,
+                      newThreadingPreference,
+                      regionId,
+                      replicaIndex,
+                      operatorId );
 
         return newOperatorTupleQueue;
     }

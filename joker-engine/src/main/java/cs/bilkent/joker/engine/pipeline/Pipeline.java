@@ -261,7 +261,7 @@ public class Pipeline
             for ( int replicaIndex = replicaIndexToInit; replicaIndex < getReplicaCount(); replicaIndex++ )
             {
                 final PipelineReplica pipelineReplica = replicas[ replicaIndex ];
-                LOGGER.info( "Initializing Replica {} of Pipeline {} with {}", replicaIndex, id, upstreamContext );
+                LOGGER.debug( "Initializing Replica {} of Pipeline {} with {}", replicaIndex, id, upstreamContext );
                 final SchedulingStrategy[] strategies = pipelineReplica.init( upstreamContext );
                 arraycopy( strategies, 0, schedulingStrategies[ replicaIndex ], 0, getOperatorCount() );
             }
@@ -326,7 +326,7 @@ public class Pipeline
                 final PipelineReplica pipelineReplica = replicas[ replicaIndex ];
                 try
                 {
-                    LOGGER.info( "Shutting down Replica {} of Pipeline {}", replicaIndex, id );
+                    LOGGER.warn( "Shutting down Replica {} of Pipeline {}", replicaIndex, id );
                     pipelineReplica.shutdown();
                 }
                 catch ( Exception e2 )
