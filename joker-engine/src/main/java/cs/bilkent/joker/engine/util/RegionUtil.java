@@ -3,13 +3,20 @@ package cs.bilkent.joker.engine.util;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 import cs.bilkent.joker.engine.flow.RegionDef;
+import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.Port;
 import cs.bilkent.joker.operator.OperatorDef;
+import static java.util.Collections.unmodifiableList;
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toList;
 
@@ -55,7 +62,7 @@ public class RegionUtil
             }
         }
 
-        return sorted;
+        return unmodifiableList( sorted );
     }
 
     private static Collection<OperatorDef> getOperatorsWithNoInputPorts ( final Map<String, OperatorDef> operators,
@@ -70,7 +77,7 @@ public class RegionUtil
 
         result.sort( comparing( OperatorDef::getId ) );
 
-        return result;
+        return unmodifiableList( result );
     }
 
     private static boolean checkIfIncomingConnectionExists ( final Collection<Entry<Port, Port>> connections, final String operatorId )
@@ -120,6 +127,54 @@ public class RegionUtil
     public static OperatorDef getLastOperator ( final RegionDef regionDef )
     {
         return regionDef.getOperators().get( regionDef.getOperatorCount() - 1 );
+    }
+
+    // assumes that regions are topologically-sorted by region ids
+    public static List<RegionDef> getWholeDownstream ( final FlowDef flowDef, final List<RegionDef> regions, final RegionDef upstream )
+    {
+        final Function<String, RegionDef> regionDefByFirstOperatorId = operatorId -> getRegionByFirstOperator( regions, operatorId );
+
+        final Set<RegionDef> current = new HashSet<>();
+        current.add( upstream );
+
+        final List<RegionDef> downstream = new ArrayList<>();
+        final Predicate<RegionDef> nonVisitedDownstreamRegion = regionDef -> !downstream.contains( regionDef );
+        final Consumer<RegionDef> addToDownstream = regionDef ->
+        {
+            downstream.add( regionDef );
+            current.add( regionDef );
+        };
+
+        while ( current.size() > 0 )
+        {
+            final Iterator<RegionDef> it = current.iterator();
+            final RegionDef region = it.next();
+            it.remove();
+
+            flowDef.getOutboundConnections( getLastOperator( region ).getId() )
+                   .values()
+                   .stream()
+                   .flatMap( Set::stream )
+                   .map( Port::getOperatorId )
+                   .map( regionDefByFirstOperatorId )
+                   .filter( nonVisitedDownstreamRegion )
+                   .forEach( addToDownstream );
+        }
+
+        downstream.sort( comparing( RegionDef::getRegionId ) );
+
+        return unmodifiableList( downstream );
+    }
+
+    public static List<RegionDef> getUpmostRegions ( final FlowDef flowDef,
+                                                     final List<RegionDef> allRegions,
+                                                     final List<RegionDef> regionsToFilter )
+    {
+        final List<RegionDef> leftMostRegions = new ArrayList<>( regionsToFilter );
+        final Function<RegionDef, List<RegionDef>> getWholeDownstreamFunc = r -> getWholeDownstream( flowDef, allRegions, r );
+        regionsToFilter.stream().map( getWholeDownstreamFunc ).flatMap( List::stream ).forEach( leftMostRegions::remove );
+
+        return unmodifiableList( leftMostRegions );
     }
 
 }

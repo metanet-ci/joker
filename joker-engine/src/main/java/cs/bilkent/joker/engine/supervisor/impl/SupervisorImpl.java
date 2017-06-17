@@ -113,7 +113,7 @@ public class SupervisorImpl implements Supervisor
 
                 if ( isAdaptationEnabled() )
                 {
-                    adaptationManager.initialize( flowExecutionPlan.getRegionExecutionPlans() );
+                    adaptationManager.initialize( flow, flowExecutionPlan.getRegionExecutionPlans() );
                 }
 
                 supervisorThread.start();
@@ -510,7 +510,7 @@ public class SupervisorImpl implements Supervisor
             return;
         }
 
-        final List<AdaptationAction> actions = adaptationManager.apply( flowExecutionPlan.getRegionExecutionPlans(), flowMetrics );
+        final List<AdaptationAction> actions = adaptationManager.adapt( flowExecutionPlan.getRegionExecutionPlans(), flowMetrics );
         if ( actions.isEmpty() )
         {
             flowPeriod = flowMetrics.getPeriod();

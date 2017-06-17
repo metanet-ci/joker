@@ -23,6 +23,7 @@ import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -113,7 +114,6 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
         when( pipelineMetrics2.getPipelineId() ).thenReturn( pipelineId0 );
 
         context.updateRegionMetrics( singletonList( pipelineMetrics1 ), loadChangePredicate );
-
         context.updateRegionMetrics( singletonList( pipelineMetrics2 ), loadChangePredicate );
 
         assertThat( context.getPipelineMetrics( pipelineId0 ), equalTo( pipelineMetrics2 ) );
@@ -220,7 +220,7 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
         final PipelineMetrics pipelineMetrics1 = mock( PipelineMetrics.class );
         when( pipelineMetrics1.getPipelineId() ).thenReturn( pipelineId0 );
 
-        context.evaluateAdaptation( singletonList( pipelineMetrics1 ), adaptationEvaluationPredicate );
+        context.isAdaptationSuccessful( singletonList( pipelineMetrics1 ), adaptationEvaluationPredicate );
     }
 
     @Test
@@ -245,10 +245,10 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
         when( pipelineMetrics2.getPipelineId() ).thenReturn( pipelineId0 );
         when( adaptationEvaluationPredicate.test( pipelineMetrics1, pipelineMetrics2 ) ).thenReturn( true );
 
-        final List<AdaptationAction> rollbacks = context.evaluateAdaptation( singletonList( pipelineMetrics2 ),
-                                                                             adaptationEvaluationPredicate );
+        final boolean success = context.isAdaptationSuccessful( singletonList( pipelineMetrics2 ), adaptationEvaluationPredicate );
+        context.finalizeAdaptation( singletonList( pipelineMetrics2 ) );
 
-        assertTrue( rollbacks.isEmpty() );
+        assertTrue( success );
         verify( adaptationEvaluationPredicate ).test( pipelineMetrics1, pipelineMetrics2 );
         assertTrue( context.getAdaptingPipelineIds().isEmpty() );
         assertTrue( context.getAdaptationActions().isEmpty() );
@@ -258,7 +258,7 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldRollbackAdaptation ()
+    public void shouldRollbackAdaptationAfterEvaluation ()
     {
         reset( regionExecutionPlan );
         when( regionExecutionPlan.getRegionDef() ).thenReturn( regionDef );
@@ -298,9 +298,10 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
         final AdaptationAction rollback2 = mock( AdaptationAction.class );
         when( action2.rollback() ).thenReturn( rollback2 );
 
-        final List<AdaptationAction> result = context.evaluateAdaptation( singletonList( pipelineMetrics2 ),
-                                                                          adaptationEvaluationPredicate );
+        final boolean success = context.isAdaptationSuccessful( singletonList( pipelineMetrics2 ), adaptationEvaluationPredicate );
+        final List<AdaptationAction> result = context.rollbackAdaptation();
 
+        assertFalse( success );
         assertThat( result, equalTo( asList( rollback2, rollback1 ) ) );
         assertTrue( context.getAdaptingPipelineIds().isEmpty() );
         assertTrue( context.getAdaptationActions().isEmpty() );
@@ -311,7 +312,7 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
     }
 
     @Test( expected = IllegalStateException.class )
-    public void shouldFailEvaluationIfNoRollbackWhenAdaptationNotSuccessful ()
+    public void shouldFailRollbackIfNoRollbackAction ()
     {
         final PipelineMetrics pipelineMetrics2 = mock( PipelineMetrics.class );
         when( pipelineMetrics2.getPipelineId() ).thenReturn( pipelineId0 );
@@ -338,7 +339,7 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
             fail();
         }
 
-        context.evaluateAdaptation( singletonList( pipelineMetrics2 ), adaptationEvaluationPredicate );
+        context.rollbackAdaptation();
     }
 
     @Test
@@ -365,7 +366,7 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
         final AdaptationAction rollback = mock( AdaptationAction.class );
         when( action.rollback() ).thenReturn( rollback );
 
-        context.evaluateAdaptation( singletonList( pipelineMetrics2 ), adaptationEvaluationPredicate );
+        context.rollbackAdaptation();
 
         final AdaptationAction action2 = mock( AdaptationAction.class );
         final List<Pair<AdaptationAction, List<PipelineId>>> actions2 = singletonList( Pair.of( action2, singletonList( pipelineId0 ) ) );
@@ -410,7 +411,7 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
         final AdaptationAction rollback = mock( AdaptationAction.class );
         when( action.rollback() ).thenReturn( rollback );
 
-        context.evaluateAdaptation( singletonList( pipelineMetrics2 ), adaptationEvaluationPredicate );
+        context.rollbackAdaptation();
 
         final List<AdaptationAction> result = context.resolveIfBottleneck( bottleneckPredicate, singletonList( bottleneckResolver0 ) );
 
@@ -470,7 +471,8 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
         final AdaptationAction rollback = mock( AdaptationAction.class );
         when( action.rollback() ).thenReturn( rollback );
 
-        context.evaluateAdaptation( singletonList( pipelineMetrics2 ), adaptationEvaluationPredicate );
+        context.isAdaptationSuccessful( singletonList( pipelineMetrics2 ), adaptationEvaluationPredicate );
+        context.rollbackAdaptation();
 
         context.resolveIfBottleneck( bottleneckPredicate, singletonList( bottleneckResolver0 ) );
 

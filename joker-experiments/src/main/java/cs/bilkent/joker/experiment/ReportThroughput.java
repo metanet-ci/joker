@@ -24,7 +24,7 @@ public class ReportThroughput
         final int maxOperatorCost = Integer.parseInt( args[ 1 ] );
         final int regionId = Integer.parseInt( args[ 2 ] );
 
-        writeToFile( dir + S + "throughputs.txt", writer ->
+        writeToFile( dir + S + "throughputs_r" + regionId + ".txt", writer ->
         {
             int cost = 1;
             while ( cost <= maxOperatorCost )
