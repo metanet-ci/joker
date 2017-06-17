@@ -253,9 +253,16 @@ public class AdaptationConfig
         {
             for ( int portIndex = 0; portIndex < oldMetrics.getInputPortCount(); portIndex++ )
             {
-                final long throughput = oldMetrics.getTotalInboundThroughput( portIndex );
-                if ( ( (double) newMetrics.getTotalInboundThroughput( portIndex ) - throughput ) / throughput
-                     >= throughputIncreaseThreshold )
+                final long bottleneckThroughput = oldMetrics.getTotalInboundThroughput( portIndex );
+                final long newThroughput = newMetrics.getTotalInboundThroughput( portIndex );
+                final double throughputIncrease = ( (double) ( newThroughput - bottleneckThroughput ) ) / bottleneckThroughput;
+                LOGGER.info( "Pipeline: {} input port: {} bottleneck throughput: {} new throughput: {} change: {}",
+                             newMetrics.getPipelineId(),
+                             portIndex,
+                             bottleneckThroughput,
+                             newThroughput,
+                             throughputIncrease );
+                if ( throughputIncrease >= throughputIncreaseThreshold )
                 {
                     return true;
                 }

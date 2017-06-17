@@ -17,10 +17,14 @@ import cs.bilkent.joker.engine.adaptation.impl.bottleneckresolver.PipelineSplitt
 import cs.bilkent.joker.engine.adaptation.impl.bottleneckresolver.RegionExtender;
 import cs.bilkent.joker.engine.config.AdaptationConfig;
 import cs.bilkent.joker.engine.config.JokerConfig;
+import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.metric.FlowMetrics;
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import cs.bilkent.joker.engine.metric.PipelineMetricsHistorySummarizer;
+import static cs.bilkent.joker.engine.util.RegionUtil.getUpmostRegions;
+import cs.bilkent.joker.flow.FlowDef;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.reverse;
@@ -32,8 +36,6 @@ import static java.util.stream.Collectors.toList;
 @Singleton
 public class OrganicAdaptationManager implements AdaptationManager
 {
-
-    private final AdaptationConfig adaptationConfig;
 
     private final PipelineMetricsHistorySummarizer pipelineMetricsHistorySummarizer;
 
@@ -49,9 +51,11 @@ public class OrganicAdaptationManager implements AdaptationManager
 
     private boolean adaptationEnabled;
 
+    private FlowDef flowDef;
+
     private List<RegionAdaptationContext> regions;
 
-    private RegionAdaptationContext adaptingRegion;
+    private List<RegionAdaptationContext> adaptingRegions = emptyList();
 
     @Inject
     public OrganicAdaptationManager ( final JokerConfig config )
@@ -62,7 +66,7 @@ public class OrganicAdaptationManager implements AdaptationManager
     OrganicAdaptationManager ( final JokerConfig config,
                                final Function<RegionExecutionPlan, RegionAdaptationContext> regionAdaptationContextFactory )
     {
-        this.adaptationConfig = config.getAdaptationConfig();
+        final AdaptationConfig adaptationConfig = config.getAdaptationConfig();
         this.pipelineMetricsHistorySummarizer = adaptationConfig.getPipelineMetricsHistorySummarizer();
         final BiFunction<RegionExecutionPlan, PipelineMetrics, Integer> ext = adaptationConfig.getPipelineSplitIndexExtractor();
         final BottleneckResolver pipelineSplitter = new PipelineSplitter( ext );
@@ -100,9 +104,21 @@ public class OrganicAdaptationManager implements AdaptationManager
         return regions.stream().filter( region -> region.getRegionId() == regionId ).findFirst().orElse( null );
     }
 
-    RegionAdaptationContext getAdaptingRegion ()
+    List<RegionAdaptationContext> getAdaptingRegions ()
     {
-        return adaptingRegion;
+        return unmodifiableList( adaptingRegions );
+    }
+
+    @Override
+    public void initialize ( final FlowDef flowDef, final List<RegionExecutionPlan> regionExecutionPlans )
+    {
+        checkArgument( flowDef != null );
+        checkArgument( regionExecutionPlans != null && regionExecutionPlans.size() > 0 );
+        checkState( regions == null );
+
+        this.flowDef = flowDef;
+        this.regions = regionExecutionPlans.stream().map( regionAdaptationContextFactory ).collect( toList() );
+        this.regions.sort( comparing( RegionAdaptationContext::getRegionId ) );
     }
 
     @Override
@@ -112,70 +128,120 @@ public class OrganicAdaptationManager implements AdaptationManager
     }
 
     @Override
-    public void initialize ( final List<RegionExecutionPlan> regionExecutionPlans )
+    public List<AdaptationAction> adapt ( final List<RegionExecutionPlan> regionExecutionPlans, final FlowMetrics flowMetrics )
     {
-        checkState( regions == null );
-        regions = regionExecutionPlans.stream().map( regionAdaptationContextFactory ).collect( toList() );
-        regions.sort( comparing( RegionAdaptationContext::getRegionId ) );
+        return adaptingRegions.isEmpty() ? resolveBottleneckRegionsIfPresent( flowMetrics ) : evaluateAdaptations( flowMetrics );
     }
 
-    @Override
-    public List<AdaptationAction> apply ( final List<RegionExecutionPlan> regionExecutionPlans, final FlowMetrics flowMetrics )
+    private List<AdaptationAction> resolveBottleneckRegionsIfPresent ( final FlowMetrics flowMetrics )
     {
-        if ( adaptingRegion == null )
+        if ( !adaptationEnabled )
         {
-            if ( !adaptationEnabled )
-            {
-                return emptyList();
-            }
+            return emptyList();
+        }
 
-            for ( RegionAdaptationContext region : regions )
-            {
-                final List<PipelineMetrics> regionMetrics = flowMetrics.getRegionMetrics( region.getRegionId(),
-                                                                                          pipelineMetricsHistorySummarizer );
-                region.updateRegionMetrics( regionMetrics, loadChangePredicate );
-            }
+        for ( RegionAdaptationContext region : regions )
+        {
+            final List<PipelineMetrics> regionMetrics = flowMetrics.getRegionMetrics( region.getRegionId(),
+                                                                                      pipelineMetricsHistorySummarizer );
+            region.updateRegionMetrics( regionMetrics, loadChangePredicate );
+        }
 
-            for ( RegionAdaptationContext region : regions )
+        final List<RegionAdaptationContext> adaptingRegions = new ArrayList<>();
+        final List<AdaptationAction> adaptationActions = new ArrayList<>();
+
+        for ( RegionAdaptationContext region : regions )
+        {
+            final List<AdaptationAction> regionActions = region.resolveIfBottleneck( bottleneckPredicate, bottleneckResolvers );
+            if ( !regionActions.isEmpty() )
             {
-                final List<AdaptationAction> adaptationActions = region.resolveIfBottleneck( bottleneckPredicate, bottleneckResolvers );
-                if ( !adaptationActions.isEmpty() )
+                adaptingRegions.add( region );
+                adaptationActions.addAll( regionActions );
+            }
+        }
+
+        if ( adaptingRegions.isEmpty() )
+        {
+            return emptyList();
+        }
+
+        this.adaptingRegions = adaptingRegions;
+
+        return unmodifiableList( adaptationActions );
+    }
+
+    private List<AdaptationAction> evaluateAdaptations ( final FlowMetrics flowMetrics )
+    {
+        final RegionAdaptationContext nonResolvedRegion = getNonResolvedBottleneckRegion( flowMetrics );
+
+        return ( nonResolvedRegion == null ) ? finalizeAdaptations( flowMetrics ) : retryOrRollbackAdaptations( nonResolvedRegion );
+    }
+
+    private RegionAdaptationContext getNonResolvedBottleneckRegion ( final FlowMetrics flowMetrics )
+    {
+        final List<RegionDef> upmostRegions = getUpmostRegions( flowDef, getRegionDefs( regions ), getRegionDefs( adaptingRegions ) );
+
+        final Predicate<RegionAdaptationContext> isUpmostRegion = r -> upmostRegions.contains( r.getRegionDef() );
+        final Predicate<RegionAdaptationContext> isAdaptationFailed = r ->
+        {
+            final int regionId = r.getRegionId();
+            final List<PipelineMetrics> regionMetrics = flowMetrics.getRegionMetrics( regionId, pipelineMetricsHistorySummarizer );
+
+            return !r.isAdaptationSuccessful( regionMetrics, adaptationEvaluationPredicate );
+        };
+
+        return adaptingRegions.stream().filter( isUpmostRegion ).filter( isAdaptationFailed ).findFirst().orElse( null );
+    }
+
+    private List<RegionDef> getRegionDefs ( final List<RegionAdaptationContext> regions )
+    {
+        return regions.stream().map( RegionAdaptationContext::getRegionDef ).collect( toList() );
+    }
+
+    private List<AdaptationAction> finalizeAdaptations ( final FlowMetrics flowMetrics )
+    {
+        for ( RegionAdaptationContext adaptingRegion : adaptingRegions )
+        {
+            final int regionId = adaptingRegion.getRegionId();
+            final List<PipelineMetrics> regionMetrics = flowMetrics.getRegionMetrics( regionId, pipelineMetricsHistorySummarizer );
+            adaptingRegion.finalizeAdaptation( regionMetrics );
+        }
+
+        adaptingRegions = emptyList();
+
+        return emptyList();
+    }
+
+    private List<AdaptationAction> retryOrRollbackAdaptations ( final RegionAdaptationContext nonResolvedRegion )
+    {
+        final List<AdaptationAction> rollbacks = nonResolvedRegion.rollbackAdaptation();
+        final List<AdaptationAction> newActions = nonResolvedRegion.resolveIfBottleneck( bottleneckPredicate, bottleneckResolvers );
+
+        final List<AdaptationAction> actions = new ArrayList<>();
+        if ( newActions.isEmpty() )
+        {
+            reverse( adaptingRegions );
+            for ( RegionAdaptationContext adaptingRegion : adaptingRegions )
+            {
+                if ( adaptingRegion.equals( nonResolvedRegion ) )
                 {
-                    this.adaptingRegion = region;
-
-                    return adaptationActions;
+                    actions.addAll( rollbacks );
+                }
+                else
+                {
+                    actions.addAll( adaptingRegion.rollbackAdaptation() );
                 }
             }
+
+            adaptingRegions = emptyList();
         }
         else
         {
-            final List<PipelineMetrics> regionMetrics = flowMetrics.getRegionMetrics( adaptingRegion.getRegionId(),
-                                                                                      pipelineMetricsHistorySummarizer );
-            final List<AdaptationAction> rollbacks = adaptingRegion.evaluateAdaptation( regionMetrics, adaptationEvaluationPredicate );
-
-            if ( !rollbacks.isEmpty() )
-            {
-                final List<AdaptationAction> adaptationActions = adaptingRegion.resolveIfBottleneck( bottleneckPredicate,
-                                                                                                     bottleneckResolvers );
-
-                if ( !adaptationActions.isEmpty() )
-                {
-                    final List<AdaptationAction> actions = new ArrayList<>();
-                    actions.addAll( rollbacks );
-                    actions.addAll( adaptationActions );
-
-                    return actions;
-                }
-
-                adaptingRegion = null;
-
-                return rollbacks;
-            }
-
-            adaptingRegion = null;
+            actions.addAll( rollbacks );
+            actions.addAll( newActions );
         }
 
-        return emptyList();
+        return unmodifiableList( actions );
     }
 
 }
