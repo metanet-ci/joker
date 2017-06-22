@@ -98,18 +98,18 @@ public class SplitPipelineActionTest extends AbstractJokerTest
     }
 
     @Test
-    public void testSplitPipelinesRollback ()
+    public void testSplitPipelinesRevert ()
     {
         final PipelineId splitPipelineId = regionExecutionPlan.getPipelineId( 1 );
         final List<Integer> pipelineOperatorIndices = singletonList( 3 );
         final SplitPipelineAction action = new SplitPipelineAction( regionExecutionPlan, splitPipelineId, pipelineOperatorIndices );
-        final AdaptationAction rollback = action.rollback();
+        final AdaptationAction revert = action.revert();
 
-        assertThat( rollback.getCurrentRegionExecutionPlan(),
+        assertThat( revert.getCurrentRegionExecutionPlan(),
                     equalTo( regionExecutionPlan.withSplitPipeline( getPipelineStartIndicesToSplit( regionExecutionPlan,
                                                                                                     splitPipelineId,
                                                                                                     pipelineOperatorIndices ) ) ) );
-        assertThat( rollback.getNewRegionExecutionPlan(), equalTo( regionExecutionPlan ) );
+        assertThat( revert.getNewRegionExecutionPlan(), equalTo( regionExecutionPlan ) );
     }
 
     @Test

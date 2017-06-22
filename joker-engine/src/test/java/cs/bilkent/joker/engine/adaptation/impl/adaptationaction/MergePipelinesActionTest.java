@@ -108,14 +108,14 @@ public class MergePipelinesActionTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldRollbackAction ()
+    public void shouldRevertAction ()
     {
         final List<PipelineId> mergedPipelineIds = asList( regionExecutionPlan.getPipelineId( 1 ), regionExecutionPlan.getPipelineId( 2 ) );
         final MergePipelinesAction action = new MergePipelinesAction( regionExecutionPlan, mergedPipelineIds );
-        final AdaptationAction rollback = action.rollback();
+        final AdaptationAction revert = action.revert();
 
-        assertThat( rollback.getNewRegionExecutionPlan(), equalTo( regionExecutionPlan ) );
-        assertThat( rollback.getCurrentRegionExecutionPlan(),
+        assertThat( revert.getNewRegionExecutionPlan(), equalTo( regionExecutionPlan ) );
+        assertThat( revert.getCurrentRegionExecutionPlan(),
                     equalTo( regionExecutionPlan.withMergedPipelines( asList( pipelineStartIndices.get( 1 ),
                                                                               pipelineStartIndices.get( 2 ) ) ) ) );
     }

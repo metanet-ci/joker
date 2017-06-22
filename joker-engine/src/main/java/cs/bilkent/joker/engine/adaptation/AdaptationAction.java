@@ -11,6 +11,6 @@ public interface AdaptationAction
 
     RegionExecutionPlan getNewRegionExecutionPlan ();
 
-    AdaptationAction rollback ();
+    AdaptationAction revert ();
 
 }

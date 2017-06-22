@@ -55,7 +55,7 @@ public class MergePipelinesAction implements AdaptationAction
     }
 
     @Override
-    public AdaptationAction rollback ()
+    public AdaptationAction revert ()
     {
         final List<Integer> pipelineOperatorIndices = getSplitIndices();
         return new SplitPipelineAction( newRegionExecutionPlan, pipelineIds.get( 0 ), pipelineOperatorIndices );

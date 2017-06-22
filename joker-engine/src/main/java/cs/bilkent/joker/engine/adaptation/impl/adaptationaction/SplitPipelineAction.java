@@ -65,7 +65,7 @@ public class SplitPipelineAction implements AdaptationAction
     }
 
     @Override
-    public AdaptationAction rollback ()
+    public AdaptationAction revert ()
     {
         return new MergePipelinesAction( newRegionExecutionPlan, getMergePipelineIds() );
     }

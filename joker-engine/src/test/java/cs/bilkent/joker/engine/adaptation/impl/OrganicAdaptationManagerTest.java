@@ -380,7 +380,7 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldRollbackCurrentAdaptationAndContinueAdaptationOfSingleRegionWithNewAction ()
+    public void shouldRevertCurrentAdaptationAndContinueAdaptationOfSingleRegionWithNewAction ()
     {
         shouldInitRegionAdaptationContexts();
 
@@ -406,20 +406,20 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
         when( flowMetrics.getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
                 newUpstreamPipelineMetrics ) );
 
-        final AdaptationAction rollback = mock( AdaptationAction.class );
+        final AdaptationAction revert = mock( AdaptationAction.class );
 
-        when( region1Context.rollbackAdaptation() ).thenReturn( singletonList( rollback ) );
+        when( region1Context.revertAdaptation() ).thenReturn( singletonList( revert ) );
 
         final List<AdaptationAction> result2 = adaptationManager.adapt( regionExecutionPlans, flowMetrics );
 
-        assertThat( result2, equalTo( asList( rollback, action2 ) ) );
+        assertThat( result2, equalTo( asList( revert, action2 ) ) );
         assertThat( adaptationManager.getAdaptingRegions(), equalTo( singletonList( region1Context ) ) );
 
         verify( region1Context ).isAdaptationSuccessful( singletonList( newUpstreamPipelineMetrics ), adaptationEvaluationPredicate );
     }
 
     @Test
-    public void shouldRollbackAndFinishCurrentAdaptationOfSingleRegionWithNoNewAction ()
+    public void shouldRevertAndFinishCurrentAdaptationOfSingleRegionWithNoNewAction ()
     {
         shouldInitRegionAdaptationContexts();
 
@@ -444,20 +444,20 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
         when( flowMetrics.getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
                 newUpstreamPipelineMetrics ) );
 
-        final AdaptationAction rollback = mock( AdaptationAction.class );
+        final AdaptationAction revert = mock( AdaptationAction.class );
 
-        when( region1Context.rollbackAdaptation() ).thenReturn( singletonList( rollback ) );
+        when( region1Context.revertAdaptation() ).thenReturn( singletonList( revert ) );
 
         final List<AdaptationAction> result2 = adaptationManager.adapt( regionExecutionPlans, flowMetrics );
 
-        assertThat( result2, equalTo( singletonList( rollback ) ) );
+        assertThat( result2, equalTo( singletonList( revert ) ) );
         assertTrue( adaptationManager.getAdaptingRegions().isEmpty() );
 
         verify( region1Context ).isAdaptationSuccessful( singletonList( newUpstreamPipelineMetrics ), adaptationEvaluationPredicate );
     }
 
     @Test
-    public void shouldRollbackAndFinishCurrentAdaptationOfMultipleRegionsWithNoNewAction ()
+    public void shouldRevertAndFinishCurrentAdaptationOfMultipleRegionsWithNoNewAction ()
     {
         shouldInitRegionAdaptationContexts();
 
@@ -490,24 +490,23 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
         when( flowMetrics.getRegionMetrics( region2.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
                 newUpstreamPipelineMetrics2 ) );
 
-        final AdaptationAction rollback11 = mock( AdaptationAction.class );
-        final AdaptationAction rollback12 = mock( AdaptationAction.class );
-        final AdaptationAction rollback21 = mock( AdaptationAction.class );
-        final AdaptationAction rollback22 = mock( AdaptationAction.class );
-        final AdaptationAction rollback31 = mock( AdaptationAction.class );
-        final AdaptationAction rollback32 = mock( AdaptationAction.class );
-        final AdaptationAction rollback41 = mock( AdaptationAction.class );
-        final AdaptationAction rollback42 = mock( AdaptationAction.class );
+        final AdaptationAction revert11 = mock( AdaptationAction.class );
+        final AdaptationAction revert12 = mock( AdaptationAction.class );
+        final AdaptationAction revert21 = mock( AdaptationAction.class );
+        final AdaptationAction revert22 = mock( AdaptationAction.class );
+        final AdaptationAction revert31 = mock( AdaptationAction.class );
+        final AdaptationAction revert32 = mock( AdaptationAction.class );
+        final AdaptationAction revert41 = mock( AdaptationAction.class );
+        final AdaptationAction revert42 = mock( AdaptationAction.class );
 
-        when( region1Context.rollbackAdaptation() ).thenReturn( asList( rollback11, rollback12 ) );
-        when( region2Context.rollbackAdaptation() ).thenReturn( asList( rollback21, rollback22 ) );
-        when( region3Context.rollbackAdaptation() ).thenReturn( asList( rollback31, rollback32 ) );
-        when( region4Context.rollbackAdaptation() ).thenReturn( asList( rollback41, rollback42 ) );
+        when( region1Context.revertAdaptation() ).thenReturn( asList( revert11, revert12 ) );
+        when( region2Context.revertAdaptation() ).thenReturn( asList( revert21, revert22 ) );
+        when( region3Context.revertAdaptation() ).thenReturn( asList( revert31, revert32 ) );
+        when( region4Context.revertAdaptation() ).thenReturn( asList( revert41, revert42 ) );
 
         final List<AdaptationAction> result2 = adaptationManager.adapt( regionExecutionPlans, flowMetrics );
 
-        assertThat( result2,
-                    equalTo( asList( rollback41, rollback42, rollback31, rollback32, rollback21, rollback22, rollback11, rollback12 ) ) );
+        assertThat( result2, equalTo( asList( revert41, revert42, revert31, revert32, revert21, revert22, revert11, revert12 ) ) );
         assertTrue( adaptationManager.getAdaptingRegions().isEmpty() );
 
         verify( region1Context ).isAdaptationSuccessful( singletonList( newUpstreamPipelineMetrics1 ), adaptationEvaluationPredicate );
@@ -517,7 +516,7 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldRollbackCurrentAdaptationAndContinueAdaptationOfMultipleRegionsWithNewAction ()
+    public void shouldRevertCurrentAdaptationAndContinueAdaptationOfMultipleRegionsWithNewAction ()
     {
         shouldInitRegionAdaptationContexts();
 
@@ -547,13 +546,13 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
         when( flowMetrics.getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
                 newUpstreamPipelineMetrics1 ) );
 
-        final AdaptationAction rollback1 = mock( AdaptationAction.class );
+        final AdaptationAction revert = mock( AdaptationAction.class );
 
-        when( region1Context.rollbackAdaptation() ).thenReturn( singletonList( rollback1 ) );
+        when( region1Context.revertAdaptation() ).thenReturn( singletonList( revert ) );
 
         final List<AdaptationAction> result2 = adaptationManager.adapt( regionExecutionPlans, flowMetrics );
 
-        assertThat( result2, equalTo( asList( rollback1, action12 ) ) );
+        assertThat( result2, equalTo( asList( revert, action12 ) ) );
         assertThat( adaptationManager.getAdaptingRegions(),
                     equalTo( asList( region1Context, region2Context, region3Context, region4Context ) ) );
 
@@ -565,10 +564,10 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
         verify( region2Context, never() ).finalizeAdaptation( anyObject() );
         verify( region3Context, never() ).finalizeAdaptation( anyObject() );
         verify( region4Context, never() ).finalizeAdaptation( anyObject() );
-        verify( region1Context ).rollbackAdaptation();
-        verify( region2Context, never() ).rollbackAdaptation();
-        verify( region3Context, never() ).rollbackAdaptation();
-        verify( region4Context, never() ).rollbackAdaptation();
+        verify( region1Context ).revertAdaptation();
+        verify( region2Context, never() ).revertAdaptation();
+        verify( region3Context, never() ).revertAdaptation();
+        verify( region4Context, never() ).revertAdaptation();
     }
 
     public static RegionDef getRegion ( final List<RegionDef> regions, final OperatorDef operatorDef )

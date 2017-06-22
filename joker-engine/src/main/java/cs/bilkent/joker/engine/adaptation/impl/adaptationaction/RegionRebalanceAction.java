@@ -43,7 +43,7 @@ public class RegionRebalanceAction implements AdaptationAction
     }
 
     @Override
-    public AdaptationAction rollback ()
+    public AdaptationAction revert ()
     {
         return new RegionRebalanceAction( newRegionExecutionPlan, currentRegionExecutionPlan.getReplicaCount() );
     }

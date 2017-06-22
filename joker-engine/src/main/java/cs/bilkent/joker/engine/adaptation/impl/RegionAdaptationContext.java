@@ -383,9 +383,9 @@ public class RegionAdaptationContext
         }
     }
 
-    List<AdaptationAction> rollbackAdaptation ()
+    List<AdaptationAction> revertAdaptation ()
     {
-        checkState( !adaptationActions.isEmpty(), "Cannot rollback adaptation for Region %s has no adaptation action", getRegionId() );
+        checkState( !adaptationActions.isEmpty(), "Cannot revert adaptation for Region %s has no adaptation action", getRegionId() );
 
         addToBlacklist();
 
@@ -397,10 +397,10 @@ public class RegionAdaptationContext
         adaptationActions = emptyList();
 
         reverse( actions );
-        final List<AdaptationAction> rollbackActions = actions.stream().map( AdaptationAction::rollback ).collect( toList() );
-        rollbackActions.forEach( rollbackAction -> checkState( rollbackAction != null ) );
+        final List<AdaptationAction> revertActions = actions.stream().map( AdaptationAction::revert ).collect( toList() );
+        revertActions.forEach( revert -> checkState( revert != null ) );
 
-        return rollbackActions;
+        return revertActions;
     }
 
     private void addToBlacklist ()

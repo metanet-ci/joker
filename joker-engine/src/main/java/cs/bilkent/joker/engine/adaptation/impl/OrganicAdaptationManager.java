@@ -174,7 +174,7 @@ public class OrganicAdaptationManager implements AdaptationManager
     {
         final RegionAdaptationContext nonResolvedRegion = getNonResolvedBottleneckRegion( flowMetrics );
 
-        return ( nonResolvedRegion == null ) ? finalizeAdaptations( flowMetrics ) : retryOrRollbackAdaptations( nonResolvedRegion );
+        return ( nonResolvedRegion == null ) ? finalizeAdaptations( flowMetrics ) : retryOrRevertAdaptations( nonResolvedRegion );
     }
 
     private RegionAdaptationContext getNonResolvedBottleneckRegion ( final FlowMetrics flowMetrics )
@@ -212,9 +212,9 @@ public class OrganicAdaptationManager implements AdaptationManager
         return emptyList();
     }
 
-    private List<AdaptationAction> retryOrRollbackAdaptations ( final RegionAdaptationContext nonResolvedRegion )
+    private List<AdaptationAction> retryOrRevertAdaptations ( final RegionAdaptationContext nonResolvedRegion )
     {
-        final List<AdaptationAction> rollbacks = nonResolvedRegion.rollbackAdaptation();
+        final List<AdaptationAction> reverts = nonResolvedRegion.revertAdaptation();
         final List<AdaptationAction> newActions = nonResolvedRegion.resolveIfBottleneck( bottleneckPredicate, bottleneckResolvers );
 
         final List<AdaptationAction> actions = new ArrayList<>();
@@ -225,11 +225,11 @@ public class OrganicAdaptationManager implements AdaptationManager
             {
                 if ( adaptingRegion.equals( nonResolvedRegion ) )
                 {
-                    actions.addAll( rollbacks );
+                    actions.addAll( reverts );
                 }
                 else
                 {
-                    actions.addAll( adaptingRegion.rollbackAdaptation() );
+                    actions.addAll( adaptingRegion.revertAdaptation() );
                 }
             }
 
@@ -237,7 +237,7 @@ public class OrganicAdaptationManager implements AdaptationManager
         }
         else
         {
-            actions.addAll( rollbacks );
+            actions.addAll( reverts );
             actions.addAll( newActions );
         }
 

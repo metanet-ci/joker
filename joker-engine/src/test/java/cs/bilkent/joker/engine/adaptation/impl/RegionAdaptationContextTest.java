@@ -258,7 +258,7 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldRollbackAdaptationAfterEvaluation ()
+    public void shouldRevertAdaptationAfterEvaluation ()
     {
         reset( regionExecutionPlan );
         when( regionExecutionPlan.getRegionDef() ).thenReturn( regionDef );
@@ -293,16 +293,16 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
         final PipelineMetrics pipelineMetrics4 = mock( PipelineMetrics.class );
         when( pipelineMetrics4.getPipelineId() ).thenReturn( pipelineId1 );
 
-        final AdaptationAction rollback1 = mock( AdaptationAction.class );
-        when( action1.rollback() ).thenReturn( rollback1 );
-        final AdaptationAction rollback2 = mock( AdaptationAction.class );
-        when( action2.rollback() ).thenReturn( rollback2 );
+        final AdaptationAction revert1 = mock( AdaptationAction.class );
+        when( action1.revert() ).thenReturn( revert1 );
+        final AdaptationAction revert2 = mock( AdaptationAction.class );
+        when( action2.revert() ).thenReturn( revert2 );
 
         final boolean success = context.isAdaptationSuccessful( singletonList( pipelineMetrics2 ), adaptationEvaluationPredicate );
-        final List<AdaptationAction> result = context.rollbackAdaptation();
+        final List<AdaptationAction> result = context.revertAdaptation();
 
         assertFalse( success );
-        assertThat( result, equalTo( asList( rollback2, rollback1 ) ) );
+        assertThat( result, equalTo( asList( revert2, revert1 ) ) );
         assertTrue( context.getAdaptingPipelineIds().isEmpty() );
         assertTrue( context.getAdaptationActions().isEmpty() );
         assertNull( context.getBaseExecutionPlan() );
@@ -312,7 +312,7 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
     }
 
     @Test( expected = IllegalStateException.class )
-    public void shouldFailRollbackIfNoRollbackAction ()
+    public void shouldFailRevertIfNoRevertAction ()
     {
         final PipelineMetrics pipelineMetrics2 = mock( PipelineMetrics.class );
         when( pipelineMetrics2.getPipelineId() ).thenReturn( pipelineId0 );
@@ -339,7 +339,7 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
             fail();
         }
 
-        context.rollbackAdaptation();
+        context.revertAdaptation();
     }
 
     @Test
@@ -363,10 +363,10 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
         final PipelineMetrics pipelineMetrics2 = mock( PipelineMetrics.class );
         when( pipelineMetrics2.getPipelineId() ).thenReturn( pipelineId0 );
 
-        final AdaptationAction rollback = mock( AdaptationAction.class );
-        when( action.rollback() ).thenReturn( rollback );
+        final AdaptationAction revert = mock( AdaptationAction.class );
+        when( action.revert() ).thenReturn( revert );
 
-        context.rollbackAdaptation();
+        context.revertAdaptation();
 
         final AdaptationAction action2 = mock( AdaptationAction.class );
         final List<Pair<AdaptationAction, List<PipelineId>>> actions2 = singletonList( Pair.of( action2, singletonList( pipelineId0 ) ) );
@@ -408,10 +408,10 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
         final PipelineMetrics pipelineMetrics2 = mock( PipelineMetrics.class );
         when( pipelineMetrics2.getPipelineId() ).thenReturn( pipelineId0 );
 
-        final AdaptationAction rollback = mock( AdaptationAction.class );
-        when( action.rollback() ).thenReturn( rollback );
+        final AdaptationAction revert = mock( AdaptationAction.class );
+        when( action.revert() ).thenReturn( revert );
 
-        context.rollbackAdaptation();
+        context.revertAdaptation();
 
         final List<AdaptationAction> result = context.resolveIfBottleneck( bottleneckPredicate, singletonList( bottleneckResolver0 ) );
 
@@ -468,11 +468,11 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
         final PipelineMetrics pipelineMetrics2 = mock( PipelineMetrics.class );
         when( pipelineMetrics2.getPipelineId() ).thenReturn( pipelineId0 );
 
-        final AdaptationAction rollback = mock( AdaptationAction.class );
-        when( action.rollback() ).thenReturn( rollback );
+        final AdaptationAction revert = mock( AdaptationAction.class );
+        when( action.revert() ).thenReturn( revert );
 
         context.isAdaptationSuccessful( singletonList( pipelineMetrics2 ), adaptationEvaluationPredicate );
-        context.rollbackAdaptation();
+        context.revertAdaptation();
 
         context.resolveIfBottleneck( bottleneckPredicate, singletonList( bottleneckResolver0 ) );
 

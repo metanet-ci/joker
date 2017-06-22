@@ -59,13 +59,13 @@ public class RegionRebalanceActionTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldRollbackRebalance ()
+    public void shouldRevertRebalance ()
     {
-        final RegionRebalanceAction rollback = (RegionRebalanceAction) action.rollback();
+        final RegionRebalanceAction revert = (RegionRebalanceAction) action.revert();
 
-        assertThat( rollback.getCurrentRegionExecutionPlan(), equalTo( regionExecutionPlan.withNewReplicaCount( newReplicaCount ) ) );
-        assertThat( rollback.getNewRegionExecutionPlan(), equalTo( regionExecutionPlan ) );
-        assertThat( rollback.getNewRegionExecutionPlan().getPipelineIds(), equalTo( regionExecutionPlan.getPipelineIds() ) );
+        assertThat( revert.getCurrentRegionExecutionPlan(), equalTo( regionExecutionPlan.withNewReplicaCount( newReplicaCount ) ) );
+        assertThat( revert.getNewRegionExecutionPlan(), equalTo( regionExecutionPlan ) );
+        assertThat( revert.getNewRegionExecutionPlan().getPipelineIds(), equalTo( regionExecutionPlan.getPipelineIds() ) );
     }
 
     @Test
