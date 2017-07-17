@@ -22,7 +22,7 @@ import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
 import cs.bilkent.joker.engine.metric.FlowMetrics;
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import cs.bilkent.joker.engine.metric.PipelineMetricsHistorySummarizer;
-import static cs.bilkent.joker.engine.util.RegionUtil.getUpmostRegions;
+import static cs.bilkent.joker.engine.util.RegionUtil.getLeftMostRegions;
 import cs.bilkent.joker.flow.FlowDef;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
@@ -179,9 +179,9 @@ public class OrganicAdaptationManager implements AdaptationManager
 
     private RegionAdaptationContext getNonResolvedBottleneckRegion ( final FlowMetrics flowMetrics )
     {
-        final List<RegionDef> upmostRegions = getUpmostRegions( flowDef, getRegionDefs( regions ), getRegionDefs( adaptingRegions ) );
+        final List<RegionDef> leftMostRegions = getLeftMostRegions( flowDef, getRegionDefs( regions ), getRegionDefs( adaptingRegions ) );
 
-        final Predicate<RegionAdaptationContext> isUpmostRegion = r -> upmostRegions.contains( r.getRegionDef() );
+        final Predicate<RegionAdaptationContext> isLeftMostRegion = r -> leftMostRegions.contains( r.getRegionDef() );
         final Predicate<RegionAdaptationContext> isAdaptationFailed = r ->
         {
             final int regionId = r.getRegionId();
@@ -190,7 +190,7 @@ public class OrganicAdaptationManager implements AdaptationManager
             return !r.isAdaptationSuccessful( regionMetrics, adaptationEvaluationPredicate );
         };
 
-        return adaptingRegions.stream().filter( isUpmostRegion ).filter( isAdaptationFailed ).findFirst().orElse( null );
+        return adaptingRegions.stream().filter( isLeftMostRegion ).filter( isAdaptationFailed ).findFirst().orElse( null );
     }
 
     private List<RegionDef> getRegionDefs ( final List<RegionAdaptationContext> regions )

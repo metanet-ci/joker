@@ -13,8 +13,8 @@ import cs.bilkent.joker.engine.region.RegionDefFormer;
 import cs.bilkent.joker.engine.region.impl.FlowDefOptimizerImpl;
 import cs.bilkent.joker.engine.region.impl.IdGenerator;
 import cs.bilkent.joker.engine.region.impl.RegionDefFormerImpl;
+import static cs.bilkent.joker.engine.util.RegionUtil.getLeftMostRegions;
 import static cs.bilkent.joker.engine.util.RegionUtil.getRegionByFirstOperator;
-import static cs.bilkent.joker.engine.util.RegionUtil.getUpmostRegions;
 import static cs.bilkent.joker.engine.util.RegionUtil.getWholeDownstream;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
@@ -186,127 +186,127 @@ public class RegionUtilTest extends AbstractJokerTest
     }
 
     @Test
-    public void testUpmostRegions1 ()
+    public void testLeftMostRegions1 ()
     {
-        final List<RegionDef> upmost = getUpmostRegions( flow, regions, singletonList( statefulRegion1 ) );
+        final List<RegionDef> leftMost = getLeftMostRegions( flow, regions, singletonList( statefulRegion1 ) );
 
-        assertThat( upmost, equalTo( singletonList( statefulRegion1 ) ) );
+        assertThat( leftMost, equalTo( singletonList( statefulRegion1 ) ) );
     }
 
     @Test
-    public void testUpmostRegions2 ()
+    public void testLeftMostRegions2 ()
     {
-        final List<RegionDef> upmost = getUpmostRegions( flow, regions, singletonList( statefulRegion2 ) );
+        final List<RegionDef> leftMost = getLeftMostRegions( flow, regions, singletonList( statefulRegion2 ) );
 
-        assertThat( upmost, equalTo( singletonList( statefulRegion2 ) ) );
+        assertThat( leftMost, equalTo( singletonList( statefulRegion2 ) ) );
     }
 
     @Test
-    public void testUpmostRegions3 ()
+    public void testLeftMostRegions3 ()
     {
-        final List<RegionDef> upmost = getUpmostRegions( flow, regions, singletonList( statefulRegion3 ) );
+        final List<RegionDef> leftMost = getLeftMostRegions( flow, regions, singletonList( statefulRegion3 ) );
 
-        assertThat( upmost, equalTo( singletonList( statefulRegion3 ) ) );
+        assertThat( leftMost, equalTo( singletonList( statefulRegion3 ) ) );
     }
 
     @Test
-    public void testUpmostRegions4 ()
+    public void testLeftMostRegions4 ()
     {
-        final List<RegionDef> upmost = getUpmostRegions( flow, regions, singletonList( statefulRegion4 ) );
+        final List<RegionDef> leftMost = getLeftMostRegions( flow, regions, singletonList( statefulRegion4 ) );
 
-        assertThat( upmost, equalTo( singletonList( statefulRegion4 ) ) );
+        assertThat( leftMost, equalTo( singletonList( statefulRegion4 ) ) );
     }
 
     @Test
-    public void testUpmostRegions5 ()
+    public void testLeftMostRegions5 ()
     {
-        final List<RegionDef> upmost = getUpmostRegions( flow, regions, singletonList( statefulRegion5 ) );
+        final List<RegionDef> leftMost = getLeftMostRegions( flow, regions, singletonList( statefulRegion5 ) );
 
-        assertThat( upmost, equalTo( singletonList( statefulRegion5 ) ) );
+        assertThat( leftMost, equalTo( singletonList( statefulRegion5 ) ) );
     }
 
     @Test
-    public void testUpmostRegions6 ()
+    public void testLeftMostRegions6 ()
     {
-        final List<RegionDef> upmost = getUpmostRegions( flow, regions, singletonList( statefulRegion6 ) );
+        final List<RegionDef> leftMost = getLeftMostRegions( flow, regions, singletonList( statefulRegion6 ) );
 
-        assertThat( upmost, equalTo( singletonList( statefulRegion6 ) ) );
+        assertThat( leftMost, equalTo( singletonList( statefulRegion6 ) ) );
     }
 
     @Test
-    public void testUpmostRegions7 ()
+    public void testLeftMostRegions7 ()
     {
-        final List<RegionDef> upmost = getUpmostRegions( flow, regions, singletonList( statelessRegion ) );
+        final List<RegionDef> leftMost = getLeftMostRegions( flow, regions, singletonList( statelessRegion ) );
 
-        assertThat( upmost, equalTo( singletonList( statelessRegion ) ) );
+        assertThat( leftMost, equalTo( singletonList( statelessRegion ) ) );
     }
 
     @Test
-    public void testUpmostRegions8 ()
+    public void testLeftMostRegions8 ()
     {
-        final List<RegionDef> upmost = getUpmostRegions( flow, regions, asList( statefulRegion1, statefulRegion2, statefulRegion3 ) );
+        final List<RegionDef> leftMost = getLeftMostRegions( flow, regions, asList( statefulRegion1, statefulRegion2, statefulRegion3 ) );
 
-        assertThat( upmost, equalTo( singletonList( statefulRegion1 ) ) );
+        assertThat( leftMost, equalTo( singletonList( statefulRegion1 ) ) );
     }
 
     @Test
-    public void testUpmostRegions9 ()
+    public void testLeftMostRegions9 ()
     {
-        final List<RegionDef> upmost = getUpmostRegions( flow, regions, asList( statefulRegion1, statefulRegion3, statefulRegion6 ) );
+        final List<RegionDef> leftMost = getLeftMostRegions( flow, regions, asList( statefulRegion1, statefulRegion3, statefulRegion6 ) );
 
-        assertThat( upmost, equalTo( singletonList( statefulRegion1 ) ) );
+        assertThat( leftMost, equalTo( singletonList( statefulRegion1 ) ) );
     }
 
     @Test
-    public void testUpmostRegions10 ()
+    public void testLeftMostRegions10 ()
     {
-        final List<RegionDef> upmost = getUpmostRegions( flow,
-                                                         regions,
-                                                         asList( statefulRegion1, statefulRegion3, statefulRegion5, statefulRegion6 ) );
+        final List<RegionDef> leftMost = getLeftMostRegions( flow,
+                                                             regions,
+                                                             asList( statefulRegion1, statefulRegion3, statefulRegion5, statefulRegion6 ) );
 
-        assertThat( upmost, hasSize( 2 ) );
-        assertThat( upmost, hasItem( statefulRegion1 ) );
-        assertThat( upmost, hasItem( statefulRegion5 ) );
+        assertThat( leftMost, hasSize( 2 ) );
+        assertThat( leftMost, hasItem( statefulRegion1 ) );
+        assertThat( leftMost, hasItem( statefulRegion5 ) );
     }
 
     @Test
-    public void testUpmostRegions11 ()
+    public void testLeftMostRegions11 ()
     {
-        final List<RegionDef> upmost = getUpmostRegions( flow, regions, asList( statefulRegion4, statelessRegion ) );
+        final List<RegionDef> leftMost = getLeftMostRegions( flow, regions, asList( statefulRegion4, statelessRegion ) );
 
-        assertThat( upmost, equalTo( singletonList( statefulRegion4 ) ) );
+        assertThat( leftMost, equalTo( singletonList( statefulRegion4 ) ) );
     }
 
     @Test
-    public void testUpmostRegions12 ()
+    public void testLeftMostRegions12 ()
     {
-        final List<RegionDef> upmost = getUpmostRegions( flow, regions, asList( statefulRegion6, statelessRegion ) );
+        final List<RegionDef> leftMost = getLeftMostRegions( flow, regions, asList( statefulRegion6, statelessRegion ) );
 
-        assertThat( upmost, equalTo( asList( statefulRegion6, statelessRegion ) ) );
+        assertThat( leftMost, equalTo( asList( statefulRegion6, statelessRegion ) ) );
     }
 
     @Test
-    public void testUpmostRegions13 ()
+    public void testLeftMostRegions13 ()
     {
-        final List<RegionDef> upmost = getUpmostRegions( flow, regions, asList( statefulRegion1, statefulRegion5 ) );
+        final List<RegionDef> leftMost = getLeftMostRegions( flow, regions, asList( statefulRegion1, statefulRegion5 ) );
 
-        assertThat( upmost, equalTo( asList( statefulRegion1, statefulRegion5 ) ) );
+        assertThat( leftMost, equalTo( asList( statefulRegion1, statefulRegion5 ) ) );
     }
 
     @Test
-    public void testUpmostRegions14 ()
+    public void testLeftMostRegions14 ()
     {
-        final List<RegionDef> upmost = getUpmostRegions( flow, regions, asList( statefulRegion2, statefulRegion5 ) );
+        final List<RegionDef> leftMost = getLeftMostRegions( flow, regions, asList( statefulRegion2, statefulRegion5 ) );
 
-        assertThat( upmost, equalTo( asList( statefulRegion2, statefulRegion5 ) ) );
+        assertThat( leftMost, equalTo( asList( statefulRegion2, statefulRegion5 ) ) );
     }
 
     @Test
-    public void testUpmostRegions15 ()
+    public void testLeftMostRegions15 ()
     {
-        final List<RegionDef> upmost = getUpmostRegions( flow, regions, asList( statefulRegion3, statefulRegion5 ) );
+        final List<RegionDef> leftMost = getLeftMostRegions( flow, regions, asList( statefulRegion3, statefulRegion5 ) );
 
-        assertThat( upmost, equalTo( asList( statefulRegion3, statefulRegion5 ) ) );
+        assertThat( leftMost, equalTo( asList( statefulRegion3, statefulRegion5 ) ) );
     }
 
 

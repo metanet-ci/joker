@@ -379,6 +379,7 @@ public class RegionAdaptationContext
         {
             pipelineMetricsByPipelineId.remove( pipelineId );
             blacklists.removeAll( pipelineId );
+            // TODO this may not be necessary
             nonResolvablePipelineIds.remove( pipelineId );
         }
     }

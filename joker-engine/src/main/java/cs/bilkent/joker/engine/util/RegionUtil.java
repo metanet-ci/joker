@@ -166,9 +166,9 @@ public class RegionUtil
         return unmodifiableList( downstream );
     }
 
-    public static List<RegionDef> getUpmostRegions ( final FlowDef flowDef,
-                                                     final List<RegionDef> allRegions,
-                                                     final List<RegionDef> regionsToFilter )
+    public static List<RegionDef> getLeftMostRegions ( final FlowDef flowDef,
+                                                       final List<RegionDef> allRegions,
+                                                       final List<RegionDef> regionsToFilter )
     {
         final List<RegionDef> leftMostRegions = new ArrayList<>( regionsToFilter );
         final Function<RegionDef, List<RegionDef>> getWholeDownstreamFunc = r -> getWholeDownstream( flowDef, allRegions, r );
