@@ -68,7 +68,7 @@ if [ $? != '0' ]; then
     exit 1
 fi
 
-cp run*.sh jokerwd/
+cp ./*.sh jokerwd/
 
 if [ $? != '0' ]; then
     echo "run the build script in scripts directory..."
