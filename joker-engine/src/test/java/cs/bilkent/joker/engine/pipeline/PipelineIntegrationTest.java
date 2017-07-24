@@ -902,11 +902,11 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext invocationContext )
+        public void invoke ( final InvocationContext context )
         {
-            final Tuples input = invocationContext.getInput();
+            final Tuples input = context.getInput();
 
-            final Tuples output = invocationContext.getOutput();
+            final Tuples output = context.getOutput();
             output.addAll( input.getTuples( 0 ) );
             output.addAll( input.getTuples( 1 ) );
         }
@@ -938,11 +938,11 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext invocationContext )
+        public void invoke ( final InvocationContext context )
         {
             if ( start )
             {
-                final Tuples output = invocationContext.getOutput();
+                final Tuples output = context.getOutput();
                 for ( int i = 0; i < batchCount; i++ )
                 {
                     final int val = increment ? ++count : --count;
@@ -975,10 +975,10 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext invocationContext )
+        public void invoke ( final InvocationContext context )
         {
-            final Tuples input = invocationContext.getInput();
-            final Tuples output = invocationContext.getOutput();
+            final Tuples input = context.getInput();
+            final Tuples output = context.getOutput();
             output.addAll( input.getTuplesByDefaultPort() );
             count += input.getTupleCount( 0 );
         }
@@ -1000,10 +1000,10 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext invocationContext )
+        public void invoke ( final InvocationContext context )
         {
-            final Tuples input = invocationContext.getInput();
-            final KVStore kvStore = invocationContext.getKVStore();
+            final Tuples input = context.getInput();
+            final KVStore kvStore = context.getKVStore();
             for ( Tuple tuple : input.getTuplesByDefaultPort() )
             {
                 kvStore.set( "tuple", tuple );

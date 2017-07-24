@@ -321,7 +321,7 @@ public class RegionUtilTest extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext invocationContext )
+        public void invoke ( final InvocationContext context )
         {
 
         }
@@ -340,7 +340,7 @@ public class RegionUtilTest extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext invocationContext )
+        public void invoke ( final InvocationContext context )
         {
 
         }
@@ -359,7 +359,7 @@ public class RegionUtilTest extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext invocationContext )
+        public void invoke ( final InvocationContext context )
         {
 
         }

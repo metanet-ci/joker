@@ -173,10 +173,10 @@ public class FwdKeyIntegrationTest extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext invocationContext )
+        public void invoke ( final InvocationContext context )
         {
-            final Tuples input = invocationContext.getInput();
-            final Tuples output = invocationContext.getOutput();
+            final Tuples input = context.getInput();
+            final Tuples output = context.getOutput();
             input.getTuplesByDefaultPort().forEach( output::add );
         }
 

@@ -46,9 +46,9 @@ public class BeaconOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext invocationContext )
+    public void invoke ( final InvocationContext context )
     {
-        final Tuples output = invocationContext.getOutput();
+        final Tuples output = context.getOutput();
 
         for ( int i = 0; i < tupleCount; i++ )
         {

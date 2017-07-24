@@ -58,11 +58,11 @@ public class BargainIndexOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext invocationContext )
+    public void invoke ( final InvocationContext context )
     {
-        final Tuples input = invocationContext.getInput();
-        final Tuples output = invocationContext.getOutput();
-        final KVStore kvStore = invocationContext.getKVStore();
+        final Tuples input = context.getInput();
+        final Tuples output = context.getOutput();
+        final KVStore kvStore = context.getKVStore();
         final Iterator<Tuple> it = new MergedTupleListsIterator( input.getTuples( 0 ),
                                                                  input.getTuples( 1 ),
                                                                  Comparator.comparing( left -> left.getLong( TIMESTAMP_FIELD ) ) );

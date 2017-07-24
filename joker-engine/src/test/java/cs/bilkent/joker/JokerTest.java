@@ -551,10 +551,10 @@ public class JokerTest extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext invocationContext )
+        public void invoke ( final InvocationContext context )
         {
-            final Tuples input = invocationContext.getInput();
-            final Tuples output = invocationContext.getOutput();
+            final Tuples input = context.getInput();
+            final Tuples output = context.getOutput();
             input.getTuples( 0 ).forEach( output::add );
             input.getTuples( 1 ).forEach( output::add );
         }
@@ -576,11 +576,11 @@ public class JokerTest extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext invocationContext )
+        public void invoke ( final InvocationContext context )
         {
-            final KVStore kvStore = invocationContext.getKVStore();
-            final Tuples input = invocationContext.getInput();
-            final Tuples output = invocationContext.getOutput();
+            final KVStore kvStore = context.getKVStore();
+            final Tuples input = context.getInput();
+            final Tuples output = context.getOutput();
 
             for ( Tuple tuple : input.getTuples( 0 ) )
             {
@@ -611,10 +611,10 @@ public class JokerTest extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext invocationContext )
+        public void invoke ( final InvocationContext context )
         {
-            final Tuples input = invocationContext.getInput();
-            final Tuples output = invocationContext.getOutput();
+            final Tuples input = context.getInput();
+            final Tuples output = context.getOutput();
             input.getTuplesByDefaultPort().forEach( output::add );
         }
 

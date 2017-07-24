@@ -198,7 +198,7 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext invocationContext )
+        public void invoke ( final InvocationContext context )
         {
 
         }
@@ -218,9 +218,9 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext invocationContext )
+        public void invoke ( final InvocationContext context )
         {
-            invocationContext.getOutput().add( new Tuple() );
+            context.getOutput().add( new Tuple() );
         }
 
     }
@@ -240,7 +240,7 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext invocationContext )
+        public void invoke ( final InvocationContext context )
         {
             invocationCount++;
             if ( invocationCount == 10000 )
@@ -264,7 +264,7 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext invocationContext )
+        public void invoke ( final InvocationContext context )
         {
 
         }

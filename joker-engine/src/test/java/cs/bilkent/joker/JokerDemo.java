@@ -301,10 +301,10 @@ public class JokerDemo extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext invocationContext )
+        public void invoke ( final InvocationContext context )
         {
-            Tuples input = invocationContext.getInput();
-            Tuples output = invocationContext.getOutput();
+            Tuples input = context.getInput();
+            Tuples output = context.getOutput();
             for ( Tuple tuple : input.getTuplesByDefaultPort() )
             {
                 Tuple summed = new Tuple( outputSchema );
@@ -493,10 +493,10 @@ public class JokerDemo extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext invocationContext )
+        public void invoke ( final InvocationContext context )
         {
-            final Tuples input = invocationContext.getInput();
-            final Tuples output = invocationContext.getOutput();
+            final Tuples input = context.getInput();
+            final Tuples output = context.getOutput();
 
             List<Tuple> tuples = input.getTuplesByDefaultPort();
             for ( Tuple tuple : tuples )

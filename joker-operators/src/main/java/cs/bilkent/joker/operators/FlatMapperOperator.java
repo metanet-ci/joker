@@ -1,8 +1,7 @@
 package cs.bilkent.joker.operators;
 
 import java.util.function.Consumer;
-
-import com.google.common.base.Supplier;
+import java.util.function.Supplier;
 
 import cs.bilkent.joker.operator.InitializationContext;
 import cs.bilkent.joker.operator.InvocationContext;
@@ -47,10 +46,10 @@ public class FlatMapperOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext invocationContext )
+    public void invoke ( final InvocationContext context )
     {
-        final Tuples input = invocationContext.getInput();
-        final Tuples output = invocationContext.getOutput();
+        final Tuples input = context.getInput();
+        final Tuples output = context.getOutput();
         final Consumer<Tuple> outputCollector = output::add;
 
         for ( Tuple tuple : input.getTuplesByDefaultPort() )

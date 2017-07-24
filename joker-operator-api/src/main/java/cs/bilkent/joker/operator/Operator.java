@@ -110,13 +110,13 @@ public interface Operator
      * <li>A {@link Tuple} object accessed via {@link InvocationContext#getInput()} can be sent to be downstream as it is.</li>
      * </ul>
      *
-     * @param invocationContext
+     * @param context
      *         all the necessary information about a particular invocation of the method, such as input tuples, invocation reason etc.
      *
      * @see Tuple
      * @see InvocationContext
      */
-    void invoke ( InvocationContext invocationContext );
+    void invoke ( InvocationContext context );
 
     /**
      * Invoked after the runtime engine completes invocation of an operator instance. All the resources allocated within the
