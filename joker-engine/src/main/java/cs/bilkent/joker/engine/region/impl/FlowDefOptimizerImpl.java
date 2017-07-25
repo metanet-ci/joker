@@ -170,10 +170,10 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
             {
                 final RegionDef upstreamRegion = getRegionByLastOperator( regions, upstreamOperators.get( 0 ) );
 
-                if ( upstreamRegion.getOperatorCount() == 1 && upstreamRegion.getOperator( 0 ).getInputPortCount() == 0 )
-                {
-                    continue;
-                }
+                //                if ( upstreamRegion.isSource() )
+                //                {
+                //                    continue;
+                //                }
 
                 if ( currentRegion.getRegionType() == PARTITIONED_STATEFUL )
                 {
