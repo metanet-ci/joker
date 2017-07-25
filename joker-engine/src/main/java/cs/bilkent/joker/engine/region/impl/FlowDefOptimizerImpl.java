@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.config.FlowDefOptimizerConfig;
 import cs.bilkent.joker.engine.config.JokerConfig;
@@ -178,10 +177,10 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
 
                 if ( currentRegion.getRegionType() == PARTITIONED_STATEFUL )
                 {
-                    checkArgument( upstreamRegion.getRegionType() != STATELESS,
-                                   "Invalid upstream %s for downstream %s",
-                                   upstreamRegion,
-                                   currentRegion );
+                    //                    checkArgument( upstreamRegion.getRegionType() != STATELESS,
+                    //                                   "Invalid upstream %s for downstream %s",
+                    //                                   upstreamRegion,
+                    //                                   currentRegion );
                     LOGGER.debug( "Will not merge downstream {} with upstream {} with single downstream",
                                   currentRegion.getRegionType(),
                                   upstreamRegion.getRegionType() );
