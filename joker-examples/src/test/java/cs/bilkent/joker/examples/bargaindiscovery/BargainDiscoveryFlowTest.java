@@ -10,6 +10,7 @@ import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.
 import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.WINDOW_SIZE_CONfIG_PARAMETER;
 import cs.bilkent.joker.flow.FlowDefBuilder;
 import cs.bilkent.joker.operator.OperatorConfig;
+import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.joker.operators.BeaconOperator;
@@ -61,10 +62,10 @@ public class BargainDiscoveryFlowTest extends AbstractJokerTest
                                            .setConfig( cvwapConfig )
                                            .setExtendingSchema( cvwapSchemaBuilder.build() ) );
 
-        final OperatorDefBuilder bargainIndexOperatorBuilder = OperatorDefBuilder.newInstance( "bargainIndex", BargainIndexOperator.class )
-                                                                                 .setPartitionFieldNames( singletonList(
-                                                                                         TICKER_SYMBOL_FIELD ) );
-        flowBuilder.add( bargainIndexOperatorBuilder );
+        final OperatorDef bargainIndexOperator = OperatorDefBuilder.newInstance( "bargainIndex", BargainIndexOperator.class )
+                                                                   .setPartitionFieldNames( singletonList( TICKER_SYMBOL_FIELD ) )
+                                                                   .build();
+        flowBuilder.add( bargainIndexOperator );
 
         flowBuilder.connect( "beacon", "vwapAggregator" );
         flowBuilder.connect( "vwapAggregator", "cvwap" );

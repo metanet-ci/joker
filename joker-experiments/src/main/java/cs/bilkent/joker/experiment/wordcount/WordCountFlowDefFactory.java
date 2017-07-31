@@ -29,8 +29,9 @@ public class WordCountFlowDefFactory implements FlowDefFactory
 {
 
     @Override
-    public FlowDef createFlow ( final Config config, final JokerConfig jokerConfig )
+    public FlowDef createFlow ( final JokerConfig jokerConfig )
     {
+        final Config config = jokerConfig.getRootConfig();
         final int minWordLength = config.getInt( MIN_WORD_LENGTH_PARAM );
         final int maxWordLength = config.getInt( MAX_WORD_LENGTH_PARAM );
         final int wordCountPerLength = config.getInt( WORD_COUNT_PER_LENGTH_PARAM );

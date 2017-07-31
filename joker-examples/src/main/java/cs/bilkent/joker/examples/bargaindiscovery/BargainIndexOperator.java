@@ -1,6 +1,5 @@
 package cs.bilkent.joker.examples.bargaindiscovery;
 
-import java.util.Comparator;
 import java.util.Iterator;
 
 import org.slf4j.Logger;
@@ -25,27 +24,28 @@ import cs.bilkent.joker.operator.schema.annotation.SchemaField;
 import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
 import cs.bilkent.joker.operator.spec.OperatorType;
+import static java.util.Comparator.comparing;
 
 @OperatorSpec( type = OperatorType.PARTITIONED_STATEFUL, inputPortCount = 2, outputPortCount = 1 )
-@OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXTENDABLE_FIELD_SET, fields = { @SchemaField( name = VWAPAggregatorOperator.TICKER_SYMBOL_FIELD, type = String.class ),
-                                                                                                 @SchemaField( name = CVWAPFunction
-                                                                                                                              .CVWAP_FIELD, type = Double.class ),
-                                                                                                 @SchemaField( name = VWAPAggregatorOperator.TIMESTAMP_FIELD, type = Long.class ) } ),
-                            @PortSchema( portIndex = 1, scope = EXTENDABLE_FIELD_SET, fields = { @SchemaField( name = VWAPAggregatorOperator.TICKER_SYMBOL_FIELD, type = String.class ),
+@OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXTENDABLE_FIELD_SET, fields = { @SchemaField( name = TICKER_SYMBOL_FIELD, type = String.class ),
+                                                                                                 @SchemaField( name = CVWAP_FIELD, type = Double.class ),
+                                                                                                 @SchemaField( name = TIMESTAMP_FIELD,
+                                                                                                         type = Long.class ) } ),
+                            @PortSchema( portIndex = 1, scope = EXTENDABLE_FIELD_SET, fields = { @SchemaField( name = TICKER_SYMBOL_FIELD, type = String.class ),
                                                                                                  @SchemaField( name = BargainIndexOperator.ASKED_TICKER_SYMBOL_PRICE_FIELD, type = Double.class ),
-                                                                                                 @SchemaField( name = BargainIndexOperator.ASKED_SIZE_FIELD, type = Integer.class ),
-                                                                                                 @SchemaField( name = VWAPAggregatorOperator.TIMESTAMP_FIELD, type = Long.class ) } ) }, outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = VWAPAggregatorOperator.TICKER_SYMBOL_FIELD, type = String.class ),
-                                                                                                                                                                                                                                                                     @SchemaField( name = BargainIndexOperator.BARGAIN_INDEX_FIELD, type = Double.class ) } ) } )
+
+                                                                                                 @SchemaField( name = BargainIndexOperator.ASKED_SIZE_FIELD, type = Integer.class ) } ) }, outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = TICKER_SYMBOL_FIELD, type = String.class ),
+                                                                                                                                                                                                                                                                       @SchemaField( name = BargainIndexOperator.BARGAIN_INDEX_FIELD, type = Double.class ) } ) } )
 public class BargainIndexOperator implements Operator
 {
 
     private static final Logger LOGGER = LoggerFactory.getLogger( BargainIndexOperator.class );
 
-    static final String ASKED_TICKER_SYMBOL_PRICE_FIELD = "askptickersymbol";
+    public static final String ASKED_TICKER_SYMBOL_PRICE_FIELD = "askptickersymbolprice";
 
-    static final String ASKED_SIZE_FIELD = "asksize";
+    public static final String ASKED_SIZE_FIELD = "asksize";
 
-    static final String BARGAIN_INDEX_FIELD = "bargainindex";
+    public static final String BARGAIN_INDEX_FIELD = "bargainindex";
 
 
     private TupleSchema outputSchema;
@@ -64,8 +64,7 @@ public class BargainIndexOperator implements Operator
         final Tuples output = context.getOutput();
         final KVStore kvStore = context.getKVStore();
         final Iterator<Tuple> it = new MergedTupleListsIterator( input.getTuples( 0 ),
-                                                                 input.getTuples( 1 ),
-                                                                 Comparator.comparing( left -> left.getLong( TIMESTAMP_FIELD ) ) );
+                                                                 input.getTuples( 1 ), comparing( t -> t.getLong( TIMESTAMP_FIELD ) ) );
         while ( it.hasNext() )
         {
             final Tuple tuple = it.next();
@@ -85,10 +84,10 @@ public class BargainIndexOperator implements Operator
                         output.add( bargainIndex );
                     }
                 }
-                else
-                {
-                    LOGGER.warn( "Join missed for quote: " + tuple );
-                }
+                //                else
+                //                {
+                //                    LOGGER.warn( "Join missed for quote: " + tuple );
+                //                }
             }
         }
     }

@@ -58,7 +58,7 @@ public class ExperimentRunner
 
         final String flowDefFactoryClassName = config.getString( "flowFactory" );
         final FlowDefFactory flowDefFactory = (FlowDefFactory) Class.forName( flowDefFactoryClassName ).newInstance();
-        final FlowDef flow = flowDefFactory.createFlow( config, jokerConfig );
+        final FlowDef flow = flowDefFactory.createFlow( jokerConfig );
 
         final String reportDir = config.getString( "reportDir" );
         final FlowMetricsFileReporter reporter = new FlowMetricsFileReporter( jokerConfig, new File( reportDir ) );
