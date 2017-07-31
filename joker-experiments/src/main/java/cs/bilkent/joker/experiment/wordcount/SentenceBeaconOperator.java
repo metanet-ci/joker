@@ -1,16 +1,17 @@
 package cs.bilkent.joker.experiment.wordcount;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.io.Files.readLines;
 import cs.bilkent.joker.operator.InitializationContext;
 import cs.bilkent.joker.operator.InvocationContext;
 import cs.bilkent.joker.operator.InvocationContext.InvocationReason;
@@ -33,8 +34,8 @@ import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static java.lang.Thread.currentThread;
-import static java.lang.Thread.sleep;
 import static java.util.Collections.shuffle;
+import static java.util.concurrent.locks.LockSupport.parkNanos;
 
 @OperatorSpec( type = STATEFUL, inputPortCount = 0, outputPortCount = 1 )
 @OperatorSchema( outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = SentenceBeaconOperator
@@ -245,7 +246,7 @@ public class SentenceBeaconOperator implements Operator
             this.maxSentenceLength = maxSentenceLength;
             this.sentenceCountPerLength = sentenceCountPerLength;
             this.shuffledSentenceCount = shuffledSentenceCount;
-            this.words = new ArrayList<>( ( maxWordLength - minWordLength + 1 ) * wordCountPerLength );
+            this.words = new ArrayList<>( 20000 );
             this.sentences = new ArrayList<>( ( maxSentenceLength - minSentenceLength + 1 ) * sentenceCountPerLength );
             init();
         }
@@ -259,19 +260,12 @@ public class SentenceBeaconOperator implements Operator
 
                 while ( !shuffledSentencesRef.compareAndSet( null, sentences ) )
                 {
-                    try
+                    if ( shutdown )
                     {
-                        if ( shutdown )
-                        {
-                            break;
-                        }
+                        break;
+                    }
 
-                        sleep( 1 );
-                    }
-                    catch ( InterruptedException e )
-                    {
-                        currentThread().interrupt();
-                    }
+                    parkNanos( 1000 );
                 }
 
                 //                LOGGER.info( "Shuffled..." );
@@ -280,88 +274,98 @@ public class SentenceBeaconOperator implements Operator
 
         private void init ()
         {
-            char[] letters = { 'a',
-                               'b',
-                               'c',
-                               'd',
-                               'e',
-                               'f',
-                               'g',
-                               'h',
-                               'i',
-                               'j',
-                               'k',
-                               'l',
-                               'm',
-                               'n',
-                               'o',
-                               'p',
-                               'q',
-                               'r',
-                               's',
-                               't',
-                               'u',
-                               'v',
-                               'w',
-                               'x',
-                               'y',
-                               'z',
-                               'A',
-                               'B',
-                               'C',
-                               'D',
-                               'E',
-                               'F',
-                               'G',
-                               'H',
-                               'I',
-                               'J',
-                               'K',
-                               'L',
-                               'M',
-                               'N',
-                               'O',
-                               'P',
-                               'Q',
-                               'R',
-                               'S',
-                               'T',
-                               'U',
-                               'V',
-                               'W',
-                               'X',
-                               'Y',
-                               'Z',
-                               '0',
-                               '1',
-                               '2',
-                               '3',
-                               '4',
-                               '5',
-                               '6',
-                               '7',
-                               '8',
-                               '9' };
-            final Random random = new Random();
-            for ( int len = minWordLength; len <= maxWordLength; len++ )
+            try
             {
-                Set<String> w = new HashSet<>();
-
-                while ( w.size() < wordCountPerLength )
-                {
-                    StringBuilder sb = new StringBuilder();
-                    for ( int i = 0; i < len; i++ )
-                    {
-                        sb.append( letters[ random.nextInt( letters.length ) ] );
-                    }
-
-                    w.add( sb.toString() );
-                }
-
-                words.addAll( w );
+                final List<String> words = readLines( new File( "./20k.txt" ), Charset.defaultCharset() );
+                this.words.addAll( words );
+            }
+            catch ( IOException e )
+            {
+                throw new RuntimeException( e );
             }
 
-            shuffle( words );
+            //            char[] letters = { 'a',
+            //                               'b',
+            //                               'c',
+            //                               'd',
+            //                               'e',
+            //                               'f',
+            //                               'g',
+            //                               'h',
+            //                               'i',
+            //                               'j',
+            //                               'k',
+            //                               'l',
+            //                               'm',
+            //                               'n',
+            //                               'o',
+            //                               'p',
+            //                               'q',
+            //                               'r',
+            //                               's',
+            //                               't',
+            //                               'u',
+            //                               'v',
+            //                               'w',
+            //                               'x',
+            //                               'y',
+            //                               'z',
+            //                               'A',
+            //                               'B',
+            //                               'C',
+            //                               'D',
+            //                               'E',
+            //                               'F',
+            //                               'G',
+            //                               'H',
+            //                               'I',
+            //                               'J',
+            //                               'K',
+            //                               'L',
+            //                               'M',
+            //                               'N',
+            //                               'O',
+            //                               'P',
+            //                               'Q',
+            //                               'R',
+            //                               'S',
+            //                               'T',
+            //                               'U',
+            //                               'V',
+            //                               'W',
+            //                               'X',
+            //                               'Y',
+            //                               'Z',
+            //                               '0',
+            //                               '1',
+            //                               '2',
+            //                               '3',
+            //                               '4',
+            //                               '5',
+            //                               '6',
+            //                               '7',
+            //                               '8',
+            //                               '9' };
+            //            final Random random = new Random();
+            //            for ( int len = minWordLength; len <= maxWordLength; len++ )
+            //            {
+            //                Set<String> w = new HashSet<>();
+            //
+            //                while ( w.size() < wordCountPerLength )
+            //                {
+            //                    StringBuilder sb = new StringBuilder();
+            //                    for ( int i = 0; i < len; i++ )
+            //                    {
+            //                        sb.append( letters[ random.nextInt( letters.length ) ] );
+            //                    }
+            //
+            //                    w.add( sb.toString() );
+            //                }
+            //
+            //                words.addAll( w );
+            //            }
+            //
+            //            shuffle( words );
 
             for ( int len = minSentenceLength; len <= maxSentenceLength; len++ )
             {
@@ -376,6 +380,9 @@ public class SentenceBeaconOperator implements Operator
 
         private List<String> getRandomizedSentences ()
         {
+            shuffle( words );
+            shuffle( sentences );
+
             final List<String> sentences = new ArrayList<>( shuffledSentenceCount );
             for ( int i = 0; i < shuffledSentenceCount; i++ )
             {
