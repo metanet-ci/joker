@@ -51,8 +51,8 @@ public class ExperimentRunner
 
         final JokerConfigBuilder configBuilder = new JokerConfigBuilder();
         configBuilder.getAdaptationConfigBuilder().enableAdaptation();
-        //        configBuilder.getFlowDefOptimizerConfigBuilder().disableMergeRegions();
-        configBuilder.getFlowDefOptimizerConfigBuilder().enableMergeRegions();
+        configBuilder.getFlowDefOptimizerConfigBuilder().disableMergeRegions();
+        //        configBuilder.getFlowDefOptimizerConfigBuilder().enableMergeRegions();
 
         final JokerConfig jokerConfig = configBuilder.build( config );
 
@@ -99,7 +99,8 @@ public class ExperimentRunner
                                        {
                                            continue;
                                        }
-                                       else if ( "disable".equals( command ) )
+
+                                       if ( "disable".equals( command ) )
                                        {
                                            try
                                            {

@@ -14,9 +14,12 @@ import cs.bilkent.joker.operator.schema.annotation.OperatorSchema;
 import cs.bilkent.joker.operator.schema.annotation.PortSchema;
 import static cs.bilkent.joker.operator.schema.annotation.PortSchemaScope.EXACT_FIELD_SET;
 import cs.bilkent.joker.operator.schema.annotation.SchemaField;
+import cs.bilkent.joker.operator.schema.runtime.PortRuntimeSchemaBuilder;
+import cs.bilkent.joker.operator.schema.runtime.RuntimeSchemaField;
 import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
+import static java.util.Arrays.asList;
 
 
 /**
@@ -47,6 +50,8 @@ public class ExponentialMovingAverageAggregationOperator implements Operator
 
     private String fieldName;
 
+    private TupleSchema windowSchema;
+
     @Override
     public SchedulingStrategy init ( final InitializationContext context )
     {
@@ -55,6 +60,9 @@ public class ExponentialMovingAverageAggregationOperator implements Operator
         final OperatorConfig config = context.getConfig();
         this.weight = config.getOrFail( WEIGHT_CONFIG_PARAMETER );
         this.fieldName = config.getOrFail( FIELD_NAME_CONFIG_PARAMETER );
+        this.windowSchema = new PortRuntimeSchemaBuilder( EXACT_FIELD_SET,
+                                                          asList( new RuntimeSchemaField( VALUE_FIELD, Double.class ),
+                                                                  new RuntimeSchemaField( TUPLE_COUNT_FIELD, Integer.class ) ) ).build();
 
         return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
     }
@@ -66,7 +74,7 @@ public class ExponentialMovingAverageAggregationOperator implements Operator
         final Tuples output = context.getOutput();
         final KVStore kvStore = context.getKVStore();
 
-        final Tuple currentWindow = kvStore.getOrDefault( CURRENT_WINDOW_KEY, Tuple::new );
+        final Tuple currentWindow = kvStore.getOrDefault( CURRENT_WINDOW_KEY, () -> new Tuple( windowSchema ) );
 
         double value = currentWindow.getDoubleValueOrDefault( VALUE_FIELD, 0d );
         int tupleCount = currentWindow.getIntegerValueOrDefault( TUPLE_COUNT_FIELD, 0 );
