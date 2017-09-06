@@ -23,6 +23,9 @@ import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.joker.operators.FilterOperator;
 import cs.bilkent.joker.operators.MapperOperator;
 import cs.bilkent.joker.operators.TupleCountBasedWindowReducerOperator;
+import static cs.bilkent.joker.operators.TupleCountBasedWindowReducerOperator.ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER;
+import static cs.bilkent.joker.operators.TupleCountBasedWindowReducerOperator.REDUCER_CONFIG_PARAMETER;
+import static cs.bilkent.joker.operators.TupleCountBasedWindowReducerOperator.TUPLE_COUNT_CONFIG_PARAMETER;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -142,10 +145,10 @@ public class AuthLogsFlowDefFactory implements FlowDefFactory
         };
 
         final OperatorConfig failureWindowConfig = new OperatorConfig();
-        failureWindowConfig.set( TupleCountBasedWindowReducerOperator.REDUCER_CONFIG_PARAMETER, windowReducerFunc );
-        failureWindowConfig.set( TupleCountBasedWindowReducerOperator.ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER, (Consumer<Tuple>) t -> {
+        failureWindowConfig.set( REDUCER_CONFIG_PARAMETER, windowReducerFunc );
+        failureWindowConfig.set( ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER, (Consumer<Tuple>) t -> {
         } );
-        failureWindowConfig.set( TupleCountBasedWindowReducerOperator.TUPLE_COUNT_CONFIG_PARAMETER, FAILURE_WINDOW_TUPLE_COUNT );
+        failureWindowConfig.set( TUPLE_COUNT_CONFIG_PARAMETER, FAILURE_WINDOW_TUPLE_COUNT );
 
         final OperatorDef failureWindow = OperatorDefBuilder.newInstance( "failureWindow", TupleCountBasedWindowReducerOperator.class )
                                                             .setExtendingSchema( failureWindowSchema )
@@ -163,8 +166,9 @@ public class AuthLogsFlowDefFactory implements FlowDefFactory
                     .addOutputField( 0, MIN_TIMESTAMP_FIELD_NAME, Long.class )
                     .addOutputField( 0, USER_FIELD_NAME, String.class );
 
-        final Predicate<Tuple> cutOffPredicate = input -> ( input.getLong( MAX_TIMESTAMP_FIELD_NAME ) - SECONDS.toMillis(
-                failureWindowDurationInSeconds ) ) <= input.getLong( MIN_TIMESTAMP_FIELD_NAME );
+        final long failureWindowDurationInMillis = SECONDS.toMillis( failureWindowDurationInSeconds );
+        final Predicate<Tuple> cutOffPredicate = input -> ( input.getLong( MIN_TIMESTAMP_FIELD_NAME ) + failureWindowDurationInMillis )
+                                                          > input.getLong( MAX_TIMESTAMP_FIELD_NAME );
 
         final OperatorConfig cutOffConfig = new OperatorConfig();
         cutOffConfig.set( FilterOperator.PREDICATE_CONFIG_PARAMETER, cutOffPredicate );
@@ -203,7 +207,9 @@ public class AuthLogsFlowDefFactory implements FlowDefFactory
                                    .add( authFailureFilter )
                                    .add( failureParser )
                                    .add( failureWindow )
-                                   .add( cutOff ).add( diffCalculator ).connect( logBeacon.getId(), authFailureFilter.getId() )
+                                   .add( cutOff )
+                                   .add( diffCalculator )
+                                   .connect( logBeacon.getId(), authFailureFilter.getId() )
                                    .connect( authFailureFilter.getId(), failureParser.getId() )
                                    .connect( failureParser.getId(), failureWindow.getId() )
                                    .connect( failureWindow.getId(), cutOff.getId() )
