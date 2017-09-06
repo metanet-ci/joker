@@ -1,6 +1,5 @@
 package cs.bilkent.joker.experiment.authlogs;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -10,7 +9,6 @@ import com.typesafe.config.Config;
 
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.experiment.FlowDefFactory;
-import static cs.bilkent.joker.experiment.authlogs.LogBeaconOperator.LINE_FIELD_NAME;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
 import cs.bilkent.joker.operator.OperatorConfig;
@@ -19,23 +17,15 @@ import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.joker.operators.FilterOperator;
-import cs.bilkent.joker.operators.FlatMapperOperator;
-import cs.bilkent.joker.operators.FlatMapperOperator.FlatMapperConsumer;
 import cs.bilkent.joker.operators.MapperOperator;
 import cs.bilkent.joker.operators.TupleCountBasedWindowReducerOperator;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static java.util.stream.Collectors.joining;
 
 public class AuthLogsFlowDefFactory implements FlowDefFactory
 {
-
-    private static final String TIMESTAMP_FIELD_NAME = "ts";
-    private static final String HOST_FIELD_NAME = "host";
-    private static final String SERVICE_FIELD_NAME = "srvc";
-    private static final String MESSAGE_FIELD_NAME = "msg";
 
     private static final String UID_FIELD_NAME = "uid";
     private static final String EUID_FIELD_NAME = "euid";
@@ -71,57 +61,19 @@ public class AuthLogsFlowDefFactory implements FlowDefFactory
                                                         .setConfig( logBeaconConfig )
                                                         .build();
 
-        final OperatorRuntimeSchemaBuilder lineParserSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        lineParserSchema.addInputField( 0, LINE_FIELD_NAME, String.class )
-                        .addOutputField( 0, TIMESTAMP_FIELD_NAME, Long.class )
-                        .addOutputField( 0, HOST_FIELD_NAME, String.class )
-                        .addOutputField( 0, SERVICE_FIELD_NAME, String.class )
-                        .addOutputField( 0, MESSAGE_FIELD_NAME, String.class );
-
-        final FlatMapperConsumer lineParserFunc = ( input, outputTupleSupplier, outputCollector ) -> {
-            try
-            {
-                final String line = input.getOrFail( LINE_FIELD_NAME );
-                final String[] tokens = line.split( " " );
-                final long timestamp = Long.valueOf( tokens[ 0 ] );
-                final String host = tokens[ 1 ];
-                final String service = tokens[ 2 ];
-                final String message = Arrays.stream( tokens ).skip( 3 ).collect( joining( " " ) );
-
-                final Tuple output = outputTupleSupplier.get();
-                output.set( TIMESTAMP_FIELD_NAME, timestamp );
-                output.set( HOST_FIELD_NAME, host );
-                output.set( SERVICE_FIELD_NAME, service );
-                output.set( MESSAGE_FIELD_NAME, message );
-
-                outputCollector.accept( output );
-            }
-            catch ( RuntimeException ignored )
-            {
-
-            }
-        };
-
-        final OperatorConfig lineParserConfig = new OperatorConfig();
-        lineParserConfig.set( FlatMapperOperator.FLAT_MAPPER_CONFIG_PARAMETER, lineParserFunc );
-
-        final OperatorDef lineParser = OperatorDefBuilder.newInstance( "lineParser", FlatMapperOperator.class )
-                                                         .setExtendingSchema( lineParserSchema )
-                                                         .setConfig( lineParserConfig )
-                                                         .build();
-
         final OperatorRuntimeSchemaBuilder authFailureFilterSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        authFailureFilterSchema.addInputField( 0, TIMESTAMP_FIELD_NAME, Long.class )
-                               .addInputField( 0, HOST_FIELD_NAME, String.class )
-                               .addInputField( 0, SERVICE_FIELD_NAME, String.class )
-                               .addInputField( 0, MESSAGE_FIELD_NAME, String.class )
-                               .addOutputField( 0, TIMESTAMP_FIELD_NAME, Long.class )
-                               .addOutputField( 0, HOST_FIELD_NAME, String.class )
-                               .addOutputField( 0, SERVICE_FIELD_NAME, String.class )
-                               .addOutputField( 0, MESSAGE_FIELD_NAME, String.class );
+        authFailureFilterSchema.addInputField( 0, LogBeaconOperator.TIMESTAMP_FIELD_NAME, Long.class )
+                               .addInputField( 0, LogBeaconOperator.HOST_FIELD_NAME, String.class )
+                               .addInputField( 0, LogBeaconOperator.SERVICE_FIELD_NAME, String.class )
+                               .addInputField( 0, LogBeaconOperator.MESSAGE_FIELD_NAME, String.class )
+                               .addOutputField( 0, LogBeaconOperator.TIMESTAMP_FIELD_NAME, Long.class )
+                               .addOutputField( 0, LogBeaconOperator.HOST_FIELD_NAME, String.class )
+                               .addOutputField( 0, LogBeaconOperator.SERVICE_FIELD_NAME, String.class )
+                               .addOutputField( 0, LogBeaconOperator.MESSAGE_FIELD_NAME, String.class );
 
-        final Predicate<Tuple> authFailureFilterPredicate = tuple -> ( tuple.getString( SERVICE_FIELD_NAME ).contains( "sshd" )
-                                                                       && tuple.getString( MESSAGE_FIELD_NAME )
+        final Predicate<Tuple> authFailureFilterPredicate = tuple -> ( tuple.getString( LogBeaconOperator.SERVICE_FIELD_NAME )
+                                                                            .contains( "sshd" )
+                                                                       && tuple.getString( LogBeaconOperator.MESSAGE_FIELD_NAME )
                                                                                .contains( "authentication failure;" ) );
 
         final OperatorConfig authFailureFilterConfig = new OperatorConfig();
@@ -133,11 +85,11 @@ public class AuthLogsFlowDefFactory implements FlowDefFactory
                                                                 .build();
 
         final OperatorRuntimeSchemaBuilder failureParserSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        failureParserSchema.addInputField( 0, TIMESTAMP_FIELD_NAME, Long.class )
-                           .addInputField( 0, HOST_FIELD_NAME, String.class )
-                           .addInputField( 0, SERVICE_FIELD_NAME, String.class )
-                           .addInputField( 0, MESSAGE_FIELD_NAME, String.class )
-                           .addOutputField( 0, TIMESTAMP_FIELD_NAME, Long.class )
+        failureParserSchema.addInputField( 0, LogBeaconOperator.TIMESTAMP_FIELD_NAME, Long.class )
+                           .addInputField( 0, LogBeaconOperator.HOST_FIELD_NAME, String.class )
+                           .addInputField( 0, LogBeaconOperator.SERVICE_FIELD_NAME, String.class )
+                           .addInputField( 0, LogBeaconOperator.MESSAGE_FIELD_NAME, String.class )
+                           .addOutputField( 0, LogBeaconOperator.TIMESTAMP_FIELD_NAME, Long.class )
                            .addOutputField( 0, UID_FIELD_NAME, String.class )
                            .addOutputField( 0, EUID_FIELD_NAME, String.class )
                            .addOutputField( 0, TTY_FIELD_NAME, String.class )
@@ -145,8 +97,8 @@ public class AuthLogsFlowDefFactory implements FlowDefFactory
                            .addOutputField( 0, USER_FIELD_NAME, String.class );
 
         final BiConsumer<Tuple, Tuple> failureParserFunc = ( input, output ) -> {
-            output.set( TIMESTAMP_FIELD_NAME, input.getLong( TIMESTAMP_FIELD_NAME ) );
-            final String message = input.getString( MESSAGE_FIELD_NAME );
+            output.set( LogBeaconOperator.TIMESTAMP_FIELD_NAME, input.getLong( LogBeaconOperator.TIMESTAMP_FIELD_NAME ) );
+            final String message = input.getString( LogBeaconOperator.MESSAGE_FIELD_NAME );
             final String[] tokens = message.split( " " );
             output.set( UID_FIELD_NAME, tokens[ 4 ].split( "=" )[ 1 ] );
             output.set( EUID_FIELD_NAME, tokens[ 5 ].split( "=" )[ 1 ] );
@@ -164,7 +116,7 @@ public class AuthLogsFlowDefFactory implements FlowDefFactory
                                                             .build();
 
         final OperatorRuntimeSchemaBuilder failureWindowSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        failureWindowSchema.addInputField( 0, TIMESTAMP_FIELD_NAME, Long.class )
+        failureWindowSchema.addInputField( 0, LogBeaconOperator.TIMESTAMP_FIELD_NAME, Long.class )
                            .addInputField( 0, UID_FIELD_NAME, String.class )
                            .addInputField( 0, EUID_FIELD_NAME, String.class )
                            .addInputField( 0, TTY_FIELD_NAME, String.class )
@@ -179,8 +131,8 @@ public class AuthLogsFlowDefFactory implements FlowDefFactory
             final long maxTimestamp = accumulator.getLongOrDefault( MAX_TIMESTAMP_FIELD_NAME, Long.MIN_VALUE );
             final long minTimestamp = accumulator.getLongOrDefault( MIN_TIMESTAMP_FIELD_NAME, Long.MAX_VALUE );
 
-            accumulator.set( MAX_TIMESTAMP_FIELD_NAME, max( maxTimestamp, input.getLong( TIMESTAMP_FIELD_NAME ) ) );
-            accumulator.set( MIN_TIMESTAMP_FIELD_NAME, min( minTimestamp, input.getLong( TIMESTAMP_FIELD_NAME ) ) );
+            accumulator.set( MAX_TIMESTAMP_FIELD_NAME, max( maxTimestamp, input.getLong( LogBeaconOperator.TIMESTAMP_FIELD_NAME ) ) );
+            accumulator.set( MIN_TIMESTAMP_FIELD_NAME, min( minTimestamp, input.getLong( LogBeaconOperator.TIMESTAMP_FIELD_NAME ) ) );
             accumulator.set( RHOST_FIELD_NAME, input.get( RHOST_FIELD_NAME ) );
             accumulator.set( USER_FIELD_NAME, input.get( USER_FIELD_NAME ) );
         };
@@ -244,14 +196,11 @@ public class AuthLogsFlowDefFactory implements FlowDefFactory
                                                              .build();
 
         return new FlowDefBuilder().add( logBeacon )
-                                   .add( lineParser )
                                    .add( authFailureFilter )
                                    .add( failureParser )
                                    .add( failureWindow )
                                    .add( cutOff )
-                                   .add( diffCalculator )
-                                   .connect( logBeacon.getId(), lineParser.getId() )
-                                   .connect( lineParser.getId(), authFailureFilter.getId() )
+                                   .add( diffCalculator ).connect( logBeacon.getId(), authFailureFilter.getId() )
                                    .connect( authFailureFilter.getId(), failureParser.getId() )
                                    .connect( failureParser.getId(), failureWindow.getId() )
                                    .connect( failureWindow.getId(), cutOff.getId() )
