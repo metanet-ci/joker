@@ -139,17 +139,22 @@ public class LogLineGenerator implements Runnable
 
         for ( int i = 0; i < authFailureCount; i++ )
         {
-            String[] msg = new String[ 10 ];
+            String[] msg = new String[ 15 ];
             msg[ 0 ] = "pam_unix(sshd:auth):";
             msg[ 1 ] = "authentication";
             msg[ 2 ] = "failure;";
             msg[ 3 ] = "logname=";
-            msg[ 4 ] = "uid=" + uids.get( uidIdx++ );
-            msg[ 5 ] = "euid=" + euids.get( euidIdx++ );
-            msg[ 6 ] = "tty=ssh";
-            msg[ 7 ] = "ruser=";
-            msg[ 8 ] = "rhost=" + rhosts.get( rhostIdx++ );
-            msg[ 9 ] = "user=" + users.get( userIdx++ );
+            msg[ 4 ] = "uid=";
+            msg[ 5 ] = uids.get( uidIdx++ );
+            msg[ 6 ] = "euid=";
+            msg[ 7 ] = euids.get( euidIdx++ );
+            msg[ 8 ] = "tty=";
+            msg[ 9 ] = "ssh";
+            msg[ 10 ] = "ruser=";
+            msg[ 11 ] = "rhost=";
+            msg[ 12 ] = rhosts.get( rhostIdx++ );
+            msg[ 13 ] = "user=";
+            msg[ 14 ] = users.get( userIdx++ );
 
             final Triple<String, String, String[]> tokens = Triple.of( "ubuntu", "sshd[5126]:", msg );
 

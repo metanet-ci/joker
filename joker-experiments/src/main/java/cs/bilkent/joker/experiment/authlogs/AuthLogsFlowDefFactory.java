@@ -104,11 +104,11 @@ public class AuthLogsFlowDefFactory implements FlowDefFactory
         final BiConsumer<Tuple, Tuple> failureParserFunc = ( input, output ) -> {
             output.set( TIMESTAMP_FIELD_NAME, input.getLong( TIMESTAMP_FIELD_NAME ) );
             final String[] tokens = input.getOrFail( MESSAGE_FIELD_NAME );
-            output.set( UID_FIELD_NAME, tokens[ 4 ].split( "=" )[ 1 ] );
-            output.set( EUID_FIELD_NAME, tokens[ 5 ].split( "=" )[ 1 ] );
-            output.set( TTY_FIELD_NAME, tokens[ 6 ].split( "=" )[ 1 ] );
-            output.set( RHOST_FIELD_NAME, tokens[ 8 ].split( "=" )[ 1 ] );
-            output.set( USER_FIELD_NAME, tokens[ 9 ].split( "=" )[ 1 ] );
+            output.set( UID_FIELD_NAME, tokens[ 5 ] );
+            output.set( EUID_FIELD_NAME, tokens[ 7 ] );
+            output.set( TTY_FIELD_NAME, tokens[ 9 ] );
+            output.set( RHOST_FIELD_NAME, tokens[ 12 ] );
+            output.set( USER_FIELD_NAME, tokens[ 14 ] );
         };
 
         final OperatorConfig failureParserConfig = new OperatorConfig();
