@@ -18,6 +18,7 @@ import cs.bilkent.joker.operator.schema.annotation.SchemaField;
 import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
+import cs.bilkent.joker.utils.Triple;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.concurrent.locks.LockSupport.parkNanos;
 
@@ -28,8 +29,7 @@ import static java.util.concurrent.locks.LockSupport.parkNanos;
                                                                                                    type = String.class ),
                                                                                            @SchemaField( name = LogBeaconOperator
                                                                                                                         .SERVICE_FIELD_NAME, type = String.class ),
-                                                                                           @SchemaField( name = LogBeaconOperator
-                                                                                                                        .MESSAGE_FIELD_NAME, type = String.class ) } ) )
+                                                                                           @SchemaField( name = LogBeaconOperator.MESSAGE_FIELD_NAME, type = String[].class ) } ) )
 @OperatorSpec( inputPortCount = 0, outputPortCount = 1, type = STATEFUL )
 public class LogBeaconOperator implements Operator
 {
@@ -49,7 +49,7 @@ public class LogBeaconOperator implements Operator
 
     private Thread generatorThread;
 
-    private List<String[]> logs;
+    private List<Triple<String, String, String[]>> logs;
 
     private TupleSchema outputSchema;
 
@@ -117,12 +117,12 @@ public class LogBeaconOperator implements Operator
         return currentTimestamp;
     }
 
-    private String[] nextLog ()
+    private Triple<String, String, String[]> nextLog ()
     {
-        final String[] log = logs.get( idx++ );
+        final Triple<String, String, String[]> log = logs.get( idx++ );
         if ( idx == batchSize )
         {
-            final List<String[]> logs = generator.getLogs();
+            final List<Triple<String, String, String[]>> logs = generator.getLogs();
             if ( logs != null )
             {
                 this.logs = logs;
@@ -134,13 +134,13 @@ public class LogBeaconOperator implements Operator
         return log;
     }
 
-    private Tuple createOutputTuple ( final long timestamp, final String[] log )
+    private Tuple createOutputTuple ( final long timestamp, final Triple<String, String, String[]> log )
     {
         final Tuple output = new Tuple( outputSchema );
         output.set( TIMESTAMP_FIELD_NAME, timestamp );
-        output.set( HOST_FIELD_NAME, log[ 0 ] );
-        output.set( SERVICE_FIELD_NAME, log[ 1 ] );
-        output.set( MESSAGE_FIELD_NAME, log[ 2 ] );
+        output.set( HOST_FIELD_NAME, log._1 );
+        output.set( SERVICE_FIELD_NAME, log._2 );
+        output.set( MESSAGE_FIELD_NAME, log._3 );
 
         return output;
     }

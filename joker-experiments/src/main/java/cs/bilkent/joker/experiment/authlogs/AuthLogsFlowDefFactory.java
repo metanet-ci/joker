@@ -9,6 +9,10 @@ import com.typesafe.config.Config;
 
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.experiment.FlowDefFactory;
+import static cs.bilkent.joker.experiment.authlogs.LogBeaconOperator.HOST_FIELD_NAME;
+import static cs.bilkent.joker.experiment.authlogs.LogBeaconOperator.MESSAGE_FIELD_NAME;
+import static cs.bilkent.joker.experiment.authlogs.LogBeaconOperator.SERVICE_FIELD_NAME;
+import static cs.bilkent.joker.experiment.authlogs.LogBeaconOperator.TIMESTAMP_FIELD_NAME;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
 import cs.bilkent.joker.operator.OperatorConfig;
@@ -62,19 +66,20 @@ public class AuthLogsFlowDefFactory implements FlowDefFactory
                                                         .build();
 
         final OperatorRuntimeSchemaBuilder authFailureFilterSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        authFailureFilterSchema.addInputField( 0, LogBeaconOperator.TIMESTAMP_FIELD_NAME, Long.class )
-                               .addInputField( 0, LogBeaconOperator.HOST_FIELD_NAME, String.class )
-                               .addInputField( 0, LogBeaconOperator.SERVICE_FIELD_NAME, String.class )
-                               .addInputField( 0, LogBeaconOperator.MESSAGE_FIELD_NAME, String.class )
-                               .addOutputField( 0, LogBeaconOperator.TIMESTAMP_FIELD_NAME, Long.class )
-                               .addOutputField( 0, LogBeaconOperator.HOST_FIELD_NAME, String.class )
-                               .addOutputField( 0, LogBeaconOperator.SERVICE_FIELD_NAME, String.class )
-                               .addOutputField( 0, LogBeaconOperator.MESSAGE_FIELD_NAME, String.class );
+        authFailureFilterSchema.addInputField( 0, TIMESTAMP_FIELD_NAME, Long.class )
+                               .addInputField( 0, HOST_FIELD_NAME, String.class )
+                               .addInputField( 0, SERVICE_FIELD_NAME, String.class )
+                               .addInputField( 0, MESSAGE_FIELD_NAME, String[].class )
+                               .addOutputField( 0, TIMESTAMP_FIELD_NAME, Long.class )
+                               .addOutputField( 0, HOST_FIELD_NAME, String.class )
+                               .addOutputField( 0, SERVICE_FIELD_NAME, String.class )
+                               .addOutputField( 0, MESSAGE_FIELD_NAME, String[].class );
 
-        final Predicate<Tuple> authFailureFilterPredicate = tuple -> ( tuple.getString( LogBeaconOperator.SERVICE_FIELD_NAME )
-                                                                            .contains( "sshd" )
-                                                                       && tuple.getString( LogBeaconOperator.MESSAGE_FIELD_NAME )
-                                                                               .contains( "authentication failure;" ) );
+        final Predicate<Tuple> authFailureFilterPredicate = tuple -> {
+            String[] msg = tuple.getOrFail( MESSAGE_FIELD_NAME );
+            return tuple.getString( SERVICE_FIELD_NAME ).contains( "sshd" ) && msg.length > 2 && msg[ 1 ].equals( "authentication" )
+                   && msg[ 2 ].equals( "failure;" );
+        };
 
         final OperatorConfig authFailureFilterConfig = new OperatorConfig();
         authFailureFilterConfig.set( FilterOperator.PREDICATE_CONFIG_PARAMETER, authFailureFilterPredicate );
@@ -85,11 +90,11 @@ public class AuthLogsFlowDefFactory implements FlowDefFactory
                                                                 .build();
 
         final OperatorRuntimeSchemaBuilder failureParserSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        failureParserSchema.addInputField( 0, LogBeaconOperator.TIMESTAMP_FIELD_NAME, Long.class )
-                           .addInputField( 0, LogBeaconOperator.HOST_FIELD_NAME, String.class )
-                           .addInputField( 0, LogBeaconOperator.SERVICE_FIELD_NAME, String.class )
-                           .addInputField( 0, LogBeaconOperator.MESSAGE_FIELD_NAME, String.class )
-                           .addOutputField( 0, LogBeaconOperator.TIMESTAMP_FIELD_NAME, Long.class )
+        failureParserSchema.addInputField( 0, TIMESTAMP_FIELD_NAME, Long.class )
+                           .addInputField( 0, HOST_FIELD_NAME, String.class )
+                           .addInputField( 0, SERVICE_FIELD_NAME, String.class )
+                           .addInputField( 0, MESSAGE_FIELD_NAME, String[].class )
+                           .addOutputField( 0, TIMESTAMP_FIELD_NAME, Long.class )
                            .addOutputField( 0, UID_FIELD_NAME, String.class )
                            .addOutputField( 0, EUID_FIELD_NAME, String.class )
                            .addOutputField( 0, TTY_FIELD_NAME, String.class )
@@ -97,9 +102,8 @@ public class AuthLogsFlowDefFactory implements FlowDefFactory
                            .addOutputField( 0, USER_FIELD_NAME, String.class );
 
         final BiConsumer<Tuple, Tuple> failureParserFunc = ( input, output ) -> {
-            output.set( LogBeaconOperator.TIMESTAMP_FIELD_NAME, input.getLong( LogBeaconOperator.TIMESTAMP_FIELD_NAME ) );
-            final String message = input.getString( LogBeaconOperator.MESSAGE_FIELD_NAME );
-            final String[] tokens = message.split( " " );
+            output.set( TIMESTAMP_FIELD_NAME, input.getLong( TIMESTAMP_FIELD_NAME ) );
+            final String[] tokens = input.getOrFail( MESSAGE_FIELD_NAME );
             output.set( UID_FIELD_NAME, tokens[ 4 ].split( "=" )[ 1 ] );
             output.set( EUID_FIELD_NAME, tokens[ 5 ].split( "=" )[ 1 ] );
             output.set( TTY_FIELD_NAME, tokens[ 6 ].split( "=" )[ 1 ] );
@@ -116,7 +120,7 @@ public class AuthLogsFlowDefFactory implements FlowDefFactory
                                                             .build();
 
         final OperatorRuntimeSchemaBuilder failureWindowSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        failureWindowSchema.addInputField( 0, LogBeaconOperator.TIMESTAMP_FIELD_NAME, Long.class )
+        failureWindowSchema.addInputField( 0, TIMESTAMP_FIELD_NAME, Long.class )
                            .addInputField( 0, UID_FIELD_NAME, String.class )
                            .addInputField( 0, EUID_FIELD_NAME, String.class )
                            .addInputField( 0, TTY_FIELD_NAME, String.class )
@@ -131,8 +135,8 @@ public class AuthLogsFlowDefFactory implements FlowDefFactory
             final long maxTimestamp = accumulator.getLongOrDefault( MAX_TIMESTAMP_FIELD_NAME, Long.MIN_VALUE );
             final long minTimestamp = accumulator.getLongOrDefault( MIN_TIMESTAMP_FIELD_NAME, Long.MAX_VALUE );
 
-            accumulator.set( MAX_TIMESTAMP_FIELD_NAME, max( maxTimestamp, input.getLong( LogBeaconOperator.TIMESTAMP_FIELD_NAME ) ) );
-            accumulator.set( MIN_TIMESTAMP_FIELD_NAME, min( minTimestamp, input.getLong( LogBeaconOperator.TIMESTAMP_FIELD_NAME ) ) );
+            accumulator.set( MAX_TIMESTAMP_FIELD_NAME, max( maxTimestamp, input.getLong( TIMESTAMP_FIELD_NAME ) ) );
+            accumulator.set( MIN_TIMESTAMP_FIELD_NAME, min( minTimestamp, input.getLong( TIMESTAMP_FIELD_NAME ) ) );
             accumulator.set( RHOST_FIELD_NAME, input.get( RHOST_FIELD_NAME ) );
             accumulator.set( USER_FIELD_NAME, input.get( USER_FIELD_NAME ) );
         };
@@ -199,8 +203,7 @@ public class AuthLogsFlowDefFactory implements FlowDefFactory
                                    .add( authFailureFilter )
                                    .add( failureParser )
                                    .add( failureWindow )
-                                   .add( cutOff )
-                                   .add( diffCalculator ).connect( logBeacon.getId(), authFailureFilter.getId() )
+                                   .add( cutOff ).add( diffCalculator ).connect( logBeacon.getId(), authFailureFilter.getId() )
                                    .connect( authFailureFilter.getId(), failureParser.getId() )
                                    .connect( failureParser.getId(), failureWindow.getId() )
                                    .connect( failureWindow.getId(), cutOff.getId() )
