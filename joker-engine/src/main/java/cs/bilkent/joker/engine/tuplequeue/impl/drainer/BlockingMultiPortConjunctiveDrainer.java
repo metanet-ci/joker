@@ -17,7 +17,6 @@ public class BlockingMultiPortConjunctiveDrainer extends MultiPortDrainer
     @Override
     protected int[] checkQueueSizes ( final boolean maySkipBlocking, final TupleQueue[] tupleQueues )
     {
-        boolean idle = maySkipBlocking;
         while ( true )
         {
             int satisfied = 0;
@@ -37,12 +36,12 @@ public class BlockingMultiPortConjunctiveDrainer extends MultiPortDrainer
             }
             else
             {
-                if ( idle )
+                if ( maySkipBlocking )
                 {
                     return null;
                 }
 
-                idle = idleStrategy.idle();
+                idleStrategy.idle();
             }
         }
     }
