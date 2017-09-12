@@ -24,14 +24,15 @@ public class BlockingSinglePortDrainer extends SinglePortDrainer
 
         final TupleQueue tupleQueue = tupleQueues[ 0 ];
 
+        boolean idle = maySkipBlocking;
         while ( tupleQueue.size() < tupleCountToCheck )
         {
-            if ( maySkipBlocking )
+            if ( idle )
             {
                 return;
             }
 
-            idleStrategy.idle();
+            idle = idleStrategy.idle();
         }
 
         tupleQueue.poll( tupleCountToPoll, tuples );
