@@ -44,6 +44,12 @@
         </dependency>
 
         <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
+            <version>4.1</version>
+        </dependency>
+
+        <dependency>
             <groupId>cs.bilkent</groupId>
             <artifactId>joker-test-utils</artifactId>
             <scope>test</scope>
