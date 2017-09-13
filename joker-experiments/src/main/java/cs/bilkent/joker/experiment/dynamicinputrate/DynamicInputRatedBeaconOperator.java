@@ -136,7 +136,7 @@ public class DynamicInputRatedBeaconOperator implements Operator
 
                     if ( "inc".equals( command ) )
                     {
-                        TOKEN_COUNT = (int) ( 1.25 * TOKEN_COUNT );
+                        TOKEN_COUNT = (int) ( 1.5 * TOKEN_COUNT );
                         System.out.println( "TOKEN COUNT INCREASED." );
                     }
                     else if ( "dis".equals( command ) )
