@@ -24,8 +24,9 @@ public class ReverseTreeFlowDefFactory implements FlowDefFactory
 {
 
     @Override
-    public FlowDef createFlow ( final Config config, final JokerConfig jokerConfig )
+    public FlowDef createFlow ( final JokerConfig jokerConfig )
     {
+        final Config config = jokerConfig.getRootConfig();
         final int keyRange = config.getInt( "keyRange" );
         final int valueRange = config.getInt( "valueRange" );
         final int tuplesPerKey = config.getInt( "tuplesPerKey" );

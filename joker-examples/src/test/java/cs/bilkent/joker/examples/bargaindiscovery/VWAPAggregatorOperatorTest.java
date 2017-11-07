@@ -17,6 +17,7 @@ import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.
 import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.WINDOW_SIZE_CONfIG_PARAMETER;
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
 import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SUCCESS;
+import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
@@ -48,7 +49,7 @@ public class VWAPAggregatorOperatorTest extends AbstractJokerTest
 
     private final OperatorConfig config = new OperatorConfig();
 
-    private VWAPAggregatorOperator operator;
+    private Operator operator;
 
     private InitializationContextImpl initContext;
 
@@ -63,7 +64,7 @@ public class VWAPAggregatorOperatorTest extends AbstractJokerTest
                                                           .setConfig( config )
                                                           .build();
 
-        operator = (VWAPAggregatorOperator) operatorDef.createOperator();
+        operator = operatorDef.createOperator();
         initContext = new InitializationContextImpl( operatorDef, new boolean[] { true } );
     }
 
@@ -105,7 +106,7 @@ public class VWAPAggregatorOperatorTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldNotProduceOutputBeforeSlideFactorCompletes ()
+    public void shouldNotProduceOutputBeforeSlideCompletes ()
     {
         configure();
 
@@ -123,7 +124,7 @@ public class VWAPAggregatorOperatorTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldProduceOutputWhenSlideFactorCompletes ()
+    public void shouldProduceOutputWhenSlideCompletes ()
     {
         configure();
 

@@ -20,13 +20,13 @@ public final class PortRuntimeSchemaBuilder
 
     private final List<RuntimeSchemaField> fields;
 
-    PortRuntimeSchemaBuilder ()
+    public PortRuntimeSchemaBuilder ()
     {
         this.scope = EXTENDABLE_FIELD_SET;
         this.fields = new ArrayList<>();
     }
 
-    PortRuntimeSchemaBuilder ( final PortSchemaScope scope, final List<RuntimeSchemaField> fields )
+    public PortRuntimeSchemaBuilder ( final PortSchemaScope scope, final List<RuntimeSchemaField> fields )
     {
         checkArgument( scope != null, "scope can't be null" );
         checkArgument( fields != null, "fields can't be null" );

@@ -1,6 +1,5 @@
 package cs.bilkent.joker.examples.bargaindiscovery;
 
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -11,8 +10,10 @@ import org.junit.Test;
 
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.test.AbstractJokerTest;
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static java.util.Comparator.comparing;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
@@ -22,7 +23,7 @@ public class MergedTupleListsIteratorTest extends AbstractJokerTest
 
     private final static String FIELD_NAME = "val";
 
-    private static final Comparator<Tuple> COMPARATOR = Comparator.comparing( left -> left.getInteger( FIELD_NAME ) );
+    private static final Comparator<Tuple> COMPARATOR = comparing( t -> t.getInteger( FIELD_NAME ) );
 
 
     private final Tuple val1 = new Tuple();
@@ -64,7 +65,7 @@ public class MergedTupleListsIteratorTest extends AbstractJokerTest
 
     private void shouldIterateSingleList ( final boolean left )
     {
-        final List<Tuple> vals = Arrays.asList( val1, val2, val3 );
+        final List<Tuple> vals = asList( val1, val2, val3 );
 
         final MergedTupleListsIterator it = new MergedTupleListsIterator( left ? vals : emptyList(),
                                                                           left ? emptyList() : vals,
@@ -75,7 +76,7 @@ public class MergedTupleListsIteratorTest extends AbstractJokerTest
     @Test
     public void test1 ()
     {
-        final List<Tuple> left = Arrays.asList( val1, val2, val3 );
+        final List<Tuple> left = asList( val1, val2, val3 );
         final List<Tuple> right = singletonList( val4 );
         assertVals( new MergedTupleListsIterator( left, right, COMPARATOR ), val1, val2, val3, val4 );
     }
@@ -84,23 +85,23 @@ public class MergedTupleListsIteratorTest extends AbstractJokerTest
     public void test2 ()
     {
         final List<Tuple> left = singletonList( val4 );
-        final List<Tuple> right = Arrays.asList( val1, val2, val3 );
+        final List<Tuple> right = asList( val1, val2, val3 );
         assertVals( new MergedTupleListsIterator( left, right, COMPARATOR ), val1, val2, val3, val4 );
     }
 
     @Test
     public void test3 ()
     {
-        final List<Tuple> left = Arrays.asList( val1, val3 );
-        final List<Tuple> right = Arrays.asList( val2, val4 );
+        final List<Tuple> left = asList( val1, val3 );
+        final List<Tuple> right = asList( val2, val4 );
         assertVals( new MergedTupleListsIterator( left, right, COMPARATOR ), val1, val2, val3, val4 );
     }
 
     @Test
     public void test4 ()
     {
-        final List<Tuple> left = Arrays.asList( val2, val4 );
-        final List<Tuple> right = Arrays.asList( val1, val3 );
+        final List<Tuple> left = asList( val2, val4 );
+        final List<Tuple> right = asList( val1, val3 );
         assertVals( new MergedTupleListsIterator( left, right, COMPARATOR ), val1, val2, val3, val4 );
     }
 

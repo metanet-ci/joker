@@ -16,11 +16,15 @@ import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.s
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.schema.annotation.OperatorSchema;
 import cs.bilkent.joker.operator.schema.annotation.PortSchema;
+import static cs.bilkent.joker.operator.schema.annotation.PortSchemaScope.EXACT_FIELD_SET;
 import static cs.bilkent.joker.operator.schema.annotation.PortSchemaScope.EXTENDABLE_FIELD_SET;
 import cs.bilkent.joker.operator.schema.annotation.SchemaField;
+import cs.bilkent.joker.operator.schema.runtime.PortRuntimeSchemaBuilder;
+import cs.bilkent.joker.operator.schema.runtime.RuntimeSchemaField;
 import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
+import static java.util.Arrays.asList;
 
 
 @OperatorSpec( type = PARTITIONED_STATEFUL, inputPortCount = 1, outputPortCount = 1 )
@@ -53,6 +57,8 @@ public class TupleCountBasedWindowReducerOperator implements Operator
 
     private Supplier<Tuple> accumulatorSupplier;
 
+    private TupleSchema windowSchema;
+
     @Override
     public SchedulingStrategy init ( final InitializationContext context )
     {
@@ -61,26 +67,28 @@ public class TupleCountBasedWindowReducerOperator implements Operator
         this.reducer = config.getOrFail( REDUCER_CONFIG_PARAMETER );
         this.tupleCount = config.getOrFail( TUPLE_COUNT_CONFIG_PARAMETER );
         this.accumulatorInitializer = config.getOrFail( ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER );
-        this.accumulatorSupplier = () ->
-        {
+        this.accumulatorSupplier = () -> {
             final Tuple accumulator = new Tuple( outputSchema );
             accumulatorInitializer.accept( accumulator );
             return accumulator;
         };
         this.outputSchema = context.getOutputPortSchema( 0 );
+        this.windowSchema = new PortRuntimeSchemaBuilder( EXACT_FIELD_SET,
+                                                          asList( new RuntimeSchemaField( TUPLE_COUNT_FIELD, Integer.class ),
+                                                                  new RuntimeSchemaField( WINDOW_FIELD, Integer.class ) ) ).build();
 
         return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
     }
 
     @Override
-    public void invoke ( final InvocationContext invocationContext )
+    public void invoke ( final InvocationContext context )
     {
-        final Tuples input = invocationContext.getInput();
-        final Tuples output = invocationContext.getOutput();
+        final Tuples input = context.getInput();
+        final Tuples output = context.getOutput();
 
-        final KVStore kvStore = invocationContext.getKVStore();
+        final KVStore kvStore = context.getKVStore();
 
-        final Tuple window = kvStore.getOrDefault( CURRENT_WINDOW_KEY, Tuple::new );
+        final Tuple window = kvStore.getOrDefault( CURRENT_WINDOW_KEY, () -> new Tuple( windowSchema ) );
         int currentTupleCount = window.getIntegerOrDefault( TUPLE_COUNT_FIELD, 0 );
         int windowCount = window.getIntegerOrDefault( WINDOW_FIELD, 0 );
         Tuple accumulator = kvStore.getOrDefault( ACCUMULATOR_TUPLE_KEY, accumulatorSupplier );

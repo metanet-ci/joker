@@ -159,7 +159,7 @@ public class RegionDefFormerImplAllRegionsTest extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext invocationContext )
+        public void invoke ( final InvocationContext context )
         {
 
         }

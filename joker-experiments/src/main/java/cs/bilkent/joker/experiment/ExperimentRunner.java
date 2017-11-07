@@ -52,12 +52,13 @@ public class ExperimentRunner
         final JokerConfigBuilder configBuilder = new JokerConfigBuilder();
         configBuilder.getAdaptationConfigBuilder().enableAdaptation();
         configBuilder.getFlowDefOptimizerConfigBuilder().disableMergeRegions();
+        //        configBuilder.getFlowDefOptimizerConfigBuilder().enableMergeRegions();
 
         final JokerConfig jokerConfig = configBuilder.build( config );
 
         final String flowDefFactoryClassName = config.getString( "flowFactory" );
         final FlowDefFactory flowDefFactory = (FlowDefFactory) Class.forName( flowDefFactoryClassName ).newInstance();
-        final FlowDef flow = flowDefFactory.createFlow( config, jokerConfig );
+        final FlowDef flow = flowDefFactory.createFlow( jokerConfig );
 
         final String reportDir = config.getString( "reportDir" );
         final FlowMetricsFileReporter reporter = new FlowMetricsFileReporter( jokerConfig, new File( reportDir ) );
@@ -98,7 +99,8 @@ public class ExperimentRunner
                                        {
                                            continue;
                                        }
-                                       else if ( "disable".equals( command ) )
+
+                                       if ( "disable".equals( command ) )
                                        {
                                            try
                                            {

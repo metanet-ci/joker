@@ -23,6 +23,8 @@ import cs.bilkent.joker.operator.schema.annotation.SchemaField;
 import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
+import static java.lang.Thread.currentThread;
+import static java.lang.Thread.sleep;
 import static java.util.Collections.shuffle;
 
 @OperatorSpec( type = STATEFUL, inputPortCount = 0, outputPortCount = 1 )
@@ -111,9 +113,9 @@ public class MemorizingBeaconOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext invocationContext )
+    public void invoke ( final InvocationContext context )
     {
-        final Tuples output = invocationContext.getOutput();
+        final Tuples output = context.getOutput();
         if ( inv == currentOutputs.size() )
         {
             final List<List<Tuple>> newShuffledOutputs = shuffledOutputsRef.get();
@@ -160,7 +162,7 @@ public class MemorizingBeaconOperator implements Operator
         }
         catch ( InterruptedException e )
         {
-            Thread.currentThread().interrupt();
+            currentThread().interrupt();
             LOGGER.error( "shuffler join failed" );
         }
     }
@@ -185,11 +187,11 @@ public class MemorizingBeaconOperator implements Operator
                             break;
                         }
 
-                        Thread.sleep( 1 );
+                        sleep( 1 );
                     }
                     catch ( InterruptedException e )
                     {
-                        Thread.currentThread().interrupt();
+                        currentThread().interrupt();
                     }
                 }
 

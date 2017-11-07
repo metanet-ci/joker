@@ -28,7 +28,7 @@ public class ForEachOperator implements Operator
 
     public static final String TUPLE_COUNT_CONFIG_PARAMETER = "tupleCount";
 
-    public static final int DEFAULT_TUPLE_COUNT_CONFIG_VALUE = 1;
+    public static final int DEFAULT_TUPLE_COUNT = 1;
 
 
     private Consumer<Tuple> consumerFunc;
@@ -39,7 +39,7 @@ public class ForEachOperator implements Operator
         final OperatorConfig config = context.getConfig();
 
         this.consumerFunc = config.getOrFail( CONSUMER_FUNCTION_CONFIG_PARAMETER );
-        final int tupleCount = config.getIntegerOrDefault( TUPLE_COUNT_CONFIG_PARAMETER, DEFAULT_TUPLE_COUNT_CONFIG_VALUE );
+        final int tupleCount = config.getIntegerOrDefault( TUPLE_COUNT_CONFIG_PARAMETER, DEFAULT_TUPLE_COUNT );
 
         return tupleCount > 0
                ? scheduleWhenTuplesAvailableOnDefaultPort( AT_LEAST, tupleCount )
@@ -48,10 +48,10 @@ public class ForEachOperator implements Operator
 
 
     @Override
-    public void invoke ( final InvocationContext invocationContext )
+    public void invoke ( final InvocationContext context )
     {
-        final Tuples input = invocationContext.getInput();
-        final Tuples output = invocationContext.getOutput();
+        final Tuples input = context.getInput();
+        final Tuples output = context.getOutput();
 
         for ( Tuple tuple : input.getTuplesByDefaultPort() )
         {

@@ -28,29 +28,29 @@ import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 public class VWAPAggregatorOperator implements Operator
 {
 
-    static final String WINDOW_SIZE_CONfIG_PARAMETER = "windowSize";
+    public static final String WINDOW_SIZE_CONfIG_PARAMETER = "windowSize";
 
-    static final String SLIDE_FACTOR_CONfIG_PARAMETER = "slideFactor";
+    public static final String SLIDE_FACTOR_CONfIG_PARAMETER = "slideFactor";
 
-    static final String TICKER_SYMBOL_FIELD = "tickersymbol";
+    public static final String TICKER_SYMBOL_FIELD = "tickersymbol";
 
-    static final String SINGLE_VWAP_FIELD = "svwap";
+    public static final String SINGLE_VWAP_FIELD = "svwap";
 
-    static final String SINGLE_VOLUME_FIELD = "svolume";
+    public static final String SINGLE_VOLUME_FIELD = "svolume";
 
-    static final String TUPLE_INPUT_VWAP_FIELD = "myvwap";
+    public static final String TUPLE_INPUT_VWAP_FIELD = "myvwap";
 
-    static final String TUPLE_VOLUME_FIELD = "volume";
+    public static final String TUPLE_VOLUME_FIELD = "volume";
 
-    static final String TIMESTAMP_FIELD = "timestamp";
+    public static final String TIMESTAMP_FIELD = "timestamp";
 
-    static final String TUPLE_COUNT_FIELD = "tupleCount";
+    public static final String TUPLE_COUNT_FIELD = "tupleCount";
 
-    static final String WINDOW_KEY = "window";
+    public static final String WINDOW_KEY = "window";
 
-    static final String VWAPS_FIELD = "vwaps";
+    public static final String VWAPS_FIELD = "vwaps";
 
-    static final String VOLUMES_FIELD = "volumes";
+    public static final String VOLUMES_FIELD = "volumes";
 
 
     private int windowSize;
@@ -70,11 +70,11 @@ public class VWAPAggregatorOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext invocationContext )
+    public void invoke ( final InvocationContext context )
     {
-        final Tuples input = invocationContext.getInput();
-        final Tuples output = invocationContext.getOutput();
-        final KVStore kvStore = invocationContext.getKVStore();
+        final Tuples input = context.getInput();
+        final Tuples output = context.getOutput();
+        final KVStore kvStore = context.getKVStore();
 
         final Tuple currentWindow = kvStore.getOrDefault( WINDOW_KEY, this::createWindowTuple );
         final double[] vwapValues = currentWindow.get( VWAPS_FIELD );

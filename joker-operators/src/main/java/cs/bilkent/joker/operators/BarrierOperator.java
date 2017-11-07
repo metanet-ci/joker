@@ -56,15 +56,15 @@ public class BarrierOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext invocationContext )
+    public void invoke ( final InvocationContext context )
     {
-        final Tuples input = invocationContext.getInput();
-        final Tuples output = invocationContext.getOutput();
+        final Tuples input = context.getInput();
+        final Tuples output = context.getOutput();
 
         int tupleCount = getTupleCountIfSameOnAllPorts( input );
         if ( tupleCount == 0 )
         {
-            if ( invocationContext.isSuccessfulInvocation() )
+            if ( context.isSuccessfulInvocation() )
             {
                 throw new IllegalArgumentException( "number of tuples are not equal for all ports!" );
             }

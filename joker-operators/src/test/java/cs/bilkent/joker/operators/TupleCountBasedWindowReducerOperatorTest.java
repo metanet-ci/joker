@@ -36,7 +36,6 @@ import static org.junit.Assert.assertTrue;
 public class TupleCountBasedWindowReducerOperatorTest extends AbstractJokerTest
 {
 
-
     private final TuplesImpl input = new TuplesImpl( 1 );
 
     private final TuplesImpl output = new TuplesImpl( 1 );

@@ -51,10 +51,10 @@ public abstract class BaseMultiplierOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext invocationContext )
+    public void invoke ( final InvocationContext context )
     {
-        Tuples input = invocationContext.getInput();
-        Tuples output = invocationContext.getOutput();
+        Tuples input = context.getInput();
+        Tuples output = context.getOutput();
         for ( Tuple tuple : input.getTuplesByDefaultPort() )
         {
             final Tuple result = new Tuple( outputSchema );
@@ -74,7 +74,7 @@ public abstract class BaseMultiplierOperator implements Operator
             output.add( result );
         }
 
-        final KVStore kvStore = invocationContext.getKVStore();
+        final KVStore kvStore = context.getKVStore();
         if ( kvStore != null )
         {
             final int count = kvStore.getIntegerOrDefault( "count", 0 );

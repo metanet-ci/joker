@@ -85,7 +85,7 @@ public final class OperatorDefBuilder
 
     private static OperatorSpec getOperatorSpecOrFail ( Class<? extends Operator> clazz )
     {
-        final OperatorSpec[] annotations = clazz.getDeclaredAnnotationsByType( OperatorSpec.class );
+        final OperatorSpec[] annotations = clazz.getAnnotationsByType( OperatorSpec.class );
         checkArgument( annotations.length == 1, "%s must have %s annotation!", clazz, OperatorSpec.class.getSimpleName() );
         return annotations[ 0 ];
     }

@@ -284,7 +284,10 @@ public class RegionAdaptationContext
 
         if ( candidates.isEmpty() )
         {
-            LOGGER.warn( "No candidate adaptation for Region: {} bottleneck pipelines: {}", getRegionId(), bottleneckPipelineIds );
+            LOGGER.warn( "No candidate adaptation for Region: {} bottleneck pipelines: {} by {}",
+                         getRegionId(),
+                         bottleneckPipelineIds,
+                         bottleneckResolver.getClass().getSimpleName() );
 
             return emptyList();
         }

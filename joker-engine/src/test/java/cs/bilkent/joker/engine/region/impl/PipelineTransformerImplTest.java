@@ -958,7 +958,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
     {
 
         @Override
-        public void invoke ( final InvocationContext invocationContext )
+        public void invoke ( final InvocationContext context )
         {
 
         }

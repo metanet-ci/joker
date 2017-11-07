@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.config.FlowDefOptimizerConfig;
 import cs.bilkent.joker.engine.config.JokerConfig;
@@ -30,6 +29,7 @@ import static cs.bilkent.joker.engine.util.RegionUtil.sortTopologically;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
 import cs.bilkent.joker.flow.Port;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.schema.runtime.PortRuntimeSchema;
 import cs.bilkent.joker.operator.spec.OperatorType;
@@ -171,7 +171,7 @@ public class FlowDefOptimizerImpl implements FlowDefOptimizer
             {
                 final RegionDef upstreamRegion = getRegionByLastOperator( regions, upstreamOperators.get( 0 ) );
 
-                if ( upstreamRegion.getOperatorCount() == 1 && upstreamRegion.getOperator( 0 ).getInputPortCount() == 0 )
+                if ( upstreamRegion.isSource() )
                 {
                     continue;
                 }
