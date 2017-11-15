@@ -51,8 +51,6 @@ import cs.bilkent.joker.test.AbstractJokerTest;
 import cs.bilkent.joker.utils.Pair;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -114,7 +112,6 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertEmptyOperatorTupleQueue( operatorReplica0 );
         assertEmptyOperatorKVStore( operatorReplica0 );
         assertNonBlockingTupleQueueDrainerPool( operatorReplica0 );
-        assertLastOperatorOutputSupplier( config, operatorReplica0 );
 
         assertPipelineReplicaMeter( pipeline );
     }
@@ -149,7 +146,6 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertBlockingTupleQueueDrainerPool( operatorReplica1 );
         assertNonBlockingTupleQueueDrainerPool( operatorReplica2 );
         assertCachedTuplesImplSupplier( operatorReplica1 );
-        assertLastOperatorOutputSupplier( config, operatorReplica2 );
 
         assertPipelineReplicaMeter( pipeline );
     }
@@ -179,7 +175,6 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertDefaultOperatorTupleQueue( operatorReplica1, flowExample3.operatorDef1.getInputPortCount(), MULTI_THREADED );
         assertDefaultOperatorKVStore( operatorReplica1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica1 );
-        assertLastOperatorOutputSupplier( config, operatorReplica1 );
 
         assertPipelineReplicaMeter( pipeline );
     }
@@ -219,7 +214,6 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertDefaultOperatorTupleQueue( operator1, flowExample3.operatorDef2.getInputPortCount(), SINGLE_THREADED );
         assertEmptyOperatorKVStore( operator1 );
         assertNonBlockingTupleQueueDrainerPool( operator1 );
-        assertLastOperatorOutputSupplier( config, operator1 );
 
         assertPipelineReplicaMeter( pipeline );
     }
@@ -304,7 +298,6 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertPartitionedOperatorTupleQueue( operatorReplica1 );
         assertPartitionedOperatorKVStore( operatorReplica1 );
         assertNonBlockingTupleQueueDrainerPool( operatorReplica1 );
-        assertLastOperatorOutputSupplier( config, operatorReplica1 );
 
         assertPipelineReplicaMeter( pipeline );
     }
@@ -367,7 +360,6 @@ public class RegionManagerImplTest extends AbstractJokerTest
             assertPartitionedOperatorTupleQueue( operatorReplica );
             assertPartitionedOperatorKVStore( operatorReplica );
             assertNonBlockingTupleQueueDrainerPool( operatorReplica );
-            assertLastOperatorOutputSupplier( config, operatorReplica );
 
             assertPipelineReplicaMeter( pipelineReplica );
         }
@@ -405,7 +397,6 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertPartitionedOperatorTupleQueue( operatorReplica2 );
         assertPartitionedOperatorKVStore( operatorReplica2 );
         assertNonBlockingTupleQueueDrainerPool( operatorReplica2 );
-        assertLastOperatorOutputSupplier( config, operatorReplica2 );
 
         assertPipelineReplicaMeter( pipeline );
     }
@@ -445,7 +436,6 @@ public class RegionManagerImplTest extends AbstractJokerTest
             assertPartitionedOperatorTupleQueue( operatorReplica2 );
             assertPartitionedOperatorKVStore( operatorReplica2 );
             assertNonBlockingTupleQueueDrainerPool( operatorReplica2 );
-            assertLastOperatorOutputSupplier( config, operatorReplica2 );
 
             assertPipelineReplicaMeter( pipelineReplica0 );
         }
@@ -522,7 +512,6 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertDefaultOperatorTupleQueue( operatorReplica1, flowExample6.operatorDef1.getInputPortCount(), MULTI_THREADED );
         assertEmptyOperatorKVStore( operatorReplica1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica1 );
-        assertLastOperatorOutputSupplier( config, operatorReplica1 );
 
         final OperatorReplica operatorReplica2 = pipeline1.getOperator( 0 );
         assertOperatorDef( operatorReplica2, flowExample6.operatorDef2 );
@@ -536,7 +525,6 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertDefaultOperatorTupleQueue( operatorReplica3, flowExample6.operatorDef3.getInputPortCount(), SINGLE_THREADED );
         assertEmptyOperatorKVStore( operatorReplica3 );
         assertNonBlockingTupleQueueDrainerPool( operatorReplica3 );
-        assertLastOperatorOutputSupplier( config, operatorReplica3 );
 
         assertPipelineReplicaMeter( pipeline0 );
         assertPipelineReplicaMeter( pipeline1 );
@@ -580,14 +568,12 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertPartitionedOperatorTupleQueue( operatorReplica2 );
         assertPartitionedOperatorKVStore( operatorReplica2 );
         assertNonBlockingTupleQueueDrainerPool( operatorReplica2 );
-        assertLastOperatorOutputSupplier( config, operatorReplica2 );
 
         final OperatorReplica operatorReplica3 = pipeline1.getOperator( 0 );
         assertOperatorDef( operatorReplica3, flowExample6.operatorDef3 );
         assertDefaultOperatorTupleQueue( operatorReplica3, flowExample6.operatorDef3.getInputPortCount(), MULTI_THREADED );
         assertEmptyOperatorKVStore( operatorReplica3 );
         assertBlockingTupleQueueDrainerPool( operatorReplica3 );
-        assertLastOperatorOutputSupplier( config, operatorReplica3 );
 
         assertPipelineReplicaMeter( pipeline0 );
         assertPipelineReplicaMeter( pipeline1 );
@@ -629,21 +615,18 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertDefaultOperatorTupleQueue( operatorReplica1, flowExample6.operatorDef1.getInputPortCount(), MULTI_THREADED );
         assertEmptyOperatorKVStore( operatorReplica1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica1 );
-        assertLastOperatorOutputSupplier( config, operatorReplica1 );
 
         final OperatorReplica operatorReplica2 = pipeline1.getOperator( 0 );
         assertOperatorDef( operatorReplica2, flowExample6.operatorDef2 );
         assertPartitionedOperatorTupleQueue( operatorReplica2 );
         assertPartitionedOperatorKVStore( operatorReplica2 );
         assertNonBlockingTupleQueueDrainerPool( operatorReplica2 );
-        assertLastOperatorOutputSupplier( config, operatorReplica2 );
 
         final OperatorReplica operatorReplica3 = pipeline2.getOperator( 0 );
         assertOperatorDef( operatorReplica3, flowExample6.operatorDef3 );
         assertDefaultOperatorTupleQueue( operatorReplica3, flowExample6.operatorDef3.getInputPortCount(), MULTI_THREADED );
         assertEmptyOperatorKVStore( operatorReplica3 );
         assertBlockingTupleQueueDrainerPool( operatorReplica3 );
-        assertLastOperatorOutputSupplier( config, operatorReplica3 );
 
         assertPipelineReplicaMeter( pipeline0 );
         assertPipelineReplicaMeter( pipeline1 );
@@ -748,12 +731,6 @@ public class RegionManagerImplTest extends AbstractJokerTest
     static void assertCachedTuplesImplSupplier ( final OperatorReplica operatorReplica )
     {
         assertTrue( operatorReplica.getOutputSupplier() instanceof CachedTuplesImplSupplier );
-    }
-
-    static void assertLastOperatorOutputSupplier ( final JokerConfig config, final OperatorReplica operatorReplica )
-    {
-        assertThat( operatorReplica.getOutputSupplier().getClass(),
-                    equalTo( config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass() ) );
     }
 
     @OperatorSpec( type = STATELESS, inputPortCount = 1, outputPortCount = 1 )

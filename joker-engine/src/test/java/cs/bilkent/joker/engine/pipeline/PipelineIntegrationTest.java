@@ -32,7 +32,6 @@ import cs.bilkent.joker.engine.partition.impl.PartitionServiceImpl;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
 import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
-import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.NonCachedTuplesImplSupplier;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
@@ -127,7 +126,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                                                  mapperOperatorDef,
                                                                                                                  MULTI_THREADED );
         final TupleQueueDrainerPool drainerPool = new BlockingTupleQueueDrainerPool( jokerConfig, mapperOperatorDef );
-        final Supplier<TuplesImpl> tuplesImplSupplier = new NonCachedTuplesImplSupplier( mapperOperatorDef.getOutputPortCount() );
+        final Supplier<TuplesImpl> tuplesImplSupplier = new CachedTuplesImplSupplier( mapperOperatorDef.getOutputPortCount() );
         final OperatorReplica mapperOperator = new OperatorReplica( pipelineReplicaId1,
                                                                     mapperOperatorDef,
                                                                     operatorTupleQueue,
@@ -216,7 +215,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                                                        filterOperatorDef,
                                                                                                                        SINGLE_THREADED );
         final TupleQueueDrainerPool filterDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, filterOperatorDef );
-        final Supplier<TuplesImpl> filterTuplesImplSupplier = new NonCachedTuplesImplSupplier( filterOperatorDef.getInputPortCount() );
+        final Supplier<TuplesImpl> filterTuplesImplSupplier = new CachedTuplesImplSupplier( filterOperatorDef.getInputPortCount() );
 
         final OperatorReplica filterOperator = new OperatorReplica( pipelineReplicaId1,
                                                                     filterOperatorDef,
@@ -404,7 +403,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                                                        MULTI_THREADED );
 
         final TupleQueueDrainerPool mapperDrainerPool = new BlockingTupleQueueDrainerPool( jokerConfig, mapperOperatorDef );
-        final Supplier<TuplesImpl> mapperTuplesImplSupplier = new NonCachedTuplesImplSupplier( mapperOperatorDef.getOutputPortCount() );
+        final Supplier<TuplesImpl> mapperTuplesImplSupplier = new CachedTuplesImplSupplier( mapperOperatorDef.getOutputPortCount() );
 
         final PipelineReplicaMeter pipelineReplicaMeter1 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId1,
@@ -440,7 +439,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                      new Pair[] { Pair.of( 0, 0 ) } );
 
         final TupleQueueDrainerPool filterDrainerPool = new BlockingTupleQueueDrainerPool( jokerConfig, filterOperatorDef );
-        final Supplier<TuplesImpl> filterTuplesImplSupplier = new NonCachedTuplesImplSupplier( filterOperatorDef.getInputPortCount() );
+        final Supplier<TuplesImpl> filterTuplesImplSupplier = new CachedTuplesImplSupplier( filterOperatorDef.getInputPortCount() );
 
         final PipelineReplicaMeter pipelineReplicaMeter2 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId2,
@@ -531,7 +530,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final OperatorTupleQueue generatorOperatorTupleQueue1 = new EmptyOperatorTupleQueue( generatorOperatorDef1.getId(),
                                                                                              generatorOperatorDef1.getInputPortCount() );
         final TupleQueueDrainerPool generatorDrainerPool1 = new NonBlockingTupleQueueDrainerPool( jokerConfig, generatorOperatorDef1 );
-        final Supplier<TuplesImpl> generatorTuplesImplSupplier1 = new NonCachedTuplesImplSupplier( generatorOperatorDef1.getOutputPortCount() );
+        final Supplier<TuplesImpl> generatorTuplesImplSupplier1 = new CachedTuplesImplSupplier( generatorOperatorDef1.getOutputPortCount
+                                                                                                                              () );
 
         final PipelineReplicaMeter pipelineReplicaMeter1 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId1,
@@ -563,7 +563,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final OperatorTupleQueue generatorOperatorTupleQueue2 = new EmptyOperatorTupleQueue( generatorOperatorDef2.getId(),
                                                                                              generatorOperatorDef2.getInputPortCount() );
         final TupleQueueDrainerPool generatorDrainerPool2 = new NonBlockingTupleQueueDrainerPool( jokerConfig, generatorOperatorDef2 );
-        final Supplier<TuplesImpl> generatorTuplesImplSupplier2 = new NonCachedTuplesImplSupplier( generatorOperatorDef2.getOutputPortCount() );
+        final Supplier<TuplesImpl> generatorTuplesImplSupplier2 = new CachedTuplesImplSupplier( generatorOperatorDef2.getOutputPortCount() );
 
         final PipelineReplicaMeter pipelineReplicaMeter2 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId2,
@@ -738,7 +738,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                             generatorOperatorDef.getInputPortCount() );
 
         final TupleQueueDrainerPool generatorDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, generatorOperatorDef );
-        final Supplier<TuplesImpl> generatorTuplesImplSupplier = new NonCachedTuplesImplSupplier( generatorOperatorDef.getOutputPortCount() );
+        final Supplier<TuplesImpl> generatorTuplesImplSupplier = new CachedTuplesImplSupplier( generatorOperatorDef.getOutputPortCount() );
 
         final OperatorReplica generatorOperator = new OperatorReplica( pipelineReplicaId1,
                                                                        generatorOperatorDef,

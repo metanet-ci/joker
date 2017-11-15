@@ -3,7 +3,6 @@ package cs.bilkent.joker.engine.config;
 import org.junit.Test;
 
 import cs.bilkent.joker.engine.metric.impl.pipelinemetricshistorysummarizer.LatestPipelineMetrics;
-import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.NonCachedTuplesImplSupplier;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -311,16 +310,6 @@ public class JokerConfigBuilderTest extends AbstractJokerTest
         builder.getPipelineReplicaRunnerConfigBuilder().setRunnerWaitTimeoutInMillis( val );
 
         assertEquals( val, builder.build().getPipelineReplicaRunnerConfig().getRunnerWaitTimeoutInMillis() );
-    }
-
-    @Test
-    public void test_RegionManagerConfig_pipelineTailOperatorOutputSupplierClass ()
-    {
-        final String val = NonCachedTuplesImplSupplier.class.getName();
-        builder.getRegionManagerConfigBuilder().setPipelineTailOperatorOutputSupplierClass( val );
-
-        assertEquals( NonCachedTuplesImplSupplier.class,
-                      builder.build().getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass() );
     }
 
     @Test

@@ -37,7 +37,6 @@ import static cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.assertCa
 import static cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.assertDefaultOperatorTupleQueue;
 import static cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.assertEmptyOperatorKVStore;
 import static cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.assertEmptySelfPipelineTupleQueue;
-import static cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.assertLastOperatorOutputSupplier;
 import static cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.assertNonBlockingTupleQueueDrainerPool;
 import static cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.assertOperatorDef;
 import static cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.assertPartitionedOperatorKVStore;
@@ -167,7 +166,6 @@ public class RegionRebalancingTest extends AbstractJokerTest
             assertDefaultOperatorTupleQueue( operatorReplica1, flowExample6.operatorDef1.getInputPortCount(), MULTI_THREADED );
             assertEmptyOperatorKVStore( operatorReplica1 );
             assertBlockingTupleQueueDrainerPool( operatorReplica1 );
-            assertLastOperatorOutputSupplier( config, operatorReplica1 );
 
             final OperatorReplica operatorReplica2 = pipeline1.getOperator( 0 );
             assertOperatorDef( operatorReplica2, flowExample6.operatorDef2 );
@@ -181,7 +179,6 @@ public class RegionRebalancingTest extends AbstractJokerTest
             assertDefaultOperatorTupleQueue( operatorReplica3, flowExample6.operatorDef3.getInputPortCount(), SINGLE_THREADED );
             assertEmptyOperatorKVStore( operatorReplica3 );
             assertNonBlockingTupleQueueDrainerPool( operatorReplica3 );
-            assertLastOperatorOutputSupplier( config, operatorReplica3 );
         }
 
         final PipelineReplica[] pipelineReplicas0 = region.getPipelineReplicas( 0 );

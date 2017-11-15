@@ -34,7 +34,6 @@ import static cs.bilkent.joker.engine.config.PartitionServiceConfig.MAX_REPLICA_
 import static cs.bilkent.joker.engine.config.PartitionServiceConfig.PARTITION_COUNT;
 import static cs.bilkent.joker.engine.config.PipelineManagerConfig.RUNNER_COMMAND_TIMEOUT;
 import static cs.bilkent.joker.engine.config.PipelineReplicaRunnerConfig.RUNNER_WAIT_TIMEOUT;
-import static cs.bilkent.joker.engine.config.RegionManagerConfig.PIPELINE_TAIL_OPERATOR_OUTPUT_SUPPLIER_CLASS;
 import static cs.bilkent.joker.engine.config.TupleQueueDrainerConfig.MAX_BATCH_SIZE;
 import static cs.bilkent.joker.engine.config.TupleQueueDrainerConfig.PARTITIONED_STATEFUL_PIPELINE_DRAINER_MAX_BATCH_SIZE;
 import static cs.bilkent.joker.engine.config.TupleQueueManagerConfig.MAX_DRAINABLE_KEY_COUNT;
@@ -57,8 +56,6 @@ public class JokerConfigBuilder
 
     private final Map<String, Object> pipelineReplicaRunnerConfigVals = new HashMap<>();
 
-    private final Map<String, Object> regionManagerConfigVals = new HashMap<>();
-
     private final Map<String, Object> tupleQueueDrainerConfigVals = new HashMap<>();
 
     private final Map<String, Object> tupleQueueManagerConfigVals = new HashMap<>();
@@ -74,8 +71,6 @@ public class JokerConfigBuilder
     private final PipelineManagerConfigBuilder pipelineManagerConfigBuilder = new PipelineManagerConfigBuilder();
 
     private final PipelineReplicaRunnerConfigBuilder pipelineReplicaRunnerConfigBuilder = new PipelineReplicaRunnerConfigBuilder();
-
-    private final RegionManagerConfigBuilder regionManagerConfigBuilder = new RegionManagerConfigBuilder();
 
     private final TupleQueueDrainerConfigBuilder tupleQueueDrainerConfigBuilder = new TupleQueueDrainerConfigBuilder();
 
@@ -100,7 +95,6 @@ public class JokerConfigBuilder
         accumulate( allVals, PartitionServiceConfig.CONFIG_NAME, partitionServiceConfigVals );
         accumulate( allVals, PipelineManagerConfig.CONFIG_NAME, pipelineManagerConfigVals );
         accumulate( allVals, PipelineReplicaRunnerConfig.CONFIG_NAME, pipelineReplicaRunnerConfigVals );
-        accumulate( allVals, RegionManagerConfig.CONFIG_NAME, regionManagerConfigVals );
         accumulate( allVals, TupleQueueDrainerConfig.CONFIG_NAME, tupleQueueDrainerConfigVals );
         accumulate( allVals, TupleQueueManagerConfig.CONFIG_NAME, tupleQueueManagerConfigVals );
 
@@ -148,11 +142,6 @@ public class JokerConfigBuilder
     public PipelineReplicaRunnerConfigBuilder getPipelineReplicaRunnerConfigBuilder ()
     {
         return pipelineReplicaRunnerConfigBuilder;
-    }
-
-    public RegionManagerConfigBuilder getRegionManagerConfigBuilder ()
-    {
-        return regionManagerConfigBuilder;
     }
 
     public TupleQueueDrainerConfigBuilder getTupleQueueDrainerConfigBuilder ()
@@ -463,23 +452,6 @@ public class JokerConfigBuilder
         public PipelineReplicaRunnerConfigBuilder setRunnerWaitTimeoutInMillis ( final long val )
         {
             pipelineReplicaRunnerConfigVals.put( RUNNER_WAIT_TIMEOUT, val );
-
-            return this;
-        }
-
-    }
-
-
-    public class RegionManagerConfigBuilder
-    {
-
-        private RegionManagerConfigBuilder ()
-        {
-        }
-
-        public RegionManagerConfigBuilder setPipelineTailOperatorOutputSupplierClass ( final String val )
-        {
-            regionManagerConfigVals.put( PIPELINE_TAIL_OPERATOR_OUTPUT_SUPPLIER_CLASS, val );
 
             return this;
         }

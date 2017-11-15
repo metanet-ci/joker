@@ -361,7 +361,7 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
                 LOGGER.warn( "Extending tuple queues of regionId={} replicaIndex={} operatorId={} to capacity={} while converting to {}",
                              regionId,
                              replicaIndex,
-                             operatorId,
+                             operatorId, capacity,
                              MULTI_THREADED );
             }
 

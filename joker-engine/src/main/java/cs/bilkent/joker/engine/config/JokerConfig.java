@@ -27,8 +27,6 @@ public class JokerConfig
 
     private final PipelineManagerConfig pipelineManagerConfig;
 
-    private final RegionManagerConfig regionManagerConfig;
-
     private final MetricManagerConfig metricManagerConfig;
 
     private final AdaptationConfig adaptationConfig;
@@ -48,7 +46,6 @@ public class JokerConfig
         this.partitionServiceConfig = new PartitionServiceConfig( engineConfig );
         this.flowDefOptimizerConfig = new FlowDefOptimizerConfig( engineConfig );
         this.pipelineManagerConfig = new PipelineManagerConfig( engineConfig );
-        this.regionManagerConfig = new RegionManagerConfig( engineConfig );
         this.metricManagerConfig = new MetricManagerConfig( engineConfig );
         this.adaptationConfig = new AdaptationConfig( engineConfig );
     }
@@ -88,11 +85,6 @@ public class JokerConfig
         return pipelineManagerConfig;
     }
 
-    public RegionManagerConfig getRegionManagerConfig ()
-    {
-        return regionManagerConfig;
-    }
-
     public MetricManagerConfig getMetricManagerConfig ()
     {
         return metricManagerConfig;
@@ -117,7 +109,7 @@ public class JokerConfig
     private String getConfigString ()
     {
         return tupleQueueManagerConfig + ", " + tupleQueueDrainerConfig + ", " + pipelineReplicaRunnerConfig + ", " + partitionServiceConfig
-               + ", " + flowDefOptimizerConfig + ", " + pipelineManagerConfig + ", " + regionManagerConfig + ", " + metricManagerConfig;
+               + ", " + flowDefOptimizerConfig + ", " + pipelineManagerConfig + ", " + metricManagerConfig;
     }
 
 }

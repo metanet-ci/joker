@@ -164,8 +164,7 @@ public class RegionManagerImpl implements RegionManager
 
                 final OperatorKVStore[] operatorKvStores = createOperatorKVStores( regionId, replicaCount, operatorDef );
 
-                final boolean isLastOperator = operatorIndex == ( operatorCount - 1 );
-                final Supplier<TuplesImpl>[] outputSuppliers = createOutputSuppliers( regionId, replicaCount, isLastOperator, operatorDef );
+                final Supplier<TuplesImpl>[] outputSuppliers = createOutputSuppliers( regionId, replicaCount, operatorDef );
 
                 for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
                 {
@@ -602,7 +601,7 @@ public class RegionManagerImpl implements RegionManager
                         operatorKVStore = operatorKvStores[ replicaIndex ];
                     }
 
-                    final Supplier<TuplesImpl> outputSupplier = createOutputSupplier( operatorDef, isLastOperator );
+                    final Supplier<TuplesImpl> outputSupplier = new CachedTuplesImplSupplier( operatorDef.getOutputPortCount() );
                     LOGGER.debug( "Creating {} for regionId={} replicaIndex={} operatorId={}",
                                   outputSupplier.getClass().getSimpleName(),
                                   regionId,
@@ -901,41 +900,18 @@ public class RegionManagerImpl implements RegionManager
 
     private Supplier<TuplesImpl>[] createOutputSuppliers ( final int regionId,
                                                            final int replicaCount,
-                                                           final boolean isLastOperator,
                                                            final OperatorDef operatorDef )
     {
         final String operatorId = operatorDef.getId();
-        if ( isLastOperator )
-        {
-            LOGGER.debug( "Creating {} for last operator of regionId={} operatorId={}",
-                          config.getRegionManagerConfig().getPipelineTailOperatorOutputSupplierClass().getSimpleName(),
-                          regionId,
-                          operatorId );
-        }
-        else
-        {
-            LOGGER.debug( "Creating {} for regionId={} operatorId={}",
-                          CachedTuplesImplSupplier.class.getSimpleName(),
-                          regionId,
-                          operatorId );
-        }
+        LOGGER.debug( "Creating {} for regionId={} operatorId={}", CachedTuplesImplSupplier.class.getSimpleName(), regionId, operatorId );
 
         final Supplier<TuplesImpl>[] outputSuppliers = new Supplier[ replicaCount ];
         for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
         {
-            outputSuppliers[ replicaIndex ] = createOutputSupplier( operatorDef, isLastOperator );
+            outputSuppliers[ replicaIndex ] = new CachedTuplesImplSupplier( operatorDef.getOutputPortCount() );
         }
 
         return outputSuppliers;
-    }
-
-    private Supplier<TuplesImpl> createOutputSupplier ( final OperatorDef operatorDef, final boolean isLastOperator )
-    {
-        return isLastOperator
-               ? config.getRegionManagerConfig()
-                       .newPipelineTailOperatorOutputSupplierInstance( operatorDef.getOutputPortCount() )
-               : new CachedTuplesImplSupplier( operatorDef.getOutputPortCount() );
-
     }
 
     private OperatorTupleQueue createPipelineTupleQueue ( final FlowDef flow,
