@@ -27,6 +27,7 @@ import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
 import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.Region;
+import static cs.bilkent.joker.engine.region.Region.findOperatorFusionStartIndices;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.impl.OperatorTupleQueueManagerImpl;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool.BlockingTupleQueueDrainerPool;
@@ -41,6 +42,13 @@ import cs.bilkent.joker.operator.InvocationContext;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
+import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
+import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
+import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST_BUT_SAME_ON_ALL_PORTS;
+import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.EXACT;
+import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAll;
+import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAny;
+import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
@@ -51,6 +59,7 @@ import cs.bilkent.joker.test.AbstractJokerTest;
 import cs.bilkent.joker.utils.Pair;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -99,6 +108,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 1 );
 
         final Region region = regionManager.createRegion( flowExample1.flow, regionExecutionPlan );
+
         assertNotNull( region );
         final PipelineReplica[] pipelines = region.getReplicaPipelines( 0 );
         assertEquals( 1, pipelines.length );
@@ -113,6 +123,9 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertEmptyOperatorKVStore( operatorReplica0 );
         assertNonBlockingTupleQueueDrainerPool( operatorReplica0 );
 
+        assertArrayEquals( new SchedulingStrategy[] { ScheduleWhenAvailable.INSTANCE }, region.getOperatorSchedulingStrategies() );
+        assertArrayEquals( new int[] { 0 }, region.getOperatorFusionStartIndices() );
+
         assertPipelineReplicaMeter( pipeline );
     }
 
@@ -126,6 +139,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 1 );
 
         final Region region = regionManager.createRegion( flowExample2.flow, regionExecutionPlan );
+
         assertNotNull( region );
         final PipelineReplica[] pipelines = region.getReplicaPipelines( 0 );
         assertEquals( 1, pipelines.length );
@@ -147,6 +161,11 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertNonBlockingTupleQueueDrainerPool( operatorReplica2 );
         assertCachedTuplesImplSupplier( operatorReplica1 );
 
+        assertArrayEquals( new SchedulingStrategy[] { scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
+                                                      scheduleWhenTuplesAvailableOnDefaultPort( 1 ) },
+                           region.getOperatorSchedulingStrategies() );
+        assertArrayEquals( new int[] { 0 }, region.getOperatorFusionStartIndices() );
+
         assertPipelineReplicaMeter( pipeline );
     }
 
@@ -160,6 +179,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 1 );
 
         final Region region = regionManager.createRegion( flowExample3.flow, regionExecutionPlan );
+
         assertNotNull( region );
         final PipelineReplica[] pipelines = region.getReplicaPipelines( 0 );
         assertEquals( 1, pipelines.length );
@@ -175,6 +195,10 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertDefaultOperatorTupleQueue( operatorReplica1, flowExample3.operatorDef1.getInputPortCount(), MULTI_THREADED );
         assertDefaultOperatorKVStore( operatorReplica1 );
         assertBlockingTupleQueueDrainerPool( operatorReplica1 );
+
+        assertArrayEquals( new SchedulingStrategy[] { scheduleWhenTuplesAvailableOnDefaultPort( 1 ) },
+                           region.getOperatorSchedulingStrategies() );
+        assertArrayEquals( new int[] { 0 }, region.getOperatorFusionStartIndices() );
 
         assertPipelineReplicaMeter( pipeline );
     }
@@ -193,6 +217,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 1 );
 
         final Region region = regionManager.createRegion( flow, regionExecutionPlan );
+
         assertNotNull( region );
         final PipelineReplica[] pipelines = region.getReplicaPipelines( 0 );
         assertEquals( 1, pipelines.length );
@@ -214,6 +239,11 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertDefaultOperatorTupleQueue( operator1, flowExample3.operatorDef2.getInputPortCount(), SINGLE_THREADED );
         assertEmptyOperatorKVStore( operator1 );
         assertNonBlockingTupleQueueDrainerPool( operator1 );
+
+        assertArrayEquals( new SchedulingStrategy[] { scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
+                                                      scheduleWhenTuplesAvailableOnDefaultPort( 1 ) },
+                           region.getOperatorSchedulingStrategies() );
+        assertArrayEquals( new int[] { 0 }, region.getOperatorFusionStartIndices() );
 
         assertPipelineReplicaMeter( pipeline );
     }
@@ -283,6 +313,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 1 );
 
         final Region region = regionManager.createRegion( flowExample4.flow, regionExecutionPlan );
+
         assertNotNull( region );
         final PipelineReplica[] pipelines = region.getReplicaPipelines( 0 );
         assertEquals( 1, pipelines.length );
@@ -298,6 +329,10 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertPartitionedOperatorTupleQueue( operatorReplica1 );
         assertPartitionedOperatorKVStore( operatorReplica1 );
         assertNonBlockingTupleQueueDrainerPool( operatorReplica1 );
+
+        assertArrayEquals( new SchedulingStrategy[] { scheduleWhenTuplesAvailableOnDefaultPort( 1 ) },
+                           region.getOperatorSchedulingStrategies() );
+        assertArrayEquals( new int[] { 0 }, region.getOperatorFusionStartIndices() );
 
         assertPipelineReplicaMeter( pipeline );
     }
@@ -342,6 +377,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 2 );
 
         final Region region = regionManager.createRegion( flowExample4.flow, regionExecutionPlan );
+
         assertNotNull( region );
 
         for ( int replicaIndex = 0; replicaIndex < regionExecutionPlan.getReplicaCount(); replicaIndex++ )
@@ -375,6 +411,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 1 );
 
         final Region region = regionManager.createRegion( flowExample5.flow, regionExecutionPlan );
+
         assertNotNull( region );
         final PipelineReplica[] pipelines = region.getReplicaPipelines( 0 );
         assertEquals( 1, pipelines.length );
@@ -398,6 +435,11 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertPartitionedOperatorKVStore( operatorReplica2 );
         assertNonBlockingTupleQueueDrainerPool( operatorReplica2 );
 
+        assertArrayEquals( new SchedulingStrategy[] { scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
+                                                      scheduleWhenTuplesAvailableOnDefaultPort( 1 ) },
+                           region.getOperatorSchedulingStrategies() );
+        assertArrayEquals( new int[] { 0 }, region.getOperatorFusionStartIndices() );
+
         assertPipelineReplicaMeter( pipeline );
     }
 
@@ -411,6 +453,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 2 );
 
         final Region region = regionManager.createRegion( flowExample5.flow, regionExecutionPlan );
+
         assertNotNull( region );
 
         for ( int replicaIndex = 0; replicaIndex < regionExecutionPlan.getReplicaCount(); replicaIndex++ )
@@ -492,6 +535,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, asList( 0, 1 ), 1 );
 
         final Region region = regionManager.createRegion( flowExample6.flow, regionExecutionPlan );
+
         assertNotNull( region );
         final PipelineReplica[] pipelines = region.getReplicaPipelines( 0 );
         assertEquals( 2, pipelines.length );
@@ -526,6 +570,12 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertEmptyOperatorKVStore( operatorReplica3 );
         assertNonBlockingTupleQueueDrainerPool( operatorReplica3 );
 
+        assertArrayEquals( new SchedulingStrategy[] { scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
+                                                      scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
+                                                      scheduleWhenTuplesAvailableOnDefaultPort( 1 ) },
+                           region.getOperatorSchedulingStrategies() );
+        assertArrayEquals( new int[] { 0 }, region.getOperatorFusionStartIndices() );
+
         assertPipelineReplicaMeter( pipeline0 );
         assertPipelineReplicaMeter( pipeline1 );
         assertNotEquals( pipeline0.getMeter(), pipeline1.getMeter() );
@@ -541,6 +591,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, asList( 0, 2 ), 1 );
 
         final Region region = regionManager.createRegion( flowExample6.flow, regionExecutionPlan );
+
         assertNotNull( region );
         final PipelineReplica[] pipelines = region.getReplicaPipelines( 0 );
         assertEquals( 2, pipelines.length );
@@ -590,6 +641,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, asList( 0, 1, 2 ), 1 );
 
         final Region region = regionManager.createRegion( flowExample6.flow, regionExecutionPlan );
+
         assertNotNull( region );
         final PipelineReplica[] pipelines = region.getReplicaPipelines( 0 );
         assertEquals( 3, pipelines.length );
@@ -634,6 +686,101 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertNotEquals( pipeline0.getMeter(), pipeline1.getMeter() );
         assertNotEquals( pipeline0.getMeter(), pipeline2.getMeter() );
         assertNotEquals( pipeline1.getMeter(), pipeline2.getMeter() );
+    }
+
+    @Test
+    public void test_operatorFusionStartIndices_with_singleScheduleWhenAtLeastOneTupleAvailable ()
+    {
+        final SchedulingStrategy[] schedulingStrategies = { scheduleWhenTuplesAvailableOnDefaultPort( 1 ) };
+
+        assertArrayEquals( new int[] { 0 }, findOperatorFusionStartIndices( schedulingStrategies ) );
+    }
+
+    @Test
+    public void test_operatorFusionStartIndices_with_multipleScheduleWhenAtLeastOneTupleAvailable ()
+    {
+        final SchedulingStrategy[] schedulingStrategies = { scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
+                                                            scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
+                                                            scheduleWhenTuplesAvailableOnDefaultPort( 1 ) };
+
+        assertArrayEquals( new int[] { 0 }, findOperatorFusionStartIndices( schedulingStrategies ) );
+    }
+
+    @Test
+    public void test_operatorFusionStartIndices_with_scheduleWhenAvailableFollowedByMultipleScheduleWhenAtLeastOneTupleAvailable ()
+    {
+        final SchedulingStrategy[] schedulingStrategies = { ScheduleWhenAvailable.INSTANCE,
+                                                            scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
+                                                            scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
+                                                            scheduleWhenTuplesAvailableOnDefaultPort( 1 ) };
+
+        assertArrayEquals( new int[] { 0 }, findOperatorFusionStartIndices( schedulingStrategies ) );
+    }
+
+    @Test
+    public void test_operatorFusionStartIndices_with_scheduleWhenAtLeastOneTupleAvailableWithMultiplePorts ()
+    {
+        final SchedulingStrategy[] schedulingStrategies = { scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
+                                                            scheduleWhenTuplesAvailableOnAny( AT_LEAST, 2, 1, 0, 1 ),
+                                                            scheduleWhenTuplesAvailableOnDefaultPort( 1 ) };
+
+        assertArrayEquals( new int[] { 0 }, findOperatorFusionStartIndices( schedulingStrategies ) );
+    }
+
+    @Test
+    public void test_operatorFusionStartIndices_with_scheduleWhenAtLeastMultipleTuplesAvailable ()
+    {
+        final SchedulingStrategy[] schedulingStrategies = { scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
+                                                            scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
+                                                            scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
+                                                            scheduleWhenTuplesAvailableOnDefaultPort( 2 ),
+                                                            scheduleWhenTuplesAvailableOnDefaultPort( 1 ) };
+
+        assertArrayEquals( new int[] { 0, 3 }, findOperatorFusionStartIndices( schedulingStrategies ) );
+    }
+
+    @Test
+    public void test_operatorFusionStartIndices_with_scheduleWhenExactlySingleTupleAvailable ()
+    {
+        final SchedulingStrategy[] schedulingStrategies = { scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
+                                                            scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
+                                                            scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
+                                                            scheduleWhenTuplesAvailableOnDefaultPort( EXACT, 1 ),
+                                                            scheduleWhenTuplesAvailableOnDefaultPort( 1 ) };
+
+        assertArrayEquals( new int[] { 0, 3 }, findOperatorFusionStartIndices( schedulingStrategies ) );
+    }
+
+    @Test
+    public void test_operatorFusionStartIndices_with_scheduleWhenExactlyMultipleTuplesAvailable ()
+    {
+        final SchedulingStrategy[] schedulingStrategies = { scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
+                                                            scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
+                                                            scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
+                                                            scheduleWhenTuplesAvailableOnDefaultPort( EXACT, 5 ),
+                                                            scheduleWhenTuplesAvailableOnDefaultPort( 1 ) };
+
+        assertArrayEquals( new int[] { 0, 3 }, findOperatorFusionStartIndices( schedulingStrategies ) );
+    }
+
+    @Test
+    public void test_operatorFusionStartIndices_with_scheduleWhenAtLeastOneButSameNumberOfTuplesAvailableWithMultiplePorts ()
+    {
+        final SchedulingStrategy[] schedulingStrategies = { scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
+                                                            scheduleWhenTuplesAvailableOnAll( AT_LEAST_BUT_SAME_ON_ALL_PORTS, 2, 1, 0, 1 ),
+                                                            scheduleWhenTuplesAvailableOnDefaultPort( 1 ) };
+
+        assertArrayEquals( new int[] { 0 }, findOperatorFusionStartIndices( schedulingStrategies ) );
+    }
+
+    @Test
+    public void test_operatorFusionStartIndices_with_scheduleWhenAtLeastMultipleButSameNumberOfTuplesAvailableWithMultiplePorts ()
+    {
+        final SchedulingStrategy[] schedulingStrategies = { scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
+                                                            scheduleWhenTuplesAvailableOnAll( AT_LEAST_BUT_SAME_ON_ALL_PORTS, 2, 2, 0, 1 ),
+                                                            scheduleWhenTuplesAvailableOnDefaultPort( 1 ) };
+
+        assertArrayEquals( new int[] { 0, 1 }, findOperatorFusionStartIndices( schedulingStrategies ) );
     }
 
     static void assertPipelineReplicaMeter ( final PipelineReplica pipelineReplica )
@@ -734,37 +881,57 @@ public class RegionManagerImplTest extends AbstractJokerTest
     }
 
     @OperatorSpec( type = STATELESS, inputPortCount = 1, outputPortCount = 1 )
-    static class StatelessOperatorWithSingleInputOutputPort extends NopOperator
+    public static class StatelessOperatorWithSingleInputOutputPort extends NopOperator
     {
-
+        @Override
+        public SchedulingStrategy init ( final InitializationContext context )
+        {
+            return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
+        }
     }
 
 
     @OperatorSpec( type = STATELESS, inputPortCount = 0, outputPortCount = 1 )
-    static class StatelessOperatorWithZeroInputSingleOutputPort extends NopOperator
+    public static class StatelessOperatorWithZeroInputSingleOutputPort extends NopOperator
     {
-
+        @Override
+        public SchedulingStrategy init ( final InitializationContext context )
+        {
+            return ScheduleWhenAvailable.INSTANCE;
+        }
     }
 
 
-    @OperatorSpec( type = PARTITIONED_STATEFUL, inputPortCount = 2, outputPortCount = 1 )
-    static class PartitionedStatefulOperatorWithSingleInputOutputPort extends NopOperator
+    @OperatorSpec( type = PARTITIONED_STATEFUL, inputPortCount = 1, outputPortCount = 1 )
+    public static class PartitionedStatefulOperatorWithSingleInputOutputPort extends NopOperator
     {
-
+        @Override
+        public SchedulingStrategy init ( final InitializationContext context )
+        {
+            return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
+        }
     }
 
 
     @OperatorSpec( type = STATEFUL, inputPortCount = 1, outputPortCount = 1 )
-    static class StatefulOperatorWithSingleInputOutputPort extends NopOperator
+    public static class StatefulOperatorWithSingleInputOutputPort extends NopOperator
     {
-
+        @Override
+        public SchedulingStrategy init ( final InitializationContext context )
+        {
+            return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
+        }
     }
 
 
     @OperatorSpec( type = STATEFUL, inputPortCount = 0, outputPortCount = 1 )
-    static class StatefulOperatorWithZeroInputSingleOutputPort extends NopOperator
+    public static class StatefulOperatorWithZeroInputSingleOutputPort extends NopOperator
     {
-
+        @Override
+        public SchedulingStrategy init ( final InitializationContext context )
+        {
+            return ScheduleWhenAvailable.INSTANCE;
+        }
     }
 
 
@@ -774,12 +941,12 @@ public class RegionManagerImplTest extends AbstractJokerTest
         @Override
         public SchedulingStrategy init ( final InitializationContext context )
         {
-            return null;
+            throw new UnsupportedOperationException();
         }
 
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public final void invoke ( final InvocationContext context )
         {
 
         }
@@ -844,7 +1011,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder0 = new OperatorRuntimeSchemaBuilder( 0, 1 );
 
-        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder1 = new OperatorRuntimeSchemaBuilder( 2, 1 );
+        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder1 = new OperatorRuntimeSchemaBuilder( 1, 1 );
 
         final OperatorDef operatorDef0;
 
@@ -856,7 +1023,6 @@ public class RegionManagerImplTest extends AbstractJokerTest
         {
             operatorRuntimeSchemaBuilder0.addOutputField( 0, "field2", Integer.class );
             operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class )
-                                         .addInputField( 1, "field2", Integer.class )
                                          .addOutputField( 0, "field3", Integer.class );
             operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithZeroInputSingleOutputPort.class )
                                              .setExtendingSchema( operatorRuntimeSchemaBuilder0 )
@@ -879,7 +1045,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder1 = new OperatorRuntimeSchemaBuilder( 1, 1 );
 
-        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder2 = new OperatorRuntimeSchemaBuilder( 2, 1 );
+        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder2 = new OperatorRuntimeSchemaBuilder( 1, 1 );
 
         final OperatorDef operatorDef0;
 
@@ -894,7 +1060,6 @@ public class RegionManagerImplTest extends AbstractJokerTest
             operatorRuntimeSchemaBuilder0.addOutputField( 0, "field2", Integer.class );
             operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class ).addOutputField( 0, "field2", Integer.class );
             operatorRuntimeSchemaBuilder2.addInputField( 0, "field2", Integer.class )
-                                         .addInputField( 1, "field2", Integer.class )
                                          .addOutputField( 0, "field3", Integer.class );
             operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatefulOperatorWithZeroInputSingleOutputPort.class )
                                              .setExtendingSchema( operatorRuntimeSchemaBuilder0 )
@@ -926,7 +1091,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder1 = new OperatorRuntimeSchemaBuilder( 1, 1 );
 
-        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder2 = new OperatorRuntimeSchemaBuilder( 2, 1 );
+        final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder2 = new OperatorRuntimeSchemaBuilder( 1, 1 );
 
         final OperatorRuntimeSchemaBuilder operatorRuntimeSchemaBuilder3 = new OperatorRuntimeSchemaBuilder( 1, 1 );
 
@@ -945,7 +1110,6 @@ public class RegionManagerImplTest extends AbstractJokerTest
             operatorRuntimeSchemaBuilder0.addOutputField( 0, "field2", Integer.class );
             operatorRuntimeSchemaBuilder1.addInputField( 0, "field2", Integer.class ).addOutputField( 0, "field2", Integer.class );
             operatorRuntimeSchemaBuilder2.addInputField( 0, "field2", Integer.class )
-                                         .addInputField( 1, "field2", Integer.class )
                                          .addOutputField( 0, "field2", Integer.class )
                                          .addOutputField( 0, "field3", Integer.class );
             operatorRuntimeSchemaBuilder3.addInputField( 0, "field2", Integer.class )

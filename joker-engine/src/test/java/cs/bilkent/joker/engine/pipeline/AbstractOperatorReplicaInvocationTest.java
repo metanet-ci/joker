@@ -12,8 +12,7 @@ import cs.bilkent.joker.engine.kvstore.OperatorKVStore;
 import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
 import cs.bilkent.joker.engine.partition.PartitionKey;
 import cs.bilkent.joker.engine.partition.impl.PartitionKey1;
-import static cs.bilkent.joker.engine.pipeline.OperatorReplicaInitializationTest.newUpstreamContextInstance;
-import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newInitialUpstreamContextWithAllPortsConnected;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainerPool;
@@ -70,6 +69,8 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
 
     protected UpstreamContext initializationUpstreamContext;
 
+    protected UpstreamContext downstreamContext;
+
     @Before
     public void before ()
     {
@@ -99,8 +100,9 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
         mockOperatorDef( inputPortCount, outputPortCount );
         mockOperatorInitializationSchedulingStrategy( schedulingStrategy );
 
-        initializationUpstreamContext = newUpstreamContextInstance( 0, inputPortCount, ACTIVE );
-        operatorReplica.init( initializationUpstreamContext );
+        initializationUpstreamContext = newInitialUpstreamContextWithAllPortsConnected( inputPortCount );
+        downstreamContext = newInitialUpstreamContextWithAllPortsConnected( outputPortCount );
+        operatorReplica.init( initializationUpstreamContext, downstreamContext );
     }
 
     private void mockOperatorDef ( final int inputPortCount, final int outputPortCount )

@@ -11,8 +11,7 @@ import cs.bilkent.joker.JokerModule;
 import cs.bilkent.joker.engine.config.JokerConfigBuilder;
 import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
-import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
-import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
+import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.RUNNING;
 import cs.bilkent.joker.engine.region.FlowDefOptimizer;
 import cs.bilkent.joker.engine.region.Region;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
@@ -35,6 +34,7 @@ import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import cs.bilkent.joker.utils.Pair;
 import static java.util.Collections.singletonList;
+import static java.util.stream.IntStream.range;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -83,7 +83,7 @@ public class PipelineOperatorPortCountsTest extends AbstractJokerTest
                                                  .connect( "op1", 1, "op2", 0 )
                                                  .build();
 
-        testPipelineInitialization( flow, new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE, CLOSED } ) );
+        testPipelineInitialization( flow );
     }
 
     @Test
@@ -107,10 +107,10 @@ public class PipelineOperatorPortCountsTest extends AbstractJokerTest
                                                  .connect( "op1", 0, "op2", 1 )
                                                  .build();
 
-        testPipelineInitialization( flow, new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE, CLOSED } ) );
+        testPipelineInitialization( flow );
     }
 
-    private void testPipelineInitialization ( final FlowDef flow, final UpstreamContext upstreamContext )
+    private void testPipelineInitialization ( final FlowDef flow )
     {
         final Pair<FlowDef, List<RegionDef>> result = flowDefOptimizer.optimize( flow, regionDefFormer.createRegions( flow ) );
         final List<RegionDef> regionDefs = result._2;
@@ -122,11 +122,10 @@ public class PipelineOperatorPortCountsTest extends AbstractJokerTest
 
         final Region region = regionManager.createRegion( result._1, regionExecutionPlan );
         final PipelineReplica[] pipelineReplicas = region.getPipelineReplicas( 0 );
-        final Pipeline pipeline = new Pipeline( pipelineReplicas[ 0 ].id().pipelineId, regionExecutionPlan, pipelineReplicas );
-        pipeline.setUpstreamContext( upstreamContext );
+        final Pipeline pipeline = new Pipeline( pipelineReplicas[ 0 ].id().pipelineId, region );
         pipeline.init();
 
-        assertThat( pipelineReplicas[ 0 ].getStatus(), equalTo( OperatorReplicaStatus.RUNNING ) );
+        assertThat( pipelineReplicas[ 0 ].getStatus(), equalTo( RUNNING ) );
     }
 
     @OperatorSpec( type = STATELESS )
@@ -156,7 +155,7 @@ public class PipelineOperatorPortCountsTest extends AbstractJokerTest
         public SchedulingStrategy init ( final InitializationContext context )
         {
             final int inputPortCount = context.getInputPortCount();
-            return scheduleWhenTuplesAvailableOnAny( AT_LEAST, inputPortCount, 1, 0 );
+            return scheduleWhenTuplesAvailableOnAny( AT_LEAST, inputPortCount, 1, range( 0, inputPortCount ).toArray() );
         }
 
         @Override

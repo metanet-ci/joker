@@ -284,6 +284,7 @@ public class RegionExecutionPlan
         {
             newPipelineStartIndices.add( firstPipelineIndex + i, startIndicesToSplit.get( i ) );
         }
+
         return newPipelineStartIndices;
     }
 

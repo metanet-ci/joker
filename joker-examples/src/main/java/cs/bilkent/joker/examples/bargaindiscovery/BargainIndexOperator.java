@@ -14,6 +14,7 @@ import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.Tuples;
 import cs.bilkent.joker.operator.kvstore.KVStore;
+import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAny;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.schema.annotation.OperatorSchema;
@@ -55,7 +56,7 @@ public class BargainIndexOperator implements Operator
     public SchedulingStrategy init ( final InitializationContext context )
     {
         outputSchema = context.getOutputPortSchema( 0 );
-        return scheduleWhenTuplesAvailableOnAny( 2, 1, 0, 1 );
+        return scheduleWhenTuplesAvailableOnAny( AT_LEAST, 2, 1, 0, 1 );
     }
 
     @Override

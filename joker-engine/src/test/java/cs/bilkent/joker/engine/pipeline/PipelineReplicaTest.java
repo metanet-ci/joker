@@ -13,12 +13,13 @@ import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIAL;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.RUNNING;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.SHUT_DOWN;
-import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
-import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newInitialUpstreamContextWithAllPortsConnected;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
+import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
+import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -57,11 +58,23 @@ public class PipelineReplicaTest extends AbstractJokerTest
 
     private final TuplesImpl output = new TuplesImpl( 1 );
 
-    private final UpstreamContext upstreamContext0 = new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } );
+    private final UpstreamContext upstreamContext0 = newInitialUpstreamContextWithAllPortsConnected( 1 );
 
-    private final UpstreamContext upstreamContext1 = new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } );
+    private final UpstreamContext upstreamContext1 = newInitialUpstreamContextWithAllPortsConnected( 1 );
 
-    private final UpstreamContext upstreamContext2 = new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } );
+    private final UpstreamContext upstreamContext2 = newInitialUpstreamContextWithAllPortsConnected( 1 );
+
+    private final UpstreamContext[] upstreamContexts = new UpstreamContext[] { upstreamContext0, upstreamContext1, upstreamContext2 };
+
+    private final SchedulingStrategy schedulingStrategy1 = scheduleWhenTuplesAvailableOnDefaultPort( 1 );
+
+    private final SchedulingStrategy schedulingStrategy2 = scheduleWhenTuplesAvailableOnDefaultPort( 2 );
+
+    private final SchedulingStrategy schedulingStrategy3 = scheduleWhenTuplesAvailableOnDefaultPort( 3 );
+
+    private final SchedulingStrategy[] schedulingStrategies = new SchedulingStrategy[] { schedulingStrategy1,
+                                                                                         schedulingStrategy2,
+                                                                                         schedulingStrategy3 };
 
     @Before
     public void before ()
@@ -103,27 +116,24 @@ public class PipelineReplicaTest extends AbstractJokerTest
     @Test
     public void shouldInitOperatorsSuccessfully ()
     {
-        when( operator0.getSelfUpstreamContext() ).thenReturn( upstreamContext1 );
-        when( operator1.getSelfUpstreamContext() ).thenReturn( upstreamContext2 );
-
-        pipeline.init( upstreamContext0 );
+        pipeline.init( schedulingStrategies, upstreamContexts );
 
         assertThat( pipeline.getStatus(), equalTo( RUNNING ) );
+        assertThat( pipeline.getPipelineUpstreamContext(), equalTo( upstreamContext0 ) );
 
-        verify( operator0 ).init( upstreamContext0 );
-        verify( operator1 ).init( upstreamContext1 );
-        verify( operator2 ).init( upstreamContext2 );
+        verify( operator0 ).init( upstreamContext0, upstreamContext1 );
+        verify( operator1 ).init( upstreamContext1, upstreamContext2 );
+        verify( operator2 ).init( upstreamContext2, null );
     }
 
     @Test
     public void shouldShutdownInitializedOperatorsWhenAnOperatorFailsToInit ()
     {
-        when( operator0.getSelfUpstreamContext() ).thenReturn( upstreamContext1 );
-        doThrow( new InitializationException( "" ) ).when( operator1 ).init( upstreamContext1 );
+        doThrow( new InitializationException( "" ) ).when( operator1 ).init( upstreamContext1, upstreamContext2 );
         when( operator2.getStatus() ).thenReturn( INITIAL );
         try
         {
-            pipeline.init( upstreamContext0 );
+            pipeline.init( schedulingStrategies, upstreamContexts );
             fail();
         }
         catch ( InitializationException expected )
@@ -131,20 +141,20 @@ public class PipelineReplicaTest extends AbstractJokerTest
             assertThat( pipeline.getStatus(), equalTo( SHUT_DOWN ) );
         }
 
-        verify( operator0 ).init( upstreamContext0 );
+        verify( operator0 ).init( upstreamContext0, upstreamContext1 );
         verify( operator0 ).shutdown();
-        verify( operator1 ).init( upstreamContext1 );
+
+        verify( operator1 ).init( upstreamContext1, upstreamContext2 );
         verify( operator1 ).shutdown();
-        verify( operator2, never() ).init( anyObject() );
+
+        verify( operator2, never() ).init( anyObject(), anyObject() );
         verify( operator2, never() ).shutdown();
     }
 
     @Test
     public void shouldShutdownOperators ()
     {
-        when( operator0.getSelfUpstreamContext() ).thenReturn( upstreamContext1 );
-        when( operator1.getSelfUpstreamContext() ).thenReturn( upstreamContext2 );
-        pipeline.init( upstreamContext0 );
+        pipeline.init( schedulingStrategies, upstreamContexts );
         pipeline.shutdown();
 
         assertThat( pipeline.getStatus(), equalTo( SHUT_DOWN ) );
@@ -157,9 +167,7 @@ public class PipelineReplicaTest extends AbstractJokerTest
     @Test
     public void shouldShutdownOperatorsOnlyOnce ()
     {
-        when( operator0.getSelfUpstreamContext() ).thenReturn( upstreamContext1 );
-        when( operator1.getSelfUpstreamContext() ).thenReturn( upstreamContext2 );
-        pipeline.init( upstreamContext0 );
+        pipeline.init( schedulingStrategies, upstreamContexts );
         pipeline.shutdown();
         pipeline.shutdown();
 
@@ -171,11 +179,9 @@ public class PipelineReplicaTest extends AbstractJokerTest
     @Test
     public void shouldInvokeFirstOperatorWithUpdatedUpstreamContext ()
     {
-        when( operator0.getSelfUpstreamContext() ).thenReturn( upstreamContext1 );
-        when( operator1.getSelfUpstreamContext() ).thenReturn( upstreamContext2 );
-        pipeline.init( upstreamContext0 );
+        pipeline.init( schedulingStrategies, upstreamContexts );
 
-        final UpstreamContext upstreamContext0New = new UpstreamContext( 1, new UpstreamConnectionStatus[] { CLOSED } );
+        final UpstreamContext upstreamContext0New = upstreamContext0.withUpstreamConnectionClosed( 0 );
         pipeline.setPipelineUpstreamContext( upstreamContext0New );
         pipeline.invoke();
 
@@ -187,7 +193,7 @@ public class PipelineReplicaTest extends AbstractJokerTest
     {
         when( operator0.getSelfUpstreamContext() ).thenReturn( upstreamContext1 );
         when( operator1.getSelfUpstreamContext() ).thenReturn( upstreamContext2 );
-        pipeline.init( upstreamContext0 );
+        pipeline.init( schedulingStrategies, upstreamContexts );
 
         when( operator0.invoke( true, null, upstreamContext0 ) ).thenReturn( upstreamInput1 );
         when( operator1.invoke( true, upstreamInput1, upstreamContext1 ) ).thenReturn( upstreamInput2 );

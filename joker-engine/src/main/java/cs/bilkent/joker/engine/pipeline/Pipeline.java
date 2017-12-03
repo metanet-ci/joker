@@ -26,11 +26,11 @@ import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIAL;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.RUNNING;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.SHUT_DOWN;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus;
+import cs.bilkent.joker.engine.region.Region;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import static cs.bilkent.joker.engine.util.ExceptionUtils.checkInterruption;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
-import static java.lang.System.arraycopy;
 import static java.util.Arrays.fill;
 
 public class Pipeline
@@ -43,7 +43,11 @@ public class Pipeline
 
     private final RegionExecutionPlan regionExecutionPlan;
 
-    private PipelineReplica[] replicas;
+    private final SchedulingStrategy[] operatorSchedulingStrategies;
+
+    private final UpstreamContext[] operatorUpstreamContexts;
+
+    private final PipelineReplica[] replicas;
 
     private OperatorReplicaStatus pipelineStatus;
 
@@ -57,97 +61,22 @@ public class Pipeline
 
     private PipelineReplicaRunnerStatus runnerStatus;
 
-    private SchedulingStrategy initialSchedulingStrategy;
-
     private volatile UpstreamContext upstreamContext;
 
-    public Pipeline ( final PipelineId id, final RegionExecutionPlan regionExecutionPlan, final PipelineReplica[] pipelineReplicas )
+    public Pipeline ( final PipelineId id, final Region region )
     {
         this.id = id;
-        this.regionExecutionPlan = regionExecutionPlan;
+        this.regionExecutionPlan = region.getExecutionPlan();
+        this.operatorSchedulingStrategies = region.getOperatorSchedulingStrategies( id );
+        this.operatorUpstreamContexts = region.getOperatorUpstreamContexts( id );
+        this.replicas = region.getPipelineReplicasByPipelineId( id );
         final int replicaCount = regionExecutionPlan.getReplicaCount();
-        this.replicas = new PipelineReplica[ replicaCount ];
-        arraycopy( pipelineReplicas, 0, this.replicas, 0, replicaCount );
         this.threads = new Thread[ replicaCount ];
         this.pipelineStatus = INITIAL;
         this.replicaStatuses = new OperatorReplicaStatus[ replicaCount ];
         fill( this.replicaStatuses, INITIAL );
         this.runners = new PipelineReplicaRunner[ replicaCount ];
         this.downstreamTupleSenders = new DownstreamTupleSender[ replicaCount ];
-    }
-
-    private Pipeline ( final PipelineId id,
-                       final RegionExecutionPlan regionExecutionPlan,
-                       final PipelineReplica[] pipelineReplicas,
-                       final SchedulingStrategy initialSchedulingStrategy,
-                       final UpstreamContext upstreamContext )
-    {
-        this.id = id;
-        this.regionExecutionPlan = regionExecutionPlan;
-        final int replicaCount = regionExecutionPlan.getReplicaCount();
-        this.replicas = new PipelineReplica[ replicaCount ];
-        arraycopy( pipelineReplicas, 0, this.replicas, 0, replicaCount );
-        this.threads = new Thread[ replicaCount ];
-        this.replicaStatuses = new OperatorReplicaStatus[ replicaCount ];
-        this.runners = new PipelineReplicaRunner[ replicaCount ];
-        this.downstreamTupleSenders = new DownstreamTupleSender[ replicaCount ];
-        this.initialSchedulingStrategy = initialSchedulingStrategy;
-        this.upstreamContext = upstreamContext;
-
-        final int highestRunningStatusReplicaIndex = getHighestRunningStatusReplicaIndex();
-        if ( highestRunningStatusReplicaIndex == replicas.length - 1 )
-        {
-            this.pipelineStatus = RUNNING;
-            fill( this.replicaStatuses, RUNNING );
-        }
-        else
-        {
-            final SchedulingStrategy[] schedulingStrategies = this.replicas[ 0 ].getSchedulingStrategies();
-            init( schedulingStrategies, highestRunningStatusReplicaIndex + 1 );
-        }
-    }
-
-    public static Pipeline createAlreadyRunningPipeline ( final PipelineId id,
-                                                          final RegionExecutionPlan regionExecutionPlan,
-                                                          final PipelineReplica[] pipelineReplicas,
-                                                          final SchedulingStrategy initialSchedulingStrategy,
-                                                          final UpstreamContext upstreamContext )
-    {
-        return new Pipeline( id, regionExecutionPlan, pipelineReplicas, initialSchedulingStrategy, upstreamContext );
-    }
-
-    private int getHighestRunningStatusReplicaIndex ()
-    {
-        int replicaIndex = 0;
-        for ( ; replicaIndex < getReplicaCount(); replicaIndex++ )
-        {
-            final OperatorReplicaStatus status = replicas[ replicaIndex ].getStatus();
-            if ( status == INITIAL )
-            {
-                break;
-            }
-
-            checkState( status == RUNNING,
-                        "invalid pipeline initialization status! Pipeline: %s replicaIndex is in %s status",
-                        id,
-                        replicaIndex,
-                        status );
-        }
-
-        checkState( replicaIndex > 0, "invalid pipeline status! No running replicas! Pipeline: %s", id );
-        for ( int i = replicaIndex; i < getReplicaCount(); i++ )
-        {
-            final OperatorReplicaStatus status = replicas[ i ].getStatus();
-            checkState( status == INITIAL,
-                        "invalid pipeline status! Pipeline: %s replica index: %s should be %s but it is %s",
-                        id,
-                        i,
-                        INITIAL,
-
-                        status );
-        }
-
-        return replicaIndex - 1;
     }
 
     public PipelineId getId ()
@@ -187,11 +116,6 @@ public class Pipeline
         return pipelineStatus;
     }
 
-    public SchedulingStrategy getInitialSchedulingStrategy ()
-    {
-        return initialSchedulingStrategy;
-    }
-
     public UpstreamContext getUpstreamContext ()
     {
         return upstreamContext;
@@ -221,10 +145,14 @@ public class Pipeline
         return replicas[ replicaIndex ];
     }
 
-    public void setUpstreamContext ( final UpstreamContext upstreamContext )
+    private void setUpstreamContext ( final UpstreamContext upstreamContext )
     {
-        checkArgument( upstreamContext != null, "Cannot set null upstream context of Pipeline %s", id );
-        checkArgument( this.upstreamContext == null || this.upstreamContext.getVersion() < upstreamContext.getVersion() );
+        checkArgument( upstreamContext != null, "Cannot set null upstream context of Pipeline: %s", id );
+        checkArgument( this.upstreamContext == null || this.upstreamContext.getVersion() < upstreamContext.getVersion(),
+                       "Cannot set new: %s for current : of Pipeline: %s",
+                       upstreamContext,
+                       this.upstreamContext,
+                       id );
         this.upstreamContext = upstreamContext;
     }
 
@@ -253,68 +181,21 @@ public class Pipeline
         return downstreamTupleSenders[ replicaIndex ];
     }
 
-    private void init ( final SchedulingStrategy[] initialSchedulingStrategies, final int replicaIndexToInit )
-    {
-        try
-        {
-            final SchedulingStrategy[][] schedulingStrategies = new SchedulingStrategy[ getReplicaCount() ][ getOperatorCount() ];
-            for ( int replicaIndex = replicaIndexToInit; replicaIndex < getReplicaCount(); replicaIndex++ )
-            {
-                final PipelineReplica pipelineReplica = replicas[ replicaIndex ];
-                LOGGER.debug( "Initializing Replica {} of Pipeline {} with {}", replicaIndex, id, upstreamContext );
-                final SchedulingStrategy[] strategies = pipelineReplica.init( upstreamContext );
-                arraycopy( strategies, 0, schedulingStrategies[ replicaIndex ], 0, getOperatorCount() );
-            }
-
-            for ( int replicaIndex = replicaIndexToInit; replicaIndex < getReplicaCount(); replicaIndex++ )
-            {
-                checkState( Arrays.equals( initialSchedulingStrategies, schedulingStrategies[ replicaIndex ] ),
-                            "Pipeline %s Replica O scheduling strategies: %s, Replica %s scheduling strategies: ",
-                            id,
-                            schedulingStrategies[ 0 ],
-                            replicaIndex,
-                            schedulingStrategies[ replicaIndex ] );
-            }
-
-            this.initialSchedulingStrategy = initialSchedulingStrategies[ 0 ];
-            pipelineStatus = RUNNING;
-            fill( replicaStatuses, RUNNING );
-        }
-        catch ( Exception e )
-        {
-            checkInterruption( e );
-            pipelineStatus = SHUT_DOWN;
-            throw e;
-        }
-    }
-
     public void init ()
     {
-        checkState( pipelineStatus == INITIAL, "cannot initialize pipeline %s since in %s status", id, pipelineStatus );
-        checkState( upstreamContext != null, "cannot initialize pipeline %s since upstream context not set", id );
-
+        final int replicaIndexToInit = getReplicaIndexToInit();
         try
         {
-            final SchedulingStrategy[][] schedulingStrategies = new SchedulingStrategy[ getReplicaCount() ][ getOperatorCount() ];
-            for ( int replicaIndex = 0; replicaIndex < getReplicaCount(); replicaIndex++ )
+            for ( int replicaIndex = replicaIndexToInit; replicaIndex < getReplicaCount(); replicaIndex++ )
             {
+                checkState( replicaStatuses[ replicaIndex ] == INITIAL );
                 final PipelineReplica pipelineReplica = replicas[ replicaIndex ];
-                LOGGER.info( "Initializing Replica {} of Pipeline {} with {}", replicaIndex, id, upstreamContext );
-                final SchedulingStrategy[] strategies = pipelineReplica.init( upstreamContext );
-                arraycopy( strategies, 0, schedulingStrategies[ replicaIndex ], 0, getOperatorCount() );
+                LOGGER.debug( "Initializing Replica {} of Pipeline {} with {}", replicaIndex, id, upstreamContext );
+                pipelineReplica.init( operatorSchedulingStrategies, operatorUpstreamContexts );
+                verifySchedulingStrategies( pipelineReplica );
             }
 
-            for ( int replicaIndex = 1; replicaIndex < getReplicaCount(); replicaIndex++ )
-            {
-                checkState( Arrays.equals( schedulingStrategies[ 0 ], schedulingStrategies[ replicaIndex ] ),
-                            "Pipeline %s Replica O scheduling strategies: %s, Replica %s scheduling strategies: ",
-                            id,
-                            schedulingStrategies[ 0 ],
-                            replicaIndex,
-                            schedulingStrategies[ replicaIndex ] );
-            }
-
-            this.initialSchedulingStrategy = schedulingStrategies[ 0 ][ 0 ];
+            setUpstreamContext( operatorUpstreamContexts[ 0 ] );
             pipelineStatus = RUNNING;
             fill( replicaStatuses, RUNNING );
         }
@@ -336,10 +217,56 @@ public class Pipeline
                     LOGGER.error( "Shutdown of PipelineReplica=" + pipelineReplica.id() + "  failed!", e2 );
                 }
             }
-            LOGGER.error( "Initialization of Pipeline " + id + " failed!", e1 );
+
             pipelineStatus = SHUT_DOWN;
 
             throw new InitializationException( "Initialization of Pipeline " + id + " failed!", e1 );
+        }
+    }
+
+    private int getReplicaIndexToInit ()
+    {
+        int replicaIndex = 0;
+        for ( ; replicaIndex < getReplicaCount(); replicaIndex++ )
+        {
+            final OperatorReplicaStatus status = replicas[ replicaIndex ].getStatus();
+            if ( status == INITIAL )
+            {
+                break;
+            }
+
+            checkState( status == RUNNING,
+                        "invalid pipeline initialization status! Pipeline: %s replicaIndex is in %s status",
+                        id,
+                        replicaIndex,
+                        status );
+        }
+
+        for ( int i = replicaIndex; i < getReplicaCount(); i++ )
+        {
+            final OperatorReplicaStatus status = replicas[ i ].getStatus();
+            checkState( status == INITIAL,
+                        "invalid pipeline status! Pipeline: %s replica index: %s should be %s but it is %s",
+                        id,
+                        i,
+                        INITIAL,
+                        status );
+        }
+
+        return replicaIndex;
+    }
+
+    private void verifySchedulingStrategies ( final PipelineReplica pipelineReplica )
+    {
+        for ( int i = 0; i < getOperatorCount(); i++ )
+        {
+            final SchedulingStrategy initSchedulingStrategy = pipelineReplica.getSchedulingStrategy( i );
+            checkState( operatorSchedulingStrategies[ i ].equals( initSchedulingStrategy ),
+                        "Pipeline %s Operator index: %s expected scheduling strategy: %s, returned scheduling strategy: %s",
+                        id,
+                        i,
+                        operatorSchedulingStrategies[ i ],
+                        initSchedulingStrategy );
         }
     }
 
@@ -353,7 +280,7 @@ public class Pipeline
         LOGGER.info( "Updating upstream context of Pipeline {} to {}", id, upstreamContext );
 
         setUpstreamContext( upstreamContext );
-        if ( pipelineStatus == RUNNING && !upstreamContext.isInvokable( getFirstOperatorDef(), initialSchedulingStrategy ) )
+        if ( pipelineStatus == RUNNING && !upstreamContext.isInvokable( getFirstOperatorDef(), operatorSchedulingStrategies[ 0 ] ) )
         {
             LOGGER.info( "Pipeline {} is not invokable anymore. Setting pipeline status to {}", id, COMPLETING );
             setPipelineCompleting();

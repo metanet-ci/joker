@@ -95,7 +95,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
             final PipelineReplicaMeter firstPipelineReplicaMeter = createPipelineReplicaMeter( pipelineReplicaId,
                                                                                                regionExecutionPlan,
                                                                                                pipelineStartIndicesToMerge );
-            int operatorIndex = duplicateFirstPipelineToMergeOperators( firstPipelineReplica,
+            int operatorIndex = duplicateFirstPipelineToMergeOperators( region.getOperatorUpstreamContexts(), firstPipelineReplica,
                                                                         newOperatorReplicas,
                                                                         firstPipelineReplicaMeter );
 
@@ -110,7 +110,9 @@ public class PipelineTransformerImpl implements PipelineTransformer
                                                                   newOperatorReplicas,
                                                                   operatorIndex,
                                                                   pipelineReplicaId,
-                                                                  firstPipelineReplicaMeter, pipelineReplica );
+                                                                  firstPipelineReplicaMeter,
+                                                                  pipelineReplica,
+                                                                  region.getOperatorUpstreamContexts() );
             }
 
             final List<String> operatorIds = Arrays.stream( newOperatorReplicas ).map( o -> o.getOperatorDef().getId() )
@@ -127,7 +129,10 @@ public class PipelineTransformerImpl implements PipelineTransformer
                      pipelineStartIndicesToMerge,
                      regionId );
 
-        return new Region( newRegionExecutionPlan, newPipelineReplicas );
+        return new Region( newRegionExecutionPlan,
+                           region.getOperatorSchedulingStrategies(),
+                           region.getOperatorUpstreamContexts(),
+                           newPipelineReplicas );
     }
 
     private PipelineReplicaMeter createPipelineReplicaMeter ( final PipelineReplicaId pipelineReplicaId,
@@ -172,30 +177,34 @@ public class PipelineTransformerImpl implements PipelineTransformer
         }
     }
 
-    private int duplicateFirstPipelineToMergeOperators ( final PipelineReplica pipelineReplica,
+    private int duplicateFirstPipelineToMergeOperators ( final UpstreamContext[] upstreamContexts, final PipelineReplica pipelineReplica,
                                                          final OperatorReplica[] newOperatorReplicas,
                                                          final PipelineReplicaMeter firstPipelineReplicaMeter )
     {
         int operatorIndex = 0;
         final PipelineReplicaId pipelineReplicaId = pipelineReplica.id();
+        final PipelineId pipelineId = pipelineReplicaId.pipelineId;
+        final int pipelineOperatorCount = pipelineReplica.getOperatorCount();
 
-        for ( int i = 0, j = pipelineReplica.getOperatorCount() - 1; i < j; i++ )
+        for ( int i = 0, j = pipelineOperatorCount - 1; i < j; i++ )
         {
+            final UpstreamContext selfUpstreamContext = upstreamContexts[ pipelineId.getPipelineStartIndex() + i + 1 ];
             final OperatorReplica operator = pipelineReplica.getOperator( i );
             newOperatorReplicas[ operatorIndex++ ] = operator.duplicate( pipelineReplicaId,
                                                                          operator.getQueue(),
                                                                          operator.getDrainerPool(),
                                                                          operator.getOutputSupplier(),
-                                                                         firstPipelineReplicaMeter );
+                                                                         firstPipelineReplicaMeter,
+                                                                         selfUpstreamContext );
         }
 
-        final OperatorReplica lastOperator = pipelineReplica.getOperator( pipelineReplica.getOperatorCount() - 1 );
+        final OperatorReplica lastOperator = pipelineReplica.getOperator( pipelineOperatorCount - 1 );
         final Supplier<TuplesImpl> outputSupplier = new CachedTuplesImplSupplier( lastOperator.getOperatorDef().getOutputPortCount() );
+        final UpstreamContext lastUpstreamContext = upstreamContexts[ pipelineId.getPipelineStartIndex() + pipelineOperatorCount ];
         newOperatorReplicas[ operatorIndex++ ] = lastOperator.duplicate( pipelineReplicaId,
                                                                          lastOperator.getQueue(),
                                                                          lastOperator.getDrainerPool(),
-                                                                         outputSupplier,
-                                                                         firstPipelineReplicaMeter );
+                                                                         outputSupplier, firstPipelineReplicaMeter, lastUpstreamContext );
 
         final List<String> operatorIds = Arrays.stream( pipelineReplica.getOperators() ).map( o -> o.getOperatorDef().getId() )
                                                .collect( Collectors.toList() );
@@ -210,24 +219,35 @@ public class PipelineTransformerImpl implements PipelineTransformer
                                                    final OperatorReplica[] newOperatorReplicas,
                                                    int operatorIndex,
                                                    final PipelineReplicaId newPipelineReplicaId,
-                                                   final PipelineReplicaMeter replicaMeter, final PipelineReplica pipelineReplica )
+                                                   final PipelineReplicaMeter replicaMeter,
+                                                   final PipelineReplica pipelineReplica,
+                                                   final UpstreamContext[] upstreamContexts )
     {
+        final PipelineId oldPipelineId = pipelineReplica.id().pipelineId;
+        final int oldPipelineStartIndex = oldPipelineId.getPipelineStartIndex();
+        final UpstreamContext firstOperatorSelfUpstreamContext = ( operatorIndex < newOperatorReplicas.length - 1 ) ? upstreamContexts[
+                                                                                                                              oldPipelineStartIndex
+                                                                                                                              + 1 ] : null;
         newOperatorReplicas[ operatorIndex++ ] = duplicateMergedPipelineFirstOperator( regionId,
                                                                                        replicaIndex,
                                                                                        newPipelineReplicaId,
-                                                                                       replicaMeter, pipelineReplica );
+                                                                                       replicaMeter,
+                                                                                       pipelineReplica,
+                                                                                       firstOperatorSelfUpstreamContext );
 
         for ( int i = 1, j = pipelineReplica.getOperatorCount(); i < j; i++ )
         {
             final OperatorReplica operator = pipelineReplica.getOperator( i );
             final int outputPortCount = operator.getOperatorDef().getOutputPortCount();
             final Supplier<TuplesImpl> outputSupplier = new CachedTuplesImplSupplier( outputPortCount );
+            final UpstreamContext operatorSelfUpstreamContext = ( operatorIndex < newOperatorReplicas.length - 1 )
+                                                                ? upstreamContexts[ oldPipelineStartIndex + i + 1 ]
+                                                                : null;
 
             newOperatorReplicas[ operatorIndex++ ] = operator.duplicate( newPipelineReplicaId,
                                                                          operator.getQueue(),
                                                                          operator.getDrainerPool(),
-                                                                         outputSupplier,
-                                                                         replicaMeter );
+                                                                         outputSupplier, replicaMeter, operatorSelfUpstreamContext );
             LOGGER.debug( "Duplicating operator {} of {} to {}", operator.getOperatorDef().getId(),
                           pipelineReplica.id(),
                           newPipelineReplicaId );
@@ -241,7 +261,8 @@ public class PipelineTransformerImpl implements PipelineTransformer
                                                                    final int replicaIndex,
                                                                    final PipelineReplicaId newPipelineReplicaId,
                                                                    final PipelineReplicaMeter replicaMeter,
-                                                                   final PipelineReplica pipelineReplica )
+                                                                   final PipelineReplica pipelineReplica,
+                                                                   final UpstreamContext selfUpstreamContext )
     {
         final OperatorTupleQueue pipelineSelfTupleQueue = pipelineReplica.getSelfPipelineTupleQueue();
         final OperatorReplica firstOperator = pipelineReplica.getOperator( 0 );
@@ -256,8 +277,9 @@ public class PipelineTransformerImpl implements PipelineTransformer
             }
             else
             {
-                throw new IllegalStateException( "It is not expected to have " + firstOperator.getQueue() + " for first operator "
-                                                 + firstOperator.getOperatorName() + " of PipelineReplica " + pipelineReplica.id() );
+                throw new IllegalStateException(
+                        "It is not expected to have " + firstOperator.getQueue() + " for first operator " + firstOperator.getOperatorName()
+                        + " of PipelineReplica " + pipelineReplica.id() );
             }
         }
         else
@@ -272,7 +294,12 @@ public class PipelineTransformerImpl implements PipelineTransformer
         final NonBlockingTupleQueueDrainerPool drainerPool = new NonBlockingTupleQueueDrainerPool( config, firstOperatorDef );
         final Supplier<TuplesImpl> outputSupplier = new CachedTuplesImplSupplier( firstOperatorDef.getOutputPortCount() );
         LOGGER.debug( "Duplicating first operator {} of {} to {}", firstOperatorDef.getId(), pipelineReplica.id(), newPipelineReplicaId );
-        return firstOperator.duplicate( newPipelineReplicaId, firstOperatorQueue, drainerPool, outputSupplier, replicaMeter );
+        return firstOperator.duplicate( newPipelineReplicaId,
+                                        firstOperatorQueue,
+                                        drainerPool,
+                                        outputSupplier,
+                                        replicaMeter,
+                                        selfUpstreamContext );
     }
 
     private void drainPipelineTupleQueue ( final OperatorTupleQueue pipelineTupleQueue,
@@ -352,11 +379,9 @@ public class PipelineTransformerImpl implements PipelineTransformer
                 final boolean switchThreadingPreferenceOfFirstOperator = ( i > 0 );
                 duplicateSplitPipelineOperators( pipelineReplica,
                                                  startOperatorIndex,
-                                                 newOperatorCount,
                                                  switchThreadingPreferenceOfFirstOperator,
                                                  newPipelineReplicaId,
-                                                 replicaMeter,
-                                                 newOperatorReplicas );
+                                                 replicaMeter, newOperatorReplicas, region.getOperatorUpstreamContexts() );
 
                 final OperatorDef firstOperatorDef = newOperatorReplicas[ 0 ].getOperatorDef();
 
@@ -390,15 +415,18 @@ public class PipelineTransformerImpl implements PipelineTransformer
                         pipelineTupleQueue = new EmptyOperatorTupleQueue( firstOperatorDef.getId(), firstOperatorDef.getInputPortCount() );
                     }
 
-                    final PipelineReplica prevPipeline = newPipelineReplicas[ firstPipelineIndex + ( i - 1 ) ][ replicaIndex ];
-                    final UpstreamContext upstreamContext = prevPipeline.getOperator( prevPipeline.getOperatorCount() - 1 )
-                                                                        .getSelfUpstreamContext();
+                    //                    final PipelineReplica prevPipeline = newPipelineReplicas[ firstPipelineIndex + ( i - 1 ) ][
+                    // replicaIndex ];
+                    //                    final UpstreamContext upstreamContext = prevPipeline.getOperator( prevPipeline.getOperatorCount
+                    // () - 1 )
+                    //                                                                        .getSelfUpstreamContext();
                     newPipelineReplica = new PipelineReplica( config,
                                                               newPipelineReplicaId,
                                                               newOperatorReplicas,
                                                               pipelineTupleQueue,
                                                               replicaMeter,
-                                                              upstreamContext );
+                                                              region.getOperatorUpstreamContexts()[ newPipelineReplicaId.pipelineId
+                                                                                                            .getPipelineStartIndex() ] );
 
                     final List<String> operatorIds = Arrays.stream( newOperatorReplicas ).map( o -> o.getOperatorDef().getId() )
                                                            .collect( Collectors.toList() );
@@ -416,7 +444,10 @@ public class PipelineTransformerImpl implements PipelineTransformer
                      pipelineStartIndicesToSplit,
                      regionId );
 
-        return new Region( newRegionExecutionPlan, newPipelineReplicas );
+        return new Region( newRegionExecutionPlan,
+                           region.getOperatorSchedulingStrategies(),
+                           region.getOperatorUpstreamContexts(),
+                           newPipelineReplicas );
     }
 
     private void copyNonSplitPipelines ( final Region region,
@@ -445,13 +476,14 @@ public class PipelineTransformerImpl implements PipelineTransformer
 
     private void duplicateSplitPipelineOperators ( final PipelineReplica pipelineReplica,
                                                    final int startOperatorIndex,
-                                                   final int operatorCount,
                                                    final boolean switchThreadingPreferenceOfFirstOperator,
                                                    final PipelineReplicaId newPipelineReplicaId,
                                                    final PipelineReplicaMeter replicaMeter,
-                                                   final OperatorReplica[] newOperatorReplicas )
+                                                   final OperatorReplica[] newOperatorReplicas,
+                                                   final UpstreamContext[] upstreamContexts )
     {
-        for ( int i = 0; i < operatorCount; i++ )
+        final int newOperatorCount = newOperatorReplicas.length;
+        for ( int i = 0; i < newOperatorCount; i++ )
         {
             final OperatorReplica operator = pipelineReplica.getOperator( startOperatorIndex + i );
             final OperatorDef operatorDef = operator.getOperatorDef();
@@ -476,8 +508,15 @@ public class PipelineTransformerImpl implements PipelineTransformer
                                                       : new NonBlockingTupleQueueDrainerPool( config, operatorDef );
 
             final Supplier<TuplesImpl> outputSupplier = operator.getOutputSupplier();
-
-            newOperatorReplicas[ i ] = operator.duplicate( newPipelineReplicaId, queue, drainerPool, outputSupplier, replicaMeter );
+            final UpstreamContext selfUpstreamContext = ( i < newOperatorCount - 1 )
+                                                        ? upstreamContexts[ startOperatorIndex + i + 1 ]
+                                                        : null;
+            newOperatorReplicas[ i ] = operator.duplicate( newPipelineReplicaId,
+                                                           queue,
+                                                           drainerPool,
+                                                           outputSupplier,
+                                                           replicaMeter,
+                                                           selfUpstreamContext );
         }
 
         final List<String> operatorIds = Arrays.stream( newOperatorReplicas ).map( o -> o.getOperatorDef().getId() )

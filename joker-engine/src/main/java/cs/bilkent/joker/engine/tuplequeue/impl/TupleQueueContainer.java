@@ -258,7 +258,7 @@ public class TupleQueueContainer
         {
             for ( int i = 0; i < inputPortCount; i++ )
             {
-                if ( tupleQueues[ i ].size() >= tupleCounts[ i ] )
+                if ( tupleCounts[ i ] > 0 && tupleQueues[ i ].size() >= tupleCounts[ i ] )
                 {
                     return true;
                 }
@@ -270,7 +270,7 @@ public class TupleQueueContainer
         {
             for ( int i = 0; i < inputPortCount; i++ )
             {
-                if ( tupleQueues[ i ].size() < tupleCounts[ i ] )
+                if ( tupleCounts[ i ] > 0 && tupleQueues[ i ].size() < tupleCounts[ i ] )
                 {
                     return false;
                 }

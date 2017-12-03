@@ -1,15 +1,12 @@
 package cs.bilkent.joker.engine.pipeline;
 
-import java.util.Arrays;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETED;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETING;
-import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
-import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newInitialUpstreamContextWithAllPortsConnected;
 import cs.bilkent.joker.operator.InvocationContext;
 import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.INPUT_PORT_CLOSED;
 import cs.bilkent.joker.operator.Tuple;
@@ -50,9 +47,8 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
     {
         initializeOperatorReplica( inputPortCount, outputPortCount );
         final UpstreamContext upstreamContext = operatorReplica.getUpstreamContext();
-        final UpstreamContext invocationUpstreamContext = newUpstreamContext
-                                                          ? upstreamContext.withClosedUpstreamConnection( 1 )
-                                                          : upstreamContext;
+        final UpstreamContext invocationUpstreamContext = newUpstreamContext ? upstreamContext.withUpstreamConnectionClosed( 1 )
+                                                                             : upstreamContext;
 
         final TuplesImpl operatorInput = new TuplesImpl( inputPortCount );
         final Tuple t1 = new Tuple();
@@ -129,7 +125,7 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
         final int inputPortCount = 3, outputPortCount = 1;
         initializeOperatorReplica( inputPortCount, outputPortCount );
 
-        final UpstreamContext invocationUpstreamContext = operatorReplica.getUpstreamContext().withClosedUpstreamConnection( 1 );
+        final UpstreamContext invocationUpstreamContext = operatorReplica.getUpstreamContext().withUpstreamConnectionClosed( 1 );
 
         when( drainer.getResult() ).thenReturn( new TuplesImpl( inputPortCount ) );
 
@@ -170,7 +166,7 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
 
         initializeOperatorReplica( inputPortCount, outputPortCount );
 
-        final UpstreamContext invocationUpstreamContext = operatorReplica.getUpstreamContext().withClosedUpstreamConnection( 1 );
+        final UpstreamContext invocationUpstreamContext = operatorReplica.getUpstreamContext().withUpstreamConnectionClosed( 1 );
 
         final TuplesImpl input = new TuplesImpl( inputPortCount );
         when( drainer.getResult() ).thenReturn( input );
@@ -222,10 +218,7 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
                                          outputPortCount,
                                          scheduleWhenTuplesAvailableOnAll( AT_LEAST, inputPortCount, 1, counts ) );
 
-        final UpstreamConnectionStatus[] statuses = new UpstreamConnectionStatus[ inputPortCount ];
-        Arrays.fill( statuses, ACTIVE );
-        statuses[ 0 ] = CLOSED;
-        operatorReplica.invoke( null, new UpstreamContext( 1, statuses ) );
+        operatorReplica.invoke( null, newInitialUpstreamContextWithAllPortsConnected( inputPortCount ).withUpstreamConnectionClosed( 0 ) );
         assertThat( operatorReplica.getStatus(), equalTo( COMPLETING ) );
         assertThat( operatorReplica.getCompletionReason(), equalTo( INPUT_PORT_CLOSED ) );
 

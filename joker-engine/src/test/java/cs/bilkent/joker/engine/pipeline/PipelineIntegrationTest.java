@@ -29,8 +29,9 @@ import cs.bilkent.joker.engine.partition.PartitionDistribution;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
 import cs.bilkent.joker.engine.partition.impl.PartitionServiceImpl;
-import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
-import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newInitialUpstreamContextWithAllPortsConnected;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newSourceOperatorInitialUpstreamContext;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newSourceOperatorShutdownUpstreamContext;
 import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
@@ -54,6 +55,7 @@ import cs.bilkent.joker.operator.Tuples;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
+import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.EXACT;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAny;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
@@ -140,7 +142,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                               new EmptyOperatorTupleQueue( "map", mapperOperatorDef.getInputPortCount() ),
                                                               pipelineReplicaMeter );
         final Supervisor supervisor = mock( Supervisor.class );
-        pipeline.init( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ) );
+
+        pipeline.init( new SchedulingStrategy[] { scheduleWhenTuplesAvailableOnDefaultPort( 1 ) },
+                       new UpstreamContext[] { newInitialUpstreamContextWithAllPortsConnected( 1 ) } );
 
         final TupleCollectorDownstreamTupleSender tupleCollector = new TupleCollectorDownstreamTupleSender( mapperOperatorDef
                                                                                                                     .getOutputPortCount() );
@@ -168,7 +172,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
             assertEquals( expected, tuples.get( i ) );
         }
 
-        final UpstreamContext updatedUpstreamContext = new UpstreamContext( 1, new UpstreamConnectionStatus[] { CLOSED } );
+        final UpstreamContext updatedUpstreamContext = newInitialUpstreamContextWithAllPortsConnected( 1 ).withUpstreamConnectionClosed(
+                0 );
         when( supervisor.getUpstreamContext( pipelineReplicaId1 ) ).thenReturn( updatedUpstreamContext );
         runner.updatePipelineUpstreamContext();
         runnerThread.join();
@@ -233,7 +238,10 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final Supervisor supervisor = mock( Supervisor.class );
 
-        pipeline.init( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ) );
+        pipeline.init( new SchedulingStrategy[] { scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
+                                                  scheduleWhenTuplesAvailableOnDefaultPort( 1 ) },
+                       new UpstreamContext[] { newInitialUpstreamContextWithAllPortsConnected( 1 ),
+                                               newInitialUpstreamContextWithAllPortsConnected( 1 ) } );
 
         final TupleCollectorDownstreamTupleSender tupleCollector = new TupleCollectorDownstreamTupleSender( filterOperatorDef
                                                                                                                     .getOutputPortCount() );
@@ -268,7 +276,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
             }
         }
 
-        final UpstreamContext updatedUpstreamContext = new UpstreamContext( 1, new UpstreamConnectionStatus[] { CLOSED } );
+        final UpstreamContext updatedUpstreamContext = newInitialUpstreamContextWithAllPortsConnected( 1 ).withUpstreamConnectionClosed(
+                0 );
         when( supervisor.getUpstreamContext( pipelineReplicaId1 ) ).thenReturn( updatedUpstreamContext );
         runner.updatePipelineUpstreamContext();
         runnerThread.join();
@@ -353,7 +362,12 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final Supervisor supervisor = mock( Supervisor.class );
 
-        pipeline.init( new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ) );
+        pipeline.init( new SchedulingStrategy[] { ScheduleWhenAvailable.INSTANCE,
+                                                  scheduleWhenTuplesAvailableOnDefaultPort( EXACT, batchCount ),
+                                                  scheduleWhenTuplesAvailableOnDefaultPort( EXACT, 1 ) },
+                       new UpstreamContext[] { newSourceOperatorInitialUpstreamContext(),
+                                               newInitialUpstreamContextWithAllPortsConnected( 1 ),
+                                               newInitialUpstreamContextWithAllPortsConnected( 1 ) } );
 
         final PipelineReplicaRunner runner = new PipelineReplicaRunner( jokerConfig, pipeline, supervisor,
                                                                         mock( DownstreamTupleSender.class ) );
@@ -365,7 +379,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         assertTrueEventually( () -> assertTrue( generatorOp.count > 1000 ) );
 
-        final UpstreamContext updatedUpstreamContext = new UpstreamContext( 1, new UpstreamConnectionStatus[] {} );
+        final UpstreamContext updatedUpstreamContext = newSourceOperatorShutdownUpstreamContext();
         when( supervisor.getUpstreamContext( pipelineReplicaId1 ) ).thenReturn( updatedUpstreamContext );
         runner.updatePipelineUpstreamContext();
 
@@ -385,8 +399,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     public void testMultiplePipelines_singleInputPort () throws ExecutionException, InterruptedException
     {
         final SupervisorImpl supervisor = new SupervisorImpl();
-        supervisor.upstreamContexts.put( pipelineReplicaId1, new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ) );
-        supervisor.upstreamContexts.put( pipelineReplicaId2, new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ) );
+        supervisor.upstreamContexts.put( pipelineReplicaId1, newInitialUpstreamContextWithAllPortsConnected( 1 ) );
+        supervisor.upstreamContexts.put( pipelineReplicaId2, newInitialUpstreamContextWithAllPortsConnected( 1 ) );
         supervisor.inputPortIndices.put( pipelineReplicaId1, 0 );
         supervisor.inputPortIndices.put( pipelineReplicaId2, 0 );
 
@@ -421,7 +435,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                new OperatorReplica[] { mapperOperator },
                                                                new EmptyOperatorTupleQueue( "map", mapperOperatorDef.getInputPortCount() ),
                                                                pipelineReplicaMeter1 );
-        pipeline1.init( supervisor.upstreamContexts.get( pipelineReplicaId1 ) );
+
+        pipeline1.init( new SchedulingStrategy[] { scheduleWhenTuplesAvailableOnDefaultPort( 1 ) },
+                        new UpstreamContext[] { supervisor.upstreamContexts.get( pipelineReplicaId1 ) } );
 
         final OperatorConfig filterOperatorConfig = new OperatorConfig();
         final Predicate<Tuple> filterEvenVals = tuple -> tuple.getInteger( "val" ) % 2 == 0;
@@ -459,7 +475,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                             filterOperatorDef.getInputPortCount() ),
                                                                pipelineReplicaMeter2 );
 
-        pipeline2.init( supervisor.upstreamContexts.get( pipelineReplicaId2 ) );
+        pipeline2.init( new SchedulingStrategy[] { scheduleWhenTuplesAvailableOnDefaultPort( 1 ) },
+                        new UpstreamContext[] { supervisor.upstreamContexts.get( pipelineReplicaId2 ) } );
 
         final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig, pipeline1, supervisor, tupleSender );
         supervisor.downstreamTupleSenders.put( pipeline1.id(), tupleSender );
@@ -501,7 +518,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
             }
         }
 
-        supervisor.upstreamContexts.put( pipelineReplicaId1, new UpstreamContext( 1, new UpstreamConnectionStatus[] { CLOSED } ) );
+        supervisor.upstreamContexts.put( pipelineReplicaId1,
+                                         newInitialUpstreamContextWithAllPortsConnected( 1 ).withUpstreamConnectionClosed( 0 ) );
         runner1.updatePipelineUpstreamContext();
         runnerThread1.join();
         runnerThread2.join();
@@ -513,9 +531,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     public void testMultiplePipelines_multipleInputPorts () throws InterruptedException
     {
         final SupervisorImpl supervisor = new SupervisorImpl();
-        supervisor.upstreamContexts.put( pipelineReplicaId1, new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ) );
-        supervisor.upstreamContexts.put( pipelineReplicaId2, new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ) );
-        supervisor.upstreamContexts.put( pipelineReplicaId3, new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE, ACTIVE } ) );
+        supervisor.upstreamContexts.put( pipelineReplicaId1, newSourceOperatorInitialUpstreamContext() );
+        supervisor.upstreamContexts.put( pipelineReplicaId2, newSourceOperatorInitialUpstreamContext() );
+        supervisor.upstreamContexts.put( pipelineReplicaId3, newInitialUpstreamContextWithAllPortsConnected( 2 ) );
         supervisor.inputPortIndices.put( pipelineReplicaId1, 0 );
         supervisor.inputPortIndices.put( pipelineReplicaId2, 1 );
 
@@ -551,7 +569,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                             generatorOperatorDef1.getInputPortCount() ),
                                                                pipelineReplicaMeter1 );
 
-        pipeline1.init( supervisor.upstreamContexts.get( pipelineReplicaId1 ) );
+        pipeline1.init( new SchedulingStrategy[] { ScheduleWhenAvailable.INSTANCE },
+                        new UpstreamContext[] { supervisor.upstreamContexts.get( pipelineReplicaId1 ) } );
 
         final OperatorConfig generatorOperatorConfig2 = new OperatorConfig();
         generatorOperatorConfig2.set( "batchCount", batchCount );
@@ -583,7 +602,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                             generatorOperatorDef2.getInputPortCount() ),
                                                                pipelineReplicaMeter2 );
 
-        pipeline2.init( supervisor.upstreamContexts.get( pipelineReplicaId2 ) );
+        pipeline2.init( new SchedulingStrategy[] { ScheduleWhenAvailable.INSTANCE },
+                        new UpstreamContext[] { supervisor.upstreamContexts.get( pipelineReplicaId2 ) } );
 
         final OperatorConfig sinkOperatorConfig = new OperatorConfig();
         final OperatorDef sinkOperatorDef = OperatorDefBuilder.newInstance( "sink", ValueSinkOperator.class )
@@ -656,7 +676,12 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                new EmptyOperatorTupleQueue( "sink", sinkOperatorDef.getInputPortCount() ),
                                                                pipelineReplicaMeter3 );
 
-        pipeline3.init( supervisor.upstreamContexts.get( pipelineReplicaId3 ) );
+        pipeline3.init( new SchedulingStrategy[] { scheduleWhenTuplesAvailableOnAny( AT_LEAST, 2, 1, 0, 1 ),
+                                                   scheduleWhenTuplesAvailableOnDefaultPort( EXACT, batchCount ),
+                                                   scheduleWhenTuplesAvailableOnDefaultPort( EXACT, 1 ) },
+                        new UpstreamContext[] { supervisor.upstreamContexts.get( pipelineReplicaId3 ),
+                                                newInitialUpstreamContextWithAllPortsConnected( 1 ),
+                                                newInitialUpstreamContextWithAllPortsConnected( 1 ) } );
 
         final DownstreamTupleSenderImpl sender1 = new DownstreamTupleSenderImpl( sinkOperatorTupleQueue, new Pair[] { Pair.of( 0, 0 ) } );
         final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig, pipeline1, supervisor, sender1 );
@@ -683,17 +708,17 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final ValueGeneratorOperator generatorOp2 = (ValueGeneratorOperator) generatorOperator2.getOperator();
 
         assertTrueEventually( () -> assertTrue( generatorOp1.count > 5000 ) );
-        supervisor.upstreamContexts.put( pipelineReplicaId1, new UpstreamContext( 1, new UpstreamConnectionStatus[] {} ) );
+        supervisor.upstreamContexts.put( pipelineReplicaId1, newSourceOperatorShutdownUpstreamContext() );
         runner1.updatePipelineUpstreamContext();
 
         generatorOp2.start = true;
         assertTrueEventually( () -> assertTrue( generatorOp2.count < -5000 ) );
-        supervisor.upstreamContexts.put( pipelineReplicaId2, new UpstreamContext( 1, new UpstreamConnectionStatus[] {} ) );
+        supervisor.upstreamContexts.put( pipelineReplicaId2, newSourceOperatorShutdownUpstreamContext() );
         runner2.updatePipelineUpstreamContext();
 
-        assertTrueEventually( () -> supervisor.completedPipelines.contains( pipelineReplicaId1 ) );
-        assertTrueEventually( () -> supervisor.completedPipelines.contains( pipelineReplicaId2 ) );
-        assertTrueEventually( () -> supervisor.completedPipelines.contains( pipelineReplicaId3 ) );
+        assertTrueEventually( () -> assertTrue( supervisor.completedPipelines.contains( pipelineReplicaId1 ) ) );
+        assertTrueEventually( () -> assertTrue( supervisor.completedPipelines.contains( pipelineReplicaId2 ) ) );
+        assertTrueEventually( () -> assertTrue( supervisor.completedPipelines.contains( pipelineReplicaId3 ) ) );
 
         runnerThread1.join();
         runnerThread2.join();
@@ -712,8 +737,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     public void testMultiplePipelines_partitionedStatefulDownstreamPipeline () throws ExecutionException, InterruptedException
     {
         final SupervisorImpl supervisor = new SupervisorImpl();
-        supervisor.upstreamContexts.put( pipelineReplicaId1, new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ) );
-        supervisor.upstreamContexts.put( pipelineReplicaId2, new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ) );
+        supervisor.upstreamContexts.put( pipelineReplicaId1, newSourceOperatorInitialUpstreamContext() );
+        supervisor.upstreamContexts.put( pipelineReplicaId2, newInitialUpstreamContextWithAllPortsConnected( 1 ) );
         supervisor.inputPortIndices.put( pipelineReplicaId1, 0 );
         supervisor.inputPortIndices.put( pipelineReplicaId2, 0 );
 
@@ -799,7 +824,10 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                             generatorOperatorDef.getInputPortCount() ),
                                                                pipelineReplicaMeter1 );
 
-        pipeline1.init( supervisor.upstreamContexts.get( pipelineReplicaId1 ) );
+        pipeline1.init( new SchedulingStrategy[] { ScheduleWhenAvailable.INSTANCE,
+                                                   scheduleWhenTuplesAvailableOnDefaultPort( EXACT, batchCount ) },
+                        new UpstreamContext[] { supervisor.upstreamContexts.get( pipelineReplicaId1 ),
+                                                newInitialUpstreamContextWithAllPortsConnected( 1 ) } );
 
         final PipelineReplica pipeline2 = new PipelineReplica( jokerConfig,
                                                                pipelineReplicaId2,
@@ -810,7 +838,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                                                           MULTI_THREADED ),
                                                                pipelineReplicaMeter2 );
 
-        pipeline2.init( supervisor.upstreamContexts.get( pipelineReplicaId2 ) );
+        pipeline2.init( new SchedulingStrategy[] { scheduleWhenTuplesAvailableOnDefaultPort( EXACT, 1 ) },
+                        new UpstreamContext[] { supervisor.upstreamContexts.get( pipelineReplicaId2 ) } );
 
         final DownstreamTupleSenderImpl sender1 = new DownstreamTupleSenderImpl( pipeline2.getPipelineTupleQueue(),
                                                                                  new Pair[] { Pair.of( 0, 0 ) } );
@@ -832,11 +861,11 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         assertTrueEventually( () -> assertTrue( generatorOp.count > 1000 ) );
 
-        supervisor.upstreamContexts.put( pipelineReplicaId1, new UpstreamContext( 1, new UpstreamConnectionStatus[] {} ) );
+        supervisor.upstreamContexts.put( pipelineReplicaId1, newSourceOperatorShutdownUpstreamContext() );
         runner1.updatePipelineUpstreamContext();
 
-        assertTrueEventually( () -> supervisor.completedPipelines.contains( pipelineReplicaId1 ) );
-        assertTrueEventually( () -> supervisor.completedPipelines.contains( pipelineReplicaId2 ) );
+        assertTrueEventually( () -> assertTrue( supervisor.completedPipelines.contains( pipelineReplicaId1 ) ) );
+        assertTrueEventually( () -> assertTrue( supervisor.completedPipelines.contains( pipelineReplicaId2 ) ) );
 
         runnerThread1.join();
         runnerThread2.join();
@@ -891,14 +920,15 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     @OperatorSpec( type = STATEFUL, inputPortCount = 2, outputPortCount = 1 )
     @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ),
 
-                                @PortSchema( portIndex = 1, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ) }, outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ) } )
+                                @PortSchema( portIndex = 1, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ) }, outputs = {
+            @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ) } )
     public static class ValueSinkOperator implements Operator
     {
 
         @Override
         public SchedulingStrategy init ( final InitializationContext context )
         {
-            return scheduleWhenTuplesAvailableOnAny( 2, 1, 0, 1 );
+            return scheduleWhenTuplesAvailableOnAny( AT_LEAST, 2, 1, 0, 1 );
         }
 
         @Override
@@ -961,7 +991,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
 
     @OperatorSpec( type = STATELESS, inputPortCount = 1, outputPortCount = 1 )
-    @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ) }, outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ) } )
+    @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ) }, outputs = {
+            @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ) } )
     public static class ValuePasserOperator implements Operator
     {
 
@@ -1100,7 +1131,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
             if ( !id.equals( targetPipelineReplicaId ) )
             {
                 final UpstreamContext currentUpstreamContext = upstreamContexts.get( targetPipelineReplicaId );
-                final UpstreamContext newUpstreamContext = currentUpstreamContext.withClosedUpstreamConnection( inputPortIndices.get( id ) );
+                final UpstreamContext newUpstreamContext = currentUpstreamContext.withUpstreamConnectionClosed( inputPortIndices.get( id ) );
                 upstreamContexts.put( targetPipelineReplicaId, newUpstreamContext );
                 runner.updatePipelineUpstreamContext();
             }

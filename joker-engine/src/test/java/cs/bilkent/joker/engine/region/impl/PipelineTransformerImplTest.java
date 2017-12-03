@@ -18,7 +18,6 @@ import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
 import cs.bilkent.joker.engine.partition.impl.PartitionServiceImpl;
 import cs.bilkent.joker.engine.pipeline.OperatorReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
-import cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus;
 import cs.bilkent.joker.engine.pipeline.UpstreamContext;
 import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
 import cs.bilkent.joker.engine.region.PipelineTransformer;
@@ -41,6 +40,8 @@ import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
+import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
+import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAny;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.schema.annotation.OperatorSchema;
@@ -54,12 +55,12 @@ import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Arrays.asList;
-import static java.util.Arrays.fill;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class PipelineTransformerImplTest extends AbstractJokerTest
@@ -93,7 +94,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         final OperatorDef operatorDef0 = OperatorDefBuilder.newInstance( "op0", StatelessInput0Output1Operator.class ).build();
         final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatefulInput1Output1Operator.class ).build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", StatelessInput1Output1Operator.class ).build();
-        final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatefulInput1Output1Operator.class ).build();
+        final OperatorDef operatorDef3 = OperatorDefBuilder.newInstance( "op3", StatefulInput2Output1Operator.class ).build();
         final OperatorDef operatorDef4 = OperatorDefBuilder.newInstance( "op4", StatelessInput1Output1Operator.class ).build();
         final OperatorDef operatorDef5 = OperatorDefBuilder.newInstance( "op5", StatefulInput1Output1Operator.class ).build();
 
@@ -104,8 +105,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
                                                  .add( operatorDef4 )
                                                  .add( operatorDef5 )
                                                  .connect( "op0", "op1" )
-                                                 .connect( "op1", "op2" )
-                                                 .connect( "op2", "op3" )
+                                                 .connect( "op1", "op2" ).connect( "op2", "op3", 0 ).connect( "op2", "op3", 1 )
                                                  .connect( "op3", "op4" )
                                                  .connect( "op4", "op5" )
                                                  .build();
@@ -128,8 +128,6 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         pipelineReplicas[ 1 ].getOperator( 1 ).getQueue().offer( 0, singletonList( newTuple( "key3", "val3" ) ) );
         pipelineReplicas[ 2 ].getOperator( 0 ).getQueue().offer( 0, singletonList( newTuple( "key4", "val4" ) ) );
         pipelineReplicas[ 2 ].getOperator( 0 ).getOperatorKvStore().getKVStore( null ).set( "key4", "val4" );
-
-        final PipelineReplicaMeter pipelineReplicaMeter = pipelineReplicas[ 0 ].getMeter();
 
         final Region newRegion = pipelineTransformer.mergePipelines( region, asList( 0, 2, 4 ) );
 
@@ -164,6 +162,13 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator4.getQueue() ).getThreadingPreference(), equalTo( SINGLE_THREADED ) );
         assertTrue( pipelineOperator4.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
         assertThat( pipelineOperator4.getOperatorKvStore().getKVStore( null ).get( "key4" ), equalTo( "val4" ) );
+
+        final UpstreamContext[] upstreamContexts = region.getOperatorUpstreamContexts();
+        assertTrue( pipelineOperator0.getSelfUpstreamContext() == upstreamContexts[ 1 ] );
+        assertTrue( pipelineOperator1.getSelfUpstreamContext() == upstreamContexts[ 2 ] );
+        assertTrue( pipelineOperator2.getSelfUpstreamContext() == upstreamContexts[ 3 ] );
+        assertTrue( pipelineOperator3.getSelfUpstreamContext() == upstreamContexts[ 4 ] );
+        assertNull( pipelineOperator4.getSelfUpstreamContext() );
 
         final PipelineReplicaMeter meter = newPipelineReplica.getMeter();
         assertThat( meter.getHeadOperatorId(), equalTo( pipelineOperator0.getOperatorDef().getId() ) );
@@ -236,6 +241,13 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertThat( singletonList( newTuple( "field", "val3" ) ), equalTo( drainDefaultPortGreedily( pipelineOperator3 ) ) );
         assertThat( singletonList( newTuple( "field", "val4" ) ), equalTo( drainDefaultPortGreedily( pipelineOperator4 ) ) );
 
+        final UpstreamContext[] upstreamContexts = region.getOperatorUpstreamContexts();
+        assertTrue( newPipelineReplica.getOperator( 0 ).getSelfUpstreamContext() == upstreamContexts[ 1 ] );
+        assertTrue( pipelineOperator1.getSelfUpstreamContext() == upstreamContexts[ 2 ] );
+        assertTrue( pipelineOperator2.getSelfUpstreamContext() == upstreamContexts[ 3 ] );
+        assertTrue( pipelineOperator3.getSelfUpstreamContext() == upstreamContexts[ 4 ] );
+        assertNull( pipelineOperator4.getSelfUpstreamContext() );
+
         final PipelineReplicaMeter pipelineReplicaMeter = newPipelineReplica.getMeter();
         final OperatorDef[] mergedOperatorDefs = newRegion.getExecutionPlan().getOperatorDefsByPipelineStartIndex( 0 );
 
@@ -292,7 +304,6 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         final OperatorReplica pipelineOperator2 = newPipelineReplica.getOperator( 2 );
         final OperatorReplica pipelineOperator3 = newPipelineReplica.getOperator( 3 );
         final OperatorReplica pipelineOperator4 = newPipelineReplica.getOperator( 4 );
-        final OperatorReplica pipelineOperator5 = newPipelineReplica.getOperator( 4 );
 
         assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator0.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
         assertTrue( pipelineOperator0.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
@@ -308,8 +319,13 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertTrue( pipelineOperator3.getOutputSupplier() instanceof CachedTuplesImplSupplier );
         assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator4.getQueue() ).getThreadingPreference(), equalTo( SINGLE_THREADED ) );
         assertTrue( pipelineOperator4.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
-        assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator5.getQueue() ).getThreadingPreference(), equalTo( SINGLE_THREADED ) );
-        assertTrue( pipelineOperator5.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
+
+        final UpstreamContext[] upstreamContexts = region.getOperatorUpstreamContexts();
+        assertTrue( pipelineOperator0.getSelfUpstreamContext() == upstreamContexts[ 1 ] );
+        assertTrue( pipelineOperator1.getSelfUpstreamContext() == upstreamContexts[ 2 ] );
+        assertTrue( pipelineOperator2.getSelfUpstreamContext() == upstreamContexts[ 3 ] );
+        assertTrue( pipelineOperator3.getSelfUpstreamContext() == upstreamContexts[ 4 ] );
+        assertNull( pipelineOperator4.getSelfUpstreamContext() );
 
         final PipelineReplicaMeter meter = newPipelineReplica.getMeter();
         assertThat( meter.getHeadOperatorId(), equalTo( pipelineOperator0.getOperatorDef().getId() ) );
@@ -517,6 +533,13 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertTrue( pipelineOperator4.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
         assertThat( pipelineOperator4.getOperatorKvStore().getKVStore( null ).get( "key4" ), equalTo( "val4" ) );
 
+        final UpstreamContext[] upstreamContexts = region.getOperatorUpstreamContexts();
+        assertTrue( pipelineOperator0.getSelfUpstreamContext() == upstreamContexts[ 1 ] );
+        assertNull( pipelineOperator1.getSelfUpstreamContext() );
+        assertTrue( pipelineOperator2.getSelfUpstreamContext() == upstreamContexts[ 3 ] );
+        assertNull( pipelineOperator3.getSelfUpstreamContext() );
+        assertNull( pipelineOperator4.getSelfUpstreamContext() );
+
         final PipelineReplicaMeter meter0 = newPipelineReplicas[ 0 ].getMeter();
         assertThat( meter0.getHeadOperatorId(), equalTo( pipelineOperator0.getOperatorDef().getId() ) );
         assertThat( meter0.getInputPortCount(), equalTo( pipelineOperator0.getOperatorDef().getInputPortCount() ) );
@@ -618,6 +641,13 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertTrue( pipelineOperator4.getQueue() instanceof PartitionedOperatorTupleQueue );
         assertTrue( pipelineOperator4.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
 
+        final UpstreamContext[] upstreamContexts = region.getOperatorUpstreamContexts();
+        assertTrue( pipelineOperator0.getSelfUpstreamContext() == upstreamContexts[ 1 ] );
+        assertNull( pipelineOperator1.getSelfUpstreamContext() );
+        assertTrue( pipelineOperator2.getSelfUpstreamContext() == upstreamContexts[ 3 ] );
+        assertNull( pipelineOperator3.getSelfUpstreamContext() );
+        assertNull( pipelineOperator4.getSelfUpstreamContext() );
+
         final PipelineReplicaMeter meter0 = newPipelineReplicas[ 0 ].getMeter();
         assertThat( meter0.getHeadOperatorId(), equalTo( pipelineOperator0.getOperatorDef().getId() ) );
         assertThat( meter0.getInputPortCount(), equalTo( pipelineOperator0.getOperatorDef().getInputPortCount() ) );
@@ -702,6 +732,12 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertTrue( newPipelineReplicas[ 4 ].getSelfPipelineTupleQueue() instanceof EmptyOperatorTupleQueue );
         assertThat( ( (DefaultOperatorTupleQueue) pipelineOperator4.getQueue() ).getThreadingPreference(), equalTo( MULTI_THREADED ) );
         assertTrue( pipelineOperator4.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
+
+        assertNull( pipelineOperator0.getSelfUpstreamContext() );
+        assertNull( pipelineOperator1.getSelfUpstreamContext() );
+        assertNull( pipelineOperator2.getSelfUpstreamContext() );
+        assertNull( pipelineOperator3.getSelfUpstreamContext() );
+        assertNull( pipelineOperator4.getSelfUpstreamContext() );
 
         for ( PipelineReplica newPipelineReplica : newPipelineReplicas )
         {
@@ -847,15 +883,11 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
     {
         for ( int replicaIndex = 0; replicaIndex < region.getExecutionPlan().getReplicaCount(); replicaIndex++ )
         {
-            final PipelineReplica[] pipelineReplicas = region.getReplicaPipelines( replicaIndex );
-            final int i = pipelineReplicas[ 0 ].getOperator( 0 ).getOperatorDef().getInputPortCount();
-            final UpstreamConnectionStatus[] statuses = new UpstreamConnectionStatus[ i ];
-            fill( statuses, UpstreamConnectionStatus.ACTIVE );
-            UpstreamContext uc = new UpstreamContext( 0, statuses );
             for ( PipelineReplica pipelineReplica : region.getReplicaPipelines( replicaIndex ) )
             {
-                pipelineReplica.init( uc );
-                uc = pipelineReplica.getOperator( pipelineReplica.getOperatorCount() - 1 ).getSelfUpstreamContext();
+                final PipelineId pipelineId = pipelineReplica.id().pipelineId;
+                pipelineReplica.init( region.getOperatorSchedulingStrategies( pipelineId ),
+                                      region.getOperatorUpstreamContexts( pipelineId ) );
             }
         }
     }
@@ -925,6 +957,22 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         public SchedulingStrategy init ( final InitializationContext context )
         {
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
+        }
+
+    }
+
+
+    @OperatorSpec( type = STATEFUL, inputPortCount = 2, outputPortCount = 1 )
+    @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field", type = Integer.class ) } ),
+                                @PortSchema( portIndex = 1, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field", type = Integer.class ) } ) }, outputs = {
+            @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field", type = Integer.class ) } ) } )
+    public static class StatefulInput2Output1Operator extends NopOperator
+    {
+
+        @Override
+        public SchedulingStrategy init ( final InitializationContext context )
+        {
+            return scheduleWhenTuplesAvailableOnAny( AT_LEAST, 2, 1, 0, 1 );
         }
 
     }

@@ -19,8 +19,6 @@ import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIAL;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIALIZATION_FAILED;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.RUNNING;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.SHUT_DOWN;
-import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
-import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainerPool;
@@ -86,14 +84,11 @@ public class OperatorReplica
 
     private Operator operator;
 
-    private SchedulingStrategy initialSchedulingStrategy;
-
     private SchedulingStrategy schedulingStrategy;
 
     private TupleQueueDrainer drainer;
 
-    private OperatorReplicaListener listener = ( operatorId, status1 ) ->
-    {
+    private OperatorReplicaListener listener = ( operatorId, status1 ) -> {
     };
 
     private boolean operatorInvokedOnLastAttempt;
@@ -128,33 +123,56 @@ public class OperatorReplica
         this.invocationContext = invocationContext;
     }
 
+    // constructor for operator replica duplication
+    private OperatorReplica ( final PipelineReplicaId pipelineReplicaId,
+                              final OperatorDef operatorDef,
+                              final OperatorTupleQueue queue,
+                              final OperatorKVStore operatorKvStore,
+                              final TupleQueueDrainerPool drainerPool,
+                              final Supplier<TuplesImpl> outputSupplier,
+                              final PipelineReplicaMeter meter,
+                              final Operator operator,
+                              final OperatorReplicaStatus status,
+                              final UpstreamContext upstreamContext,
+                              final UpstreamContext selfUpstreamContext,
+                              final SchedulingStrategy schedulingStrategy,
+                              final TupleQueueDrainer drainer )
+    {
+        this( pipelineReplicaId, operatorDef, queue, operatorKvStore, drainerPool, outputSupplier, meter );
+        this.operator = operator;
+        this.status = status;
+        this.upstreamContext = upstreamContext;
+        this.selfUpstreamContext = selfUpstreamContext;
+        this.schedulingStrategy = schedulingStrategy;
+        this.drainer = drainer;
+    }
+
     /**
      * Initializes its internal state to get ready for operator invocation. After initialization is completed successfully, it moves
      * the status to {@link OperatorReplicaStatus#RUNNING}. If {@link Operator#init(InitializationContext)} throws an exception,
      * it moves the status to {@link OperatorReplicaStatus#INITIALIZATION_FAILED} and propagates the exception to the caller after
      * wrapping it with {@link InitializationException}.
      */
-    public SchedulingStrategy init ( final UpstreamContext upstreamContext )
+    public void init ( final UpstreamContext upstreamContext, final UpstreamContext selfUpstreamContext )
     {
         checkState( status == INITIAL, "Cannot initialize Operator %s as it is in %s state", operatorName, status );
         try
         {
+            this.selfUpstreamContext = selfUpstreamContext;
             operator = operatorDef.createOperator();
             checkState( operator != null, "Operator %s implementation can not be null", operatorName );
             setUpstreamContext( upstreamContext );
             initializeOperator( upstreamContext );
-            setSelfUpstreamContext( ACTIVE );
 
             setStatus( RUNNING );
             LOGGER.info( "{} initialized. Initial scheduling strategy: {} Drainer: {}",
                          operatorName,
                          schedulingStrategy,
                          drainer.getClass().getSimpleName() );
-            return initialSchedulingStrategy;
         }
         catch ( Exception e )
         {
-            setSelfUpstreamContext( CLOSED );
+            closeSelfUpstreamContext();
             setStatus( INITIALIZATION_FAILED );
             throw new InitializationException( "Operator " + operatorName + " initialization failed!", e );
         }
@@ -172,11 +190,10 @@ public class OperatorReplica
      */
     private void initializeOperator ( final UpstreamContext upstreamContext )
     {
-        final boolean[] upstreamConnectionStatuses = upstreamContext.getUpstreamConnectionStatuses( operatorDef.getInputPortCount() );
+        final boolean[] upstreamConnectionStatuses = upstreamContext.getUpstreamConnectionStatuses();
         final InitializationContext initContext = new InitializationContextImpl( operatorDef, upstreamConnectionStatuses );
         final SchedulingStrategy schedulingStrategy = operator.init( initContext );
-        upstreamContext.verifyOrFail( operatorDef, schedulingStrategy );
-        this.initialSchedulingStrategy = schedulingStrategy;
+        upstreamContext.verifyInitializable( operatorDef, schedulingStrategy );
         setNewSchedulingStrategy( schedulingStrategy );
         setQueueTupleCounts( schedulingStrategy );
     }
@@ -190,16 +207,12 @@ public class OperatorReplica
         }
     }
 
-    /**
-     * Sets a new upstream context with an incremented version.
-     * It assigns the given {@link UpstreamConnectionStatus} value to all of its output ports.
-     */
-    private void setSelfUpstreamContext ( final UpstreamConnectionStatus status )
+    private void closeSelfUpstreamContext ()
     {
-        final int version = selfUpstreamContext != null ? selfUpstreamContext.getVersion() + 1 : 0;
-        final UpstreamConnectionStatus[] selfStatuses = new UpstreamConnectionStatus[ operatorDef.getOutputPortCount() ];
-        fill( selfStatuses, 0, selfStatuses.length, status );
-        selfUpstreamContext = new UpstreamContext( version, selfStatuses );
+        if ( selfUpstreamContext != null )
+        {
+            selfUpstreamContext = selfUpstreamContext.withAllUpstreamConnectionsClosed();
+        }
     }
 
     public TuplesImpl invoke ( final TuplesImpl upstreamInput, final UpstreamContext upstreamContext )
@@ -277,8 +290,7 @@ public class OperatorReplica
                 {
                     output = invokeOperator( SUCCESS, input, output, drainer.getKey() );
                 }
-                else if ( handleNewUpstreamContext( upstreamContext ) && !upstreamContext.isInvokable( operatorDef,
-                                                                                                       initialSchedulingStrategy ) )
+                else if ( handleNewUpstreamContext( upstreamContext ) && !upstreamContext.isInvokable( operatorDef, schedulingStrategy ) )
                 {
                     setStatus( COMPLETING );
                     completionReason = INPUT_PORT_CLOSED;
@@ -316,7 +328,7 @@ public class OperatorReplica
                     invoked = false;
                 }
 
-                if ( upstreamContext.isActiveConnectionAbsent() )
+                if ( upstreamContext.isOpenUpstreamConnectionAbsent() )
                 {
                     completeRun();
                 }
@@ -425,7 +437,7 @@ public class OperatorReplica
     {
         checkArgument( upstreamContext != null, "upstream context is null! operator ", operatorName );
         this.upstreamContext = upstreamContext;
-        invocationContext.setUpstreamConnectionStatuses( upstreamContext.getUpstreamConnectionStatuses( operatorDef.getInputPortCount() ) );
+        invocationContext.setUpstreamConnectionStatuses( upstreamContext.getUpstreamConnectionStatuses() );
     }
 
     /**
@@ -440,8 +452,8 @@ public class OperatorReplica
             drainer = null;
         }
         schedulingStrategy = ScheduleNever.INSTANCE;
+        closeSelfUpstreamContext();
         setStatus( COMPLETED );
-        setSelfUpstreamContext( CLOSED );
     }
 
     /**
@@ -486,7 +498,8 @@ public class OperatorReplica
                                        final OperatorTupleQueue queue,
                                        final TupleQueueDrainerPool drainerPool,
                                        final Supplier<TuplesImpl> outputSupplier,
-                                       final PipelineReplicaMeter meter )
+                                       final PipelineReplicaMeter meter,
+                                       final UpstreamContext selfUpstreamContext )
     {
         checkState( this.status == RUNNING,
                     "cannot duplicate %s to %s because status is %s",
@@ -494,19 +507,21 @@ public class OperatorReplica
                     pipelineReplicaId,
                     this.status );
 
-        final OperatorReplica duplicate = new OperatorReplica( pipelineReplicaId, this.operatorDef, queue, this.operatorKvStore,
+        drainerPool.reset();
+
+        final OperatorReplica duplicate = new OperatorReplica( pipelineReplicaId,
+                                                               this.operatorDef,
+                                                               queue,
+                                                               this.operatorKvStore,
                                                                drainerPool,
                                                                outputSupplier,
-                                                               meter );
-
-        duplicate.status = this.status;
-        duplicate.upstreamContext = this.upstreamContext;
-        duplicate.selfUpstreamContext = this.selfUpstreamContext;
-        duplicate.operator = this.operator;
-        duplicate.initialSchedulingStrategy = this.initialSchedulingStrategy;
-        duplicate.schedulingStrategy = this.schedulingStrategy;
-        drainerPool.reset();
-        duplicate.drainer = drainerPool.acquire( duplicate.schedulingStrategy );
+                                                               meter,
+                                                               this.operator,
+                                                               this.status,
+                                                               this.upstreamContext,
+                                                               selfUpstreamContext,
+                                                               this.schedulingStrategy,
+                                                               drainerPool.acquire( this.schedulingStrategy ) );
 
         LOGGER.debug( "{} is duplicated to {}", this.operatorName, duplicate.operatorName );
 
@@ -527,11 +542,6 @@ public class OperatorReplica
     public PipelineReplicaMeter getMeter ()
     {
         return meter;
-    }
-
-    public SchedulingStrategy getInitialSchedulingStrategy ()
-    {
-        return initialSchedulingStrategy;
     }
 
     public SchedulingStrategy getSchedulingStrategy ()
@@ -610,8 +620,7 @@ public class OperatorReplica
         return "OperatorReplica{" + "operatorName='" + operatorName + '\'' + ", operatorType=" + operatorDef.getOperatorType() + ", queue="
                + queue.getClass().getSimpleName() + ", drainer=" + ( drainer != null ? drainer.getClass().getSimpleName() : null )
                + ", status=" + status + ", upstreamContext=" + upstreamContext + ", selfUpstreamContext=" + selfUpstreamContext
-               + ", completionReason=" + completionReason + ", initialSchedulingStrategy=" + initialSchedulingStrategy
-               + ", schedulingStrategy=" + schedulingStrategy + '}';
+               + ", completionReason=" + completionReason + ", schedulingStrategy=" + schedulingStrategy + '}';
     }
 
 }

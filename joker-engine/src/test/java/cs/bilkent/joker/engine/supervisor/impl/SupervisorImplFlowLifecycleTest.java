@@ -14,6 +14,7 @@ import com.google.inject.Injector;
 
 import cs.bilkent.joker.JokerModule;
 import cs.bilkent.joker.engine.FlowStatus;
+import static cs.bilkent.joker.engine.FlowStatus.INITIALIZATION_FAILED;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.flow.RegionDef;
@@ -48,8 +49,9 @@ import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
@@ -127,7 +129,7 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
     }
 
     @Test( expected = IllegalStateException.class )
-    public void testFlowExecutionFailed () throws ExecutionException, InterruptedException, TimeoutException
+    public void testFlowInitializationFailed () throws ExecutionException, InterruptedException, TimeoutException
     {
         final OperatorDef operatorDef1 = OperatorDefBuilder.newInstance( "op1", StatefulOperatorInput0Output1.class ).build();
         final OperatorDef operatorDef2 = OperatorDefBuilder.newInstance( "op2", FailingOnInitializationStatefulOperatorInput1Output1.class )
@@ -138,6 +140,7 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
         final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( regions.get( 0 ), singletonList( 0 ), 1 );
         final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( regions.get( 1 ), singletonList( 0 ), 1 );
 
+        FailingOnInitializationStatefulOperatorInput1Output1.fail = true;
         try
         {
             supervisor.start( flowDef, asList( regionExecutionPlan1, regionExecutionPlan2 ) );
@@ -145,7 +148,7 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
         }
         catch ( InitializationException e )
         {
-            assertTrue( pipelineManager.getPipelines().isEmpty() );
+            assertThat( pipelineManager.getFlowStatus(), equalTo( INITIALIZATION_FAILED ) );
         }
 
         supervisor.shutdown().get( 30, TimeUnit.SECONDS );
@@ -191,10 +194,19 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
     public static class FailingOnInitializationStatefulOperatorInput1Output1 implements Operator
     {
 
+        public static volatile boolean fail;
+
         @Override
         public SchedulingStrategy init ( final InitializationContext context )
         {
-            throw new RuntimeException( "expected" );
+            if ( fail )
+            {
+                throw new RuntimeException( "expected" );
+            }
+            else
+            {
+                return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
+            }
         }
 
         @Override

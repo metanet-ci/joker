@@ -18,12 +18,13 @@ import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
 import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.COMPLETED;
 import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.PAUSED;
-import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newInitialUpstreamContextWithAllPortsConnected;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
+import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -52,6 +53,9 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
 
     @Mock
     private Supervisor supervisor;
+
+    @Mock
+    private SchedulingStrategy schedulingStrategy;
 
     @Mock
     private UpstreamContext upstreamContext;
@@ -83,7 +87,8 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
                                         new OperatorReplica[] { operator },
                                         mock( OperatorTupleQueue.class ),
                                         new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(), id, operatorDef ) );
-        pipeline.init( upstreamContext );
+
+        pipeline.init( new SchedulingStrategy[] { schedulingStrategy }, new UpstreamContext[] { upstreamContext } );
         runner = new PipelineReplicaRunner( config, pipeline, supervisor, downstreamTupleSender );
 
         thread = new Thread( runner );
@@ -217,12 +222,11 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
         final TuplesImpl output = new TuplesImpl( 1 );
         output.add( new Tuple() );
 
-        when( operator.invoke( anyBoolean(), anyObject(), anyObject() ) ).thenAnswer( invocation ->
-                                                                                      {
-                                                                                          invocationStartLatch.countDown();
-                                                                                          invocationDoneLatch.await( 2, TimeUnit.MINUTES );
-                                                                                          return output;
-                                                                                      } );
+        when( operator.invoke( anyBoolean(), anyObject(), anyObject() ) ).thenAnswer( invocation -> {
+            invocationStartLatch.countDown();
+            invocationDoneLatch.await( 2, TimeUnit.MINUTES );
+            return output;
+        } );
 
         thread.start();
 
@@ -246,7 +250,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
 
         assertTrueEventually( () -> assertEquals( runner.getStatus(), PAUSED ) );
 
-        final UpstreamContext upstreamContext = new UpstreamContext( 1, new UpstreamConnectionStatus[] { CLOSED } );
+        final UpstreamContext upstreamContext = newInitialUpstreamContextWithAllPortsConnected( 1 ).withUpstreamConnectionClosed( 0 );
         when( supervisor.getUpstreamContext( pipeline.id() ) ).thenReturn( upstreamContext );
 
         final CompletableFuture<Boolean> future = runner.updatePipelineUpstreamContext();

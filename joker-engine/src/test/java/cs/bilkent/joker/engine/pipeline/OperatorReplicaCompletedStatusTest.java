@@ -5,7 +5,7 @@ import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETED;
-import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newInitialUpstreamContextWithAllPortsConnected;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
@@ -23,8 +23,7 @@ public class OperatorReplicaCompletedStatusTest extends AbstractOperatorReplicaI
         initializeOperatorReplica( inputPortCount, outputPortCount, initializationStrategy );
         setOperatorReplicaStatus( COMPLETED );
 
-        assertNull( operatorReplica.invoke( new TuplesImpl( inputPortCount ),
-                                            OperatorReplicaInitializationTest.newUpstreamContextInstance( 0, inputPortCount, ACTIVE ) ) );
+        assertNull( operatorReplica.invoke( new TuplesImpl( inputPortCount ), newInitialUpstreamContextWithAllPortsConnected( 1 ) ) );
     }
 
 }

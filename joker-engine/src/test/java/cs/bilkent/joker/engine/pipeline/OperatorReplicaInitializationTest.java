@@ -1,7 +1,6 @@
 package cs.bilkent.joker.engine.pipeline;
 
 
-import java.util.Arrays;
 import java.util.function.Supplier;
 
 import org.junit.Before;
@@ -16,8 +15,11 @@ import cs.bilkent.joker.engine.kvstore.OperatorKVStore;
 import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIALIZATION_FAILED;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.RUNNING;
-import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
-import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.UpstreamConnectionStatus.CLOSED;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.UpstreamConnectionStatus.OPEN;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newInitialUpstreamContext;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newInitialUpstreamContextWithAllPortsConnected;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newSourceOperatorInitialUpstreamContext;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainerPool;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.NopDrainer;
@@ -54,7 +56,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
     @Mock
     private TupleQueueDrainerPool drainerPool;
 
-    private final int outputPortCount = 1;
+    private final UpstreamContext downstreamContext = newInitialUpstreamContext( CLOSED );
 
     private OperatorReplica operatorReplica;
 
@@ -75,7 +77,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
                                                new InvocationContextImpl() );
 
         when( operatorDef.getId() ).thenReturn( "op1" );
-        when( operatorDef.getOutputPortCount() ).thenReturn( outputPortCount );
+        when( operatorDef.getOutputPortCount() ).thenReturn( downstreamContext.getPortCount() );
         when( operatorDef.createOperator() ).thenReturn( operator );
         when( drainerPool.acquire( anyObject() ) ).thenReturn( new NopDrainer() );
     }
@@ -84,26 +86,28 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
     public void shouldInitializeOperatorReplicaWhenOperatorInitializationSucceeds_ScheduleWhenTuplesAvailable_ANY_PORT_SINGLE ()
     {
         final int inputPortCount = 1;
-        final ScheduleWhenTuplesAvailable schedulingStrategy = scheduleWhenTuplesAvailableOnAny( inputPortCount, 1, 0 );
-        shouldInitializeOperatorSuccessfully( inputPortCount, schedulingStrategy, newUpstreamContextInstance( 0, inputPortCount, ACTIVE ) );
+        final ScheduleWhenTuplesAvailable schedulingStrategy = scheduleWhenTuplesAvailableOnAny( AT_LEAST, inputPortCount, 1, 0 );
+        shouldInitializeOperatorSuccessfully( inputPortCount,
+                                              schedulingStrategy,
+                                              newInitialUpstreamContextWithAllPortsConnected( inputPortCount ) );
     }
 
     @Test
     public void shouldInitializeOperatorReplicaWhenOperatorInitializationSucceeds_ScheduleWhenTuplesAvailable_ANY_PORT_MULTI ()
     {
         final int inputPortCount = 2;
-        final ScheduleWhenTuplesAvailable schedulingStrategy = scheduleWhenTuplesAvailableOnAny( inputPortCount, 1, 1 );
-        shouldInitializeOperatorSuccessfully( inputPortCount, schedulingStrategy, newUpstreamContextInstance( 0, inputPortCount, ACTIVE ) );
+        final ScheduleWhenTuplesAvailable schedulingStrategy = scheduleWhenTuplesAvailableOnAny( AT_LEAST, inputPortCount, 1, 0, 1 );
+        shouldInitializeOperatorSuccessfully( inputPortCount,
+                                              schedulingStrategy,
+                                              newInitialUpstreamContextWithAllPortsConnected( inputPortCount ) );
     }
 
     @Test
     public void shouldInitializeOperatorReplicaWhenOperatorInitializationSucceeds_ScheduleWhenTuplesAvailable_ANY_PORT_MULTI_portClosed ()
     {
         final int inputPortCount = 2;
-        final ScheduleWhenTuplesAvailable schedulingStrategy = scheduleWhenTuplesAvailableOnAny( inputPortCount, 1, 0, 1 );
-        shouldInitializeOperatorSuccessfully( inputPortCount,
-                                              schedulingStrategy,
-                                              new UpstreamContext( 0, new UpstreamConnectionStatus[] { CLOSED, ACTIVE } ) );
+        final ScheduleWhenTuplesAvailable schedulingStrategy = scheduleWhenTuplesAvailableOnAny( AT_LEAST, inputPortCount, 1, 1 );
+        shouldInitializeOperatorSuccessfully( inputPortCount, schedulingStrategy, newInitialUpstreamContext( CLOSED, OPEN ) );
     }
 
     @Test
@@ -111,16 +115,16 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
     {
         final int inputPortCount = 2;
         final ScheduleWhenTuplesAvailable schedulingStrategy = scheduleWhenTuplesAvailableOnAll( AT_LEAST, inputPortCount, 1, 0, 1 );
-        shouldInitializeOperatorSuccessfully( inputPortCount, schedulingStrategy, newUpstreamContextInstance( 0, inputPortCount, ACTIVE ) );
+        shouldInitializeOperatorSuccessfully( inputPortCount,
+                                              schedulingStrategy,
+                                              newInitialUpstreamContextWithAllPortsConnected( inputPortCount ) );
     }
 
     @Test
     public void shouldInitializeOperatorReplicaWhenOperatorInitializationSucceeds_ScheduleWhenAvailable ()
     {
         final int inputPortCount = 0;
-        shouldInitializeOperatorSuccessfully( inputPortCount,
-                                              ScheduleWhenAvailable.INSTANCE,
-                                              newUpstreamContextInstance( 0, inputPortCount, ACTIVE ) );
+        shouldInitializeOperatorSuccessfully( inputPortCount, ScheduleWhenAvailable.INSTANCE, newSourceOperatorInitialUpstreamContext() );
     }
 
     public void shouldInitializeOperatorSuccessfully ( final int inputPortCount,
@@ -128,20 +132,16 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
                                                        final UpstreamContext upstreamContext )
     {
         when( operatorDef.getInputPortCount() ).thenReturn( inputPortCount );
-        validUpstreamContext = newUpstreamContextInstance( 0, inputPortCount, ACTIVE );
+        validUpstreamContext = newInitialUpstreamContextWithAllPortsConnected( inputPortCount );
 
         when( operator.init( any( InitializationContext.class ) ) ).thenReturn( schedulingStrategy );
 
-        operatorReplica.init( upstreamContext );
+        operatorReplica.init( upstreamContext, downstreamContext );
 
         assertThat( operatorReplica.getStatus(), equalTo( RUNNING ) );
-        assertThat( operatorReplica.getInitialSchedulingStrategy(), equalTo( schedulingStrategy ) );
         assertThat( operatorReplica.getSchedulingStrategy(), equalTo( schedulingStrategy ) );
         assertThat( operatorReplica.getUpstreamContext(), equalTo( upstreamContext ) );
-        assertThat( operatorReplica.getSelfUpstreamContext(), equalTo( newUpstreamContextInstance( 0, outputPortCount, ACTIVE ) ) );
-
-        final UpstreamContext selfUpstreamContext = operatorReplica.getSelfUpstreamContext();
-        assertThat( selfUpstreamContext, equalTo( newUpstreamContextInstance( 0, outputPortCount, ACTIVE ) ) );
+        assertThat( operatorReplica.getSelfUpstreamContext(), equalTo( downstreamContext ) );
 
         verify( drainerPool ).acquire( schedulingStrategy );
     }
@@ -153,12 +153,11 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
 
         try
         {
-            operatorReplica.init( newUpstreamContextInstance( 0, 1, ACTIVE ) );
+            operatorReplica.init( newInitialUpstreamContextWithAllPortsConnected( 1 ), downstreamContext );
             fail();
         }
-        catch ( InitializationException expected )
+        catch ( InitializationException ignored )
         {
-            System.out.println( expected );
             assertFailedInitialization();
         }
     }
@@ -166,13 +165,16 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
     @Test
     public void shouldFailWhenOperatorInitializationReturnsInvalidSchedulingStrategy_ScheduleWhenAvailable_nonZeroInputPorts ()
     {
-        shouldFailToInitializeOperator( 1, ScheduleWhenAvailable.INSTANCE, newUpstreamContextInstance( 0, 1, ACTIVE ) );
+        shouldFailToInitializeOperator( 1, ScheduleWhenAvailable.INSTANCE, newInitialUpstreamContextWithAllPortsConnected( 1 ) );
     }
 
     @Test
     public void shouldFailWhenOperatorInitializationReturnsInvalidSchedulingStrategy_ScheduleWhenAvailable_UpstreamContextShutdown ()
     {
-        shouldFailToInitializeOperator( 0, ScheduleWhenAvailable.INSTANCE, newUpstreamContextInstance( 1, 0, ACTIVE ) );
+        final int inputPortCount = 1;
+        shouldFailToInitializeOperator( inputPortCount,
+                                        ScheduleWhenAvailable.INSTANCE,
+                                        newInitialUpstreamContextWithAllPortsConnected( inputPortCount ) );
     }
 
     @Test
@@ -180,8 +182,8 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
     {
         final int inputPortCount = 1;
         shouldFailToInitializeOperator( inputPortCount,
-                                        scheduleWhenTuplesAvailableOnAny( inputPortCount, 1, 0 ),
-                                        newUpstreamContextInstance( 1, 1, CLOSED ) );
+                                        scheduleWhenTuplesAvailableOnAny( AT_LEAST, inputPortCount, 1, 0 ),
+                                        newInitialUpstreamContext( CLOSED ) );
     }
 
     @Test
@@ -190,25 +192,25 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
         final int inputPortCount = 2;
         shouldFailToInitializeOperator( inputPortCount,
                                         scheduleWhenTuplesAvailableOnAll( AT_LEAST, inputPortCount, 1, 0, 1 ),
-                                        new UpstreamContext( 1, new UpstreamConnectionStatus[] { ACTIVE, CLOSED } ) );
+                                        newInitialUpstreamContext( CLOSED, CLOSED ) );
     }
 
     @Test
-    public void shouldNotFailWhenOperatorInitializationReturnsSchedulingStrategy_withLessPortsThanUpstreamContext ()
+    public void shouldFailWhenOperatorInitializationReturnsSchedulingStrategy_withLessPortsThanUpstreamContext ()
     {
-        final int inputPortCount = 1;
-        shouldInitializeOperatorSuccessfully( inputPortCount,
-                                              scheduleWhenTuplesAvailableOnAny( inputPortCount, 2, 0 ),
-                                              newUpstreamContextInstance( 1, 2, ACTIVE ) );
+        final int inputPortCount = 2;
+        shouldFailToInitializeOperator( inputPortCount,
+                                        scheduleWhenTuplesAvailableOnAny( AT_LEAST, inputPortCount - 1, 2, 0 ),
+                                        newInitialUpstreamContextWithAllPortsConnected( inputPortCount ) );
     }
 
     @Test
     public void shouldFailWhenOperatorInitializationReturnsSchedulingStrategy_withMorePortsThanUpstreamContext ()
     {
         final int inputPortCount = 1;
-        shouldInitializeOperatorSuccessfully( inputPortCount,
-                                              scheduleWhenTuplesAvailableOnAny( inputPortCount + 1, 2, 0 ),
-                                              newUpstreamContextInstance( 1, 1, ACTIVE ) );
+        shouldFailToInitializeOperator( inputPortCount,
+                                        scheduleWhenTuplesAvailableOnAny( AT_LEAST, inputPortCount + 1, 2, 0 ),
+                                        newInitialUpstreamContextWithAllPortsConnected( inputPortCount ) );
     }
 
     private void shouldFailToInitializeOperator ( final int inputPortCount,
@@ -220,12 +222,11 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
 
         try
         {
-            operatorReplica.init( upstreamContext );
+            operatorReplica.init( upstreamContext, downstreamContext );
             fail();
         }
-        catch ( InitializationException expected )
+        catch ( InitializationException ignored )
         {
-            System.out.println( expected );
             assertFailedInitialization();
         }
     }
@@ -233,18 +234,15 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
     @Test
     public void shouldSetStatusWhenOperatorInitializationFails ()
     {
-
-        final RuntimeException exception = new RuntimeException();
-        when( operator.init( anyObject() ) ).thenThrow( exception );
+        when( operator.init( anyObject() ) ).thenThrow( new RuntimeException() );
 
         try
         {
-            operatorReplica.init( validUpstreamContext );
+            operatorReplica.init( validUpstreamContext, downstreamContext );
             fail();
         }
-        catch ( InitializationException expected )
+        catch ( InitializationException ignored )
         {
-            System.out.println( expected );
             assertFailedInitialization();
         }
 
@@ -253,15 +251,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
     private void assertFailedInitialization ()
     {
         assertThat( operatorReplica.getStatus(), equalTo( INITIALIZATION_FAILED ) );
-        assertThat( operatorReplica.getSelfUpstreamContext(), equalTo( newUpstreamContextInstance( 0, 1, CLOSED ) ) );
-    }
-
-    static UpstreamContext newUpstreamContextInstance ( final int version, final int portCount, final UpstreamConnectionStatus status )
-    {
-        final UpstreamConnectionStatus[] upstreamConnectionStatuses = new UpstreamConnectionStatus[ portCount ];
-        Arrays.fill( upstreamConnectionStatuses, status );
-
-        return new UpstreamContext( version, upstreamConnectionStatuses );
+        assertThat( operatorReplica.getSelfUpstreamContext(), equalTo( downstreamContext.withAllUpstreamConnectionsClosed() ) );
     }
 
 }

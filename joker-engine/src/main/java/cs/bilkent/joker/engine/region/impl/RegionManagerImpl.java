@@ -17,6 +17,7 @@ import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.config.ThreadingPreference;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
 import static cs.bilkent.joker.engine.config.ThreadingPreference.SINGLE_THREADED;
+import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
@@ -34,6 +35,8 @@ import static cs.bilkent.joker.engine.partition.PartitionUtil.getPartitionId;
 import cs.bilkent.joker.engine.pipeline.OperatorReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
+import cs.bilkent.joker.engine.pipeline.UpstreamContext;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.createInitialUpstreamContext;
 import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
 import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.Region;
@@ -49,10 +52,15 @@ import cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool.NonBlockingTupleQueu
 import cs.bilkent.joker.engine.tuplequeue.impl.operator.DefaultOperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.impl.operator.EmptyOperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.impl.operator.PartitionedOperatorTupleQueue;
+import static cs.bilkent.joker.engine.util.ExceptionUtils.checkInterruption;
 import cs.bilkent.joker.flow.FlowDef;
+import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.operator.impl.InitializationContextImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
+import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
+import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
@@ -109,33 +117,36 @@ public class RegionManagerImpl implements RegionManager
         final int replicaCount = regionExecutionPlan.getReplicaCount();
         final int pipelineCount = regionExecutionPlan.getPipelineStartIndices().size();
 
-        checkPipelineStartIndices( regionId,
-                                   regionExecutionPlan.getRegionDef().getOperatorCount(),
-                                   regionExecutionPlan.getPipelineStartIndices() );
+        final RegionDef regionDef = regionExecutionPlan.getRegionDef();
+        final int regionOperatorCount = regionDef.getOperatorCount();
+
+        checkPipelineStartIndices( regionId, regionOperatorCount, regionExecutionPlan.getPipelineStartIndices() );
 
         LOGGER.debug( "Creating components for regionId={} pipelineCount={} replicaCount={}", regionId, pipelineCount, replicaCount );
 
-        if ( regionExecutionPlan.getRegionDef().getRegionType() == PARTITIONED_STATEFUL )
+        if ( regionDef.getRegionType() == PARTITIONED_STATEFUL )
         {
             partitionService.createPartitionDistribution( regionId, replicaCount );
             LOGGER.debug( "Created partition distribution for regionId={} with {} replicas", regionId, replicaCount );
         }
 
         final PipelineReplica[][] pipelineReplicas = new PipelineReplica[ pipelineCount ][ replicaCount ];
+        final SchedulingStrategy[] schedulingStrategies = new SchedulingStrategy[ regionOperatorCount ];
+        final UpstreamContext[] upstreamContexts = new UpstreamContext[ regionOperatorCount ];
+        populate( flow, regionDef, schedulingStrategies, upstreamContexts );
 
         for ( int pipelineIndex = 0; pipelineIndex < pipelineCount; pipelineIndex++ )
         {
             final int pipelineId = regionExecutionPlan.getPipelineStartIndex( pipelineIndex );
             final OperatorDef[] operatorDefs = regionExecutionPlan.getOperatorDefsByPipelineIndex( pipelineIndex );
-            final int operatorCount = operatorDefs.length;
-            final OperatorReplica[][] operatorReplicas = new OperatorReplica[ replicaCount ][ operatorCount ];
+            final int pipelineOperatorCount = operatorDefs.length;
+            final OperatorReplica[][] operatorReplicas = new OperatorReplica[ replicaCount ][ pipelineOperatorCount ];
             LOGGER.debug( "Initializing pipeline instance for regionId={} pipelineIndex={} with {} operators",
                           regionId,
-                          pipelineIndex,
-                          operatorCount );
+                          pipelineIndex, pipelineOperatorCount );
 
             final PipelineReplicaId[] pipelineReplicaIds = createPipelineReplicaIds( regionId, replicaCount, pipelineId );
-            final int forwardKeyLimit = regionExecutionPlan.getRegionDef().getPartitionFieldNames().size();
+            final int forwardKeyLimit = regionDef.getPartitionFieldNames().size();
 
             final PipelineReplicaMeter[] replicaMeters = new PipelineReplicaMeter[ replicaCount ];
             for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
@@ -145,7 +156,7 @@ public class RegionManagerImpl implements RegionManager
                                                                           operatorDefs[ 0 ] );
             }
 
-            for ( int operatorIndex = 0; operatorIndex < operatorCount; operatorIndex++ )
+            for ( int operatorIndex = 0; operatorIndex < pipelineOperatorCount; operatorIndex++ )
             {
                 final OperatorDef operatorDef = operatorDefs[ operatorIndex ];
 
@@ -199,7 +210,7 @@ public class RegionManagerImpl implements RegionManager
             }
         }
 
-        final Region region = new Region( regionExecutionPlan, pipelineReplicas );
+        final Region region = new Region( regionExecutionPlan, schedulingStrategies, upstreamContexts, pipelineReplicas );
         regions.put( regionId, region );
         return region;
     }
@@ -545,7 +556,7 @@ public class RegionManagerImpl implements RegionManager
                 {
                     final OperatorDef operatorDef = operatorDefs[ operatorIndex ];
                     final String operatorId = operatorDef.getId();
-                    final boolean isFirstOperator = ( operatorIndex == 0 ), isLastOperator = ( operatorIndex == ( operatorCount - 1 ) );
+                    final boolean isFirstOperator = ( operatorIndex == 0 );
 
                     final OperatorTupleQueue operatorTupleQueue;
                     if ( flow.getInboundConnections( operatorId ).isEmpty() )
@@ -633,7 +644,10 @@ public class RegionManagerImpl implements RegionManager
 
         LOGGER.info( "regionId={} is expanded to {} replicas", regionId, newReplicaCount );
 
-        return new Region( newRegionExecutionPlan, newPipelineReplicas );
+        return new Region( newRegionExecutionPlan,
+                           region.getOperatorSchedulingStrategies(),
+                           region.getOperatorUpstreamContexts(),
+                           newPipelineReplicas );
     }
 
     private Region shrinkRegionReplicas ( final Region region, final int newReplicaCount )
@@ -679,7 +693,10 @@ public class RegionManagerImpl implements RegionManager
                                                                                     newReplicaCount );
         LOGGER.info( "regionId={} is shrank to {} replicas", regionId, newReplicaCount );
 
-        return new Region( newRegionExecutionPlan, newPipelineReplicas );
+        return new Region( newRegionExecutionPlan,
+                           region.getOperatorSchedulingStrategies(),
+                           region.getOperatorUpstreamContexts(),
+                           newPipelineReplicas );
     }
 
     @Override
@@ -898,9 +915,7 @@ public class RegionManagerImpl implements RegionManager
         return operatorKvStores;
     }
 
-    private Supplier<TuplesImpl>[] createOutputSuppliers ( final int regionId,
-                                                           final int replicaCount,
-                                                           final OperatorDef operatorDef )
+    private Supplier<TuplesImpl>[] createOutputSuppliers ( final int regionId, final int replicaCount, final OperatorDef operatorDef )
     {
         final String operatorId = operatorDef.getId();
         LOGGER.debug( "Creating {} for regionId={} operatorId={}", CachedTuplesImplSupplier.class.getSimpleName(), regionId, operatorId );
@@ -947,6 +962,71 @@ public class RegionManagerImpl implements RegionManager
                               regionId,
                               firstOperatorDef.getOperatorType() );
                 return new EmptyOperatorTupleQueue( firstOperatorDef.getId(), firstOperatorDef.getInputPortCount() );
+            }
+        }
+    }
+
+    private void populate ( final FlowDef flow,
+                            final RegionDef regionDef,
+                            final SchedulingStrategy[] schedulingStrategies,
+                            final UpstreamContext[] upstreamContexts )
+    {
+        final Operator[] operators = new Operator[ regionDef.getOperatorCount() ];
+        try
+        {
+            for ( int i = 0; i < regionDef.getOperatorCount(); i++ )
+            {
+                final OperatorDef operatorDef = regionDef.getOperator( i );
+                final UpstreamContext upstreamContext = createInitialUpstreamContext( flow, operatorDef.getId() );
+                final InitializationContextImpl initializationContext = new InitializationContextImpl( operatorDef,
+                                                                                                       upstreamContext
+                                                                                                               .getUpstreamConnectionStatuses() );
+                try
+                {
+                    final Operator operator = operatorDef.createOperator();
+                    operators[ i ] = operator;
+                    final SchedulingStrategy schedulingStrategy = operator.init( initializationContext );
+                    verifyInitialSchedulingStrategyTupleCounts( operatorDef.getId(), schedulingStrategy );
+                    upstreamContext.verifyInitializable( operatorDef, schedulingStrategy );
+                    schedulingStrategies[ i ] = schedulingStrategy;
+                    upstreamContexts[ i ] = upstreamContext;
+                }
+                catch ( Exception e )
+                {
+                    throw new InitializationException( "Operator " + operatorDef.getId() + " initialization failed!", e );
+                }
+            }
+        }
+        finally
+        {
+            for ( Operator operator : operators )
+            {
+                try
+                {
+                    if ( operator != null )
+                    {
+                        operator.shutdown();
+                    }
+                }
+                catch ( Exception e )
+                {
+                    checkInterruption( e );
+                }
+            }
+        }
+    }
+
+    private void verifyInitialSchedulingStrategyTupleCounts ( final String operatorId, final SchedulingStrategy schedulingStrategy )
+    {
+        if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
+        {
+            final ScheduleWhenTuplesAvailable s = (ScheduleWhenTuplesAvailable) schedulingStrategy;
+            for ( int tupleCount : s.getTupleCounts() )
+            {
+                checkState( tupleCount <= config.getTupleQueueManagerConfig().getTupleQueueCapacity(),
+                            "Tuple queues are too small for scheduling strategy: %s of Operator=%s",
+                            operatorId,
+                            schedulingStrategy );
             }
         }
     }
