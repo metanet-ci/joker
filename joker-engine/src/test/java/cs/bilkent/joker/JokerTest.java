@@ -30,7 +30,6 @@ import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuples;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAll;
@@ -545,18 +544,16 @@ public class JokerTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
             return scheduleWhenTuplesAvailableOnAll( AT_LEAST, 2, 1, 0, 1 );
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
-            final Tuples input = context.getInput();
-            final Tuples output = context.getOutput();
-            input.getTuples( 0 ).forEach( output::add );
-            input.getTuples( 1 ).forEach( output::add );
+            ctx.getInputTuples( 0 ).forEach( ctx::output );
+            ctx.getInputTuples( 1 ).forEach( ctx::output );
         }
 
     }
@@ -569,20 +566,18 @@ public class JokerTest extends AbstractJokerTest
         private TupleSchema outputSchema;
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
-            outputSchema = context.getOutputPortSchema( 0 );
+            outputSchema = ctx.getOutputPortSchema( 0 );
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
-            final KVStore kvStore = context.getKVStore();
-            final Tuples input = context.getInput();
-            final Tuples output = context.getOutput();
+            final KVStore kvStore = ctx.getKVStore();
 
-            for ( Tuple tuple : input.getTuples( 0 ) )
+            for ( Tuple tuple : ctx.getInputTuples( 0 ) )
             {
                 final Object key = tuple.get( "key" );
                 final int currSum = kvStore.getIntegerValueOrDefault( key, 0 );
@@ -593,7 +588,7 @@ public class JokerTest extends AbstractJokerTest
                 final Tuple result = new Tuple( outputSchema );
                 result.set( "key", key );
                 result.set( "sum", newSum );
-                output.add( result );
+                ctx.output( result );
             }
         }
 
@@ -605,17 +600,15 @@ public class JokerTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
-            final Tuples input = context.getInput();
-            final Tuples output = context.getOutput();
-            input.getTuplesByDefaultPort().forEach( output::add );
+            ctx.getInputTuplesByDefaultPort().forEach( ctx::output );
         }
 
     }

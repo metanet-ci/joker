@@ -6,7 +6,6 @@ import cs.bilkent.joker.operator.InitializationContext;
 import cs.bilkent.joker.operator.InvocationContext;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuples;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
@@ -41,21 +40,19 @@ public abstract class BaseMultiplierOperator implements Operator
     private int i;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext context )
+    public SchedulingStrategy init ( final InitializationContext ctx )
     {
-        this.outputSchema = context.getOutputPortSchema( 0 );
-        this.multiplicationCount = context.getConfig().getInteger( MULTIPLICATION_COUNT );
+        this.outputSchema = ctx.getOutputPortSchema( 0 );
+        this.multiplicationCount = ctx.getConfig().getInteger( MULTIPLICATION_COUNT );
         this.extra = max( 1, ( multiplicationCount / 64 ) );
         i = new Random().nextInt( RANDOMIZATION_BOUND );
         return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
     }
 
     @Override
-    public void invoke ( final InvocationContext context )
+    public void invoke ( final InvocationContext ctx )
     {
-        Tuples input = context.getInput();
-        Tuples output = context.getOutput();
-        for ( Tuple tuple : input.getTuplesByDefaultPort() )
+        for ( Tuple tuple : ctx.getInputTuplesByDefaultPort() )
         {
             final Tuple result = new Tuple( outputSchema );
             final Object pKey1 = tuple.get( "key1" );
@@ -71,14 +68,14 @@ public abstract class BaseMultiplierOperator implements Operator
             }
             result.set( "val1", sum );
             result.set( "val2", -sum );
-            output.add( result );
+            ctx.output( result );
         }
 
-        final KVStore kvStore = context.getKVStore();
+        final KVStore kvStore = ctx.getKVStore();
         if ( kvStore != null )
         {
             final int count = kvStore.getIntegerOrDefault( "count", 0 );
-            kvStore.set( "count", count + input.getTupleCount( 0 ) );
+            kvStore.set( "count", count + ctx.getInputTupleCount( 0 ) );
         }
     }
 

@@ -8,7 +8,6 @@ import cs.bilkent.joker.operator.InvocationContext;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuples;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.schema.annotation.OperatorSchema;
@@ -65,9 +64,9 @@ public class LogBeaconOperator implements Operator
     private int tuplesPerInvocation;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext context )
+    public SchedulingStrategy init ( final InitializationContext ctx )
     {
-        final OperatorConfig config = context.getConfig();
+        final OperatorConfig config = ctx.getConfig();
         final List<String> lines = readFile( config.get( "filePath" ) );
         batchSize = config.get( "batchSize" );
         final int uidRange = config.get( "uidRange" );
@@ -88,18 +87,17 @@ public class LogBeaconOperator implements Operator
             logs = generator.getLogs();
         }
 
-        outputSchema = context.getOutputPortSchema( 0 );
+        outputSchema = ctx.getOutputPortSchema( 0 );
 
         return ScheduleWhenAvailable.INSTANCE;
     }
 
     @Override
-    public void invoke ( final InvocationContext context )
+    public void invoke ( final InvocationContext ctx )
     {
-        final Tuples output = context.getOutput();
         for ( int i = 0; i < tuplesPerInvocation; i++ )
         {
-            output.add( createOutputTuple( nextTimestamp(), nextLog() ) );
+            ctx.output( createOutputTuple( nextTimestamp(), nextLog() ) );
         }
     }
 

@@ -12,7 +12,6 @@ import cs.bilkent.joker.operator.InitializationContext;
 import cs.bilkent.joker.operator.InvocationContext;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuples;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAny;
@@ -53,20 +52,19 @@ public class BargainIndexOperator implements Operator
     private TupleSchema outputSchema;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext context )
+    public SchedulingStrategy init ( final InitializationContext ctx )
     {
-        outputSchema = context.getOutputPortSchema( 0 );
+        outputSchema = ctx.getOutputPortSchema( 0 );
         return scheduleWhenTuplesAvailableOnAny( AT_LEAST, 2, 1, 0, 1 );
     }
 
     @Override
-    public void invoke ( final InvocationContext context )
+    public void invoke ( final InvocationContext ctx )
     {
-        final Tuples input = context.getInput();
-        final Tuples output = context.getOutput();
-        final KVStore kvStore = context.getKVStore();
-        final Iterator<Tuple> it = new MergedTupleListsIterator( input.getTuples( 0 ),
-                                                                 input.getTuples( 1 ), comparing( t -> t.getLong( TIMESTAMP_FIELD ) ) );
+        final KVStore kvStore = ctx.getKVStore();
+        final Iterator<Tuple> it = new MergedTupleListsIterator( ctx.getInputTuples( 0 ),
+                                                                 ctx.getInputTuples( 1 ),
+                                                                 comparing( t -> t.getLong( TIMESTAMP_FIELD ) ) );
         while ( it.hasNext() )
         {
             final Tuple tuple = it.next();
@@ -83,7 +81,7 @@ public class BargainIndexOperator implements Operator
                     final Tuple bargainIndex = createBargainIndexTuple( cvwap, tuple );
                     if ( bargainIndex != null )
                     {
-                        output.add( bargainIndex );
+                        ctx.output( bargainIndex );
                     }
                 }
                 //                else

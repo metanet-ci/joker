@@ -133,13 +133,13 @@ public class PipelineOperatorPortCountsTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
-            return context.getInputPortCount() == 0 ? ScheduleWhenAvailable.INSTANCE : scheduleWhenTuplesAvailableOnDefaultPort( 1 );
+            return ctx.getInputPortCount() == 0 ? ScheduleWhenAvailable.INSTANCE : scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
 
         }
@@ -152,14 +152,14 @@ public class PipelineOperatorPortCountsTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
-            final int inputPortCount = context.getInputPortCount();
+            final int inputPortCount = ctx.getInputPortCount();
             return scheduleWhenTuplesAvailableOnAny( AT_LEAST, inputPortCount, 1, range( 0, inputPortCount ).toArray() );
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
 
         }

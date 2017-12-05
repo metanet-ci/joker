@@ -7,7 +7,6 @@ import cs.bilkent.joker.operator.InvocationContext;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuples;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
@@ -44,9 +43,9 @@ public abstract class TickerPriceBaseOperator implements Operator
     private int tuplesPerInvocation;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext context )
+    public SchedulingStrategy init ( final InitializationContext ctx )
     {
-        final OperatorConfig config = context.getConfig();
+        final OperatorConfig config = ctx.getConfig();
         this.tickersPerTimeUnit = config.getInteger( TICKERS_PER_TIME_UNIT_CONFIG_PARAMETER );
         final int minPrice = config.getInteger( MIN_PRICE_CONFIG_PARAMETER );
         final int maxPrice = config.getInteger( MAX_PRICE_CONFIG_PARAMETER );
@@ -55,19 +54,17 @@ public abstract class TickerPriceBaseOperator implements Operator
         this.tickerPriceGeneratorThread.start();
         this.tickerPrices = tickerPriceGenerator.getTickerPrices();
         this.j = tickersPerTimeUnit;
-        this.tuplesPerInvocation = context.getConfig().getInteger( TUPLES_PER_INVOCATION_CONFIG_PARAMETER );
+        this.tuplesPerInvocation = ctx.getConfig().getInteger( TUPLES_PER_INVOCATION_CONFIG_PARAMETER );
 
         return ScheduleWhenAvailable.INSTANCE;
     }
 
     @Override
-    public final void invoke ( final InvocationContext context )
+    public final void invoke ( final InvocationContext ctx )
     {
-        final Tuples output = context.getOutput();
-
         for ( int i = 0; i < tuplesPerInvocation; i++ )
         {
-            output.add( nextTuple() );
+            ctx.output( nextTuple() );
         }
     }
 

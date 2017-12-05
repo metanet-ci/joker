@@ -137,7 +137,7 @@ public class RegionDefFormerImplAllRegionsTest extends AbstractJokerTest
                 assertThat( regionDef.getOperators(), equalTo( operators ) );
                 return;
             }
-            catch ( AssertionError expected )
+            catch ( AssertionError ignored )
             {
 
             }
@@ -153,13 +153,13 @@ public class RegionDefFormerImplAllRegionsTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
             return null;
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
 
         }

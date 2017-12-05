@@ -35,7 +35,6 @@ import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuples;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
@@ -294,18 +293,16 @@ public class JokerDemo extends AbstractJokerTest
         private TupleSchema outputSchema;
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
-            outputSchema = context.getOutputPortSchema( 0 );
+            outputSchema = ctx.getOutputPortSchema( 0 );
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
-            Tuples input = context.getInput();
-            Tuples output = context.getOutput();
-            for ( Tuple tuple : input.getTuplesByDefaultPort() )
+            for ( Tuple tuple : ctx.getInputTuplesByDefaultPort() )
             {
                 Tuple summed = new Tuple( outputSchema );
                 Object pKey = tuple.get( "key" );
@@ -316,7 +313,7 @@ public class JokerDemo extends AbstractJokerTest
                     sum *= tuple.getDouble( "val1" ) / 4;
                 }
                 summed.set( "val", sum );
-                output.add( summed );
+                ctx.output( summed );
             }
         }
 
@@ -483,27 +480,24 @@ public class JokerDemo extends AbstractJokerTest
         private Histogram histogram = new Histogram( new ExponentiallyDecayingReservoir() );
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
-            final OperatorConfig config = context.getConfig();
+            final OperatorConfig config = ctx.getConfig();
 
             this.mapper = config.getOrFail( MAPPER_CONFIG_PARAMETER );
-            this.outputSchema = context.getOutputPortSchema( 0 );
+            this.outputSchema = ctx.getOutputPortSchema( 0 );
             return scheduleWhenTuplesAvailableOnDefaultPort( DEFAULT_TUPLE_COUNT_CONFIG_VALUE );
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
-            final Tuples input = context.getInput();
-            final Tuples output = context.getOutput();
-
-            List<Tuple> tuples = input.getTuplesByDefaultPort();
+            final List<Tuple> tuples = ctx.getInputTuplesByDefaultPort();
             for ( Tuple tuple : tuples )
             {
                 final Tuple mapped = new Tuple( outputSchema );
                 mapper.accept( tuple, mapped );
-                output.add( mapped );
+                ctx.output( mapped );
             }
 
             histogram.update( tuples.size() );

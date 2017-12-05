@@ -197,7 +197,7 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
         public static volatile boolean fail;
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
             if ( fail )
             {
@@ -210,7 +210,7 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
 
         }
@@ -224,15 +224,15 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
             return ScheduleWhenAvailable.INSTANCE;
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
-            context.getOutput().add( new Tuple() );
+            ctx.output( new Tuple() );
         }
 
     }
@@ -246,13 +246,13 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
         private int invocationCount = 0;
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
             invocationCount++;
             if ( invocationCount == 10000 )
@@ -270,13 +270,13 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
             return ScheduleWhenAvailable.INSTANCE;
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
 
         }

@@ -24,10 +24,10 @@ public class QuoteBeaconOperator extends TickerPriceBaseOperator
     private TupleSchema outputSchema;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext context )
+    public SchedulingStrategy init ( final InitializationContext ctx )
     {
-        this.outputSchema = context.getOutputPortSchema( 0 );
-        return super.init( context );
+        this.outputSchema = ctx.getOutputPortSchema( 0 );
+        return super.init( ctx );
     }
 
     @Override

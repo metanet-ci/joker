@@ -473,13 +473,13 @@ public class PipelineManagerImplTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
             return ScheduleWhenAvailable.INSTANCE;
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
 
         }
@@ -493,13 +493,13 @@ public class PipelineManagerImplTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
 
         }
@@ -513,13 +513,13 @@ public class PipelineManagerImplTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
 
         }
@@ -534,14 +534,14 @@ public class PipelineManagerImplTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
-            final int[] openPorts = IntStream.range( 0, context.getInputPortCount() ).filter( context::isInputPortOpen ).toArray();
-            return scheduleWhenTuplesAvailableOnAny( AT_LEAST, context.getInputPortCount(), 1, openPorts );
+            final int[] openPorts = IntStream.range( 0, ctx.getInputPortCount() ).filter( ctx::isInputPortOpen ).toArray();
+            return scheduleWhenTuplesAvailableOnAny( AT_LEAST, ctx.getInputPortCount(), 1, openPorts );
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
 
         }

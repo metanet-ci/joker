@@ -19,7 +19,6 @@ import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuples;
 import cs.bilkent.joker.operator.impl.InitializationContextImpl;
 import cs.bilkent.joker.operator.impl.InvocationContextImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -126,11 +125,11 @@ public class SentenceBeaconOperator implements Operator
     }
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext context )
+    public SchedulingStrategy init ( final InitializationContext ctx )
     {
-        this.outputSchema = context.getOutputPortSchema( 0 );
+        this.outputSchema = ctx.getOutputPortSchema( 0 );
 
-        final OperatorConfig config = context.getConfig();
+        final OperatorConfig config = ctx.getConfig();
         this.maxPartitionIndex = config.getInteger( MAX_PARTITION_INDEX_PARAM );
         this.sentenceCountPerInvocation = config.getInteger( SENTENCE_COUNT_PER_INVOCATION_PARAM );
 
@@ -163,9 +162,8 @@ public class SentenceBeaconOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext context )
+    public void invoke ( final InvocationContext ctx )
     {
-        final Tuples output = context.getOutput();
         for ( int i = 0; i < sentenceCountPerInvocation; i++ )
         {
             final Tuple result = new Tuple( outputSchema );
@@ -182,7 +180,7 @@ public class SentenceBeaconOperator implements Operator
                 getSentences();
             }
 
-            output.add( result );
+            ctx.output( result );
         }
     }
 

@@ -51,7 +51,6 @@ import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuples;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
@@ -926,19 +925,16 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
             return scheduleWhenTuplesAvailableOnAny( AT_LEAST, 2, 1, 0, 1 );
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
-            final Tuples input = context.getInput();
-
-            final Tuples output = context.getOutput();
-            output.addAll( input.getTuples( 0 ) );
-            output.addAll( input.getTuples( 1 ) );
+            ctx.output( ctx.getInputTuples( 0 ) );
+            ctx.output( ctx.getInputTuples( 1 ) );
         }
 
     }
@@ -958,9 +954,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         private boolean increment;
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
-            final OperatorConfig config = context.getConfig();
+            final OperatorConfig config = ctx.getConfig();
             batchCount = config.getInteger( "batchCount" );
             count = config.getIntegerOrDefault( "initial", 0 );
             increment = config.getBooleanOrDefault( "increment", true );
@@ -968,17 +964,16 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
             if ( start )
             {
-                final Tuples output = context.getOutput();
                 for ( int i = 0; i < batchCount; i++ )
                 {
                     final int val = increment ? ++count : --count;
                     final Tuple t = new Tuple();
                     t.set( "val", val );
-                    output.add( t );
+                    ctx.output( t );
                 }
             }
             else
@@ -999,19 +994,17 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         private volatile int count;
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
-            final int batchCount = context.getConfig().getInteger( "batchCount" );
+            final int batchCount = ctx.getConfig().getInteger( "batchCount" );
             return scheduleWhenTuplesAvailableOnDefaultPort( EXACT, batchCount );
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
-            final Tuples input = context.getInput();
-            final Tuples output = context.getOutput();
-            output.addAll( input.getTuplesByDefaultPort() );
-            count += input.getTupleCount( 0 );
+            ctx.output( ctx.getInputTuplesByDefaultPort() );
+            count += ctx.getInputTupleCount( 0 );
         }
 
     }
@@ -1031,16 +1024,15 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
-            final Tuples input = context.getInput();
-            final KVStore kvStore = context.getKVStore();
-            for ( Tuple tuple : input.getTuplesByDefaultPort() )
+            final KVStore kvStore = ctx.getKVStore();
+            for ( Tuple tuple : ctx.getInputTuplesByDefaultPort() )
             {
                 kvStore.set( "tuple", tuple );
             }
 
-            count += input.getTupleCount( 0 );
+            count += ctx.getInputTupleCount( 0 );
         }
 
     }

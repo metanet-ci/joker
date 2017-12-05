@@ -13,7 +13,6 @@ import cs.bilkent.joker.operator.InvocationContext;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuples;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.schema.annotation.OperatorSchema;
@@ -76,10 +75,10 @@ public class MemorizingBeaconOperator implements Operator
     private volatile boolean shutdown;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext context )
+    public SchedulingStrategy init ( final InitializationContext ctx )
     {
-        this.outputSchema = context.getOutputPortSchema( 0 );
-        final OperatorConfig config = context.getConfig();
+        this.outputSchema = ctx.getOutputPortSchema( 0 );
+        final OperatorConfig config = ctx.getConfig();
         this.tuplesPerKey = config.getInteger( TUPLES_PER_KEY_CONFIG_PARAMETER );
         this.keysPerInvocation = config.getInteger( KEYS_PER_INVOCATION_CONFIG_PARAMETER );
         this.valueRange = config.getInteger( VALUE_RANGE_CONFIG_PARAMETER );
@@ -113,9 +112,8 @@ public class MemorizingBeaconOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext context )
+    public void invoke ( final InvocationContext ctx )
     {
-        final Tuples output = context.getOutput();
         if ( inv == currentOutputs.size() )
         {
             final List<List<Tuple>> newShuffledOutputs = shuffledOutputsRef.get();
@@ -127,7 +125,7 @@ public class MemorizingBeaconOperator implements Operator
             inv = 0;
         }
 
-        output.addAll( currentOutputs.get( inv++ ) );
+        ctx.output( currentOutputs.get( inv++ ) );
     }
 
     private List<Tuple> produceOutput ()

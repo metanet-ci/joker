@@ -7,7 +7,6 @@ import cs.bilkent.joker.operator.InvocationContext;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuples;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
@@ -31,9 +30,9 @@ public class ConsoleAppenderOperator implements Operator
     private Function<Tuple, String> toStringFunction;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext context )
+    public SchedulingStrategy init ( final InitializationContext ctx )
     {
-        final OperatorConfig config = context.getConfig();
+        final OperatorConfig config = ctx.getConfig();
 
         Object toStringObject = config.getObject( TO_STRING_FUNCTION_CONFIG_PARAMETER );
 
@@ -52,14 +51,12 @@ public class ConsoleAppenderOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext context )
+    public void invoke ( final InvocationContext ctx )
     {
-        final Tuples input = context.getInput();
-        final Tuples output = context.getOutput();
-        for ( Tuple tuple : input.getTuplesByDefaultPort() )
+        for ( Tuple tuple : ctx.getInputTuplesByDefaultPort() )
         {
             System.out.println( toStringFunction.apply( tuple ) );
-            output.add( tuple );
+            ctx.output( tuple );
         }
     }
 

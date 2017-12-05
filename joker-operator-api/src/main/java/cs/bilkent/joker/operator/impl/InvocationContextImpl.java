@@ -4,6 +4,7 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import static java.util.Arrays.copyOf;
 
@@ -60,13 +61,53 @@ public class InvocationContextImpl implements InvocationContext
         this.upstreamConnectionStatuses = copyOf( upstreamConnectionStatuses, upstreamConnectionStatuses.length );
     }
 
-    @Override
     public TuplesImpl getInput ()
     {
         return input;
     }
 
     @Override
+    public List<Tuple> getInputTuples ( int portIndex )
+    {
+        return input.getTuples( portIndex );
+    }
+
+    @Override
+    public Tuple getInputTupleOrNull ( int portIndex, int tupleIndex )
+    {
+        return input.getTupleOrNull( portIndex, tupleIndex );
+    }
+
+    @Override
+    public int getInputTupleCount ( int portIndex )
+    {
+        return input.getTupleCount( portIndex );
+    }
+
+    @Override
+    public void output ( final Tuple tuple )
+    {
+        output.add( tuple );
+    }
+
+    @Override
+    public void output ( final List<Tuple> tuples )
+    {
+        output.addAll( tuples );
+    }
+
+    @Override
+    public void output ( final int portIndex, final Tuple tuple )
+    {
+        output.add( portIndex, tuple );
+    }
+
+    @Override
+    public void output ( final int portIndex, final List<Tuple> tuples )
+    {
+        output.addAll( portIndex, tuples );
+    }
+
     public TuplesImpl getOutput ()
     {
         return output;
@@ -101,4 +142,5 @@ public class InvocationContextImpl implements InvocationContext
     {
         return kvStore;
     }
+
 }

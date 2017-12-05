@@ -10,7 +10,6 @@ import cs.bilkent.joker.operator.InvocationContext;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuples;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
@@ -60,9 +59,9 @@ public class TupleCountBasedWindowReducerOperator implements Operator
     private TupleSchema windowSchema;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext context )
+    public SchedulingStrategy init ( final InitializationContext ctx )
     {
-        final OperatorConfig config = context.getConfig();
+        final OperatorConfig config = ctx.getConfig();
 
         this.reducer = config.getOrFail( REDUCER_CONFIG_PARAMETER );
         this.tupleCount = config.getOrFail( TUPLE_COUNT_CONFIG_PARAMETER );
@@ -72,7 +71,7 @@ public class TupleCountBasedWindowReducerOperator implements Operator
             accumulatorInitializer.accept( accumulator );
             return accumulator;
         };
-        this.outputSchema = context.getOutputPortSchema( 0 );
+        this.outputSchema = ctx.getOutputPortSchema( 0 );
         this.windowSchema = new PortRuntimeSchemaBuilder( EXACT_FIELD_SET,
                                                           asList( new RuntimeSchemaField( TUPLE_COUNT_FIELD, Integer.class ),
                                                                   new RuntimeSchemaField( WINDOW_FIELD, Integer.class ) ) ).build();
@@ -81,19 +80,16 @@ public class TupleCountBasedWindowReducerOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext context )
+    public void invoke ( final InvocationContext ctx )
     {
-        final Tuples input = context.getInput();
-        final Tuples output = context.getOutput();
-
-        final KVStore kvStore = context.getKVStore();
+        final KVStore kvStore = ctx.getKVStore();
 
         final Tuple window = kvStore.getOrDefault( CURRENT_WINDOW_KEY, () -> new Tuple( windowSchema ) );
         int currentTupleCount = window.getIntegerOrDefault( TUPLE_COUNT_FIELD, 0 );
         int windowCount = window.getIntegerOrDefault( WINDOW_FIELD, 0 );
         Tuple accumulator = kvStore.getOrDefault( ACCUMULATOR_TUPLE_KEY, accumulatorSupplier );
 
-        for ( Tuple tuple : input.getTuplesByDefaultPort() )
+        for ( Tuple tuple : ctx.getInputTuplesByDefaultPort() )
         {
             reducer.accept( accumulator, tuple );
 
@@ -102,7 +98,7 @@ public class TupleCountBasedWindowReducerOperator implements Operator
                 currentTupleCount = 0;
                 accumulator.set( WINDOW_FIELD, windowCount++ );
 
-                output.add( accumulator );
+                ctx.output( accumulator );
                 accumulator = accumulatorSupplier.get();
             }
         }

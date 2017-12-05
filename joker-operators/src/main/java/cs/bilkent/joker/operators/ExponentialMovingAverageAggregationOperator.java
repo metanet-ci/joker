@@ -6,7 +6,6 @@ import cs.bilkent.joker.operator.InvocationContext;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuples;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
@@ -53,11 +52,11 @@ public class ExponentialMovingAverageAggregationOperator implements Operator
     private TupleSchema windowSchema;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext context )
+    public SchedulingStrategy init ( final InitializationContext ctx )
     {
-        this.outputSchema = context.getOutputPortSchema( 0 );
+        this.outputSchema = ctx.getOutputPortSchema( 0 );
 
-        final OperatorConfig config = context.getConfig();
+        final OperatorConfig config = ctx.getConfig();
         this.weight = config.getOrFail( WEIGHT_CONFIG_PARAMETER );
         this.fieldName = config.getOrFail( FIELD_NAME_CONFIG_PARAMETER );
         this.windowSchema = new PortRuntimeSchemaBuilder( EXACT_FIELD_SET,
@@ -68,25 +67,23 @@ public class ExponentialMovingAverageAggregationOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext context )
+    public void invoke ( final InvocationContext ctx )
     {
-        final Tuples input = context.getInput();
-        final Tuples output = context.getOutput();
-        final KVStore kvStore = context.getKVStore();
+        final KVStore kvStore = ctx.getKVStore();
 
         final Tuple currentWindow = kvStore.getOrDefault( CURRENT_WINDOW_KEY, () -> new Tuple( windowSchema ) );
 
         double value = currentWindow.getDoubleValueOrDefault( VALUE_FIELD, 0d );
         int tupleCount = currentWindow.getIntegerValueOrDefault( TUPLE_COUNT_FIELD, 0 );
 
-        for ( Tuple tuple : input.getTuplesByDefaultPort() )
+        for ( Tuple tuple : ctx.getInputTuplesByDefaultPort() )
         {
             final double tupleValue = tuple.getDoubleValueOrDefault( fieldName, 0d );
             value = ( tupleCount++ == 0 ) ? tupleValue : ( weight * tupleValue + ( 1 - weight ) * value );
             final Tuple avgTuple = new Tuple( outputSchema );
             avgTuple.set( VALUE_FIELD, value );
 
-            output.add( avgTuple );
+            ctx.output( avgTuple );
         }
 
         currentWindow.set( VALUE_FIELD, value );

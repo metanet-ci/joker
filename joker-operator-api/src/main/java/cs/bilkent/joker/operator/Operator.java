@@ -60,12 +60,12 @@ public interface Operator
      * execution.
      * Please see {@link ScheduleWhenAvailable} and {@link ScheduleWhenTuplesAvailable}
      *
-     * @param context
+     * @param ctx
      *         contains various information that can be used during lifetime of an operator.
      *
      * @return a {@link SchedulingStrategy} that will be used for scheduling the operator.
      */
-    SchedulingStrategy init ( InitializationContext context );
+    SchedulingStrategy init ( InitializationContext ctx );
 
     /**
      * Invoked to process input tuples and produce output tuples by an operator implementation. It is going to be invoked by the
@@ -76,12 +76,8 @@ public interface Operator
      * the objects accessed via {@link InvocationContext} should not be cached by the operator between multiple invocations, and should be
      * used only within the current invocation.
      * <p>
-     * Tuples sent to the incoming ports of an operator are contained within the {@link Tuples} object which is obtained via
-     * {@link InvocationContext#getInput()} method. Similarly, tuples produced during an invocation can be passed to the downstream by
-     * using the object obtained via {@link InvocationContext#getOutput()} method.
-     * <p>
-     * {@link Tuples} object in the {@link InvocationContext} or the {@link Tuple} objects it contains can be returned
-     * within the {@link Tuples} retrieved via {@link InvocationContext#getOutput()} object as output.
+     * Tuples sent to the incoming ports of an operator are accessed via the methods on {@link InvocationContext}.
+     * Similarly, tuples produced during an invocation can be passed to the downstream by using the methods on {@link InvocationContext}.
      * <p>
      * Invocation can be done due to the {@link SchedulingStrategy} of the operator or a system event that requires immediate
      * processing of the remaining tuples. Status of the invocation can be queried via {@link InvocationReason#isSuccessful()}.
@@ -102,21 +98,18 @@ public interface Operator
      * The computation model of Joker operators are quite similar to the actor-based concurrency. Following rules should be obeyed
      * to perform tuple processing in a correct and thread-safe manner:
      * <ul>
-     * <li>{@link Tuples} object return by {@link InvocationContext#getInput()} and {@link Tuple} objects contained by it should be
-     * considered final and should not be modified. It is because the same {@link Tuple} objects can be processed by other operators in
-     * the flow.</li>
-     * <li>{@link Tuple} objects added to the {@link Tuples} object accessed via {@link InvocationContext#getOutput()} should not be
-     * modified.</li>
-     * <li>A {@link Tuple} object accessed via {@link InvocationContext#getInput()} can be sent to be downstream as it is.</li>
+     * <li>{@link Tuple} objects returned by input methods of {@link InvocationContext} should be considered final and should not be
+     * modified. It is because the same {@link Tuple} objects can be processed by other operators in the flow.</li>
+     * <li>{@link Tuple} objects added to the {@link InvocationContext} via output methods should not be modified.</li>
      * </ul>
      *
-     * @param context
+     * @param ctx
      *         all the necessary information about a particular invocation of the method, such as input tuples, invocation reason etc.
      *
      * @see Tuple
      * @see InvocationContext
      */
-    void invoke ( InvocationContext context );
+    void invoke ( InvocationContext ctx );
 
     /**
      * Invoked after the runtime engine completes invocation of an operator instance. All the resources allocated within the

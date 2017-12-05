@@ -884,7 +884,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
     public static class StatelessOperatorWithSingleInputOutputPort extends NopOperator
     {
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
@@ -895,7 +895,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
     public static class StatelessOperatorWithZeroInputSingleOutputPort extends NopOperator
     {
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
             return ScheduleWhenAvailable.INSTANCE;
         }
@@ -906,7 +906,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
     public static class PartitionedStatefulOperatorWithSingleInputOutputPort extends NopOperator
     {
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
@@ -917,7 +917,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
     public static class StatefulOperatorWithSingleInputOutputPort extends NopOperator
     {
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
@@ -928,7 +928,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
     public static class StatefulOperatorWithZeroInputSingleOutputPort extends NopOperator
     {
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
             return ScheduleWhenAvailable.INSTANCE;
         }
@@ -939,14 +939,14 @@ public class RegionManagerImplTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
             throw new UnsupportedOperationException();
         }
 
 
         @Override
-        public final void invoke ( final InvocationContext context )
+        public final void invoke ( final InvocationContext ctx )
         {
 
         }

@@ -7,9 +7,9 @@ import org.mockito.runners.MockitoJUnitRunner;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETED;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETING;
 import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newInitialUpstreamContextWithAllPortsConnected;
-import cs.bilkent.joker.operator.InvocationContext;
 import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.INPUT_PORT_CLOSED;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.operator.impl.InvocationContextImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleNever;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
@@ -69,7 +69,7 @@ public class OperatorReplicaCompletingStatusTest extends AbstractOperatorReplica
 
         doAnswer( invocation ->
                   {
-                      final InvocationContext invocationContext = invocation.getArgumentAt( 0, InvocationContext.class );
+                      final InvocationContextImpl invocationContext = invocation.getArgumentAt( 0, InvocationContextImpl.class );
                       assertThat( invocationContext.getReason(), equalTo( INPUT_PORT_CLOSED ) );
                       assertThat( invocationContext.getKVStore(), equalTo( kvStore ) );
                       assertThat( invocationContext.getInput(), equalTo( operatorInput ) );

@@ -52,9 +52,9 @@ public class DynamicInputRatedBeaconOperator implements Operator
 
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext context )
+    public SchedulingStrategy init ( final InitializationContext ctx )
     {
-        final OperatorConfig config = context.getConfig();
+        final OperatorConfig config = ctx.getConfig();
         this.tokenCount = config.getInteger( TOKEN_COUNT_CONFIG_PARAMETER );
         this.tokenQueue = new CircularFifoQueue<>( tokenCount );
         this.periodInMillis = config.getLong( PERIOD_IN_MILLIS_CONFIG_PARAMETER );
@@ -64,15 +64,15 @@ public class DynamicInputRatedBeaconOperator implements Operator
         this.commandThread = createCommanderThread();
         this.commandThread.start();
 
-        return this.beaconOperator.init( context );
+        return this.beaconOperator.init( ctx );
     }
 
     @Override
-    public void invoke ( final InvocationContext context )
+    public void invoke ( final InvocationContext ctx )
     {
         if ( tryAcquireToken() )
         {
-            beaconOperator.invoke( context );
+            beaconOperator.invoke( ctx );
         }
     }
 
