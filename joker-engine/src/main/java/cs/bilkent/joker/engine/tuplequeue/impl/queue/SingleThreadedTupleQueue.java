@@ -2,7 +2,6 @@ package cs.bilkent.joker.engine.tuplequeue.impl.queue;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -63,12 +62,12 @@ public class SingleThreadedTupleQueue implements TupleQueue
     }
 
     @Override
-    public int poll ( final int count, final Collection<Tuple> tuples )
+    public int poll ( final int count, final List<Tuple> tuples )
     {
         return doPollTuples( count, tuples );
     }
 
-    private int doPollTuples ( final int count, Collection<Tuple> tuples )
+    private int doPollTuples ( final int count, List<Tuple> tuples )
     {
         int polled = 0;
         for ( int i = 0; i < count; i++ )
