@@ -1,9 +1,9 @@
 package cs.bilkent.joker.engine.tuplequeue.impl;
 
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -33,6 +33,7 @@ import cs.bilkent.joker.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
+import cs.bilkent.joker.partition.impl.PartitionKey;
 import cs.bilkent.joker.utils.Pair;
 import cs.bilkent.joker.utils.Triple;
 import static java.lang.Math.max;
@@ -53,9 +54,6 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
     private final Map<Triple<Integer, Integer, String>, DefaultOperatorTupleQueue> singleOperatorTupleQueues = new HashMap<>();
 
     private final Map<Pair<Integer, String>, PartitionedOperatorTupleQueue[]> partitionedOperatorTupleQueues = new HashMap<>();
-
-    private final Map<String, TupleQueueContainer[]> tupleQueueContainersByOperatorId = new HashMap<>();
-
 
     @Inject
     public OperatorTupleQueueManagerImpl ( final JokerConfig jokerConfig, final PartitionKeyExtractorFactory partitionKeyExtractorFactory )
@@ -78,7 +76,7 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
                        operatorDef.getId() );
         checkArgument( operatorDef.getOperatorType() != PARTITIONED_STATEFUL || threadingPreference == MULTI_THREADED,
                        "invalid <operator type, threading preference> pair! regionId %s operatorId %s operatorType %s threadingPreference"
-                       + " %s ", regionId, operatorDef.getId(), operatorDef.getOperatorType(),
+                       + " %s", regionId, operatorDef.getId(), operatorDef.getOperatorType(),
                        threadingPreference );
         checkArgument( replicaIndex >= 0,
                        "invalid replica index! regionId %s, replicaIndex %s operatorId %s",
@@ -107,8 +105,7 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
         final int drainLimit = tupleQueueManagerConfig.getDrainLimit( threadingPreference );
         final DefaultOperatorTupleQueue operatorTupleQueue = new DefaultOperatorTupleQueue( operatorTupleQueueId,
                                                                                             inputPortCount,
-                                                                                            threadingPreference,
-                                                                                            tupleQueues, drainLimit );
+                                                                                            threadingPreference, tupleQueues, drainLimit );
 
         singleOperatorTupleQueues.put( key, operatorTupleQueue );
         LOGGER.debug( "created default tuple queue for regionId={} replicaIndex={} operatorId={}", regionId, replicaIndex, operatorId );
@@ -130,7 +127,7 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
     @Override
     public OperatorTupleQueue[] createPartitionedOperatorTupleQueues ( final int regionId,
                                                                        final OperatorDef operatorDef,
-                                                                       PartitionDistribution partitionDistribution,
+                                                                       final PartitionDistribution partitionDistribution,
                                                                        final int forwardKeyLimit )
     {
         final int replicaCount = partitionDistribution.getReplicaCount();
@@ -158,18 +155,12 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
 
         for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
         {
-            final TupleQueueContainer[] containers = createTupleQueueContainers( operatorId,
-                                                                                 inputPortCount,
-                                                                                 partitionDistribution.getPartitionCount() );
-            final int[] partitions = partitionDistribution.getDistribution();
-
             operatorTupleQueues[ replicaIndex ] = new PartitionedOperatorTupleQueue( operatorId,
                                                                                      inputPortCount,
                                                                                      partitionDistribution.getPartitionCount(),
                                                                                      replicaIndex,
                                                                                      tupleQueueManagerConfig.getTupleQueueCapacity(),
-                                                                                     partitionKeyExtractor,
-                                                                                     containers, partitions );
+                                                                                     partitionKeyExtractor );
         }
 
         partitionedOperatorTupleQueues.put( key, operatorTupleQueues );
@@ -201,9 +192,9 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
         PartitionedOperatorTupleQueue[] queues = this.partitionedOperatorTupleQueues.get( key );
         checkState( queues != null, "partitioned operator tuple queues do not exist for regionId=%s operatorId=%s", regionId, operatorId );
 
-        final Map<Integer, TupleQueueContainer> migratingPartitions = getMigratingPartitions( currentPartitionDistribution,
-                                                                                              newPartitionDistribution,
-                                                                                              queues );
+        final Map<Integer, Map<PartitionKey, TupleQueue[]>> migratingPartitions = getMigratingPartitions( currentPartitionDistribution,
+                                                                                                          newPartitionDistribution,
+                                                                                                          queues );
 
         queues = migratePartitions( currentPartitionDistribution, newPartitionDistribution, queues, migratingPartitions );
 
@@ -216,11 +207,11 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
         return queues;
     }
 
-    private Map<Integer, TupleQueueContainer> getMigratingPartitions ( final PartitionDistribution currentPartitionDistribution,
-                                                                       final PartitionDistribution newPartitionDistribution,
-                                                                       final PartitionedOperatorTupleQueue[] queues )
+    private Map<Integer, Map<PartitionKey, TupleQueue[]>> getMigratingPartitions ( final PartitionDistribution currentPartitionDistribution,
+                                                                                   final PartitionDistribution newPartitionDistribution,
+                                                                                   final PartitionedOperatorTupleQueue[] queues )
     {
-        final Map<Integer, TupleQueueContainer> migratingPartitions = new HashMap<>();
+        final Map<Integer, Map<PartitionKey, TupleQueue[]>> migratingPartitions = new HashMap<>();
 
         for ( int replicaIndex = 0; replicaIndex < queues.length; replicaIndex++ )
         {
@@ -229,7 +220,7 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
                     replicaIndex );
             if ( partitionIds.size() > 0 )
             {
-                queues[ replicaIndex ].releasePartitions( partitionIds ).forEach( c -> migratingPartitions.put( c.getPartitionId(), c ) );
+                migratingPartitions.putAll( queues[ replicaIndex ].releasePartitions( new HashSet<>( partitionIds ) ) );
             }
         }
 
@@ -239,7 +230,7 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
     private PartitionedOperatorTupleQueue[] migratePartitions ( final PartitionDistribution currentPartitionDistribution,
                                                                 final PartitionDistribution newPartitionDistribution,
                                                                 final PartitionedOperatorTupleQueue[] queues,
-                                                                final Map<Integer, TupleQueueContainer> movingPartitions )
+                                                                final Map<Integer, Map<PartitionKey, TupleQueue[]>> movingPartitions )
     {
         final String operatorId = queues[ 0 ].getOperatorId();
         final int inputPortCount = queues[ 0 ].getInputPortCount();
@@ -251,11 +242,13 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
         {
             for ( int replicaIndex = 0; replicaIndex < newReplicaCount; replicaIndex++ )
             {
-                final List<TupleQueueContainer> partitions = getPartitionsMigratedToReplicaIndex( currentPartitionDistribution,
-                                                                                                  newPartitionDistribution,
-                                                                                                  movingPartitions,
-                                                                                                  replicaIndex );
-                newQueues[ replicaIndex ].acquirePartitions( partitions );
+                for ( int partitionId : currentPartitionDistribution.getPartitionIdsMigratedToReplicaIndex( newPartitionDistribution,
+                                                                                                            replicaIndex ) )
+                {
+                    final Map<PartitionKey, TupleQueue[]> keys = movingPartitions.remove( partitionId );
+                    checkState( keys != null );
+                    newQueues[ replicaIndex ].acquireKeys( partitionId, keys );
+                }
             }
         }
         else
@@ -263,40 +256,23 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
             for ( int replicaIndex = currentReplicaCount; replicaIndex < newReplicaCount; replicaIndex++ )
             {
                 final int partitionCount = newPartitionDistribution.getPartitionCount();
-                final TupleQueueContainer containers[] = new TupleQueueContainer[ partitionCount ];
-                getPartitionsMigratedToReplicaIndex( currentPartitionDistribution,
-                                                     newPartitionDistribution,
-                                                     movingPartitions,
-                                                     replicaIndex ).forEach( p -> containers[ p.getPartitionId() ] = p );
                 newQueues[ replicaIndex ] = new PartitionedOperatorTupleQueue( operatorId,
                                                                                inputPortCount,
                                                                                partitionCount,
                                                                                replicaIndex,
                                                                                tupleQueueManagerConfig.getTupleQueueCapacity(),
-                                                                               partitionKeyExtractor,
-                                                                               containers, newPartitionDistribution.getDistribution() );
-
+                                                                               partitionKeyExtractor );
+                for ( int partitionId : currentPartitionDistribution.getPartitionIdsMigratedToReplicaIndex( newPartitionDistribution,
+                                                                                                            replicaIndex ) )
+                {
+                    final Map<PartitionKey, TupleQueue[]> keys = movingPartitions.remove( partitionId );
+                    checkState( keys != null );
+                    newQueues[ replicaIndex ].acquireKeys( partitionId, keys );
+                }
             }
         }
 
         return newQueues;
-    }
-
-    private List<TupleQueueContainer> getPartitionsMigratedToReplicaIndex ( final PartitionDistribution currentPartitionDistribution,
-                                                                            final PartitionDistribution newPartitionDistribution,
-                                                                            final Map<Integer, TupleQueueContainer> movingPartitions,
-                                                                            final int replicaIndex )
-    {
-        final List<Integer> partitionIds = currentPartitionDistribution.getPartitionIdsMigratedToReplicaIndex( newPartitionDistribution,
-                                                                                                               replicaIndex );
-
-        final List<TupleQueueContainer> partitions = new ArrayList<>();
-        for ( Integer partitionId : partitionIds )
-        {
-            partitions.add( movingPartitions.remove( partitionId ) );
-        }
-
-        return partitions;
     }
 
     @Override
@@ -320,8 +296,6 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
                     "no partitioned tuple queue to release for regionId=%s operatorId=%s",
                     regionId,
                     operatorId );
-
-        releaseTupleQueueContainers( operatorId );
     }
 
     @Override
@@ -350,8 +324,7 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
             if ( capacity != tupleQueueManagerConfig.getTupleQueueCapacity() )
             {
                 LOGGER.warn( "Extending tuple queues of regionId={} replicaIndex={} operatorId={} to capacity={} while converting to {}",
-                             regionId,
-                             replicaIndex, operatorId, capacity,
+                             regionId, replicaIndex, operatorId, capacity,
                              MULTI_THREADED );
             }
 
@@ -393,7 +366,8 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
         final DefaultOperatorTupleQueue newOperatorTupleQueue = new DefaultOperatorTupleQueue( operatorTupleQueueId,
                                                                                                operatorTupleQueue.getInputPortCount(),
                                                                                                newThreadingPreference,
-                                                                                               tupleQueues, drainLimit );
+                                                                                               tupleQueues,
+                                                                                               drainLimit );
 
         singleOperatorTupleQueues.put( tupleQueueId, newOperatorTupleQueue );
         LOGGER.debug( "{} default tuple queue is switched to {} for regionId={} replicaIndex={} operatorId={}",
@@ -414,37 +388,6 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
             final boolean offered = targetQueue.offer( tuple );
             assert offered;
         }
-    }
-
-    private TupleQueueContainer[] createTupleQueueContainers ( final String operatorId, final int inputPortCount, final int partitionCount )
-    {
-        final TupleQueueContainer[] containers = new TupleQueueContainer[ partitionCount ];
-        for ( int i = 0; i < partitionCount; i++ )
-        {
-            containers[ i ] = new TupleQueueContainer( operatorId, inputPortCount, i );
-        }
-
-        tupleQueueContainersByOperatorId.put( operatorId, containers );
-        return containers;
-    }
-
-    private boolean releaseTupleQueueContainers ( final String operatorId )
-    {
-        final TupleQueueContainer[] tupleQueueContainers = tupleQueueContainersByOperatorId.remove( operatorId );
-
-        if ( tupleQueueContainers != null )
-        {
-            LOGGER.info( "Releasing tuple queue containers of operator {}", operatorId );
-            for ( TupleQueueContainer container : tupleQueueContainers )
-            {
-                container.clear();
-            }
-
-            return true;
-        }
-
-        LOGGER.error( "no tuple queue containers are found for operator {}.", operatorId );
-        return false;
     }
 
 }

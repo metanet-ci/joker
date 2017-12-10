@@ -8,7 +8,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractor1;
-import cs.bilkent.joker.engine.tuplequeue.impl.TupleQueueContainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.NonBlockingMultiPortDisjunctiveDrainer;
 import cs.bilkent.joker.operator.Tuple;
@@ -40,14 +39,12 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
     @Before
     public void init ()
     {
-        final TupleQueueContainer container = new TupleQueueContainer( "op1", INPUT_PORT_COUNT, 0 );
         operatorTupleQueue = new PartitionedOperatorTupleQueue( "op1",
                                                                 INPUT_PORT_COUNT,
                                                                 PARTITION_COUNT,
                                                                 0,
                                                                 TUPLE_QUEUE_CAPACITY,
-                                                                new PartitionKeyExtractor1( singletonList( PARTITION_KEY_FIELD ) ),
-                                                                new TupleQueueContainer[] { container }, new int[] { 0 } );
+                                                                new PartitionKeyExtractor1( singletonList( PARTITION_KEY_FIELD ) ) );
     }
 
     @Test
@@ -156,23 +153,6 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
         operatorTupleQueue.drain( drainer, key -> result );
 
         assertEquals( tuples, result.getTuples( 0 ) );
-    }
-
-    // tuple counts are not satisfied.
-    @Test
-    public void testOfferedTuplesNotDrainedGreedilyWhenTupleCountsNotUpdated ()
-    {
-        operatorTupleQueue.setTupleCounts( new int[] { 2, 2 }, ANY_PORT );
-        final Tuple tuple = new Tuple();
-        tuple.set( PARTITION_KEY_FIELD, "key1" );
-        final List<Tuple> tuples = singletonList( tuple );
-        operatorTupleQueue.offer( 0, tuples );
-
-        final TuplesImpl result = new TuplesImpl( INPUT_PORT_COUNT );
-        final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT );
-        operatorTupleQueue.drain( drainer, key -> result );
-
-        assertTrue( result.isEmpty() );
     }
 
     // tuple counts are already satisfied.
