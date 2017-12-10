@@ -105,7 +105,9 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
         final int drainLimit = tupleQueueManagerConfig.getDrainLimit( threadingPreference );
         final DefaultOperatorTupleQueue operatorTupleQueue = new DefaultOperatorTupleQueue( operatorTupleQueueId,
                                                                                             inputPortCount,
-                                                                                            threadingPreference, tupleQueues, drainLimit );
+                                                                                            threadingPreference,
+                                                                                            tupleQueues,
+                                                                                            drainLimit );
 
         singleOperatorTupleQueues.put( key, operatorTupleQueue );
         LOGGER.debug( "created default tuple queue for regionId={} replicaIndex={} operatorId={}", regionId, replicaIndex, operatorId );
@@ -242,8 +244,14 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
         {
             for ( int replicaIndex = 0; replicaIndex < newReplicaCount; replicaIndex++ )
             {
-                for ( int partitionId : currentPartitionDistribution.getPartitionIdsMigratedToReplicaIndex( newPartitionDistribution,
-                                                                                                            replicaIndex ) )
+                final List<Integer> migratedPartitionIds = currentPartitionDistribution.getPartitionIdsMigratedToReplicaIndex(
+                        newPartitionDistribution,
+                        replicaIndex );
+                LOGGER.info( "{} partitions are migrating to Operator: {} replicaIndex: {}",
+                             migratedPartitionIds.size(),
+                             operatorId,
+                             replicaIndex );
+                for ( int partitionId : migratedPartitionIds )
                 {
                     final Map<PartitionKey, TupleQueue[]> keys = movingPartitions.remove( partitionId );
                     checkState( keys != null );
@@ -262,8 +270,14 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
                                                                                replicaIndex,
                                                                                tupleQueueManagerConfig.getTupleQueueCapacity(),
                                                                                partitionKeyExtractor );
-                for ( int partitionId : currentPartitionDistribution.getPartitionIdsMigratedToReplicaIndex( newPartitionDistribution,
-                                                                                                            replicaIndex ) )
+                final List<Integer> migratedPartitionIds = currentPartitionDistribution.getPartitionIdsMigratedToReplicaIndex(
+                        newPartitionDistribution,
+                        replicaIndex );
+                LOGGER.info( "{} partitions are migrating to Operator: {} replicaIndex: {}",
+                             migratedPartitionIds.size(),
+                             operatorId,
+                             replicaIndex );
+                for ( int partitionId : migratedPartitionIds )
                 {
                     final Map<PartitionKey, TupleQueue[]> keys = movingPartitions.remove( partitionId );
                     checkState( keys != null );
@@ -324,7 +338,10 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
             if ( capacity != tupleQueueManagerConfig.getTupleQueueCapacity() )
             {
                 LOGGER.warn( "Extending tuple queues of regionId={} replicaIndex={} operatorId={} to capacity={} while converting to {}",
-                             regionId, replicaIndex, operatorId, capacity,
+                             regionId,
+                             replicaIndex,
+                             operatorId,
+                             capacity,
                              MULTI_THREADED );
             }
 
