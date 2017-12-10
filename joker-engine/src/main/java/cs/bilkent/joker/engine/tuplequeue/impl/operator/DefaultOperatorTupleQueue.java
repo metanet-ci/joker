@@ -2,19 +2,20 @@ package cs.bilkent.joker.engine.tuplequeue.impl.operator;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.config.ThreadingPreference;
-import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
-import static cs.bilkent.joker.engine.config.ThreadingPreference.SINGLE_THREADED;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort;
+import cs.bilkent.joker.partition.impl.PartitionKey;
 
 
 public class DefaultOperatorTupleQueue implements OperatorTupleQueue
@@ -28,23 +29,22 @@ public class DefaultOperatorTupleQueue implements OperatorTupleQueue
 
     private final ThreadingPreference threadingPreference;
 
-    private final int tupleQueueCapacity;
+    private final int drainLimit;
 
     public DefaultOperatorTupleQueue ( final String operatorId,
                                        final int inputPortCount,
                                        final ThreadingPreference threadingPreference,
-                                       final TupleQueue[] tupleQueues,
-                                       final int tupleQueueCapacity )
+                                       final TupleQueue[] tupleQueues, final int drainLimit )
     {
         checkArgument( inputPortCount >= 0 );
         checkArgument( threadingPreference != null );
         checkArgument( tupleQueues != null );
         checkArgument( inputPortCount == tupleQueues.length );
-        checkArgument( tupleQueueCapacity > 0 );
+        checkArgument( drainLimit > 0 );
         this.operatorId = operatorId;
         this.threadingPreference = threadingPreference;
         this.tupleQueues = Arrays.copyOf( tupleQueues, inputPortCount );
-        this.tupleQueueCapacity = threadingPreference == SINGLE_THREADED ? tupleQueueCapacity : Integer.MAX_VALUE;
+        this.drainLimit = drainLimit;
     }
 
     @Override
@@ -79,9 +79,17 @@ public class DefaultOperatorTupleQueue implements OperatorTupleQueue
     }
 
     @Override
-    public void drain ( final boolean maySkipBlocking, final TupleQueueDrainer drainer )
+    public void drain ( final boolean maySkipBlocking,
+                        final TupleQueueDrainer drainer,
+                        final Function<PartitionKey, TuplesImpl> tuplesSupplier )
     {
-        drainer.drain( maySkipBlocking, null, tupleQueues );
+        if ( drainer.drain( maySkipBlocking, null, tupleQueues, tuplesSupplier ) )
+        {
+            int count = 1;
+            while ( count++ < drainLimit && drainer.drain( true, null, tupleQueues, tuplesSupplier ) )
+            {
+            }
+        }
     }
 
     @Override
@@ -138,30 +146,6 @@ public class DefaultOperatorTupleQueue implements OperatorTupleQueue
                 LOGGER.debug( "tuple queue of port index {} of operator {} is extended to {}", portIndex, operatorId, capacity );
             }
         }
-    }
-
-    @Override
-    public int getDrainCountHint ()
-    {
-        //        if ( !( tick && threadingPreference == SINGLE_THREADED ) )
-        //        {
-        //            return 1;
-        //        }
-
-        if ( threadingPreference == MULTI_THREADED )
-        {
-            return 1;
-        }
-
-        for ( int portIndex = 0; portIndex < getInputPortCount(); portIndex++ )
-        {
-            if ( tupleQueues[ portIndex ].size() >= tupleQueueCapacity )
-            {
-                return Integer.MAX_VALUE;
-            }
-        }
-
-        return 1;
     }
 
     public ThreadingPreference getThreadingPreference ()

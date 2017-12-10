@@ -1,7 +1,9 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.operator;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Function;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -14,10 +16,14 @@ import static cs.bilkent.joker.engine.config.ThreadingPreference.SINGLE_THREADED
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
+import cs.bilkent.joker.engine.tuplequeue.impl.drainer.MultiPortDrainer;
+import cs.bilkent.joker.engine.tuplequeue.impl.drainer.NonBlockingMultiPortDisjunctiveDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
+import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount;
+import cs.bilkent.joker.partition.impl.PartitionKey;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Arrays.asList;
 import static junit.framework.TestCase.assertNotNull;
@@ -58,7 +64,6 @@ public class DefaultOperatorTupleQueueTest extends AbstractJokerTest
     private void testOfferTuples ( final int inputPortCount, final ThreadingPreference threadingPreference )
     {
         final OperatorTupleQueue operatorTupleQueue = createOperatorTupleQueue( inputPortCount, threadingPreference );
-
         final TuplesImpl input = createTuples( inputPortCount, TUPLE_QUEUE_SIZE );
 
         for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
@@ -69,9 +74,39 @@ public class DefaultOperatorTupleQueueTest extends AbstractJokerTest
         }
 
         final GreedyDrainer drainer = new GreedyDrainer( inputPortCount );
-        operatorTupleQueue.drain( drainer );
+        final TuplesImpl result = new TuplesImpl( inputPortCount );
+        operatorTupleQueue.drain( drainer, key -> result );
 
-        assertTuples( inputPortCount, TUPLE_QUEUE_SIZE, drainer );
+        assertTuples( inputPortCount, TUPLE_QUEUE_SIZE, result );
+    }
+
+    @Test
+    public void testDrain ()
+    {
+        final int inputPortCount = 3;
+        final OperatorTupleQueue operatorTupleQueue = createOperatorTupleQueue( inputPortCount, threadingPreference );
+        final TuplesImpl input = createTuples( inputPortCount, TUPLE_QUEUE_SIZE );
+        for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
+        {
+            operatorTupleQueue.offer( portIndex, input.getTuples( portIndex ) );
+        }
+
+        final List<TuplesImpl> results = new ArrayList<>();
+        final Function<PartitionKey, TuplesImpl> tuplesSupplier = objects -> {
+            final TuplesImpl tuples = new TuplesImpl( inputPortCount );
+            results.add( tuples );
+            return tuples;
+        };
+
+        final MultiPortDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( inputPortCount, 100 );
+        final int requiredTupleCount = TUPLE_QUEUE_SIZE / 2;
+        drainer.setParameters( TupleAvailabilityByCount.EXACT,
+                               new int[] { 0, 1, 2 },
+                               new int[] { requiredTupleCount, requiredTupleCount, requiredTupleCount } );
+
+        operatorTupleQueue.drain( drainer, tuplesSupplier );
+
+        assertThat( results.size(), equalTo( 2 ) );
     }
 
     private OperatorTupleQueue createOperatorTupleQueue ( final int inputPortCount, final ThreadingPreference threadingPreference )
@@ -102,9 +137,8 @@ public class DefaultOperatorTupleQueueTest extends AbstractJokerTest
         return input;
     }
 
-    private void assertTuples ( final int inputPortCount, final int tupleCount, final GreedyDrainer drainer )
+    private void assertTuples ( final int inputPortCount, final int tupleCount, final TuplesImpl output )
     {
-        final TuplesImpl output = drainer.getResult();
         assertThat( output.getNonEmptyPortCount(), equalTo( inputPortCount ) );
 
         for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )

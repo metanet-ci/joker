@@ -1,13 +1,16 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.operator;
 
 import java.util.List;
+import java.util.function.Function;
 
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort;
+import cs.bilkent.joker.partition.impl.PartitionKey;
 
 public class EmptyOperatorTupleQueue implements OperatorTupleQueue
 {
@@ -61,9 +64,11 @@ public class EmptyOperatorTupleQueue implements OperatorTupleQueue
     }
 
     @Override
-    public void drain ( final boolean maySkipBlocking, final TupleQueueDrainer drainer )
+    public void drain ( final boolean maySkipBlocking,
+                        final TupleQueueDrainer drainer,
+                        final Function<PartitionKey, TuplesImpl> tuplesSupplier )
     {
-        drainer.drain( maySkipBlocking, null, tupleQueues );
+        drainer.drain( maySkipBlocking, null, tupleQueues, tuplesSupplier );
     }
 
     @Override
@@ -88,12 +93,6 @@ public class EmptyOperatorTupleQueue implements OperatorTupleQueue
     public void ensureCapacity ( final int capacity )
     {
 
-    }
-
-    @Override
-    public int getDrainCountHint ()
-    {
-        return 1;
     }
 
 }

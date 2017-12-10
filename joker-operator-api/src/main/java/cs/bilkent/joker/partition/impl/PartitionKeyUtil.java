@@ -1,4 +1,4 @@
-package cs.bilkent.joker.engine.partition.impl;
+package cs.bilkent.joker.partition.impl;
 
 /*
  * hashcode calculation:
@@ -9,14 +9,14 @@ package cs.bilkent.joker.engine.partition.impl;
  *
  *
  */
-final class PartitionKeyUtil
+public final class PartitionKeyUtil
 {
     private PartitionKeyUtil ()
     {
 
     }
 
-    static void rangeCheck ( final int index, final int size )
+    public static void rangeCheck ( final int index, final int size )
     {
         if ( index >= size )
         {
@@ -24,12 +24,12 @@ final class PartitionKeyUtil
         }
     }
 
-    static int hashHead ( final Object val )
+    public static int hashHead ( final Object val )
     {
         return 31 + val.hashCode();
     }
 
-    static int hashTail ( final int headHashCode, final Object val )
+    public static int hashTail ( final int headHashCode, final Object val )
     {
         return 31 * headHashCode + val.hashCode();
     }

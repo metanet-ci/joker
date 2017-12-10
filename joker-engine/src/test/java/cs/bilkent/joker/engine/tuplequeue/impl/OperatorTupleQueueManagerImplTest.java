@@ -125,10 +125,10 @@ public class OperatorTupleQueueManagerImplTest extends AbstractJokerTest
         operatorTupleQueue.offer( 1, singletonList( tuple2 ) );
 
         final OperatorTupleQueue operatorTupleQueue2 = tupleQueueManager.switchThreadingPreference( 1, 1, "op1" );
+
+        final TuplesImpl result = new TuplesImpl( 2 );
         final GreedyDrainer drainer = new GreedyDrainer( 2 );
-        operatorTupleQueue2.drain( drainer );
-        final TuplesImpl result = drainer.getResult();
-        assertNotNull( result );
+        operatorTupleQueue2.drain( drainer, key -> result );
         assertEquals( singletonList( tuple1 ), result.getTuples( 0 ) );
         assertEquals( singletonList( tuple2 ), result.getTuples( 1 ) );
     }
@@ -146,10 +146,10 @@ public class OperatorTupleQueueManagerImplTest extends AbstractJokerTest
         operatorTupleQueue.offer( 1, singletonList( tuple2 ) );
 
         final OperatorTupleQueue operatorTupleQueue2 = tupleQueueManager.switchThreadingPreference( REGION_ID, 1, "op1" );
+
+        final TuplesImpl result = new TuplesImpl( 2 );
         final GreedyDrainer drainer = new GreedyDrainer( 2 );
-        operatorTupleQueue2.drain( drainer );
-        final TuplesImpl result = drainer.getResult();
-        assertNotNull( result );
+        operatorTupleQueue2.drain( drainer, key -> result );
         assertEquals( singletonList( tuple1 ), result.getTuples( 0 ) );
         assertEquals( singletonList( tuple2 ), result.getTuples( 1 ) );
     }
@@ -193,9 +193,10 @@ public class OperatorTupleQueueManagerImplTest extends AbstractJokerTest
         final GreedyDrainer drainer = new GreedyDrainer( 1 );
         for ( int partitionId = 0; partitionId < partitionDistribution.getPartitionCount(); partitionId++ )
         {
+            final TuplesImpl result = new TuplesImpl( 1 );
             final int replicaIndex = newPartitionDistribution.getReplicaIndex( partitionId );
-            operatorTupleQueues[ replicaIndex ].drain( drainer );
-            tuples.removeAll( drainer.getResult().getTuplesByDefaultPort() );
+            operatorTupleQueues[ replicaIndex ].drain( drainer, key -> result );
+            tuples.removeAll( result.getTuplesByDefaultPort() );
         }
 
         assertTrue( tuples.isEmpty() );

@@ -104,12 +104,11 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
         }
 
         final String operatorTupleQueueId = toOperatorTupleQueueId( operatorId, replicaIndex );
+        final int drainLimit = tupleQueueManagerConfig.getDrainLimit( threadingPreference );
         final DefaultOperatorTupleQueue operatorTupleQueue = new DefaultOperatorTupleQueue( operatorTupleQueueId,
                                                                                             inputPortCount,
                                                                                             threadingPreference,
-                                                                                            tupleQueues,
-                                                                                            tupleQueueManagerConfig.getTupleQueueCapacity
-                                                                                                                            () );
+                                                                                            tupleQueues, drainLimit );
 
         singleOperatorTupleQueues.put( key, operatorTupleQueue );
         LOGGER.debug( "created default tuple queue for regionId={} replicaIndex={} operatorId={}", regionId, replicaIndex, operatorId );
@@ -170,11 +169,7 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
                                                                                      replicaIndex,
                                                                                      tupleQueueManagerConfig.getTupleQueueCapacity(),
                                                                                      partitionKeyExtractor,
-                                                                                     containers,
-                                                                                     partitions,
-                                                                                     tupleQueueManagerConfig.getMaxDrainableKeyCount(),
-                                                                                     tupleQueueManagerConfig
-                                                                                             .getPartitionedTupleQueueDrainHint() );
+                                                                                     containers, partitions );
         }
 
         partitionedOperatorTupleQueues.put( key, operatorTupleQueues );
@@ -279,11 +274,7 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
                                                                                replicaIndex,
                                                                                tupleQueueManagerConfig.getTupleQueueCapacity(),
                                                                                partitionKeyExtractor,
-                                                                               containers,
-                                                                               newPartitionDistribution.getDistribution(),
-                                                                               tupleQueueManagerConfig.getMaxDrainableKeyCount(),
-                                                                               tupleQueueManagerConfig.getPartitionedTupleQueueDrainHint
-                                                                                                               () );
+                                                                               containers, newPartitionDistribution.getDistribution() );
 
             }
         }
@@ -360,8 +351,7 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
             {
                 LOGGER.warn( "Extending tuple queues of regionId={} replicaIndex={} operatorId={} to capacity={} while converting to {}",
                              regionId,
-                             replicaIndex,
-                             operatorId, capacity,
+                             replicaIndex, operatorId, capacity,
                              MULTI_THREADED );
             }
 
@@ -399,12 +389,11 @@ public class OperatorTupleQueueManagerImpl implements OperatorTupleQueueManager
         final ThreadingPreference newThreadingPreference = threadingPreference.reverse();
 
         final String operatorTupleQueueId = toOperatorTupleQueueId( operatorId, replicaIndex );
+        final int drainLimit = tupleQueueManagerConfig.getDrainLimit( newThreadingPreference );
         final DefaultOperatorTupleQueue newOperatorTupleQueue = new DefaultOperatorTupleQueue( operatorTupleQueueId,
                                                                                                operatorTupleQueue.getInputPortCount(),
                                                                                                newThreadingPreference,
-                                                                                               tupleQueues,
-                                                                                               tupleQueueManagerConfig
-                                                                                                       .getTupleQueueCapacity() );
+                                                                                               tupleQueues, drainLimit );
 
         singleOperatorTupleQueues.put( tupleQueueId, newOperatorTupleQueue );
         LOGGER.debug( "{} default tuple queue is switched to {} for regionId={} replicaIndex={} operatorId={}",

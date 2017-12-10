@@ -1,59 +1,64 @@
 package cs.bilkent.joker.operator.impl;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import cs.bilkent.joker.operator.InvocationContext;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.kvstore.KVStore;
+import cs.bilkent.joker.partition.impl.PartitionKey;
 import static java.util.Arrays.copyOf;
 
 
 public class InvocationContextImpl implements InvocationContext
 {
 
+    private final int inputPortCount;
+
+    private final Function<PartitionKey, KVStore> kvStoreSupplier;
+
+    private final List<TuplesImpl> inputs = new ArrayList<>();
+
+    private final List<PartitionKey> partitionKeys = new ArrayList<>();
+
+    private final TuplesImpl output;
+
     private InvocationReason reason;
-
-    private TuplesImpl input;
-
-    private TuplesImpl output;
-
-    private List<Object> partitionKey;
-
-    private KVStore kvStore;
 
     private boolean[] upstreamConnectionStatuses;
 
-    public InvocationContextImpl ()
+    private int inputCount;
+
+    private int currentInput = 0;
+
+    public InvocationContextImpl ( final int inputPortCount,
+                                   final Function<PartitionKey, KVStore> kvStoreSupplier,
+                                   final TuplesImpl output )
     {
+        this.inputPortCount = inputPortCount;
+        this.kvStoreSupplier = kvStoreSupplier;
+        this.output = output;
     }
 
-    public void setInvocationParameters ( final InvocationReason reason, final TuplesImpl input, final TuplesImpl output )
-    {
-        setInvocationParameters( reason, input, output, null, null );
-    }
-
-    public void setInvocationParameters ( final InvocationReason reason,
-                                          final TuplesImpl input,
-                                          final TuplesImpl output,
-                                          final List<Object> partitionKey,
-                                          final KVStore kvStore )
+    public void setInvocationReason ( final InvocationReason reason )
     {
         checkNotNull( reason );
         this.reason = reason;
-        this.input = input;
-        this.output = output;
-        this.partitionKey = partitionKey;
-        this.kvStore = kvStore;
     }
 
-    public void resetInvocationParameters ()
+    public void reset ()
     {
         this.reason = null;
-        this.input = null;
-        this.output = null;
-        this.partitionKey = null;
-        this.kvStore = null;
+        for ( TuplesImpl input : inputs )
+        {
+            input.clear();
+        }
+        partitionKeys.clear();
+        output.clear();
+        inputCount = 0;
+        currentInput = 0;
     }
 
     public void setUpstreamConnectionStatuses ( final boolean[] upstreamConnectionStatuses )
@@ -61,27 +66,53 @@ public class InvocationContextImpl implements InvocationContext
         this.upstreamConnectionStatuses = copyOf( upstreamConnectionStatuses, upstreamConnectionStatuses.length );
     }
 
+    public TuplesImpl createInputTuples ( final PartitionKey partitionKey )
+    {
+        partitionKeys.add( partitionKey );
+        if ( inputs.size() <= inputCount )
+        {
+            inputs.add( new TuplesImpl( inputPortCount ) );
+        }
+
+        return inputs.get( inputCount++ );
+    }
+
+    public int getInputCount ()
+    {
+        return inputCount;
+    }
+
+    public boolean nextInput ()
+    {
+        return ( ++currentInput < inputCount );
+    }
+
     public TuplesImpl getInput ()
     {
-        return input;
+        return inputs.get( currentInput );
+    }
+
+    public List<TuplesImpl> getInputs ()
+    {
+        return inputs;
     }
 
     @Override
     public List<Tuple> getInputTuples ( int portIndex )
     {
-        return input.getTuples( portIndex );
+        return getInput().getTuples( portIndex );
     }
 
     @Override
     public Tuple getInputTupleOrNull ( int portIndex, int tupleIndex )
     {
-        return input.getTupleOrNull( portIndex, tupleIndex );
+        return getInput().getTupleOrNull( portIndex, tupleIndex );
     }
 
     @Override
     public int getInputTupleCount ( int portIndex )
     {
-        return input.getTupleCount( portIndex );
+        return getInput().getTupleCount( portIndex );
     }
 
     @Override
@@ -132,15 +163,15 @@ public class InvocationContextImpl implements InvocationContext
     }
 
     @Override
-    public List<Object> getPartitionKey ()
+    public PartitionKey getPartitionKey ()
     {
-        return partitionKey;
+        return partitionKeys.get( currentInput );
     }
 
     @Override
     public KVStore getKVStore ()
     {
-        return kvStore;
+        return kvStoreSupplier.apply( getPartitionKey() );
     }
 
 }

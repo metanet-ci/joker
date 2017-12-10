@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Future;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -1061,9 +1060,8 @@ public class PipelineManagerImpl implements PipelineManager
     {
 
         @Override
-        public Future<Void> send ( final TuplesImpl tuples )
+        public void send ( final TuplesImpl tuples )
         {
-            return null;
         }
 
     }

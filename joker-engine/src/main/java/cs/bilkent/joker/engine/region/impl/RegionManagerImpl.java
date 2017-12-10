@@ -320,10 +320,10 @@ public class RegionManagerImpl implements RegionManager
                 final OperatorReplica operator = pipelineReplica.getOperator( 0 );
                 final OperatorTupleQueue operatorTupleQueue = operator.getQueue();
                 final OperatorDef operatorDef = operator.getOperatorDef();
+                final TuplesImpl result = new TuplesImpl( operatorDef.getInputPortCount() );
                 final GreedyDrainer drainer = new GreedyDrainer( operatorDef.getInputPortCount() );
-                pipelineTupleQueue.drain( drainer );
-                final TuplesImpl result = drainer.getResult();
-                if ( result != null && result.isNonEmpty() )
+                pipelineTupleQueue.drain( drainer, k -> result );
+                if ( result.isNonEmpty() )
                 {
                     LOGGER.debug( "Draining pipeline tuple queue of {}", pipelineReplica.id() );
                     for ( int portIndex = 0; portIndex < result.getPortCount(); portIndex++ )
@@ -467,9 +467,9 @@ public class RegionManagerImpl implements RegionManager
         for ( PipelineReplica pipelineReplica : pipelineReplicas )
         {
             final OperatorReplica operator = pipelineReplica.getOperator( operatorIndex );
+            final TuplesImpl result = new TuplesImpl( inputPortCount );
             final GreedyDrainer drainer = new GreedyDrainer( inputPortCount );
-            operator.getQueue().drain( drainer );
-            final TuplesImpl result = drainer.getResult();
+            operator.getQueue().drain( drainer, key -> result );
             for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
             {
                 for ( Tuple tuple : result.getTuples( portIndex ) )

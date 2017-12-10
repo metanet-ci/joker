@@ -43,11 +43,11 @@ public class BarrierOperatorTest extends AbstractJokerTest
 
     private final OperatorRuntimeSchemaBuilder schemaBuilder = new OperatorRuntimeSchemaBuilder( inputPorts.length, 1 );
 
-    private final TuplesImpl input = new TuplesImpl( 3 );
-
     private final TuplesImpl output = new TuplesImpl( 3 );
 
-    private final InvocationContextImpl invocationContext = new InvocationContextImpl();
+    private final InvocationContextImpl invocationContext = new InvocationContextImpl( inputPorts.length, key -> null, output );
+
+    private final TuplesImpl input = invocationContext.createInputTuples( null );
 
     @Before
     public void init ()
@@ -62,7 +62,7 @@ public class BarrierOperatorTest extends AbstractJokerTest
         fill( upstream, true );
 
         initContext = new InitializationContextImpl( operatorDef, upstream );
-        invocationContext.setInvocationParameters( SUCCESS, input, output );
+        invocationContext.setInvocationReason( SUCCESS );
     }
 
     @Test( expected = IllegalArgumentException.class )
@@ -92,7 +92,8 @@ public class BarrierOperatorTest extends AbstractJokerTest
     {
         config.set( MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
         operator.init( initContext );
-        invocationContext.setInvocationParameters( SHUTDOWN, input, output );
+
+        invocationContext.setInvocationReason( SHUTDOWN );
 
         populateTuplesWithUniqueFields( input );
         final Tuple tuple = new Tuple();

@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.kvstore.OperatorKVStore;
 import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
-import cs.bilkent.joker.engine.partition.PartitionKey;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETED;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETING;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIAL;
@@ -22,6 +21,7 @@ import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.SHUT_DOWN;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainerPool;
+import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
 import static cs.bilkent.joker.engine.util.ExceptionUtils.checkInterruption;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.operator.InitializationContext;
@@ -35,7 +35,6 @@ import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.InitializationContextImpl;
 import cs.bilkent.joker.operator.impl.InvocationContextImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
-import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.operator.scheduling.ScheduleNever;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
@@ -91,8 +90,6 @@ public class OperatorReplica
     private OperatorReplicaListener listener = ( operatorId, status1 ) -> {
     };
 
-    private boolean operatorInvokedOnLastAttempt;
-
     public OperatorReplica ( final PipelineReplicaId pipelineReplicaId,
                              final OperatorDef operatorDef,
                              final OperatorTupleQueue queue,
@@ -101,18 +98,6 @@ public class OperatorReplica
                              final Supplier<TuplesImpl> outputSupplier,
                              final PipelineReplicaMeter meter )
     {
-        this( pipelineReplicaId, operatorDef, queue, operatorKvStore, drainerPool, outputSupplier, meter, new InvocationContextImpl() );
-    }
-
-    public OperatorReplica ( final PipelineReplicaId pipelineReplicaId,
-                             final OperatorDef operatorDef,
-                             final OperatorTupleQueue queue,
-                             final OperatorKVStore operatorKvStore,
-                             final TupleQueueDrainerPool drainerPool,
-                             final Supplier<TuplesImpl> outputSupplier,
-                             final PipelineReplicaMeter meter,
-                             final InvocationContextImpl invocationContext )
-    {
         this.operatorName = pipelineReplicaId.toString() + ".Operator<" + operatorDef.getId() + ">";
         this.queue = queue;
         this.operatorDef = operatorDef;
@@ -120,7 +105,9 @@ public class OperatorReplica
         this.drainerPool = drainerPool;
         this.outputSupplier = outputSupplier;
         this.meter = meter;
-        this.invocationContext = invocationContext;
+        this.invocationContext = new InvocationContextImpl( operatorDef.getInputPortCount(),
+                                                            operatorKvStore::getKVStore,
+                                                            outputSupplier.get() );
     }
 
     // constructor for operator replica duplication
@@ -195,6 +182,7 @@ public class OperatorReplica
         final SchedulingStrategy schedulingStrategy = operator.init( initContext );
         upstreamContext.verifyInitializable( operatorDef, schedulingStrategy );
         setNewSchedulingStrategy( schedulingStrategy );
+        setDrainer( drainerPool.acquire( schedulingStrategy ) );
         setQueueTupleCounts( schedulingStrategy );
     }
 
@@ -205,6 +193,12 @@ public class OperatorReplica
             final ScheduleWhenTuplesAvailable ss = (ScheduleWhenTuplesAvailable) schedulingStrategy;
             queue.setTupleCounts( ss.getTupleCounts(), ss.getTupleAvailabilityByPort() );
         }
+    }
+
+    private void setDrainer ( final TupleQueueDrainer drainer )
+    {
+        this.drainer = drainer;
+        LOGGER.info( "{} acquired {}", operatorName, drainer.getClass().getSimpleName() );
     }
 
     private void closeSelfUpstreamContext ()
@@ -252,8 +246,6 @@ public class OperatorReplica
      */
     public TuplesImpl invoke ( final boolean drainerMaySkipBlocking, final TuplesImpl upstreamInput, final UpstreamContext upstreamContext )
     {
-        operatorInvokedOnLastAttempt = false;
-
         if ( status == COMPLETED )
         {
             return null;
@@ -263,86 +255,83 @@ public class OperatorReplica
 
         offer( upstreamInput );
 
-        TuplesImpl input, output = null;
+        invocationContext.reset();
+        drainQueue( drainerMaySkipBlocking );
 
-        int invocationCount = queue.getDrainCountHint();
-
-        while ( true )
+        if ( status == RUNNING )
         {
-            input = drainQueue( drainerMaySkipBlocking );
-            boolean invoked = true;
-            if ( status == RUNNING )
+            if ( schedulingStrategy instanceof ScheduleWhenAvailable )
             {
-                if ( schedulingStrategy instanceof ScheduleWhenAvailable )
+                if ( handleNewUpstreamContext( upstreamContext ) )
                 {
-                    if ( handleNewUpstreamContext( upstreamContext ) )
-                    {
-                        output = invokeOperator( SHUTDOWN, input, output, drainer.getKey() );
-                        completeRun();
-                        completionReason = SHUTDOWN;
-                    }
-                    else
-                    {
-                        output = invokeOperator( SUCCESS, input, output, drainer.getKey() );
-                    }
-                }
-                else if ( input != null )
-                {
-                    output = invokeOperator( SUCCESS, input, output, drainer.getKey() );
-                }
-                else if ( handleNewUpstreamContext( upstreamContext ) && !upstreamContext.isInvokable( operatorDef, schedulingStrategy ) )
-                {
-                    setStatus( COMPLETING );
-                    completionReason = INPUT_PORT_CLOSED;
-                    setNewSchedulingStrategy( ScheduleWhenAvailable.INSTANCE );
-                    setQueueTupleCountsForGreedyDraining();
-                    input = drainQueue( drainerMaySkipBlocking );
-                    if ( input != null && input.isNonEmpty() )
-                    {
-                        output = invokeOperator( INPUT_PORT_CLOSED, input, output, drainer.getKey() );
-                    }
-                    else
-                    {
-                        invoked = false;
-                    }
+                    invokeOperator( SHUTDOWN );
+                    completeRun();
+                    completionReason = SHUTDOWN;
                 }
                 else
                 {
-                    invoked = false;
+                    invokeOperator( SUCCESS );
                 }
             }
-            else if ( input != null && input.isNonEmpty() )
+            else if ( invocationContext.getInputCount() > 0 )
             {
-                // status = COMPLETING
-                output = invokeOperator( INPUT_PORT_CLOSED, input, output, drainer.getKey() );
+                invokeOperator( SUCCESS );
+            }
+            else if ( handleNewUpstreamContext( upstreamContext ) && !upstreamContext.isInvokable( operatorDef, schedulingStrategy ) )
+            {
+                setStatus( COMPLETING );
+                completionReason = INPUT_PORT_CLOSED;
+                setDrainer( new GreedyDrainer( operatorDef.getInputPortCount() ) );
+                setQueueTupleCountsForGreedyDraining();
+                drainQueue( drainerMaySkipBlocking );
+                if ( invocationContext.getInputCount() > 0 )
+                {
+                    invokeOperator( INPUT_PORT_CLOSED );
+                }
+                else
+                {
+                    return null;
+                }
             }
             else
             {
-                // status = COMPLETING
-                if ( handleNewUpstreamContext( upstreamContext ) )
-                {
-                    output = invokeOperator( INPUT_PORT_CLOSED, new TuplesImpl( operatorDef.getInputPortCount() ), output, null );
-                }
-                else
-                {
-                    invoked = false;
-                }
-
-                if ( upstreamContext.isOpenUpstreamConnectionAbsent() )
-                {
-                    completeRun();
-                }
-            }
-
-            operatorInvokedOnLastAttempt |= invoked;
-
-            if ( !invoked || --invocationCount < 1 || status == COMPLETED )
-            {
-                break;
+                return null;
             }
         }
+        else if ( invocationContext.getInputCount() > 0 )
+        {
+            // status = COMPLETING
+            invokeOperator( INPUT_PORT_CLOSED );
+        }
+        else if ( handleNewUpstreamContext( upstreamContext ) )
+        {
+            // status = COMPLETING
+            invocationContext.createInputTuples( null );
+            invokeOperator( INPUT_PORT_CLOSED );
 
-        return output;
+            if ( upstreamContext.isOpenUpstreamConnectionAbsent() )
+            {
+                completeRun();
+            }
+        }
+        else
+        {
+            // status = COMPLETING
+            if ( upstreamContext.isOpenUpstreamConnectionAbsent() )
+            {
+                completeRun();
+            }
+
+            return null;
+        }
+
+        final TuplesImpl output = invocationContext.getOutput();
+        return output.isEmpty() ? null : output;
+    }
+
+    private void drainQueue ( final boolean drainerMaySkipBlocking )
+    {
+        queue.drain( drainerMaySkipBlocking, drainer, invocationContext::createInputTuples );
     }
 
     private void setQueueTupleCountsForGreedyDraining ()
@@ -365,30 +354,22 @@ public class OperatorReplica
         }
     }
 
-    private TuplesImpl drainQueue ( final boolean drainerMaySkipBlocking )
-    {
-        drainer.reset();
-        queue.drain( drainerMaySkipBlocking, drainer );
-        return drainer.getResult();
-    }
-
     /**
      * Invokes the operator, resets the drainer and handles the new scheduling strategy if allowed.
      */
-    private TuplesImpl invokeOperator ( final InvocationReason reason,
-                                        final TuplesImpl input,
-                                        final TuplesImpl output,
-                                        final PartitionKey key )
+    private void invokeOperator ( final InvocationReason reason )
     {
-        final KVStore kvStore = operatorKvStore.getKVStore( key );
-        final TuplesImpl invocationOutput = output != null ? output : outputSupplier.get();
-        invocationContext.setInvocationParameters( reason, input, invocationOutput, key, kvStore );
-        meter.onInvocationStart( operatorDef.getId(), input );
-        operator.invoke( invocationContext );
-        meter.onInvocationComplete( operatorDef.getId() );
-        invocationContext.resetInvocationParameters();
+        invocationContext.setInvocationReason( reason );
+        meter.onInvocationStart( operatorDef.getId() );
 
-        return invocationOutput;
+        do
+        {
+            operator.invoke( invocationContext );
+        } while ( invocationContext.nextInput() );
+
+        meter.addTuples( operatorDef.getId(), invocationContext.getInputs(), invocationContext.getInputCount() );
+
+        meter.onInvocationComplete( operatorDef.getId() );
     }
 
     /**
@@ -397,21 +378,8 @@ public class OperatorReplica
      */
     private void setNewSchedulingStrategy ( final SchedulingStrategy newSchedulingStrategy )
     {
-        if ( drainer != null )
-        {
-            LOGGER.info( "{} setting new scheduling strategy: {} old scheduling strategy: {}",
-                         operatorName,
-                         newSchedulingStrategy,
-                         schedulingStrategy );
-            drainerPool.release( drainer );
-        }
-        else
-        {
-            LOGGER.info( "{} setting new scheduling strategy: {}", operatorName, newSchedulingStrategy );
-        }
+        LOGGER.info( "{} setting new scheduling strategy: {}", operatorName, newSchedulingStrategy );
         schedulingStrategy = newSchedulingStrategy;
-        drainer = drainerPool.acquire( schedulingStrategy );
-        LOGGER.info( "{} acquired {}", operatorName, drainer.getClass().getSimpleName() );
     }
 
     /**
@@ -446,12 +414,6 @@ public class OperatorReplica
      */
     private void completeRun ()
     {
-        if ( drainer != null )
-        {
-            drainerPool.release( drainer );
-            drainer = null;
-        }
-        schedulingStrategy = ScheduleNever.INSTANCE;
         closeSelfUpstreamContext();
         setStatus( COMPLETED );
     }
@@ -506,8 +468,6 @@ public class OperatorReplica
                     this.operatorName,
                     pipelineReplicaId,
                     this.status );
-
-        drainerPool.reset();
 
         final OperatorReplica duplicate = new OperatorReplica( pipelineReplicaId,
                                                                this.operatorDef,
@@ -604,14 +564,14 @@ public class OperatorReplica
         return status == RUNNING || status == COMPLETING;
     }
 
-    boolean isOperatorInvokedOnLastAttempt ()
-    {
-        return operatorInvokedOnLastAttempt;
-    }
-
     InvocationReason getCompletionReason ()
     {
         return completionReason;
+    }
+
+    InvocationContextImpl getInvocationContext ()
+    {
+        return invocationContext;
     }
 
     @Override

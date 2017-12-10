@@ -1,8 +1,8 @@
 package cs.bilkent.joker.engine.kvstore.impl;
 
 import cs.bilkent.joker.engine.kvstore.OperatorKVStore;
-import cs.bilkent.joker.engine.partition.PartitionKey;
 import cs.bilkent.joker.operator.kvstore.KVStore;
+import cs.bilkent.joker.partition.impl.PartitionKey;
 
 public class EmptyOperatorKVStore implements OperatorKVStore
 {

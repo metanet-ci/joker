@@ -9,7 +9,7 @@ import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 
@@ -20,14 +20,21 @@ public class GreedyDrainerTest extends AbstractJokerTest
     public void shouldFailWithNullTupleQueues ()
     {
         final GreedyDrainer greedyDrainer = new GreedyDrainer( 1 );
-        greedyDrainer.drain( null, null );
+        greedyDrainer.drain( null, null, k -> null );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithEmptyTupleQueues ()
     {
         final GreedyDrainer greedyDrainer = new GreedyDrainer( 1 );
-        greedyDrainer.drain( null, new TupleQueue[] {} );
+        greedyDrainer.drain( null, new TupleQueue[] {}, k -> null );
+    }
+
+    @Test( expected = IllegalArgumentException.class )
+    public void shouldFailWithNullTupleSupplier ()
+    {
+        final GreedyDrainer greedyDrainer = new GreedyDrainer( 1 );
+        greedyDrainer.drain( null, new TupleQueue[] { new SingleThreadedTupleQueue( 1 ) }, null );
     }
 
     @Test
@@ -38,11 +45,11 @@ public class GreedyDrainerTest extends AbstractJokerTest
         tupleQueue.offer( tuple );
 
         final GreedyDrainer greedyDrainer = new GreedyDrainer( 1 );
+        final TuplesImpl tuples = new TuplesImpl( 1 );
 
-        greedyDrainer.drain( null, new TupleQueue[] { tupleQueue } );
+        final boolean success = greedyDrainer.drain( null, new TupleQueue[] { tupleQueue }, key -> tuples );
 
-        final TuplesImpl tuples = greedyDrainer.getResult();
-        assertNotNull( tuples );
+        assertFalse( success );
         assertThat( tuples.getNonEmptyPortCount(), equalTo( 1 ) );
         assertThat( tuples.getTupleCount( 0 ), equalTo( 1 ) );
         assertTrue( tuple == tuples.getTupleOrFail( 0, 0 ) );
@@ -60,11 +67,11 @@ public class GreedyDrainerTest extends AbstractJokerTest
         tupleQueue2.offer( tuple2 );
 
         final GreedyDrainer greedyDrainer = new GreedyDrainer( 2 );
+        final TuplesImpl tuples = new TuplesImpl( 2 );
 
-        greedyDrainer.drain( null, new TupleQueue[] { tupleQueue1, tupleQueue2 } );
+        final boolean success = greedyDrainer.drain( null, new TupleQueue[] { tupleQueue1, tupleQueue2 }, key -> tuples );
 
-        final TuplesImpl tuples = greedyDrainer.getResult();
-        assertNotNull( tuples );
+        assertFalse( success );
         assertThat( tuples.getNonEmptyPortCount(), equalTo( 2 ) );
         assertThat( tuples.getTupleCount( 0 ), equalTo( 1 ) );
         assertThat( tuples.getTupleCount( 1 ), equalTo( 1 ) );

@@ -18,6 +18,8 @@ public class BlockingMultiPortDisjunctiveDrainer extends MultiPortDrainer
     @Override
     protected int[] checkQueueSizes ( final boolean maySkipBlocking, final TupleQueue[] tupleQueues )
     {
+        idleStrategy.reset();
+
         boolean idle = maySkipBlocking;
         while ( true )
         {
@@ -57,13 +59,6 @@ public class BlockingMultiPortDisjunctiveDrainer extends MultiPortDrainer
             }
         }
 
-    }
-
-    @Override
-    public void reset ()
-    {
-        super.reset();
-        idleStrategy.reset();
     }
 
 }

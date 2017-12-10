@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import org.junit.Test;
 
@@ -14,6 +15,7 @@ import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort;
+import cs.bilkent.joker.partition.impl.PartitionKey;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -148,7 +150,9 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
         }
 
         @Override
-        public void drain ( final boolean maySkipBlocking, final TupleQueueDrainer drainer )
+        public void drain ( final boolean maySkipBlocking,
+                            final TupleQueueDrainer drainer,
+                            final Function<PartitionKey, TuplesImpl> tuplesSupplier )
         {
 
         }
@@ -175,12 +179,6 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
         public void ensureCapacity ( final int capacity )
         {
 
-        }
-
-        @Override
-        public int getDrainCountHint ()
-        {
-            return 1;
         }
 
     }

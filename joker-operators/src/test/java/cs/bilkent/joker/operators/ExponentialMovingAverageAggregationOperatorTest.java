@@ -34,13 +34,13 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
 
     private ExponentialMovingAverageAggregationOperator operator;
 
-    private final TuplesImpl input = new TuplesImpl( 1 );
+    private final KVStore kvStore = new InMemoryKVStore();
 
     private final TuplesImpl output = new TuplesImpl( 1 );
 
-    private final KVStore kvStore = new InMemoryKVStore();
+    private final InvocationContextImpl invocationContext = new InvocationContextImpl( 1, key -> kvStore, output );
 
-    private final InvocationContextImpl invocationContext = new InvocationContextImpl();
+    private final TuplesImpl input = invocationContext.createInputTuples( null );
 
     private final OperatorConfig config = new OperatorConfig();
 
@@ -49,7 +49,7 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
     @Before
     public void init () throws InstantiationException, IllegalAccessException
     {
-        invocationContext.setInvocationParameters( SUCCESS, input, output, null, kvStore );
+        invocationContext.setInvocationReason( SUCCESS );
 
         final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "op", ExponentialMovingAverageAggregationOperator.class )
                                                           .setConfig( config )

@@ -1,7 +1,6 @@
 package cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender;
 
 import java.util.List;
-import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
 import cs.bilkent.joker.engine.exception.JokerException;
@@ -38,7 +37,7 @@ public class DownstreamTupleSender1 implements DownstreamTupleSender, Supplier<O
     }
 
     @Override
-    public Future<Void> send ( final TuplesImpl input )
+    public void send ( final TuplesImpl input )
     {
         idleStrategy.reset();
 
@@ -64,8 +63,6 @@ public class DownstreamTupleSender1 implements DownstreamTupleSender, Supplier<O
                 }
             }
         }
-
-        return null;
     }
 
     @Override

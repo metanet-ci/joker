@@ -3,7 +3,6 @@ package cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
 import cs.bilkent.joker.engine.exception.JokerException;
@@ -58,7 +57,7 @@ public abstract class AbstractPartitionedDownstreamTupleSender extends AbstractD
         return Arrays.copyOf( operatorTupleQueues, operatorTupleQueues.length );
     }
 
-    protected final Future<Void> send ( final TuplesImpl input, final int sourcePortIndex, final int destinationPortIndex )
+    protected final void send ( final TuplesImpl input, final int sourcePortIndex, final int destinationPortIndex )
     {
         for ( Tuple tuple : input.getTuplesModifiable( sourcePortIndex ) )
         {
@@ -114,8 +113,6 @@ public abstract class AbstractPartitionedDownstreamTupleSender extends AbstractD
             tupleLists[ i ].clear();
             indices[ i ] = 0;
         }
-
-        return null;
     }
 
 }

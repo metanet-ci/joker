@@ -307,9 +307,9 @@ public class PipelineTransformerImpl implements PipelineTransformer
                                            final OperatorDef operatorDef )
     {
         final GreedyDrainer drainer = new GreedyDrainer( operatorDef.getInputPortCount() );
-        pipelineTupleQueue.drain( drainer );
-        final TuplesImpl result = drainer.getResult();
-        if ( result != null && result.isNonEmpty() )
+        final TuplesImpl result = new TuplesImpl( operatorDef.getInputPortCount() );
+        pipelineTupleQueue.drain( drainer, key -> result );
+        if ( result.isNonEmpty() )
         {
             for ( int portIndex = 0; portIndex < result.getPortCount(); portIndex++ )
             {

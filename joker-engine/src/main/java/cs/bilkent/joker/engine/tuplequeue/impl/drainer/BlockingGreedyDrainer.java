@@ -4,19 +4,22 @@ import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
+import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.util.concurrent.BackoffIdleStrategy;
 import cs.bilkent.joker.engine.util.concurrent.IdleStrategy;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.partition.impl.PartitionKey;
 
-public class BlockingSinglePortDrainer extends SinglePortDrainer
+public class BlockingGreedyDrainer implements TupleQueueDrainer
 {
 
     private final IdleStrategy idleStrategy = BackoffIdleStrategy.newDefaultInstance();
 
-    public BlockingSinglePortDrainer ( final int maxBatchSize )
+    private final int inputPortCount;
+
+    public BlockingGreedyDrainer ( final int inputPortCount )
     {
-        super( maxBatchSize );
+        this.inputPortCount = inputPortCount;
     }
 
     @Override
@@ -26,16 +29,24 @@ public class BlockingSinglePortDrainer extends SinglePortDrainer
                            final Function<PartitionKey, TuplesImpl> tuplesSupplier )
     {
         checkArgument( tupleQueues != null );
-        checkArgument( tupleQueues.length == 1 );
+        checkArgument( tupleQueues.length == inputPortCount );
         checkArgument( tuplesSupplier != null );
 
-        idleStrategy.reset();
-        final TupleQueue tupleQueue = tupleQueues[ 0 ];
         boolean idle = maySkipBlocking;
 
-        while ( tupleQueue.size() < tupleCountToCheck )
+        boolean empty = true;
+        while ( empty )
         {
-            if ( idle )
+            for ( int i = 0; i < inputPortCount; i++ )
+            {
+                if ( !tupleQueues[ i ].isEmpty() )
+                {
+                    empty = false;
+                    break;
+                }
+            }
+
+            if ( empty && idle )
             {
                 return false;
             }
@@ -43,9 +54,14 @@ public class BlockingSinglePortDrainer extends SinglePortDrainer
             idle = idleStrategy.idle();
         }
 
-        tupleQueue.poll( tupleCountToPoll, tuplesSupplier.apply( key ).getTuplesModifiable( 0 ) );
+        final TuplesImpl tuples = tuplesSupplier.apply( key );
 
-        return true;
+        for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
+        {
+            tupleQueues[ portIndex ].poll( Integer.MAX_VALUE, tuples.getTuplesModifiable( portIndex ) );
+        }
+
+        return false;
     }
 
 }

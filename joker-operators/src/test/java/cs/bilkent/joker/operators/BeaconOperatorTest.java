@@ -54,8 +54,10 @@ public class BeaconOperatorTest extends AbstractJokerTest
         operator.init( initContext );
 
         final TuplesImpl output = new TuplesImpl( 1 );
-        final InvocationContextImpl invocationContext = new InvocationContextImpl();
-        invocationContext.setInvocationParameters( SUCCESS, null, output );
+
+        final InvocationContextImpl invocationContext = new InvocationContextImpl( 0, key -> null, output );
+        invocationContext.createInputTuples( null );
+        invocationContext.setInvocationReason( SUCCESS );
 
         operator.invoke( invocationContext );
 

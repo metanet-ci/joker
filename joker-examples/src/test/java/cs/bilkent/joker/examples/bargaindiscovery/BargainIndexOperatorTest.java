@@ -20,6 +20,8 @@ import cs.bilkent.joker.operator.impl.InitializationContextImpl;
 import cs.bilkent.joker.operator.impl.InvocationContextImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
+import cs.bilkent.joker.partition.impl.PartitionKey;
+import cs.bilkent.joker.partition.impl.PartitionKey1;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -30,20 +32,22 @@ public class BargainIndexOperatorTest extends AbstractJokerTest
 
     private static final String TUPLE_PARTITION_KEY = "key1";
 
+    private static final PartitionKey PARTITION_KEY = new PartitionKey1( TUPLE_PARTITION_KEY );
+
     private Operator operator;
-
-    private final TuplesImpl input = new TuplesImpl( 2 );
-
-    private final TuplesImpl output = new TuplesImpl( 1 );
 
     private final KVStore kvStore = new InMemoryKVStore();
 
-    private final InvocationContextImpl invocationContext = new InvocationContextImpl();
+    private final TuplesImpl output = new TuplesImpl( 1 );
+
+    private final InvocationContextImpl invocationContext = new InvocationContextImpl( 2, key -> kvStore, output );
+
+    private final TuplesImpl input = invocationContext.createInputTuples( PARTITION_KEY );
 
     @Before
     public void init () throws InstantiationException, IllegalAccessException
     {
-        invocationContext.setInvocationParameters( SUCCESS, input, output, singletonList( TUPLE_PARTITION_KEY ), kvStore );
+        invocationContext.setInvocationReason( SUCCESS );
 
         final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "op", BargainIndexOperator.class )
                                                           .setPartitionFieldNames( singletonList( TICKER_SYMBOL_FIELD ) )

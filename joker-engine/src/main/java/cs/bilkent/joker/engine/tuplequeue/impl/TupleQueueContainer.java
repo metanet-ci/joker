@@ -13,15 +13,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import cs.bilkent.joker.engine.partition.PartitionKey;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ALL_PORTS;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ANY_PORT;
+import cs.bilkent.joker.partition.impl.PartitionKey;
 import gnu.trove.map.hash.THashMap;
 import gnu.trove.set.hash.THashSet;
 
@@ -56,8 +57,7 @@ public class TupleQueueContainer
         this.inputPortCount = inputPortCount;
         this.partitionId = partitionId;
         this.tupleQueuesByKeys = new THashMap<>();
-        this.tupleQueuesConstructor = ( partitionKey ) ->
-        {
+        this.tupleQueuesConstructor = ( partitionKey ) -> {
             final TupleQueue[] tupleQueues = new TupleQueue[ inputPortCount ];
             for ( int i = 0; i < inputPortCount; i++ )
             {
@@ -87,9 +87,12 @@ public class TupleQueueContainer
         return addToDrainableKeys( key, tupleQueues );
     }
 
-    public int drain ( final boolean maySkipBlocking, final TupleQueueDrainer drainer )
+    // return value: true means it can be further called for drain of available tuples
+    // currently, always returns false
+    public boolean drain ( final boolean maySkipBlocking,
+                           final TupleQueueDrainer drainer,
+                           final Function<PartitionKey, TuplesImpl> tuplesSupplier )
     {
-        int nonDrainableKeyCount = 0;
         if ( drainer instanceof GreedyDrainer )
         {
             final Iterator<PartitionKey> it = tupleQueuesByKeys.keySet().iterator();
@@ -98,41 +101,41 @@ public class TupleQueueContainer
                 final PartitionKey key = it.next();
                 final TupleQueue[] tupleQueues = getTupleQueues( key );
 
-                drainer.drain( maySkipBlocking, key, tupleQueues );
+                drainer.drain( maySkipBlocking, key, tupleQueues, tuplesSupplier );
+
                 it.remove();
 
-                if ( drainableKeys.remove( key ) )
-                {
-                    nonDrainableKeyCount++;
-                }
-
-                if ( !drainer.getResult().isEmpty() )
-                {
-                    return nonDrainableKeyCount;
-                }
+                drainableKeys.remove( key );
             }
 
-            drainer.reset();
+            return false;
         }
         else
         {
             // tuple count based draining
+
+            if ( drainableKeys.isEmpty() )
+            {
+                return false;
+            }
+
             final Iterator<PartitionKey> it = drainableKeys.iterator();
-            final boolean drainable = it.hasNext();
-            if ( drainable )
+            while ( it.hasNext() )
             {
                 final PartitionKey key = it.next();
                 final TupleQueue[] tupleQueues = getTupleQueues( key );
-                drainer.drain( maySkipBlocking, key, tupleQueues );
-                if ( !checkIfDrainable( tupleQueues ) )
+                while ( true )
                 {
-                    it.remove();
-                    nonDrainableKeyCount++;
+                    if ( !drainer.drain( maySkipBlocking, key, tupleQueues, tuplesSupplier ) )
+                    {
+                        break;
+                    }
                 }
+                it.remove();
             }
-        }
 
-        return nonDrainableKeyCount;
+            return !drainableKeys.isEmpty();
+        }
     }
 
     public int clear ()
@@ -205,19 +208,6 @@ public class TupleQueueContainer
     public int getDrainableKeyCount ()
     {
         return drainableKeys.size();
-    }
-
-    public void addAvailableTupleCounts ( final int[] availableTupleCounts )
-    {
-        checkArgument( availableTupleCounts.length == inputPortCount );
-
-        for ( TupleQueue[] tupleQueues : tupleQueuesByKeys.values() )
-        {
-            for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
-            {
-                availableTupleCounts[ portIndex ] += tupleQueues[ portIndex ].size();
-            }
-        }
     }
 
     public boolean isEmpty ()

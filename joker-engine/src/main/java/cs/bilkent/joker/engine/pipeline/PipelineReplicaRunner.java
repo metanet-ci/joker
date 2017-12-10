@@ -1,8 +1,6 @@
 package cs.bilkent.joker.engine.pipeline;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,8 +42,6 @@ public class PipelineReplicaRunner implements Runnable
     private final Supervisor supervisor;
 
     private DownstreamTupleSender downstreamTupleSender;
-
-    private Future<Void> downstreamTuplesFuture;
 
     private PipelineReplicaRunnerStatus status = RUNNING;
 
@@ -380,7 +376,6 @@ public class PipelineReplicaRunner implements Runnable
                 }
                 else if ( status == PAUSED )
                 {
-                    awaitDownstreamTuplesFuture();
                     synchronized ( monitor )
                     {
                         monitor.wait( waitTimeoutInMillis );
@@ -497,37 +492,10 @@ public class PipelineReplicaRunner implements Runnable
         this.downstreamTupleSender = downstreamTupleSender;
     }
 
-    private void awaitDownstreamTuplesFuture ()
-    {
-        try
-        {
-            if ( downstreamTuplesFuture != null )
-            {
-                downstreamTuplesFuture.get();
-                downstreamTuplesFuture = null;
-            }
-        }
-        catch ( InterruptedException e )
-        {
-            LOGGER.error( "{}: runner thread interrupted", id );
-            downstreamTuplesFuture = null;
-            Thread.currentThread().interrupt();
-            supervisor.notifyPipelineReplicaFailed( id, e );
-            // TODO NOT SURE ABOUT THIS PART
-        }
-        catch ( ExecutionException e )
-        {
-            LOGGER.error( id + ": await downstream tuple future failed", e );
-            downstreamTuplesFuture = null;
-            supervisor.notifyPipelineReplicaFailed( id, e );
-        }
-    }
-
     private void completeRun ()
     {
         LOGGER.info( "{}: completing the run", id );
 
-        awaitDownstreamTuplesFuture();
         LOGGER.info( "{}: all downstream tuples are sent", id );
 
         if ( pipeline.isCompleted() )
@@ -561,8 +529,7 @@ public class PipelineReplicaRunner implements Runnable
     {
         if ( output != null && output.isNonEmpty() )
         {
-            awaitDownstreamTuplesFuture();
-            downstreamTuplesFuture = downstreamTupleSender.send( output );
+            downstreamTupleSender.send( output );
         }
     }
 

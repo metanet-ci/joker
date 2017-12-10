@@ -8,7 +8,7 @@ import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.partition.impl.PartitionKey;
 
-public class NopDrainer implements TupleQueueDrainer
+public class EmptyDrainer implements TupleQueueDrainer
 {
 
     @Override
@@ -17,6 +17,7 @@ public class NopDrainer implements TupleQueueDrainer
                            final TupleQueue[] tupleQueues,
                            final Function<PartitionKey, TuplesImpl> tuplesSupplier )
     {
+        tuplesSupplier.apply( key );
         return false;
     }
 

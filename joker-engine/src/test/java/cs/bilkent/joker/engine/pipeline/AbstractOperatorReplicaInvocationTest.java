@@ -10,8 +10,6 @@ import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.kvstore.OperatorKVStore;
 import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
-import cs.bilkent.joker.engine.partition.PartitionKey;
-import cs.bilkent.joker.engine.partition.impl.PartitionKey1;
 import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newInitialUpstreamContextWithAllPortsConnected;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
@@ -24,16 +22,16 @@ import cs.bilkent.joker.operator.impl.InvocationContextImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
+import cs.bilkent.joker.partition.impl.PartitionKey;
+import cs.bilkent.joker.partition.impl.PartitionKey1;
 import cs.bilkent.joker.test.AbstractJokerTest;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
+public class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
 {
     @Mock
     protected OperatorTupleQueue queue;
@@ -63,7 +61,7 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
 
     protected final PartitionKey key = new PartitionKey1( new Object() );
 
-    protected final InvocationContextImpl invocationContext = new InvocationContextImpl();
+    protected InvocationContextImpl invocationContext = null;
 
     protected OperatorReplica operatorReplica;
 
@@ -71,9 +69,26 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
 
     protected UpstreamContext downstreamContext;
 
+    protected final int outputPortCount = 1;
+
     @Before
     public void before ()
     {
+        applyDefaultMocks();
+    }
+
+    void applyDefaultMocks ()
+    {
+        when( outputSupplier.get() ).thenReturn( new TuplesImpl( outputPortCount ) );
+        when( operatorDef.getId() ).thenReturn( "op1" );
+        when( drainerPool.acquire( any( SchedulingStrategy.class ) ) ).thenReturn( drainer );
+        when( operatorKvStore.getKVStore( key ) ).thenReturn( kvStore );
+    }
+
+    void initializeOperatorReplica ( final int inputPortCount, final SchedulingStrategy schedulingStrategy )
+    {
+        mockOperatorDef( inputPortCount, outputPortCount );
+
         final PipelineReplicaId pipelineReplicaId = new PipelineReplicaId( new PipelineId( 0, 0 ), 0 );
         operatorReplica = new OperatorReplica( pipelineReplicaId,
                                                operatorDef,
@@ -81,23 +96,9 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
                                                operatorKvStore,
                                                drainerPool,
                                                outputSupplier,
-                                               mock( PipelineReplicaMeter.class ),
-                                               invocationContext );
+                                               mock( PipelineReplicaMeter.class ) );
+        invocationContext = operatorReplica.getInvocationContext();
 
-        applyDefaultMocks();
-    }
-
-    void applyDefaultMocks ()
-    {
-        when( operatorDef.getId() ).thenReturn( "op1" );
-        when( drainerPool.acquire( any( SchedulingStrategy.class ) ) ).thenReturn( drainer );
-        when( drainer.getKey() ).thenReturn( key );
-        when( operatorKvStore.getKVStore( key ) ).thenReturn( kvStore );
-    }
-
-    void initializeOperatorReplica ( final int inputPortCount, final int outputPortCount, final SchedulingStrategy schedulingStrategy )
-    {
-        mockOperatorDef( inputPortCount, outputPortCount );
         mockOperatorInitializationSchedulingStrategy( schedulingStrategy );
 
         initializationUpstreamContext = newInitialUpstreamContextWithAllPortsConnected( inputPortCount );
@@ -126,16 +127,11 @@ class AbstractOperatorReplicaInvocationTest extends AbstractJokerTest
 
     void assertOperatorInvocation ()
     {
-        assertTrue( operatorReplica.isOperatorInvokedOnLastAttempt() );
-        verify( operatorKvStore ).getKVStore( key );
         verify( operator ).invoke( invocationContext );
-        verify( drainer ).reset();
     }
 
     void assertNoOperatorInvocation ()
     {
-        assertFalse( operatorReplica.isOperatorInvokedOnLastAttempt() );
-        verify( operatorKvStore, never() ).getKVStore( key );
         verify( operator, never() ).invoke( invocationContext );
     }
 

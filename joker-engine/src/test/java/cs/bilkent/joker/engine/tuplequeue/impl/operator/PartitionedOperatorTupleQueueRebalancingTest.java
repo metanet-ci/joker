@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -13,12 +14,13 @@ import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractor1;
 import cs.bilkent.joker.engine.tuplequeue.impl.TupleQueueContainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.operator.Tuples;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
+import cs.bilkent.joker.partition.impl.PartitionKey;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -63,10 +65,7 @@ public class PartitionedOperatorTupleQueueRebalancingTest extends AbstractJokerT
                                                                 REPLICA_INDEX,
                                                                 100,
                                                                 EXTRACTOR,
-                                                                tupleQueueContainers,
-                                                                PARTITION_DISTRIBUTION,
-                                                                Integer.MAX_VALUE,
-                                                                100 );
+                                                                tupleQueueContainers, PARTITION_DISTRIBUTION );
 
         for ( int partitionId : ACQUIRED_PARTITIONS )
         {
@@ -89,7 +88,7 @@ public class PartitionedOperatorTupleQueueRebalancingTest extends AbstractJokerT
 
         operatorTupleQueue.acquirePartitions( newPartitions );
 
-        assertEquals( PARTITION_COUNT, operatorTupleQueue.getTotalDrainableKeyCount() );
+        assertEquals( PARTITION_COUNT, operatorTupleQueue.getDrainablePartitionCount() );
 
         for ( int partitionId : PARTITION_DISTRIBUTION )
         {
@@ -98,19 +97,23 @@ public class PartitionedOperatorTupleQueueRebalancingTest extends AbstractJokerT
         }
 
         final int expectedKeyCount = PARTITION_COUNT * 2;
-        assertEquals( expectedKeyCount, operatorTupleQueue.getTotalDrainableKeyCount() );
 
+        final List<TuplesImpl> results = new ArrayList<>();
+        final Function<PartitionKey, TuplesImpl> tuplesSupplier = key -> {
+            final TuplesImpl tuples = new TuplesImpl( 1 );
+            results.add( tuples );
+            return tuples;
+        };
         final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT );
-        for ( int i = 0; i < expectedKeyCount; i++ )
+        operatorTupleQueue.drain( drainer, tuplesSupplier );
+
+        int tupleCount = 0;
+        for ( Tuples result : results )
         {
-            drainer.reset();
-            operatorTupleQueue.drain( drainer );
-            final TuplesImpl result = drainer.getResult();
-            assertNotNull( result );
-            assertEquals( 1, result.getTupleCount( 0 ) );
+            tupleCount += result.getTupleCount( 0 );
         }
 
-        assertEquals( 0, operatorTupleQueue.getTotalDrainableKeyCount() );
+        assertEquals( expectedKeyCount, tupleCount );
     }
 
     @Test( expected = IllegalArgumentException.class )
@@ -135,7 +138,7 @@ public class PartitionedOperatorTupleQueueRebalancingTest extends AbstractJokerT
         final List<TupleQueueContainer> releasedPartitions = operatorTupleQueue.releasePartitions( releasePartitionIds );
         assertReleasedPartitions( releasePartitionIds, releasedPartitions );
 
-        assertEquals( ACQUIRED_PARTITIONS.size() - releasePartitionIds.size(), operatorTupleQueue.getTotalDrainableKeyCount() );
+        assertEquals( ACQUIRED_PARTITIONS.size() - releasePartitionIds.size(), operatorTupleQueue.getDrainablePartitionCount() );
 
         for ( int releasedPartitionId : releasePartitionIds )
         {
@@ -146,7 +149,6 @@ public class PartitionedOperatorTupleQueueRebalancingTest extends AbstractJokerT
             }
             catch ( NullPointerException ignored )
             {
-
             }
         }
 
@@ -159,7 +161,22 @@ public class PartitionedOperatorTupleQueueRebalancingTest extends AbstractJokerT
         expectedKeyCount -= releasePartitionIds.size();
         expectedKeyCount += ( ACQUIRED_PARTITIONS.size() - releasePartitionIds.size() );
 
-        assertEquals( expectedKeyCount, operatorTupleQueue.getTotalDrainableKeyCount() );
+        final List<TuplesImpl> results = new ArrayList<>();
+        final Function<PartitionKey, TuplesImpl> tuplesSupplier = key -> {
+            final TuplesImpl tuples = new TuplesImpl( 1 );
+            results.add( tuples );
+            return tuples;
+        };
+        final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT );
+        operatorTupleQueue.drain( drainer, tuplesSupplier );
+
+        int tupleCount = 0;
+        for ( Tuples result : results )
+        {
+            tupleCount += result.getTupleCount( 0 );
+        }
+
+        assertEquals( expectedKeyCount, tupleCount );
     }
 
     @Test
@@ -174,7 +191,7 @@ public class PartitionedOperatorTupleQueueRebalancingTest extends AbstractJokerT
         final List<TupleQueueContainer> releasedPartitions = operatorTupleQueue.releasePartitions( releasePartitionIds );
         assertReleasedPartitions( releasePartitionIds, releasedPartitions );
 
-        assertEquals( 0, operatorTupleQueue.getTotalDrainableKeyCount() );
+        assertEquals( 0, operatorTupleQueue.getDrainablePartitionCount() );
     }
 
     private void assertReleasedPartitions ( final List<Integer> releasePartitionIds, final List<TupleQueueContainer> releasedPartitions )

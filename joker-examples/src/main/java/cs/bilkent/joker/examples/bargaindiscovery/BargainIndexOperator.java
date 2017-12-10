@@ -34,9 +34,10 @@ import static java.util.Comparator.comparing;
                             @PortSchema( portIndex = 1, scope = EXTENDABLE_FIELD_SET, fields = { @SchemaField( name = TICKER_SYMBOL_FIELD, type = String.class ),
                                                                                                  @SchemaField( name = BargainIndexOperator.ASKED_TICKER_SYMBOL_PRICE_FIELD, type = Double.class ),
 
-
-                                                                                                 @SchemaField( name = BargainIndexOperator.ASKED_SIZE_FIELD, type = Integer.class ) } ) }, outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = TICKER_SYMBOL_FIELD, type = String.class ),
-                                                                                                                                                                                                                                                                       @SchemaField( name = BargainIndexOperator.BARGAIN_INDEX_FIELD, type = Double.class ) } ) } )
+                                                                                                 @SchemaField( name = BargainIndexOperator.ASKED_SIZE_FIELD, type = Integer.class ) } ) }, outputs = {
+        @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = TICKER_SYMBOL_FIELD, type = String.class ),
+                                                                        @SchemaField( name = BargainIndexOperator.BARGAIN_INDEX_FIELD,
+                                                                                type = Double.class ) } ) } )
 public class BargainIndexOperator implements Operator
 {
 

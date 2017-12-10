@@ -2,6 +2,10 @@ package cs.bilkent.joker.engine.config;
 
 import com.typesafe.config.Config;
 
+import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
+import static cs.bilkent.joker.engine.config.ThreadingPreference.SINGLE_THREADED;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
+
 public class TupleQueueManagerConfig
 {
 
@@ -9,23 +13,18 @@ public class TupleQueueManagerConfig
 
     static final String TUPLE_QUEUE_CAPACITY = "tupleQueueCapacity";
 
-    static final String MAX_DRAINABLE_KEY_COUNT = "maxDrainableKeyCount";
-
-    static final String PARTITIONED_TUPLE_QUEUE_DRAINER_HINT = "partitionedTupleQueueDrainHint";
+    static final String MULTI_THREADED_QUEUE_DRAIN_LIMIT = "multiThreadedQueueDrainLimit";
 
 
     private final int tupleQueueCapacity;
 
-    private final int maxDrainableKeyCount;
-
-    private final int partitionedTupleQueueDrainHint;
+    private final int multiThreadedQueueDrainLimit;
 
     TupleQueueManagerConfig ( final Config parentConfig )
     {
         final Config config = parentConfig.getConfig( CONFIG_NAME );
         this.tupleQueueCapacity = config.getInt( TUPLE_QUEUE_CAPACITY );
-        this.maxDrainableKeyCount = config.getInt( MAX_DRAINABLE_KEY_COUNT );
-        this.partitionedTupleQueueDrainHint = config.getInt( PARTITIONED_TUPLE_QUEUE_DRAINER_HINT );
+        this.multiThreadedQueueDrainLimit = config.getInt( MULTI_THREADED_QUEUE_DRAIN_LIMIT );
     }
 
     public int getTupleQueueCapacity ()
@@ -33,21 +32,22 @@ public class TupleQueueManagerConfig
         return tupleQueueCapacity;
     }
 
-    public int getMaxDrainableKeyCount ()
+    public int getMultiThreadedQueueDrainLimit ()
     {
-        return maxDrainableKeyCount;
+        return multiThreadedQueueDrainLimit;
     }
 
-    public int getPartitionedTupleQueueDrainHint ()
+    public int getDrainLimit ( final ThreadingPreference threadingPreference )
     {
-        return partitionedTupleQueueDrainHint;
+        checkArgument( threadingPreference == MULTI_THREADED || threadingPreference == SINGLE_THREADED );
+        return threadingPreference == MULTI_THREADED ? multiThreadedQueueDrainLimit : Integer.MAX_VALUE;
     }
 
     @Override
     public String toString ()
     {
-        return "TupleQueueManagerConfig{" + "tupleQueueCapacity=" + tupleQueueCapacity + ", maxDrainableKeyCount=" + maxDrainableKeyCount
-               + ", partitionedTupleQueueDrainHint=" + partitionedTupleQueueDrainHint + '}';
+        return "TupleQueueManagerConfig{" + "tupleQueueCapacity=" + tupleQueueCapacity + ", multiThreadedQueueDrainLimit="
+               + multiThreadedQueueDrainLimit + '}';
     }
 
 }

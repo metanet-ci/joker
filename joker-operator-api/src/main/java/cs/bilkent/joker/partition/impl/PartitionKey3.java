@@ -1,11 +1,10 @@
-package cs.bilkent.joker.engine.partition.impl;
+package cs.bilkent.joker.partition.impl;
 
 import java.util.AbstractList;
 import java.util.List;
 
-import cs.bilkent.joker.engine.partition.PartitionKey;
-import static cs.bilkent.joker.engine.partition.impl.PartitionKeyUtil.hashHead;
-import static cs.bilkent.joker.engine.partition.impl.PartitionKeyUtil.hashTail;
+import static cs.bilkent.joker.partition.impl.PartitionKeyUtil.hashHead;
+import static cs.bilkent.joker.partition.impl.PartitionKeyUtil.hashTail;
 
 public class PartitionKey3 extends AbstractList<Object> implements PartitionKey
 {
@@ -18,7 +17,7 @@ public class PartitionKey3 extends AbstractList<Object> implements PartitionKey
 
     private final int hashCode;
 
-    PartitionKey3 ( final Object val0, final Object val1, final Object val2 )
+    public PartitionKey3 ( final Object val0, final Object val1, final Object val2 )
     {
         this.val0 = val0;
         this.val1 = val1;
@@ -85,7 +84,7 @@ public class PartitionKey3 extends AbstractList<Object> implements PartitionKey
         return hashCode;
     }
 
-    static int computeHashCode ( final Object val0, final Object val1, final Object val2 )
+    public static int computeHashCode ( final Object val0, final Object val1, final Object val2 )
     {
         return hashTail( hashTail( hashHead( val0 ), val1 ), val2 );
     }

@@ -1,4 +1,4 @@
-package cs.bilkent.joker.engine.partition;
+package cs.bilkent.joker.partition.impl;
 
 import java.util.List;
 

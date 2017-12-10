@@ -18,9 +18,9 @@ public class OperatorReplicaCompletedStatusTest extends AbstractOperatorReplicaI
     @Test
     public void shouldNotInvokeWhenOperatorReplicaStatusIsCompleted ()
     {
-        final int inputPortCount = 1, outputPortCount = 1;
+        final int inputPortCount = 1;
         final SchedulingStrategy initializationStrategy = scheduleWhenTuplesAvailableOnDefaultPort( 1 );
-        initializeOperatorReplica( inputPortCount, outputPortCount, initializationStrategy );
+        initializeOperatorReplica( inputPortCount, initializationStrategy );
         setOperatorReplicaStatus( COMPLETED );
 
         assertNull( operatorReplica.invoke( new TuplesImpl( inputPortCount ), newInitialUpstreamContextWithAllPortsConnected( 1 ) ) );

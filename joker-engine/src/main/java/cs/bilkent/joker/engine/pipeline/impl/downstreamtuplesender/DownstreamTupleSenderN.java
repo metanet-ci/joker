@@ -1,7 +1,6 @@
 package cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender;
 
 import java.util.List;
-import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -56,7 +55,7 @@ public class DownstreamTupleSenderN implements DownstreamTupleSender, Supplier<O
     }
 
     @Override
-    public Future<Void> send ( final TuplesImpl input )
+    public void send ( final TuplesImpl input )
     {
         fill( fromIndices, 0 );
         idleStrategy.reset();
@@ -103,8 +102,6 @@ public class DownstreamTupleSenderN implements DownstreamTupleSender, Supplier<O
                 }
             }
         }
-
-        return null;
     }
 
     @Override

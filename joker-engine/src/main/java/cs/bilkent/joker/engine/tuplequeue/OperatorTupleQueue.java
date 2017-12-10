@@ -1,9 +1,12 @@
 package cs.bilkent.joker.engine.tuplequeue;
 
 import java.util.List;
+import java.util.function.Function;
 
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort;
+import cs.bilkent.joker.partition.impl.PartitionKey;
 
 /**
  * Manages input {@link Tuple} queues for a single operator instance replica
@@ -44,9 +47,9 @@ public interface OperatorTupleQueue
     int offer ( int portIndex, List<Tuple> tuples, int fromIndex );
 
 
-    default void drain ( TupleQueueDrainer drainer )
+    default void drain ( TupleQueueDrainer drainer, Function<PartitionKey, TuplesImpl> tuplesSupplier )
     {
-        drain( false, drainer );
+        drain( false, drainer, tuplesSupplier );
     }
 
     /**
@@ -57,7 +60,7 @@ public interface OperatorTupleQueue
      * @param drainer
      *         to remove tuples from the underlying input queues
      */
-    void drain ( boolean maySkipBlocking, TupleQueueDrainer drainer );
+    void drain ( boolean maySkipBlocking, TupleQueueDrainer drainer, Function<PartitionKey, TuplesImpl> tuplesSupplier );
 
     void clear ();
 
@@ -66,7 +69,5 @@ public interface OperatorTupleQueue
     boolean isEmpty ();
 
     void ensureCapacity ( int capacity );
-
-    int getDrainCountHint ();
 
 }

@@ -3,7 +3,6 @@ package cs.bilkent.joker.engine.pipeline;
 
 import java.util.function.Supplier;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -26,7 +25,6 @@ import cs.bilkent.joker.engine.tuplequeue.impl.drainer.NopDrainer;
 import cs.bilkent.joker.operator.InitializationContext;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
-import cs.bilkent.joker.operator.impl.InvocationContextImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleNever;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
@@ -62,24 +60,28 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
 
     private UpstreamContext validUpstreamContext;
 
-    @Before
-    public void before () throws InstantiationException, IllegalAccessException
+    private void initializeOperatorReplica ( final int inputPortCount )
     {
-
         final PipelineReplicaId pipelineReplicaId = new PipelineReplicaId( new PipelineId( 0, 0 ), 0 );
+        when( operatorDef.getId() ).thenReturn( "op1" );
+        when( operatorDef.getInputPortCount() ).thenReturn( inputPortCount );
+        when( operatorDef.getOutputPortCount() ).thenReturn( downstreamContext.getPortCount() );
+        try
+        {
+            when( operatorDef.createOperator() ).thenReturn( operator );
+        }
+        catch ( Exception e )
+        {
+            throw new RuntimeException( e );
+        }
+        when( drainerPool.acquire( anyObject() ) ).thenReturn( new NopDrainer() );
+
         operatorReplica = new OperatorReplica( pipelineReplicaId,
                                                operatorDef,
                                                mock( OperatorTupleQueue.class ),
                                                mock( OperatorKVStore.class ),
                                                drainerPool,
-                                               mock( Supplier.class ),
-                                               mock( PipelineReplicaMeter.class ),
-                                               new InvocationContextImpl() );
-
-        when( operatorDef.getId() ).thenReturn( "op1" );
-        when( operatorDef.getOutputPortCount() ).thenReturn( downstreamContext.getPortCount() );
-        when( operatorDef.createOperator() ).thenReturn( operator );
-        when( drainerPool.acquire( anyObject() ) ).thenReturn( new NopDrainer() );
+                                               mock( Supplier.class ), mock( PipelineReplicaMeter.class ) );
     }
 
     @Test
@@ -131,7 +133,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
                                                        final SchedulingStrategy schedulingStrategy,
                                                        final UpstreamContext upstreamContext )
     {
-        when( operatorDef.getInputPortCount() ).thenReturn( inputPortCount );
+        initializeOperatorReplica( inputPortCount );
         validUpstreamContext = newInitialUpstreamContextWithAllPortsConnected( inputPortCount );
 
         when( operator.init( any( InitializationContext.class ) ) ).thenReturn( schedulingStrategy );
@@ -149,6 +151,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
     @Test
     public void shouldFailWhenOperatorInitializationReturnsInvalidSchedulingStrategy ()
     {
+        initializeOperatorReplica( 1 );
         when( operator.init( any( InitializationContext.class ) ) ).thenReturn( ScheduleNever.INSTANCE );
 
         try
@@ -217,7 +220,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
                                                   final SchedulingStrategy schedulingStrategy,
                                                   final UpstreamContext upstreamContext )
     {
-        when( operatorDef.getInputPortCount() ).thenReturn( inputPortCount );
+        initializeOperatorReplica( inputPortCount );
         when( operator.init( any( InitializationContext.class ) ) ).thenReturn( schedulingStrategy );
 
         try
@@ -234,6 +237,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
     @Test
     public void shouldSetStatusWhenOperatorInitializationFails ()
     {
+        initializeOperatorReplica( 1 );
         when( operator.init( anyObject() ) ).thenThrow( new RuntimeException() );
 
         try

@@ -1,6 +1,8 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.operator;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -10,15 +12,16 @@ import cs.bilkent.joker.engine.tuplequeue.impl.TupleQueueContainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.NonBlockingMultiPortDisjunctiveDrainer;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.operator.impl.TuplesImpl;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.EXACT;
-import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ALL_PORTS;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ANY_PORT;
+import cs.bilkent.joker.partition.impl.PartitionKey;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
 {
@@ -28,8 +31,6 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
     private static final int INPUT_PORT_COUNT = 2;
 
     private static final int TUPLE_QUEUE_CAPACITY = 3;
-
-    private static final int MAX_DRAINABLE_KEY_COUNT = 2;
 
     private static final String PARTITION_KEY_FIELD = "key";
 
@@ -46,10 +47,7 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
                                                                 0,
                                                                 TUPLE_QUEUE_CAPACITY,
                                                                 new PartitionKeyExtractor1( singletonList( PARTITION_KEY_FIELD ) ),
-                                                                new TupleQueueContainer[] { container },
-                                                                new int[] { 0 },
-                                                                MAX_DRAINABLE_KEY_COUNT,
-                                                                100 );
+                                                                new TupleQueueContainer[] { container }, new int[] { 0 } );
     }
 
     @Test
@@ -57,60 +55,89 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
     {
         final Tuple tuple = new Tuple();
         tuple.set( PARTITION_KEY_FIELD, "key1" );
-        final List<Tuple> tuples = singletonList( tuple );
-        operatorTupleQueue.offer( 0, tuples );
+        final List<Tuple> input = singletonList( tuple );
+        operatorTupleQueue.offer( 0, input );
 
         final NonBlockingMultiPortDisjunctiveDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( INPUT_PORT_COUNT, 100 );
         drainer.setParameters( AT_LEAST, new int[] { 0, 1 }, new int[] { 1, 1 } );
 
-        assertEquals( 1, operatorTupleQueue.getTotalDrainableKeyCount() );
+        final TuplesImpl result = new TuplesImpl( INPUT_PORT_COUNT );
+        operatorTupleQueue.drain( drainer, key -> result );
 
-        operatorTupleQueue.drain( drainer );
-
-        assertEquals( 0, operatorTupleQueue.getTotalDrainableKeyCount() );
-        assertEquals( tuples, drainer.getResult().getTuples( 0 ) );
+        assertEquals( input, result.getTuples( 0 ) );
     }
 
     @Test
-    public void testOfferedTuplesCounted ()
+    public void testMultipleKeysDrainedAtOnce ()
     {
         final Tuple tuple1 = new Tuple();
         tuple1.set( PARTITION_KEY_FIELD, "key1" );
+        operatorTupleQueue.offer( 0, singletonList( tuple1 ) );
         final Tuple tuple2 = new Tuple();
         tuple2.set( PARTITION_KEY_FIELD, "key2" );
+        operatorTupleQueue.offer( 0, singletonList( tuple2 ) );
         final Tuple tuple3 = new Tuple();
         tuple3.set( PARTITION_KEY_FIELD, "key3" );
-        final List<Tuple> tuples = asList( tuple1, tuple2, tuple3 );
+        operatorTupleQueue.offer( 0, singletonList( tuple3 ) );
 
-        final int offered0 = operatorTupleQueue.offer( 0, tuples, 1 );
-        final int offered1 = operatorTupleQueue.offer( 1, tuples, 2 );
+        final NonBlockingMultiPortDisjunctiveDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( INPUT_PORT_COUNT, 100 );
+        drainer.setParameters( AT_LEAST, new int[] { 0, 1 }, new int[] { 1, 1 } );
 
-        assertEquals( 2, offered0 );
-        assertEquals( 1, offered1 );
-        assertEquals( 2, operatorTupleQueue.getAvailableTupleCount( 0 ) );
-        assertEquals( 1, operatorTupleQueue.getAvailableTupleCount( 1 ) );
-        assertEquals( 2, operatorTupleQueue.getTotalDrainableKeyCount() );
+        final List<TuplesImpl> results = new ArrayList<>();
+        final Function<PartitionKey, TuplesImpl> tuplesSupplier = key -> {
+            final TuplesImpl tuples = new TuplesImpl( INPUT_PORT_COUNT );
+            results.add( tuples );
+            return tuples;
+        };
+
+        operatorTupleQueue.drain( drainer, tuplesSupplier );
+
+        assertEquals( 3, results.size() );
+
+        List<Tuple> tuples = new ArrayList<>( asList( tuple1, tuple2, tuple3 ) );
+        for ( TuplesImpl result : results )
+        {
+            tuples.remove( result.getTupleOrFail( 0, 0 ) );
+        }
+
+        assertTrue( tuples.isEmpty() );
     }
 
     @Test
-    public void testDrainedTuplesCounted ()
+    public void testSingleKeyDrainedMultipleTimesAtOnce ()
     {
         final Tuple tuple1 = new Tuple();
         tuple1.set( PARTITION_KEY_FIELD, "key1" );
+        operatorTupleQueue.offer( 0, singletonList( tuple1 ) );
         final Tuple tuple2 = new Tuple();
         tuple2.set( PARTITION_KEY_FIELD, "key1" );
-        final List<Tuple> tuples = asList( tuple1, tuple2 );
-
-        operatorTupleQueue.offer( 0, tuples );
-        operatorTupleQueue.offer( 1, tuples, 1 );
+        operatorTupleQueue.offer( 0, singletonList( tuple2 ) );
+        final Tuple tuple3 = new Tuple();
+        tuple3.set( PARTITION_KEY_FIELD, "key1" );
+        operatorTupleQueue.offer( 0, singletonList( tuple3 ) );
 
         final NonBlockingMultiPortDisjunctiveDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( INPUT_PORT_COUNT, 100 );
         drainer.setParameters( EXACT, new int[] { 0, 1 }, new int[] { 1, 1 } );
 
-        operatorTupleQueue.drain( drainer );
+        final List<TuplesImpl> results = new ArrayList<>();
+        final Function<PartitionKey, TuplesImpl> tuplesSupplier = key -> {
+            final TuplesImpl tuples = new TuplesImpl( INPUT_PORT_COUNT );
+            results.add( tuples );
+            return tuples;
+        };
 
-        assertEquals( 1, operatorTupleQueue.getAvailableTupleCount( 0 ) );
-        assertEquals( 0, operatorTupleQueue.getAvailableTupleCount( 1 ) );
+        operatorTupleQueue.setTupleCounts( new int[] { 1, 1 }, ANY_PORT );
+        operatorTupleQueue.drain( drainer, tuplesSupplier );
+
+        assertEquals( 3, results.size() );
+
+        List<Tuple> tuples = new ArrayList<>( asList( tuple1, tuple2, tuple3 ) );
+        for ( TuplesImpl result : results )
+        {
+            tuples.remove( result.getTupleOrFail( 0, 0 ) );
+        }
+
+        assertTrue( tuples.isEmpty() );
     }
 
     @Test
@@ -121,15 +148,14 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
         tuple.set( PARTITION_KEY_FIELD, "key1" );
         final List<Tuple> tuples = singletonList( tuple );
         operatorTupleQueue.offer( 0, tuples );
-        assertEquals( 0, operatorTupleQueue.getTotalDrainableKeyCount() );
+
         operatorTupleQueue.setTupleCounts( new int[] { 1, 1 }, ANY_PORT );
-        assertEquals( 1, operatorTupleQueue.getTotalDrainableKeyCount() );
 
+        final TuplesImpl result = new TuplesImpl( INPUT_PORT_COUNT );
         final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT );
-        operatorTupleQueue.drain( drainer );
+        operatorTupleQueue.drain( drainer, key -> result );
 
-        assertEquals( 0, operatorTupleQueue.getTotalDrainableKeyCount() );
-        assertEquals( tuples, drainer.getResult().getTuples( 0 ) );
+        assertEquals( tuples, result.getTuples( 0 ) );
     }
 
     // tuple counts are not satisfied.
@@ -142,10 +168,11 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
         final List<Tuple> tuples = singletonList( tuple );
         operatorTupleQueue.offer( 0, tuples );
 
+        final TuplesImpl result = new TuplesImpl( INPUT_PORT_COUNT );
         final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT );
-        operatorTupleQueue.drain( drainer );
+        operatorTupleQueue.drain( drainer, key -> result );
 
-        assertNull( drainer.getResult() );
+        assertTrue( result.isEmpty() );
     }
 
     // tuple counts are already satisfied.
@@ -157,58 +184,11 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
         final List<Tuple> tuples = singletonList( tuple );
         operatorTupleQueue.offer( 0, tuples );
 
+        final TuplesImpl result = new TuplesImpl( INPUT_PORT_COUNT );
         final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT );
-        operatorTupleQueue.drain( drainer );
+        operatorTupleQueue.drain( drainer, key -> result );
 
-        assertEquals( tuples, drainer.getResult().getTuples( 0 ) );
-    }
-
-    @Test
-    public void testOverloadedWhenTupleCountsExceedMaxDrainableTupleCount ()
-    {
-        final Tuple tuple1 = new Tuple();
-        tuple1.set( PARTITION_KEY_FIELD, "key1" );
-        final Tuple tuple2 = new Tuple();
-        tuple2.set( PARTITION_KEY_FIELD, "key2" );
-        final List<Tuple> tuples = asList( tuple1, tuple2 );
-
-        operatorTupleQueue.offer( 0, tuples );
-
-        assertEquals( 2, operatorTupleQueue.getDrainCountHint() );
-    }
-
-    @Test
-    public void testOverloadedWhenTupleCountsExceedTupleQueueCapacity ()
-    {
-        final Tuple tuple1 = new Tuple();
-        tuple1.set( PARTITION_KEY_FIELD, "key1" );
-        final Tuple tuple2 = new Tuple();
-        tuple2.set( PARTITION_KEY_FIELD, "key1" );
-        final Tuple tuple3 = new Tuple();
-        tuple3.set( PARTITION_KEY_FIELD, "key1" );
-        final List<Tuple> tuples = asList( tuple1, tuple2, tuple3 );
-
-        operatorTupleQueue.offer( 0, tuples );
-
-        assertEquals( 1, operatorTupleQueue.getDrainCountHint() );
-    }
-
-    @Test
-    public void testNotOverloadedWhenTupleCountsExceedTupleQueueCapacityButNoDrainableKeyExists ()
-    {
-        operatorTupleQueue.setTupleCounts( new int[] { 1, 1 }, ALL_PORTS );
-
-        final Tuple tuple1 = new Tuple();
-        tuple1.set( PARTITION_KEY_FIELD, "key1" );
-        final Tuple tuple2 = new Tuple();
-        tuple2.set( PARTITION_KEY_FIELD, "key1" );
-        final Tuple tuple3 = new Tuple();
-        tuple3.set( PARTITION_KEY_FIELD, "key1" );
-        final List<Tuple> tuples = asList( tuple1, tuple2, tuple3 );
-
-        operatorTupleQueue.offer( 0, tuples );
-
-        assertEquals( 0, operatorTupleQueue.getDrainCountHint() );
+        assertEquals( tuples, result.getTuples( 0 ) );
     }
 
 }

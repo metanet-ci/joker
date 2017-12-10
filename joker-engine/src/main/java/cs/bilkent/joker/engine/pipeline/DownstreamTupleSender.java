@@ -1,7 +1,5 @@
 package cs.bilkent.joker.engine.pipeline;
 
-import java.util.concurrent.Future;
-
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 
 /**
@@ -10,6 +8,6 @@ import cs.bilkent.joker.operator.impl.TuplesImpl;
 public interface DownstreamTupleSender
 {
 
-    Future<Void> send ( TuplesImpl tuples );
+    void send ( TuplesImpl tuples );
 
 }

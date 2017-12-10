@@ -1,7 +1,5 @@
 package cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender;
 
-import java.util.concurrent.Future;
-
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSenderFailureFlag;
@@ -40,13 +38,11 @@ public class PartitionedDownstreamTupleSenderN extends AbstractPartitionedDownst
     }
 
     @Override
-    public Future<Void> send ( final TuplesImpl tuples )
+    public void send ( final TuplesImpl tuples )
     {
         for ( int i = 0; i < limit; i += 2 )
         {
             send( tuples, ports[ i ], ports[ i + 1 ] );
         }
-
-        return null;
     }
 }

@@ -3,15 +3,15 @@ package cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.config.JokerConfig;
-import cs.bilkent.joker.engine.config.TupleQueueDrainerConfig;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainerPool;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.BlockingMultiPortConjunctiveDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.BlockingMultiPortDisjunctiveDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.BlockingSinglePortDrainer;
-import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
+import cs.bilkent.joker.engine.tuplequeue.impl.drainer.EmptyDrainer;
+import cs.bilkent.joker.engine.tuplequeue.impl.drainer.MultiPortDrainer;
+import cs.bilkent.joker.engine.tuplequeue.impl.drainer.SinglePortDrainer;
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
@@ -25,107 +25,60 @@ import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 public class BlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
 {
 
-    private final String operatorId;
-
     private final int inputPortCount;
 
-    private BlockingSinglePortDrainer singlePortDrainer;
+    private final int maxBatchSize;
 
-    private BlockingMultiPortConjunctiveDrainer multiPortConjunctiveDrainer;
-
-    private BlockingMultiPortDisjunctiveDrainer multiPortDisjunctiveDrainer;
-
-    private GreedyDrainer greedyDrainer;
-
-    private TupleQueueDrainer active;
 
     public BlockingTupleQueueDrainerPool ( final JokerConfig config, final OperatorDef operatorDef )
     {
-        this.operatorId = operatorDef.getId();
         this.inputPortCount = operatorDef.getInputPortCount();
-
-        final TupleQueueDrainerConfig tupleQueueDrainerConfig = config.getTupleQueueDrainerConfig();
-        final int maxBatchSize = tupleQueueDrainerConfig.getMaxBatchSize();
-
-        if ( inputPortCount == 1 )
-        {
-            this.singlePortDrainer = new BlockingSinglePortDrainer( maxBatchSize );
-        }
-        else if ( inputPortCount > 1 )
-        {
-            this.multiPortConjunctiveDrainer = new BlockingMultiPortConjunctiveDrainer( inputPortCount, maxBatchSize );
-            this.multiPortDisjunctiveDrainer = new BlockingMultiPortDisjunctiveDrainer( inputPortCount, maxBatchSize );
-        }
-
-        this.greedyDrainer = new GreedyDrainer( inputPortCount );
+        this.maxBatchSize = config.getTupleQueueDrainerConfig().getMaxBatchSize();
     }
 
     @Override
     public TupleQueueDrainer acquire ( final SchedulingStrategy input )
     {
-        checkState( active == null, "cannot acquire new drainer when there is an active one for operator %s", operatorId );
-
         if ( input instanceof ScheduleWhenAvailable )
         {
-            active = greedyDrainer;
+            return new EmptyDrainer();
         }
-        else if ( input instanceof ScheduleWhenTuplesAvailable )
+
+        if ( input instanceof ScheduleWhenTuplesAvailable )
         {
             final ScheduleWhenTuplesAvailable strategy = (ScheduleWhenTuplesAvailable) input;
             if ( inputPortCount == 1 )
             {
+                final SinglePortDrainer singlePortDrainer = new BlockingSinglePortDrainer( maxBatchSize );
                 singlePortDrainer.setParameters( strategy.getTupleAvailabilityByCount(), strategy.getTupleCount( DEFAULT_PORT_INDEX ) );
-                active = singlePortDrainer;
+                return singlePortDrainer;
+            }
+
+            checkArgument( !( strategy.getTupleAvailabilityByPort() == ANY_PORT
+                              && strategy.getTupleAvailabilityByCount() == AT_LEAST_BUT_SAME_ON_ALL_PORTS ), "invalid %s", strategy );
+            final int[] inputPorts = new int[ inputPortCount ];
+            for ( int i = 0; i < inputPortCount; i++ )
+            {
+                inputPorts[ i ] = i;
+            }
+
+            final MultiPortDrainer multiPortDrainer;
+
+            if ( strategy.getTupleAvailabilityByPort() == ALL_PORTS )
+            {
+                multiPortDrainer = new BlockingMultiPortConjunctiveDrainer( inputPortCount, maxBatchSize );
             }
             else
             {
-                checkArgument( !( strategy.getTupleAvailabilityByPort() == ANY_PORT
-                                  && strategy.getTupleAvailabilityByCount() == AT_LEAST_BUT_SAME_ON_ALL_PORTS ), "invalid %s", strategy );
-                final int[] inputPorts = new int[ inputPortCount ];
-                for ( int i = 0; i < inputPortCount; i++ )
-                {
-                    inputPorts[ i ] = i;
-                }
-                if ( strategy.getTupleAvailabilityByPort() == ALL_PORTS )
-                {
-                    multiPortConjunctiveDrainer.setParameters( strategy.getTupleAvailabilityByCount(),
-                                                               inputPorts,
-                                                               strategy.getTupleCounts() );
-                    active = multiPortConjunctiveDrainer;
-                }
-                else
-                {
-                    multiPortDisjunctiveDrainer.setParameters( strategy.getTupleAvailabilityByCount(),
-                                                               inputPorts,
-                                                               strategy.getTupleCounts() );
-                    active = multiPortDisjunctiveDrainer;
-                }
+                multiPortDrainer = new BlockingMultiPortDisjunctiveDrainer( inputPortCount, maxBatchSize );
             }
-        }
-        else
-        {
-            throw new IllegalArgumentException( input.getClass() + " is not supported yet!" );
+
+            multiPortDrainer.setParameters( strategy.getTupleAvailabilityByCount(), inputPorts, strategy.getTupleCounts() );
+
+            return multiPortDrainer;
         }
 
-        return active;
-    }
-
-    @Override
-    public void release ( final TupleQueueDrainer drainer )
-    {
-        checkArgument( active == drainer, "cannot release active drainer %s by drainer %s", active, drainer );
-        active.reset();
-        active = null;
-    }
-
-    @Override
-    public void reset ()
-    {
-        if ( active != null )
-        {
-            active.reset();
-        }
-        active = null;
+        throw new IllegalArgumentException( input.getClass() + " is not supported yet!" );
     }
 
 }

@@ -1,7 +1,5 @@
 package cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender;
 
-import java.util.concurrent.Future;
-
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSenderFailureFlag;
 import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
@@ -29,10 +27,9 @@ public class PartitionedDownstreamTupleSender1 extends AbstractPartitionedDownst
     }
 
     @Override
-    public Future<Void> send ( final TuplesImpl input )
+    public void send ( final TuplesImpl input )
     {
         send( input, sourcePortIndex, destinationPortIndex );
-        return null;
     }
 
 }

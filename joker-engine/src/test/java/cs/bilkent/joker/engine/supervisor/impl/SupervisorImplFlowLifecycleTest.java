@@ -232,6 +232,7 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
         @Override
         public void invoke ( final InvocationContext ctx )
         {
+            //            System.out.println("INVOKED1");
             ctx.output( new Tuple() );
         }
 

@@ -20,11 +20,11 @@ import static org.junit.Assert.assertEquals;
 public class FlatMapperOperatorTest extends AbstractJokerTest
 {
 
-    private final TuplesImpl input = new TuplesImpl( 1 );
-
     private final TuplesImpl output = new TuplesImpl( 1 );
 
-    private final InvocationContextImpl invocationContext = new InvocationContextImpl();
+    private final InvocationContextImpl invocationContext = new InvocationContextImpl( 1, key -> null, output );
+
+    private final TuplesImpl input = invocationContext.createInputTuples( null );
 
     private final OperatorConfig config = new OperatorConfig();
 
@@ -33,7 +33,7 @@ public class FlatMapperOperatorTest extends AbstractJokerTest
     @Before
     public void init () throws InstantiationException, IllegalAccessException
     {
-        invocationContext.setInvocationParameters( SUCCESS, input, output );
+        invocationContext.setInvocationReason( SUCCESS );
 
         final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "flatMapper", FlatMapperOperator.class )
                                                           .setConfig( config )

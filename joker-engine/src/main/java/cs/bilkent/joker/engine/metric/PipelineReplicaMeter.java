@@ -1,5 +1,6 @@
 package cs.bilkent.joker.engine.metric;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -8,6 +9,7 @@ import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuples;
+import cs.bilkent.joker.operator.impl.TuplesImpl;
 
 public class PipelineReplicaMeter
 {
@@ -76,17 +78,50 @@ public class PipelineReplicaMeter
         return ticker.isTicked();
     }
 
-    public void onInvocationStart ( final String operatorId, final Tuples tuples )
+    public void onInvocationStart ( final String operatorId )
     {
         checkNotNull( operatorId );
-        checkNotNull( tuples );
 
         if ( ticker.isTicked() )
         {
             casOrFail( pipelineReplicaId, operatorId );
         }
+    }
 
-        addTuples( operatorId, tuples );
+    public void addTuples ( final String operatorId, final TuplesImpl tuples )
+    {
+        checkNotNull( operatorId );
+        checkNotNull( tuples );
+
+        if ( !headOperatorId.equals( operatorId ) )
+        {
+            return;
+        }
+
+        for ( int i = 0; i < inputPortCount; i++ )
+        {
+            inboundThroughput[ i ] += tuples.getTupleCount( i );
+        }
+    }
+
+    public void addTuples ( final String operatorId, final List<TuplesImpl> tuplesList, final int count )
+    {
+        checkNotNull( operatorId );
+        checkNotNull( tuplesList );
+
+        if ( !headOperatorId.equals( operatorId ) )
+        {
+            return;
+        }
+
+        for ( int i = 0; i < count; i++ )
+        {
+            final Tuples tuples = tuplesList.get( i );
+            for ( int j = 0; j < inputPortCount; j++ )
+            {
+                inboundThroughput[ j ] += tuples.getTupleCount( j );
+            }
+        }
     }
 
     public void onInvocationComplete ( final String operatorId )
@@ -108,19 +143,6 @@ public class PipelineReplicaMeter
     {
         final boolean success = currentlyInvokedOperator.compareAndSet( currentVal, nextVal );
         checkState( success, "cannot set ref from %s to %s in pipeline replica meter of %s", currentVal, nextVal, pipelineReplicaId );
-    }
-
-    private void addTuples ( final String operatorId, final Tuples tuples )
-    {
-        if ( !headOperatorId.equals( operatorId ) )
-        {
-            return;
-        }
-
-        for ( int i = 0; i < inputPortCount; i++ )
-        {
-            inboundThroughput[ i ] += tuples.getTupleCount( i );
-        }
     }
 
     static class Ticker

@@ -7,8 +7,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
@@ -108,7 +106,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
 
     @Test
-    public void testPipelineWithSingleOperator () throws ExecutionException, InterruptedException
+    public void testPipelineWithSingleOperator () throws InterruptedException
     {
         final OperatorConfig mapperOperatorConfig = new OperatorConfig();
         final BiConsumer<Tuple, Tuple> multiplyBy2 = ( input, output ) -> output.set( "val",
@@ -179,7 +177,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     }
 
     @Test
-    public void testPipelineWithMultipleOperators_pipelineUpstreamClosed () throws ExecutionException, InterruptedException
+    public void testPipelineWithMultipleOperators_pipelineUpstreamClosed () throws InterruptedException
     {
         final OperatorConfig mapperOperatorConfig = new OperatorConfig();
         final BiConsumer<Tuple, Tuple> add1 = ( input, output ) -> output.set( "val", 1 + input.getIntegerValueOrDefault( "val", -1 ) );
@@ -395,7 +393,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     }
 
     @Test
-    public void testMultiplePipelines_singleInputPort () throws ExecutionException, InterruptedException
+    public void testMultiplePipelines_singleInputPort () throws InterruptedException
     {
         final SupervisorImpl supervisor = new SupervisorImpl();
         supervisor.upstreamContexts.put( pipelineReplicaId1, newInitialUpstreamContextWithAllPortsConnected( 1 ) );
@@ -733,7 +731,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     }
 
     @Test
-    public void testMultiplePipelines_partitionedStatefulDownstreamPipeline () throws ExecutionException, InterruptedException
+    public void testMultiplePipelines_partitionedStatefulDownstreamPipeline () throws InterruptedException
     {
         final SupervisorImpl supervisor = new SupervisorImpl();
         supervisor.upstreamContexts.put( pipelineReplicaId1, newSourceOperatorInitialUpstreamContext() );
@@ -903,14 +901,12 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         }
 
         @Override
-        public Future<Void> send ( final TuplesImpl tuples )
+        public void send ( final TuplesImpl tuples )
         {
             for ( int i = 0; i < tuples.getPortCount(); i++ )
             {
                 tupleQueues[ i ].offer( tuples.getTuples( i ) );
             }
-
-            return null;
         }
 
     }
@@ -1054,7 +1050,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         }
 
         @Override
-        public Future<Void> send ( final TuplesImpl input )
+        public void send ( final TuplesImpl input )
         {
             for ( Pair<Integer, Integer> p : ports )
             {
@@ -1082,8 +1078,6 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                     }
                 }
             }
-
-            return null;
         }
 
     }

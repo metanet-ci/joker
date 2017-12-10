@@ -39,6 +39,7 @@ import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAny;
@@ -232,9 +233,10 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         final OperatorReplica pipelineOperator3 = newPipelineReplica.getOperator( 3 );
         final OperatorReplica pipelineOperator4 = newPipelineReplica.getOperator( 4 );
 
+        final TuplesImpl result = new TuplesImpl( operatorDef1.getInputPortCount() );
         final GreedyDrainer drainer = new GreedyDrainer( operatorDef1.getInputPortCount() );
-        newPipelineReplica.getSelfPipelineTupleQueue().drain( drainer );
-        assertThat( singletonList( newTuple( "field", "val0" ) ), equalTo( drainer.getResult().getTuples( 0 ) ) );
+        newPipelineReplica.getSelfPipelineTupleQueue().drain( drainer, key -> result );
+        assertThat( singletonList( newTuple( "field", "val0" ) ), equalTo( result.getTuples( 0 ) ) );
 
         assertThat( singletonList( newTuple( "field", "val1" ) ), equalTo( drainDefaultPortGreedily( pipelineOperator1 ) ) );
         assertThat( singletonList( newTuple( "field", "val2" ) ), equalTo( drainDefaultPortGreedily( pipelineOperator2 ) ) );
@@ -615,9 +617,10 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         final OperatorReplica pipelineOperator3 = newPipelineReplicas[ 1 ].getOperator( 1 );
         final OperatorReplica pipelineOperator4 = newPipelineReplicas[ 2 ].getOperator( 0 );
 
+        final TuplesImpl result = new TuplesImpl( operatorDef1.getInputPortCount() );
         final GreedyDrainer drainer = new GreedyDrainer( operatorDef1.getInputPortCount() );
-        newPipelineReplica.getSelfPipelineTupleQueue().drain( drainer );
-        assertThat( singletonList( newTuple( "field", "val0" ) ), equalTo( drainer.getResult().getTuples( 0 ) ) );
+        newPipelineReplica.getSelfPipelineTupleQueue().drain( drainer, key -> result );
+        assertThat( singletonList( newTuple( "field", "val0" ) ), equalTo( result.getTuples( 0 ) ) );
 
         assertThat( singletonList( newTuple( "field", "val1" ) ), equalTo( drainDefaultPortGreedily( pipelineOperator1 ) ) );
         assertThat( singletonList( newTuple( "field", "val2" ) ), equalTo( drainDefaultPortGreedily( pipelineOperator2 ) ) );
@@ -901,9 +904,11 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
 
     private List<Tuple> drainDefaultPortGreedily ( final OperatorReplica operatorReplica )
     {
-        final GreedyDrainer drainer = new GreedyDrainer( operatorReplica.getOperatorDef().getInputPortCount() );
-        operatorReplica.getQueue().drain( drainer );
-        return drainer.getResult().getTuples( 0 );
+        final int inputPortCount = operatorReplica.getOperatorDef().getInputPortCount();
+        final TuplesImpl result = new TuplesImpl( inputPortCount );
+        final GreedyDrainer drainer = new GreedyDrainer( inputPortCount );
+        operatorReplica.getQueue().drain( drainer, key -> result );
+        return result.getTuples( 0 );
     }
 
     @OperatorSpec( type = STATELESS, inputPortCount = 0, outputPortCount = 1 )
