@@ -4,16 +4,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import cs.bilkent.joker.engine.config.JokerConfig;
-import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.flow.PipelineId;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETED;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.RUNNING;
-import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.SHUT_DOWN;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.INITIAL_VERSION;
+import cs.bilkent.joker.engine.region.Region;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
@@ -35,52 +34,36 @@ public class PipelineTest extends AbstractJokerTest
     public void shouldInitializePipelineReplicas ()
     {
         final PipelineReplica pipelineReplica0 = mock( PipelineReplica.class ), pipelineReplica1 = mock( PipelineReplica.class );
-        final PipelineReplica[] pipelineReplicas = new PipelineReplica[] { pipelineReplica0, pipelineReplica1 };
-        final SchedulingStrategy initialSchedulingStrategy = mock( SchedulingStrategy.class );
-
+        final SchedulingStrategy schedulingStrategy = mock( SchedulingStrategy.class );
+        final SchedulingStrategy[] schedulingStrategies = new SchedulingStrategy[] { schedulingStrategy };
+        final SchedulingStrategy[][] fusedSchedulingStrategies = new SchedulingStrategy[][] { { schedulingStrategy } };
         final UpstreamContext upstreamContext = mock( UpstreamContext.class );
-        when( pipelineReplica0.init( upstreamContext ) ).thenReturn( new SchedulingStrategy[] { initialSchedulingStrategy } );
-        when( pipelineReplica1.init( upstreamContext ) ).thenReturn( new SchedulingStrategy[] { initialSchedulingStrategy } );
-        final RegionExecutionPlan regionExecutionPlan = mock( RegionExecutionPlan.class );
-        when( regionExecutionPlan.getReplicaCount() ).thenReturn( 2 );
-        when( regionExecutionPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 1 );
-        final Pipeline pipeline = new Pipeline( pipelineId, regionExecutionPlan, pipelineReplicas );
-        pipeline.setUpstreamContext( upstreamContext );
+        final UpstreamContext[] upstreamContexts = new UpstreamContext[] { upstreamContext };
+        final UpstreamContext[][] fusedUpstreamContexts = new UpstreamContext[][] { { upstreamContext } };
+
+        when( pipelineReplica0.getStatus() ).thenReturn( OperatorReplicaStatus.INITIAL );
+        when( pipelineReplica1.getStatus() ).thenReturn( OperatorReplicaStatus.INITIAL );
+
+        final RegionExecPlan regionExecPlan = mock( RegionExecPlan.class );
+        when( regionExecPlan.getReplicaCount() ).thenReturn( 2 );
+        when( regionExecPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 1 );
+
+        final Region region = mock( Region.class );
+        when( region.getPipelineReplicas( pipelineId ) ).thenReturn( new PipelineReplica[] { pipelineReplica0, pipelineReplica1 } );
+        when( region.getSchedulingStrategies( pipelineId ) ).thenReturn( schedulingStrategies );
+        when( region.getFusedSchedulingStrategies( pipelineId ) ).thenReturn( fusedSchedulingStrategies );
+        when( region.getUpstreamContexts( pipelineId ) ).thenReturn( upstreamContexts );
+        when( region.getFusedUpstreamContexts( pipelineId ) ).thenReturn( fusedUpstreamContexts );
+        when( region.getExecPlan() ).thenReturn( regionExecPlan );
+
+        final Pipeline pipeline = new Pipeline( pipelineId, region );
         pipeline.init();
 
         assertThat( pipeline.getPipelineStatus(), equalTo( RUNNING ) );
-        assertThat( pipeline.getInitialSchedulingStrategy(), equalTo( initialSchedulingStrategy ) );
-    }
+        assertThat( pipeline.getUpstreamContext(), equalTo( upstreamContexts[ 0 ] ) );
 
-    @Test
-    public void shouldFailInitializationWhenPipelineReplicasReturnMismatchingSchedulingStrategies ()
-    {
-        final PipelineReplica pipelineReplica0 = mock( PipelineReplica.class ), pipelineReplica1 = mock( PipelineReplica.class );
-        final PipelineReplica[] pipelineReplicas = new PipelineReplica[] { pipelineReplica0, pipelineReplica1 };
-        final SchedulingStrategy initialSchedulingStrategy = mock( SchedulingStrategy.class );
-        final SchedulingStrategy initialSchedulingStrategy2 = mock( SchedulingStrategy.class );
-
-        final UpstreamContext upstreamContext = mock( UpstreamContext.class );
-        when( pipelineReplica0.init( upstreamContext ) ).thenReturn( new SchedulingStrategy[] { initialSchedulingStrategy } );
-        when( pipelineReplica1.init( upstreamContext ) ).thenReturn( new SchedulingStrategy[] { initialSchedulingStrategy2 } );
-        final RegionExecutionPlan regionExecutionPlan = mock( RegionExecutionPlan.class );
-        when( regionExecutionPlan.getReplicaCount() ).thenReturn( 2 );
-        when( regionExecutionPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 1 );
-
-        final Pipeline pipeline = new Pipeline( pipelineId, regionExecutionPlan, pipelineReplicas );
-        pipeline.setUpstreamContext( upstreamContext );
-
-        try
-        {
-            pipeline.init();
-            fail();
-        }
-        catch ( InitializationException e )
-        {
-            assertThat( pipeline.getPipelineStatus(), equalTo( SHUT_DOWN ) );
-            verify( pipelineReplica0 ).shutdown();
-            verify( pipelineReplica1 ).shutdown();
-        }
+        verify( pipelineReplica0 ).init( fusedSchedulingStrategies, fusedUpstreamContexts );
+        verify( pipelineReplica1 ).init( fusedSchedulingStrategies, fusedUpstreamContexts );
     }
 
     @Test
@@ -91,23 +74,34 @@ public class PipelineTest extends AbstractJokerTest
         when( pipelineReplica0.id() ).thenReturn( pipelineReplicaId0 );
         final PipelineReplicaId pipelineReplicaId1 = new PipelineReplicaId( pipelineId, 1 );
         when( pipelineReplica1.id() ).thenReturn( pipelineReplicaId1 );
-        final PipelineReplica[] pipelineReplicas = new PipelineReplica[] { pipelineReplica0, pipelineReplica1 };
-        final SchedulingStrategy initialSchedulingStrategy = mock( SchedulingStrategy.class );
-
+        final SchedulingStrategy schedulingStrategy = mock( SchedulingStrategy.class );
+        final SchedulingStrategy[] schedulingStrategies = new SchedulingStrategy[] { schedulingStrategy };
+        final SchedulingStrategy[][] fusedSchedulingStrategies = new SchedulingStrategy[][] { { schedulingStrategy } };
         final UpstreamContext upstreamContext = mock( UpstreamContext.class );
+        final UpstreamContext[] upstreamContexts = new UpstreamContext[] { upstreamContext };
+        final UpstreamContext[][] fusedUpstreamContexts = new UpstreamContext[][] { { upstreamContext } };
 
-        when( pipelineReplica0.init( upstreamContext ) ).thenReturn( new SchedulingStrategy[] { initialSchedulingStrategy } );
-        when( pipelineReplica1.init( upstreamContext ) ).thenReturn( new SchedulingStrategy[] { initialSchedulingStrategy } );
-        final RegionExecutionPlan regionExecutionPlan = mock( RegionExecutionPlan.class );
-        when( regionExecutionPlan.getReplicaCount() ).thenReturn( 2 );
-        when( regionExecutionPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 1 );
-        final Pipeline pipeline = new Pipeline( pipelineId, regionExecutionPlan, pipelineReplicas );
-        pipeline.setUpstreamContext( upstreamContext );
+        when( pipelineReplica0.getStatus() ).thenReturn( OperatorReplicaStatus.INITIAL );
+        when( pipelineReplica1.getStatus() ).thenReturn( OperatorReplicaStatus.INITIAL );
+
+        final RegionExecPlan regionExecPlan = mock( RegionExecPlan.class );
+        when( regionExecPlan.getReplicaCount() ).thenReturn( 2 );
+        when( regionExecPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 1 );
+
+        final Region region = mock( Region.class );
+        when( region.getPipelineReplicas( pipelineId ) ).thenReturn( new PipelineReplica[] { pipelineReplica0, pipelineReplica1 } );
+        when( region.getSchedulingStrategies( pipelineId ) ).thenReturn( schedulingStrategies );
+        when( region.getFusedSchedulingStrategies( pipelineId ) ).thenReturn( fusedSchedulingStrategies );
+        when( region.getUpstreamContexts( pipelineId ) ).thenReturn( upstreamContexts );
+        when( region.getFusedUpstreamContexts( pipelineId ) ).thenReturn( fusedUpstreamContexts );
+        when( region.getExecPlan() ).thenReturn( regionExecPlan );
+
+        final Pipeline pipeline = new Pipeline( pipelineId, region );
         pipeline.init();
 
         final Supervisor supervisor = mock( Supervisor.class );
-        when( supervisor.getUpstreamContext( pipelineReplicaId0 ) ).thenReturn( upstreamContext );
-        when( supervisor.getUpstreamContext( pipelineReplicaId1 ) ).thenReturn( upstreamContext );
+        when( supervisor.getUpstreamContext( pipelineReplicaId0 ) ).thenReturn( upstreamContexts[ 0 ] );
+        when( supervisor.getUpstreamContext( pipelineReplicaId1 ) ).thenReturn( upstreamContexts[ 0 ] );
 
         pipeline.startPipelineReplicaRunners( new JokerConfig(), supervisor, new ThreadGroup( "test" ) );
 
@@ -122,23 +116,34 @@ public class PipelineTest extends AbstractJokerTest
         when( pipelineReplica0.id() ).thenReturn( pipelineReplicaId0 );
         final PipelineReplicaId pipelineReplicaId1 = new PipelineReplicaId( pipelineId, 1 );
         when( pipelineReplica1.id() ).thenReturn( pipelineReplicaId1 );
-        final PipelineReplica[] pipelineReplicas = new PipelineReplica[] { pipelineReplica0, pipelineReplica1 };
-        final SchedulingStrategy initialSchedulingStrategy = mock( SchedulingStrategy.class );
-
+        final SchedulingStrategy schedulingStrategy = mock( SchedulingStrategy.class );
+        final SchedulingStrategy[] schedulingStrategies = new SchedulingStrategy[] { schedulingStrategy };
+        final SchedulingStrategy[][] fusedSchedulingStrategies = new SchedulingStrategy[][] { { schedulingStrategy } };
         final UpstreamContext upstreamContext = mock( UpstreamContext.class );
+        final UpstreamContext[] upstreamContexts = new UpstreamContext[] { upstreamContext };
+        final UpstreamContext[][] fusedUpstreamContexts = new UpstreamContext[][] { { upstreamContext } };
 
-        when( pipelineReplica0.init( upstreamContext ) ).thenReturn( new SchedulingStrategy[] { initialSchedulingStrategy } );
-        when( pipelineReplica1.init( upstreamContext ) ).thenReturn( new SchedulingStrategy[] { initialSchedulingStrategy } );
-        final RegionExecutionPlan regionExecutionPlan = mock( RegionExecutionPlan.class );
-        when( regionExecutionPlan.getReplicaCount() ).thenReturn( 2 );
-        when( regionExecutionPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 1 );
-        final Pipeline pipeline = new Pipeline( pipelineId, regionExecutionPlan, pipelineReplicas );
-        pipeline.setUpstreamContext( upstreamContext );
+        when( pipelineReplica0.getStatus() ).thenReturn( OperatorReplicaStatus.INITIAL );
+        when( pipelineReplica1.getStatus() ).thenReturn( OperatorReplicaStatus.INITIAL );
+
+        final RegionExecPlan regionExecPlan = mock( RegionExecPlan.class );
+        when( regionExecPlan.getReplicaCount() ).thenReturn( 2 );
+        when( regionExecPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 1 );
+
+        final Region region = mock( Region.class );
+        when( region.getPipelineReplicas( pipelineId ) ).thenReturn( new PipelineReplica[] { pipelineReplica0, pipelineReplica1 } );
+        when( region.getSchedulingStrategies( pipelineId ) ).thenReturn( schedulingStrategies );
+        when( region.getFusedSchedulingStrategies( pipelineId ) ).thenReturn( fusedSchedulingStrategies );
+        when( region.getUpstreamContexts( pipelineId ) ).thenReturn( upstreamContexts );
+        when( region.getFusedUpstreamContexts( pipelineId ) ).thenReturn( fusedUpstreamContexts );
+        when( region.getExecPlan() ).thenReturn( regionExecPlan );
+
+        final Pipeline pipeline = new Pipeline( pipelineId, region );
         pipeline.init();
 
         final Supervisor supervisor = mock( Supervisor.class );
-        when( supervisor.getUpstreamContext( pipelineReplicaId0 ) ).thenReturn( upstreamContext );
-        when( supervisor.getUpstreamContext( pipelineReplicaId1 ) ).thenReturn( upstreamContext );
+        when( supervisor.getUpstreamContext( pipelineReplicaId0 ) ).thenReturn( upstreamContexts[ 0 ] );
+        when( supervisor.getUpstreamContext( pipelineReplicaId1 ) ).thenReturn( upstreamContexts[ 0 ] );
 
         pipeline.startPipelineReplicaRunners( new JokerConfig(), supervisor, new ThreadGroup( "test" ) );
         try
@@ -146,9 +151,8 @@ public class PipelineTest extends AbstractJokerTest
             pipeline.startPipelineReplicaRunners( new JokerConfig(), supervisor, new ThreadGroup( "test" ) );
             fail();
         }
-        catch ( IllegalStateException expected )
+        catch ( IllegalStateException ignored )
         {
-
         }
 
         pipeline.stopPipelineReplicaRunners( TimeUnit.SECONDS.toMillis( 30 ) );
@@ -162,18 +166,29 @@ public class PipelineTest extends AbstractJokerTest
         when( pipelineReplica0.id() ).thenReturn( pipelineReplicaId0 );
         final PipelineReplicaId pipelineReplicaId1 = new PipelineReplicaId( pipelineId, 1 );
         when( pipelineReplica1.id() ).thenReturn( pipelineReplicaId1 );
-        final PipelineReplica[] pipelineReplicas = new PipelineReplica[] { pipelineReplica0, pipelineReplica1 };
-        final SchedulingStrategy initialSchedulingStrategy = mock( SchedulingStrategy.class );
-
+        final SchedulingStrategy schedulingStrategy = mock( SchedulingStrategy.class );
+        final SchedulingStrategy[] schedulingStrategies = new SchedulingStrategy[] { schedulingStrategy };
+        final SchedulingStrategy[][] fusedSchedulingStrategies = new SchedulingStrategy[][] { { schedulingStrategy } };
         final UpstreamContext upstreamContext = mock( UpstreamContext.class );
+        final UpstreamContext[] upstreamContexts = new UpstreamContext[] { upstreamContext };
+        final UpstreamContext[][] fusedUpstreamContexts = new UpstreamContext[][] { { upstreamContext } };
 
-        when( pipelineReplica0.init( upstreamContext ) ).thenReturn( new SchedulingStrategy[] { initialSchedulingStrategy } );
-        when( pipelineReplica1.init( upstreamContext ) ).thenReturn( new SchedulingStrategy[] { initialSchedulingStrategy } );
-        final RegionExecutionPlan regionExecutionPlan = mock( RegionExecutionPlan.class );
-        when( regionExecutionPlan.getReplicaCount() ).thenReturn( 2 );
-        when( regionExecutionPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 1 );
-        final Pipeline pipeline = new Pipeline( pipelineId, regionExecutionPlan, pipelineReplicas );
-        pipeline.setUpstreamContext( upstreamContext );
+        when( pipelineReplica0.getStatus() ).thenReturn( OperatorReplicaStatus.INITIAL );
+        when( pipelineReplica1.getStatus() ).thenReturn( OperatorReplicaStatus.INITIAL );
+
+        final RegionExecPlan regionExecPlan = mock( RegionExecPlan.class );
+        when( regionExecPlan.getReplicaCount() ).thenReturn( 2 );
+        when( regionExecPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 1 );
+
+        final Region region = mock( Region.class );
+        when( region.getPipelineReplicas( pipelineId ) ).thenReturn( new PipelineReplica[] { pipelineReplica0, pipelineReplica1 } );
+        when( region.getSchedulingStrategies( pipelineId ) ).thenReturn( schedulingStrategies );
+        when( region.getFusedSchedulingStrategies( pipelineId ) ).thenReturn( fusedSchedulingStrategies );
+        when( region.getUpstreamContexts( pipelineId ) ).thenReturn( upstreamContexts );
+        when( region.getFusedUpstreamContexts( pipelineId ) ).thenReturn( fusedUpstreamContexts );
+        when( region.getExecPlan() ).thenReturn( regionExecPlan );
+
+        final Pipeline pipeline = new Pipeline( pipelineId, region );
         pipeline.init();
 
         pipeline.stopPipelineReplicaRunners( TimeUnit.SECONDS.toMillis( 30 ) );
@@ -187,26 +202,36 @@ public class PipelineTest extends AbstractJokerTest
         when( pipelineReplica0.id() ).thenReturn( pipelineReplicaId0 );
         final PipelineReplicaId pipelineReplicaId1 = new PipelineReplicaId( pipelineId, 1 );
         when( pipelineReplica1.id() ).thenReturn( pipelineReplicaId1 );
-        final PipelineReplica[] pipelineReplicas = new PipelineReplica[] { pipelineReplica0, pipelineReplica1 };
-        final SchedulingStrategy initialSchedulingStrategy = mock( SchedulingStrategy.class );
-
+        final SchedulingStrategy schedulingStrategy = mock( SchedulingStrategy.class );
+        final SchedulingStrategy[] schedulingStrategies = new SchedulingStrategy[] { schedulingStrategy };
+        final SchedulingStrategy[][] fusedSchedulingStrategies = new SchedulingStrategy[][] { { schedulingStrategy } };
         final UpstreamContext upstreamContext = mock( UpstreamContext.class );
+        final UpstreamContext[] upstreamContexts = new UpstreamContext[] { upstreamContext };
+        final UpstreamContext[][] fusedUpstreamContexts = new UpstreamContext[][] { { upstreamContext } };
 
-        when( pipelineReplica0.init( upstreamContext ) ).thenReturn( new SchedulingStrategy[] { initialSchedulingStrategy } );
-        when( pipelineReplica1.init( upstreamContext ) ).thenReturn( new SchedulingStrategy[] { initialSchedulingStrategy } );
-        final RegionExecutionPlan regionExecutionPlan = mock( RegionExecutionPlan.class );
-        when( regionExecutionPlan.getReplicaCount() ).thenReturn( 2 );
-        when( regionExecutionPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 1 );
-        final Pipeline pipeline = new Pipeline( pipelineId, regionExecutionPlan, pipelineReplicas );
-        pipeline.setUpstreamContext( upstreamContext );
+        when( pipelineReplica0.getStatus() ).thenReturn( OperatorReplicaStatus.INITIAL );
+        when( pipelineReplica1.getStatus() ).thenReturn( OperatorReplicaStatus.INITIAL );
+
+        final RegionExecPlan regionExecPlan = mock( RegionExecPlan.class );
+        when( regionExecPlan.getReplicaCount() ).thenReturn( 2 );
+        when( regionExecPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 1 );
+
+        final Region region = mock( Region.class );
+        when( region.getPipelineReplicas( pipelineId ) ).thenReturn( new PipelineReplica[] { pipelineReplica0, pipelineReplica1 } );
+        when( region.getSchedulingStrategies( pipelineId ) ).thenReturn( schedulingStrategies );
+        when( region.getFusedSchedulingStrategies( pipelineId ) ).thenReturn( fusedSchedulingStrategies );
+        when( region.getUpstreamContexts( pipelineId ) ).thenReturn( upstreamContexts );
+        when( region.getFusedUpstreamContexts( pipelineId ) ).thenReturn( fusedUpstreamContexts );
+        when( region.getExecPlan() ).thenReturn( regionExecPlan );
+
+        final Pipeline pipeline = new Pipeline( pipelineId, region );
         pipeline.init();
 
         final Supervisor supervisor = mock( Supervisor.class );
-        when( supervisor.getUpstreamContext( pipelineReplicaId0 ) ).thenReturn( upstreamContext );
-        when( supervisor.getUpstreamContext( pipelineReplicaId1 ) ).thenReturn( upstreamContext );
+        when( supervisor.getUpstreamContext( pipelineReplicaId0 ) ).thenReturn( upstreamContexts[ 0 ] );
+        when( supervisor.getUpstreamContext( pipelineReplicaId1 ) ).thenReturn( upstreamContexts[ 0 ] );
 
         pipeline.startPipelineReplicaRunners( new JokerConfig(), supervisor, new ThreadGroup( "test" ) );
-
         try
         {
             pipeline.shutdown();
@@ -226,74 +251,70 @@ public class PipelineTest extends AbstractJokerTest
         when( pipelineReplica0.id() ).thenReturn( pipelineReplicaId0 );
         final PipelineReplicaId pipelineReplicaId1 = new PipelineReplicaId( pipelineId, 1 );
         when( pipelineReplica1.id() ).thenReturn( pipelineReplicaId1 );
-        final PipelineReplica[] pipelineReplicas = new PipelineReplica[] { pipelineReplica0, pipelineReplica1 };
-        final SchedulingStrategy initialSchedulingStrategy = mock( SchedulingStrategy.class );
-
+        final SchedulingStrategy schedulingStrategy = mock( SchedulingStrategy.class );
+        final SchedulingStrategy[] schedulingStrategies = new SchedulingStrategy[] { schedulingStrategy };
+        final SchedulingStrategy[][] fusedSchedulingStrategies = new SchedulingStrategy[][] { { schedulingStrategy } };
         final UpstreamContext upstreamContext = mock( UpstreamContext.class );
+        final UpstreamContext[] upstreamContexts = new UpstreamContext[] { upstreamContext };
+        final UpstreamContext[][] fusedUpstreamContexts = new UpstreamContext[][] { { upstreamContext } };
 
-        when( pipelineReplica0.init( upstreamContext ) ).thenReturn( new SchedulingStrategy[] { initialSchedulingStrategy } );
-        when( pipelineReplica1.init( upstreamContext ) ).thenReturn( new SchedulingStrategy[] { initialSchedulingStrategy } );
-        final RegionExecutionPlan regionExecutionPlan = mock( RegionExecutionPlan.class );
-        when( regionExecutionPlan.getReplicaCount() ).thenReturn( 2 );
-        when( regionExecutionPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 1 );
-        final Pipeline pipeline = new Pipeline( pipelineId, regionExecutionPlan, pipelineReplicas );
-        pipeline.setUpstreamContext( upstreamContext );
+        when( pipelineReplica0.getStatus() ).thenReturn( OperatorReplicaStatus.INITIAL );
+        when( pipelineReplica1.getStatus() ).thenReturn( OperatorReplicaStatus.INITIAL );
+
+        final RegionExecPlan regionExecPlan = mock( RegionExecPlan.class );
+        when( regionExecPlan.getReplicaCount() ).thenReturn( 2 );
+        when( regionExecPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 1 );
+
+        final Region region = mock( Region.class );
+        when( region.getPipelineReplicas( pipelineId ) ).thenReturn( new PipelineReplica[] { pipelineReplica0, pipelineReplica1 } );
+        when( region.getSchedulingStrategies( pipelineId ) ).thenReturn( schedulingStrategies );
+        when( region.getFusedSchedulingStrategies( pipelineId ) ).thenReturn( fusedSchedulingStrategies );
+        when( region.getUpstreamContexts( pipelineId ) ).thenReturn( upstreamContexts );
+        when( region.getFusedUpstreamContexts( pipelineId ) ).thenReturn( fusedUpstreamContexts );
+        when( region.getExecPlan() ).thenReturn( regionExecPlan );
+
+        final Pipeline pipeline = new Pipeline( pipelineId, region );
         pipeline.init();
 
         final Supervisor supervisor = mock( Supervisor.class );
-        when( supervisor.getUpstreamContext( pipelineReplicaId0 ) ).thenReturn( upstreamContext );
-        when( supervisor.getUpstreamContext( pipelineReplicaId1 ) ).thenReturn( upstreamContext );
+        when( supervisor.getUpstreamContext( pipelineReplicaId0 ) ).thenReturn( upstreamContexts[ 0 ] );
+        when( supervisor.getUpstreamContext( pipelineReplicaId1 ) ).thenReturn( upstreamContexts[ 0 ] );
 
         final AtomicBoolean completed = new AtomicBoolean( false );
-        when( pipelineReplica0.isCompleted() ).thenAnswer( new Answer<Boolean>()
-        {
-            @Override
-            public Boolean answer ( final InvocationOnMock invocation ) throws Throwable
-            {
-                return completed.get();
-            }
-        } );
+        when( pipelineReplica0.isCompleted() ).thenAnswer( (Answer<Boolean>) invocation -> completed.get() );
 
-        when( pipelineReplica1.isCompleted() ).thenAnswer( new Answer<Boolean>()
-        {
-            @Override
-            public Boolean answer ( final InvocationOnMock invocation ) throws Throwable
-            {
-                return completed.get();
-            }
-        } );
+        when( pipelineReplica1.isCompleted() ).thenAnswer( (Answer<Boolean>) invocation -> completed.get() );
 
         pipeline.startPipelineReplicaRunners( new JokerConfig(), supervisor, new ThreadGroup( "test" ) );
 
         final UpstreamContext newUpstreamContext = mock( UpstreamContext.class );
-        when( newUpstreamContext.getVersion() ).thenReturn( 1 );
+        when( newUpstreamContext.getVersion() ).thenReturn( INITIAL_VERSION + 1 );
         reset( supervisor );
         when( supervisor.getUpstreamContext( pipelineReplicaId0 ) ).thenReturn( newUpstreamContext );
         when( supervisor.getUpstreamContext( pipelineReplicaId1 ) ).thenReturn( newUpstreamContext );
 
         final OperatorDef operatorDef = mock( OperatorDef.class );
-        when( regionExecutionPlan.getOperatorDefsByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( new OperatorDef[] {
+        when( regionExecPlan.getOperatorDefsByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( new OperatorDef[] {
                 operatorDef } );
 
         pipeline.handleUpstreamContextUpdated( newUpstreamContext );
 
-        assertTrueEventually( () ->
-                              {
-                                  verify( pipelineReplica0 ).setPipelineUpstreamContext( newUpstreamContext );
-                                  verify( pipelineReplica1 ).setPipelineUpstreamContext( newUpstreamContext );
-                              } );
+        assertTrueEventually( () -> {
+            verify( pipelineReplica0 ).setUpstreamContext( newUpstreamContext );
+            verify( pipelineReplica1 ).setUpstreamContext( newUpstreamContext );
+        } );
 
-        verify( newUpstreamContext ).isInvokable( operatorDef, initialSchedulingStrategy );
+        verify( newUpstreamContext ).isInvokable( operatorDef, schedulingStrategies[ 0 ] );
 
         completed.set( true );
 
-        assertTrueEventually( () ->
-                              {
-                                  verify( supervisor ).notifyPipelineReplicaCompleted( pipelineReplicaId0 );
-                                  verify( supervisor ).notifyPipelineReplicaCompleted( pipelineReplicaId1 );
-                                  pipeline.handlePipelineReplicaCompleted( 0 );
-                                  pipeline.handlePipelineReplicaCompleted( 1 );
-                              } );
+        assertTrueEventually( () -> {
+            verify( supervisor ).notifyPipelineReplicaCompleted( pipelineReplicaId0 );
+            verify( supervisor ).notifyPipelineReplicaCompleted( pipelineReplicaId1 );
+
+            pipeline.handlePipelineReplicaCompleted( 0 );
+            pipeline.handlePipelineReplicaCompleted( 1 );
+        } );
 
         assertThat( pipeline.getPipelineStatus(), equalTo( COMPLETED ) );
 

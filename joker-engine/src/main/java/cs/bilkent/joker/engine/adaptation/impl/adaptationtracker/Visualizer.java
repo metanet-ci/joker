@@ -7,7 +7,7 @@ import java.lang.ProcessBuilder.Redirect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import cs.bilkent.joker.engine.flow.FlowExecutionPlan;
+import cs.bilkent.joker.engine.flow.FlowExecPlan;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -21,18 +21,18 @@ final class Visualizer
 
     }
 
-    static void visualize ( final FlowExecutionPlan flowExecutionPlan, final String dir )
+    static void visualize ( final FlowExecPlan execPlan, final String dir )
     {
-        final String flowSummary = flowExecutionPlan.toPlanSummaryString();
+        final String summary = execPlan.toSummaryString();
         try
         {
             final String vizPath = System.getProperty( "vizPath", "viz.py" );
             checkState( new File( vizPath ).exists() );
 
-            final String flowPath = dir + System.getProperty( "file.separator" ) + "flow" + flowExecutionPlan.getVersion() + ".pdf";
+            final String flowPath = dir + System.getProperty( "file.separator" ) + "flow" + execPlan.getVersion() + ".pdf";
             checkState( !new File( flowPath ).exists() );
 
-            final ProcessBuilder pb = new ProcessBuilder( "python", vizPath, "-p", flowSummary, "-o", flowPath );
+            final ProcessBuilder pb = new ProcessBuilder( "python", vizPath, "-p", summary, "-o", flowPath );
             pb.redirectOutput( Redirect.INHERIT );
             pb.redirectError( Redirect.INHERIT );
 
@@ -41,16 +41,16 @@ final class Visualizer
 
             if ( p.exitValue() != 0 )
             {
-                LOGGER.warn( "Cannot visualize {} exit value: {}", flowSummary, p.exitValue() );
+                LOGGER.warn( "Cannot visualize {} exit value: {}", summary, p.exitValue() );
             }
         }
         catch ( IOException e )
         {
-            LOGGER.warn( "Cannot visualize " + flowSummary, e );
+            LOGGER.warn( "Cannot visualize " + summary, e );
         }
         catch ( InterruptedException e )
         {
-            LOGGER.warn( "Interrupted visualization of " + flowSummary, e );
+            LOGGER.warn( "Interrupted visualization of " + summary, e );
             Thread.currentThread().interrupt();
         }
     }

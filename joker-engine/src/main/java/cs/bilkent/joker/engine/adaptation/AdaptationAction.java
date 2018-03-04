@@ -1,15 +1,15 @@
 package cs.bilkent.joker.engine.adaptation;
 
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 
 public interface AdaptationAction
 {
 
     void apply ( AdaptationPerformer performer );
 
-    RegionExecutionPlan getCurrentRegionExecutionPlan ();
+    RegionExecPlan getCurrentExecPlan ();
 
-    RegionExecutionPlan getNewRegionExecutionPlan ();
+    RegionExecPlan getNewExecPlan ();
 
     AdaptationAction revert ();
 

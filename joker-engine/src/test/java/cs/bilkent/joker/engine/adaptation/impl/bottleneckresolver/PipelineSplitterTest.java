@@ -8,7 +8,7 @@ import org.junit.Test;
 import cs.bilkent.joker.engine.adaptation.AdaptationAction;
 import cs.bilkent.joker.engine.adaptation.impl.adaptationaction.SplitPipelineAction;
 import cs.bilkent.joker.engine.flow.PipelineId;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Arrays.asList;
@@ -23,11 +23,11 @@ import static org.mockito.Mockito.when;
 public class PipelineSplitterTest extends AbstractJokerTest
 {
 
-    private final BiFunction<RegionExecutionPlan, PipelineMetrics, Integer> pipelineSplitIndexExtractor = mock( BiFunction.class );
+    private final BiFunction<RegionExecPlan, PipelineMetrics, Integer> pipelineSplitIndexExtractor = mock( BiFunction.class );
 
-    private final RegionExecutionPlan regionExecutionPlan = mock( RegionExecutionPlan.class );
+    private final RegionExecPlan regionExecPlan = mock( RegionExecPlan.class );
 
-    private final RegionExecutionPlan newRegionExecutionPlan = mock( RegionExecutionPlan.class );
+    private final RegionExecPlan newRegionExecPlan = mock( RegionExecPlan.class );
 
     private final PipelineId pipelineId = new PipelineId( 0, 0 );
 
@@ -44,10 +44,10 @@ public class PipelineSplitterTest extends AbstractJokerTest
     @Test
     public void shouldNotSplitSingleOperatorPipeline ()
     {
-        when( regionExecutionPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 1 );
-        when( regionExecutionPlan.withSplitPipeline( singletonList( 0 ) ) ).thenReturn( newRegionExecutionPlan );
+        when( regionExecPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 1 );
+        when( regionExecPlan.withSplitPipeline( singletonList( 0 ) ) ).thenReturn( newRegionExecPlan );
 
-        final AdaptationAction action = pipelineSplitter.resolve( regionExecutionPlan, bottleneckPipelineMetrics );
+        final AdaptationAction action = pipelineSplitter.resolve( regionExecPlan, bottleneckPipelineMetrics );
 
         assertNull( action );
     }
@@ -55,10 +55,10 @@ public class PipelineSplitterTest extends AbstractJokerTest
     @Test
     public void shouldNotSplitWhenExtractorReturnsNoSplit ()
     {
-        when( regionExecutionPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 2 );
-        when( pipelineSplitIndexExtractor.apply( regionExecutionPlan, bottleneckPipelineMetrics ) ).thenReturn( 0 );
+        when( regionExecPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 2 );
+        when( pipelineSplitIndexExtractor.apply( regionExecPlan, bottleneckPipelineMetrics ) ).thenReturn( 0 );
 
-        final AdaptationAction action = pipelineSplitter.resolve( regionExecutionPlan, bottleneckPipelineMetrics );
+        final AdaptationAction action = pipelineSplitter.resolve( regionExecPlan, bottleneckPipelineMetrics );
 
         assertNull( action );
     }
@@ -67,16 +67,16 @@ public class PipelineSplitterTest extends AbstractJokerTest
     public void shouldSplitWhenExtractorReturnsSplitIndex ()
     {
         final int pipelineSplitIndex = 1;
-        when( regionExecutionPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 2 );
-        when( pipelineSplitIndexExtractor.apply( regionExecutionPlan, bottleneckPipelineMetrics ) ).thenReturn( pipelineSplitIndex );
-        when( regionExecutionPlan.withSplitPipeline( asList( 0, pipelineSplitIndex ) ) ).thenReturn( newRegionExecutionPlan );
+        when( regionExecPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() ) ).thenReturn( 2 );
+        when( pipelineSplitIndexExtractor.apply( regionExecPlan, bottleneckPipelineMetrics ) ).thenReturn( pipelineSplitIndex );
+        when( regionExecPlan.withSplitPipeline( asList( 0, pipelineSplitIndex ) ) ).thenReturn( newRegionExecPlan );
 
-        final AdaptationAction action = pipelineSplitter.resolve( regionExecutionPlan, bottleneckPipelineMetrics );
+        final AdaptationAction action = pipelineSplitter.resolve( regionExecPlan, bottleneckPipelineMetrics );
 
         assertTrue( action instanceof SplitPipelineAction );
         final SplitPipelineAction splitPipelineAction = (SplitPipelineAction) action;
-        assertThat( splitPipelineAction.getCurrentRegionExecutionPlan(), equalTo( regionExecutionPlan ) );
-        assertThat( splitPipelineAction.getNewRegionExecutionPlan(), equalTo( newRegionExecutionPlan ) );
+        assertThat( splitPipelineAction.getCurrentExecPlan(), equalTo( regionExecPlan ) );
+        assertThat( splitPipelineAction.getNewExecPlan(), equalTo( newRegionExecPlan ) );
     }
 
 }

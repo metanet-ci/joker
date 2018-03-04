@@ -3,7 +3,6 @@ package cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
 import cs.bilkent.joker.engine.exception.JokerException;
@@ -11,12 +10,11 @@ import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import static cs.bilkent.joker.engine.partition.PartitionUtil.getPartitionId;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSenderFailureFlag;
-import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
+import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 
-public abstract class AbstractPartitionedDownstreamTupleSender extends AbstractDownstreamTupleSender implements DownstreamTupleSender,
-                                                                                                                Supplier<OperatorTupleQueue[]>
+public abstract class AbstractPartitionedDownstreamTupleSender extends AbstractDownstreamTupleSender implements DownstreamTupleSender, Supplier<OperatorQueue[]>
 {
 
     private final int partitionCount;
@@ -25,7 +23,7 @@ public abstract class AbstractPartitionedDownstreamTupleSender extends AbstractD
 
     private final int replicaCount;
 
-    private final OperatorTupleQueue[] operatorTupleQueues;
+    private final OperatorQueue[] operatorQueues;
 
     private final PartitionKeyExtractor partitionKeyExtractor;
 
@@ -35,30 +33,29 @@ public abstract class AbstractPartitionedDownstreamTupleSender extends AbstractD
 
     AbstractPartitionedDownstreamTupleSender ( final DownstreamTupleSenderFailureFlag failureFlag,
                                                final int partitionCount,
-                                               final int[] partitionDistribution,
-                                               final OperatorTupleQueue[] operatorTupleQueues,
+                                               final int[] partitionDistribution, final OperatorQueue[] operatorQueues,
                                                final PartitionKeyExtractor partitionKeyExtractor )
     {
         super( failureFlag );
         this.partitionCount = partitionCount;
         this.partitionDistribution = Arrays.copyOf( partitionDistribution, partitionDistribution.length );
-        this.replicaCount = operatorTupleQueues.length;
-        this.operatorTupleQueues = Arrays.copyOf( operatorTupleQueues, operatorTupleQueues.length );
+        this.replicaCount = operatorQueues.length;
+        this.operatorQueues = Arrays.copyOf( operatorQueues, operatorQueues.length );
         this.partitionKeyExtractor = partitionKeyExtractor;
-        this.tupleLists = new List[ operatorTupleQueues.length ];
-        this.indices = new int[ operatorTupleQueues.length ];
-        for ( int i = 0; i < operatorTupleQueues.length; i++ )
+        this.tupleLists = new List[ operatorQueues.length ];
+        this.indices = new int[ operatorQueues.length ];
+        for ( int i = 0; i < operatorQueues.length; i++ )
         {
             tupleLists[ i ] = new ArrayList<>();
         }
     }
 
-    public final OperatorTupleQueue[] get ()
+    public final OperatorQueue[] get ()
     {
-        return Arrays.copyOf( operatorTupleQueues, operatorTupleQueues.length );
+        return Arrays.copyOf( operatorQueues, operatorQueues.length );
     }
 
-    protected final Future<Void> send ( final TuplesImpl input, final int sourcePortIndex, final int destinationPortIndex )
+    protected final void send ( final TuplesImpl input, final int sourcePortIndex, final int destinationPortIndex )
     {
         for ( Tuple tuple : input.getTuplesModifiable( sourcePortIndex ) )
         {
@@ -77,7 +74,7 @@ public abstract class AbstractPartitionedDownstreamTupleSender extends AbstractD
                 int fromIndex = indices[ i ];
                 if ( fromIndex < tuples.size() )
                 {
-                    final int offered = operatorTupleQueues[ i ].offer( destinationPortIndex, tuples, fromIndex );
+                    final int offered = operatorQueues[ i ].offer( destinationPortIndex, tuples, fromIndex );
                     if ( offered == 0 )
                     {
                         if ( idleStrategy.idle() )
@@ -114,8 +111,6 @@ public abstract class AbstractPartitionedDownstreamTupleSender extends AbstractD
             tupleLists[ i ].clear();
             indices[ i ] = 0;
         }
-
-        return null;
     }
 
 }

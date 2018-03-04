@@ -15,8 +15,8 @@ import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
 import cs.bilkent.joker.operator.impl.InitializationContextImpl;
-import cs.bilkent.joker.operator.impl.InvocationContextImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
@@ -31,11 +31,11 @@ import static org.junit.Assert.assertTrue;
 public class MapperOperatorTest extends AbstractJokerTest
 {
 
-    private final TuplesImpl input = new TuplesImpl( 1 );
-
     private final TuplesImpl output = new TuplesImpl( 1 );
 
-    private final InvocationContextImpl invocationContext = new InvocationContextImpl();
+    private final DefaultInvocationContext invocationContext = new DefaultInvocationContext( 1, key -> null, output );
+
+    private final TuplesImpl input = invocationContext.createInputTuples( null );
 
     private final OperatorConfig config = new OperatorConfig();
 
@@ -46,7 +46,7 @@ public class MapperOperatorTest extends AbstractJokerTest
     @Before
     public void init () throws InstantiationException, IllegalAccessException
     {
-        invocationContext.setInvocationParameters( SUCCESS, input, output );
+        invocationContext.setInvocationReason( SUCCESS );
 
         final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "mapper", MapperOperator.class ).setConfig( config ).build();
         operator = (MapperOperator) operatorDef.createOperator();
@@ -73,8 +73,7 @@ public class MapperOperatorTest extends AbstractJokerTest
     @Test
     public void shouldInitializeWithInvalidMapper ()
     {
-        final BiConsumer<String, String> mapper = ( s, s2 ) ->
-        {
+        final BiConsumer<String, String> mapper = ( s, s2 ) -> {
 
         };
         config.set( MAPPER_CONFIG_PARAMETER, mapper );
@@ -100,7 +99,8 @@ public class MapperOperatorTest extends AbstractJokerTest
         final Tuple tuple = new Tuple();
         tuple.set( "count", 5 );
         input.add( tuple );
-        invocationContext.setInvocationParameters( SHUTDOWN, input, output );
+
+        invocationContext.setInvocationReason( SHUTDOWN );
         shouldMultiplyCountValuesBy2( invocationContext );
     }
 
@@ -118,8 +118,7 @@ public class MapperOperatorTest extends AbstractJokerTest
 
     private void shouldNotMapWithInvalidMapperFor ( final InvocationReason invocationReason )
     {
-        final BiConsumer<String, String> mapper = ( s1, s2 ) ->
-        {
+        final BiConsumer<String, String> mapper = ( s1, s2 ) -> {
 
         };
         config.set( MAPPER_CONFIG_PARAMETER, mapper );
@@ -128,7 +127,8 @@ public class MapperOperatorTest extends AbstractJokerTest
         final Tuple tuple = new Tuple();
         tuple.set( "count", 5 );
         input.add( tuple );
-        invocationContext.setInvocationParameters( invocationReason, input, output );
+
+        invocationContext.setInvocationReason( invocationReason );
         operator.invoke( invocationContext );
     }
 
@@ -156,7 +156,7 @@ public class MapperOperatorTest extends AbstractJokerTest
         shouldMultiplyCountValuesBy2( invocationContext );
     }
 
-    private void shouldMultiplyCountValuesBy2 ( final InvocationContextImpl invocationContext )
+    private void shouldMultiplyCountValuesBy2 ( final DefaultInvocationContext invocationContext )
     {
         initializeOperatorWithMultipleBy2Mapper();
 

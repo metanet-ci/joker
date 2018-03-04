@@ -12,9 +12,9 @@ import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
 import cs.bilkent.joker.operator.impl.InMemoryKVStore;
 import cs.bilkent.joker.operator.impl.InitializationContextImpl;
-import cs.bilkent.joker.operator.impl.InvocationContextImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
@@ -25,6 +25,8 @@ import static cs.bilkent.joker.operators.TupleCountBasedWindowReducerOperator.RE
 import static cs.bilkent.joker.operators.TupleCountBasedWindowReducerOperator.TUPLE_COUNT_CONFIG_PARAMETER;
 import static cs.bilkent.joker.operators.TupleCountBasedWindowReducerOperator.TUPLE_COUNT_FIELD;
 import static cs.bilkent.joker.operators.TupleCountBasedWindowReducerOperator.WINDOW_FIELD;
+import cs.bilkent.joker.partition.impl.PartitionKey;
+import cs.bilkent.joker.partition.impl.PartitionKey1;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -36,13 +38,15 @@ import static org.junit.Assert.assertTrue;
 public class TupleCountBasedWindowReducerOperatorTest extends AbstractJokerTest
 {
 
-    private final TuplesImpl input = new TuplesImpl( 1 );
+    private final KVStore kvStore = new InMemoryKVStore();
 
     private final TuplesImpl output = new TuplesImpl( 1 );
 
-    private final KVStore kvStore = new InMemoryKVStore();
+    private final DefaultInvocationContext invocationContext = new DefaultInvocationContext( 1, key -> kvStore, output );
 
-    private final InvocationContextImpl invocationContext = new InvocationContextImpl();
+    private final PartitionKey key = new PartitionKey1( "key" );
+
+    private final TuplesImpl input = invocationContext.createInputTuples( key );
 
     private final OperatorConfig config = new OperatorConfig();
 
@@ -50,8 +54,7 @@ public class TupleCountBasedWindowReducerOperatorTest extends AbstractJokerTest
 
     private InitializationContextImpl initContext;
 
-    private final BiConsumer<Tuple, Tuple> adder = ( accumulator, val ) ->
-    {
+    private final BiConsumer<Tuple, Tuple> adder = ( accumulator, val ) -> {
         final int curr = accumulator.getInteger( "count" );
         accumulator.set( "count", curr + val.getInteger( "count" ) );
     };
@@ -61,7 +64,7 @@ public class TupleCountBasedWindowReducerOperatorTest extends AbstractJokerTest
     @Before
     public void init () throws InstantiationException, IllegalAccessException
     {
-        invocationContext.setInvocationParameters( SUCCESS, input, output, singletonList( "key" ), kvStore );
+        invocationContext.setInvocationReason( SUCCESS );
 
         final OperatorRuntimeSchemaBuilder builder = new OperatorRuntimeSchemaBuilder( 1, 1 );
         builder.addInputField( 0, "key", String.class )

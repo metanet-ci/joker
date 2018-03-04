@@ -8,7 +8,6 @@ import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
 import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
-import static java.util.Collections.emptyList;
 
 
 public class InitializationContextImpl implements InitializationContext
@@ -19,11 +18,11 @@ public class InitializationContextImpl implements InitializationContext
 
     private int outputPortCount;
 
-    private List<String> partitionFieldNames = emptyList();
+    private List<String> partitionFieldNames;
 
     private OperatorRuntimeSchema runtimeSchema;
 
-    private OperatorConfig config = new OperatorConfig();
+    private OperatorConfig config;
 
     private boolean[] upstreamConnectionStatuses;
 

@@ -4,7 +4,6 @@ import cs.bilkent.joker.operator.InitializationContext;
 import cs.bilkent.joker.operator.InvocationContext;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuples;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
@@ -21,10 +20,14 @@ import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXTENDABLE_FIELD_SET, fields = { @SchemaField( name = VWAPAggregatorOperator.TICKER_SYMBOL_FIELD, type = String.class ),
                                                                                                  @SchemaField( name = VWAPAggregatorOperator.TUPLE_INPUT_VWAP_FIELD, type = Double.class ),
                                                                                                  @SchemaField( name = VWAPAggregatorOperator.TUPLE_VOLUME_FIELD, type = Double.class ),
-                                                                                                 @SchemaField( name = VWAPAggregatorOperator.TIMESTAMP_FIELD, type = Long.class ) } ) }, outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = VWAPAggregatorOperator.TICKER_SYMBOL_FIELD, type = String.class ),
-                                                                                                                                                                                                                                                                     @SchemaField( name = VWAPAggregatorOperator.SINGLE_VOLUME_FIELD, type = Double.class ),
-                                                                                                                                                                                                                                                                     @SchemaField( name = VWAPAggregatorOperator.SINGLE_VWAP_FIELD, type = Double.class ),
-                                                                                                                                                                                                                                                                     @SchemaField( name = VWAPAggregatorOperator.TIMESTAMP_FIELD, type = Long.class ) } ) } )
+                                                                                                 @SchemaField( name = VWAPAggregatorOperator.TIMESTAMP_FIELD, type = Long.class ) } ) }, outputs = {
+        @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = VWAPAggregatorOperator.TICKER_SYMBOL_FIELD,
+                type = String.class ),
+                                                                        @SchemaField( name = VWAPAggregatorOperator.SINGLE_VOLUME_FIELD,
+                                                                                type = Double.class ),
+                                                                        @SchemaField( name = VWAPAggregatorOperator.SINGLE_VWAP_FIELD,
+                                                                                type = Double.class ),
+                                                                        @SchemaField( name = VWAPAggregatorOperator.TIMESTAMP_FIELD, type = Long.class ) } ) } )
 public class VWAPAggregatorOperator implements Operator
 {
 
@@ -60,21 +63,19 @@ public class VWAPAggregatorOperator implements Operator
     private TupleSchema outputSchema;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext context )
+    public SchedulingStrategy init ( final InitializationContext ctx )
     {
-        this.windowSize = context.getConfig().getOrFail( WINDOW_SIZE_CONfIG_PARAMETER );
-        this.slideFactor = context.getConfig().getOrDefault( SLIDE_FACTOR_CONfIG_PARAMETER, 1 );
-        this.outputSchema = context.getOutputPortSchema( 0 );
+        this.windowSize = ctx.getConfig().getOrFail( WINDOW_SIZE_CONfIG_PARAMETER );
+        this.slideFactor = ctx.getConfig().getOrDefault( SLIDE_FACTOR_CONfIG_PARAMETER, 1 );
+        this.outputSchema = ctx.getOutputPortSchema( 0 );
 
         return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
     }
 
     @Override
-    public void invoke ( final InvocationContext context )
+    public void invoke ( final InvocationContext ctx )
     {
-        final Tuples input = context.getInput();
-        final Tuples output = context.getOutput();
-        final KVStore kvStore = context.getKVStore();
+        final KVStore kvStore = ctx.getKVStore();
 
         final Tuple currentWindow = kvStore.getOrDefault( WINDOW_KEY, this::createWindowTuple );
         final double[] vwapValues = currentWindow.get( VWAPS_FIELD );
@@ -83,7 +84,7 @@ public class VWAPAggregatorOperator implements Operator
         double volumeSum = currentWindow.get( SINGLE_VOLUME_FIELD );
         int tupleCount = currentWindow.get( TUPLE_COUNT_FIELD );
 
-        for ( Tuple tuple : input.getTuplesByDefaultPort() )
+        for ( Tuple tuple : ctx.getInputTuplesByDefaultPort() )
         {
             final double vwap = tuple.getDoubleValueOrDefault( TUPLE_INPUT_VWAP_FIELD, 0d );
             final double volume = tuple.getDoubleValueOrDefault( TUPLE_VOLUME_FIELD, 0d );
@@ -106,7 +107,7 @@ public class VWAPAggregatorOperator implements Operator
                                                              vwapSum,
                                                              volumeSum );
 
-                output.add( outputTuple );
+                ctx.output( outputTuple );
             }
         }
 

@@ -5,31 +5,38 @@ import cs.bilkent.joker.engine.partition.PartitionDistribution;
 public interface OperatorKVStoreManager
 {
 
-    OperatorKVStore createDefaultOperatorKVStore ( int regionId, String operatorId );
+    OperatorKVStore createDefaultKVStore ( int regionId, String operatorId );
 
-    OperatorKVStore[] createPartitionedOperatorKVStores ( int regionId, String operatorId, PartitionDistribution partitionDistribution );
+    OperatorKVStore getDefaultKVStore ( int regionId, String operatorId );
 
-    OperatorKVStore[] rebalancePartitionedOperatorKVStores ( int regionId,
-                                                             String operatorId,
-                                                             PartitionDistribution currentPartitionDistribution,
-                                                             PartitionDistribution newPartitionDistribution );
+    OperatorKVStore[] createPartitionedKVStores ( int regionId, String operatorId, PartitionDistribution partitionDistribution );
 
-    OperatorKVStore[] getPartitionedOperatorKVStores ( final int regionId, final String operatorId );
+    OperatorKVStore[] rebalancePartitionedKVStores ( int regionId,
+                                                     String operatorId,
+                                                     PartitionDistribution currentPartitionDistribution,
+                                                     PartitionDistribution newPartitionDistribution );
 
-    default OperatorKVStore[] getPartitionedOperatorKVStoresOrFail ( final int regionId, final String operatorId )
+    OperatorKVStore[] getPartitionedKVStores ( final int regionId, final String operatorId );
+
+    default OperatorKVStore getPartitionedKVStore ( final int regionId, final String operatorId, final int replicaIndex )
     {
-        final OperatorKVStore[] operatorKVStores = getPartitionedOperatorKVStores( regionId, operatorId );
+        return getPartitionedKVStoresOrFail( regionId, operatorId )[ replicaIndex ];
+    }
+
+    default OperatorKVStore[] getPartitionedKVStoresOrFail ( final int regionId, final String operatorId )
+    {
+        final OperatorKVStore[] operatorKVStores = getPartitionedKVStores( regionId, operatorId );
         if ( operatorKVStores == null )
         {
-            throw new IllegalStateException( "partitioned operator kv stores not found for regionId=" + regionId + " operatorId="
-                                             + operatorId );
+            throw new IllegalStateException(
+                    "partitioned operator kv stores not found for regionId=" + regionId + " operatorId=" + operatorId );
         }
 
         return operatorKVStores;
     }
 
-    void releaseDefaultOperatorKVStore ( int regionId, String operatorId );
+    void releaseDefaultKVStore ( int regionId, String operatorId );
 
-    void releasePartitionedOperatorKVStores ( int regionId, String operatorId );
+    void releasePartitionedKVStores ( int regionId, String operatorId );
 
 }

@@ -3,6 +3,7 @@ package cs.bilkent.joker.operator;
 
 import java.util.List;
 
+import cs.bilkent.joker.flow.Port;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.spec.OperatorType;
@@ -15,20 +16,118 @@ public interface InvocationContext
 {
 
     /**
-     * Returns the READ-ONLY {@link Tuples} available for processing. Once the invocation of {@link Operator#invoke(InvocationContext)}
-     * method is completed,
-     * these tuples will be considered as processed.
+     * Returns the tuples available for processing on the given input port index.
+     * Once the invocation of {@link Operator#invoke(InvocationContext)} method is completed, these tuples are considered as processed.
      *
-     * @return the READ-ONLY {@link Tuples} object available for processing
+     * @param portIndex
+     *         the port index to get the input tuples
+     *
+     * @return the tuples available for processing on the given input port index
      */
-    Tuples getInput ();
+    List<Tuple> getInputTuples ( int portIndex );
 
     /**
-     * Returns the WRITE-ONLY {@link Tuples} object which will be used for collecting the tuples produced by the invocation
+     * Returns the tuples available for processing on the default port.
+     * Once the invocation of {@link Operator#invoke(InvocationContext)} method is completed, these tuples are considered as processed.
      *
-     * @return the WRITE-ONLY {@link Tuples} object which will be used for collecting the tuples produced by the invocation
+     * @return the tuples available for processing on the default port
+     *
+     * @see Port#DEFAULT_PORT_INDEX
      */
-    Tuples getOutput ();
+    default List<Tuple> getInputTuplesByDefaultPort ()
+    {
+        return getInputTuples( Port.DEFAULT_PORT_INDEX );
+    }
+
+    /**
+     * Returns the Nth input tuple at the given port index, where the tupleIndex parameter is N, or returns null if there is no tuple
+     * at the given tupleIndex
+     *
+     * @param portIndex
+     *         the port index to get the input tuple
+     * @param tupleIndex
+     *         the tuple index to get the input tuple
+     *
+     * @return the Nth input tuple at the given port index, where the tupleIndex parameter is N, or returns null if there is no tuple
+     * at the given tupleIndex
+     */
+    Tuple getInputTupleOrNull ( int portIndex, int tupleIndex );
+
+    /**
+     * Returns the Nth input tuple at the given port index, where the tupleIndex parameter is N, or fails with
+     * {@link IllegalArgumentException} if there is no tuple at the given tupleIndex
+     *
+     * @param portIndex
+     *         the port index to get the input tuple
+     * @param tupleIndex
+     *         the tuple index to get the input tuple
+     *
+     * @return the Nth input tuple at the given port index, where the tupleIndex parameter is N, or fails with
+     * {@link IllegalArgumentException} if there is no tuple at the given tupleIndex
+     *
+     * @throws IllegalArgumentException
+     *         if there is no tuple exists with the given indices
+     */
+    default Tuple getInputTupleOrFail ( final int portIndex, final int tupleIndex )
+    {
+        final Tuple tuple = getInputTupleOrNull( portIndex, tupleIndex );
+        if ( tuple != null )
+        {
+            return tuple;
+        }
+
+        throw new IllegalArgumentException( "no tuple exists for input port index " + portIndex + " and tuple index " + tupleIndex );
+    }
+
+    /**
+     * Returns the number of tuples that are available in the given input port.
+     *
+     * @param portIndex
+     *         port index to get number of tuples
+     *
+     * @return the number of tuples that are available in the given input port.
+     */
+    int getInputTupleCount ( int portIndex );
+
+    /**
+     * Adds the given tuple to the default output port.
+     *
+     * @param tuple
+     *         tuple to add to the default output port
+     *
+     * @see Port#DEFAULT_PORT_INDEX
+     */
+    void output ( Tuple tuple );
+
+    /**
+     * Adds the given tuples to the default output port.
+     *
+     * @param tuples
+     *         tuples to add to the default output port
+     *
+     * @see Port#DEFAULT_PORT_INDEX
+     */
+    void output ( List<Tuple> tuples );
+
+    /**
+     * Adds the given tuple to the given output port.
+     *
+     * @param portIndex
+     *         target output port index
+     * @param tuple
+     *         tuple to add
+     */
+    void output ( int portIndex, Tuple tuple );
+
+    /**
+     * Adds the given tuples to the given output port.
+     *
+     * @param portIndex
+     *         target output port index
+     * @param tuples
+     *         tuples to add
+     */
+    void output ( int portIndex, List<Tuple> tuples );
 
     /**
      * Returns the reason of a particular {@link Operator#invoke(InvocationContext)} method invocation.

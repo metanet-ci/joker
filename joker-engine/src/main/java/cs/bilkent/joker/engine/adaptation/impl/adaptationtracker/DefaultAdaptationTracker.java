@@ -7,7 +7,7 @@ import cs.bilkent.joker.engine.adaptation.AdaptationTracker;
 import static cs.bilkent.joker.engine.adaptation.impl.adaptationtracker.Visualizer.visualize;
 import cs.bilkent.joker.engine.config.AdaptationConfig;
 import cs.bilkent.joker.engine.config.JokerConfig;
-import cs.bilkent.joker.engine.flow.FlowExecutionPlan;
+import cs.bilkent.joker.engine.flow.FlowExecPlan;
 import cs.bilkent.joker.engine.metric.FlowMetrics;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 
@@ -27,37 +27,37 @@ public class DefaultAdaptationTracker implements AdaptationTracker
     }
 
     @Override
-    public void init ( final ShutdownHook hook, final FlowExecutionPlan flowExecutionPlan )
+    public void init ( final ShutdownHook hook, final FlowExecPlan execPlan )
     {
         checkArgument( hook != null );
-        checkArgument( flowExecutionPlan != null );
+        checkArgument( execPlan != null );
 
         if ( !isEnabled() )
         {
             return;
         }
 
-        visualize( flowExecutionPlan, currentDir );
+        visualize( execPlan, currentDir );
     }
 
     @Override
-    public void onPeriod ( final FlowExecutionPlan flowExecutionPlan, final FlowMetrics flowMetrics )
+    public void onPeriod ( final FlowExecPlan execPlan, final FlowMetrics metrics )
     {
-        checkArgument( flowExecutionPlan != null );
-        checkArgument( flowMetrics != null );
+        checkArgument( execPlan != null );
+        checkArgument( metrics != null );
     }
 
     @Override
-    public void onFlowExecutionPlanChange ( final FlowExecutionPlan newFlowExecutionPlan )
+    public void onExecPlanChange ( final FlowExecPlan newExecPlan )
     {
-        checkArgument( newFlowExecutionPlan != null );
+        checkArgument( newExecPlan != null );
 
         if ( !isEnabled() )
         {
             return;
         }
 
-        visualize( newFlowExecutionPlan, currentDir );
+        visualize( newExecPlan, currentDir );
     }
 
     private boolean isEnabled ()

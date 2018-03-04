@@ -2,9 +2,13 @@ package cs.bilkent.joker.engine.partition.impl;
 
 import org.junit.Test;
 
-import cs.bilkent.joker.engine.partition.PartitionKey;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.partition.impl.PartitionKey;
+import cs.bilkent.joker.partition.impl.PartitionKey1;
+import cs.bilkent.joker.partition.impl.PartitionKey2;
+import cs.bilkent.joker.partition.impl.PartitionKey3;
+import cs.bilkent.joker.partition.impl.PartitionKeyN;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;

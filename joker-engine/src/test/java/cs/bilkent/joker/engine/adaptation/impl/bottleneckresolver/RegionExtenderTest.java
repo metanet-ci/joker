@@ -6,7 +6,7 @@ import org.junit.Test;
 import cs.bilkent.joker.engine.adaptation.AdaptationAction;
 import cs.bilkent.joker.engine.adaptation.impl.adaptationaction.RegionRebalanceAction;
 import cs.bilkent.joker.engine.flow.PipelineId;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
@@ -25,9 +25,9 @@ public class RegionExtenderTest extends AbstractJokerTest
     private static final int MAX_REPLICA_COUNT = 3;
 
 
-    private final RegionExecutionPlan regionExecutionPlan = mock( RegionExecutionPlan.class );
+    private final RegionExecPlan regionExecPlan = mock( RegionExecPlan.class );
 
-    private final RegionExecutionPlan newRegionExecutionPlan = mock( RegionExecutionPlan.class );
+    private final RegionExecPlan newRegionExecPlan = mock( RegionExecPlan.class );
 
     private final PipelineId pipelineId = new PipelineId( 0, 0 );
 
@@ -39,15 +39,15 @@ public class RegionExtenderTest extends AbstractJokerTest
     @Before
     public void init ()
     {
-        when( regionExecutionPlan.withNewReplicaCount( MAX_REPLICA_COUNT ) ).thenReturn( newRegionExecutionPlan );
+        when( regionExecPlan.withNewReplicaCount( MAX_REPLICA_COUNT ) ).thenReturn( newRegionExecPlan );
     }
 
     @Test
     public void shouldNotExtendStatefulRegion ()
     {
-        when( regionExecutionPlan.getRegionType() ).thenReturn( STATEFUL );
+        when( regionExecPlan.getRegionType() ).thenReturn( STATEFUL );
 
-        final AdaptationAction action = regionExtender.resolve( regionExecutionPlan, bottleneckPipelineMetrics );
+        final AdaptationAction action = regionExtender.resolve( regionExecPlan, bottleneckPipelineMetrics );
 
         assertNull( action );
     }
@@ -55,9 +55,9 @@ public class RegionExtenderTest extends AbstractJokerTest
     @Test
     public void shouldNotExtendStatelessRegion ()
     {
-        when( regionExecutionPlan.getRegionType() ).thenReturn( STATELESS );
+        when( regionExecPlan.getRegionType() ).thenReturn( STATELESS );
 
-        final AdaptationAction action = regionExtender.resolve( regionExecutionPlan, bottleneckPipelineMetrics );
+        final AdaptationAction action = regionExtender.resolve( regionExecPlan, bottleneckPipelineMetrics );
 
         assertNull( action );
     }
@@ -65,10 +65,10 @@ public class RegionExtenderTest extends AbstractJokerTest
     @Test
     public void shouldNotExtendIfMaxReplicaCountIsReached ()
     {
-        when( regionExecutionPlan.getRegionType() ).thenReturn( PARTITIONED_STATEFUL );
-        when( regionExecutionPlan.getReplicaCount() ).thenReturn( MAX_REPLICA_COUNT );
+        when( regionExecPlan.getRegionType() ).thenReturn( PARTITIONED_STATEFUL );
+        when( regionExecPlan.getReplicaCount() ).thenReturn( MAX_REPLICA_COUNT );
 
-        final AdaptationAction action = regionExtender.resolve( regionExecutionPlan, bottleneckPipelineMetrics );
+        final AdaptationAction action = regionExtender.resolve( regionExecPlan, bottleneckPipelineMetrics );
 
         assertNull( action );
     }
@@ -76,15 +76,15 @@ public class RegionExtenderTest extends AbstractJokerTest
     @Test
     public void shouldExtendPartitionedStatefulRegion ()
     {
-        when( regionExecutionPlan.getRegionType() ).thenReturn( PARTITIONED_STATEFUL );
-        when( regionExecutionPlan.getReplicaCount() ).thenReturn( MAX_REPLICA_COUNT - 1 );
+        when( regionExecPlan.getRegionType() ).thenReturn( PARTITIONED_STATEFUL );
+        when( regionExecPlan.getReplicaCount() ).thenReturn( MAX_REPLICA_COUNT - 1 );
 
-        final AdaptationAction action = regionExtender.resolve( regionExecutionPlan, bottleneckPipelineMetrics );
+        final AdaptationAction action = regionExtender.resolve( regionExecPlan, bottleneckPipelineMetrics );
 
         assertTrue( action instanceof RegionRebalanceAction );
         final RegionRebalanceAction regionRebalanceAction = (RegionRebalanceAction) action;
-        assertThat( regionRebalanceAction.getCurrentRegionExecutionPlan(), equalTo( regionExecutionPlan ) );
-        assertThat( regionRebalanceAction.getNewRegionExecutionPlan(), equalTo( newRegionExecutionPlan ) );
+        assertThat( regionRebalanceAction.getCurrentExecPlan(), equalTo( regionExecPlan ) );
+        assertThat( regionRebalanceAction.getNewExecPlan(), equalTo( newRegionExecPlan ) );
     }
 
 }

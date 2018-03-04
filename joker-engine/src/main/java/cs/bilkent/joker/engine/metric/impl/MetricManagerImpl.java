@@ -100,7 +100,7 @@ public class MetricManagerImpl implements MetricManager
 
     private volatile Histogram scanMetricsHistogram;
 
-    private volatile FlowMetrics flowMetrics;
+    private volatile FlowMetrics metrics;
 
     private volatile int iteration;
 
@@ -160,9 +160,9 @@ public class MetricManagerImpl implements MetricManager
     }
 
     @Override
-    public FlowMetrics getFlowMetrics ()
+    public FlowMetrics getMetrics ()
     {
-        return flowMetrics;
+        return metrics;
     }
 
     @Override
@@ -263,22 +263,20 @@ public class MetricManagerImpl implements MetricManager
 
         final PipelineMeter pipelineMeter = context.getPipelineMeter();
         final PipelineId pipelineId = pipelineMeter.getPipelineId();
-        final int period = flowMetrics != null ? flowMetrics.getPeriod() + 1 : 0;
+        final int period = metrics != null ? metrics.getPeriod() + 1 : 0;
 
         for ( int replicaIndex = 0; replicaIndex < pipelineMeter.getReplicaCount(); replicaIndex++ )
         {
             final int r = replicaIndex;
             final String cpuMetricName = getMetricName( pipelineId, context.getFlowVersion(), replicaIndex, "cpu" );
-            final Supplier<Double> cpuGauge = () ->
-            {
+            final Supplier<Double> cpuGauge = () -> {
                 final PipelineMetrics latest = getLatestPipelineMetrics( pipelineId, period );
                 return latest != null ? latest.getCpuUtilizationRatio( r ) : 0d;
             };
             metricRegistry.register( cpuMetricName, new PipelineGauge<>( pipelineId, cpuGauge ) );
 
             final String pipelineCostMetricName = getMetricName( pipelineId, context.getFlowVersion(), replicaIndex, "cost", "p" );
-            final Supplier<Double> pipelineCostGauge = () ->
-            {
+            final Supplier<Double> pipelineCostGauge = () -> {
                 final PipelineMetrics latest = getLatestPipelineMetrics( pipelineId, period );
                 return latest != null ? latest.getPipelineCost( r ) : 0d;
             };
@@ -292,8 +290,7 @@ public class MetricManagerImpl implements MetricManager
                                                                      "op",
                                                                      operatorIndex );
                 final int o = operatorIndex;
-                final Supplier<Double> operatorCostGauge = () ->
-                {
+                final Supplier<Double> operatorCostGauge = () -> {
                     final PipelineMetrics latest = getLatestPipelineMetrics( pipelineId, period );
                     return latest != null ? latest.getOperatorCost( r, o ) : 0d;
                 };
@@ -304,8 +301,7 @@ public class MetricManagerImpl implements MetricManager
             {
                 final String metricName = getMetricName( pipelineId, context.getFlowVersion(), replicaIndex, "thr", "cs", portIndex );
                 final int p = portIndex;
-                final Supplier<Long> throughputGauge = () ->
-                {
+                final Supplier<Long> throughputGauge = () -> {
                     final PipelineMetrics latest = getLatestPipelineMetrics( pipelineId, period );
                     return latest != null ? latest.getInboundThroughput( r, p ) : 0;
                 };
@@ -321,31 +317,30 @@ public class MetricManagerImpl implements MetricManager
             return;
         }
 
-        metricRegistry.removeMatching( ( name, metric ) ->
-                                       {
-                                           if ( metric instanceof PipelineGauge )
-                                           {
-                                               final PipelineGauge gauge = (PipelineGauge) metric;
-                                               final boolean match = gauge.getId().equals( pipelineId );
-                                               if ( match )
-                                               {
-                                                   LOGGER.debug( "PipelineGauge: {} will be removed.", gauge.getId() );
-                                               }
-                                               return match;
-                                           }
+        metricRegistry.removeMatching( ( name, metric ) -> {
+            if ( metric instanceof PipelineGauge )
+            {
+                final PipelineGauge gauge = (PipelineGauge) metric;
+                final boolean match = gauge.getId().equals( pipelineId );
+                if ( match )
+                {
+                    LOGGER.debug( "PipelineGauge: {} will be removed.", gauge.getId() );
+                }
+                return match;
+            }
 
-                                           return false;
-                                       } );
+            return false;
+        } );
     }
 
     private PipelineMetrics getLatestPipelineMetrics ( final PipelineId pipelineId, final int period )
     {
-        if ( flowMetrics == null || flowMetrics.getPeriod() < period )
+        if ( metrics == null || metrics.getPeriod() < period )
         {
             return null;
         }
 
-        return flowMetrics.getLatestPipelineMetrics( pipelineId );
+        return metrics.getLatestPipelineMetrics( pipelineId );
     }
 
     private String getMetricName ( final PipelineId pipelineId, final int flowVersion, final int replicaIndex, Object... vals )
@@ -532,9 +527,9 @@ public class MetricManagerImpl implements MetricManager
 
                 final PipelineMetrics pipelineMetrics = context.update( newThreadCpuTimes, systemTimeDiff );
                 PipelineMetricsHistory newHistory = null;
-                if ( flowMetrics != null )
+                if ( metrics != null )
                 {
-                    final PipelineMetricsHistory currentHistory = flowMetrics.getPipelineMetricsHistory( pipelineId );
+                    final PipelineMetricsHistory currentHistory = metrics.getPipelineMetricsHistory( pipelineId );
                     if ( currentHistory != null )
                     {
                         newHistory = currentHistory.add( pipelineMetrics );
@@ -551,28 +546,25 @@ public class MetricManagerImpl implements MetricManager
 
             if ( publish )
             {
-                flowMetrics = new FlowMetrics( getNewPeriod(), pipelineMetricsHistories );
+                metrics = new FlowMetrics( getNewPeriod(), pipelineMetricsHistories );
             }
         }
 
         private int getNewPeriod ()
         {
-            return flowMetrics != null ? flowMetrics.getPeriod() + 1 : 0;
+            return metrics != null ? metrics.getPeriod() + 1 : 0;
         }
 
         private void logPipelineMetrics ( final long timeSpent )
         {
-            final PipelineMetricsVisitor logVisitor = ( pipelineReplicaId, flowVersion, inboundThroughput, threadUtilizationRatio,
-                                                        pipelineCost, operatorCosts ) ->
-            {
+            final PipelineMetricsVisitor logVisitor = ( pipelineReplicaId, flowVersion, inboundThroughput, threadUtilizationRatio, pipelineCost, operatorCosts ) -> {
                 final double cpuUsage = threadUtilizationRatio / numberOfCores;
 
                 final String log = String.format(
                         "%s -> flow version: %d thread utilization: %.3f cpu usage: %.3f throughput: %s pipeline cost: %s operator costs:"
                         + " %s",
                         pipelineReplicaId,
-                        flowVersion,
-                        threadUtilizationRatio, cpuUsage, Arrays.toString( inboundThroughput ),
+                        flowVersion, threadUtilizationRatio, cpuUsage, Arrays.toString( inboundThroughput ),
                         pipelineCost,
                         Arrays.toString( operatorCosts ) );
                 LOGGER.info( log );
@@ -583,7 +575,7 @@ public class MetricManagerImpl implements MetricManager
 
             for ( PipelineId pipelineId : pipelineIds )
             {
-                final PipelineMetricsHistory pipelineMetricsHistory = flowMetrics.getPipelineMetricsHistory( pipelineId );
+                final PipelineMetricsHistory pipelineMetricsHistory = metrics.getPipelineMetricsHistory( pipelineId );
                 pipelineMetricsHistory.getLatest().visit( logVisitor );
             }
 
@@ -611,7 +603,7 @@ public class MetricManagerImpl implements MetricManager
                           scanOperatorsSnapshot.get99thPercentile(),
                           scanOperatorsSnapshot.get999thPercentile() );
 
-            final int period = flowMetrics != null ? flowMetrics.getPeriod() : -1;
+            final int period = metrics != null ? metrics.getPeriod() : -1;
             LOGGER.info( "Time spent (ns): {}. New flow period: {}", timeSpent, period );
         }
 

@@ -7,30 +7,81 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
-import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
-import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.ConnectionStatus.CLOSED;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.ConnectionStatus.OPEN;
+import cs.bilkent.joker.flow.FlowDef;
+import cs.bilkent.joker.flow.Port;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ALL_PORTS;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ANY_PORT;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
-import static java.lang.Math.min;
+import static java.util.Arrays.copyOf;
+import static java.util.Arrays.fill;
+import static java.util.Arrays.stream;
 
 public class UpstreamContext
 {
 
     private static final Logger LOGGER = LoggerFactory.getLogger( UpstreamContext.class );
 
+    public static final int INITIAL_VERSION = 0;
+
+
+    public enum ConnectionStatus
+    {
+        OPEN, CLOSED
+    }
+
+
+    public static UpstreamContext newSourceOperatorInitialUpstreamContext ()
+    {
+        return new UpstreamContext( INITIAL_VERSION, new ConnectionStatus[ 0 ] );
+    }
+
+    public static UpstreamContext newSourceOperatorShutdownUpstreamContext ()
+    {
+        return new UpstreamContext( INITIAL_VERSION + 1, new ConnectionStatus[ 0 ] );
+    }
+
+    public static UpstreamContext newInitialUpstreamContext ( final ConnectionStatus... statuses )
+    {
+        return new UpstreamContext( INITIAL_VERSION, statuses );
+    }
+
+    public static UpstreamContext newInitialUpstreamContextWithAllPortsConnected ( final int portCount )
+    {
+        final ConnectionStatus[] statuses = new ConnectionStatus[ portCount ];
+        fill( statuses, OPEN );
+
+        return new UpstreamContext( INITIAL_VERSION, statuses );
+    }
+
+    public static UpstreamContext createInitialUpstreamContext ( final FlowDef flow, final String operatorId )
+    {
+        final OperatorDef operatorDef = flow.getOperator( operatorId );
+        final int inputPortCount = operatorDef.getInputPortCount();
+        final ConnectionStatus[] statuses = new ConnectionStatus[ inputPortCount ];
+        fill( statuses, CLOSED );
+        for ( Port inputPort : flow.getInboundConnections( operatorDef.getId() ).keySet() )
+        {
+            statuses[ inputPort.getPortIndex() ] = OPEN;
+        }
+
+        return newInitialUpstreamContext( statuses );
+    }
+
 
     private final int version;
 
-    private final UpstreamConnectionStatus[] statuses;
+    private final ConnectionStatus[] statuses;
 
-    public UpstreamContext ( final int version, final UpstreamConnectionStatus[] statuses )
+    public UpstreamContext ( final int version, final ConnectionStatus[] statuses )
     {
+        checkArgument( version >= INITIAL_VERSION );
         this.version = version;
-        this.statuses = Arrays.copyOf( statuses, statuses.length );
+        this.statuses = copyOf( statuses, statuses.length );
     }
 
     public int getVersion ()
@@ -38,16 +89,32 @@ public class UpstreamContext
         return version;
     }
 
-    public UpstreamConnectionStatus getUpstreamConnectionStatus ( int index )
+    public boolean isInitial ()
     {
-        return index < statuses.length ? statuses[ index ] : CLOSED;
+        return version == INITIAL_VERSION;
     }
 
-    boolean isActiveConnectionPresent ()
+    public boolean isNotInitial ()
     {
-        for ( UpstreamConnectionStatus status : statuses )
+        return version > INITIAL_VERSION;
+    }
+
+    public int getPortCount ()
+    {
+        return statuses.length;
+    }
+
+    public ConnectionStatus getConnectionStatus ( int index )
+    {
+        checkArgument( index < statuses.length );
+        return statuses[ index ];
+    }
+
+    boolean isOpenConnectionPresent ()
+    {
+        for ( ConnectionStatus status : statuses )
         {
-            if ( status == ACTIVE )
+            if ( status == OPEN )
             {
                 return true;
             }
@@ -56,92 +123,161 @@ public class UpstreamContext
         return false;
     }
 
-    boolean isActiveConnectionAbsent ()
+    boolean isOpenConnectionAbsent ()
     {
-        return !isActiveConnectionPresent();
+        return !isOpenConnectionPresent();
     }
 
-    boolean[] getUpstreamConnectionStatuses ( int portCount )
+    public boolean[] getConnectionStatuses ()
     {
-        final boolean[] b = new boolean[ portCount ];
-        for ( int portIndex = 0, j = min( portCount, statuses.length ); portIndex < j; portIndex++ )
+        final boolean[] b = new boolean[ statuses.length ];
+        for ( int portIndex = 0, j = statuses.length; portIndex < j; portIndex++ )
         {
-            b[ portIndex ] = statuses[ portIndex ] == ACTIVE;
+            b[ portIndex ] = ( statuses[ portIndex ] == OPEN );
         }
 
         return b;
     }
 
-    boolean isInvokable ( final OperatorDef operatorDef, final SchedulingStrategy schedulingStrategy )
+    public void verifyInitializable ( final OperatorDef operatorDef, final SchedulingStrategy schedulingStrategy )
     {
-        try
-        {
-            verifyOrFail( operatorDef, schedulingStrategy );
-            return true;
-        }
-        catch ( IllegalStateException e )
-        {
-            LOGGER.info( "{} not invokable anymore. scheduling strategy: {} upstream context: {} error: {}", operatorDef.getId(),
-                         schedulingStrategy,
-                         this,
-                         e.getMessage() );
-            return false;
-        }
-    }
+        checkArgument( statuses.length == operatorDef.getInputPortCount(),
+                       "%s has different input port count than %s",
+                       this,
+                       operatorDef.getId() );
 
-    void verifyOrFail ( final OperatorDef operatorDef, final SchedulingStrategy schedulingStrategy )
-    {
         if ( schedulingStrategy instanceof ScheduleWhenAvailable )
         {
-            checkState( operatorDef.getInputPortCount() == 0,
-                        "%s cannot be used by operator: %s with input port count: %s",
-                        ScheduleWhenAvailable.class.getSimpleName(),
-                        operatorDef.getId(),
-                        operatorDef.getInputPortCount() );
-            checkState( version == 0, "upstream context is closed for 0 input port operator: %s", operatorDef.getId() );
+            checkState( version == 0, "%s is closed for 0 input port operator: %s", this, operatorDef.getId() );
+            checkArgument( operatorDef.getInputPortCount() == 0,
+                           "%s cannot be used by operator: %s with input port count: %s",
+                           ScheduleWhenAvailable.class.getSimpleName(),
+                           operatorDef.getId(),
+                           operatorDef.getInputPortCount() );
         }
         else if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
         {
-            checkState( operatorDef.getInputPortCount() > 0, "0 input port operator: %s cannot use %s", operatorDef.getId(),
-                        ScheduleWhenTuplesAvailable.class.getSimpleName() );
+            checkArgument( operatorDef.getInputPortCount() > 0,
+                           "0 input port operator: %s cannot use %s",
+                           operatorDef.getId(),
+                           ScheduleWhenTuplesAvailable.class.getSimpleName() );
+
             final ScheduleWhenTuplesAvailable s = (ScheduleWhenTuplesAvailable) schedulingStrategy;
+
+            checkArgument( s.getPortCount() == operatorDef.getInputPortCount(),
+                           "%s has different input port count than %s",
+                           s,
+                           operatorDef );
+
+            for ( int i = 0; i < operatorDef.getInputPortCount(); i++ )
+            {
+                final boolean validWhenClosed = ( getConnectionStatus( i ) == CLOSED && s.getTupleCount( i ) == 0 );
+                final boolean validWhenOpen = ( getConnectionStatus( i ) == OPEN && s.getTupleCount( i ) > 0 );
+                checkArgument( validWhenClosed || validWhenOpen, "Invalid %s for %s of %s", s, this, operatorDef );
+            }
+        }
+        else
+        {
+            throw new IllegalStateException( "Invalid " + schedulingStrategy + " for operator: " + operatorDef.getId() );
+        }
+    }
+
+    public boolean isInvokable ( final OperatorDef operatorDef, final SchedulingStrategy schedulingStrategy )
+    {
+        checkArgument( statuses.length == operatorDef.getInputPortCount(), "%s has different input port count than %s", this, operatorDef );
+
+        if ( schedulingStrategy instanceof ScheduleWhenAvailable )
+        {
+            checkArgument( operatorDef.getInputPortCount() == 0,
+                           "%s cannot be used by operator: %s with input port count: %s",
+                           ScheduleWhenAvailable.class.getSimpleName(),
+                           operatorDef.getId(),
+                           operatorDef.getInputPortCount() );
+
+            if ( version > 0 )
+            {
+                LOGGER.warn( "%s is closed for 0 input port operator: {}", this, operatorDef.getId() );
+
+                return false;
+            }
+
+            return true;
+        }
+        else if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
+        {
+            checkArgument( operatorDef.getInputPortCount() > 0,
+                           "0 input port operator: %s cannot use %s",
+                           operatorDef.getId(),
+                           ScheduleWhenTuplesAvailable.class.getSimpleName() );
+
+            final ScheduleWhenTuplesAvailable s = (ScheduleWhenTuplesAvailable) schedulingStrategy;
+
+            checkArgument( s.getPortCount() == operatorDef.getInputPortCount(),
+                           "Operator: %s has different input port count than %s",
+                           s,
+                           operatorDef.getId() );
+
             if ( s.getTupleAvailabilityByPort() == ANY_PORT )
             {
                 for ( int i = 0; i < operatorDef.getInputPortCount(); i++ )
                 {
-                    if ( s.getTupleCount( i ) > 0 && getUpstreamConnectionStatus( i ) == ACTIVE )
+                    if ( s.getTupleCount( i ) > 0 && getConnectionStatus( i ) == OPEN )
                     {
-                        return;
+                        return true;
                     }
                 }
 
-                throw new IllegalStateException( "SchedulingStrategy " + s + " is not invokable anymore since there is no open port" );
+                LOGGER.warn( "Operator: {} with {} is not invokable anymore since there is no open port", operatorDef.getId(), s );
+
+                return false;
             }
             else if ( s.getTupleAvailabilityByPort() == ALL_PORTS )
             {
                 for ( int i = 0; i < operatorDef.getInputPortCount(); i++ )
                 {
-                    checkState( getUpstreamConnectionStatus( i ) == ACTIVE,
-                                "SchedulingStrategy %s is not invokable anymore since there is closed port",
-                                s );
+                    if ( s.getTupleCount( i ) > 0 && getConnectionStatus( i ) != OPEN )
+                    {
+                        LOGGER.warn( "Operator: {} with {} is not invokable anymore since input port: {} is closed",
+                                     operatorDef.getId(),
+                                     s,
+                                     i );
+
+                        return false;
+                    }
                 }
-            }
-            else
-            {
-                throw new IllegalStateException( s.toString() );
+
+                return true;
             }
         }
-        else
-        {
-            throw new IllegalStateException( operatorDef.getId() + " returns invalid initial scheduling strategy: " + schedulingStrategy );
-        }
+
+        throw new IllegalStateException( "Invalid " + schedulingStrategy + " for operator: " + operatorDef.getId() );
     }
 
-    UpstreamContext withClosedUpstreamConnection ( final int portIndex )
+    public UpstreamContext withConnectionClosed ( final int portIndex )
     {
         checkArgument( portIndex < statuses.length );
-        final UpstreamConnectionStatus[] s = Arrays.copyOf( statuses, statuses.length );
+
+        if ( statuses[ portIndex ] == CLOSED )
+        {
+            return this;
+        }
+
+        final ConnectionStatus[] s = copyOf( statuses, statuses.length );
         s[ portIndex ] = CLOSED;
+
+        return new UpstreamContext( version + 1, s );
+    }
+
+    public UpstreamContext withAllConnectionsClosed ()
+    {
+        if ( statuses.length == stream( statuses ).filter( s -> s == CLOSED ).count() )
+        {
+            return this;
+        }
+
+        final ConnectionStatus[] s = copyOf( statuses, statuses.length );
+        fill( s, CLOSED );
+
         return new UpstreamContext( version + 1, s );
     }
 

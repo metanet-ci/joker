@@ -7,8 +7,4 @@ public interface TupleQueueDrainerPool
 
     TupleQueueDrainer acquire ( SchedulingStrategy strategy );
 
-    void release ( TupleQueueDrainer drainer );
-
-    void reset ();
-
 }

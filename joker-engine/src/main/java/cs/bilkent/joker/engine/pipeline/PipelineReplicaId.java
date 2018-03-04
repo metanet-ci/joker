@@ -13,6 +13,11 @@ public class PipelineReplicaId
 
     private final int hashCode;
 
+    public PipelineReplicaId ( final int regionId, final int pipelineStartIndex, final int replicaIndex )
+    {
+        this( new PipelineId( regionId, pipelineStartIndex ), replicaIndex );
+    }
+
     public PipelineReplicaId ( PipelineId pipelineId, final int replicaIndex )
     {
         this.pipelineId = pipelineId;

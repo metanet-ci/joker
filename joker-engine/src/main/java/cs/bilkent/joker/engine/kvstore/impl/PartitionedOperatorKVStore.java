@@ -8,10 +8,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import cs.bilkent.joker.engine.kvstore.OperatorKVStore;
-import cs.bilkent.joker.engine.partition.PartitionKey;
 import static cs.bilkent.joker.engine.partition.PartitionUtil.getPartitionId;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.operator.kvstore.KVStore;
+import cs.bilkent.joker.partition.impl.PartitionKey;
 
 public class PartitionedOperatorKVStore implements OperatorKVStore
 {

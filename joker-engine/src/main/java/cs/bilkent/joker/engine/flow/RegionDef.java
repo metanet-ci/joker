@@ -208,6 +208,11 @@ public class RegionDef
         return partitionFieldNames;
     }
 
+    public int getForwardedKeySize ()
+    {
+        return partitionFieldNames.size();
+    }
+
     /**
      * Returns the operator with the given index in the region
      *

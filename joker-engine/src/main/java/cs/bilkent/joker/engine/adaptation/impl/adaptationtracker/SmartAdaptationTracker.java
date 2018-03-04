@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import cs.bilkent.joker.engine.adaptation.AdaptationTracker;
 import cs.bilkent.joker.engine.config.JokerConfig;
-import cs.bilkent.joker.engine.flow.FlowExecutionPlan;
+import cs.bilkent.joker.engine.flow.FlowExecPlan;
 import cs.bilkent.joker.engine.metric.FlowMetrics;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
@@ -18,13 +18,13 @@ public class SmartAdaptationTracker extends DefaultAdaptationTracker implements 
 
     private ShutdownHook shutdownHook;
 
-    private FlowExecutionPlan initialFlowExecutionPlan;
+    private FlowExecPlan initialExecPlan;
 
-    private FlowMetrics initialFlowMetrics;
+    private FlowMetrics initialMetrics;
 
-    private FlowExecutionPlan finalFlowExecutionPlan;
+    private FlowExecPlan finalExecPlan;
 
-    private FlowMetrics finalFlowMetrics;
+    private FlowMetrics finalMetrics;
 
     private int stableCount;
 
@@ -36,10 +36,10 @@ public class SmartAdaptationTracker extends DefaultAdaptationTracker implements 
     }
 
     @Override
-    public void init ( final ShutdownHook hook, final FlowExecutionPlan initialFlowExecutionPlan )
+    public void init ( final ShutdownHook hook, final FlowExecPlan execPlan )
     {
         checkArgument( hook != null );
-        checkArgument( initialFlowExecutionPlan != null );
+        checkArgument( execPlan != null );
 
         if ( !isEnabled() )
         {
@@ -48,17 +48,17 @@ public class SmartAdaptationTracker extends DefaultAdaptationTracker implements 
 
         checkNotInitialized();
 
-        super.init( hook, initialFlowExecutionPlan );
+        super.init( hook, execPlan );
 
         this.shutdownHook = hook;
-        this.initialFlowExecutionPlan = initialFlowExecutionPlan;
+        this.initialExecPlan = execPlan;
     }
 
     @Override
-    public void onPeriod ( final FlowExecutionPlan flowExecutionPlan, final FlowMetrics flowMetrics )
+    public void onPeriod ( final FlowExecPlan execPlan, final FlowMetrics metrics )
     {
-        checkArgument( flowExecutionPlan != null );
-        checkArgument( flowMetrics != null );
+        checkArgument( execPlan != null );
+        checkArgument( metrics != null );
 
         if ( !isEnabled() )
         {
@@ -67,28 +67,28 @@ public class SmartAdaptationTracker extends DefaultAdaptationTracker implements 
 
         checkRunning();
 
-        super.onPeriod( flowExecutionPlan, flowMetrics );
+        super.onPeriod( execPlan, metrics );
 
-        if ( initialFlowMetrics == null )
+        if ( initialMetrics == null )
         {
             checkState( stableCount == 0 );
-            initialFlowMetrics = flowMetrics;
+            initialMetrics = metrics;
         }
 
         if ( stableCount++ > adaptationConfig.getStablePeriodCountToStop() )
         {
-            finalFlowExecutionPlan = flowExecutionPlan;
-            finalFlowMetrics = flowMetrics;
-            LOGGER.info( "Decided to shutdown with flow execution plan: " + finalFlowExecutionPlan.toPlanSummaryString() );
+            finalExecPlan = execPlan;
+            finalMetrics = metrics;
+            LOGGER.info( "Decided to shutdown with flow execution plan: " + finalExecPlan.toSummaryString() );
             shutdownHook.shutdown();
             shutdownTriggered = true;
         }
     }
 
     @Override
-    public void onFlowExecutionPlanChange ( final FlowExecutionPlan newFlowExecutionPlan )
+    public void onExecPlanChange ( final FlowExecPlan newExecPlan )
     {
-        checkArgument( newFlowExecutionPlan != null );
+        checkArgument( newExecPlan != null );
 
         if ( !isEnabled() )
         {
@@ -97,10 +97,10 @@ public class SmartAdaptationTracker extends DefaultAdaptationTracker implements 
 
         checkRunning();
 
-        super.onFlowExecutionPlanChange( newFlowExecutionPlan );
+        super.onExecPlanChange( newExecPlan );
 
         stableCount = 0;
-        LOGGER.info( "Stable period count is reset with new flow execution plan: " + newFlowExecutionPlan.toPlanSummaryString() );
+        LOGGER.info( "Stable period count is reset with new flow execution plan: " + newExecPlan.toSummaryString() );
     }
 
     public boolean isShutdownTriggered ()
@@ -108,32 +108,32 @@ public class SmartAdaptationTracker extends DefaultAdaptationTracker implements 
         return shutdownTriggered;
     }
 
-    public FlowExecutionPlan getInitialFlowExecutionPlan ()
+    public FlowExecPlan getInitialExecPlan ()
     {
         // happens-before
         checkState( shutdownTriggered );
-        return initialFlowExecutionPlan;
+        return initialExecPlan;
     }
 
-    public FlowMetrics getInitialFlowMetrics ()
+    public FlowMetrics getInitialMetrics ()
     {
         // happens-before
         checkState( shutdownTriggered );
-        return initialFlowMetrics;
+        return initialMetrics;
     }
 
-    public FlowExecutionPlan getFinalFlowExecutionPlan ()
+    public FlowExecPlan getFinalExecPlan ()
     {
         // happens-before
         checkState( shutdownTriggered );
-        return finalFlowExecutionPlan;
+        return finalExecPlan;
     }
 
-    public FlowMetrics getFinalFlowMetrics ()
+    public FlowMetrics getFinalMetrics ()
     {
         // happens-before
         checkState( shutdownTriggered );
-        return finalFlowMetrics;
+        return finalMetrics;
     }
 
     private void checkNotInitialized ()

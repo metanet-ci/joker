@@ -19,7 +19,7 @@ import org.junit.runners.Parameterized.Parameters;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import cs.bilkent.joker.Joker;
 import cs.bilkent.joker.Joker.JokerBuilder;
-import cs.bilkent.joker.JokerTest.StaticRegionExecutionPlanFactory2;
+import cs.bilkent.joker.JokerTest.StaticRegionExecPlanFactory2;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
@@ -30,7 +30,6 @@ import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuples;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
@@ -140,8 +139,8 @@ public class FwdKeyIntegrationTest extends AbstractJokerTest
                                                  .build();
 
         final JokerConfig jokerConfig = new JokerConfig();
-        final StaticRegionExecutionPlanFactory2 regionExecPlanFactory = new StaticRegionExecutionPlanFactory2( jokerConfig, 4 );
-        final Joker joker = new JokerBuilder().setRegionExecutionPlanFactory( regionExecPlanFactory ).setJokerConfig( jokerConfig ).build();
+        final StaticRegionExecPlanFactory2 regionExecPlanFactory = new StaticRegionExecPlanFactory2( jokerConfig, 4 );
+        final Joker joker = new JokerBuilder().setRegionExecPlanFactory( regionExecPlanFactory ).setJokerConfig( jokerConfig ).build();
 
         joker.run( flow );
 
@@ -167,17 +166,15 @@ public class FwdKeyIntegrationTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
-            final Tuples input = context.getInput();
-            final Tuples output = context.getOutput();
-            input.getTuplesByDefaultPort().forEach( output::add );
+            ctx.getInputTuplesByDefaultPort().forEach( ctx::output );
         }
 
     }

@@ -7,7 +7,7 @@ import org.junit.Test;
 
 import cs.bilkent.joker.engine.adaptation.AdaptationPerformer;
 import cs.bilkent.joker.engine.flow.RegionDef;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
 import cs.bilkent.joker.engine.region.impl.IdGenerator;
 import cs.bilkent.joker.engine.region.impl.RegionDefFormerImpl;
@@ -29,7 +29,7 @@ public class RegionRebalanceActionTest extends AbstractJokerTest
 
     private RegionDef region;
 
-    private RegionExecutionPlan regionExecutionPlan;
+    private RegionExecPlan regionExecPlan;
 
     private RegionRebalanceAction action;
 
@@ -46,16 +46,16 @@ public class RegionRebalanceActionTest extends AbstractJokerTest
         final List<Integer> pipelineStartIndices = asList( 0, region.getOperatorCount() / 2 );
 
         final int currentReplicaCount = 2;
-        regionExecutionPlan = new RegionExecutionPlan( region, pipelineStartIndices, currentReplicaCount );
-        action = new RegionRebalanceAction( regionExecutionPlan, newReplicaCount );
+        regionExecPlan = new RegionExecPlan( region, pipelineStartIndices, currentReplicaCount );
+        action = new RegionRebalanceAction( regionExecPlan, newReplicaCount );
     }
 
     @Test
     public void shouldRebalanceRegion ()
     {
-        assertThat( action.getCurrentRegionExecutionPlan(), equalTo( regionExecutionPlan ) );
-        assertThat( action.getNewRegionExecutionPlan(), equalTo( regionExecutionPlan.withNewReplicaCount( newReplicaCount ) ) );
-        assertThat( action.getNewRegionExecutionPlan().getPipelineIds(), equalTo( regionExecutionPlan.getPipelineIds() ) );
+        assertThat( action.getCurrentExecPlan(), equalTo( regionExecPlan ) );
+        assertThat( action.getNewExecPlan(), equalTo( regionExecPlan.withNewReplicaCount( newReplicaCount ) ) );
+        assertThat( action.getNewExecPlan().getPipelineIds(), equalTo( regionExecPlan.getPipelineIds() ) );
     }
 
     @Test
@@ -63,9 +63,9 @@ public class RegionRebalanceActionTest extends AbstractJokerTest
     {
         final RegionRebalanceAction revert = (RegionRebalanceAction) action.revert();
 
-        assertThat( revert.getCurrentRegionExecutionPlan(), equalTo( regionExecutionPlan.withNewReplicaCount( newReplicaCount ) ) );
-        assertThat( revert.getNewRegionExecutionPlan(), equalTo( regionExecutionPlan ) );
-        assertThat( revert.getNewRegionExecutionPlan().getPipelineIds(), equalTo( regionExecutionPlan.getPipelineIds() ) );
+        assertThat( revert.getCurrentExecPlan(), equalTo( regionExecPlan.withNewReplicaCount( newReplicaCount ) ) );
+        assertThat( revert.getNewExecPlan(), equalTo( regionExecPlan ) );
+        assertThat( revert.getNewExecPlan().getPipelineIds(), equalTo( regionExecPlan.getPipelineIds() ) );
     }
 
     @Test
@@ -75,7 +75,7 @@ public class RegionRebalanceActionTest extends AbstractJokerTest
 
         action.apply( adaptationPerformer );
 
-        verify( adaptationPerformer ).rebalanceRegion( regionExecutionPlan.getRegionId(), newReplicaCount );
+        verify( adaptationPerformer ).rebalanceRegion( regionExecPlan.getRegionId(), newReplicaCount );
     }
 
     public static RegionDef getRegion ( final List<RegionDef> regions, final OperatorType regionType )

@@ -22,11 +22,13 @@ import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
 import cs.bilkent.joker.operator.impl.InMemoryKVStore;
 import cs.bilkent.joker.operator.impl.InitializationContextImpl;
-import cs.bilkent.joker.operator.impl.InvocationContextImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
+import cs.bilkent.joker.partition.impl.PartitionKey;
+import cs.bilkent.joker.partition.impl.PartitionKey1;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -38,14 +40,15 @@ public class VWAPAggregatorOperatorTest extends AbstractJokerTest
 
     private static final String TUPLE_PARTITION_KEY = "key1";
 
-
-    private final TuplesImpl input = new TuplesImpl( 1 );
-
-    private final TuplesImpl output = new TuplesImpl( 1 );
+    private static final PartitionKey PARTITION_KEY = new PartitionKey1( TUPLE_PARTITION_KEY );
 
     private final KVStore kvStore = new InMemoryKVStore();
 
-    private final InvocationContextImpl invocationContext = new InvocationContextImpl();
+    private final TuplesImpl output = new TuplesImpl( 1 );
+
+    private final DefaultInvocationContext invocationContext = new DefaultInvocationContext( 1, key -> kvStore, output );
+
+    private final TuplesImpl input = invocationContext.createInputTuples( PARTITION_KEY );
 
     private final OperatorConfig config = new OperatorConfig();
 
@@ -57,7 +60,7 @@ public class VWAPAggregatorOperatorTest extends AbstractJokerTest
     @Before
     public void init () throws InstantiationException, IllegalAccessException
     {
-        invocationContext.setInvocationParameters( SUCCESS, input, output, singletonList( TICKER_SYMBOL_FIELD ), kvStore );
+        invocationContext.setInvocationReason( SUCCESS );
 
         final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "op", VWAPAggregatorOperator.class )
                                                           .setPartitionFieldNames( singletonList( TICKER_SYMBOL_FIELD ) )

@@ -1,8 +1,6 @@
 package cs.bilkent.joker.engine.pipeline;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,8 +43,6 @@ public class PipelineReplicaRunner implements Runnable
 
     private DownstreamTupleSender downstreamTupleSender;
 
-    private Future<Void> downstreamTuplesFuture;
-
     private PipelineReplicaRunnerStatus status = RUNNING;
 
     private volatile PipelineReplicaRunnerCommand command;
@@ -76,7 +72,7 @@ public class PipelineReplicaRunner implements Runnable
     {
         synchronized ( monitor )
         {
-            return pipeline.getPipelineUpstreamContext();
+            return pipeline.getUpstreamContext();
         }
     }
 
@@ -126,13 +122,11 @@ public class PipelineReplicaRunner implements Runnable
                 }
                 else
                 {
-                    // STOP, DRAIN_STATELESS_OPERATORS OR UNKNOWN COMMAND
+                    // STOP OR UNKNOWN COMMAND
                     LOGGER.error( "{}: {} failed since there is a pending {} command", id, PAUSE, type );
                     result = new CompletableFuture<>();
-                    command.future.thenRun( () -> result.completeExceptionally( new IllegalStateException( id + ": " + PAUSE
-                                                                                                           + " failed since there "
-                                                                                                           + "is a pending " + type
-                                                                                                           + " command" ) ) );
+                    command.future.thenRun( () -> result.completeExceptionally( new IllegalStateException(
+                            id + ": " + PAUSE + " failed since there " + "is a pending " + type + " command" ) ) );
                 }
             }
             else if ( status == PAUSED )
@@ -204,10 +198,8 @@ public class PipelineReplicaRunner implements Runnable
                     // STOP, DRAIN_STATELESS_OPERATORS OR UNKNOWN COMMAND
                     LOGGER.error( "{}: {} failed since there is a pending {} command", id, RESUME, type );
                     result = new CompletableFuture<>();
-                    command.future.thenRun( () -> result.completeExceptionally( new IllegalStateException( id + ": " + RESUME
-                                                                                                           + " failed since there "
-                                                                                                           + "is a pending " + type
-                                                                                                           + " command" ) ) );
+                    command.future.thenRun( () -> result.completeExceptionally( new IllegalStateException(
+                            id + ": " + RESUME + " failed since there " + "is a pending " + type + " command" ) ) );
                 }
             }
             else if ( status == RUNNING )
@@ -296,10 +288,8 @@ public class PipelineReplicaRunner implements Runnable
                     // UNKNOWN COMMAND
                     LOGGER.error( "{}: {} failed since there is a pending {} command", id, STOP, type );
                     result = new CompletableFuture<>();
-                    command.future.thenRun( () -> result.completeExceptionally( new IllegalStateException( id + ": " + STOP
-                                                                                                           + " failed since there "
-                                                                                                           + "is a pending " + type
-                                                                                                           + " command" ) ) );
+                    command.future.thenRun( () -> result.completeExceptionally( new IllegalStateException(
+                            id + ": " + STOP + " failed since there " + "is a pending " + type + " command" ) ) );
                 }
             }
             else if ( status == PAUSED || status == RUNNING )
@@ -346,8 +336,8 @@ public class PipelineReplicaRunner implements Runnable
                 {
                     LOGGER.error( "{}: {} failed since status is {}", id, UPDATE_PIPELINE_UPSTREAM_CONTEXT, COMPLETED );
                     result = new CompletableFuture<>();
-                    result.completeExceptionally( new IllegalStateException( id + ": " + UPDATE_PIPELINE_UPSTREAM_CONTEXT
-                                                                             + " failed since status is " + COMPLETED ) );
+                    result.completeExceptionally( new IllegalStateException(
+                            id + ": " + UPDATE_PIPELINE_UPSTREAM_CONTEXT + " failed since status is " + COMPLETED ) );
                 }
             }
             else
@@ -380,7 +370,6 @@ public class PipelineReplicaRunner implements Runnable
                 }
                 else if ( status == PAUSED )
                 {
-                    awaitDownstreamTuplesFuture();
                     synchronized ( monitor )
                     {
                         monitor.wait( waitTimeoutInMillis );
@@ -388,8 +377,12 @@ public class PipelineReplicaRunner implements Runnable
                 }
                 else if ( status == COMPLETED )
                 {
-                    completeRun();
-                    break;
+                    sendToDownstream( pipeline.invoke() );
+                    if ( !pipeline.isInvoked() )
+                    {
+                        completeRun();
+                        break;
+                    }
                 }
                 else
                 {
@@ -412,7 +405,7 @@ public class PipelineReplicaRunner implements Runnable
         }
     }
 
-    private PipelineReplicaRunnerStatus checkStatus () throws InterruptedException
+    private PipelineReplicaRunnerStatus checkStatus ()
     {
         PipelineReplicaRunnerStatus status = this.status;
         PipelineReplicaRunnerCommand command = this.command;
@@ -437,7 +430,7 @@ public class PipelineReplicaRunner implements Runnable
                 if ( commandType == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
                 {
                     update( pipelineUpstreamContext, downstreamTupleSender );
-                    LOGGER.debug( "{}: update {} command is handled", id, pipeline.getPipelineUpstreamContext() );
+                    LOGGER.debug( "{}: update {} command is handled", id, pipeline.getUpstreamContext() );
                     this.command = null;
                     command.complete();
                 }
@@ -461,8 +454,8 @@ public class PipelineReplicaRunner implements Runnable
                     else
                     {
                         LOGGER.error( "{}: RESETTING WRONG COMMAND WITH TYPE: {} WHILE RUNNING", id, commandType );
-                        command.completeExceptionally( new IllegalStateException( id + ": RESETTING WRONG COMMAND WITH TYPE: " + commandType
-                                                                                  + " WHILE RUNNING" ) );
+                        command.completeExceptionally( new IllegalStateException(
+                                id + ": RESETTING WRONG COMMAND WITH TYPE: " + commandType + " WHILE RUNNING" ) );
                         this.command = null;
                     }
                 }
@@ -480,8 +473,8 @@ public class PipelineReplicaRunner implements Runnable
                     else
                     {
                         LOGGER.error( "{}: RESETTING WRONG COMMAND WITH TYPE: {} WHILE PAUSED", id, commandType );
-                        command.completeExceptionally( new IllegalStateException( id + ": RESETTING WRONG COMMAND WITH TYPE: " + commandType
-                                                                                  + " WHILE PAUSED" ) );
+                        command.completeExceptionally( new IllegalStateException(
+                                id + ": RESETTING WRONG COMMAND WITH TYPE: " + commandType + " WHILE PAUSED" ) );
                         this.command = null;
                     }
                 }
@@ -493,41 +486,14 @@ public class PipelineReplicaRunner implements Runnable
 
     private void update ( final UpstreamContext pipelineUpstreamContext, final DownstreamTupleSender downstreamTupleSender )
     {
-        pipeline.setPipelineUpstreamContext( pipelineUpstreamContext );
+        pipeline.setUpstreamContext( pipelineUpstreamContext );
         this.downstreamTupleSender = downstreamTupleSender;
-    }
-
-    private void awaitDownstreamTuplesFuture ()
-    {
-        try
-        {
-            if ( downstreamTuplesFuture != null )
-            {
-                downstreamTuplesFuture.get();
-                downstreamTuplesFuture = null;
-            }
-        }
-        catch ( InterruptedException e )
-        {
-            LOGGER.error( "{}: runner thread interrupted", id );
-            downstreamTuplesFuture = null;
-            Thread.currentThread().interrupt();
-            supervisor.notifyPipelineReplicaFailed( id, e );
-            // TODO NOT SURE ABOUT THIS PART
-        }
-        catch ( ExecutionException e )
-        {
-            LOGGER.error( id + ": await downstream tuple future failed", e );
-            downstreamTuplesFuture = null;
-            supervisor.notifyPipelineReplicaFailed( id, e );
-        }
     }
 
     private void completeRun ()
     {
         LOGGER.info( "{}: completing the run", id );
 
-        awaitDownstreamTuplesFuture();
         LOGGER.info( "{}: all downstream tuples are sent", id );
 
         if ( pipeline.isCompleted() )
@@ -561,8 +527,7 @@ public class PipelineReplicaRunner implements Runnable
     {
         if ( output != null && output.isNonEmpty() )
         {
-            awaitDownstreamTuplesFuture();
-            downstreamTuplesFuture = downstreamTupleSender.send( output );
+            downstreamTupleSender.send( output );
         }
     }
 

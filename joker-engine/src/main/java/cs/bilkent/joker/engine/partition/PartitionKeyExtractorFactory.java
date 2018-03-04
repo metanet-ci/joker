@@ -10,6 +10,6 @@ public interface PartitionKeyExtractorFactory
         return createPartitionKeyExtractor( partitionFieldNames, partitionFieldNames.size() );
     }
 
-    PartitionKeyExtractor createPartitionKeyExtractor ( List<String> partitionFieldNames, int forwardKeyLimit );
+    PartitionKeyExtractor createPartitionKeyExtractor ( List<String> partitionFieldNames, int forwardedKeySize );
 
 }

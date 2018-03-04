@@ -2,10 +2,10 @@ package cs.bilkent.joker.engine.partition.impl;
 
 import java.util.List;
 
-import cs.bilkent.joker.engine.partition.PartitionKey;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import static cs.bilkent.joker.engine.partition.impl.PartitionKey2Fwd1.computePartitionHashCode;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.partition.impl.PartitionKey;
 
 public class PartitionKeyExtractor2Fwd1 implements PartitionKeyExtractor
 {

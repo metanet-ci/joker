@@ -2,34 +2,34 @@ package cs.bilkent.joker.engine.partition.impl;
 
 import java.util.List;
 
-import cs.bilkent.joker.engine.partition.PartitionKey;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import static cs.bilkent.joker.engine.partition.impl.PartitionKeyNFwdM.computePartitionHash;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.partition.impl.PartitionKey;
 
 public class PartitionKeyExtractorNFwdM implements PartitionKeyExtractor
 {
 
     private final List<String> partitionFieldNames;
 
-    private final int forwardKeyLimit;
+    private final int forwardedKeySize;
 
-    PartitionKeyExtractorNFwdM ( final List<String> partitionFieldNames, final int forwardKeyLimit )
+    PartitionKeyExtractorNFwdM ( final List<String> partitionFieldNames, final int forwardedKeySize )
     {
         this.partitionFieldNames = partitionFieldNames;
-        this.forwardKeyLimit = forwardKeyLimit;
+        this.forwardedKeySize = forwardedKeySize;
     }
 
     @Override
     public PartitionKey getPartitionKey ( final Tuple tuple )
     {
-        return new PartitionKeyNFwdM( tuple, partitionFieldNames, forwardKeyLimit );
+        return new PartitionKeyNFwdM( tuple, partitionFieldNames, forwardedKeySize );
     }
 
     @Override
     public int getPartitionHash ( final Tuple tuple )
     {
-        return computePartitionHash( tuple, partitionFieldNames, forwardKeyLimit );
+        return computePartitionHash( tuple, partitionFieldNames, forwardedKeySize );
     }
 
 }

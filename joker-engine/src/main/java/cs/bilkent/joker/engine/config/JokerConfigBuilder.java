@@ -35,9 +35,6 @@ import static cs.bilkent.joker.engine.config.PartitionServiceConfig.PARTITION_CO
 import static cs.bilkent.joker.engine.config.PipelineManagerConfig.RUNNER_COMMAND_TIMEOUT;
 import static cs.bilkent.joker.engine.config.PipelineReplicaRunnerConfig.RUNNER_WAIT_TIMEOUT;
 import static cs.bilkent.joker.engine.config.TupleQueueDrainerConfig.MAX_BATCH_SIZE;
-import static cs.bilkent.joker.engine.config.TupleQueueDrainerConfig.PARTITIONED_STATEFUL_PIPELINE_DRAINER_MAX_BATCH_SIZE;
-import static cs.bilkent.joker.engine.config.TupleQueueManagerConfig.MAX_DRAINABLE_KEY_COUNT;
-import static cs.bilkent.joker.engine.config.TupleQueueManagerConfig.PARTITIONED_TUPLE_QUEUE_DRAINER_HINT;
 import static cs.bilkent.joker.engine.config.TupleQueueManagerConfig.TUPLE_QUEUE_CAPACITY;
 
 public class JokerConfigBuilder
@@ -473,13 +470,6 @@ public class JokerConfigBuilder
             return this;
         }
 
-        public TupleQueueDrainerConfigBuilder setPartitionedStatefulPipelineDrainerMaxBatchSize ( final int val )
-        {
-            tupleQueueDrainerConfigVals.put( PARTITIONED_STATEFUL_PIPELINE_DRAINER_MAX_BATCH_SIZE, val );
-
-            return this;
-        }
-
     }
 
 
@@ -497,16 +487,9 @@ public class JokerConfigBuilder
             return this;
         }
 
-        public TupleQueueManagerConfigBuilder setMaxDrainableKeyCount ( final int val )
+        public TupleQueueManagerConfigBuilder setMultiThreadedQueueDrainLimit ( final int val )
         {
-            tupleQueueManagerConfigVals.put( MAX_DRAINABLE_KEY_COUNT, val );
-
-            return this;
-        }
-
-        public TupleQueueManagerConfigBuilder setPartitionedTupleQueueDrainHint ( final int val )
-        {
-            tupleQueueManagerConfigVals.put( PARTITIONED_TUPLE_QUEUE_DRAINER_HINT, val );
+            tupleQueueManagerConfigVals.put( TupleQueueManagerConfig.MULTI_THREADED_QUEUE_DRAIN_LIMIT, val );
 
             return this;
         }

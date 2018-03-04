@@ -20,11 +20,11 @@ import cs.bilkent.joker.Joker.JokerBuilder;
 import cs.bilkent.joker.engine.adaptation.impl.adaptationtracker.SmartAdaptationTracker;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.config.JokerConfigBuilder;
-import cs.bilkent.joker.engine.flow.FlowExecutionPlan;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.FlowExecPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import cs.bilkent.joker.engine.metric.PipelineMetricsHistory;
-import cs.bilkent.joker.engine.region.impl.DefaultRegionExecutionPlanFactory;
+import cs.bilkent.joker.engine.region.impl.DefaultRegionExecPlanFactory;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
@@ -35,7 +35,6 @@ import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuples;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
@@ -109,7 +108,7 @@ public class JokerDemo extends AbstractJokerTest
         final SmartAdaptationTracker adaptationTracker = new SmartAdaptationTracker( jokerConfig );
 
         final Joker joker = new JokerBuilder().setJokerConfig( jokerConfig )
-                                              .setRegionExecutionPlanFactory( new DefaultRegionExecutionPlanFactory( jokerConfig ) )
+                                              .setRegionExecPlanFactory( new DefaultRegionExecPlanFactory( jokerConfig ) )
                                               .setAdaptationTracker( adaptationTracker )
                                               .build();
 
@@ -127,7 +126,7 @@ public class JokerDemo extends AbstractJokerTest
 
     private void logFinalMetrics ( final SmartAdaptationTracker adaptationTracker )
     {
-        for ( RegionExecutionPlan regionExecPlan : adaptationTracker.getInitialFlowExecutionPlan().getRegionExecutionPlans() )
+        for ( RegionExecPlan regionExecPlan : adaptationTracker.getInitialExecPlan().getRegionExecPlans() )
         {
             if ( regionExecPlan.getRegionDef().isSource() )
             {
@@ -135,10 +134,10 @@ public class JokerDemo extends AbstractJokerTest
             }
 
             final int regionId = regionExecPlan.getRegionId();
-            final PipelineMetricsHistory initialMetricsHistory = adaptationTracker.getInitialFlowMetrics()
+            final PipelineMetricsHistory initialMetricsHistory = adaptationTracker.getInitialMetrics()
                                                                                   .getRegionMetrics( regionId )
                                                                                   .get( 0 );
-            final PipelineMetricsHistory finalMetricsHistory = adaptationTracker.getFinalFlowMetrics()
+            final PipelineMetricsHistory finalMetricsHistory = adaptationTracker.getFinalMetrics()
                                                                                 .getRegionMetrics( regionId )
                                                                                 .get( 0 );
 
@@ -170,7 +169,7 @@ public class JokerDemo extends AbstractJokerTest
         final FlowDef flow = flowExample.build();
 
         final Joker joker = newJokerInstance( false );
-        final FlowExecutionPlan flowExecPlan = joker.run( flow );
+        final FlowExecPlan flowExecPlan = joker.run( flow );
 
         sleepUninterruptibly( 40, SECONDS );
 
@@ -203,11 +202,11 @@ public class JokerDemo extends AbstractJokerTest
         final FlowDef flow = flowExample.build();
 
         final Joker joker = newJokerInstance( false );
-        final FlowExecutionPlan flowExecPlan = joker.run( flow );
+        final FlowExecPlan flowExecPlan = joker.run( flow );
 
         sleepUninterruptibly( 40, SECONDS );
 
-        final RegionExecutionPlan regionExecPlan = getMiddleRegionExecPlan( flowExecPlan );
+        final RegionExecPlan regionExecPlan = getMiddleRegionExecPlan( flowExecPlan );
 
         joker.rebalanceRegion( flowExecPlan.getVersion(), regionExecPlan.getRegionId(), 2 );
 
@@ -231,14 +230,13 @@ public class JokerDemo extends AbstractJokerTest
         configBuilder.getFlowDefOptimizerConfigBuilder().disableMergeRegions();
 
         final JokerConfig jokerConfig = configBuilder.build();
-        return new JokerBuilder().setJokerConfig( jokerConfig )
-                                 .setRegionExecutionPlanFactory( new DefaultRegionExecutionPlanFactory( jokerConfig ) )
+        return new JokerBuilder().setJokerConfig( jokerConfig ).setRegionExecPlanFactory( new DefaultRegionExecPlanFactory( jokerConfig ) )
                                  .build();
     }
 
-    private RegionExecutionPlan getMiddleRegionExecPlan ( FlowExecutionPlan flowExecPlan )
+    private RegionExecPlan getMiddleRegionExecPlan ( FlowExecPlan flowExecPlan )
     {
-        for ( RegionExecutionPlan regionExecPlan : flowExecPlan.getRegionExecutionPlans() )
+        for ( RegionExecPlan regionExecPlan : flowExecPlan.getRegionExecPlans() )
         {
             if ( regionExecPlan.getRegionDef().getRegionType() == MIDDLE_REGION_TYPE )
             {
@@ -249,10 +247,9 @@ public class JokerDemo extends AbstractJokerTest
         throw new IllegalArgumentException();
     }
 
-    private void splitPipeline ( Joker joker,
-                                 FlowExecutionPlan flowExecPlan ) throws InterruptedException, ExecutionException, TimeoutException
+    private void splitPipeline ( Joker joker, FlowExecPlan flowExecPlan ) throws InterruptedException, ExecutionException, TimeoutException
     {
-        RegionExecutionPlan regionExecPlan = getMiddleRegionExecPlan( flowExecPlan );
+        RegionExecPlan regionExecPlan = getMiddleRegionExecPlan( flowExecPlan );
         joker.splitPipeline( flowExecPlan.getVersion(), regionExecPlan.getPipelineIds().get( 0 ), singletonList( 1 ) ).get( 60, SECONDS );
     }
 
@@ -294,18 +291,16 @@ public class JokerDemo extends AbstractJokerTest
         private TupleSchema outputSchema;
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
-            outputSchema = context.getOutputPortSchema( 0 );
+            outputSchema = ctx.getOutputPortSchema( 0 );
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
-            Tuples input = context.getInput();
-            Tuples output = context.getOutput();
-            for ( Tuple tuple : input.getTuplesByDefaultPort() )
+            for ( Tuple tuple : ctx.getInputTuplesByDefaultPort() )
             {
                 Tuple summed = new Tuple( outputSchema );
                 Object pKey = tuple.get( "key" );
@@ -316,7 +311,7 @@ public class JokerDemo extends AbstractJokerTest
                     sum *= tuple.getDouble( "val1" ) / 4;
                 }
                 summed.set( "val", sum );
-                output.add( summed );
+                ctx.output( summed );
             }
         }
 
@@ -483,27 +478,24 @@ public class JokerDemo extends AbstractJokerTest
         private Histogram histogram = new Histogram( new ExponentiallyDecayingReservoir() );
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
-            final OperatorConfig config = context.getConfig();
+            final OperatorConfig config = ctx.getConfig();
 
             this.mapper = config.getOrFail( MAPPER_CONFIG_PARAMETER );
-            this.outputSchema = context.getOutputPortSchema( 0 );
+            this.outputSchema = ctx.getOutputPortSchema( 0 );
             return scheduleWhenTuplesAvailableOnDefaultPort( DEFAULT_TUPLE_COUNT_CONFIG_VALUE );
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
-            final Tuples input = context.getInput();
-            final Tuples output = context.getOutput();
-
-            List<Tuple> tuples = input.getTuplesByDefaultPort();
+            final List<Tuple> tuples = ctx.getInputTuplesByDefaultPort();
             for ( Tuple tuple : tuples )
             {
                 final Tuple mapped = new Tuple( outputSchema );
                 mapper.accept( tuple, mapped );
-                output.add( mapped );
+                ctx.output( mapped );
             }
 
             histogram.update( tuples.size() );

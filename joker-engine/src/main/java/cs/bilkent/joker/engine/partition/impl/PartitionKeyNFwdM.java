@@ -4,11 +4,11 @@ import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.List;
 
-import cs.bilkent.joker.engine.partition.PartitionKey;
-import static cs.bilkent.joker.engine.partition.impl.PartitionKeyUtil.hashHead;
-import static cs.bilkent.joker.engine.partition.impl.PartitionKeyUtil.hashTail;
-import static cs.bilkent.joker.engine.partition.impl.PartitionKeyUtil.rangeCheck;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.partition.impl.PartitionKey;
+import static cs.bilkent.joker.partition.impl.PartitionKeyUtil.hashHead;
+import static cs.bilkent.joker.partition.impl.PartitionKeyUtil.hashTail;
+import static cs.bilkent.joker.partition.impl.PartitionKeyUtil.rangeCheck;
 
 public class PartitionKeyNFwdM extends AbstractList<Object> implements PartitionKey
 {
@@ -19,7 +19,7 @@ public class PartitionKeyNFwdM extends AbstractList<Object> implements Partition
 
     private final int partitionHashCode;
 
-    PartitionKeyNFwdM ( final Tuple tuple, final List<String> partitionFieldNames, final int forwardKeyLimit )
+    PartitionKeyNFwdM ( final Tuple tuple, final List<String> partitionFieldNames, final int forwardedKeySize )
     {
         final int j = partitionFieldNames.size();
         this.values = new Object[ j ];
@@ -28,7 +28,7 @@ public class PartitionKeyNFwdM extends AbstractList<Object> implements Partition
         int hashCode = hashHead( headVal );
         this.values[ 0 ] = headVal;
 
-        for ( int i = 1; i < forwardKeyLimit; i++ )
+        for ( int i = 1; i < forwardedKeySize; i++ )
         {
             final Object val = tuple.getObject( partitionFieldNames.get( i ) );
             this.values[ i ] = val;
@@ -37,7 +37,7 @@ public class PartitionKeyNFwdM extends AbstractList<Object> implements Partition
 
         this.partitionHashCode = hashCode;
 
-        for ( int i = forwardKeyLimit; i < j; i++ )
+        for ( int i = forwardedKeySize; i < j; i++ )
         {
             final Object val = tuple.getObject( partitionFieldNames.get( i ) );
             this.values[ i ] = val;
@@ -92,11 +92,11 @@ public class PartitionKeyNFwdM extends AbstractList<Object> implements Partition
         return hashCode;
     }
 
-    static int computePartitionHash ( final Tuple tuple, final List<String> partitionFieldNames, final int forwardKeyLimit )
+    static int computePartitionHash ( final Tuple tuple, final List<String> partitionFieldNames, final int forwardedKeySize )
     {
         int hashCode = hashHead( tuple.getObject( partitionFieldNames.get( 0 ) ) );
 
-        for ( int i = 1; i < forwardKeyLimit; i++ )
+        for ( int i = 1; i < forwardedKeySize; i++ )
         {
             hashCode = hashTail( hashCode, tuple.getObject( partitionFieldNames.get( i ) ) );
         }

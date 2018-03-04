@@ -6,8 +6,8 @@ import java.util.List;
 import cs.bilkent.joker.engine.adaptation.AdaptationAction;
 import cs.bilkent.joker.engine.adaptation.AdaptationPerformer;
 import cs.bilkent.joker.engine.flow.PipelineId;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
-import static cs.bilkent.joker.engine.region.impl.RegionExecutionPlanUtil.getPipelineStartIndicesToSplit;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
+import static cs.bilkent.joker.engine.region.impl.RegionExecPlanUtil.getPipelineStartIndicesToSplit;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
 import static java.util.Collections.singletonList;
@@ -16,32 +16,32 @@ import static java.util.Collections.unmodifiableList;
 public class SplitPipelineAction implements AdaptationAction
 {
 
-    private final RegionExecutionPlan currentRegionExecutionPlan, newRegionExecutionPlan;
+    private final RegionExecPlan currentExecPlan, newExecPlan;
 
     private final PipelineId pipelineId;
 
     private final List<Integer> pipelineOperatorIndices;
 
-    public SplitPipelineAction ( final RegionExecutionPlan regionExecutionPlan,
+    public SplitPipelineAction ( final RegionExecPlan execPlan,
                                  final PipelineId pipelineId,
                                  final int pipelineOperatorIndex )
     {
-        this( regionExecutionPlan, pipelineId, singletonList( pipelineOperatorIndex ) );
+        this( execPlan, pipelineId, singletonList( pipelineOperatorIndex ) );
     }
 
-    public SplitPipelineAction ( final RegionExecutionPlan regionExecutionPlan,
+    public SplitPipelineAction ( final RegionExecPlan execPlan,
                                  final PipelineId pipelineId,
                                  final List<Integer> pipelineOperatorIndices )
     {
-        checkArgument( regionExecutionPlan != null );
+        checkArgument( execPlan != null );
         checkArgument( pipelineId != null );
         checkArgument( pipelineOperatorIndices != null && pipelineOperatorIndices.size() > 0 );
-        this.currentRegionExecutionPlan = regionExecutionPlan;
-        final List<Integer> pipelineStartIndicesToSplit = getPipelineStartIndicesToSplit( regionExecutionPlan,
+        this.currentExecPlan = execPlan;
+        final List<Integer> pipelineStartIndicesToSplit = getPipelineStartIndicesToSplit( execPlan,
                                                                                           pipelineId,
                                                                                           pipelineOperatorIndices );
-        this.newRegionExecutionPlan = regionExecutionPlan.withSplitPipeline( pipelineStartIndicesToSplit );
-        checkState( newRegionExecutionPlan != null );
+        this.newExecPlan = execPlan.withSplitPipeline( pipelineStartIndicesToSplit );
+        checkState( newExecPlan != null );
         this.pipelineId = pipelineId;
         this.pipelineOperatorIndices = unmodifiableList( new ArrayList<>( pipelineOperatorIndices ) );
     }
@@ -53,21 +53,21 @@ public class SplitPipelineAction implements AdaptationAction
     }
 
     @Override
-    public RegionExecutionPlan getCurrentRegionExecutionPlan ()
+    public RegionExecPlan getCurrentExecPlan ()
     {
-        return currentRegionExecutionPlan;
+        return currentExecPlan;
     }
 
     @Override
-    public RegionExecutionPlan getNewRegionExecutionPlan ()
+    public RegionExecPlan getNewExecPlan ()
     {
-        return newRegionExecutionPlan;
+        return newExecPlan;
     }
 
     @Override
     public AdaptationAction revert ()
     {
-        return new MergePipelinesAction( newRegionExecutionPlan, getMergePipelineIds() );
+        return new MergePipelinesAction( newExecPlan, getMergePipelineIds() );
     }
 
     private List<PipelineId> getMergePipelineIds ()
@@ -88,8 +88,8 @@ public class SplitPipelineAction implements AdaptationAction
     @Override
     public String toString ()
     {
-        return "SplitPipelineAction{" + "currentRegionExecutionPlan=" + currentRegionExecutionPlan + ", newRegionExecutionPlan="
-               + newRegionExecutionPlan + ", pipelineId=" + pipelineId + ", pipelineOperatorIndices=" + pipelineOperatorIndices + '}';
+        return "SplitPipelineAction{" + "currentExecPlan=" + currentExecPlan + ", newExecPlan=" + newExecPlan + ", pipelineId=" + pipelineId
+               + ", pipelineOperatorIndices=" + pipelineOperatorIndices + '}';
     }
 
     @Override
@@ -106,7 +106,7 @@ public class SplitPipelineAction implements AdaptationAction
 
         final SplitPipelineAction that = (SplitPipelineAction) o;
 
-        if ( !currentRegionExecutionPlan.equals( that.currentRegionExecutionPlan ) )
+        if ( !currentExecPlan.equals( that.currentExecPlan ) )
         {
             return false;
         }
@@ -120,7 +120,7 @@ public class SplitPipelineAction implements AdaptationAction
     @Override
     public int hashCode ()
     {
-        int result = currentRegionExecutionPlan.hashCode();
+        int result = currentExecPlan.hashCode();
         result = 31 * result + pipelineId.hashCode();
         result = 31 * result + pipelineOperatorIndices.hashCode();
         return result;

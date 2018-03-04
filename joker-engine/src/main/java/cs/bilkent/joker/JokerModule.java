@@ -30,9 +30,9 @@ import cs.bilkent.joker.engine.pipeline.impl.PipelineManagerImpl;
 import cs.bilkent.joker.engine.region.FlowDefOptimizer;
 import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
-import cs.bilkent.joker.engine.region.RegionExecutionPlanFactory;
+import cs.bilkent.joker.engine.region.RegionExecPlanFactory;
 import cs.bilkent.joker.engine.region.RegionManager;
-import cs.bilkent.joker.engine.region.impl.DefaultRegionExecutionPlanFactory;
+import cs.bilkent.joker.engine.region.impl.DefaultRegionExecPlanFactory;
 import cs.bilkent.joker.engine.region.impl.FlowDefOptimizerImpl;
 import cs.bilkent.joker.engine.region.impl.IdGenerator;
 import cs.bilkent.joker.engine.region.impl.PipelineTransformerImpl;
@@ -40,8 +40,8 @@ import cs.bilkent.joker.engine.region.impl.RegionDefFormerImpl;
 import cs.bilkent.joker.engine.region.impl.RegionManagerImpl;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import cs.bilkent.joker.engine.supervisor.impl.SupervisorImpl;
-import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueueManager;
-import cs.bilkent.joker.engine.tuplequeue.impl.OperatorTupleQueueManagerImpl;
+import cs.bilkent.joker.engine.tuplequeue.OperatorQueueManager;
+import cs.bilkent.joker.engine.tuplequeue.impl.OperatorQueueManagerImpl;
 
 public class JokerModule extends AbstractModule
 {
@@ -50,7 +50,7 @@ public class JokerModule extends AbstractModule
 
     private final JokerConfig config;
 
-    private final RegionExecutionPlanFactory regionExecutionPlanFactory;
+    private final RegionExecPlanFactory regionExecPlanFactory;
 
     private final AdaptationTracker adaptationTracker;
 
@@ -60,13 +60,12 @@ public class JokerModule extends AbstractModule
     }
 
     JokerModule ( final Object jokerId,
-                  final JokerConfig config,
-                  final RegionExecutionPlanFactory regionExecutionPlanFactory,
+                  final JokerConfig config, final RegionExecPlanFactory regionExecPlanFactory,
                   final AdaptationTracker adaptationTracker )
     {
         this.jokerId = jokerId;
         this.config = config;
-        this.regionExecutionPlanFactory = regionExecutionPlanFactory;
+        this.regionExecPlanFactory = regionExecPlanFactory;
         this.adaptationTracker = adaptationTracker;
     }
 
@@ -80,7 +79,7 @@ public class JokerModule extends AbstractModule
     {
         bind( PartitionService.class ).to( PartitionServiceImpl.class );
         bind( OperatorKVStoreManager.class ).to( OperatorKVStoreManagerImpl.class );
-        bind( OperatorTupleQueueManager.class ).to( OperatorTupleQueueManagerImpl.class );
+        bind( OperatorQueueManager.class ).to( OperatorQueueManagerImpl.class );
         bind( RegionManager.class ).to( RegionManagerImpl.class );
         bind( RegionDefFormer.class ).to( RegionDefFormerImpl.class );
         bind( Supervisor.class ).to( SupervisorImpl.class );
@@ -90,13 +89,13 @@ public class JokerModule extends AbstractModule
         bind( FlowDefOptimizer.class ).to( FlowDefOptimizerImpl.class );
         bind( PipelineTransformer.class ).to( PipelineTransformerImpl.class );
         bind( AdaptationManager.class ).to( OrganicAdaptationManager.class );
-        if ( regionExecutionPlanFactory != null )
+        if ( regionExecPlanFactory != null )
         {
-            bind( RegionExecutionPlanFactory.class ).toInstance( regionExecutionPlanFactory );
+            bind( RegionExecPlanFactory.class ).toInstance( regionExecPlanFactory );
         }
         else
         {
-            bind( RegionExecutionPlanFactory.class ).to( DefaultRegionExecutionPlanFactory.class );
+            bind( RegionExecPlanFactory.class ).to( DefaultRegionExecPlanFactory.class );
         }
         if ( adaptationTracker != null )
         {

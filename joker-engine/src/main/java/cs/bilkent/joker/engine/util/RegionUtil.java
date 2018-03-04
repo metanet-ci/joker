@@ -139,8 +139,7 @@ public class RegionUtil
 
         final List<RegionDef> downstream = new ArrayList<>();
         final Predicate<RegionDef> nonVisitedDownstreamRegion = regionDef -> !downstream.contains( regionDef );
-        final Consumer<RegionDef> addToDownstream = regionDef ->
-        {
+        final Consumer<RegionDef> addToDownstream = regionDef -> {
             downstream.add( regionDef );
             current.add( regionDef );
         };

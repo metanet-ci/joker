@@ -7,7 +7,6 @@ import cs.bilkent.joker.operator.InvocationContext;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuples;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
@@ -34,9 +33,9 @@ public class ForEachOperator implements Operator
     private Consumer<Tuple> consumerFunc;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext context )
+    public SchedulingStrategy init ( final InitializationContext ctx )
     {
-        final OperatorConfig config = context.getConfig();
+        final OperatorConfig config = ctx.getConfig();
 
         this.consumerFunc = config.getOrFail( CONSUMER_FUNCTION_CONFIG_PARAMETER );
         final int tupleCount = config.getIntegerOrDefault( TUPLE_COUNT_CONFIG_PARAMETER, DEFAULT_TUPLE_COUNT );
@@ -48,15 +47,12 @@ public class ForEachOperator implements Operator
 
 
     @Override
-    public void invoke ( final InvocationContext context )
+    public void invoke ( final InvocationContext ctx )
     {
-        final Tuples input = context.getInput();
-        final Tuples output = context.getOutput();
-
-        for ( Tuple tuple : input.getTuplesByDefaultPort() )
+        for ( Tuple tuple : ctx.getInputTuplesByDefaultPort() )
         {
             consumerFunc.accept( tuple );
-            output.add( tuple );
+            ctx.output( tuple );
         }
     }
 

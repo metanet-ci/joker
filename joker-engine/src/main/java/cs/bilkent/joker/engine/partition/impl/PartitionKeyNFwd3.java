@@ -4,11 +4,11 @@ import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.List;
 
-import cs.bilkent.joker.engine.partition.PartitionKey;
-import static cs.bilkent.joker.engine.partition.impl.PartitionKeyUtil.hashHead;
-import static cs.bilkent.joker.engine.partition.impl.PartitionKeyUtil.hashTail;
-import static cs.bilkent.joker.engine.partition.impl.PartitionKeyUtil.rangeCheck;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.partition.impl.PartitionKey;
+import static cs.bilkent.joker.partition.impl.PartitionKeyUtil.hashHead;
+import static cs.bilkent.joker.partition.impl.PartitionKeyUtil.hashTail;
+import static cs.bilkent.joker.partition.impl.PartitionKeyUtil.rangeCheck;
 
 public class PartitionKeyNFwd3 extends AbstractList<Object> implements PartitionKey
 {

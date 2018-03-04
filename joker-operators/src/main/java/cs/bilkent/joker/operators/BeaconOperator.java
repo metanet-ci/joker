@@ -7,7 +7,6 @@ import cs.bilkent.joker.operator.InvocationContext;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuples;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
@@ -34,27 +33,25 @@ public class BeaconOperator implements Operator
     private TupleSchema outputSchema;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext context )
+    public SchedulingStrategy init ( final InitializationContext ctx )
     {
-        final OperatorConfig config = context.getConfig();
+        final OperatorConfig config = ctx.getConfig();
 
         this.tuplePopulatorFunc = config.getOrFail( TUPLE_POPULATOR_CONFIG_PARAMETER );
         this.tupleCount = config.getOrFail( TUPLE_COUNT_CONFIG_PARAMETER );
-        this.outputSchema = context.getOutputPortSchema( 0 );
+        this.outputSchema = ctx.getOutputPortSchema( 0 );
 
         return ScheduleWhenAvailable.INSTANCE;
     }
 
     @Override
-    public void invoke ( final InvocationContext context )
+    public void invoke ( final InvocationContext ctx )
     {
-        final Tuples output = context.getOutput();
-
         for ( int i = 0; i < tupleCount; i++ )
         {
             final Tuple tuple = new Tuple( outputSchema );
             tuplePopulatorFunc.accept( tuple );
-            output.add( tuple );
+            ctx.output( tuple );
         }
     }
 

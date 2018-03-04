@@ -9,12 +9,12 @@ import org.junit.Test;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.kvstore.OperatorKVStore;
 import cs.bilkent.joker.engine.partition.PartitionDistribution;
-import cs.bilkent.joker.engine.partition.PartitionKey;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import static cs.bilkent.joker.engine.partition.PartitionUtil.getPartitionId;
-import cs.bilkent.joker.engine.partition.impl.PartitionKey1;
 import cs.bilkent.joker.engine.partition.impl.PartitionServiceImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
+import cs.bilkent.joker.partition.impl.PartitionKey;
+import cs.bilkent.joker.partition.impl.PartitionKey1;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -47,30 +47,30 @@ public class OperatorKVStoreManagerImplTest extends AbstractJokerTest
     @Test
     public void shouldCreateDefaultOperatorKVStore ()
     {
-        final OperatorKVStore operatorKvStore = kvStoreManager.createDefaultOperatorKVStore( REGION_ID, OPERATOR_ID );
+        final OperatorKVStore operatorKvStore = kvStoreManager.createDefaultKVStore( REGION_ID, OPERATOR_ID );
         assertNotNull( operatorKvStore );
-        assertEquals( operatorKvStore, kvStoreManager.getDefaultOperatorKVStore( REGION_ID, OPERATOR_ID ) );
+        assertEquals( operatorKvStore, kvStoreManager.getDefaultKVStore( REGION_ID, OPERATOR_ID ) );
     }
 
     @Test
     public void shouldPartitionedOperatorKVStore ()
     {
         final PartitionDistribution partitionDistribution = partitionService.createPartitionDistribution( REGION_ID, 2 );
-        final OperatorKVStore[] operatorKvStores = kvStoreManager.createPartitionedOperatorKVStores( REGION_ID,
-                                                                                                     OPERATOR_ID,
-                                                                                                     partitionDistribution );
+        final OperatorKVStore[] operatorKvStores = kvStoreManager.createPartitionedKVStores( REGION_ID,
+                                                                                             OPERATOR_ID,
+                                                                                             partitionDistribution );
         assertNotNull( operatorKvStores );
         assertThat( operatorKvStores.length, equalTo( 2 ) );
-        assertThat( kvStoreManager.getPartitionedOperatorKVStores( REGION_ID, OPERATOR_ID ), equalTo( operatorKvStores ) );
+        assertThat( kvStoreManager.getPartitionedKVStores( REGION_ID, OPERATOR_ID ), equalTo( operatorKvStores ) );
     }
 
     @Test
     public void shouldReleaseDefaultOperatorKVStore ()
     {
-        final OperatorKVStore operatorKvStore = kvStoreManager.createDefaultOperatorKVStore( REGION_ID, OPERATOR_ID );
+        final OperatorKVStore operatorKvStore = kvStoreManager.createDefaultKVStore( REGION_ID, OPERATOR_ID );
         final KVStore kvStore = operatorKvStore.getKVStore( null );
         kvStore.set( "key", "value" );
-        kvStoreManager.releaseDefaultOperatorKVStore( REGION_ID, OPERATOR_ID );
+        kvStoreManager.releaseDefaultKVStore( REGION_ID, OPERATOR_ID );
         assertThat( kvStore.size(), equalTo( 0 ) );
     }
 
@@ -78,14 +78,14 @@ public class OperatorKVStoreManagerImplTest extends AbstractJokerTest
     public void shouldReleasePartitionedOperatorKVStore ()
     {
         final PartitionDistribution partitionDistribution = partitionService.createPartitionDistribution( REGION_ID, 1 );
-        final OperatorKVStore operatorKvStore = kvStoreManager.createPartitionedOperatorKVStores( REGION_ID,
-                                                                                                  OPERATOR_ID,
-                                                                                                  partitionDistribution )[ 0 ];
+        final OperatorKVStore operatorKvStore = kvStoreManager.createPartitionedKVStores( REGION_ID,
+                                                                                          OPERATOR_ID,
+                                                                                          partitionDistribution )[ 0 ];
         final KVStore kvStore = operatorKvStore.getKVStore( new PartitionKey1( "key" ) );
         kvStore.set( "key", "value" );
-        kvStoreManager.releasePartitionedOperatorKVStores( REGION_ID, OPERATOR_ID );
+        kvStoreManager.releasePartitionedKVStores( REGION_ID, OPERATOR_ID );
         assertThat( kvStore.size(), equalTo( 0 ) );
-        assertNull( kvStoreManager.getPartitionedOperatorKVStores( REGION_ID, OPERATOR_ID ) );
+        assertNull( kvStoreManager.getPartitionedKVStores( REGION_ID, OPERATOR_ID ) );
     }
 
     @Test
@@ -103,9 +103,7 @@ public class OperatorKVStoreManagerImplTest extends AbstractJokerTest
     private void testRebalancePartitionedOperatorKVStores ( final int initialReplicaCount, final int newReplicaCount )
     {
         final PartitionDistribution partitionDistribution = partitionService.createPartitionDistribution( REGION_ID, initialReplicaCount );
-        OperatorKVStore[] operatorKVStores = kvStoreManager.createPartitionedOperatorKVStores( REGION_ID,
-                                                                                               OPERATOR_ID,
-                                                                                               partitionDistribution );
+        OperatorKVStore[] operatorKVStores = kvStoreManager.createPartitionedKVStores( REGION_ID, OPERATOR_ID, partitionDistribution );
 
         final Set<PartitionKey> keys = new HashSet<>();
         for ( int partitionId = 0; partitionId < partitionDistribution.getPartitionCount(); partitionId++ )
@@ -117,10 +115,10 @@ public class OperatorKVStoreManagerImplTest extends AbstractJokerTest
         }
 
         final PartitionDistribution newPartitionDistribution = partitionService.rebalancePartitionDistribution( 1, newReplicaCount );
-        operatorKVStores = kvStoreManager.rebalancePartitionedOperatorKVStores( REGION_ID,
-                                                                                OPERATOR_ID,
-                                                                                partitionDistribution,
-                                                                                newPartitionDistribution );
+        operatorKVStores = kvStoreManager.rebalancePartitionedKVStores( REGION_ID,
+                                                                        OPERATOR_ID,
+                                                                        partitionDistribution,
+                                                                        newPartitionDistribution );
         assertNotNull( operatorKVStores );
         assertEquals( newReplicaCount, operatorKVStores.length );
 

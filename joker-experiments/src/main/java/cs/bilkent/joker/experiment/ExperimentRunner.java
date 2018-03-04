@@ -23,7 +23,7 @@ import cs.bilkent.joker.engine.adaptation.impl.adaptationtracker.FlowMetricsFile
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.config.JokerConfigBuilder;
 import cs.bilkent.joker.engine.exception.JokerException;
-import cs.bilkent.joker.engine.region.impl.DefaultRegionExecutionPlanFactory;
+import cs.bilkent.joker.engine.region.impl.DefaultRegionExecPlanFactory;
 import cs.bilkent.joker.flow.FlowDef;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -66,7 +66,7 @@ public class ExperimentRunner
 
         final ExperimentalAdaptationTracker adaptationTracker = new ExperimentalAdaptationTracker( jokerConfig, reporter );
         final Joker joker = new JokerBuilder().setJokerConfig( jokerConfig )
-                                              .setRegionExecutionPlanFactory( new DefaultRegionExecutionPlanFactory( jokerConfig ) )
+                                              .setRegionExecPlanFactory( new DefaultRegionExecPlanFactory( jokerConfig ) )
                                               .setAdaptationTracker( adaptationTracker )
                                               .build();
 
@@ -86,55 +86,54 @@ public class ExperimentRunner
 
     private static Thread createCommanderThread ( final Joker joker, final ExperimentalAdaptationTracker adaptationTracker )
     {
-        return new Thread( () ->
-                           {
-                               String line;
-                               final BufferedReader reader = new BufferedReader( new InputStreamReader( System.in, Charsets.UTF_8 ) );
-                               try
-                               {
-                                   while ( !adaptationTracker.isShutdownTriggered() && ( line = reader.readLine() ) != null )
-                                   {
-                                       final String command = line.trim();
-                                       if ( command.isEmpty() )
-                                       {
-                                           continue;
-                                       }
+        return new Thread( () -> {
+            String line;
+            final BufferedReader reader = new BufferedReader( new InputStreamReader( System.in, Charsets.UTF_8 ) );
+            try
+            {
+                while ( !adaptationTracker.isShutdownTriggered() && ( line = reader.readLine() ) != null )
+                {
+                    final String command = line.trim();
+                    if ( command.isEmpty() )
+                    {
+                        continue;
+                    }
 
-                                       if ( "disable".equals( command ) )
-                                       {
-                                           try
-                                           {
-                                               try
-                                               {
-                                                   joker.disableAdaptation().get( 30, SECONDS );
-                                               }
-                                               catch ( InterruptedException e )
-                                               {
-                                                   Thread.currentThread().interrupt();
-                                                   e.printStackTrace();
-                                               }
-                                               catch ( ExecutionException | TimeoutException e )
-                                               {
-                                                   e.printStackTrace();
-                                               }
-                                           }
-                                           catch ( JokerException e )
-                                           {
-                                               e.printStackTrace();
-                                           }
-                                           return;
-                                       }
-                                       else
-                                       {
-                                           System.out.println( "PLEASE TYPE \"disable\" TO DISABLE ADAPTATION" );
-                                       }
-                                   }
-                               }
-                               catch ( IOException e )
-                               {
-                                   e.printStackTrace();
-                               }
-                           } );
+                    if ( "disable".equals( command ) )
+                    {
+                        try
+                        {
+                            try
+                            {
+                                joker.disableAdaptation().get( 30, SECONDS );
+                            }
+                            catch ( InterruptedException e )
+                            {
+                                Thread.currentThread().interrupt();
+                                e.printStackTrace();
+                            }
+                            catch ( ExecutionException | TimeoutException e )
+                            {
+                                e.printStackTrace();
+                            }
+                        }
+                        catch ( JokerException e )
+                        {
+                            e.printStackTrace();
+                        }
+                        return;
+                    }
+                    else
+                    {
+                        System.out.println( "PLEASE TYPE \"disable\" TO DISABLE ADAPTATION" );
+                    }
+                }
+            }
+            catch ( IOException e )
+            {
+                e.printStackTrace();
+            }
+        } );
     }
 
 }

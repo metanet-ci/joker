@@ -11,7 +11,7 @@ import cs.bilkent.joker.engine.adaptation.AdaptationAction;
 import cs.bilkent.joker.engine.adaptation.BottleneckResolver;
 import cs.bilkent.joker.engine.adaptation.impl.adaptationaction.SplitPipelineAction;
 import cs.bilkent.joker.engine.flow.PipelineId;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.utils.Pair;
@@ -24,52 +24,51 @@ public class PipelineSplitter implements BottleneckResolver
     private static final Logger LOGGER = LoggerFactory.getLogger( PipelineSplitter.class );
 
 
-    private final BiFunction<RegionExecutionPlan, PipelineMetrics, Integer> pipelineSplitIndexExtractor;
+    private final BiFunction<RegionExecPlan, PipelineMetrics, Integer> pipelineSplitIndexExtractor;
 
-    public PipelineSplitter ( final BiFunction<RegionExecutionPlan, PipelineMetrics, Integer> pipelineSplitIndexExtractor )
+    public PipelineSplitter ( final BiFunction<RegionExecPlan, PipelineMetrics, Integer> pipelineSplitIndexExtractor )
     {
         this.pipelineSplitIndexExtractor = pipelineSplitIndexExtractor;
     }
 
-    SplitPipelineAction resolve ( final RegionExecutionPlan regionExecutionPlan, final PipelineMetrics bottleneckPipelineMetrics )
+    SplitPipelineAction resolve ( final RegionExecPlan execPlan, final PipelineMetrics metrics )
     {
-        checkArgument( regionExecutionPlan != null );
-        checkArgument( bottleneckPipelineMetrics != null );
+        checkArgument( execPlan != null );
+        checkArgument( metrics != null );
 
-        final PipelineId pipelineId = bottleneckPipelineMetrics.getPipelineId();
+        final PipelineId pipelineId = metrics.getPipelineId();
 
-        final int operatorCount = regionExecutionPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() );
+        final int operatorCount = execPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() );
         if ( operatorCount < 2 )
         {
             return null;
         }
 
-        final int splitIndex = pipelineSplitIndexExtractor.apply( regionExecutionPlan, bottleneckPipelineMetrics );
+        final int splitIndex = pipelineSplitIndexExtractor.apply( execPlan, metrics );
 
-        return splitIndex > 0 ? new SplitPipelineAction( regionExecutionPlan, pipelineId, splitIndex ) : null;
+        return splitIndex > 0 ? new SplitPipelineAction( execPlan, pipelineId, splitIndex ) : null;
     }
 
     @Override
-    public List<Pair<AdaptationAction, List<PipelineId>>> resolve ( final RegionExecutionPlan regionExecutionPlan,
-                                                                    final List<PipelineMetrics> bottleneckPipelinesMetrics )
+    public List<Pair<AdaptationAction, List<PipelineId>>> resolve ( final RegionExecPlan execPlan, final List<PipelineMetrics> metrics )
     {
-        RegionExecutionPlan currentRegionExecutionPlan = regionExecutionPlan;
-        final List<Pair<AdaptationAction, List<PipelineId>>> adaptationActions = new ArrayList<>();
-        for ( PipelineMetrics pipelineMetrics : bottleneckPipelinesMetrics )
+        RegionExecPlan currentExecPlan = execPlan;
+        final List<Pair<AdaptationAction, List<PipelineId>>> actions = new ArrayList<>();
+        for ( PipelineMetrics pipelineMetrics : metrics )
         {
-            final AdaptationAction adaptationAction = resolve( currentRegionExecutionPlan, pipelineMetrics );
-            if ( adaptationAction == null )
+            final AdaptationAction action = resolve( currentExecPlan, pipelineMetrics );
+            if ( action == null )
             {
                 return emptyList();
             }
 
-            adaptationActions.add( Pair.of( adaptationAction, singletonList( pipelineMetrics.getPipelineId() ) ) );
-            currentRegionExecutionPlan = adaptationAction.getNewRegionExecutionPlan();
+            actions.add( Pair.of( action, singletonList( pipelineMetrics.getPipelineId() ) ) );
+            currentExecPlan = action.getNewExecPlan();
         }
 
-        LOGGER.info( "Region: {} bottlenecks can be resolved with splits: {}", regionExecutionPlan.getRegionId(), adaptationActions );
+        LOGGER.info( "Region: {} bottlenecks can be resolved with splits: {}", execPlan.getRegionId(), actions );
 
-        return adaptationActions;
+        return actions;
     }
 
 }

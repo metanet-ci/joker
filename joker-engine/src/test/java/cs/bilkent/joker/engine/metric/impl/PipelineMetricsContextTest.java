@@ -60,12 +60,11 @@ public class PipelineMetricsContextTest extends AbstractJokerTest
         final long[] initialThreadCpuTimes = { 1, 2 };
         final long[] newThreadCpuTimes = { 2, 4 };
         final long systemTimeDiff = 10;
-        doAnswer( invocation ->
-                  {
-                      final long[] arr = (long[]) invocation.getArguments()[ 1 ];
-                      arraycopy( initialThreadCpuTimes, 0, arr, 0, initialThreadCpuTimes.length );
-                      return null;
-                  } ).when( meter ).getThreadCpuTimes( anyObject(), anyObject() );
+        doAnswer( invocation -> {
+            final long[] arr = (long[]) invocation.getArguments()[ 1 ];
+            arraycopy( initialThreadCpuTimes, 0, arr, 0, initialThreadCpuTimes.length );
+            return null;
+        } ).when( meter ).getThreadCpuTimes( anyObject(), anyObject() );
 
         metrics.initialize( threadMXBean );
 
@@ -86,12 +85,11 @@ public class PipelineMetricsContextTest extends AbstractJokerTest
         final long[] newThreadCpuTimes = { 2, 4 };
         final long[] newThreadCpuTimes2 = { 6, 10 };
         final long systemTimeDiff = 10;
-        doAnswer( invocation ->
-                  {
-                      final long[] arr = (long[]) invocation.getArguments()[ 1 ];
-                      arraycopy( initialThreadCpuTimes, 0, arr, 0, initialThreadCpuTimes.length );
-                      return null;
-                  } ).when( meter ).getThreadCpuTimes( anyObject(), anyObject() );
+        doAnswer( invocation -> {
+            final long[] arr = (long[]) invocation.getArguments()[ 1 ];
+            arraycopy( initialThreadCpuTimes, 0, arr, 0, initialThreadCpuTimes.length );
+            return null;
+        } ).when( meter ).getThreadCpuTimes( anyObject(), anyObject() );
 
         metrics.initialize( threadMXBean );
 

@@ -1,6 +1,5 @@
 package cs.bilkent.joker.engine.tuplequeue;
 
-import java.util.Collection;
 import java.util.List;
 
 import cs.bilkent.joker.operator.Tuple;
@@ -68,7 +67,7 @@ public interface TupleQueue
      * @param tuples
      *         list to add the polled tuples
      */
-    int poll ( int limit, Collection<Tuple> tuples );
+    int poll ( int limit, List<Tuple> tuples );
 
     int size ();
 

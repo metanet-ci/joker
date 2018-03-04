@@ -14,9 +14,9 @@ import cs.bilkent.joker.engine.FlowStatus;
 import cs.bilkent.joker.engine.JokerEngine;
 import cs.bilkent.joker.engine.adaptation.AdaptationTracker;
 import cs.bilkent.joker.engine.config.JokerConfig;
-import cs.bilkent.joker.engine.flow.FlowExecutionPlan;
+import cs.bilkent.joker.engine.flow.FlowExecPlan;
 import cs.bilkent.joker.engine.flow.PipelineId;
-import cs.bilkent.joker.engine.region.RegionExecutionPlanFactory;
+import cs.bilkent.joker.engine.region.RegionExecPlanFactory;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.operator.spec.OperatorType;
 
@@ -43,11 +43,10 @@ public class Joker
     }
 
     private Joker ( final Object jokerId,
-                    final JokerConfig config,
-                    final RegionExecutionPlanFactory regionExecutionPlanFactory,
+                    final JokerConfig config, final RegionExecPlanFactory regionExecPlanFactory,
                     final AdaptationTracker adaptationTracker )
     {
-        this.injector = Guice.createInjector( new JokerModule( jokerId, config, regionExecutionPlanFactory, adaptationTracker ) );
+        this.injector = Guice.createInjector( new JokerModule( jokerId, config, regionExecPlanFactory, adaptationTracker ) );
         this.engine = injector.getInstance( JokerEngine.class );
     }
 
@@ -61,7 +60,7 @@ public class Joker
      *
      * @return the flow execution plan which represents the current execution model of the given {@link FlowDef}
      */
-    public FlowExecutionPlan run ( final FlowDef flow )
+    public FlowExecPlan run ( final FlowDef flow )
     {
         return engine.run( flow );
     }
@@ -85,9 +84,9 @@ public class Joker
      * @param pipelineIds
      *         ids of the pipelines to be merged
      *
-     * @return future to be notified once the merge is completed, along with the new {@link FlowExecutionPlan} after merge
+     * @return future to be notified once the merge is completed, along with the new {@link FlowExecPlan} after merge
      */
-    public Future<FlowExecutionPlan> mergePipelines ( final int flowVersion, final List<PipelineId> pipelineIds )
+    public Future<FlowExecPlan> mergePipelines ( final int flowVersion, final List<PipelineId> pipelineIds )
     {
         return engine.mergePipelines( flowVersion, pipelineIds );
     }
@@ -103,11 +102,11 @@ public class Joker
      * @param pipelineOperatorIndices
      *         operator indices within the split pipeline to create new pipelines
      *
-     * @return future to be notified once the split is completed, along with the new {@link FlowExecutionPlan} after split
+     * @return future to be notified once the split is completed, along with the new {@link FlowExecPlan} after split
      */
-    public Future<FlowExecutionPlan> splitPipeline ( final int flowVersion,
-                                                     final PipelineId pipelineId,
-                                                     final List<Integer> pipelineOperatorIndices )
+    public Future<FlowExecPlan> splitPipeline ( final int flowVersion,
+                                                final PipelineId pipelineId,
+                                                final List<Integer> pipelineOperatorIndices )
     {
         return engine.splitPipeline( flowVersion, pipelineId, pipelineOperatorIndices );
     }
@@ -123,9 +122,9 @@ public class Joker
      * @param newReplicaCount
      *         new replica count of the region
      *
-     * @return future to be notified once the rebalance is completed, along with the new {@link FlowExecutionPlan} after rebalance
+     * @return future to be notified once the rebalance is completed, along with the new {@link FlowExecPlan} after rebalance
      */
-    public Future<FlowExecutionPlan> rebalanceRegion ( final int flowVersion, final int regionId, final int newReplicaCount )
+    public Future<FlowExecPlan> rebalanceRegion ( final int flowVersion, final int regionId, final int newReplicaCount )
     {
         return engine.rebalanceRegion( flowVersion, regionId, newReplicaCount );
     }
@@ -152,7 +151,7 @@ public class Joker
 
         private JokerConfig jokerConfig = new JokerConfig();
 
-        private RegionExecutionPlanFactory regionExecutionPlanFactory;
+        private RegionExecPlanFactory regionExecPlanFactory;
 
         private AdaptationTracker adaptationTracker;
 
@@ -175,11 +174,11 @@ public class Joker
             return this;
         }
 
-        public JokerBuilder setRegionExecutionPlanFactory ( final RegionExecutionPlanFactory regionExecutionPlanFactory )
+        public JokerBuilder setRegionExecPlanFactory ( final RegionExecPlanFactory regionExecPlanFactory )
         {
-            checkArgument( regionExecutionPlanFactory != null );
+            checkArgument( regionExecPlanFactory != null );
             checkState( !built, "Joker is already built!" );
-            this.regionExecutionPlanFactory = regionExecutionPlanFactory;
+            this.regionExecPlanFactory = regionExecPlanFactory;
             return this;
         }
 
@@ -202,7 +201,7 @@ public class Joker
         {
             checkState( !built, "Joker is already built!" );
             built = true;
-            return new Joker( jokerId, jokerConfig, regionExecutionPlanFactory, adaptationTracker );
+            return new Joker( jokerId, jokerConfig, regionExecPlanFactory, adaptationTracker );
         }
 
     }

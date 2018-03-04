@@ -2,7 +2,6 @@ package cs.bilkent.joker.engine.tuplequeue.impl.drainer;
 
 import java.util.Collection;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -19,8 +18,8 @@ import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Arrays.asList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 @RunWith( value = Parameterized.class )
 public class MultiPortConjunctiveDrainerTest extends AbstractJokerTest
@@ -42,23 +41,16 @@ public class MultiPortConjunctiveDrainerTest extends AbstractJokerTest
         this.drainer = drainer;
     }
 
-    @Before
-    public void init ()
-    {
-        drainer.reset();
-    }
-
-
     @Test( expected = IllegalArgumentException.class )
     public void test_input_nullTupleQueues ()
     {
-        drainer.drain( null, null );
+        drainer.drain( null, null, key -> null );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void test_input_emptyTupleQueues ()
     {
-        drainer.drain( null, new TupleQueue[] {} );
+        drainer.drain( null, new TupleQueue[] {}, key -> null );
     }
 
     @Test( expected = IllegalArgumentException.class )
@@ -66,7 +58,14 @@ public class MultiPortConjunctiveDrainerTest extends AbstractJokerTest
     {
         drainer.setParameters( AT_LEAST, new int[] { 0, 1 }, new int[] { 1, 1 } );
 
-        drainer.drain( null, new TupleQueue[] { new SingleThreadedTupleQueue( 1 ) } );
+        drainer.drain( null, new TupleQueue[] { new SingleThreadedTupleQueue( 1 ) }, key -> new TuplesImpl( 2 ) );
+    }
+
+    @Test( expected = IllegalArgumentException.class )
+    public void test_nullTuplesSupplier ()
+    {
+        drainer.setParameters( AT_LEAST, new int[] { 0, 1 }, new int[] { 1, 1 } );
+        drainer.drain( null, new TupleQueue[] { new SingleThreadedTupleQueue( 1 ), new SingleThreadedTupleQueue( 1 ) }, null );
     }
 
     @Test
@@ -79,10 +78,11 @@ public class MultiPortConjunctiveDrainerTest extends AbstractJokerTest
         tupleQueue2.offer( new Tuple() );
         tupleQueue2.offer( new Tuple() );
 
-        drainer.drain( null, new TupleQueue[] { tupleQueue1, tupleQueue2 } );
+        final TuplesImpl tuples = new TuplesImpl( 2 );
 
-        final TuplesImpl tuples = drainer.getResult();
-        assertNotNull( tuples );
+        final boolean success = drainer.drain( null, new TupleQueue[] { tupleQueue1, tupleQueue2 }, key -> tuples );
+
+        assertTrue( success );
         assertThat( tuples.getTupleCount( 0 ), equalTo( 1 ) );
         assertThat( tuples.getTupleCount( 1 ), equalTo( 2 ) );
         assertThat( tupleQueue1.size(), equalTo( 0 ) );
@@ -99,9 +99,12 @@ public class MultiPortConjunctiveDrainerTest extends AbstractJokerTest
         tupleQueue2.offer( new Tuple() );
         tupleQueue2.offer( new Tuple() );
 
-        drainer.drain( null, new TupleQueue[] { tupleQueue1, tupleQueue2 } );
+        final TuplesImpl tuples = new TuplesImpl( 2 );
 
-        assertNull( drainer.getResult() );
+        final boolean success = drainer.drain( null, new TupleQueue[] { tupleQueue1, tupleQueue2 }, key -> tuples );
+
+        assertFalse( success );
+        assertTrue( tuples.isEmpty() );
         assertThat( tupleQueue1.size(), equalTo( 1 ) );
         assertThat( tupleQueue2.size(), equalTo( 2 ) );
     }
@@ -118,9 +121,11 @@ public class MultiPortConjunctiveDrainerTest extends AbstractJokerTest
         tupleQueue2.offer( new Tuple() );
         tupleQueue2.offer( new Tuple() );
 
-        drainer.drain( null, new TupleQueue[] { tupleQueue1, tupleQueue2 } );
+        final TuplesImpl tuples = new TuplesImpl( 2 );
 
-        final TuplesImpl tuples = drainer.getResult();
+        final boolean success = drainer.drain( null, new TupleQueue[] { tupleQueue1, tupleQueue2 }, key -> tuples );
+
+        assertTrue( success );
         assertThat( tuples.getNonEmptyPortCount(), equalTo( 2 ) );
         assertThat( tuples.getTupleCount( 0 ), equalTo( 2 ) );
         assertThat( tuples.getTupleCount( 1 ), equalTo( 2 ) );
@@ -138,9 +143,12 @@ public class MultiPortConjunctiveDrainerTest extends AbstractJokerTest
         tupleQueue1.offer( new Tuple() );
         tupleQueue2.offer( new Tuple() );
 
-        drainer.drain( null, new TupleQueue[] { tupleQueue1, tupleQueue2 } );
+        final TuplesImpl tuples = new TuplesImpl( 2 );
 
-        assertNull( drainer.getResult() );
+        final boolean success = drainer.drain( null, new TupleQueue[] { tupleQueue1, tupleQueue2 }, key -> tuples );
+
+        assertFalse( success );
+        assertTrue( tuples.isEmpty() );
         assertThat( tupleQueue1.size(), equalTo( 2 ) );
         assertThat( tupleQueue2.size(), equalTo( 1 ) );
     }
@@ -157,10 +165,11 @@ public class MultiPortConjunctiveDrainerTest extends AbstractJokerTest
         tupleQueue2.offer( new Tuple() );
         tupleQueue2.offer( new Tuple() );
 
-        drainer.drain( null, new TupleQueue[] { tupleQueue1, tupleQueue2 } );
+        final TuplesImpl tuples = new TuplesImpl( 2 );
 
-        final TuplesImpl tuples = drainer.getResult();
-        assertNotNull( tuples );
+        final boolean success = drainer.drain( null, new TupleQueue[] { tupleQueue1, tupleQueue2 }, key -> tuples );
+
+        assertTrue( success );
         assertThat( tuples.getNonEmptyPortCount(), equalTo( 2 ) );
         assertThat( tuples.getTupleCount( 0 ), equalTo( 2 ) );
         assertThat( tuples.getTupleCount( 1 ), equalTo( 2 ) );
@@ -178,9 +187,12 @@ public class MultiPortConjunctiveDrainerTest extends AbstractJokerTest
         tupleQueue1.offer( new Tuple() );
         tupleQueue2.offer( new Tuple() );
 
-        drainer.drain( null, new TupleQueue[] { tupleQueue1, tupleQueue2 } );
+        final TuplesImpl tuples = new TuplesImpl( 2 );
 
-        assertNull( drainer.getResult() );
+        final boolean success = drainer.drain( null, new TupleQueue[] { tupleQueue1, tupleQueue2 }, key -> tuples );
+
+        assertFalse( success );
+        assertTrue( tuples.isEmpty() );
         assertThat( tupleQueue1.size(), equalTo( 2 ) );
         assertThat( tupleQueue2.size(), equalTo( 1 ) );
     }

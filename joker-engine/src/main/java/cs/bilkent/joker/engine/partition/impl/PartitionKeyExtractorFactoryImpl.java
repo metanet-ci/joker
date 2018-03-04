@@ -25,13 +25,13 @@ public class PartitionKeyExtractorFactoryImpl implements PartitionKeyExtractorFa
     }
 
     @Override
-    public PartitionKeyExtractor createPartitionKeyExtractor ( final List<String> partitionFieldNames, final int forwardKeyLimit )
+    public PartitionKeyExtractor createPartitionKeyExtractor ( final List<String> partitionFieldNames, final int forwardedKeySize )
     {
         checkArgument( partitionFieldNames.size() > 0, "no partition field names provided" );
-        checkArgument( forwardKeyLimit > 0 && forwardKeyLimit <= partitionFieldNames.size(),
-                       "invalid forward key limit: %s",
-                       forwardKeyLimit );
-        if ( partitionFieldNames.size() == forwardKeyLimit )
+        checkArgument( forwardedKeySize > 0 && forwardedKeySize <= partitionFieldNames.size(),
+                       "invalid forwarded key size: %s",
+                       forwardedKeySize );
+        if ( partitionFieldNames.size() == forwardedKeySize )
         {
             final int i = min( partitionFieldNames.size(), PARTITION_KEY_FUNCTION_COUNT );
             return defaultConstructors[ i ].apply( partitionFieldNames );
@@ -43,25 +43,22 @@ public class PartitionKeyExtractorFactoryImpl implements PartitionKeyExtractorFa
         }
         else if ( partitionFieldNames.size() == 3 )
         {
-            return forwardKeyLimit == 1
+            return forwardedKeySize == 1
                    ? new PartitionKeyExtractor3Fwd1( partitionFieldNames )
                    : new PartitionKeyExtractor3Fwd2( partitionFieldNames );
         }
 
-        if ( forwardKeyLimit == 1 )
+        switch ( forwardedKeySize )
         {
-            return new PartitionKeyExtractorNFwd1( partitionFieldNames );
+            case 1:
+                return new PartitionKeyExtractorNFwd1( partitionFieldNames );
+            case 2:
+                return new PartitionKeyExtractorNFwd2( partitionFieldNames );
+            case 3:
+                return new PartitionKeyExtractorNFwd3( partitionFieldNames );
+            default:
+                return new PartitionKeyExtractorNFwdM( partitionFieldNames, forwardedKeySize );
         }
-        else if ( forwardKeyLimit == 2 )
-        {
-            return new PartitionKeyExtractorNFwd2( partitionFieldNames );
-        }
-        else if ( forwardKeyLimit == 3 )
-        {
-            return new PartitionKeyExtractorNFwd3( partitionFieldNames );
-        }
-
-        return new PartitionKeyExtractorNFwdM( partitionFieldNames, forwardKeyLimit );
     }
 
 }

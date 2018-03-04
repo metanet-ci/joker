@@ -10,7 +10,7 @@ import cs.bilkent.joker.engine.adaptation.AdaptationPerformer;
 import static cs.bilkent.joker.engine.adaptation.impl.adaptationaction.RegionRebalanceActionTest.getRegion;
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionDef;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
 import cs.bilkent.joker.engine.region.impl.IdGenerator;
 import cs.bilkent.joker.engine.region.impl.PipelineTransformerImplTest.StatelessInput1Output1Operator;
@@ -58,7 +58,7 @@ public class MergePipelinesActionTest extends AbstractJokerTest
 
     private final List<Integer> pipelineStartIndices = asList( 0, 3, 5 );
 
-    private RegionExecutionPlan regionExecutionPlan;
+    private RegionExecPlan regionExecPlan;
 
     @Before
     public void init ()
@@ -81,50 +81,50 @@ public class MergePipelinesActionTest extends AbstractJokerTest
         final RegionDefFormer regionDefFormer = new RegionDefFormerImpl( new IdGenerator() );
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
         final RegionDef region = getRegion( regions, STATELESS );
-        regionExecutionPlan = new RegionExecutionPlan( region, pipelineStartIndices, 1 );
+        regionExecPlan = new RegionExecPlan( region, pipelineStartIndices, 1 );
     }
 
     @Test
     public void shouldMergeAllPipelines ()
     {
-        final MergePipelinesAction action = new MergePipelinesAction( regionExecutionPlan, regionExecutionPlan.getPipelineIds() );
-        final RegionExecutionPlan newRegionExecutionPlan = action.getNewRegionExecutionPlan();
+        final MergePipelinesAction action = new MergePipelinesAction( regionExecPlan, regionExecPlan.getPipelineIds() );
+        final RegionExecPlan newRegionExecPlan = action.getNewExecPlan();
 
-        assertThat( action.getCurrentRegionExecutionPlan(), equalTo( regionExecutionPlan ) );
-        assertThat( newRegionExecutionPlan, equalTo( regionExecutionPlan.withMergedPipelines( pipelineStartIndices ) ) );
-        assertThat( newRegionExecutionPlan.getPipelineIds(), equalTo( singletonList( regionExecutionPlan.getPipelineId( 0 ) ) ) );
+        assertThat( action.getCurrentExecPlan(), equalTo( regionExecPlan ) );
+        assertThat( newRegionExecPlan, equalTo( regionExecPlan.withMergedPipelines( pipelineStartIndices ) ) );
+        assertThat( newRegionExecPlan.getPipelineIds(), equalTo( singletonList( regionExecPlan.getPipelineId( 0 ) ) ) );
     }
 
     @Test
     public void shouldMergePipelines ()
     {
-        final List<PipelineId> mergedPipelineIds = asList( regionExecutionPlan.getPipelineId( 1 ), regionExecutionPlan.getPipelineId( 2 ) );
-        final MergePipelinesAction action = new MergePipelinesAction( regionExecutionPlan, mergedPipelineIds );
+        final List<PipelineId> mergedPipelineIds = asList( regionExecPlan.getPipelineId( 1 ), regionExecPlan.getPipelineId( 2 ) );
+        final MergePipelinesAction action = new MergePipelinesAction( regionExecPlan, mergedPipelineIds );
 
-        final RegionExecutionPlan newRegionExecutionPlan = action.getNewRegionExecutionPlan();
+        final RegionExecPlan newRegionExecPlan = action.getNewExecPlan();
 
-        assertThat( newRegionExecutionPlan.getPipelineIds(),
-                    equalTo( asList( regionExecutionPlan.getPipelineId( 0 ), regionExecutionPlan.getPipelineId( 1 ) ) ) );
+        assertThat( newRegionExecPlan.getPipelineIds(),
+                    equalTo( asList( regionExecPlan.getPipelineId( 0 ), regionExecPlan.getPipelineId( 1 ) ) ) );
     }
 
     @Test
     public void shouldRevertAction ()
     {
-        final List<PipelineId> mergedPipelineIds = asList( regionExecutionPlan.getPipelineId( 1 ), regionExecutionPlan.getPipelineId( 2 ) );
-        final MergePipelinesAction action = new MergePipelinesAction( regionExecutionPlan, mergedPipelineIds );
+        final List<PipelineId> mergedPipelineIds = asList( regionExecPlan.getPipelineId( 1 ), regionExecPlan.getPipelineId( 2 ) );
+        final MergePipelinesAction action = new MergePipelinesAction( regionExecPlan, mergedPipelineIds );
         final AdaptationAction revert = action.revert();
 
-        assertThat( revert.getNewRegionExecutionPlan(), equalTo( regionExecutionPlan ) );
-        assertThat( revert.getCurrentRegionExecutionPlan(),
-                    equalTo( regionExecutionPlan.withMergedPipelines( asList( pipelineStartIndices.get( 1 ),
-                                                                              pipelineStartIndices.get( 2 ) ) ) ) );
+        assertThat( revert.getNewExecPlan(), equalTo( regionExecPlan ) );
+        assertThat( revert.getCurrentExecPlan(),
+                    equalTo( regionExecPlan.withMergedPipelines( asList( pipelineStartIndices.get( 1 ),
+                                                                         pipelineStartIndices.get( 2 ) ) ) ) );
     }
 
     @Test
     public void shouldApplyAction ()
     {
-        final List<PipelineId> mergedPipelineIds = asList( regionExecutionPlan.getPipelineId( 1 ), regionExecutionPlan.getPipelineId( 2 ) );
-        final MergePipelinesAction action = new MergePipelinesAction( regionExecutionPlan, mergedPipelineIds );
+        final List<PipelineId> mergedPipelineIds = asList( regionExecPlan.getPipelineId( 1 ), regionExecPlan.getPipelineId( 2 ) );
+        final MergePipelinesAction action = new MergePipelinesAction( regionExecPlan, mergedPipelineIds );
 
         final AdaptationPerformer adaptationPerformer = mock( AdaptationPerformer.class );
 
@@ -139,13 +139,13 @@ public class MergePipelinesActionTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
             return ScheduleWhenAvailable.INSTANCE;
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
 
         }

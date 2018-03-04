@@ -14,7 +14,7 @@ import cs.bilkent.joker.engine.adaptation.AdaptationAction;
 import cs.bilkent.joker.engine.adaptation.BottleneckResolver;
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionDef;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import cs.bilkent.joker.utils.Pair;
@@ -51,10 +51,10 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
     private RegionDef regionDef;
 
     @Mock
-    private RegionExecutionPlan regionExecutionPlan;
+    private RegionExecPlan regionExecPlan;
 
     @Mock
-    private RegionExecutionPlan newRegionExecutionPlan;
+    private RegionExecPlan newRegionExecPlan;
 
     @Mock
     private BiPredicate<PipelineMetrics, PipelineMetrics> loadChangePredicate;
@@ -77,11 +77,11 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
     public void init ()
     {
         when( regionDef.getRegionId() ).thenReturn( regionId );
-        when( regionExecutionPlan.getRegionDef() ).thenReturn( regionDef );
-        when( regionExecutionPlan.getPipelineIds() ).thenReturn( singletonList( pipelineId0 ) );
-        when( newRegionExecutionPlan.getRegionDef() ).thenReturn( regionDef );
+        when( regionExecPlan.getRegionDef() ).thenReturn( regionDef );
+        when( regionExecPlan.getPipelineIds() ).thenReturn( singletonList( pipelineId0 ) );
+        when( newRegionExecPlan.getRegionDef() ).thenReturn( regionDef );
 
-        context = new RegionAdaptationContext( regionExecutionPlan );
+        context = new RegionAdaptationContext( regionExecPlan );
     }
 
     @Test( expected = IllegalArgumentException.class )
@@ -141,7 +141,7 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
 
         assertTrue( actions.isEmpty() );
         verify( bottleneckPredicate ).test( pipelineMetrics1 );
-        assertNull( context.getBaseExecutionPlan() );
+        assertNull( context.getBaseExecPlan() );
         assertTrue( context.getAdaptationActions().isEmpty() );
     }
 
@@ -174,17 +174,17 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
 
         final AdaptationAction action = mock( AdaptationAction.class );
         final List<Pair<AdaptationAction, List<PipelineId>>> actions = singletonList( Pair.of( action, singletonList( pipelineId0 ) ) );
-        when( bottleneckResolver0.resolve( regionExecutionPlan, singletonList( pipelineMetrics1 ) ) ).thenReturn( actions );
-        when( action.getCurrentRegionExecutionPlan() ).thenReturn( regionExecutionPlan );
-        when( action.getNewRegionExecutionPlan() ).thenReturn( newRegionExecutionPlan );
+        when( bottleneckResolver0.resolve( regionExecPlan, singletonList( pipelineMetrics1 ) ) ).thenReturn( actions );
+        when( action.getCurrentExecPlan() ).thenReturn( regionExecPlan );
+        when( action.getNewExecPlan() ).thenReturn( newRegionExecPlan );
 
         final List<AdaptationAction> result = context.resolveIfBottleneck( bottleneckPredicate, singletonList( bottleneckResolver0 ) );
 
         assertThat( result, equalTo( singletonList( action ) ) );
-        verify( bottleneckResolver0 ).resolve( regionExecutionPlan, singletonList( pipelineMetrics1 ) );
+        verify( bottleneckResolver0 ).resolve( regionExecPlan, singletonList( pipelineMetrics1 ) );
         assertThat( context.getAdaptationActions(), equalTo( singletonList( action ) ) );
-        assertThat( context.getBaseExecutionPlan(), equalTo( regionExecutionPlan ) );
-        assertThat( context.getCurrentExecutionPlan(), equalTo( newRegionExecutionPlan ) );
+        assertThat( context.getBaseExecPlan(), equalTo( regionExecPlan ) );
+        assertThat( context.getCurrentExecPlan(), equalTo( newRegionExecPlan ) );
         assertThat( context.getAdaptingPipelineIds(), equalTo( singletonList( pipelineId0 ) ) );
     }
 
@@ -201,8 +201,8 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
 
             final AdaptationAction action = mock( AdaptationAction.class );
             final List<Pair<AdaptationAction, List<PipelineId>>> result = singletonList( Pair.of( action, singletonList( pipelineId0 ) ) );
-            when( bottleneckResolver0.resolve( regionExecutionPlan, singletonList( pipelineMetrics1 ) ) ).thenReturn( result );
-            when( action.getNewRegionExecutionPlan() ).thenReturn( newRegionExecutionPlan );
+            when( bottleneckResolver0.resolve( regionExecPlan, singletonList( pipelineMetrics1 ) ) ).thenReturn( result );
+            when( action.getNewExecPlan() ).thenReturn( newRegionExecPlan );
 
             context.resolveIfBottleneck( bottleneckPredicate, singletonList( bottleneckResolver0 ) );
         }
@@ -234,10 +234,10 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
 
         final AdaptationAction action = mock( AdaptationAction.class );
         final List<Pair<AdaptationAction, List<PipelineId>>> actions = singletonList( Pair.of( action, singletonList( pipelineId0 ) ) );
-        when( bottleneckResolver0.resolve( regionExecutionPlan, singletonList( pipelineMetrics1 ) ) ).thenReturn( actions );
-        when( action.getCurrentRegionExecutionPlan() ).thenReturn( regionExecutionPlan );
-        when( action.getNewRegionExecutionPlan() ).thenReturn( newRegionExecutionPlan );
-        when( newRegionExecutionPlan.getPipelineIds() ).thenReturn( asList( pipelineId0, pipelineId1 ) );
+        when( bottleneckResolver0.resolve( regionExecPlan, singletonList( pipelineMetrics1 ) ) ).thenReturn( actions );
+        when( action.getCurrentExecPlan() ).thenReturn( regionExecPlan );
+        when( action.getNewExecPlan() ).thenReturn( newRegionExecPlan );
+        when( newRegionExecPlan.getPipelineIds() ).thenReturn( asList( pipelineId0, pipelineId1 ) );
 
         context.resolveIfBottleneck( bottleneckPredicate, singletonList( bottleneckResolver0 ) );
 
@@ -252,17 +252,17 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
         verify( adaptationEvaluationPredicate ).test( pipelineMetrics1, pipelineMetrics2 );
         assertTrue( context.getAdaptingPipelineIds().isEmpty() );
         assertTrue( context.getAdaptationActions().isEmpty() );
-        assertNull( context.getBaseExecutionPlan() );
-        assertThat( context.getCurrentExecutionPlan(), equalTo( newRegionExecutionPlan ) );
+        assertNull( context.getBaseExecPlan() );
+        assertThat( context.getCurrentExecPlan(), equalTo( newRegionExecPlan ) );
         assertThat( context.getPipelineMetrics( pipelineId0 ), equalTo( pipelineMetrics2 ) );
     }
 
     @Test
     public void shouldRevertAdaptationAfterEvaluation ()
     {
-        reset( regionExecutionPlan );
-        when( regionExecutionPlan.getRegionDef() ).thenReturn( regionDef );
-        when( regionExecutionPlan.getPipelineIds() ).thenReturn( asList( pipelineId0, pipelineId1 ) );
+        reset( regionExecPlan );
+        when( regionExecPlan.getRegionDef() ).thenReturn( regionDef );
+        when( regionExecPlan.getPipelineIds() ).thenReturn( asList( pipelineId0, pipelineId1 ) );
 
         final PipelineMetrics pipelineMetrics1 = mock( PipelineMetrics.class );
         when( pipelineMetrics1.getPipelineId() ).thenReturn( pipelineId0 );
@@ -274,17 +274,17 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
 
         context.updateRegionMetrics( asList( pipelineMetrics1, pipelineMetrics2 ), loadChangePredicate );
 
-        final RegionExecutionPlan newestRegionExecutionPlan = mock( RegionExecutionPlan.class );
+        final RegionExecPlan newestRegionExecPlan = mock( RegionExecPlan.class );
         final AdaptationAction action1 = mock( AdaptationAction.class );
         final AdaptationAction action2 = mock( AdaptationAction.class );
         final List<Pair<AdaptationAction, List<PipelineId>>> actions = asList( Pair.of( action1, singletonList( pipelineId0 ) ),
                                                                                Pair.of( action2, singletonList( pipelineId1 ) ) );
-        when( bottleneckResolver0.resolve( regionExecutionPlan, asList( pipelineMetrics1, pipelineMetrics2 ) ) ).thenReturn( actions );
-        when( action1.getCurrentRegionExecutionPlan() ).thenReturn( regionExecutionPlan );
-        when( action1.getNewRegionExecutionPlan() ).thenReturn( newRegionExecutionPlan );
-        when( action2.getCurrentRegionExecutionPlan() ).thenReturn( newRegionExecutionPlan );
-        when( action2.getNewRegionExecutionPlan() ).thenReturn( newestRegionExecutionPlan );
-        when( newestRegionExecutionPlan.getPipelineIds() ).thenReturn( asList( pipelineId0, pipelineId1 ) );
+        when( bottleneckResolver0.resolve( regionExecPlan, asList( pipelineMetrics1, pipelineMetrics2 ) ) ).thenReturn( actions );
+        when( action1.getCurrentExecPlan() ).thenReturn( regionExecPlan );
+        when( action1.getNewExecPlan() ).thenReturn( newRegionExecPlan );
+        when( action2.getCurrentExecPlan() ).thenReturn( newRegionExecPlan );
+        when( action2.getNewExecPlan() ).thenReturn( newestRegionExecPlan );
+        when( newestRegionExecPlan.getPipelineIds() ).thenReturn( asList( pipelineId0, pipelineId1 ) );
 
         context.resolveIfBottleneck( bottleneckPredicate, singletonList( bottleneckResolver0 ) );
 
@@ -305,8 +305,8 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
         assertThat( result, equalTo( asList( revert2, revert1 ) ) );
         assertTrue( context.getAdaptingPipelineIds().isEmpty() );
         assertTrue( context.getAdaptationActions().isEmpty() );
-        assertNull( context.getBaseExecutionPlan() );
-        assertThat( context.getCurrentExecutionPlan(), equalTo( regionExecutionPlan ) );
+        assertNull( context.getBaseExecPlan() );
+        assertThat( context.getCurrentExecPlan(), equalTo( regionExecPlan ) );
         assertThat( context.getBlacklist( pipelineId0 ), contains( action1 ) );
         assertThat( context.getBlacklist( pipelineId1 ), contains( action2 ) );
     }
@@ -327,10 +327,10 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
 
             final AdaptationAction action = mock( AdaptationAction.class );
             final List<Pair<AdaptationAction, List<PipelineId>>> actions = singletonList( Pair.of( action, singletonList( pipelineId0 ) ) );
-            when( bottleneckResolver0.resolve( regionExecutionPlan, singletonList( pipelineMetrics1 ) ) ).thenReturn( actions );
-            when( action.getCurrentRegionExecutionPlan() ).thenReturn( regionExecutionPlan );
-            when( action.getNewRegionExecutionPlan() ).thenReturn( newRegionExecutionPlan );
-            when( newRegionExecutionPlan.getPipelineIds() ).thenReturn( asList( pipelineId0, pipelineId1 ) );
+            when( bottleneckResolver0.resolve( regionExecPlan, singletonList( pipelineMetrics1 ) ) ).thenReturn( actions );
+            when( action.getCurrentExecPlan() ).thenReturn( regionExecPlan );
+            when( action.getNewExecPlan() ).thenReturn( newRegionExecPlan );
+            when( newRegionExecPlan.getPipelineIds() ).thenReturn( asList( pipelineId0, pipelineId1 ) );
 
             context.resolveIfBottleneck( bottleneckPredicate, singletonList( bottleneckResolver0 ) );
         }
@@ -353,10 +353,10 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
 
         final AdaptationAction action = mock( AdaptationAction.class );
         final List<Pair<AdaptationAction, List<PipelineId>>> actions = singletonList( Pair.of( action, singletonList( pipelineId0 ) ) );
-        when( bottleneckResolver0.resolve( regionExecutionPlan, singletonList( pipelineMetrics1 ) ) ).thenReturn( actions );
-        when( action.getCurrentRegionExecutionPlan() ).thenReturn( regionExecutionPlan );
-        when( action.getNewRegionExecutionPlan() ).thenReturn( newRegionExecutionPlan );
-        when( newRegionExecutionPlan.getPipelineIds() ).thenReturn( asList( pipelineId0, pipelineId1 ) );
+        when( bottleneckResolver0.resolve( regionExecPlan, singletonList( pipelineMetrics1 ) ) ).thenReturn( actions );
+        when( action.getCurrentExecPlan() ).thenReturn( regionExecPlan );
+        when( action.getNewExecPlan() ).thenReturn( newRegionExecPlan );
+        when( newRegionExecPlan.getPipelineIds() ).thenReturn( asList( pipelineId0, pipelineId1 ) );
 
         context.resolveIfBottleneck( bottleneckPredicate, singletonList( bottleneckResolver0 ) );
 
@@ -370,19 +370,19 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
 
         final AdaptationAction action2 = mock( AdaptationAction.class );
         final List<Pair<AdaptationAction, List<PipelineId>>> actions2 = singletonList( Pair.of( action2, singletonList( pipelineId0 ) ) );
-        when( bottleneckResolver1.resolve( regionExecutionPlan, singletonList( pipelineMetrics1 ) ) ).thenReturn( actions2 );
-        final RegionExecutionPlan newRegionExecutionPlan2 = mock( RegionExecutionPlan.class );
-        when( action2.getCurrentRegionExecutionPlan() ).thenReturn( regionExecutionPlan );
-        when( action2.getNewRegionExecutionPlan() ).thenReturn( newRegionExecutionPlan2 );
-        when( newRegionExecutionPlan2.getPipelineIds() ).thenReturn( asList( pipelineId0, pipelineId1 ) );
+        when( bottleneckResolver1.resolve( regionExecPlan, singletonList( pipelineMetrics1 ) ) ).thenReturn( actions2 );
+        final RegionExecPlan newRegionExecPlan2 = mock( RegionExecPlan.class );
+        when( action2.getCurrentExecPlan() ).thenReturn( regionExecPlan );
+        when( action2.getNewExecPlan() ).thenReturn( newRegionExecPlan2 );
+        when( newRegionExecPlan2.getPipelineIds() ).thenReturn( asList( pipelineId0, pipelineId1 ) );
 
         final List<AdaptationAction> result = context.resolveIfBottleneck( bottleneckPredicate,
                                                                            asList( bottleneckResolver0, bottleneckResolver1 ) );
 
         assertThat( result, equalTo( singletonList( action2 ) ) );
-        verify( bottleneckResolver1 ).resolve( regionExecutionPlan, singletonList( pipelineMetrics1 ) );
-        assertThat( context.getBaseExecutionPlan(), equalTo( regionExecutionPlan ) );
-        assertThat( context.getCurrentExecutionPlan(), equalTo( newRegionExecutionPlan2 ) );
+        verify( bottleneckResolver1 ).resolve( regionExecPlan, singletonList( pipelineMetrics1 ) );
+        assertThat( context.getBaseExecPlan(), equalTo( regionExecPlan ) );
+        assertThat( context.getCurrentExecPlan(), equalTo( newRegionExecPlan2 ) );
         assertThat( context.getAdaptingPipelineIds(), equalTo( singletonList( pipelineId0 ) ) );
         assertThat( context.getAdaptationActions(), equalTo( result ) );
     }
@@ -398,10 +398,10 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
 
         final AdaptationAction action = mock( AdaptationAction.class );
         final List<Pair<AdaptationAction, List<PipelineId>>> actions = singletonList( Pair.of( action, singletonList( pipelineId0 ) ) );
-        when( bottleneckResolver0.resolve( regionExecutionPlan, singletonList( pipelineMetrics1 ) ) ).thenReturn( actions );
-        when( action.getCurrentRegionExecutionPlan() ).thenReturn( regionExecutionPlan );
-        when( action.getNewRegionExecutionPlan() ).thenReturn( newRegionExecutionPlan );
-        when( newRegionExecutionPlan.getPipelineIds() ).thenReturn( asList( pipelineId0, pipelineId1 ) );
+        when( bottleneckResolver0.resolve( regionExecPlan, singletonList( pipelineMetrics1 ) ) ).thenReturn( actions );
+        when( action.getCurrentExecPlan() ).thenReturn( regionExecPlan );
+        when( action.getNewExecPlan() ).thenReturn( newRegionExecPlan );
+        when( newRegionExecPlan.getPipelineIds() ).thenReturn( asList( pipelineId0, pipelineId1 ) );
 
         context.resolveIfBottleneck( bottleneckPredicate, singletonList( bottleneckResolver0 ) );
 
@@ -416,9 +416,9 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
         final List<AdaptationAction> result = context.resolveIfBottleneck( bottleneckPredicate, singletonList( bottleneckResolver0 ) );
 
         assertTrue( result.isEmpty() );
-        verify( bottleneckResolver0, times( 2 ) ).resolve( regionExecutionPlan, singletonList( pipelineMetrics1 ) );
-        assertNull( context.getBaseExecutionPlan() );
-        assertThat( context.getCurrentExecutionPlan(), equalTo( regionExecutionPlan ) );
+        verify( bottleneckResolver0, times( 2 ) ).resolve( regionExecPlan, singletonList( pipelineMetrics1 ) );
+        assertNull( context.getBaseExecPlan() );
+        assertThat( context.getCurrentExecPlan(), equalTo( regionExecPlan ) );
         assertTrue( context.getAdaptingPipelineIds().isEmpty() );
         assertTrue( context.getAdaptationActions().isEmpty() );
         assertThat( context.getNonResolvablePipelineIds(), contains( pipelineId0 ) );
@@ -458,10 +458,10 @@ public class RegionAdaptationContextTest extends AbstractJokerTest
 
         final AdaptationAction action = mock( AdaptationAction.class );
         final List<Pair<AdaptationAction, List<PipelineId>>> actions = singletonList( Pair.of( action, singletonList( pipelineId0 ) ) );
-        when( bottleneckResolver0.resolve( regionExecutionPlan, singletonList( pipelineMetrics1 ) ) ).thenReturn( actions );
-        when( action.getCurrentRegionExecutionPlan() ).thenReturn( regionExecutionPlan );
-        when( action.getNewRegionExecutionPlan() ).thenReturn( newRegionExecutionPlan );
-        when( newRegionExecutionPlan.getPipelineIds() ).thenReturn( asList( pipelineId0, pipelineId1 ) );
+        when( bottleneckResolver0.resolve( regionExecPlan, singletonList( pipelineMetrics1 ) ) ).thenReturn( actions );
+        when( action.getCurrentExecPlan() ).thenReturn( regionExecPlan );
+        when( action.getNewExecPlan() ).thenReturn( newRegionExecPlan );
+        when( newRegionExecPlan.getPipelineIds() ).thenReturn( asList( pipelineId0, pipelineId1 ) );
 
         context.resolveIfBottleneck( bottleneckPredicate, singletonList( bottleneckResolver0 ) );
 

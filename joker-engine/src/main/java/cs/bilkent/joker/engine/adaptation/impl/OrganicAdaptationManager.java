@@ -18,7 +18,7 @@ import cs.bilkent.joker.engine.adaptation.impl.bottleneckresolver.RegionExtender
 import cs.bilkent.joker.engine.config.AdaptationConfig;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.flow.RegionDef;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.metric.FlowMetrics;
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import cs.bilkent.joker.engine.metric.PipelineMetricsHistorySummarizer;
@@ -47,7 +47,7 @@ public class OrganicAdaptationManager implements AdaptationManager
 
     private final BiPredicate<PipelineMetrics, PipelineMetrics> adaptationEvaluationPredicate;
 
-    private final Function<RegionExecutionPlan, RegionAdaptationContext> regionAdaptationContextFactory;
+    private final Function<RegionExecPlan, RegionAdaptationContext> regionAdaptationContextFactory;
 
     private boolean adaptationEnabled;
 
@@ -64,11 +64,11 @@ public class OrganicAdaptationManager implements AdaptationManager
     }
 
     OrganicAdaptationManager ( final JokerConfig config,
-                               final Function<RegionExecutionPlan, RegionAdaptationContext> regionAdaptationContextFactory )
+                               final Function<RegionExecPlan, RegionAdaptationContext> regionAdaptationContextFactory )
     {
         final AdaptationConfig adaptationConfig = config.getAdaptationConfig();
         this.pipelineMetricsHistorySummarizer = adaptationConfig.getPipelineMetricsHistorySummarizer();
-        final BiFunction<RegionExecutionPlan, PipelineMetrics, Integer> ext = adaptationConfig.getPipelineSplitIndexExtractor();
+        final BiFunction<RegionExecPlan, PipelineMetrics, Integer> ext = adaptationConfig.getPipelineSplitIndexExtractor();
         final BottleneckResolver pipelineSplitter = new PipelineSplitter( ext );
         final BottleneckResolver regionExtender = new RegionExtender( config.getPartitionServiceConfig().getMaxReplicaCount() );
         final List<BottleneckResolver> bottleneckResolvers = new ArrayList<>();
@@ -110,14 +110,14 @@ public class OrganicAdaptationManager implements AdaptationManager
     }
 
     @Override
-    public void initialize ( final FlowDef flowDef, final List<RegionExecutionPlan> regionExecutionPlans )
+    public void initialize ( final FlowDef flowDef, final List<RegionExecPlan> execPlans )
     {
         checkArgument( flowDef != null );
-        checkArgument( regionExecutionPlans != null && regionExecutionPlans.size() > 0 );
+        checkArgument( execPlans != null && execPlans.size() > 0 );
         checkState( regions == null );
 
         this.flowDef = flowDef;
-        this.regions = regionExecutionPlans.stream().map( regionAdaptationContextFactory ).collect( toList() );
+        this.regions = execPlans.stream().map( regionAdaptationContextFactory ).collect( toList() );
         this.regions.sort( comparing( RegionAdaptationContext::getRegionId ) );
     }
 
@@ -128,12 +128,12 @@ public class OrganicAdaptationManager implements AdaptationManager
     }
 
     @Override
-    public List<AdaptationAction> adapt ( final List<RegionExecutionPlan> regionExecutionPlans, final FlowMetrics flowMetrics )
+    public List<AdaptationAction> adapt ( final List<RegionExecPlan> execPlans, final FlowMetrics metrics )
     {
-        return adaptingRegions.isEmpty() ? resolveBottleneckRegionsIfPresent( flowMetrics ) : evaluateAdaptations( flowMetrics );
+        return adaptingRegions.isEmpty() ? resolveBottlenecksIfPresent( metrics ) : evaluateAdaptations( metrics );
     }
 
-    private List<AdaptationAction> resolveBottleneckRegionsIfPresent ( final FlowMetrics flowMetrics )
+    private List<AdaptationAction> resolveBottlenecksIfPresent ( final FlowMetrics metrics )
     {
         if ( !adaptationEnabled )
         {
@@ -142,8 +142,7 @@ public class OrganicAdaptationManager implements AdaptationManager
 
         for ( RegionAdaptationContext region : regions )
         {
-            final List<PipelineMetrics> regionMetrics = flowMetrics.getRegionMetrics( region.getRegionId(),
-                                                                                      pipelineMetricsHistorySummarizer );
+            final List<PipelineMetrics> regionMetrics = metrics.getRegionMetrics( region.getRegionId(), pipelineMetricsHistorySummarizer );
             region.updateRegionMetrics( regionMetrics, loadChangePredicate );
         }
 
@@ -170,22 +169,21 @@ public class OrganicAdaptationManager implements AdaptationManager
         return unmodifiableList( adaptationActions );
     }
 
-    private List<AdaptationAction> evaluateAdaptations ( final FlowMetrics flowMetrics )
+    private List<AdaptationAction> evaluateAdaptations ( final FlowMetrics metrics )
     {
-        final RegionAdaptationContext nonResolvedRegion = getNonResolvedBottleneckRegion( flowMetrics );
+        final RegionAdaptationContext nonResolvedRegion = getNonResolvedBottleneck( metrics );
 
-        return ( nonResolvedRegion == null ) ? finalizeAdaptations( flowMetrics ) : retryOrRevertAdaptations( nonResolvedRegion );
+        return ( nonResolvedRegion == null ) ? finalizeAdaptations( metrics ) : retryOrRevertAdaptations( nonResolvedRegion );
     }
 
-    private RegionAdaptationContext getNonResolvedBottleneckRegion ( final FlowMetrics flowMetrics )
+    private RegionAdaptationContext getNonResolvedBottleneck ( final FlowMetrics metrics )
     {
         final List<RegionDef> leftMostRegions = getLeftMostRegions( flowDef, getRegionDefs( regions ), getRegionDefs( adaptingRegions ) );
 
         final Predicate<RegionAdaptationContext> isLeftMostRegion = r -> leftMostRegions.contains( r.getRegionDef() );
-        final Predicate<RegionAdaptationContext> isAdaptationFailed = r ->
-        {
+        final Predicate<RegionAdaptationContext> isAdaptationFailed = r -> {
             final int regionId = r.getRegionId();
-            final List<PipelineMetrics> regionMetrics = flowMetrics.getRegionMetrics( regionId, pipelineMetricsHistorySummarizer );
+            final List<PipelineMetrics> regionMetrics = metrics.getRegionMetrics( regionId, pipelineMetricsHistorySummarizer );
 
             return !r.isAdaptationSuccessful( regionMetrics, adaptationEvaluationPredicate );
         };
@@ -198,12 +196,12 @@ public class OrganicAdaptationManager implements AdaptationManager
         return regions.stream().map( RegionAdaptationContext::getRegionDef ).collect( toList() );
     }
 
-    private List<AdaptationAction> finalizeAdaptations ( final FlowMetrics flowMetrics )
+    private List<AdaptationAction> finalizeAdaptations ( final FlowMetrics metrics )
     {
         for ( RegionAdaptationContext adaptingRegion : adaptingRegions )
         {
             final int regionId = adaptingRegion.getRegionId();
-            final List<PipelineMetrics> regionMetrics = flowMetrics.getRegionMetrics( regionId, pipelineMetricsHistorySummarizer );
+            final List<PipelineMetrics> regionMetrics = metrics.getRegionMetrics( regionId, pipelineMetricsHistorySummarizer );
             adaptingRegion.finalizeAdaptation( regionMetrics );
         }
 

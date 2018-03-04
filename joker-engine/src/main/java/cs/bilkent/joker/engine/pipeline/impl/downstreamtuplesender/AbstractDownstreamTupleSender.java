@@ -5,7 +5,7 @@ import java.util.List;
 import cs.bilkent.joker.engine.exception.JokerException;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSenderFailureFlag;
-import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
+import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.util.concurrent.BackoffIdleStrategy;
 import cs.bilkent.joker.engine.util.concurrent.IdleStrategy;
 import cs.bilkent.joker.operator.Tuple;
@@ -22,13 +22,13 @@ public abstract class AbstractDownstreamTupleSender implements DownstreamTupleSe
         this.failureFlag = failureFlag;
     }
 
-    protected void send ( final OperatorTupleQueue operatorTupleQueue, final int destinationPortIndex, final List<Tuple> tuples )
+    protected void send ( final OperatorQueue operatorQueue, final int destinationPortIndex, final List<Tuple> tuples )
     {
         final int size = tuples.size();
         int fromIndex = 0;
         while ( true )
         {
-            final int offered = operatorTupleQueue.offer( destinationPortIndex, tuples, fromIndex );
+            final int offered = operatorQueue.offer( destinationPortIndex, tuples, fromIndex );
             fromIndex += offered;
             if ( fromIndex == size )
             {

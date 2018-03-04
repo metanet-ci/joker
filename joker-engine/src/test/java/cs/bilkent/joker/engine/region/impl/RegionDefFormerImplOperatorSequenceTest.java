@@ -280,7 +280,7 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
     @Test
     public void test9 ()
     {
-         /*
+        /*
          *
          *     /--\
          *    /    \
@@ -305,7 +305,7 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
     @Test
     public void test10 ()
     {
-         /*
+        /*
          * O1 --> O2
          */
 
@@ -359,15 +359,10 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
 
     private void assertOperatorSequence ( final List<String> expectedOperatorIds, Collection<List<OperatorDef>> operatorSequences )
     {
-        final boolean sequenceExists = operatorSequences.stream().anyMatch( operatorSequence ->
-                                                                            {
-                                                                                final List<String> sequenceOperatorIds = operatorSequence
-                                                                                                                                 .stream()
-                                                                                                                                 .map( OperatorDef::getId )
-                                                                                                                                 .collect(
-                                                                                                                                                 toList() );
-                                                                                return sequenceOperatorIds.equals( expectedOperatorIds );
-                                                                            } );
+        final boolean sequenceExists = operatorSequences.stream().anyMatch( operatorSequence -> {
+            final List<String> sequenceOperatorIds = operatorSequence.stream().map( OperatorDef::getId ).collect( toList() );
+            return sequenceOperatorIds.equals( expectedOperatorIds );
+        } );
 
         assertTrue( sequenceExists );
     }
@@ -377,13 +372,13 @@ public class RegionDefFormerImplOperatorSequenceTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
             return null;
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
 
         }

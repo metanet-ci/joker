@@ -12,8 +12,8 @@ import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
 import cs.bilkent.joker.operator.impl.InitializationContextImpl;
-import cs.bilkent.joker.operator.impl.InvocationContextImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import static cs.bilkent.joker.operators.FilterOperator.PREDICATE_CONFIG_PARAMETER;
@@ -29,11 +29,11 @@ public class FilterOperatorTest extends AbstractJokerTest
 
     private final Predicate<Tuple> positiveCountsPredicate = tuple -> tuple.getInteger( "count" ) > 0;
 
-    private final TuplesImpl input = new TuplesImpl( 1 );
-
     private final TuplesImpl output = new TuplesImpl( 1 );
 
-    private final InvocationContextImpl invocationContext = new InvocationContextImpl();
+    private final DefaultInvocationContext invocationContext = new DefaultInvocationContext( 1, key -> null, output );
+
+    private final TuplesImpl input = invocationContext.createInputTuples( null );
 
     private final OperatorConfig config = new OperatorConfig();
 
@@ -44,7 +44,7 @@ public class FilterOperatorTest extends AbstractJokerTest
     @Before
     public void init () throws InstantiationException, IllegalAccessException
     {
-        invocationContext.setInvocationParameters( SUCCESS, input, output );
+        invocationContext.setInvocationReason( SUCCESS );
 
         final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "filter", FilterOperator.class ).setConfig( config ).build();
         operator = (FilterOperator) operatorDef.createOperator();
@@ -98,11 +98,12 @@ public class FilterOperatorTest extends AbstractJokerTest
         final Tuple tuple2 = new Tuple();
         tuple2.set( "count", 1 );
         input.add( tuple2 );
-        invocationContext.setInvocationParameters( SHUTDOWN, input, output );
+
+        invocationContext.setInvocationReason( SHUTDOWN );
         shouldFilterTuplesWithPositiveCount( invocationContext );
     }
 
-    private void shouldFilterTuplesWithPositiveCount ( final InvocationContextImpl invocationContext )
+    private void shouldFilterTuplesWithPositiveCount ( final DefaultInvocationContext invocationContext )
     {
         config.set( PREDICATE_CONFIG_PARAMETER, positiveCountsPredicate );
         operator.init( initContext );

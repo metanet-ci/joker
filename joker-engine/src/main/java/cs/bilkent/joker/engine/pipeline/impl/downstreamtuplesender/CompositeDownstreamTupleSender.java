@@ -1,7 +1,6 @@
 package cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender;
 
 import java.util.Arrays;
-import java.util.concurrent.Future;
 
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -20,14 +19,12 @@ public class CompositeDownstreamTupleSender implements DownstreamTupleSender
     }
 
     @Override
-    public Future<Void> send ( final TuplesImpl tuples )
+    public void send ( final TuplesImpl tuples )
     {
         for ( int i = 0; i < size; i++ )
         {
             senders[ i ].send( tuples );
         }
-
-        return null;
     }
 
     public DownstreamTupleSender[] getDownstreamTupleSenders ()

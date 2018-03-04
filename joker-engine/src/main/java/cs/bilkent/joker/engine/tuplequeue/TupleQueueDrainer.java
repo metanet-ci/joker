@@ -1,9 +1,10 @@
 package cs.bilkent.joker.engine.tuplequeue;
 
+import java.util.function.Function;
 import javax.annotation.Nullable;
 
-import cs.bilkent.joker.engine.partition.PartitionKey;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
+import cs.bilkent.joker.partition.impl.PartitionKey;
 
 /**
  * Drains tuples from given tuple queues and keeps them in internally to be able to return them afterwards.
@@ -12,9 +13,9 @@ import cs.bilkent.joker.operator.impl.TuplesImpl;
 public interface TupleQueueDrainer
 {
 
-    default void drain ( @Nullable PartitionKey key, TupleQueue[] tupleQueues )
+    default boolean drain ( @Nullable PartitionKey key, TupleQueue[] tupleQueues, Function<PartitionKey, TuplesImpl> tuplesSupplier )
     {
-        drain( false, key, tupleQueues );
+        return drain( false, key, tupleQueues, tuplesSupplier );
     }
 
     /**
@@ -24,28 +25,11 @@ public interface TupleQueueDrainer
      *         a boolean flag to specify if the drainer may not block if it is a blocking drainer
      * @param key
      *         partition key of the tuples which reside in the given tuple queues. Allowed to be null if tuples do not have a partition key
-     * @param tupleQueues
+     * @param queues
      *         tuple queues to be drained
      */
-    void drain ( boolean maySkipBlocking, @Nullable PartitionKey key, TupleQueue[] tupleQueues );
-
-    /**
-     * Returns the tuples drained from the tuple queues using {@link TupleQueueDrainer#drain(PartitionKey, TupleQueue[])} method
-     *
-     * @return the tuples drained from the tuple queues using {@link TupleQueueDrainer#drain(PartitionKey, TupleQueue[])} method
-     */
-    TuplesImpl getResult ();
-
-    /**
-     * Returns partition key of the tuples drained from the tuple queues
-     *
-     * @return partition key of the tuples drained from the tuple queues
-     */
-    PartitionKey getKey ();
-
-    /**
-     * Resets the internal state of the drainer
-     */
-    void reset ();
+    boolean drain ( boolean maySkipBlocking,
+                    @Nullable PartitionKey key, TupleQueue[] queues,
+                    Function<PartitionKey, TuplesImpl> tuplesSupplier );
 
 }

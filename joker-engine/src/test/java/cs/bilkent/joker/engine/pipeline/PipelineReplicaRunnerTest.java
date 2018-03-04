@@ -14,16 +14,16 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import cs.bilkent.joker.engine.config.JokerConfig;
-import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
 import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.COMPLETED;
 import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.PAUSED;
-import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newInitialUpstreamContextWithAllPortsConnected;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
-import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
+import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
+import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -54,6 +54,9 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
     private Supervisor supervisor;
 
     @Mock
+    private SchedulingStrategy schedulingStrategy;
+
+    @Mock
     private UpstreamContext upstreamContext;
 
     @Mock
@@ -67,23 +70,31 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
 
     private final int inputOutputPortCount = 1;
 
-    private final PipelineReplicaId id = new PipelineReplicaId( new PipelineId( 0, 0 ), 0 );
+    private final PipelineReplicaId id = new PipelineReplicaId( 0, 0, 0 );
 
     @Before
-    public void init () throws Exception
+    public void init ()
     {
         when( supervisor.getUpstreamContext( id ) ).thenReturn( upstreamContext );
-        when( operator.getOperatorDef() ).thenReturn( operatorDef );
+        when( operator.getOperatorDef( 0 ) ).thenReturn( operatorDef );
         when( operatorDef.getId() ).thenReturn( "op1" );
         when( operatorDef.getInputPortCount() ).thenReturn( inputOutputPortCount );
         when( operatorDef.getOutputPortCount() ).thenReturn( inputOutputPortCount );
+
+        when( operator.init( new UpstreamContext[] { upstreamContext },
+                             null ) ).thenReturn( new SchedulingStrategy[] { schedulingStrategy } );
+
         final JokerConfig config = new JokerConfig();
-        pipeline = new PipelineReplica( config,
-                                        id,
-                                        new OperatorReplica[] { operator },
-                                        mock( OperatorTupleQueue.class ),
+        pipeline = new PipelineReplica( id,
+                                        new OperatorReplica[] { operator }, mock( OperatorQueue.class ),
                                         new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(), id, operatorDef ) );
-        pipeline.init( upstreamContext );
+
+        final SchedulingStrategy[][] schedulingStrategies = new SchedulingStrategy[ 1 ][ 1 ];
+        schedulingStrategies[ 0 ][ 0 ] = schedulingStrategy;
+        final UpstreamContext[][] upstreamContexts = new UpstreamContext[ 1 ][ 1 ];
+        upstreamContexts[ 0 ][ 0 ] = upstreamContext;
+
+        pipeline.init( schedulingStrategies, upstreamContexts );
         runner = new PipelineReplicaRunner( config, pipeline, supervisor, downstreamTupleSender );
 
         thread = new Thread( runner );
@@ -172,7 +183,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
     {
         thread.start();
 
-        pipeline.getPipelineReplicaCompletionTracker().onStatusChange( operatorDef.getId(), OperatorReplicaStatus.COMPLETED );
+        pipeline.getCompletionTracker().onStatusChange( operatorDef.getId(), OperatorReplicaStatus.COMPLETED );
 
         assertTrueEventually( () -> assertEquals( runner.getStatus(), COMPLETED ) );
 
@@ -202,7 +213,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
     {
         thread.start();
 
-        pipeline.getPipelineReplicaCompletionTracker().onStatusChange( operatorDef.getId(), OperatorReplicaStatus.COMPLETED );
+        pipeline.getCompletionTracker().onStatusChange( operatorDef.getId(), OperatorReplicaStatus.COMPLETED );
 
         assertTrueEventually( () -> assertEquals( runner.getStatus(), COMPLETED ) );
 
@@ -210,25 +221,24 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldCompleteWhileRunning () throws ExecutionException, InterruptedException
+    public void shouldCompleteWhileRunning () throws InterruptedException
     {
         final CountDownLatch invocationStartLatch = new CountDownLatch( 1 );
         final CountDownLatch invocationDoneLatch = new CountDownLatch( 1 );
         final TuplesImpl output = new TuplesImpl( 1 );
         output.add( new Tuple() );
 
-        when( operator.invoke( anyBoolean(), anyObject(), anyObject() ) ).thenAnswer( invocation ->
-                                                                                      {
-                                                                                          invocationStartLatch.countDown();
-                                                                                          invocationDoneLatch.await( 2, TimeUnit.MINUTES );
-                                                                                          return output;
-                                                                                      } );
+        when( operator.invoke( anyBoolean(), anyObject(), anyObject() ) ).thenAnswer( invocation -> {
+            invocationStartLatch.countDown();
+            invocationDoneLatch.await( 2, TimeUnit.MINUTES );
+            return output;
+        } );
 
         thread.start();
 
         reset( supervisor );
 
-        pipeline.getPipelineReplicaCompletionTracker().onStatusChange( operatorDef.getId(), OperatorReplicaStatus.COMPLETED );
+        pipeline.getCompletionTracker().onStatusChange( operatorDef.getId(), OperatorReplicaStatus.COMPLETED );
 
         invocationStartLatch.await( 2, TimeUnit.MINUTES );
         invocationDoneLatch.countDown();
@@ -246,7 +256,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
 
         assertTrueEventually( () -> assertEquals( runner.getStatus(), PAUSED ) );
 
-        final UpstreamContext upstreamContext = new UpstreamContext( 1, new UpstreamConnectionStatus[] { CLOSED } );
+        final UpstreamContext upstreamContext = newInitialUpstreamContextWithAllPortsConnected( 1 ).withConnectionClosed( 0 );
         when( supervisor.getUpstreamContext( pipeline.id() ) ).thenReturn( upstreamContext );
 
         final CompletableFuture<Boolean> future = runner.updatePipelineUpstreamContext();
@@ -254,7 +264,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
         assertEquals( PAUSED, runner.getStatus() );
 
         assertTrueEventually( () -> verify( supervisor, times( 2 ) ).getUpstreamContext( id ) );
-        pipeline.getPipelineReplicaCompletionTracker().onStatusChange( operatorDef.getId(), OperatorReplicaStatus.COMPLETED );
+        pipeline.getCompletionTracker().onStatusChange( operatorDef.getId(), OperatorReplicaStatus.COMPLETED );
 
         assertThat( runner.getPipelineUpstreamContext(), equalTo( upstreamContext ) );
     }
@@ -274,18 +284,18 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
             future.get();
             fail();
         }
-        catch ( ExecutionException expected )
+        catch ( ExecutionException ignored )
         {
 
         }
     }
 
     @Test
-    public void shouldNotUpdateUpstreamContextWhenCompleted () throws ExecutionException, InterruptedException
+    public void shouldNotUpdateUpstreamContextWhenCompleted () throws InterruptedException
     {
         thread.start();
 
-        pipeline.getPipelineReplicaCompletionTracker().onStatusChange( operatorDef.getId(), OperatorReplicaStatus.COMPLETED );
+        pipeline.getCompletionTracker().onStatusChange( operatorDef.getId(), OperatorReplicaStatus.COMPLETED );
 
         assertTrueEventually( () -> assertEquals( runner.getStatus(), COMPLETED ) );
 
@@ -295,7 +305,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
             future.get();
             fail();
         }
-        catch ( ExecutionException expected )
+        catch ( ExecutionException ignored )
         {
 
         }
@@ -328,7 +338,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
 
         sleepUninterruptibly( 1, SECONDS );
 
-        pipeline.getPipelineReplicaCompletionTracker().onStatusChange( operatorDef.getId(), OperatorReplicaStatus.COMPLETED );
+        pipeline.getCompletionTracker().onStatusChange( operatorDef.getId(), OperatorReplicaStatus.COMPLETED );
 
         assertTrueEventually( () -> assertEquals( runner.getStatus(), COMPLETED ), 10 );
         verify( downstreamTupleSender, atLeastOnce() ).send( output1 );

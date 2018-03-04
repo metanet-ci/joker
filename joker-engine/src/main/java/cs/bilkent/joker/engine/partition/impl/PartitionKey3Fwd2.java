@@ -3,9 +3,9 @@ package cs.bilkent.joker.engine.partition.impl;
 import java.util.AbstractList;
 import java.util.List;
 
-import cs.bilkent.joker.engine.partition.PartitionKey;
-import static cs.bilkent.joker.engine.partition.impl.PartitionKeyUtil.hashHead;
-import static cs.bilkent.joker.engine.partition.impl.PartitionKeyUtil.hashTail;
+import cs.bilkent.joker.partition.impl.PartitionKey;
+import static cs.bilkent.joker.partition.impl.PartitionKeyUtil.hashHead;
+import static cs.bilkent.joker.partition.impl.PartitionKeyUtil.hashTail;
 
 public class PartitionKey3Fwd2 extends AbstractList<Object> implements PartitionKey
 {

@@ -9,18 +9,14 @@ public class TupleQueueDrainerConfig
 
     static final String MAX_BATCH_SIZE = "maxBatchSize";
 
-    static final String PARTITIONED_STATEFUL_PIPELINE_DRAINER_MAX_BATCH_SIZE = "partitionedStatefulPipelineDrainerMaxBatchSize";
-
 
     private final int maxBatchSize;
 
-    private final int partitionedStatefulPipelineDrainerMaxBatchSize;
 
     TupleQueueDrainerConfig ( final Config parentConfig )
     {
         final Config config = parentConfig.getConfig( CONFIG_NAME );
         this.maxBatchSize = config.getInt( MAX_BATCH_SIZE );
-        this.partitionedStatefulPipelineDrainerMaxBatchSize = config.getInt( PARTITIONED_STATEFUL_PIPELINE_DRAINER_MAX_BATCH_SIZE );
     }
 
     public int getMaxBatchSize ()
@@ -28,16 +24,10 @@ public class TupleQueueDrainerConfig
         return maxBatchSize;
     }
 
-    public int getPartitionedStatefulPipelineDrainerMaxBatchSize ()
-    {
-        return partitionedStatefulPipelineDrainerMaxBatchSize;
-    }
-
     @Override
     public String toString ()
     {
-        return "TupleQueueDrainerConfig{" + "maxBatchSize=" + maxBatchSize + ", partitionedStatefulPipelineDrainerMaxBatchSize="
-               + partitionedStatefulPipelineDrainerMaxBatchSize + '}';
+        return "TupleQueueDrainerConfig{" + "maxBatchSize=" + maxBatchSize + '}';
     }
 
 }

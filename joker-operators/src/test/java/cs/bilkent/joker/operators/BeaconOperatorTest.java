@@ -11,8 +11,8 @@ import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
 import cs.bilkent.joker.operator.impl.InitializationContextImpl;
-import cs.bilkent.joker.operator.impl.InvocationContextImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
 import static cs.bilkent.joker.operators.BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER;
@@ -54,8 +54,10 @@ public class BeaconOperatorTest extends AbstractJokerTest
         operator.init( initContext );
 
         final TuplesImpl output = new TuplesImpl( 1 );
-        final InvocationContextImpl invocationContext = new InvocationContextImpl();
-        invocationContext.setInvocationParameters( SUCCESS, null, output );
+
+        final DefaultInvocationContext invocationContext = new DefaultInvocationContext( 0, key -> null, output );
+        invocationContext.createInputTuples( null );
+        invocationContext.setInvocationReason( SUCCESS );
 
         operator.invoke( invocationContext );
 

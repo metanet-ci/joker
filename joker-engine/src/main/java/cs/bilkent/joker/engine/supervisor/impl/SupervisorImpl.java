@@ -25,9 +25,9 @@ import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_THREAD_GROUP_NAME
 import cs.bilkent.joker.engine.config.MetricManagerConfig;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.exception.JokerException;
-import cs.bilkent.joker.engine.flow.FlowExecutionPlan;
+import cs.bilkent.joker.engine.flow.FlowExecPlan;
 import cs.bilkent.joker.engine.flow.PipelineId;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.metric.FlowMetrics;
 import cs.bilkent.joker.engine.metric.MetricManager;
 import cs.bilkent.joker.engine.metric.PipelineMeter;
@@ -98,29 +98,28 @@ public class SupervisorImpl implements Supervisor
         return pipelineManager.getFlowStatus();
     }
 
-    public FlowExecutionPlan start ( final FlowDef flow,
-                                     final List<RegionExecutionPlan> regionExecutionPlans ) throws InitializationException
+    public FlowExecPlan start ( final FlowDef flow, final List<RegionExecPlan> regionExecPlans ) throws InitializationException
     {
         synchronized ( monitor )
         {
             try
             {
-                pipelineManager.start( flow, regionExecutionPlans );
-                final FlowExecutionPlan flowExecutionPlan = pipelineManager.getFlowExecutionPlan();
+                pipelineManager.start( flow, regionExecPlans );
+                final FlowExecPlan flowExecPlan = pipelineManager.getFlowExecPlan();
 
-                adaptationTracker.init( this::shutdown, flowExecutionPlan );
+                adaptationTracker.init( this::shutdown, flowExecPlan );
 
-                metricManager.start( flowExecutionPlan.getVersion(), pipelineManager.getAllPipelineMetersOrFail() );
+                metricManager.start( flowExecPlan.getVersion(), pipelineManager.getAllPipelineMetersOrFail() );
 
                 if ( isAdaptationEnabled() )
                 {
-                    adaptationManager.initialize( flow, flowExecutionPlan.getRegionExecutionPlans() );
+                    adaptationManager.initialize( flow, flowExecPlan.getRegionExecPlans() );
                 }
 
                 supervisorThread.start();
-                LOGGER.info( "Initial flow execution plan: {}", flowExecutionPlan.toPlanSummaryString() );
+                LOGGER.info( "Initial flow execution plan: {}", flowExecPlan.toSummaryString() );
 
-                return flowExecutionPlan;
+                return flowExecPlan;
             }
             catch ( InitializationException e )
             {
@@ -180,9 +179,9 @@ public class SupervisorImpl implements Supervisor
         pipelineManager.triggerShutdown();
     }
 
-    public Future<FlowExecutionPlan> mergePipelines ( final int flowVersion, final List<PipelineId> pipelineIdsToMerge )
+    public Future<FlowExecPlan> mergePipelines ( final int flowVersion, final List<PipelineId> pipelineIdsToMerge )
     {
-        final CompletableFuture<FlowExecutionPlan> future = new CompletableFuture<>();
+        final CompletableFuture<FlowExecPlan> future = new CompletableFuture<>();
         synchronized ( monitor )
         {
             checkState( isDeploymentChangeable(),
@@ -201,11 +200,11 @@ public class SupervisorImpl implements Supervisor
         return future;
     }
 
-    public Future<FlowExecutionPlan> splitPipeline ( final int flowVersion,
-                                                     final PipelineId pipelineId,
-                                                     final List<Integer> pipelineOperatorIndices )
+    public Future<FlowExecPlan> splitPipeline ( final int flowVersion,
+                                                final PipelineId pipelineId,
+                                                final List<Integer> pipelineOperatorIndices )
     {
-        final CompletableFuture<FlowExecutionPlan> future = new CompletableFuture<>();
+        final CompletableFuture<FlowExecPlan> future = new CompletableFuture<>();
         synchronized ( monitor )
         {
             checkState( isDeploymentChangeable(),
@@ -226,9 +225,9 @@ public class SupervisorImpl implements Supervisor
         return future;
     }
 
-    public Future<FlowExecutionPlan> rebalanceRegion ( final int flowVersion, final int regionId, final int newReplicaCount )
+    public Future<FlowExecPlan> rebalanceRegion ( final int flowVersion, final int regionId, final int newReplicaCount )
     {
-        final CompletableFuture<FlowExecutionPlan> future = new CompletableFuture<>();
+        final CompletableFuture<FlowExecPlan> future = new CompletableFuture<>();
         synchronized ( monitor )
         {
             checkState( isDeploymentChangeable(),
@@ -258,7 +257,7 @@ public class SupervisorImpl implements Supervisor
         return isInitialized() && ( shutdownFuture == null );
     }
 
-    private void doMergePipelines ( final CompletableFuture<FlowExecutionPlan> future,
+    private void doMergePipelines ( final CompletableFuture<FlowExecPlan> future,
                                     final int flowVersion,
                                     final List<PipelineId> pipelineIdsToMerge )
     {
@@ -268,11 +267,11 @@ public class SupervisorImpl implements Supervisor
 
             pipelineManager.mergePipelines( flowVersion, pipelineIdsToMerge );
 
-            final FlowExecutionPlan flowExecutionPlan = pipelineManager.getFlowExecutionPlan();
+            final FlowExecPlan flowExecPlan = pipelineManager.getFlowExecPlan();
             final PipelineMeter pipelineMeter = pipelineManager.getPipelineMeterOrFail( pipelineIdsToMerge.get( 0 ) );
-            metricManager.update( flowExecutionPlan.getVersion(), pipelineIdsToMerge, singletonList( pipelineMeter ) );
+            metricManager.update( flowExecPlan.getVersion(), pipelineIdsToMerge, singletonList( pipelineMeter ) );
             metricManager.resume();
-            future.complete( flowExecutionPlan );
+            future.complete( flowExecPlan );
         }
         catch ( IllegalArgumentException e )
         {
@@ -287,30 +286,29 @@ public class SupervisorImpl implements Supervisor
         }
     }
 
-    private void doSplitPipeline ( final CompletableFuture<FlowExecutionPlan> future, final int flowVersion,
+    private void doSplitPipeline ( final CompletableFuture<FlowExecPlan> future, final int flowVersion,
                                    final PipelineId pipelineId,
                                    final List<Integer> pipelineOperatorIndices )
     {
         try
         {
-            final RegionExecutionPlan regionExecutionPlan = pipelineManager.getFlowExecutionPlan()
-                                                                           .getRegionExecutionPlan( pipelineId.getRegionId() );
-            checkArgument( regionExecutionPlan != null, "Region of PipelineId %s not found to split", pipelineId );
-            final List<PipelineId> unchangedPipelineIds = regionExecutionPlan.getPipelineIds();
+            final RegionExecPlan regionExecPlan = pipelineManager.getFlowExecPlan().getRegionExecPlan( pipelineId.getRegionId() );
+            checkArgument( regionExecPlan != null, "Region of PipelineId %s not found to split", pipelineId );
+            final List<PipelineId> unchangedPipelineIds = regionExecPlan.getPipelineIds();
             final boolean validPipelineId = unchangedPipelineIds.remove( pipelineId );
             checkArgument( validPipelineId, "Invalid PipelineId %s to split", pipelineId );
 
             metricManager.pause();
             pipelineManager.splitPipeline( flowVersion, pipelineId, pipelineOperatorIndices );
 
-            final FlowExecutionPlan flowExecutionPlan = pipelineManager.getFlowExecutionPlan();
+            final FlowExecPlan flowExecPlan = pipelineManager.getFlowExecPlan();
             final List<PipelineMeter> newPipelineMeters = pipelineManager.getRegionPipelineMetersOrFail( pipelineId.getRegionId() )
                                                                          .stream()
                                                                          .filter( p -> !unchangedPipelineIds.contains( p.getPipelineId() ) )
                                                                          .collect( toList() );
-            metricManager.update( flowExecutionPlan.getVersion(), singletonList( pipelineId ), newPipelineMeters );
+            metricManager.update( flowExecPlan.getVersion(), singletonList( pipelineId ), newPipelineMeters );
             metricManager.resume();
-            future.complete( flowExecutionPlan );
+            future.complete( flowExecPlan );
         }
         catch ( IllegalArgumentException e )
         {
@@ -329,7 +327,7 @@ public class SupervisorImpl implements Supervisor
         }
     }
 
-    private void doRebalanceRegion ( final CompletableFuture<FlowExecutionPlan> future,
+    private void doRebalanceRegion ( final CompletableFuture<FlowExecPlan> future,
                                      final int flowVersion,
                                      final int regionId,
                                      final int newReplicaCount )
@@ -340,12 +338,12 @@ public class SupervisorImpl implements Supervisor
 
             pipelineManager.rebalanceRegion( flowVersion, regionId, newReplicaCount );
 
-            final FlowExecutionPlan flowExecutionPlan = pipelineManager.getFlowExecutionPlan();
-            final RegionExecutionPlan regionExecutionPlan = flowExecutionPlan.getRegionExecutionPlan( regionId );
+            final FlowExecPlan flowExecPlan = pipelineManager.getFlowExecPlan();
+            final RegionExecPlan regionExecPlan = flowExecPlan.getRegionExecPlan( regionId );
             final List<PipelineMeter> pipelineMeters = pipelineManager.getRegionPipelineMetersOrFail( regionId );
-            metricManager.update( flowExecutionPlan.getVersion(), regionExecutionPlan.getPipelineIds(), pipelineMeters );
+            metricManager.update( flowExecPlan.getVersion(), regionExecPlan.getPipelineIds(), pipelineMeters );
             metricManager.resume();
-            future.complete( flowExecutionPlan );
+            future.complete( flowExecPlan );
         }
         catch ( IllegalArgumentException e )
         {
@@ -494,16 +492,16 @@ public class SupervisorImpl implements Supervisor
 
     private void checkAdaptation ()
     {
-        final FlowMetrics flowMetrics = metricManager.getFlowMetrics();
+        final FlowMetrics metrics = metricManager.getMetrics();
 
-        if ( !shouldCheckAdaptation( flowMetrics ) )
+        if ( !shouldCheckAdaptation( metrics ) )
         {
             return;
         }
 
-        FlowExecutionPlan flowExecutionPlan = pipelineManager.getFlowExecutionPlan();
+        FlowExecPlan flowExecPlan = pipelineManager.getFlowExecPlan();
 
-        adaptationTracker.onPeriod( flowExecutionPlan, flowMetrics );
+        adaptationTracker.onPeriod( flowExecPlan, metrics );
 
         // adaptation tracker may have initiated shutdown...
         if ( shutdownFuture != null )
@@ -511,10 +509,10 @@ public class SupervisorImpl implements Supervisor
             return;
         }
 
-        final List<AdaptationAction> actions = adaptationManager.adapt( flowExecutionPlan.getRegionExecutionPlans(), flowMetrics );
+        final List<AdaptationAction> actions = adaptationManager.adapt( flowExecPlan.getRegionExecPlans(), metrics );
         if ( actions.isEmpty() )
         {
-            flowPeriod = flowMetrics.getPeriod();
+            flowPeriod = metrics.getPeriod();
             LOGGER.info( "Flow period after adaptation check: {}", flowPeriod );
             return;
         }
@@ -529,31 +527,31 @@ public class SupervisorImpl implements Supervisor
             action.apply( performer );
             final Pair<List<PipelineId>, List<PipelineId>> pipelineIdChanges = performer.getPipelineIdChanges();
 
-            final int regionId = action.getCurrentRegionExecutionPlan().getRegionId();
-            flowExecutionPlan = pipelineManager.getFlowExecutionPlan();
-            final RegionExecutionPlan newRegionExecutionPlan = flowExecutionPlan.getRegionExecutionPlan( regionId );
-            checkState( newRegionExecutionPlan.equals( action.getNewRegionExecutionPlan() ) );
+            final int regionId = action.getCurrentExecPlan().getRegionId();
+            flowExecPlan = pipelineManager.getFlowExecPlan();
+            final RegionExecPlan newRegionExecPlan = flowExecPlan.getRegionExecPlan( regionId );
+            checkState( newRegionExecPlan.equals( action.getNewExecPlan() ) );
 
-            LOGGER.info( "Region execution plan after adaptation action: {}", newRegionExecutionPlan.toPlanSummaryString() );
+            LOGGER.info( "Region execution plan after adaptation action: {}", newRegionExecPlan.toPlanSummaryString() );
 
             final List<PipelineId> removedPipelineIds = pipelineIdChanges._1;
             final List<PipelineMeter> addedPipelineMeters = pipelineIdChanges._2.stream()
                                                                                 .map( pipelineManager::getPipelineMeterOrFail )
                                                                                 .collect( toList() );
 
-            LOGGER.info( "Flow execution plan after adaptation action: {}", flowExecutionPlan.toPlanSummaryString() );
-            metricManager.update( flowExecutionPlan.getVersion(), removedPipelineIds, addedPipelineMeters );
+            LOGGER.info( "Flow execution plan after adaptation action: {}", flowExecPlan.toSummaryString() );
+            metricManager.update( flowExecPlan.getVersion(), removedPipelineIds, addedPipelineMeters );
         }
 
-        adaptationTracker.onFlowExecutionPlanChange( flowExecutionPlan );
+        adaptationTracker.onExecPlanChange( flowExecPlan );
 
-        flowPeriod = metricManager.getFlowMetrics().getPeriod();
+        flowPeriod = metricManager.getMetrics().getPeriod();
         LOGGER.info( "Flow period after adaptation: {}", flowPeriod );
 
         metricManager.resume();
     }
 
-    private boolean shouldCheckAdaptation ( final FlowMetrics flowMetrics )
+    private boolean shouldCheckAdaptation ( final FlowMetrics metrics )
     {
         if ( !( isAdaptationEnabled() && shutdownFuture == null ) )
         {
@@ -561,7 +559,7 @@ public class SupervisorImpl implements Supervisor
         }
 
         final MetricManagerConfig metricManagerConfig = config.getMetricManagerConfig();
-        return flowMetrics != null && ( flowMetrics.getPeriod() - flowPeriod ) > metricManagerConfig.getHistorySize();
+        return metrics != null && ( metrics.getPeriod() - flowPeriod ) > metricManagerConfig.getHistorySize();
     }
 
     private boolean isAdaptationEnabled ()

@@ -2,57 +2,56 @@ package cs.bilkent.joker.engine.adaptation.impl.adaptationaction;
 
 import cs.bilkent.joker.engine.adaptation.AdaptationAction;
 import cs.bilkent.joker.engine.adaptation.AdaptationPerformer;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 
 public class RegionRebalanceAction implements AdaptationAction
 {
 
-    private final RegionExecutionPlan currentRegionExecutionPlan, newRegionExecutionPlan;
+    private final RegionExecPlan currentExecPlan, newExecPlan;
 
     private final int newReplicaCount;
 
-    public RegionRebalanceAction ( final RegionExecutionPlan regionExecutionPlan, final int newReplicaCount )
+    public RegionRebalanceAction ( final RegionExecPlan execPlan, final int newReplicaCount )
     {
-        checkArgument( regionExecutionPlan != null );
+        checkArgument( execPlan != null );
         checkArgument( newReplicaCount > 0 );
-        checkArgument( regionExecutionPlan.getReplicaCount() != newReplicaCount );
-        checkArgument( regionExecutionPlan.getRegionType() == PARTITIONED_STATEFUL );
-        this.currentRegionExecutionPlan = regionExecutionPlan;
+        checkArgument( execPlan.getReplicaCount() != newReplicaCount );
+        checkArgument( execPlan.getRegionType() == PARTITIONED_STATEFUL );
+        this.currentExecPlan = execPlan;
         this.newReplicaCount = newReplicaCount;
-        this.newRegionExecutionPlan = regionExecutionPlan.withNewReplicaCount( newReplicaCount );
+        this.newExecPlan = execPlan.withNewReplicaCount( newReplicaCount );
     }
 
     @Override
     public void apply ( final AdaptationPerformer performer )
     {
-        performer.rebalanceRegion( newRegionExecutionPlan.getRegionId(), newRegionExecutionPlan.getReplicaCount() );
+        performer.rebalanceRegion( newExecPlan.getRegionId(), newExecPlan.getReplicaCount() );
     }
 
     @Override
-    public RegionExecutionPlan getCurrentRegionExecutionPlan ()
+    public RegionExecPlan getCurrentExecPlan ()
     {
-        return currentRegionExecutionPlan;
+        return currentExecPlan;
     }
 
     @Override
-    public RegionExecutionPlan getNewRegionExecutionPlan ()
+    public RegionExecPlan getNewExecPlan ()
     {
-        return newRegionExecutionPlan;
+        return newExecPlan;
     }
 
     @Override
     public AdaptationAction revert ()
     {
-        return new RegionRebalanceAction( newRegionExecutionPlan, currentRegionExecutionPlan.getReplicaCount() );
+        return new RegionRebalanceAction( newExecPlan, currentExecPlan.getReplicaCount() );
     }
 
     @Override
     public String toString ()
     {
-        return "RegionRebalanceAction{" + "currentRegionExecutionPlan=" + currentRegionExecutionPlan + ", newRegionExecutionPlan="
-               + newRegionExecutionPlan + '}';
+        return "RegionRebalanceAction{" + "currentExecPlan=" + currentExecPlan + ", newExecPlan=" + newExecPlan + '}';
     }
 
     @Override
@@ -73,13 +72,13 @@ public class RegionRebalanceAction implements AdaptationAction
         {
             return false;
         }
-        return currentRegionExecutionPlan.equals( that.currentRegionExecutionPlan );
+        return currentExecPlan.equals( that.currentExecPlan );
     }
 
     @Override
     public int hashCode ()
     {
-        int result = currentRegionExecutionPlan.hashCode();
+        int result = currentExecPlan.hashCode();
         result = 31 * result + newReplicaCount;
         return result;
     }

@@ -170,8 +170,7 @@ public final class FlowDef
      */
     public Set<Entry<Port, Port>> getConnections ()
     {
-        final Function<Entry<Port, Set<Port>>, Stream<Entry<Port, Port>>> flatMapper = e ->
-        {
+        final Function<Entry<Port, Set<Port>>, Stream<Entry<Port, Port>>> flatMapper = e -> {
             final Function<Port, Entry<Port, Port>> mapper = k -> new SimpleEntry<>( e.getKey(), k );
             return e.getValue().stream().map( mapper );
         };
@@ -218,6 +217,23 @@ public final class FlowDef
     public Set<Port> getInboundConnections ( final Port port )
     {
         return getConnections().stream().filter( entry -> entry.getValue().equals( port ) ).map( Entry::getKey ).collect( toSet() );
+    }
+
+    /**
+     * Returns true if the given operator id has no inbound connection
+     *
+     * @param operatorId
+     *         opererator id to check
+     *
+     * @return true if the given operator id has no inbound connection
+     *
+     * @throws IllegalArgumentException
+     *         if the operator id is not present in the flow
+     */
+    public boolean isSourceOperator ( final String operatorId )
+    {
+        checkArgument( operators.containsKey( operatorId ) );
+        return getInboundConnections( operatorId ).isEmpty();
     }
 
     /**

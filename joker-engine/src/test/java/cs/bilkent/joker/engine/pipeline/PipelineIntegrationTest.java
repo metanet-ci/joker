@@ -7,20 +7,16 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 
 import org.junit.Test;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import cs.bilkent.joker.engine.config.JokerConfig;
-import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
-import static cs.bilkent.joker.engine.config.ThreadingPreference.SINGLE_THREADED;
-import cs.bilkent.joker.engine.flow.PipelineId;
+import static cs.bilkent.joker.engine.config.ThreadingPref.MULTI_THREADED;
+import static cs.bilkent.joker.engine.config.ThreadingPref.SINGLE_THREADED;
 import cs.bilkent.joker.engine.kvstore.OperatorKVStore;
 import cs.bilkent.joker.engine.kvstore.impl.KVStoreContainer;
 import cs.bilkent.joker.engine.kvstore.impl.OperatorKVStoreManagerImpl;
@@ -29,17 +25,17 @@ import cs.bilkent.joker.engine.partition.PartitionDistribution;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
 import cs.bilkent.joker.engine.partition.impl.PartitionServiceImpl;
-import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.ACTIVE;
-import static cs.bilkent.joker.engine.pipeline.UpstreamConnectionStatus.CLOSED;
-import cs.bilkent.joker.engine.pipeline.impl.tuplesupplier.CachedTuplesImplSupplier;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newInitialUpstreamContextWithAllPortsConnected;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newSourceOperatorInitialUpstreamContext;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newSourceOperatorShutdownUpstreamContext;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
-import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
+import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainerPool;
-import cs.bilkent.joker.engine.tuplequeue.impl.OperatorTupleQueueManagerImpl;
+import cs.bilkent.joker.engine.tuplequeue.impl.OperatorQueueManagerImpl;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool.BlockingTupleQueueDrainerPool;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool.NonBlockingTupleQueueDrainerPool;
-import cs.bilkent.joker.engine.tuplequeue.impl.operator.EmptyOperatorTupleQueue;
+import cs.bilkent.joker.engine.tuplequeue.impl.operator.EmptyOperatorQueue;
 import cs.bilkent.joker.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
 import cs.bilkent.joker.engine.util.concurrent.BackoffIdleStrategy;
 import cs.bilkent.joker.engine.util.concurrent.IdleStrategy;
@@ -50,10 +46,13 @@ import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuples;
+import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
+import cs.bilkent.joker.operator.impl.DefaultOutputTupleCollector;
+import cs.bilkent.joker.operator.impl.InternalInvocationContext;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
+import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.EXACT;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAny;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
@@ -92,22 +91,20 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
     private final PartitionService partitionService = new PartitionServiceImpl( jokerConfig );
 
-    private final OperatorTupleQueueManagerImpl operatorTupleQueueManager = new OperatorTupleQueueManagerImpl( jokerConfig,
-                                                                                                               new PartitionKeyExtractorFactoryImpl() );
+    private final OperatorQueueManagerImpl operatorQueueManager = new OperatorQueueManagerImpl( jokerConfig,
+                                                                                                new PartitionKeyExtractorFactoryImpl() );
 
     private final OperatorKVStoreManagerImpl operatorKVStoreManager = new OperatorKVStoreManagerImpl();
 
-    private final OperatorKVStore nopOperatorKvStore = mock( OperatorKVStore.class );
+    private final PipelineReplicaId pipelineReplicaId1 = new PipelineReplicaId( 0, 0, 0 );
 
-    private final PipelineReplicaId pipelineReplicaId1 = new PipelineReplicaId( new PipelineId( 0, 0 ), 0 );
+    private final PipelineReplicaId pipelineReplicaId2 = new PipelineReplicaId( 1, 0, 0 );
 
-    private final PipelineReplicaId pipelineReplicaId2 = new PipelineReplicaId( new PipelineId( 1, 0 ), 0 );
-
-    private final PipelineReplicaId pipelineReplicaId3 = new PipelineReplicaId( new PipelineId( 2, 0 ), 0 );
+    private final PipelineReplicaId pipelineReplicaId3 = new PipelineReplicaId( 2, 0, 0 );
 
 
     @Test
-    public void testPipelineWithSingleOperator () throws ExecutionException, InterruptedException
+    public void testPipelineWithSingleOperator () throws InterruptedException
     {
         final OperatorConfig mapperOperatorConfig = new OperatorConfig();
         final BiConsumer<Tuple, Tuple> multiplyBy2 = ( input, output ) -> output.set( "val",
@@ -121,26 +118,32 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                     pipelineReplicaId1,
                                                                                     mapperOperatorDef );
 
-        final OperatorTupleQueue operatorTupleQueue = operatorTupleQueueManager.createDefaultOperatorTupleQueue( REGION_ID,
-                                                                                                                 REPLICA_INDEX,
-                                                                                                                 mapperOperatorDef,
-                                                                                                                 MULTI_THREADED );
+        final OperatorQueue operatorQueue = operatorQueueManager.createDefaultQueue( REGION_ID,
+                                                                                     mapperOperatorDef,
+                                                                                     REPLICA_INDEX,
+                                                                                     MULTI_THREADED );
         final TupleQueueDrainerPool drainerPool = new BlockingTupleQueueDrainerPool( jokerConfig, mapperOperatorDef );
-        final Supplier<TuplesImpl> tuplesImplSupplier = new CachedTuplesImplSupplier( mapperOperatorDef.getOutputPortCount() );
+
+        final DefaultInvocationContext mapperInvocationContext = new DefaultInvocationContext( mapperOperatorDef.getInputPortCount(),
+                                                                                               key -> null,
+                                                                                               new DefaultOutputTupleCollector(
+                                                                                                       mapperOperatorDef
+                                                                                                               .getOutputPortCount() ) );
         final OperatorReplica mapperOperator = new OperatorReplica( pipelineReplicaId1,
-                                                                    mapperOperatorDef,
-                                                                    operatorTupleQueue,
-                                                                    nopOperatorKvStore,
+                                                                    operatorQueue,
                                                                     drainerPool,
-                                                                    tuplesImplSupplier,
-                                                                    pipelineReplicaMeter );
-        final PipelineReplica pipeline = new PipelineReplica( jokerConfig,
-                                                              pipelineReplicaId1,
+                                                                    pipelineReplicaMeter,
+                                                                    mapperInvocationContext::createInputTuples,
+                                                                    new OperatorDef[] { mapperOperatorDef },
+                                                                    new InternalInvocationContext[] { mapperInvocationContext } );
+        final PipelineReplica pipeline = new PipelineReplica( pipelineReplicaId1,
                                                               new OperatorReplica[] { mapperOperator },
-                                                              new EmptyOperatorTupleQueue( "map", mapperOperatorDef.getInputPortCount() ),
+                                                              new EmptyOperatorQueue( "map", mapperOperatorDef.getInputPortCount() ),
                                                               pipelineReplicaMeter );
         final Supervisor supervisor = mock( Supervisor.class );
-        pipeline.init( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ) );
+
+        pipeline.init( new SchedulingStrategy[][] { { scheduleWhenTuplesAvailableOnDefaultPort( 1 ) } },
+                       new UpstreamContext[][] { { newInitialUpstreamContextWithAllPortsConnected( 1 ) } } );
 
         final TupleCollectorDownstreamTupleSender tupleCollector = new TupleCollectorDownstreamTupleSender( mapperOperatorDef
                                                                                                                     .getOutputPortCount() );
@@ -154,7 +157,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         {
             final Tuple tuple = new Tuple();
             tuple.set( "val", initialVal + i );
-            operatorTupleQueue.offer( 0, singletonList( tuple ) );
+            operatorQueue.offer( 0, singletonList( tuple ) );
         }
 
         assertTrueEventually( () -> assertEquals( tupleCount, tupleCollector.tupleQueues[ 0 ].size() ) );
@@ -168,14 +171,14 @@ public class PipelineIntegrationTest extends AbstractJokerTest
             assertEquals( expected, tuples.get( i ) );
         }
 
-        final UpstreamContext updatedUpstreamContext = new UpstreamContext( 1, new UpstreamConnectionStatus[] { CLOSED } );
+        final UpstreamContext updatedUpstreamContext = newInitialUpstreamContextWithAllPortsConnected( 1 ).withConnectionClosed( 0 );
         when( supervisor.getUpstreamContext( pipelineReplicaId1 ) ).thenReturn( updatedUpstreamContext );
         runner.updatePipelineUpstreamContext();
         runnerThread.join();
     }
 
     @Test
-    public void testPipelineWithMultipleOperators_pipelineUpstreamClosed () throws ExecutionException, InterruptedException
+    public void testPipelineWithMultipleOperators_pipelineUpstreamClosed () throws InterruptedException
     {
         final OperatorConfig mapperOperatorConfig = new OperatorConfig();
         final BiConsumer<Tuple, Tuple> add1 = ( input, output ) -> output.set( "val", 1 + input.getIntegerValueOrDefault( "val", -1 ) );
@@ -195,45 +198,54 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                     pipelineReplicaId1,
                                                                                     mapperOperatorDef );
 
-        final OperatorTupleQueue mapperOperatorTupleQueue = operatorTupleQueueManager.createDefaultOperatorTupleQueue( REGION_ID,
-                                                                                                                       REPLICA_INDEX,
-                                                                                                                       mapperOperatorDef,
-                                                                                                                       MULTI_THREADED );
+        final OperatorQueue mapperOperatorQueue = operatorQueueManager.createDefaultQueue( REGION_ID,
+                                                                                           mapperOperatorDef,
+                                                                                           REPLICA_INDEX,
+                                                                                           MULTI_THREADED );
 
         final TupleQueueDrainerPool mapperDrainerPool = new BlockingTupleQueueDrainerPool( jokerConfig, mapperOperatorDef );
-        final Supplier<TuplesImpl> mapperTuplesImplSupplier = new CachedTuplesImplSupplier( mapperOperatorDef.getOutputPortCount() );
+        final DefaultInvocationContext mapperInvocationContext = new DefaultInvocationContext( mapperOperatorDef.getInputPortCount(),
+                                                                                               key -> null,
+                                                                                               new DefaultOutputTupleCollector(
+                                                                                                       mapperOperatorDef
+                                                                                                               .getOutputPortCount() ) );
         final OperatorReplica mapperOperator = new OperatorReplica( pipelineReplicaId1,
-                                                                    mapperOperatorDef,
-                                                                    mapperOperatorTupleQueue,
-                                                                    nopOperatorKvStore,
+                                                                    mapperOperatorQueue,
                                                                     mapperDrainerPool,
-                                                                    mapperTuplesImplSupplier,
-                                                                    pipelineReplicaMeter );
+                                                                    pipelineReplicaMeter,
+                                                                    mapperInvocationContext::createInputTuples,
+                                                                    new OperatorDef[] { mapperOperatorDef },
+                                                                    new InternalInvocationContext[] { mapperInvocationContext } );
 
-        final OperatorTupleQueue filterOperatorTupleQueue = operatorTupleQueueManager.createDefaultOperatorTupleQueue( REGION_ID,
-                                                                                                                       REPLICA_INDEX,
-                                                                                                                       filterOperatorDef,
-                                                                                                                       SINGLE_THREADED );
+        final OperatorQueue filterOperatorQueue = operatorQueueManager.createDefaultQueue( REGION_ID,
+                                                                                           filterOperatorDef,
+                                                                                           REPLICA_INDEX,
+                                                                                           SINGLE_THREADED );
         final TupleQueueDrainerPool filterDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, filterOperatorDef );
-        final Supplier<TuplesImpl> filterTuplesImplSupplier = new CachedTuplesImplSupplier( filterOperatorDef.getInputPortCount() );
-
+        final DefaultInvocationContext filterInvocationContext = new DefaultInvocationContext( filterOperatorDef.getInputPortCount(),
+                                                                                               key -> null,
+                                                                                               new DefaultOutputTupleCollector(
+                                                                                                       filterOperatorDef
+                                                                                                               .getOutputPortCount() ) );
         final OperatorReplica filterOperator = new OperatorReplica( pipelineReplicaId1,
-                                                                    filterOperatorDef,
-                                                                    filterOperatorTupleQueue,
-                                                                    nopOperatorKvStore,
+                                                                    filterOperatorQueue,
                                                                     filterDrainerPool,
-                                                                    filterTuplesImplSupplier,
-                                                                    pipelineReplicaMeter );
+                                                                    pipelineReplicaMeter,
+                                                                    filterInvocationContext::createInputTuples,
+                                                                    new OperatorDef[] { filterOperatorDef },
+                                                                    new InternalInvocationContext[] { filterInvocationContext } );
 
-        final PipelineReplica pipeline = new PipelineReplica( jokerConfig,
-                                                              pipelineReplicaId1,
+        final PipelineReplica pipeline = new PipelineReplica( pipelineReplicaId1,
                                                               new OperatorReplica[] { mapperOperator, filterOperator },
-                                                              new EmptyOperatorTupleQueue( "map", mapperOperatorDef.getInputPortCount() ),
+                                                              new EmptyOperatorQueue( "map", mapperOperatorDef.getInputPortCount() ),
                                                               pipelineReplicaMeter );
 
         final Supervisor supervisor = mock( Supervisor.class );
 
-        pipeline.init( new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ) );
+        pipeline.init( new SchedulingStrategy[][] { { scheduleWhenTuplesAvailableOnDefaultPort( 1 ) },
+                                                    { scheduleWhenTuplesAvailableOnDefaultPort( 1 ) } },
+                       new UpstreamContext[][] { { newInitialUpstreamContextWithAllPortsConnected( 1 ) },
+                                                 { newInitialUpstreamContextWithAllPortsConnected( 1 ) } } );
 
         final TupleCollectorDownstreamTupleSender tupleCollector = new TupleCollectorDownstreamTupleSender( filterOperatorDef
                                                                                                                     .getOutputPortCount() );
@@ -250,7 +262,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
             final int value = initialVal + i;
             final Tuple tuple = new Tuple();
             tuple.set( "val", value );
-            mapperOperatorTupleQueue.offer( 0, singletonList( tuple ) );
+            mapperOperatorQueue.offer( 0, singletonList( tuple ) );
         }
 
         final int evenValCount = tupleCount / 2;
@@ -268,7 +280,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
             }
         }
 
-        final UpstreamContext updatedUpstreamContext = new UpstreamContext( 1, new UpstreamConnectionStatus[] { CLOSED } );
+        final UpstreamContext updatedUpstreamContext = newInitialUpstreamContextWithAllPortsConnected( 1 ).withConnectionClosed( 0 );
         when( supervisor.getUpstreamContext( pipelineReplicaId1 ) ).thenReturn( updatedUpstreamContext );
         runner.updatePipelineUpstreamContext();
         runnerThread.join();
@@ -286,7 +298,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                    .build();
 
         final OperatorConfig passerOperatorConfig = new OperatorConfig();
-        passerOperatorConfig.set( "batchCount", batchCount / 2 );
+        final int passerBatchCount = batchCount / 2;
+        passerOperatorConfig.set( "batchCount", passerBatchCount );
         final OperatorDef passerOperatorDef = OperatorDefBuilder.newInstance( "passer", ValuePasserOperator.class )
                                                                 .setConfig( passerOperatorConfig )
                                                                 .build();
@@ -299,73 +312,89 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                     pipelineReplicaId1,
                                                                                     generatorOperatorDef );
 
-        final OperatorTupleQueue generatorOperatorTupleQueue = new EmptyOperatorTupleQueue( generatorOperatorDef.getId(),
-                                                                                            generatorOperatorDef.getInputPortCount() );
+        final OperatorQueue generatorOperatorQueue = new EmptyOperatorQueue( generatorOperatorDef.getId(),
+                                                                             generatorOperatorDef.getInputPortCount() );
         final TupleQueueDrainerPool generatorDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, generatorOperatorDef );
-        final Supplier<TuplesImpl> generatorTuplesImplSupplier = new CachedTuplesImplSupplier( generatorOperatorDef.getOutputPortCount() );
+        final DefaultInvocationContext generatorInvocationContext = new DefaultInvocationContext( generatorOperatorDef.getInputPortCount(),
+                                                                                                  k -> null,
+                                                                                                  new DefaultOutputTupleCollector(
+                                                                                                          generatorOperatorDef
+                                                                                                                  .getOutputPortCount() ) );
         final OperatorReplica generatorOperator = new OperatorReplica( pipelineReplicaId1,
-                                                                       generatorOperatorDef,
-                                                                       generatorOperatorTupleQueue,
-                                                                       nopOperatorKvStore,
+                                                                       generatorOperatorQueue,
                                                                        generatorDrainerPool,
-                                                                       generatorTuplesImplSupplier,
-                                                                       pipelineReplicaMeter );
+                                                                       pipelineReplicaMeter,
+                                                                       generatorInvocationContext::createInputTuples,
+                                                                       new OperatorDef[] { generatorOperatorDef },
+                                                                       new InternalInvocationContext[] { generatorInvocationContext } );
 
-        final OperatorTupleQueue passerOperatorTupleQueue = operatorTupleQueueManager.createDefaultOperatorTupleQueue( REGION_ID,
-                                                                                                                       REPLICA_INDEX,
-                                                                                                                       passerOperatorDef,
-                                                                                                                       SINGLE_THREADED );
+        final OperatorQueue passerOperatorQueue = operatorQueueManager.createDefaultQueue( REGION_ID,
+                                                                                           passerOperatorDef,
+                                                                                           REPLICA_INDEX,
+                                                                                           SINGLE_THREADED );
         final TupleQueueDrainerPool passerDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, passerOperatorDef );
-        final Supplier<TuplesImpl> passerTuplesImplSupplier = new CachedTuplesImplSupplier( passerOperatorDef.getOutputPortCount() );
+        final DefaultInvocationContext passerInvocationContext = new DefaultInvocationContext( passerOperatorDef.getInputPortCount(),
+                                                                                               k -> null,
+                                                                                               new DefaultOutputTupleCollector(
+                                                                                                       passerOperatorDef
+                                                                                                               .getOutputPortCount() ) );
         final OperatorReplica passerOperator = new OperatorReplica( pipelineReplicaId1,
-                                                                    passerOperatorDef,
-                                                                    passerOperatorTupleQueue,
-                                                                    nopOperatorKvStore,
+                                                                    passerOperatorQueue,
                                                                     passerDrainerPool,
-                                                                    passerTuplesImplSupplier,
-                                                                    pipelineReplicaMeter );
+                                                                    pipelineReplicaMeter,
+                                                                    passerInvocationContext::createInputTuples,
+                                                                    new OperatorDef[] { passerOperatorDef },
+                                                                    new InternalInvocationContext[] { passerInvocationContext } );
 
         final PartitionDistribution partitionDistribution = partitionService.createPartitionDistribution( REGION_ID, 1 );
-        final OperatorKVStore[] operatorKvStores = operatorKVStoreManager.createPartitionedOperatorKVStores( REGION_ID,
-                                                                                                             "state",
-                                                                                                             partitionDistribution );
+        final OperatorKVStore[] operatorKvStores = operatorKVStoreManager.createPartitionedKVStores( REGION_ID,
+                                                                                                     "state",
+                                                                                                     partitionDistribution );
 
-        final OperatorTupleQueue[] stateOperatorTupleQueues = operatorTupleQueueManager.createPartitionedOperatorTupleQueues( REGION_ID,
-                                                                                                                              stateOperatorDef,
-                                                                                                                              partitionDistribution );
-        final OperatorTupleQueue stateOperatorTupleQueue = stateOperatorTupleQueues[ 0 ];
+        final OperatorQueue[] stateOperatorQueues = operatorQueueManager.createPartitionedQueues( REGION_ID,
+                                                                                                  stateOperatorDef,
+                                                                                                  partitionDistribution );
+        final OperatorQueue stateOperatorQueue = stateOperatorQueues[ 0 ];
         final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, stateOperatorDef );
-        final Supplier<TuplesImpl> stateTuplesImplSupplier = new CachedTuplesImplSupplier( stateOperatorDef.getOutputPortCount() );
+        final DefaultInvocationContext stateInvocationContext = new DefaultInvocationContext( stateOperatorDef.getInputPortCount(),
+                                                                                              operatorKvStores[ 0 ]::getKVStore,
+                                                                                              new DefaultOutputTupleCollector(
+                                                                                                      stateOperatorDef.getOutputPortCount
+                                                                                                                               () ) );
         final OperatorReplica stateOperator = new OperatorReplica( pipelineReplicaId1,
-                                                                   stateOperatorDef,
-                                                                   stateOperatorTupleQueue,
-                                                                   operatorKvStores[ 0 ],
+                                                                   stateOperatorQueue,
                                                                    stateDrainerPool,
-                                                                   stateTuplesImplSupplier,
-                                                                   pipelineReplicaMeter );
+                                                                   pipelineReplicaMeter,
+                                                                   stateInvocationContext::createInputTuples,
+                                                                   new OperatorDef[] { stateOperatorDef },
+                                                                   new InternalInvocationContext[] { stateInvocationContext } );
 
-        final PipelineReplica pipeline = new PipelineReplica( jokerConfig,
-                                                              pipelineReplicaId1,
+        final PipelineReplica pipeline = new PipelineReplica( pipelineReplicaId1,
                                                               new OperatorReplica[] { generatorOperator, passerOperator, stateOperator },
-                                                              new EmptyOperatorTupleQueue( "generator",
-                                                                                           generatorOperatorDef.getInputPortCount() ),
+                                                              new EmptyOperatorQueue( "generator",
+                                                                                      generatorOperatorDef.getInputPortCount() ),
                                                               pipelineReplicaMeter );
 
         final Supervisor supervisor = mock( Supervisor.class );
 
-        pipeline.init( new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ) );
+        pipeline.init( new SchedulingStrategy[][] { { ScheduleWhenAvailable.INSTANCE },
+                                                    { scheduleWhenTuplesAvailableOnDefaultPort( EXACT, passerBatchCount ) },
+                                                    { scheduleWhenTuplesAvailableOnDefaultPort( EXACT, 1 ) } },
+                       new UpstreamContext[][] { { newSourceOperatorInitialUpstreamContext() },
+                                                 { newInitialUpstreamContextWithAllPortsConnected( 1 ) },
+                                                 { newInitialUpstreamContextWithAllPortsConnected( 1 ) } } );
 
         final PipelineReplicaRunner runner = new PipelineReplicaRunner( jokerConfig, pipeline, supervisor,
                                                                         mock( DownstreamTupleSender.class ) );
 
         final Thread runnerThread = spawnThread( runner );
 
-        final ValueGeneratorOperator generatorOp = (ValueGeneratorOperator) generatorOperator.getOperator();
+        final ValueGeneratorOperator generatorOp = (ValueGeneratorOperator) generatorOperator.getOperator( 0 );
         generatorOp.start = true;
 
         assertTrueEventually( () -> assertTrue( generatorOp.count > 1000 ) );
 
-        final UpstreamContext updatedUpstreamContext = new UpstreamContext( 1, new UpstreamConnectionStatus[] {} );
+        final UpstreamContext updatedUpstreamContext = newSourceOperatorShutdownUpstreamContext();
         when( supervisor.getUpstreamContext( pipelineReplicaId1 ) ).thenReturn( updatedUpstreamContext );
         runner.updatePipelineUpstreamContext();
 
@@ -373,8 +402,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         runnerThread.join();
 
-        final ValuePasserOperator passerOp = (ValuePasserOperator) passerOperator.getOperator();
-        final ValueStateOperator stateOp = (ValueStateOperator) stateOperator.getOperator();
+        final ValuePasserOperator passerOp = (ValuePasserOperator) passerOperator.getOperator( 0 );
+        final ValueStateOperator stateOp = (ValueStateOperator) stateOperator.getOperator( 0 );
 
         assertEquals( generatorOp.count, passerOp.count );
         assertEquals( generatorOp.count, stateOp.count );
@@ -382,11 +411,11 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     }
 
     @Test
-    public void testMultiplePipelines_singleInputPort () throws ExecutionException, InterruptedException
+    public void testMultiplePipelines_singleInputPort () throws InterruptedException
     {
         final SupervisorImpl supervisor = new SupervisorImpl();
-        supervisor.upstreamContexts.put( pipelineReplicaId1, new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ) );
-        supervisor.upstreamContexts.put( pipelineReplicaId2, new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ) );
+        supervisor.upstreamContexts.put( pipelineReplicaId1, newInitialUpstreamContextWithAllPortsConnected( 1 ) );
+        supervisor.upstreamContexts.put( pipelineReplicaId2, newInitialUpstreamContextWithAllPortsConnected( 1 ) );
         supervisor.inputPortIndices.put( pipelineReplicaId1, 0 );
         supervisor.inputPortIndices.put( pipelineReplicaId2, 0 );
 
@@ -397,31 +426,35 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                 .setConfig( mapperOperatorConfig )
                                                                 .build();
 
-        final OperatorTupleQueue mapperOperatorTupleQueue = operatorTupleQueueManager.createDefaultOperatorTupleQueue( REGION_ID,
-                                                                                                                       REPLICA_INDEX,
-                                                                                                                       mapperOperatorDef,
-                                                                                                                       MULTI_THREADED );
+        final OperatorQueue mapperOperatorQueue = operatorQueueManager.createDefaultQueue( REGION_ID,
+                                                                                           mapperOperatorDef,
+                                                                                           REPLICA_INDEX,
+                                                                                           MULTI_THREADED );
 
         final TupleQueueDrainerPool mapperDrainerPool = new BlockingTupleQueueDrainerPool( jokerConfig, mapperOperatorDef );
-        final Supplier<TuplesImpl> mapperTuplesImplSupplier = new CachedTuplesImplSupplier( mapperOperatorDef.getOutputPortCount() );
-
+        final DefaultInvocationContext mapperInvocationContext = new DefaultInvocationContext( mapperOperatorDef.getInputPortCount(),
+                                                                                               key -> null,
+                                                                                               new DefaultOutputTupleCollector(
+                                                                                                       mapperOperatorDef
+                                                                                                               .getOutputPortCount() ) );
         final PipelineReplicaMeter pipelineReplicaMeter1 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId1,
                                                                                      mapperOperatorDef );
         final OperatorReplica mapperOperator = new OperatorReplica( pipelineReplicaId1,
-                                                                    mapperOperatorDef,
-                                                                    mapperOperatorTupleQueue,
-                                                                    nopOperatorKvStore,
+                                                                    mapperOperatorQueue,
                                                                     mapperDrainerPool,
-                                                                    mapperTuplesImplSupplier,
-                                                                    pipelineReplicaMeter1 );
+                                                                    pipelineReplicaMeter1,
+                                                                    mapperInvocationContext::createInputTuples,
+                                                                    new OperatorDef[] { mapperOperatorDef },
+                                                                    new InternalInvocationContext[] { mapperInvocationContext } );
 
-        final PipelineReplica pipeline1 = new PipelineReplica( jokerConfig,
-                                                               pipelineReplicaId1,
+        final PipelineReplica pipeline1 = new PipelineReplica( pipelineReplicaId1,
                                                                new OperatorReplica[] { mapperOperator },
-                                                               new EmptyOperatorTupleQueue( "map", mapperOperatorDef.getInputPortCount() ),
+                                                               new EmptyOperatorQueue( "map", mapperOperatorDef.getInputPortCount() ),
                                                                pipelineReplicaMeter1 );
-        pipeline1.init( supervisor.upstreamContexts.get( pipelineReplicaId1 ) );
+
+        pipeline1.init( new SchedulingStrategy[][] { { scheduleWhenTuplesAvailableOnDefaultPort( 1 ) } },
+                        new UpstreamContext[][] { { supervisor.upstreamContexts.get( pipelineReplicaId1 ) } } );
 
         final OperatorConfig filterOperatorConfig = new OperatorConfig();
         final Predicate<Tuple> filterEvenVals = tuple -> tuple.getInteger( "val" ) % 2 == 0;
@@ -430,36 +463,38 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                 .setConfig( filterOperatorConfig )
                                                                 .build();
 
-        final OperatorTupleQueue filterOperatorTupleQueue = operatorTupleQueueManager.createDefaultOperatorTupleQueue( REGION_ID,
-                                                                                                                       REPLICA_INDEX,
-                                                                                                                       filterOperatorDef,
-                                                                                                                       MULTI_THREADED );
+        final OperatorQueue filterOperatorQueue = operatorQueueManager.createDefaultQueue( REGION_ID,
+                                                                                           filterOperatorDef,
+                                                                                           REPLICA_INDEX,
+                                                                                           MULTI_THREADED );
 
-        final DownstreamTupleSenderImpl tupleSender = new DownstreamTupleSenderImpl( filterOperatorTupleQueue,
-                                                                                     new Pair[] { Pair.of( 0, 0 ) } );
+        final DownstreamTupleSenderImpl tupleSender = new DownstreamTupleSenderImpl( filterOperatorQueue, new Pair[] { Pair.of( 0, 0 ) } );
 
         final TupleQueueDrainerPool filterDrainerPool = new BlockingTupleQueueDrainerPool( jokerConfig, filterOperatorDef );
-        final Supplier<TuplesImpl> filterTuplesImplSupplier = new CachedTuplesImplSupplier( filterOperatorDef.getInputPortCount() );
+        final DefaultInvocationContext filterInvocationContext = new DefaultInvocationContext( filterOperatorDef.getInputPortCount(),
+                                                                                               key -> null,
+                                                                                               new DefaultOutputTupleCollector(
+                                                                                                       filterOperatorDef
+                                                                                                               .getOutputPortCount() ) );
 
         final PipelineReplicaMeter pipelineReplicaMeter2 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId2,
                                                                                      filterOperatorDef );
         final OperatorReplica filterOperator = new OperatorReplica( pipelineReplicaId2,
-                                                                    filterOperatorDef,
-                                                                    filterOperatorTupleQueue,
-                                                                    nopOperatorKvStore,
+                                                                    filterOperatorQueue,
                                                                     filterDrainerPool,
-                                                                    filterTuplesImplSupplier,
-                                                                    pipelineReplicaMeter2 );
+                                                                    pipelineReplicaMeter2,
+                                                                    filterInvocationContext::createInputTuples,
+                                                                    new OperatorDef[] { filterOperatorDef },
+                                                                    new InternalInvocationContext[] { filterInvocationContext } );
 
-        final PipelineReplica pipeline2 = new PipelineReplica( jokerConfig,
-                                                               pipelineReplicaId2,
+        final PipelineReplica pipeline2 = new PipelineReplica( pipelineReplicaId2,
                                                                new OperatorReplica[] { filterOperator },
-                                                               new EmptyOperatorTupleQueue( "filter",
-                                                                                            filterOperatorDef.getInputPortCount() ),
+                                                               new EmptyOperatorQueue( "filter", filterOperatorDef.getInputPortCount() ),
                                                                pipelineReplicaMeter2 );
 
-        pipeline2.init( supervisor.upstreamContexts.get( pipelineReplicaId2 ) );
+        pipeline2.init( new SchedulingStrategy[][] { { scheduleWhenTuplesAvailableOnDefaultPort( 1 ) } },
+                        new UpstreamContext[][] { { supervisor.upstreamContexts.get( pipelineReplicaId2 ) } } );
 
         final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig, pipeline1, supervisor, tupleSender );
         supervisor.downstreamTupleSenders.put( pipeline1.id(), tupleSender );
@@ -483,7 +518,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
             final int value = initialVal + i;
             final Tuple tuple = new Tuple();
             tuple.set( "val", value );
-            mapperOperatorTupleQueue.offer( 0, singletonList( tuple ) );
+            mapperOperatorQueue.offer( 0, singletonList( tuple ) );
         }
 
         final int evenValCount = tupleCount / 2;
@@ -501,7 +536,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
             }
         }
 
-        supervisor.upstreamContexts.put( pipelineReplicaId1, new UpstreamContext( 1, new UpstreamConnectionStatus[] { CLOSED } ) );
+        supervisor.upstreamContexts.put( pipelineReplicaId1,
+                                         newInitialUpstreamContextWithAllPortsConnected( 1 ).withConnectionClosed( 0 ) );
         runner1.updatePipelineUpstreamContext();
         runnerThread1.join();
         runnerThread2.join();
@@ -513,9 +549,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     public void testMultiplePipelines_multipleInputPorts () throws InterruptedException
     {
         final SupervisorImpl supervisor = new SupervisorImpl();
-        supervisor.upstreamContexts.put( pipelineReplicaId1, new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ) );
-        supervisor.upstreamContexts.put( pipelineReplicaId2, new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ) );
-        supervisor.upstreamContexts.put( pipelineReplicaId3, new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE, ACTIVE } ) );
+        supervisor.upstreamContexts.put( pipelineReplicaId1, newSourceOperatorInitialUpstreamContext() );
+        supervisor.upstreamContexts.put( pipelineReplicaId2, newSourceOperatorInitialUpstreamContext() );
+        supervisor.upstreamContexts.put( pipelineReplicaId3, newInitialUpstreamContextWithAllPortsConnected( 2 ) );
         supervisor.inputPortIndices.put( pipelineReplicaId1, 0 );
         supervisor.inputPortIndices.put( pipelineReplicaId2, 1 );
 
@@ -527,31 +563,34 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                     .setConfig( generatorOperatorConfig1 )
                                                                     .build();
 
-        final OperatorTupleQueue generatorOperatorTupleQueue1 = new EmptyOperatorTupleQueue( generatorOperatorDef1.getId(),
-                                                                                             generatorOperatorDef1.getInputPortCount() );
+        final OperatorQueue generatorOperatorQueue1 = new EmptyOperatorQueue( generatorOperatorDef1.getId(),
+
+                                                                              generatorOperatorDef1.getInputPortCount() );
         final TupleQueueDrainerPool generatorDrainerPool1 = new NonBlockingTupleQueueDrainerPool( jokerConfig, generatorOperatorDef1 );
-        final Supplier<TuplesImpl> generatorTuplesImplSupplier1 = new CachedTuplesImplSupplier( generatorOperatorDef1.getOutputPortCount
-                                                                                                                              () );
 
         final PipelineReplicaMeter pipelineReplicaMeter1 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId1,
                                                                                      generatorOperatorDef1 );
+        final DefaultInvocationContext generatorInvocationContext1 = new DefaultInvocationContext( generatorOperatorDef1.getInputPortCount(),
+                                                                                                   k -> null,
+                                                                                                   new DefaultOutputTupleCollector(
+                                                                                                           generatorOperatorDef1.getOutputPortCount() ) );
         final OperatorReplica generatorOperator1 = new OperatorReplica( pipelineReplicaId1,
-                                                                        generatorOperatorDef1,
-                                                                        generatorOperatorTupleQueue1,
-                                                                        nopOperatorKvStore,
+                                                                        generatorOperatorQueue1,
                                                                         generatorDrainerPool1,
-                                                                        generatorTuplesImplSupplier1,
-                                                                        pipelineReplicaMeter1 );
+                                                                        pipelineReplicaMeter1,
+                                                                        generatorInvocationContext1::createInputTuples,
+                                                                        new OperatorDef[] { generatorOperatorDef1 },
+                                                                        new InternalInvocationContext[] { generatorInvocationContext1 } );
 
-        final PipelineReplica pipeline1 = new PipelineReplica( jokerConfig,
-                                                               pipelineReplicaId1,
+        final PipelineReplica pipeline1 = new PipelineReplica( pipelineReplicaId1,
                                                                new OperatorReplica[] { generatorOperator1 },
-                                                               new EmptyOperatorTupleQueue( "generator1",
-                                                                                            generatorOperatorDef1.getInputPortCount() ),
+                                                               new EmptyOperatorQueue( "generator1",
+                                                                                       generatorOperatorDef1.getInputPortCount() ),
                                                                pipelineReplicaMeter1 );
 
-        pipeline1.init( supervisor.upstreamContexts.get( pipelineReplicaId1 ) );
+        pipeline1.init( new SchedulingStrategy[][] { { ScheduleWhenAvailable.INSTANCE } },
+                        new UpstreamContext[][] { { supervisor.upstreamContexts.get( pipelineReplicaId1 ) } } );
 
         final OperatorConfig generatorOperatorConfig2 = new OperatorConfig();
         generatorOperatorConfig2.set( "batchCount", batchCount );
@@ -560,30 +599,34 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                     .setConfig( generatorOperatorConfig2 )
                                                                     .build();
 
-        final OperatorTupleQueue generatorOperatorTupleQueue2 = new EmptyOperatorTupleQueue( generatorOperatorDef2.getId(),
-                                                                                             generatorOperatorDef2.getInputPortCount() );
+        final OperatorQueue generatorOperatorQueue2 = new EmptyOperatorQueue( generatorOperatorDef2.getId(),
+
+                                                                              generatorOperatorDef2.getInputPortCount() );
         final TupleQueueDrainerPool generatorDrainerPool2 = new NonBlockingTupleQueueDrainerPool( jokerConfig, generatorOperatorDef2 );
-        final Supplier<TuplesImpl> generatorTuplesImplSupplier2 = new CachedTuplesImplSupplier( generatorOperatorDef2.getOutputPortCount() );
+        final DefaultInvocationContext generatorInvocationContext2 = new DefaultInvocationContext( generatorOperatorDef2.getInputPortCount(),
+                                                                                                   k -> null,
+                                                                                                   new DefaultOutputTupleCollector(
+                                                                                                           generatorOperatorDef2.getOutputPortCount() ) );
 
         final PipelineReplicaMeter pipelineReplicaMeter2 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId2,
                                                                                      generatorOperatorDef2 );
         final OperatorReplica generatorOperator2 = new OperatorReplica( pipelineReplicaId2,
-                                                                        generatorOperatorDef2,
-                                                                        generatorOperatorTupleQueue2,
-                                                                        nopOperatorKvStore,
+                                                                        generatorOperatorQueue2,
                                                                         generatorDrainerPool2,
-                                                                        generatorTuplesImplSupplier2,
-                                                                        pipelineReplicaMeter2 );
+                                                                        pipelineReplicaMeter2,
+                                                                        generatorInvocationContext2::createInputTuples,
+                                                                        new OperatorDef[] { generatorOperatorDef2 },
+                                                                        new InternalInvocationContext[] { generatorInvocationContext2 } );
 
-        final PipelineReplica pipeline2 = new PipelineReplica( jokerConfig,
-                                                               pipelineReplicaId2,
+        final PipelineReplica pipeline2 = new PipelineReplica( pipelineReplicaId2,
                                                                new OperatorReplica[] { generatorOperator2 },
-                                                               new EmptyOperatorTupleQueue( "generator2",
-                                                                                            generatorOperatorDef2.getInputPortCount() ),
+                                                               new EmptyOperatorQueue( "generator2",
+                                                                                       generatorOperatorDef2.getInputPortCount() ),
                                                                pipelineReplicaMeter2 );
 
-        pipeline2.init( supervisor.upstreamContexts.get( pipelineReplicaId2 ) );
+        pipeline2.init( new SchedulingStrategy[][] { { ScheduleWhenAvailable.INSTANCE } },
+                        new UpstreamContext[][] { { supervisor.upstreamContexts.get( pipelineReplicaId2 ) } } );
 
         final OperatorConfig sinkOperatorConfig = new OperatorConfig();
         final OperatorDef sinkOperatorDef = OperatorDefBuilder.newInstance( "sink", ValueSinkOperator.class )
@@ -591,7 +634,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                               .build();
 
         final OperatorConfig passerOperatorConfig = new OperatorConfig();
-        passerOperatorConfig.set( "batchCount", batchCount / 2 );
+        final int passerBatchCount = batchCount / 2;
+        passerOperatorConfig.set( "batchCount", passerBatchCount );
         final OperatorDef passerOperatorDef = OperatorDefBuilder.newInstance( "passer", ValuePasserOperator.class )
                                                                 .setConfig( passerOperatorConfig )
                                                                 .build();
@@ -604,65 +648,81 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                      pipelineReplicaId3,
                                                                                      sinkOperatorDef );
 
-        final OperatorTupleQueue sinkOperatorTupleQueue = operatorTupleQueueManager.createDefaultOperatorTupleQueue( REGION_ID,
-                                                                                                                     REPLICA_INDEX,
-                                                                                                                     sinkOperatorDef,
-                                                                                                                     MULTI_THREADED );
+        final OperatorQueue sinkOperatorQueue = operatorQueueManager.createDefaultQueue( REGION_ID,
+                                                                                         sinkOperatorDef,
+                                                                                         REPLICA_INDEX,
+                                                                                         MULTI_THREADED );
         final TupleQueueDrainerPool sinkDrainerPool = new BlockingTupleQueueDrainerPool( jokerConfig, sinkOperatorDef );
-        final Supplier<TuplesImpl> sinkTuplesImplSupplier = new CachedTuplesImplSupplier( sinkOperatorDef.getOutputPortCount() );
-        final OperatorKVStore sinkOperatorKVStore = operatorKVStoreManager.createDefaultOperatorKVStore( REGION_ID, "sink" );
+        final OperatorKVStore sinkOperatorKVStore = operatorKVStoreManager.createDefaultKVStore( REGION_ID, "sink" );
+        final DefaultInvocationContext sinkInvocationContext = new DefaultInvocationContext( sinkOperatorDef.getInputPortCount(),
+                                                                                             sinkOperatorKVStore::getKVStore,
+                                                                                             new DefaultOutputTupleCollector(
+                                                                                                     sinkOperatorDef.getOutputPortCount()
+                                                                                             ) );
         final OperatorReplica sinkOperator = new OperatorReplica( pipelineReplicaId3,
-                                                                  sinkOperatorDef,
-                                                                  sinkOperatorTupleQueue,
-                                                                  sinkOperatorKVStore,
+                                                                  sinkOperatorQueue,
                                                                   sinkDrainerPool,
-                                                                  sinkTuplesImplSupplier,
-                                                                  pipelineReplicaMeter3 );
+                                                                  pipelineReplicaMeter3,
+                                                                  sinkInvocationContext::createInputTuples,
+                                                                  new OperatorDef[] { sinkOperatorDef },
+                                                                  new InternalInvocationContext[] { sinkInvocationContext } );
 
-        final OperatorTupleQueue passerOperatorTupleQueue = operatorTupleQueueManager.createDefaultOperatorTupleQueue( REGION_ID,
-                                                                                                                       REPLICA_INDEX,
-                                                                                                                       passerOperatorDef,
-                                                                                                                       SINGLE_THREADED );
+        final OperatorQueue passerOperatorQueue = operatorQueueManager.createDefaultQueue( REGION_ID,
+                                                                                           passerOperatorDef,
+                                                                                           REPLICA_INDEX,
+                                                                                           SINGLE_THREADED );
         final TupleQueueDrainerPool passerDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, passerOperatorDef );
-        final Supplier<TuplesImpl> passerTuplesImplSupplier = new CachedTuplesImplSupplier( passerOperatorDef.getOutputPortCount() );
+        final DefaultInvocationContext passerInvocationContext = new DefaultInvocationContext( passerOperatorDef.getInputPortCount(),
+                                                                                               k -> null,
+                                                                                               new DefaultOutputTupleCollector(
+                                                                                                       passerOperatorDef
+                                                                                                               .getOutputPortCount() ) );
         final OperatorReplica passerOperator = new OperatorReplica( pipelineReplicaId3,
-                                                                    passerOperatorDef,
-                                                                    passerOperatorTupleQueue,
-                                                                    nopOperatorKvStore,
+                                                                    passerOperatorQueue,
                                                                     passerDrainerPool,
-                                                                    passerTuplesImplSupplier,
-                                                                    pipelineReplicaMeter3 );
+                                                                    pipelineReplicaMeter3,
+                                                                    passerInvocationContext::createInputTuples,
+                                                                    new OperatorDef[] { passerOperatorDef },
+                                                                    new InternalInvocationContext[] { passerInvocationContext } );
         final PartitionDistribution partitionDistribution = partitionService.createPartitionDistribution( REGION_ID, 1 );
-        final OperatorKVStore[] operatorKvStores = operatorKVStoreManager.createPartitionedOperatorKVStores( REGION_ID,
-                                                                                                             "state",
-                                                                                                             partitionDistribution );
-        final OperatorTupleQueue[] stateOperatorTupleQueues = operatorTupleQueueManager.createPartitionedOperatorTupleQueues( REGION_ID,
-                                                                                                                              stateOperatorDef,
-                                                                                                                              partitionDistribution );
-        final OperatorTupleQueue stateOperatorTupleQueue = stateOperatorTupleQueues[ 0 ];
-        final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, stateOperatorDef );
-        final Supplier<TuplesImpl> stateTuplesImplSupplier = new CachedTuplesImplSupplier( stateOperatorDef.getOutputPortCount() );
-        final OperatorReplica stateOperator = new OperatorReplica( pipelineReplicaId3,
-                                                                   stateOperatorDef,
-                                                                   stateOperatorTupleQueue,
-                                                                   operatorKvStores[ 0 ],
-                                                                   stateDrainerPool,
-                                                                   stateTuplesImplSupplier,
-                                                                   pipelineReplicaMeter3 );
+        final OperatorKVStore[] operatorKvStores = operatorKVStoreManager.createPartitionedKVStores( REGION_ID, "state",
 
-        final PipelineReplica pipeline3 = new PipelineReplica( jokerConfig,
-                                                               pipelineReplicaId3,
+                                                                                                     partitionDistribution );
+        final OperatorQueue[] stateOperatorQueues = operatorQueueManager.createPartitionedQueues( REGION_ID,
+                                                                                                  stateOperatorDef,
+                                                                                                  partitionDistribution );
+        final OperatorQueue stateOperatorQueue = stateOperatorQueues[ 0 ];
+        final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, stateOperatorDef );
+        final DefaultInvocationContext stateInvocationContext = new DefaultInvocationContext( stateOperatorDef.getInputPortCount(),
+                                                                                              operatorKvStores[ 0 ]::getKVStore,
+                                                                                              new DefaultOutputTupleCollector(
+                                                                                                      stateOperatorDef.getOutputPortCount
+                                                                                                                               () ) );
+        final OperatorReplica stateOperator = new OperatorReplica( pipelineReplicaId3,
+                                                                   stateOperatorQueue,
+                                                                   stateDrainerPool,
+                                                                   pipelineReplicaMeter3,
+                                                                   stateInvocationContext::createInputTuples,
+                                                                   new OperatorDef[] { stateOperatorDef },
+                                                                   new InternalInvocationContext[] { stateInvocationContext } );
+
+        final PipelineReplica pipeline3 = new PipelineReplica( pipelineReplicaId3,
                                                                new OperatorReplica[] { sinkOperator, passerOperator, stateOperator },
-                                                               new EmptyOperatorTupleQueue( "sink", sinkOperatorDef.getInputPortCount() ),
+                                                               new EmptyOperatorQueue( "sink", sinkOperatorDef.getInputPortCount() ),
                                                                pipelineReplicaMeter3 );
 
-        pipeline3.init( supervisor.upstreamContexts.get( pipelineReplicaId3 ) );
+        pipeline3.init( new SchedulingStrategy[][] { { scheduleWhenTuplesAvailableOnAny( AT_LEAST, 2, 1, 0, 1 ) },
+                                                     { scheduleWhenTuplesAvailableOnDefaultPort( EXACT, passerBatchCount ) },
+                                                     { scheduleWhenTuplesAvailableOnDefaultPort( EXACT, 1 ) } },
+                        new UpstreamContext[][] { { supervisor.upstreamContexts.get( pipelineReplicaId3 ) },
+                                                  { newInitialUpstreamContextWithAllPortsConnected( 1 ) },
+                                                  { newInitialUpstreamContextWithAllPortsConnected( 1 ) } } );
 
-        final DownstreamTupleSenderImpl sender1 = new DownstreamTupleSenderImpl( sinkOperatorTupleQueue, new Pair[] { Pair.of( 0, 0 ) } );
+        final DownstreamTupleSenderImpl sender1 = new DownstreamTupleSenderImpl( sinkOperatorQueue, new Pair[] { Pair.of( 0, 0 ) } );
         final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig, pipeline1, supervisor, sender1 );
         supervisor.downstreamTupleSenders.put( pipeline1.id(), sender1 );
 
-        final DownstreamTupleSenderImpl sender2 = new DownstreamTupleSenderImpl( sinkOperatorTupleQueue, new Pair[] { Pair.of( 0, 1 ) } );
+        final DownstreamTupleSenderImpl sender2 = new DownstreamTupleSenderImpl( sinkOperatorQueue, new Pair[] { Pair.of( 0, 1 ) } );
         final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( jokerConfig, pipeline2, supervisor, sender2 );
         supervisor.downstreamTupleSenders.put( pipeline2.id(), sender2 );
 
@@ -677,30 +737,30 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final Thread runnerThread2 = spawnThread( runner2 );
         final Thread runnerThread3 = spawnThread( runner3 );
 
-        final ValueGeneratorOperator generatorOp1 = (ValueGeneratorOperator) generatorOperator1.getOperator();
+        final ValueGeneratorOperator generatorOp1 = (ValueGeneratorOperator) generatorOperator1.getOperator( 0 );
         generatorOp1.start = true;
 
-        final ValueGeneratorOperator generatorOp2 = (ValueGeneratorOperator) generatorOperator2.getOperator();
+        final ValueGeneratorOperator generatorOp2 = (ValueGeneratorOperator) generatorOperator2.getOperator( 0 );
 
         assertTrueEventually( () -> assertTrue( generatorOp1.count > 5000 ) );
-        supervisor.upstreamContexts.put( pipelineReplicaId1, new UpstreamContext( 1, new UpstreamConnectionStatus[] {} ) );
+        supervisor.upstreamContexts.put( pipelineReplicaId1, newSourceOperatorShutdownUpstreamContext() );
         runner1.updatePipelineUpstreamContext();
 
         generatorOp2.start = true;
         assertTrueEventually( () -> assertTrue( generatorOp2.count < -5000 ) );
-        supervisor.upstreamContexts.put( pipelineReplicaId2, new UpstreamContext( 1, new UpstreamConnectionStatus[] {} ) );
+        supervisor.upstreamContexts.put( pipelineReplicaId2, newSourceOperatorShutdownUpstreamContext() );
         runner2.updatePipelineUpstreamContext();
 
-        assertTrueEventually( () -> supervisor.completedPipelines.contains( pipelineReplicaId1 ) );
-        assertTrueEventually( () -> supervisor.completedPipelines.contains( pipelineReplicaId2 ) );
-        assertTrueEventually( () -> supervisor.completedPipelines.contains( pipelineReplicaId3 ) );
+        assertTrueEventually( () -> assertTrue( supervisor.completedPipelines.contains( pipelineReplicaId1 ) ) );
+        assertTrueEventually( () -> assertTrue( supervisor.completedPipelines.contains( pipelineReplicaId2 ) ) );
+        assertTrueEventually( () -> assertTrue( supervisor.completedPipelines.contains( pipelineReplicaId3 ) ) );
 
         runnerThread1.join();
         runnerThread2.join();
         runnerThread3.join();
 
-        final ValuePasserOperator passerOp = (ValuePasserOperator) passerOperator.getOperator();
-        final ValueStateOperator stateOp = (ValueStateOperator) stateOperator.getOperator();
+        final ValuePasserOperator passerOp = (ValuePasserOperator) passerOperator.getOperator( 0 );
+        final ValueStateOperator stateOp = (ValueStateOperator) stateOperator.getOperator( 0 );
 
         final int totalCount = generatorOp1.count + Math.abs( generatorOp2.count );
         assertEquals( totalCount, passerOp.count );
@@ -709,11 +769,11 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     }
 
     @Test
-    public void testMultiplePipelines_partitionedStatefulDownstreamPipeline () throws ExecutionException, InterruptedException
+    public void testMultiplePipelines_partitionedStatefulDownstreamPipeline () throws InterruptedException
     {
         final SupervisorImpl supervisor = new SupervisorImpl();
-        supervisor.upstreamContexts.put( pipelineReplicaId1, new UpstreamContext( 0, new UpstreamConnectionStatus[] {} ) );
-        supervisor.upstreamContexts.put( pipelineReplicaId2, new UpstreamContext( 0, new UpstreamConnectionStatus[] { ACTIVE } ) );
+        supervisor.upstreamContexts.put( pipelineReplicaId1, newSourceOperatorInitialUpstreamContext() );
+        supervisor.upstreamContexts.put( pipelineReplicaId2, newInitialUpstreamContextWithAllPortsConnected( 1 ) );
         supervisor.inputPortIndices.put( pipelineReplicaId1, 0 );
         supervisor.inputPortIndices.put( pipelineReplicaId2, 0 );
 
@@ -725,7 +785,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                    .build();
 
         final OperatorConfig passerOperatorConfig = new OperatorConfig();
-        passerOperatorConfig.set( "batchCount", batchCount / 2 );
+        final int passerBatchCount = batchCount / 2;
+        passerOperatorConfig.set( "batchCount", passerBatchCount );
         final OperatorDef passerOperatorDef = OperatorDefBuilder.newInstance( "passer", ValuePasserOperator.class )
                                                                 .setConfig( passerOperatorConfig )
                                                                 .build();
@@ -734,85 +795,99 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                      pipelineReplicaId1,
                                                                                      generatorOperatorDef );
 
-        final OperatorTupleQueue generatorOperatorTupleQueue = new EmptyOperatorTupleQueue( generatorOperatorDef.getId(),
-                                                                                            generatorOperatorDef.getInputPortCount() );
-
+        final OperatorQueue generatorOperatorQueue = new EmptyOperatorQueue( generatorOperatorDef.getId(),
+                                                                             generatorOperatorDef.getInputPortCount() );
+        final DefaultInvocationContext generatorInvocationContext = new DefaultInvocationContext( generatorOperatorDef.getInputPortCount(),
+                                                                                                  k -> null,
+                                                                                                  new DefaultOutputTupleCollector(
+                                                                                                          generatorOperatorDef
+                                                                                                                  .getOutputPortCount() ) );
         final TupleQueueDrainerPool generatorDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, generatorOperatorDef );
-        final Supplier<TuplesImpl> generatorTuplesImplSupplier = new CachedTuplesImplSupplier( generatorOperatorDef.getOutputPortCount() );
 
         final OperatorReplica generatorOperator = new OperatorReplica( pipelineReplicaId1,
-                                                                       generatorOperatorDef,
-                                                                       generatorOperatorTupleQueue,
-                                                                       nopOperatorKvStore,
+                                                                       generatorOperatorQueue,
                                                                        generatorDrainerPool,
-                                                                       generatorTuplesImplSupplier,
-                                                                       pipelineReplicaMeter1 );
+                                                                       pipelineReplicaMeter1,
+                                                                       generatorInvocationContext::createInputTuples,
+                                                                       new OperatorDef[] { generatorOperatorDef },
+                                                                       new InternalInvocationContext[] { generatorInvocationContext } );
 
-        final OperatorTupleQueue passerOperatorTupleQueue = operatorTupleQueueManager.createDefaultOperatorTupleQueue( REGION_ID,
-                                                                                                                       REPLICA_INDEX,
-                                                                                                                       passerOperatorDef,
-                                                                                                                       SINGLE_THREADED );
+        final OperatorQueue passerOperatorQueue = operatorQueueManager.createDefaultQueue( REGION_ID,
+                                                                                           passerOperatorDef,
+                                                                                           REPLICA_INDEX,
+                                                                                           SINGLE_THREADED );
 
         final TupleQueueDrainerPool passerDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, passerOperatorDef );
-        final Supplier<TuplesImpl> passerTuplesImplSupplier = new CachedTuplesImplSupplier( passerOperatorDef.getOutputPortCount() );
+        final DefaultInvocationContext passerInvocationContext = new DefaultInvocationContext( passerOperatorDef.getInputPortCount(),
+                                                                                               k -> null,
+                                                                                               new DefaultOutputTupleCollector(
+                                                                                                       passerOperatorDef
+                                                                                                               .getOutputPortCount() ) );
 
         final OperatorReplica passerOperator = new OperatorReplica( pipelineReplicaId1,
-                                                                    passerOperatorDef,
-                                                                    passerOperatorTupleQueue,
-                                                                    nopOperatorKvStore,
+                                                                    passerOperatorQueue,
                                                                     passerDrainerPool,
-                                                                    passerTuplesImplSupplier,
-                                                                    pipelineReplicaMeter1 );
+                                                                    pipelineReplicaMeter1,
+                                                                    passerInvocationContext::createInputTuples,
+                                                                    new OperatorDef[] { passerOperatorDef },
+                                                                    new InternalInvocationContext[] { passerInvocationContext } );
 
         final PartitionDistribution partitionDistribution = partitionService.createPartitionDistribution( REGION_ID, 1 );
-        final OperatorKVStore[] operatorKvStores = operatorKVStoreManager.createPartitionedOperatorKVStores( REGION_ID,
-                                                                                                             "state",
-                                                                                                             partitionDistribution );
+        final OperatorKVStore[] operatorKvStores = operatorKVStoreManager.createPartitionedKVStores( REGION_ID,
+                                                                                                     "state",
+                                                                                                     partitionDistribution );
 
         final OperatorDef stateOperatorDef = OperatorDefBuilder.newInstance( "state", ValueStateOperator.class )
                                                                .setPartitionFieldNames( singletonList( "val" ) )
                                                                .build();
 
-        final OperatorTupleQueue[] stateOperatorTupleQueues = operatorTupleQueueManager.createPartitionedOperatorTupleQueues( REGION_ID,
-                                                                                                                              stateOperatorDef,
-                                                                                                                              partitionDistribution );
-        final OperatorTupleQueue stateOperatorTupleQueue = stateOperatorTupleQueues[ 0 ];
+        final OperatorQueue[] stateOperatorQueues = operatorQueueManager.createPartitionedQueues( REGION_ID,
+                                                                                                  stateOperatorDef,
+                                                                                                  partitionDistribution );
+        final OperatorQueue stateOperatorQueue = stateOperatorQueues[ 0 ];
 
         final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, stateOperatorDef );
-        final Supplier<TuplesImpl> stateTuplesImplSupplier = new CachedTuplesImplSupplier( stateOperatorDef.getOutputPortCount() );
 
         final PipelineReplicaMeter pipelineReplicaMeter2 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId2,
                                                                                      stateOperatorDef );
-        final OperatorReplica stateOperator = new OperatorReplica( pipelineReplicaId2,
-                                                                   stateOperatorDef,
-                                                                   stateOperatorTupleQueue,
-                                                                   operatorKvStores[ 0 ],
-                                                                   stateDrainerPool,
-                                                                   stateTuplesImplSupplier,
-                                                                   pipelineReplicaMeter2 );
 
-        final PipelineReplica pipeline1 = new PipelineReplica( jokerConfig,
-                                                               pipelineReplicaId1,
+        final DefaultInvocationContext stateInvocationContext = new DefaultInvocationContext( stateOperatorDef.getInputPortCount(),
+                                                                                              operatorKvStores[ 0 ]::getKVStore,
+                                                                                              new DefaultOutputTupleCollector(
+                                                                                                      stateOperatorDef.getOutputPortCount
+                                                                                                                               () ) );
+        final OperatorReplica stateOperator = new OperatorReplica( pipelineReplicaId2,
+                                                                   stateOperatorQueue,
+                                                                   stateDrainerPool,
+                                                                   pipelineReplicaMeter2,
+                                                                   stateInvocationContext::createInputTuples,
+                                                                   new OperatorDef[] { stateOperatorDef },
+                                                                   new InternalInvocationContext[] { stateInvocationContext } );
+
+        final PipelineReplica pipeline1 = new PipelineReplica( pipelineReplicaId1,
                                                                new OperatorReplica[] { generatorOperator, passerOperator },
-                                                               new EmptyOperatorTupleQueue( "generator",
-                                                                                            generatorOperatorDef.getInputPortCount() ),
+                                                               new EmptyOperatorQueue( "generator",
+                                                                                       generatorOperatorDef.getInputPortCount() ),
                                                                pipelineReplicaMeter1 );
 
-        pipeline1.init( supervisor.upstreamContexts.get( pipelineReplicaId1 ) );
+        pipeline1.init( new SchedulingStrategy[][] { { ScheduleWhenAvailable.INSTANCE },
+                                                     { scheduleWhenTuplesAvailableOnDefaultPort( EXACT, passerBatchCount ) } },
+                        new UpstreamContext[][] { { supervisor.upstreamContexts.get( pipelineReplicaId1 ) },
+                                                  { newInitialUpstreamContextWithAllPortsConnected( 1 ) } } );
 
-        final PipelineReplica pipeline2 = new PipelineReplica( jokerConfig,
-                                                               pipelineReplicaId2,
+        final PipelineReplica pipeline2 = new PipelineReplica( pipelineReplicaId2,
                                                                new OperatorReplica[] { stateOperator },
-                                                               operatorTupleQueueManager.createDefaultOperatorTupleQueue( REGION_ID,
-                                                                                                                          REPLICA_INDEX,
-                                                                                                                          stateOperatorDef,
-                                                                                                                          MULTI_THREADED ),
+                                                               operatorQueueManager.createDefaultQueue( REGION_ID,
+                                                                                                        stateOperatorDef,
+                                                                                                        REPLICA_INDEX,
+                                                                                                        MULTI_THREADED ),
                                                                pipelineReplicaMeter2 );
 
-        pipeline2.init( supervisor.upstreamContexts.get( pipelineReplicaId2 ) );
+        pipeline2.init( new SchedulingStrategy[][] { { scheduleWhenTuplesAvailableOnDefaultPort( EXACT, 1 ) } },
+                        new UpstreamContext[][] { { supervisor.upstreamContexts.get( pipelineReplicaId2 ) } } );
 
-        final DownstreamTupleSenderImpl sender1 = new DownstreamTupleSenderImpl( pipeline2.getPipelineTupleQueue(),
+        final DownstreamTupleSenderImpl sender1 = new DownstreamTupleSenderImpl( pipeline2.getEffectiveQueue(),
                                                                                  new Pair[] { Pair.of( 0, 0 ) } );
         supervisor.downstreamTupleSenders.put( pipeline1.id(), sender1 );
         final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig, pipeline1, supervisor, sender1 );
@@ -827,22 +902,22 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final Thread runnerThread1 = spawnThread( runner1 );
         final Thread runnerThread2 = spawnThread( runner2 );
 
-        final ValueGeneratorOperator generatorOp = (ValueGeneratorOperator) generatorOperator.getOperator();
+        final ValueGeneratorOperator generatorOp = (ValueGeneratorOperator) generatorOperator.getOperator( 0 );
         generatorOp.start = true;
 
         assertTrueEventually( () -> assertTrue( generatorOp.count > 1000 ) );
 
-        supervisor.upstreamContexts.put( pipelineReplicaId1, new UpstreamContext( 1, new UpstreamConnectionStatus[] {} ) );
+        supervisor.upstreamContexts.put( pipelineReplicaId1, newSourceOperatorShutdownUpstreamContext() );
         runner1.updatePipelineUpstreamContext();
 
-        assertTrueEventually( () -> supervisor.completedPipelines.contains( pipelineReplicaId1 ) );
-        assertTrueEventually( () -> supervisor.completedPipelines.contains( pipelineReplicaId2 ) );
+        assertTrueEventually( () -> assertTrue( supervisor.completedPipelines.contains( pipelineReplicaId1 ) ) );
+        assertTrueEventually( () -> assertTrue( supervisor.completedPipelines.contains( pipelineReplicaId2 ) ) );
 
         runnerThread1.join();
         runnerThread2.join();
 
-        final ValuePasserOperator passerOp = (ValuePasserOperator) passerOperator.getOperator();
-        final ValueStateOperator stateOp = (ValueStateOperator) stateOperator.getOperator();
+        final ValuePasserOperator passerOp = (ValuePasserOperator) passerOperator.getOperator( 0 );
+        final ValueStateOperator stateOp = (ValueStateOperator) stateOperator.getOperator( 0 );
 
         assertEquals( generatorOp.count, passerOp.count );
         assertEquals( generatorOp.count, stateOp.count );
@@ -875,14 +950,12 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         }
 
         @Override
-        public Future<Void> send ( final TuplesImpl tuples )
+        public void send ( final TuplesImpl tuples )
         {
             for ( int i = 0; i < tuples.getPortCount(); i++ )
             {
                 tupleQueues[ i ].offer( tuples.getTuples( i ) );
             }
-
-            return null;
         }
 
     }
@@ -891,24 +964,22 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     @OperatorSpec( type = STATEFUL, inputPortCount = 2, outputPortCount = 1 )
     @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ),
 
-                                @PortSchema( portIndex = 1, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ) }, outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ) } )
+                                @PortSchema( portIndex = 1, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ) }, outputs = {
+            @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ) } )
     public static class ValueSinkOperator implements Operator
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
-            return scheduleWhenTuplesAvailableOnAny( 2, 1, 0, 1 );
+            return scheduleWhenTuplesAvailableOnAny( AT_LEAST, 2, 1, 0, 1 );
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
-            final Tuples input = context.getInput();
-
-            final Tuples output = context.getOutput();
-            output.addAll( input.getTuples( 0 ) );
-            output.addAll( input.getTuples( 1 ) );
+            ctx.output( ctx.getInputTuples( 0 ) );
+            ctx.output( ctx.getInputTuples( 1 ) );
         }
 
     }
@@ -928,9 +999,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         private boolean increment;
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
-            final OperatorConfig config = context.getConfig();
+            final OperatorConfig config = ctx.getConfig();
             batchCount = config.getInteger( "batchCount" );
             count = config.getIntegerOrDefault( "initial", 0 );
             increment = config.getBooleanOrDefault( "increment", true );
@@ -938,17 +1009,16 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
             if ( start )
             {
-                final Tuples output = context.getOutput();
                 for ( int i = 0; i < batchCount; i++ )
                 {
                     final int val = increment ? ++count : --count;
                     final Tuple t = new Tuple();
                     t.set( "val", val );
-                    output.add( t );
+                    ctx.output( t );
                 }
             }
             else
@@ -961,26 +1031,25 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
 
     @OperatorSpec( type = STATELESS, inputPortCount = 1, outputPortCount = 1 )
-    @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ) }, outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ) } )
+    @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ) }, outputs = {
+            @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ) } )
     public static class ValuePasserOperator implements Operator
     {
 
         private volatile int count;
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitializationContext ctx )
         {
-            final int batchCount = context.getConfig().getInteger( "batchCount" );
+            final int batchCount = ctx.getConfig().getInteger( "batchCount" );
             return scheduleWhenTuplesAvailableOnDefaultPort( EXACT, batchCount );
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
-            final Tuples input = context.getInput();
-            final Tuples output = context.getOutput();
-            output.addAll( input.getTuplesByDefaultPort() );
-            count += input.getTupleCount( 0 );
+            ctx.output( ctx.getInputTuplesByDefaultPort() );
+            count += ctx.getInputTupleCount( 0 );
         }
 
     }
@@ -1000,16 +1069,15 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext context )
+        public void invoke ( final InvocationContext ctx )
         {
-            final Tuples input = context.getInput();
-            final KVStore kvStore = context.getKVStore();
-            for ( Tuple tuple : input.getTuplesByDefaultPort() )
+            final KVStore kvStore = ctx.getKVStore();
+            for ( Tuple tuple : ctx.getInputTuplesByDefaultPort() )
             {
                 kvStore.set( "tuple", tuple );
             }
 
-            count += input.getTupleCount( 0 );
+            count += ctx.getInputTupleCount( 0 );
         }
 
     }
@@ -1020,18 +1088,18 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         private final IdleStrategy idleStrategy = BackoffIdleStrategy.newDefaultInstance();
 
-        private final OperatorTupleQueue operatorTupleQueue;
+        private final OperatorQueue operatorQueue;
 
         private final Pair<Integer, Integer>[] ports;
 
-        public DownstreamTupleSenderImpl ( final OperatorTupleQueue operatorTupleQueue, final Pair<Integer, Integer>[] ports )
+        public DownstreamTupleSenderImpl ( final OperatorQueue operatorQueue, final Pair<Integer, Integer>[] ports )
         {
-            this.operatorTupleQueue = operatorTupleQueue;
+            this.operatorQueue = operatorQueue;
             this.ports = ports;
         }
 
         @Override
-        public Future<Void> send ( final TuplesImpl input )
+        public void send ( final TuplesImpl input )
         {
             for ( Pair<Integer, Integer> p : ports )
             {
@@ -1046,7 +1114,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                     int fromIndex = 0;
                     while ( true )
                     {
-                        final int offered = operatorTupleQueue.offer( inputPort, tuples, fromIndex );
+                        final int offered = operatorQueue.offer( inputPort, tuples, fromIndex );
                         fromIndex += offered;
                         if ( fromIndex == size )
                         {
@@ -1059,8 +1127,6 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                     }
                 }
             }
-
-            return null;
         }
 
     }
@@ -1100,7 +1166,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
             if ( !id.equals( targetPipelineReplicaId ) )
             {
                 final UpstreamContext currentUpstreamContext = upstreamContexts.get( targetPipelineReplicaId );
-                final UpstreamContext newUpstreamContext = currentUpstreamContext.withClosedUpstreamConnection( inputPortIndices.get( id ) );
+                final UpstreamContext newUpstreamContext = currentUpstreamContext.withConnectionClosed( inputPortIndices.get( id ) );
                 upstreamContexts.put( targetPipelineReplicaId, newUpstreamContext );
                 runner.updatePipelineUpstreamContext();
             }

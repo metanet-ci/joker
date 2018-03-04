@@ -322,15 +322,6 @@ public class JokerConfigBuilderTest extends AbstractJokerTest
     }
 
     @Test
-    public void test_TupleQueueDrainerConfig_partitionedStatefulPipelineDrainerMaxBatchSize ()
-    {
-        final int val = 234;
-        builder.getTupleQueueDrainerConfigBuilder().setPartitionedStatefulPipelineDrainerMaxBatchSize( val );
-
-        assertEquals( val, builder.build().getTupleQueueDrainerConfig().getPartitionedStatefulPipelineDrainerMaxBatchSize() );
-    }
-
-    @Test
     public void test_TupleQueueManagerConfig_tupleQueueCapacity ()
     {
         final int val = 234;
@@ -340,21 +331,12 @@ public class JokerConfigBuilderTest extends AbstractJokerTest
     }
 
     @Test
-    public void test_TupleQueueManagerConfig_maxDrainableKeyCount ()
+    public void test_TupleQueueManagerConfig_multiThreadedQueueDrainLimit ()
     {
         final int val = 234;
-        builder.getTupleQueueManagerConfigBuilder().setMaxDrainableKeyCount( val );
+        builder.getTupleQueueManagerConfigBuilder().setMultiThreadedQueueDrainLimit( val );
 
-        assertEquals( val, builder.build().getTupleQueueManagerConfig().getMaxDrainableKeyCount() );
-    }
-
-    @Test
-    public void test_TupleQueueManagerConfig_partitionedTupleQueueDrainHint ()
-    {
-        final int val = 234;
-        builder.getTupleQueueManagerConfigBuilder().setPartitionedTupleQueueDrainHint( val );
-
-        assertEquals( val, builder.build().getTupleQueueManagerConfig().getPartitionedTupleQueueDrainHint() );
+        assertEquals( val, builder.build().getTupleQueueManagerConfig().getMultiThreadedQueueDrainLimit() );
     }
 
 }

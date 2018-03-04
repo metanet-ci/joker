@@ -13,16 +13,9 @@ import org.slf4j.LoggerFactory;
 
 import cs.bilkent.joker.operator.InitializationContext;
 import cs.bilkent.joker.operator.InvocationContext;
-import cs.bilkent.joker.operator.InvocationContext.InvocationReason;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
-import cs.bilkent.joker.operator.OperatorDef;
-import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuples;
-import cs.bilkent.joker.operator.impl.InitializationContextImpl;
-import cs.bilkent.joker.operator.impl.InvocationContextImpl;
-import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.schema.annotation.OperatorSchema;
@@ -88,49 +81,12 @@ public class SentenceBeaconOperator implements Operator
     private volatile boolean shutdown;
 
 
-    public static void main ( String[] args ) throws InstantiationException, IllegalAccessException
-    {
-        OperatorConfig config = new OperatorConfig();
-        config.set( MIN_WORD_LENGTH_PARAM, 4 );
-        config.set( MAX_WORD_LENGTH_PARAM, 8 );
-        config.set( WORD_COUNT_PER_LENGTH_PARAM, 4096 );
-        config.set( MIN_SENTENCE_LENGTH_PARAM, 3 );
-        config.set( MAX_SENTENCE_LENGTH_PARAM, 10 );
-        config.set( SENTENCE_COUNT_PER_LENGTH_PARAM, 8192 );
-        config.set( SHUFFLED_SENTENCE_COUNT_PARAM, 8192 );
-        config.set( MAX_PARTITION_INDEX_PARAM, 271 * 100 );
-        config.set( SENTENCE_COUNT_PER_INVOCATION_PARAM, 256 );
-
-        final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "beacon", SentenceBeaconOperator.class )
-                                                          .setConfig( config )
-                                                          .build();
-
-        final Operator operator = operatorDef.createOperator();
-
-        InitializationContextImpl initializationContext = new InitializationContextImpl( operatorDef, new boolean[] {} );
-        operator.init( initializationContext );
-
-        while ( true )
-        {
-            InvocationContextImpl invocationContext = new InvocationContextImpl();
-            TuplesImpl output = new TuplesImpl( 1 );
-            invocationContext.setInvocationParameters( InvocationReason.SUCCESS, new TuplesImpl( 0 ), output );
-
-            operator.invoke( invocationContext );
-
-            for ( Tuple tuple : output.getTuplesModifiable( 0 ) )
-            {
-                System.out.println( tuple.get( PARTITION_INDEX_FIELD ) + " -> " + tuple.get( SENTENCE_FIELD ) );
-            }
-        }
-    }
-
     @Override
-    public SchedulingStrategy init ( final InitializationContext context )
+    public SchedulingStrategy init ( final InitializationContext ctx )
     {
-        this.outputSchema = context.getOutputPortSchema( 0 );
+        this.outputSchema = ctx.getOutputPortSchema( 0 );
 
-        final OperatorConfig config = context.getConfig();
+        final OperatorConfig config = ctx.getConfig();
         this.maxPartitionIndex = config.getInteger( MAX_PARTITION_INDEX_PARAM );
         this.sentenceCountPerInvocation = config.getInteger( SENTENCE_COUNT_PER_INVOCATION_PARAM );
 
@@ -163,9 +119,8 @@ public class SentenceBeaconOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext context )
+    public void invoke ( final InvocationContext ctx )
     {
-        final Tuples output = context.getOutput();
         for ( int i = 0; i < sentenceCountPerInvocation; i++ )
         {
             final Tuple result = new Tuple( outputSchema );
@@ -182,7 +137,7 @@ public class SentenceBeaconOperator implements Operator
                 getSentences();
             }
 
-            output.add( result );
+            ctx.output( result );
         }
     }
 
