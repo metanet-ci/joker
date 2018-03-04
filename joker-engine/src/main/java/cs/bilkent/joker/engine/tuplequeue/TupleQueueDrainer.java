@@ -25,12 +25,11 @@ public interface TupleQueueDrainer
      *         a boolean flag to specify if the drainer may not block if it is a blocking drainer
      * @param key
      *         partition key of the tuples which reside in the given tuple queues. Allowed to be null if tuples do not have a partition key
-     * @param tupleQueues
+     * @param queues
      *         tuple queues to be drained
      */
     boolean drain ( boolean maySkipBlocking,
-                    @Nullable PartitionKey key,
-                    TupleQueue[] tupleQueues,
+                    @Nullable PartitionKey key, TupleQueue[] queues,
                     Function<PartitionKey, TuplesImpl> tuplesSupplier );
 
 }

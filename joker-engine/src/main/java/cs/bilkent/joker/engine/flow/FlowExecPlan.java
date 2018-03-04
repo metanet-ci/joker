@@ -10,28 +10,28 @@ import static java.util.Collections.unmodifiableList;
 import static java.util.stream.Collectors.joining;
 
 /**
- * Represents an execution plan as a list of {@link RegionExecutionPlan} objects, which are determined for a given {@link FlowDef} object.
+ * Represents an execution plan as a list of {@link RegionExecPlan} objects, which are determined for a given {@link FlowDef} object.
  * Each flow execution plan contains a version number. It is incremented once a new execution plan is created from the current one.
  * <p>
  * A {@link FlowDef} object is divided into regions, based on types, connections and port schemas of the operators in it. Each region is
  * monitored and scaled independently by the runtime.
  *
- * @see RegionExecutionPlan
+ * @see RegionExecPlan
  */
-public class FlowExecutionPlan
+public class FlowExecPlan
 {
 
     private final int version;
 
     private final FlowDef flow;
 
-    private final List<RegionExecutionPlan> regionExecutionPlans;
+    private final List<RegionExecPlan> regionExecPlans;
 
-    public FlowExecutionPlan ( final int version, final FlowDef flow, final Collection<RegionExecutionPlan> regionExecutionPlans )
+    public FlowExecPlan ( final int version, final FlowDef flow, final Collection<RegionExecPlan> regionExecPlans )
     {
         this.version = version;
         this.flow = flow;
-        this.regionExecutionPlans = unmodifiableList( new ArrayList<>( regionExecutionPlans ) );
+        this.regionExecPlans = unmodifiableList( new ArrayList<>( regionExecPlans ) );
     }
 
     /**
@@ -45,9 +45,9 @@ public class FlowExecutionPlan
     }
 
     /**
-     * Returns the flow object which is being executed with the current {@link FlowExecutionPlan} object.
+     * Returns the flow object which is being executed with the current {@link FlowExecPlan} object.
      *
-     * @return the flow object which is being executed with the current {@link FlowExecutionPlan} object.
+     * @return the flow object which is being executed with the current {@link FlowExecPlan} object.
      */
     public FlowDef getFlow ()
     {
@@ -59,9 +59,9 @@ public class FlowExecutionPlan
      *
      * @return execution plans of the regions determined from the given {@link FlowDef} object.
      */
-    public List<RegionExecutionPlan> getRegionExecutionPlans ()
+    public List<RegionExecPlan> getRegionExecPlans ()
     {
-        return regionExecutionPlans;
+        return regionExecPlans;
     }
 
     /**
@@ -72,13 +72,13 @@ public class FlowExecutionPlan
      *
      * @return the execution plan for the region specified with {@code regionId} parameter.
      */
-    public RegionExecutionPlan getRegionExecutionPlan ( final int regionId )
+    public RegionExecPlan getRegionExecPlan ( final int regionId )
     {
-        for ( RegionExecutionPlan regionExecutionPlan : regionExecutionPlans )
+        for ( RegionExecPlan regionExecPlan : regionExecPlans )
         {
-            if ( regionExecutionPlan.getRegionId() == regionId )
+            if ( regionExecPlan.getRegionId() == regionId )
             {
-                return regionExecutionPlan;
+                return regionExecPlan;
             }
         }
 
@@ -93,15 +93,15 @@ public class FlowExecutionPlan
      *
      * @return the execution plan for the region which contains the operator given with {@code operatorId} parameter.
      */
-    public RegionExecutionPlan getRegionExecutionPlan ( final String operatorId )
+    public RegionExecPlan getRegionExecPlan ( final String operatorId )
     {
-        for ( RegionExecutionPlan regionExecutionPlan : regionExecutionPlans )
+        for ( RegionExecPlan regionExecPlan : regionExecPlans )
         {
-            for ( OperatorDef operatorDef : regionExecutionPlan.getRegionDef().getOperators() )
+            for ( OperatorDef operatorDef : regionExecPlan.getRegionDef().getOperators() )
             {
                 if ( operatorDef.getId().equals( operatorId ) )
                 {
-                    return regionExecutionPlan;
+                    return regionExecPlan;
                 }
             }
         }
@@ -119,11 +119,11 @@ public class FlowExecutionPlan
      */
     public PipelineId getOperatorPipeline ( final String operatorId )
     {
-        for ( RegionExecutionPlan regionExecutionPlan : regionExecutionPlans )
+        for ( RegionExecPlan regionExecPlan : regionExecPlans )
         {
-            for ( PipelineId pipelineId : regionExecutionPlan.getPipelineIds() )
+            for ( PipelineId pipelineId : regionExecPlan.getPipelineIds() )
             {
-                for ( OperatorDef operatorDef : regionExecutionPlan.getOperatorDefsByPipelineIndex( pipelineId.getPipelineStartIndex() ) )
+                for ( OperatorDef operatorDef : regionExecPlan.getOperatorDefsByPipelineIndex( pipelineId.getPipelineStartIndex() ) )
                 {
                     if ( operatorDef.getId().equals( operatorId ) )
                     {
@@ -138,12 +138,12 @@ public class FlowExecutionPlan
 
     public int getRegionCount ()
     {
-        return regionExecutionPlans.size();
+        return regionExecPlans.size();
     }
 
-    public String toPlanSummaryString ()
+    public String toSummaryString ()
     {
-        return regionExecutionPlans.stream().map( RegionExecutionPlan::toPlanSummaryString ).collect( joining( ",", "{", "}" ) );
+        return regionExecPlans.stream().map( RegionExecPlan::toPlanSummaryString ).collect( joining( ",", "{", "}" ) );
     }
 
     @Override
@@ -158,9 +158,9 @@ public class FlowExecutionPlan
             return false;
         }
 
-        final FlowExecutionPlan that = (FlowExecutionPlan) o;
+        final FlowExecPlan that = (FlowExecPlan) o;
 
-        return version == that.version && flow.equals( that.flow ) && regionExecutionPlans.equals( that.regionExecutionPlans );
+        return version == that.version && flow.equals( that.flow ) && regionExecPlans.equals( that.regionExecPlans );
     }
 
     @Override
@@ -168,7 +168,7 @@ public class FlowExecutionPlan
     {
         int result = version;
         result = 31 * result + flow.hashCode();
-        result = 31 * result + regionExecutionPlans.hashCode();
+        result = 31 * result + regionExecPlans.hashCode();
         return result;
     }
 

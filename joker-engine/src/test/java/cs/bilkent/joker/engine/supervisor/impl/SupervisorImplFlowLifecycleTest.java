@@ -18,7 +18,7 @@ import static cs.bilkent.joker.engine.FlowStatus.INITIALIZATION_FAILED;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.flow.RegionDef;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus;
 import cs.bilkent.joker.engine.pipeline.Pipeline;
 import cs.bilkent.joker.engine.pipeline.PipelineManager;
@@ -80,10 +80,10 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
 
         final FlowDef flowDef = new FlowDefBuilder().add( operatorDef1 ).add( operatorDef2 ).connect( "op1", "op2" ).build();
         final List<RegionDef> regions = regionDefFormer.createRegions( flowDef );
-        final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( regions.get( 0 ), singletonList( 0 ), 1 );
-        final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( regions.get( 1 ), singletonList( 0 ), 1 );
+        final RegionExecPlan regionExecPlan1 = new RegionExecPlan( regions.get( 0 ), singletonList( 0 ), 1 );
+        final RegionExecPlan regionExecPlan2 = new RegionExecPlan( regions.get( 1 ), singletonList( 0 ), 1 );
 
-        supervisor.start( flowDef, asList( regionExecutionPlan1, regionExecutionPlan2 ) );
+        supervisor.start( flowDef, asList( regionExecPlan1, regionExecPlan2 ) );
 
         for ( Pipeline pipeline : pipelineManager.getPipelines() )
         {
@@ -92,7 +92,7 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
                 final PipelineReplica pipelineReplica = pipeline.getPipelineReplica( replicaIndex );
                 for ( int operatorIndex = 0; operatorIndex < pipelineReplica.getOperatorCount(); operatorIndex++ )
                 {
-                    assertEquals( OperatorReplicaStatus.RUNNING, pipelineReplica.getOperator( operatorIndex ).getStatus() );
+                    assertEquals( OperatorReplicaStatus.RUNNING, pipelineReplica.getOperatorReplica( operatorIndex ).getStatus() );
                 }
             }
         }
@@ -116,14 +116,14 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
                                                     .connect( "op2", 0, "op3", 1 )
                                                     .build();
         final List<RegionDef> regions = regionDefFormer.createRegions( flowDef );
-        final List<RegionExecutionPlan> regionExecutionPlans = new ArrayList<>();
+        final List<RegionExecPlan> regionExecPlans = new ArrayList<>();
         for ( RegionDef region : regions )
         {
             final int replicaCount = region.getRegionType() == PARTITIONED_STATEFUL ? 4 : 1;
-            regionExecutionPlans.add( new RegionExecutionPlan( region, singletonList( 0 ), replicaCount ) );
+            regionExecPlans.add( new RegionExecPlan( region, singletonList( 0 ), replicaCount ) );
         }
 
-        supervisor.start( flowDef, regionExecutionPlans );
+        supervisor.start( flowDef, regionExecPlans );
 
         supervisor.shutdown().get( 30, TimeUnit.SECONDS );
     }
@@ -137,13 +137,13 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
 
         final FlowDef flowDef = new FlowDefBuilder().add( operatorDef1 ).add( operatorDef2 ).connect( "op1", "op2" ).build();
         final List<RegionDef> regions = regionDefFormer.createRegions( flowDef );
-        final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( regions.get( 0 ), singletonList( 0 ), 1 );
-        final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( regions.get( 1 ), singletonList( 0 ), 1 );
+        final RegionExecPlan regionExecPlan1 = new RegionExecPlan( regions.get( 0 ), singletonList( 0 ), 1 );
+        final RegionExecPlan regionExecPlan2 = new RegionExecPlan( regions.get( 1 ), singletonList( 0 ), 1 );
 
         FailingOnInitializationStatefulOperatorInput1Output1.fail = true;
         try
         {
-            supervisor.start( flowDef, asList( regionExecutionPlan1, regionExecutionPlan2 ) );
+            supervisor.start( flowDef, asList( regionExecPlan1, regionExecPlan2 ) );
             fail();
         }
         catch ( InitializationException e )
@@ -163,10 +163,10 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
 
         final FlowDef flowDef = new FlowDefBuilder().add( operatorDef1 ).add( operatorDef2 ).connect( "op1", "op2" ).build();
         final List<RegionDef> regions = regionDefFormer.createRegions( flowDef );
-        final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( regions.get( 0 ), singletonList( 0 ), 1 );
-        final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( regions.get( 1 ), singletonList( 0 ), 1 );
+        final RegionExecPlan regionExecPlan1 = new RegionExecPlan( regions.get( 0 ), singletonList( 0 ), 1 );
+        final RegionExecPlan regionExecPlan2 = new RegionExecPlan( regions.get( 1 ), singletonList( 0 ), 1 );
 
-        supervisor.start( flowDef, asList( regionExecutionPlan1, regionExecutionPlan2 ) );
+        supervisor.start( flowDef, asList( regionExecPlan1, regionExecPlan2 ) );
         assertTrueEventually( () -> assertEquals( FlowStatus.SHUT_DOWN, supervisor.getFlowStatus() ) );
 
         supervisor.shutdown().get( 30, TimeUnit.SECONDS );
@@ -181,16 +181,17 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
 
         final FlowDef flowDef = new FlowDefBuilder().add( operatorDef1 ).add( operatorDef2 ).connect( "op1", "op2" ).build();
         final List<RegionDef> regions = regionDefFormer.createRegions( flowDef );
-        final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( regions.get( 0 ), singletonList( 0 ), 1 );
-        final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( regions.get( 1 ), singletonList( 0 ), 1 );
+        final RegionExecPlan regionExecPlan1 = new RegionExecPlan( regions.get( 0 ), singletonList( 0 ), 1 );
+        final RegionExecPlan regionExecPlan2 = new RegionExecPlan( regions.get( 1 ), singletonList( 0 ), 1 );
 
-        supervisor.start( flowDef, asList( regionExecutionPlan1, regionExecutionPlan2 ) );
+        supervisor.start( flowDef, asList( regionExecPlan1, regionExecPlan2 ) );
 
         supervisor.shutdown().get( 30, TimeUnit.SECONDS );
     }
 
     @OperatorSpec( type = STATEFUL, inputPortCount = 1, outputPortCount = 1 )
-    @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = Integer.class ) } ) }, outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = Integer.class ) } ) } )
+    @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = Integer.class ) } ) }, outputs = {
+            @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = Integer.class ) } ) } )
     public static class FailingOnInitializationStatefulOperatorInput1Output1 implements Operator
     {
 
@@ -240,7 +241,8 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
 
 
     @OperatorSpec( type = STATEFUL, inputPortCount = 1, outputPortCount = 1 )
-    @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = Integer.class ) } ) }, outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = Integer.class ) } ) } )
+    @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = Integer.class ) } ) }, outputs = {
+            @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = Integer.class ) } ) } )
     public static class FailingOnInvocationStatefulOperatorInput1Output1 implements Operator
     {
 

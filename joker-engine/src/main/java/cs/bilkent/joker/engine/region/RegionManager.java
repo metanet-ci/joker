@@ -3,13 +3,13 @@ package cs.bilkent.joker.engine.region;
 import java.util.List;
 
 import cs.bilkent.joker.engine.flow.PipelineId;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.flow.FlowDef;
 
 public interface RegionManager
 {
 
-    Region createRegion ( FlowDef flow, RegionExecutionPlan regionExecutionPlan );
+    Region createRegion ( FlowDef flow, RegionExecPlan regionExecPlan );
 
     void validatePipelineMergeParameters ( List<PipelineId> pipelineIds );
 

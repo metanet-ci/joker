@@ -11,9 +11,9 @@ import cs.bilkent.joker.Joker;
 import cs.bilkent.joker.Joker.JokerBuilder;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.flow.RegionDef;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.migration.MigrationService;
-import cs.bilkent.joker.engine.region.impl.AbstractRegionExecutionPlanFactory;
+import cs.bilkent.joker.engine.region.impl.AbstractRegionExecPlanFactory;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
 import cs.bilkent.joker.operator.OperatorConfig;
@@ -41,7 +41,7 @@ public class StaticPCJJokerInstancefactory implements PCJJokerInstanceFactory
     public Joker createJokerInstance ( final Object jokerId, final MigrationService migrationService )
     {
         final JokerConfig jokerConfig = new JokerConfig();
-        final Joker joker = new JokerBuilder( jokerConfig ).setRegionExecutionPlanFactory( new StaticRegionExecutionPlanFactory(
+        final Joker joker = new JokerBuilder( jokerConfig ).setRegionExecPlanFactory( new StaticRegionExecPlanFactory(
                 jokerConfig,
                                                                                                                                  2 ) )
                                                            .setJokerId( jokerId )
@@ -49,8 +49,7 @@ public class StaticPCJJokerInstancefactory implements PCJJokerInstanceFactory
         final Random random = new Random();
         final OperatorConfig beaconConfig = new OperatorConfig();
         beaconConfig.set( TUPLE_COUNT_CONFIG_PARAMETER, 10 );
-        beaconConfig.set( TUPLE_POPULATOR_CONFIG_PARAMETER, (Consumer<Tuple>) tuple ->
-        {
+        beaconConfig.set( TUPLE_POPULATOR_CONFIG_PARAMETER, (Consumer<Tuple>) tuple -> {
             sleepUninterruptibly( 250 + random.nextInt( 100 ), TimeUnit.MILLISECONDS );
             tuple.set( "field1", random.nextInt( 10 ) );
         } );
@@ -79,25 +78,25 @@ public class StaticPCJJokerInstancefactory implements PCJJokerInstanceFactory
         return joker;
     }
 
-    static class StaticRegionExecutionPlanFactory extends AbstractRegionExecutionPlanFactory
+    static class StaticRegionExecPlanFactory extends AbstractRegionExecPlanFactory
     {
 
         private final int replicaCount;
 
-        public StaticRegionExecutionPlanFactory ( final JokerConfig jokerConfig, final int replicaCount )
+        public StaticRegionExecPlanFactory ( final JokerConfig jokerConfig, final int replicaCount )
         {
             super( jokerConfig );
             this.replicaCount = replicaCount;
         }
 
         @Override
-        protected RegionExecutionPlan createRegionExecutionPlan ( final RegionDef regionDef )
+        protected RegionExecPlan createRegionExecPlan ( final RegionDef regionDef )
         {
             final int replicaCount = regionDef.getRegionType() == PARTITIONED_STATEFUL ? this.replicaCount : 1;
             final int operatorCount = regionDef.getOperatorCount();
             final List<Integer> pipelineStartIndices = operatorCount == 1 ? singletonList( 0 ) : asList( 0, operatorCount / 2 );
 
-            return new RegionExecutionPlan( regionDef, pipelineStartIndices, replicaCount );
+            return new RegionExecPlan( regionDef, pipelineStartIndices, replicaCount );
         }
     }
 

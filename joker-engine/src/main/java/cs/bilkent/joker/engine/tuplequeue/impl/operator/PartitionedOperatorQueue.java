@@ -16,7 +16,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import static cs.bilkent.joker.engine.partition.PartitionUtil.getPartitionId;
-import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
+import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
@@ -31,10 +31,10 @@ import gnu.trove.map.hash.THashMap;
 import gnu.trove.set.hash.THashSet;
 
 
-public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
+public class PartitionedOperatorQueue implements OperatorQueue
 {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger( PartitionedOperatorTupleQueue.class );
+    private static final Logger LOGGER = LoggerFactory.getLogger( PartitionedOperatorQueue.class );
 
     private static final int TUPLE_QUEUE_INITIAL_SIZE = 10;
 
@@ -59,11 +59,12 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
 
     private TupleAvailabilityByPort tupleAvailabilityByPort;
 
-    public PartitionedOperatorTupleQueue ( final String operatorId,
-                                           final int inputPortCount,
-                                           final int partitionCount,
-                                           final int replicaIndex,
-                                           final int tupleQueueCapacity, final PartitionKeyExtractor partitionKeyExtractor )
+    public PartitionedOperatorQueue ( final String operatorId,
+                                      final int inputPortCount,
+                                      final int partitionCount,
+                                      final int replicaIndex,
+                                      final int tupleQueueCapacity,
+                                      final PartitionKeyExtractor partitionKeyExtractor )
     {
         checkArgument( inputPortCount >= 0, "invalid input port count %s for partitioned tuple queue of operator $s",
                        inputPortCount,
@@ -316,12 +317,7 @@ public class PartitionedOperatorTupleQueue implements OperatorTupleQueue
 
     private void addToDrainableKeys ( final PartitionKey key, final TupleQueue[] tupleQueues )
     {
-        if ( drainableKeys.contains( key ) )
-        {
-            return;
-        }
-
-        if ( checkIfDrainable( tupleQueues ) )
+        if ( !drainableKeys.contains( key ) && checkIfDrainable( tupleQueues ) )
         {
             drainableKeys.add( key );
         }

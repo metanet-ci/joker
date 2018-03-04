@@ -12,7 +12,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -30,10 +29,10 @@ import cs.bilkent.joker.engine.config.JokerConfig;
 import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_THREAD_GROUP_NAME;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.exception.JokerException;
-import cs.bilkent.joker.engine.flow.FlowExecutionPlan;
+import cs.bilkent.joker.engine.flow.FlowExecPlan;
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionDef;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.metric.PipelineMeter;
 import cs.bilkent.joker.engine.partition.PartitionDistribution;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
@@ -47,9 +46,9 @@ import cs.bilkent.joker.engine.pipeline.PipelineManager;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.joker.engine.pipeline.UpstreamContext;
-import cs.bilkent.joker.engine.pipeline.UpstreamContext.UpstreamConnectionStatus;
-import static cs.bilkent.joker.engine.pipeline.UpstreamContext.UpstreamConnectionStatus.CLOSED;
-import static cs.bilkent.joker.engine.pipeline.UpstreamContext.UpstreamConnectionStatus.OPEN;
+import cs.bilkent.joker.engine.pipeline.UpstreamContext.ConnectionStatus;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.ConnectionStatus.CLOSED;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.ConnectionStatus.OPEN;
 import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newSourceOperatorShutdownUpstreamContext;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.CompositeDownstreamTupleSender;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.DownstreamTupleSender1;
@@ -59,7 +58,7 @@ import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDo
 import cs.bilkent.joker.engine.region.Region;
 import cs.bilkent.joker.engine.region.RegionManager;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
-import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
+import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import static cs.bilkent.joker.engine.util.RegionUtil.getFirstOperator;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.Port;
@@ -76,6 +75,7 @@ import static java.util.Collections.sort;
 import static java.util.Comparator.comparing;
 import static java.util.Comparator.comparingInt;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 
 @Singleton
 @NotThreadSafe
@@ -101,10 +101,10 @@ public class PipelineManagerImpl implements PipelineManager
 
     private final ThreadGroup jokerThreadGroup;
 
-    private final BiFunction<List<Pair<Integer, Integer>>, OperatorTupleQueue, DownstreamTupleSender>[]
+    private final BiFunction<List<Pair<Integer, Integer>>, OperatorQueue, DownstreamTupleSender>[]
             defaultDownstreamTupleSenderConstructors = new BiFunction[ 6 ];
 
-    private final Function6<List<Pair<Integer, Integer>>, Integer, int[], OperatorTupleQueue[], PartitionKeyExtractor,
+    private final Function6<List<Pair<Integer, Integer>>, Integer, int[], OperatorQueue[], PartitionKeyExtractor,
                                    DownstreamTupleSender>[] partitionedDownstreamTupleSenderConstructors = new Function6[ 6 ];
 
     private Supervisor supervisor;
@@ -113,7 +113,7 @@ public class PipelineManagerImpl implements PipelineManager
 
     private FlowDef flow;
 
-    private final Map<Integer, RegionExecutionPlan> regionExecutionPlans = new HashMap<>();
+    private final Map<Integer, RegionExecPlan> regionExecPlans = new HashMap<>();
 
     private final Map<PipelineId, Pipeline> pipelines = new ConcurrentHashMap<>();
 
@@ -154,7 +154,8 @@ public class PipelineManagerImpl implements PipelineManager
             copyPorts( pairs, sourcePorts, destinationPorts );
             return new DownstreamTupleSenderN( downstreamTupleSenderFailureFlag, sourcePorts, destinationPorts, tupleQueue );
         };
-        partitionedDownstreamTupleSenderConstructors[ 1 ] = ( pairs, partitionCount, partitionDistribution, tupleQueues, partitionKeyFunction ) -> {
+        partitionedDownstreamTupleSenderConstructors[ 1 ] = ( pairs, partitionCount, partitionDistribution, tupleQueues,
+                                                              partitionKeyFunction ) -> {
             final Pair<Integer, Integer> pair1 = pairs.get( 0 );
             return new PartitionedDownstreamTupleSender1( downstreamTupleSenderFailureFlag,
                                                           pair1._1,
@@ -164,7 +165,8 @@ public class PipelineManagerImpl implements PipelineManager
                                                           tupleQueues,
                                                           partitionKeyFunction );
         };
-        partitionedDownstreamTupleSenderConstructors[ 2 ] = ( pairs, partitionCount, partitionDistribution, tupleQueues, partitionKeyFunction ) -> {
+        partitionedDownstreamTupleSenderConstructors[ 2 ] = ( pairs, partitionCount, partitionDistribution, tupleQueues,
+                                                              partitionKeyFunction ) -> {
             final int[] sourcePorts = new int[ pairs.size() ];
             final int[] destinationPorts = new int[ pairs.size() ];
             copyPorts( pairs, sourcePorts, destinationPorts );
@@ -183,20 +185,20 @@ public class PipelineManagerImpl implements PipelineManager
         return new ArrayList<>( pipelines.values() );
     }
 
-    List<Pipeline> createPipelines ( final FlowDef flow, final List<RegionExecutionPlan> regionExecutionPlans )
+    List<Pipeline> createPipelines ( final FlowDef flow, final List<RegionExecPlan> regionExecPlans )
     {
         final List<Pipeline> p = new ArrayList<>();
-        for ( RegionExecutionPlan regionExecutionPlan : regionExecutionPlans )
+        for ( RegionExecPlan regionExecPlan : regionExecPlans )
         {
             LOGGER.info( "Initializing regionId={} with {} pipelines ( {} ) and {} replicas",
-                         regionExecutionPlan.getRegionId(),
-                         regionExecutionPlan.getPipelineCount(),
-                         regionExecutionPlan.getPipelineStartIndices(),
-                         regionExecutionPlan.getReplicaCount() );
+                         regionExecPlan.getRegionId(),
+                         regionExecPlan.getPipelineCount(),
+                         regionExecPlan.getPipelineStartIndices(),
+                         regionExecPlan.getReplicaCount() );
 
-            final Region region = regionManager.createRegion( flow, regionExecutionPlan );
-            this.regionExecutionPlans.put( region.getRegionId(), regionExecutionPlan );
-            for ( int pipelineIndex = 0; pipelineIndex < regionExecutionPlan.getPipelineCount(); pipelineIndex++ )
+            final Region region = regionManager.createRegion( flow, regionExecPlan );
+            this.regionExecPlans.put( region.getRegionId(), regionExecPlan );
+            for ( int pipelineIndex = 0; pipelineIndex < regionExecPlan.getPipelineCount(); pipelineIndex++ )
             {
                 final PipelineReplica[] pipelineReplicas = region.getPipelineReplicas( pipelineIndex );
                 final PipelineId pipelineId = pipelineReplicas[ 0 ].id().pipelineId;
@@ -205,7 +207,7 @@ public class PipelineManagerImpl implements PipelineManager
                 p.add( pipeline );
             }
 
-            LOGGER.info( "regionId={} is created", regionExecutionPlan.getRegionId() );
+            LOGGER.info( "regionId={} is created", regionExecPlan.getRegionId() );
         }
 
         for ( Pipeline pipeline : pipelines.values() )
@@ -217,13 +219,13 @@ public class PipelineManagerImpl implements PipelineManager
     }
 
     @Override
-    public void start ( final FlowDef flow, final List<RegionExecutionPlan> regionExecutionPlans )
+    public void start ( final FlowDef flow, final List<RegionExecPlan> regionExecPlans )
     {
         try
         {
             checkState( status == FlowStatus.INITIAL, "cannot start pipeline replica runner threads since status is %s", status );
             this.flow = flow;
-            createPipelines( flow, regionExecutionPlans );
+            createPipelines( flow, regionExecPlans );
             initPipelines();
             startPipelineReplicaRunners( supervisor );
             status = FlowStatus.RUNNING;
@@ -237,12 +239,12 @@ public class PipelineManagerImpl implements PipelineManager
     }
 
     @Override
-    public FlowExecutionPlan getFlowExecutionPlan ()
+    public FlowExecPlan getFlowExecPlan ()
     {
         final FlowStatus status = this.status;
         checkState( status == FlowStatus.RUNNING || status == FlowStatus.SHUTTING_DOWN, "cannot get flow execution plan since status is %s",
                     status );
-        return new FlowExecutionPlan( flowVersion, flow, regionExecutionPlans.values() );
+        return new FlowExecPlan( flowVersion, flow, regionExecPlans.values() );
     }
 
     @Override
@@ -366,28 +368,28 @@ public class PipelineManagerImpl implements PipelineManager
 
     private UpstreamContext getUpdatedUpstreamContext ( final Pipeline pipeline )
     {
-        final UpstreamConnectionStatus[] upstreamConnectionStatuses = getUpstreamConnectionStatuses( pipeline );
+        final ConnectionStatus[] connectionStatuses = getUpstreamConnectionStatuses( pipeline );
         final UpstreamContext current = pipeline.getUpstreamContext();
         UpstreamContext newContext = current;
-        for ( int i = 0; i < upstreamConnectionStatuses.length; i++ )
+        for ( int i = 0; i < connectionStatuses.length; i++ )
         {
-            if ( upstreamConnectionStatuses[ i ] == CLOSED )
+            if ( connectionStatuses[ i ] == CLOSED )
             {
-                newContext = newContext.withUpstreamConnectionClosed( i );
+                newContext = newContext.withConnectionClosed( i );
             }
         }
 
         return newContext != current ? newContext : null;
     }
 
-    private UpstreamConnectionStatus[] getUpstreamConnectionStatuses ( final Pipeline pipeline )
+    private ConnectionStatus[] getUpstreamConnectionStatuses ( final Pipeline pipeline )
     {
         final OperatorDef firstOperator = pipeline.getFirstOperatorDef();
-        final UpstreamConnectionStatus[] statuses = new UpstreamConnectionStatus[ firstOperator.getInputPortCount() ];
+        final ConnectionStatus[] statuses = new ConnectionStatus[ firstOperator.getInputPortCount() ];
         for ( Entry<Port, Set<Port>> entry : flow.getInboundConnections( firstOperator.getId() ).entrySet() )
         {
             final Collection<Port> upstreamPorts = entry.getValue();
-            final UpstreamConnectionStatus status;
+            final ConnectionStatus status;
             if ( upstreamPorts.isEmpty() )
             {
                 status = CLOSED;
@@ -441,7 +443,7 @@ public class PipelineManagerImpl implements PipelineManager
         for ( Pipeline pipeline : pipelines.values() )
         {
             final OperatorDef operatorDef = pipeline.getFirstOperatorDef();
-            if ( flow.getInboundConnections( operatorDef.getId() ).isEmpty() )
+            if ( flow.isSourceOperator( operatorDef.getId() ) )
             {
                 pipeline.handleUpstreamContextUpdated( newSourceOperatorShutdownUpstreamContext() );
             }
@@ -473,7 +475,7 @@ public class PipelineManagerImpl implements PipelineManager
         try
         {
             final Region region = regionManager.mergePipelines( pipelineIds );
-            regionExecutionPlans.put( region.getRegionId(), region.getExecutionPlan() );
+            regionExecPlans.put( region.getRegionId(), region.getExecPlan() );
             final Pipeline pipeline = new Pipeline( firstPipelineId, region );
             pipeline.init();
             addPipeline( pipeline );
@@ -515,9 +517,9 @@ public class PipelineManagerImpl implements PipelineManager
         try
         {
             final Region region = regionManager.splitPipeline( pipelineIdToSplit, pipelineOperatorIndices );
-            regionExecutionPlans.put( region.getRegionId(), region.getExecutionPlan() );
+            regionExecPlans.put( region.getRegionId(), region.getExecPlan() );
             final List<Pipeline> newPipelines = new ArrayList<>();
-            for ( int pipelineIndex = 0; pipelineIndex < region.getExecutionPlan().getPipelineCount(); pipelineIndex++ )
+            for ( int pipelineIndex = 0; pipelineIndex < region.getExecPlan().getPipelineCount(); pipelineIndex++ )
             {
                 final PipelineReplica[] pipelineReplicas = region.getPipelineReplicas( pipelineIndex );
                 final PipelineReplica pipelineReplica = pipelineReplicas[ 0 ];
@@ -546,8 +548,9 @@ public class PipelineManagerImpl implements PipelineManager
         }
         catch ( Exception e )
         {
-            throw new JokerException( "Failed during splitting pipeline: " + pipelineIdToSplit + " into: " + pipelineOperatorIndices
-                                      + " with flow version: " + flowVersion, e );
+            throw new JokerException(
+                    "Failed during splitting pipeline: " + pipelineIdToSplit + " into: " + pipelineOperatorIndices + " with flow version: "
+                    + flowVersion, e );
         }
     }
 
@@ -597,9 +600,9 @@ public class PipelineManagerImpl implements PipelineManager
         {
             final List<Pipeline> newPipelines = new ArrayList<>();
             final Region region = regionManager.rebalanceRegion( flow, regionDef.getRegionId(), newReplicaCount );
-            regionExecutionPlans.put( region.getRegionId(), region.getExecutionPlan() );
+            regionExecPlans.put( region.getRegionId(), region.getExecPlan() );
 
-            for ( int pipelineIndex = 0; pipelineIndex < region.getExecutionPlan().getPipelineCount(); pipelineIndex++ )
+            for ( int pipelineIndex = 0; pipelineIndex < region.getExecPlan().getPipelineCount(); pipelineIndex++ )
             {
                 final PipelineReplica[] pipelineReplicas = region.getPipelineReplicas( pipelineIndex );
                 final PipelineReplica pipelineReplica = pipelineReplicas[ 0 ];
@@ -632,16 +635,17 @@ public class PipelineManagerImpl implements PipelineManager
         }
         catch ( Exception e )
         {
-            throw new JokerException( "Failed during rebalancing region: " + regionId + " to new replica count: " + newReplicaCount
-                                      + " with flow version: " + flowVersion, e );
+            throw new JokerException(
+                    "Failed during rebalancing region: " + regionId + " to new replica count: " + newReplicaCount + " with flow version: "
+                    + flowVersion, e );
         }
     }
 
     private RegionDef getRegionDefOrFail ( final int regionId )
     {
-        final RegionExecutionPlan regionExecutionPlan = regionExecutionPlans.get( regionId );
-        checkArgument( regionExecutionPlan != null, " region: %s not found!", regionId );
-        return regionExecutionPlan.getRegionDef();
+        final RegionExecPlan regionExecPlan = regionExecPlans.get( regionId );
+        checkArgument( regionExecPlan != null, " region: %s not found!", regionId );
+        return regionExecPlan.getRegionDef();
     }
 
     private void addPipeline ( final Pipeline pipeline )
@@ -777,13 +781,13 @@ public class PipelineManagerImpl implements PipelineManager
                 final OperatorDef downstreamOperator = flow.getOperator( downstreamOperatorId );
                 final Pipeline downstreamPipeline = getPipeline( downstreamOperator, 0 );
                 final RegionDef downstreamRegionDef = downstreamPipeline.getRegionDef();
-                final OperatorTupleQueue[] pipelineTupleQueues = getPipelineTupleQueues( downstreamOperator );
+                final OperatorQueue[] pipelineQueues = getPipelineQueues( downstreamOperator );
                 final int j = min( pairs.size(), DOWNSTREAM_TUPLE_SENDER_CONSTRUCTOR_COUNT );
 
                 if ( pipeline.getId().getRegionId() == downstreamPipeline.getId().getRegionId() )
                 {
-                    final OperatorTupleQueue pipelineTupleQueue = pipelineTupleQueues[ replicaIndex ];
-                    sendersToDownstreamOperators[ i ] = defaultDownstreamTupleSenderConstructors[ j ].apply( pairs, pipelineTupleQueue );
+                    final OperatorQueue pipelineQueue = pipelineQueues[ replicaIndex ];
+                    sendersToDownstreamOperators[ i ] = defaultDownstreamTupleSenderConstructors[ j ].apply( pairs, pipelineQueue );
                 }
                 else if ( downstreamRegionDef.getRegionType() == PARTITIONED_STATEFUL )
                 {
@@ -794,25 +798,24 @@ public class PipelineManagerImpl implements PipelineManager
                                                                                                                  partitionService
                                                                                                                          .getPartitionCount(),
                                                                                                                  partitionDistribution,
-                                                                                                                 pipelineTupleQueues,
+                                                                                                                 pipelineQueues,
                                                                                                                  partitionKeyExtractor );
                 }
                 else if ( downstreamRegionDef.getRegionType() == STATELESS )
                 {
-                    OperatorTupleQueue pipelineTupleQueue = null;
+                    OperatorQueue pipelineQueue = null;
                     if ( pipeline.getReplicaCount() == downstreamPipeline.getReplicaCount() )
                     {
-                        pipelineTupleQueue = pipelineTupleQueues[ replicaIndex ];
+                        pipelineQueue = pipelineQueues[ replicaIndex ];
                     }
                     else if ( downstreamPipeline.getReplicaCount() == 1 )
                     {
-                        pipelineTupleQueue = pipelineTupleQueues[ 0 ];
+                        pipelineQueue = pipelineQueues[ 0 ];
                     }
 
-                    if ( pipelineTupleQueue != null )
+                    if ( pipelineQueue != null )
                     {
-                        sendersToDownstreamOperators[ i ] = defaultDownstreamTupleSenderConstructors[ j ].apply( pairs,
-                                                                                                                 pipelineTupleQueue );
+                        sendersToDownstreamOperators[ i ] = defaultDownstreamTupleSenderConstructors[ j ].apply( pairs, pipelineQueue );
                     }
                     else
                     {
@@ -824,10 +827,10 @@ public class PipelineManagerImpl implements PipelineManager
                 }
                 else if ( downstreamRegionDef.getRegionType() == STATEFUL )
                 {
-                    final int l = pipelineTupleQueues.length;
+                    final int l = pipelineQueues.length;
                     checkState( l == 1, "Operator %s can not have %s replicas", downstreamOperatorId, l );
-                    final OperatorTupleQueue pipelineTupleQueue = pipelineTupleQueues[ 0 ];
-                    sendersToDownstreamOperators[ i ] = defaultDownstreamTupleSenderConstructors[ j ].apply( pairs, pipelineTupleQueue );
+                    final OperatorQueue pipelineQueue = pipelineQueues[ 0 ];
+                    sendersToDownstreamOperators[ i ] = defaultDownstreamTupleSenderConstructors[ j ].apply( pairs, pipelineQueue );
                 }
                 else
                 {
@@ -867,7 +870,7 @@ public class PipelineManagerImpl implements PipelineManager
         final Set<String> downstreamOperatorIds = new HashSet<>();
         for ( Collection<Port> c : connections.values() )
         {
-            downstreamOperatorIds.addAll( c.stream().map( Port::getOperatorId ).collect( Collectors.toSet() ) );
+            downstreamOperatorIds.addAll( c.stream().map( Port::getOperatorId ).collect( toSet() ) );
         }
 
         final List<String> downstreamOperatorIdsSorted = new ArrayList<>( downstreamOperatorIds );
@@ -900,17 +903,17 @@ public class PipelineManagerImpl implements PipelineManager
         return partitionDistribution.getDistribution();
     }
 
-    private OperatorTupleQueue[] getPipelineTupleQueues ( final OperatorDef operator )
+    private OperatorQueue[] getPipelineQueues ( final OperatorDef operator )
     {
         final Pipeline pipeline = getPipeline( operator, 0 );
         final int replicaCount = pipeline.getReplicaCount();
-        final OperatorTupleQueue[] pipelineTupleQueues = new OperatorTupleQueue[ replicaCount ];
+        final OperatorQueue[] pipelineQueues = new OperatorQueue[ replicaCount ];
         for ( int i = 0; i < replicaCount; i++ )
         {
-            pipelineTupleQueues[ i ] = pipeline.getPipelineReplica( i ).getPipelineTupleQueue();
+            pipelineQueues[ i ] = pipeline.getPipelineReplica( i ).getEffectiveQueue();
         }
 
-        return pipelineTupleQueues;
+        return pipelineQueues;
     }
 
     private void copyPorts ( final List<Pair<Integer, Integer>> pairs, final int[] sourcePorts, final int[] destinationPorts )
@@ -967,8 +970,8 @@ public class PipelineManagerImpl implements PipelineManager
                         .stream()
                         .filter( p -> p.getOperatorIndex( operator ) != -1 )
                         .findFirst()
-                        .orElseThrow( (Supplier<RuntimeException>) () -> new IllegalArgumentException( "No pipeline found for operator "
-                                                                                                       + operator.getId() ) );
+                        .orElseThrow( (Supplier<RuntimeException>) () -> new IllegalArgumentException(
+                                "No pipeline found for operator " + operator.getId() ) );
     }
 
     private Pipeline getPipelineByFirstOperatorOrFail ( final OperatorDef operator )

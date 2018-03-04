@@ -15,8 +15,8 @@ import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
 import cs.bilkent.joker.operator.impl.InitializationContextImpl;
-import cs.bilkent.joker.operator.impl.InvocationContextImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import static cs.bilkent.joker.operators.ConsoleAppenderOperator.TO_STRING_FUNCTION_CONFIG_PARAMETER;
 import cs.bilkent.joker.test.AbstractJokerTest;
@@ -65,7 +65,9 @@ public class ConsoleAppenderOperatorTest extends AbstractJokerTest
         operator.init( initContext );
         final TuplesImpl output = new TuplesImpl( 1 );
 
-        final InvocationContextImpl invocationContext = new InvocationContextImpl( initContext.getInputPortCount(), key -> null, output );
+        final DefaultInvocationContext invocationContext = new DefaultInvocationContext( initContext.getInputPortCount(),
+                                                                                         key -> null,
+                                                                                         output );
         final Tuple tuple1 = new Tuple();
         tuple1.set( "k1", "v1" );
         final Tuple tuple2 = new Tuple();
@@ -90,7 +92,9 @@ public class ConsoleAppenderOperatorTest extends AbstractJokerTest
         operator.init( initContext );
         final TuplesImpl output = new TuplesImpl( 1 );
 
-        final InvocationContextImpl invocationContext = new InvocationContextImpl( initContext.getInputPortCount(), key -> null, output );
+        final DefaultInvocationContext invocationContext = new DefaultInvocationContext( initContext.getInputPortCount(),
+                                                                                         key -> null,
+                                                                                         output );
         final Tuple tuple1 = new Tuple();
         tuple1.set( "k1", "v1" );
         final Tuple tuple2 = new Tuple();

@@ -3,7 +3,6 @@ package cs.bilkent.joker.engine.metric;
 import org.junit.Before;
 import org.junit.Test;
 
-import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
@@ -18,7 +17,7 @@ import static org.mockito.Mockito.when;
 public class PipelineReplicaMeterTest extends AbstractJokerTest
 {
 
-    private static final PipelineReplicaId PIPELINE_REPLICA_ID = new PipelineReplicaId( new PipelineId( 0, 0 ), 0 );
+    private static final PipelineReplicaId PIPELINE_REPLICA_ID = new PipelineReplicaId( 0, 0, 0 );
 
     private static final int INPUT_PORT_COUNT = 2;
 

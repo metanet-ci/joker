@@ -36,8 +36,7 @@ public class JokerMain
 
         final OperatorConfig beaconConfig = new OperatorConfig();
         beaconConfig.set( BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER, 10 );
-        beaconConfig.set( TUPLE_POPULATOR_CONFIG_PARAMETER, (Consumer<Tuple>) tuple ->
-        {
+        beaconConfig.set( TUPLE_POPULATOR_CONFIG_PARAMETER, (Consumer<Tuple>) tuple -> {
             sleepUninterruptibly( 250 + random.nextInt( 100 ), TimeUnit.MILLISECONDS );
             tuple.set( "field1", random.nextInt( 10 ) );
         } );

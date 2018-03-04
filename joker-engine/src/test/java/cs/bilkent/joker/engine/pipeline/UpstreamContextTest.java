@@ -5,8 +5,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
-import static cs.bilkent.joker.engine.pipeline.UpstreamContext.UpstreamConnectionStatus.CLOSED;
-import static cs.bilkent.joker.engine.pipeline.UpstreamContext.UpstreamConnectionStatus.OPEN;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.ConnectionStatus.CLOSED;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.ConnectionStatus.OPEN;
 import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newInitialUpstreamContext;
 import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newInitialUpstreamContextWithAllPortsConnected;
 import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newSourceOperatorInitialUpstreamContext;

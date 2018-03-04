@@ -18,13 +18,13 @@ import cs.bilkent.joker.engine.config.AdaptationConfig;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.config.PartitionServiceConfig;
 import cs.bilkent.joker.engine.flow.RegionDef;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.metric.FlowMetrics;
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import cs.bilkent.joker.engine.metric.PipelineMetricsHistorySummarizer;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
 import cs.bilkent.joker.engine.region.impl.IdGenerator;
-import cs.bilkent.joker.engine.region.impl.PipelineTransformerImplTest.StatefulInput1Output1Operator;
+import cs.bilkent.joker.engine.region.impl.PipelineTransformerImplTest.FusibleStatefulInput1Output1Operator;
 import cs.bilkent.joker.engine.region.impl.PipelineTransformerImplTest.StatelessInput1Output1Operator;
 import cs.bilkent.joker.engine.region.impl.RegionDefFormerImpl;
 import cs.bilkent.joker.flow.FlowDef;
@@ -54,7 +54,7 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
 
     private final OperatorDef operator2 = OperatorDefBuilder.newInstance( "op2", StatelessInput1Output1Operator.class ).build();
 
-    private final OperatorDef operator3 = OperatorDefBuilder.newInstance( "op3", StatefulInput1Output1Operator.class ).build();
+    private final OperatorDef operator3 = OperatorDefBuilder.newInstance( "op3", FusibleStatefulInput1Output1Operator.class ).build();
 
     private final OperatorDef operator4 = OperatorDefBuilder.newInstance( "op4", StatelessInput1Output1Operator.class ).build();
 
@@ -75,7 +75,7 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
     private AdaptationConfig adaptationConfig;
 
     @Mock
-    private Function<RegionExecutionPlan, RegionAdaptationContext> regionAdaptationContextFactory;
+    private Function<RegionExecPlan, RegionAdaptationContext> regionAdaptationContextFactory;
 
     @Mock
     private PipelineMetricsHistorySummarizer pipelineMetricsHistorySummarizer;
@@ -102,7 +102,7 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
     private PipelineMetrics region4PipelineMetrics;
 
     @Mock
-    private FlowMetrics flowMetrics;
+    private FlowMetrics metrics;
 
     @Mock
     private RegionAdaptationContext region1Context;
@@ -117,25 +117,25 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
     private RegionAdaptationContext region4Context;
 
     @Mock
-    private RegionExecutionPlan region1ExecutionPlan;
+    private RegionExecPlan region1ExecPlan;
 
     @Mock
-    private RegionExecutionPlan region2ExecutionPlan;
+    private RegionExecPlan region2ExecPlan;
 
     @Mock
-    private RegionExecutionPlan region3ExecutionPlan;
+    private RegionExecPlan region3ExecPlan;
 
     @Mock
-    private RegionExecutionPlan region4ExecutionPlan;
+    private RegionExecPlan region4ExecPlan;
 
-    private List<RegionExecutionPlan> regionExecutionPlans;
+    private List<RegionExecPlan> regionExecPlans;
 
     private OrganicAdaptationManager adaptationManager;
 
     @Before
     public void init ()
     {
-        regionExecutionPlans = asList( region1ExecutionPlan, region2ExecutionPlan, region3ExecutionPlan, region4ExecutionPlan );
+        regionExecPlans = asList( region1ExecPlan, region2ExecPlan, region3ExecPlan, region4ExecPlan );
 
         when( config.getAdaptationConfig() ).thenReturn( adaptationConfig );
         when( adaptationConfig.getPipelineMetricsHistorySummarizer() ).thenReturn( pipelineMetricsHistorySummarizer );
@@ -178,33 +178,33 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
         when( region3Context.getRegionId() ).thenReturn( region3.getRegionId() );
         when( region4Context.getRegionId() ).thenReturn( region4.getRegionId() );
 
-        when( flowMetrics.getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
+        when( metrics.getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
                 region1PipelineMetrics ) );
-        when( flowMetrics.getRegionMetrics( region2.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
+        when( metrics.getRegionMetrics( region2.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
                 region2PipelineMetrics ) );
-        when( flowMetrics.getRegionMetrics( region3.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
+        when( metrics.getRegionMetrics( region3.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
                 region3PipelineMetrics ) );
-        when( flowMetrics.getRegionMetrics( region4.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
+        when( metrics.getRegionMetrics( region4.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
                 region4PipelineMetrics ) );
     }
 
     @Test
     public void shouldInitRegionAdaptationContexts ()
     {
-        when( region1ExecutionPlan.getRegionDef() ).thenReturn( region1 );
-        when( region2ExecutionPlan.getRegionDef() ).thenReturn( region2 );
-        when( region3ExecutionPlan.getRegionDef() ).thenReturn( region3 );
-        when( region4ExecutionPlan.getRegionDef() ).thenReturn( region4 );
-        when( region1ExecutionPlan.getRegionId() ).thenReturn( region1.getRegionId() );
-        when( region2ExecutionPlan.getRegionId() ).thenReturn( region2.getRegionId() );
-        when( region3ExecutionPlan.getRegionId() ).thenReturn( region3.getRegionId() );
-        when( region4ExecutionPlan.getRegionId() ).thenReturn( region4.getRegionId() );
-        when( regionAdaptationContextFactory.apply( region1ExecutionPlan ) ).thenReturn( region1Context );
-        when( regionAdaptationContextFactory.apply( region2ExecutionPlan ) ).thenReturn( region2Context );
-        when( regionAdaptationContextFactory.apply( region3ExecutionPlan ) ).thenReturn( region3Context );
-        when( regionAdaptationContextFactory.apply( region4ExecutionPlan ) ).thenReturn( region4Context );
+        when( region1ExecPlan.getRegionDef() ).thenReturn( region1 );
+        when( region2ExecPlan.getRegionDef() ).thenReturn( region2 );
+        when( region3ExecPlan.getRegionDef() ).thenReturn( region3 );
+        when( region4ExecPlan.getRegionDef() ).thenReturn( region4 );
+        when( region1ExecPlan.getRegionId() ).thenReturn( region1.getRegionId() );
+        when( region2ExecPlan.getRegionId() ).thenReturn( region2.getRegionId() );
+        when( region3ExecPlan.getRegionId() ).thenReturn( region3.getRegionId() );
+        when( region4ExecPlan.getRegionId() ).thenReturn( region4.getRegionId() );
+        when( regionAdaptationContextFactory.apply( region1ExecPlan ) ).thenReturn( region1Context );
+        when( regionAdaptationContextFactory.apply( region2ExecPlan ) ).thenReturn( region2Context );
+        when( regionAdaptationContextFactory.apply( region3ExecPlan ) ).thenReturn( region3Context );
+        when( regionAdaptationContextFactory.apply( region4ExecPlan ) ).thenReturn( region4Context );
 
-        adaptationManager.initialize( flow, regionExecutionPlans );
+        adaptationManager.initialize( flow, regionExecPlans );
 
         assertThat( adaptationManager.getRegion( region1.getRegionId() ), equalTo( region1Context ) );
         assertThat( adaptationManager.getRegion( region2.getRegionId() ), equalTo( region2Context ) );
@@ -217,12 +217,12 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
     {
         shouldInitRegionAdaptationContexts();
 
-        adaptationManager.adapt( regionExecutionPlans, flowMetrics );
+        adaptationManager.adapt( regionExecPlans, metrics );
 
-        verify( flowMetrics ).getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer );
-        verify( flowMetrics ).getRegionMetrics( region2.getRegionId(), pipelineMetricsHistorySummarizer );
-        verify( flowMetrics ).getRegionMetrics( region3.getRegionId(), pipelineMetricsHistorySummarizer );
-        verify( flowMetrics ).getRegionMetrics( region4.getRegionId(), pipelineMetricsHistorySummarizer );
+        verify( metrics ).getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer );
+        verify( metrics ).getRegionMetrics( region2.getRegionId(), pipelineMetricsHistorySummarizer );
+        verify( metrics ).getRegionMetrics( region3.getRegionId(), pipelineMetricsHistorySummarizer );
+        verify( metrics ).getRegionMetrics( region4.getRegionId(), pipelineMetricsHistorySummarizer );
 
         verify( region1Context ).updateRegionMetrics( singletonList( region1PipelineMetrics ), loadChangePredicate );
         verify( region2Context ).updateRegionMetrics( singletonList( region2PipelineMetrics ), loadChangePredicate );
@@ -251,7 +251,7 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
         when( region4Context.resolveIfBottleneck( eq( bottleneckPredicate ),
                                                   anyListOf( BottleneckResolver.class ) ) ).thenReturn( emptyList() );
 
-        final List<AdaptationAction> result = adaptationManager.adapt( regionExecutionPlans, flowMetrics );
+        final List<AdaptationAction> result = adaptationManager.adapt( regionExecPlans, metrics );
 
         assertThat( result, equalTo( singletonList( action ) ) );
 
@@ -285,7 +285,7 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
         when( region4Context.resolveIfBottleneck( eq( bottleneckPredicate ),
                                                   anyListOf( BottleneckResolver.class ) ) ).thenReturn( emptyList() );
 
-        final List<AdaptationAction> result = adaptationManager.adapt( regionExecutionPlans, flowMetrics );
+        final List<AdaptationAction> result = adaptationManager.adapt( regionExecPlans, metrics );
 
         assertThat( result, equalTo( asList( action2, action3 ) ) );
 
@@ -313,7 +313,7 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
         when( region4Context.resolveIfBottleneck( eq( bottleneckPredicate ),
                                                   anyListOf( BottleneckResolver.class ) ) ).thenReturn( emptyList() );
 
-        final List<AdaptationAction> result1 = adaptationManager.adapt( regionExecutionPlans, flowMetrics );
+        final List<AdaptationAction> result1 = adaptationManager.adapt( regionExecPlans, metrics );
 
         assertThat( result1, equalTo( singletonList( action ) ) );
 
@@ -321,11 +321,11 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
 
         final PipelineMetrics newUpstreamPipelineMetrics = mock( PipelineMetrics.class );
         final List<PipelineMetrics> regionMetrics = singletonList( newUpstreamPipelineMetrics );
-        when( flowMetrics.getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( regionMetrics );
+        when( metrics.getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( regionMetrics );
 
         when( region1Context.isAdaptationSuccessful( regionMetrics, adaptationEvaluationPredicate ) ).thenReturn( true );
 
-        final List<AdaptationAction> result2 = adaptationManager.adapt( regionExecutionPlans, flowMetrics );
+        final List<AdaptationAction> result2 = adaptationManager.adapt( regionExecPlans, metrics );
 
         assertTrue( result2.isEmpty() );
 
@@ -352,7 +352,7 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
         when( region4Context.resolveIfBottleneck( eq( bottleneckPredicate ),
                                                   anyListOf( BottleneckResolver.class ) ) ).thenReturn( emptyList() );
 
-        final List<AdaptationAction> result1 = adaptationManager.adapt( regionExecutionPlans, flowMetrics );
+        final List<AdaptationAction> result1 = adaptationManager.adapt( regionExecPlans, metrics );
 
         assertThat( result1, equalTo( asList( action1, action3 ) ) );
 
@@ -362,12 +362,12 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
         final PipelineMetrics newUpstreamPipelineMetrics3 = mock( PipelineMetrics.class );
         final List<PipelineMetrics> region1Metrics = singletonList( newUpstreamPipelineMetrics1 );
         final List<PipelineMetrics> region3Metrics = singletonList( newUpstreamPipelineMetrics3 );
-        when( flowMetrics.getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( region1Metrics );
-        when( flowMetrics.getRegionMetrics( region3.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( region3Metrics );
+        when( metrics.getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( region1Metrics );
+        when( metrics.getRegionMetrics( region3.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( region3Metrics );
 
         when( region1Context.isAdaptationSuccessful( region1Metrics, adaptationEvaluationPredicate ) ).thenReturn( true );
 
-        final List<AdaptationAction> result2 = adaptationManager.adapt( regionExecutionPlans, flowMetrics );
+        final List<AdaptationAction> result2 = adaptationManager.adapt( regionExecPlans, metrics );
 
         assertTrue( result2.isEmpty() );
 
@@ -397,20 +397,20 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
         when( region4Context.resolveIfBottleneck( eq( bottleneckPredicate ),
                                                   anyListOf( BottleneckResolver.class ) ) ).thenReturn( emptyList() );
 
-        final List<AdaptationAction> result1 = adaptationManager.adapt( regionExecutionPlans, flowMetrics );
+        final List<AdaptationAction> result1 = adaptationManager.adapt( regionExecPlans, metrics );
 
         assertThat( result1, equalTo( singletonList( action1 ) ) );
         assertThat( adaptationManager.getAdaptingRegions(), equalTo( singletonList( region1Context ) ) );
 
         final PipelineMetrics newUpstreamPipelineMetrics = mock( PipelineMetrics.class );
-        when( flowMetrics.getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
+        when( metrics.getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
                 newUpstreamPipelineMetrics ) );
 
         final AdaptationAction revert = mock( AdaptationAction.class );
 
         when( region1Context.revertAdaptation() ).thenReturn( singletonList( revert ) );
 
-        final List<AdaptationAction> result2 = adaptationManager.adapt( regionExecutionPlans, flowMetrics );
+        final List<AdaptationAction> result2 = adaptationManager.adapt( regionExecPlans, metrics );
 
         assertThat( result2, equalTo( asList( revert, action2 ) ) );
         assertThat( adaptationManager.getAdaptingRegions(), equalTo( singletonList( region1Context ) ) );
@@ -435,20 +435,20 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
         when( region4Context.resolveIfBottleneck( eq( bottleneckPredicate ),
                                                   anyListOf( BottleneckResolver.class ) ) ).thenReturn( emptyList() );
 
-        final List<AdaptationAction> result = adaptationManager.adapt( regionExecutionPlans, flowMetrics );
+        final List<AdaptationAction> result = adaptationManager.adapt( regionExecPlans, metrics );
 
         assertThat( result, equalTo( singletonList( action ) ) );
         assertThat( adaptationManager.getAdaptingRegions(), equalTo( singletonList( region1Context ) ) );
 
         final PipelineMetrics newUpstreamPipelineMetrics = mock( PipelineMetrics.class );
-        when( flowMetrics.getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
+        when( metrics.getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
                 newUpstreamPipelineMetrics ) );
 
         final AdaptationAction revert = mock( AdaptationAction.class );
 
         when( region1Context.revertAdaptation() ).thenReturn( singletonList( revert ) );
 
-        final List<AdaptationAction> result2 = adaptationManager.adapt( regionExecutionPlans, flowMetrics );
+        final List<AdaptationAction> result2 = adaptationManager.adapt( regionExecPlans, metrics );
 
         assertThat( result2, equalTo( singletonList( revert ) ) );
         assertTrue( adaptationManager.getAdaptingRegions().isEmpty() );
@@ -477,7 +477,7 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
         when( region4Context.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn(
                 singletonList( action4 ) );
 
-        final List<AdaptationAction> result = adaptationManager.adapt( regionExecutionPlans, flowMetrics );
+        final List<AdaptationAction> result = adaptationManager.adapt( regionExecPlans, metrics );
 
         assertThat( result, equalTo( asList( action1, action2, action3, action4 ) ) );
         assertThat( adaptationManager.getAdaptingRegions(),
@@ -485,9 +485,9 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
 
         final PipelineMetrics newUpstreamPipelineMetrics1 = mock( PipelineMetrics.class );
         final PipelineMetrics newUpstreamPipelineMetrics2 = mock( PipelineMetrics.class );
-        when( flowMetrics.getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
+        when( metrics.getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
                 newUpstreamPipelineMetrics1 ) );
-        when( flowMetrics.getRegionMetrics( region2.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
+        when( metrics.getRegionMetrics( region2.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
                 newUpstreamPipelineMetrics2 ) );
 
         final AdaptationAction revert11 = mock( AdaptationAction.class );
@@ -504,7 +504,7 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
         when( region3Context.revertAdaptation() ).thenReturn( asList( revert31, revert32 ) );
         when( region4Context.revertAdaptation() ).thenReturn( asList( revert41, revert42 ) );
 
-        final List<AdaptationAction> result2 = adaptationManager.adapt( regionExecutionPlans, flowMetrics );
+        final List<AdaptationAction> result2 = adaptationManager.adapt( regionExecPlans, metrics );
 
         assertThat( result2, equalTo( asList( revert41, revert42, revert31, revert32, revert21, revert22, revert11, revert12 ) ) );
         assertTrue( adaptationManager.getAdaptingRegions().isEmpty() );
@@ -536,21 +536,21 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
         when( region4Context.resolveIfBottleneck( eq( bottleneckPredicate ), anyListOf( BottleneckResolver.class ) ) ).thenReturn(
                 singletonList( action4 ) );
 
-        final List<AdaptationAction> result = adaptationManager.adapt( regionExecutionPlans, flowMetrics );
+        final List<AdaptationAction> result = adaptationManager.adapt( regionExecPlans, metrics );
 
         assertThat( result, equalTo( asList( action11, action2, action3, action4 ) ) );
         assertThat( adaptationManager.getAdaptingRegions(),
                     equalTo( asList( region1Context, region2Context, region3Context, region4Context ) ) );
 
         final PipelineMetrics newUpstreamPipelineMetrics1 = mock( PipelineMetrics.class );
-        when( flowMetrics.getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
+        when( metrics.getRegionMetrics( region1.getRegionId(), pipelineMetricsHistorySummarizer ) ).thenReturn( singletonList(
                 newUpstreamPipelineMetrics1 ) );
 
         final AdaptationAction revert = mock( AdaptationAction.class );
 
         when( region1Context.revertAdaptation() ).thenReturn( singletonList( revert ) );
 
-        final List<AdaptationAction> result2 = adaptationManager.adapt( regionExecutionPlans, flowMetrics );
+        final List<AdaptationAction> result2 = adaptationManager.adapt( regionExecPlans, metrics );
 
         assertThat( result2, equalTo( asList( revert, action12 ) ) );
         assertThat( adaptationManager.getAdaptingRegions(),

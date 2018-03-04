@@ -10,7 +10,7 @@ import org.junit.Test;
 
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSenderFailureFlag;
-import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
+import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -30,20 +30,17 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
 
     private final TuplesImpl tuples = new TuplesImpl( 10 );
 
-    private final DummyPartitionedOperatorTupleQueue operatorTupleQueue0 = new DummyPartitionedOperatorTupleQueue();
+    private final DummyPartitionedOperatorQueue operatorQueue0 = new DummyPartitionedOperatorQueue();
 
-    private final DummyPartitionedOperatorTupleQueue operatorTupleQueue1 = new DummyPartitionedOperatorTupleQueue();
+    private final DummyPartitionedOperatorQueue operatorQueue1 = new DummyPartitionedOperatorQueue();
 
-    private final DummyPartitionedOperatorTupleQueue operatorTupleQueue2 = new DummyPartitionedOperatorTupleQueue();
+    private final DummyPartitionedOperatorQueue operatorQueue2 = new DummyPartitionedOperatorQueue();
 
-    private final DummyPartitionedOperatorTupleQueue operatorTupleQueue3 = new DummyPartitionedOperatorTupleQueue();
+    private final DummyPartitionedOperatorQueue operatorQueue3 = new DummyPartitionedOperatorQueue();
 
     private final PartitionKeyExtractor partitionKeyExtractor = mock( PartitionKeyExtractor.class );
 
-    private final OperatorTupleQueue[] operatorTupleQueues = new OperatorTupleQueue[] { operatorTupleQueue0,
-                                                                                        operatorTupleQueue1,
-                                                                                        operatorTupleQueue2,
-                                                                                        operatorTupleQueue3 };
+    private final OperatorQueue[] operatorQueues = new OperatorQueue[] { operatorQueue0, operatorQueue1, operatorQueue2, operatorQueue3 };
 
     private final int[] partitionDistribution = new int[] { 0, 1, 2, 3, 0, 1, 2, 3 };
 
@@ -58,8 +55,7 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
                                                                                                      sourcePortIndex1,
                                                                                                      destinationPortIndex1,
                                                                                                      partitionCount,
-                                                                                                     partitionDistribution,
-                                                                                                     operatorTupleQueues,
+                                                                                                     partitionDistribution, operatorQueues,
                                                                                                      partitionKeyExtractor );
 
         final Tuple tuple = new Tuple();
@@ -70,7 +66,7 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
 
         tupleSender.send( tuples );
 
-        assertThat( operatorTupleQueue3.tuplesByPortIndex.get( destinationPortIndex1 ), equalTo( singletonList( tuple ) ) );
+        assertThat( operatorQueue3.tuplesByPortIndex.get( destinationPortIndex1 ), equalTo( singletonList( tuple ) ) );
     }
 
     @Test
@@ -88,8 +84,7 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
                                                                                                                  destinationPortIndex3,
                                                                                                                  destinationPortIndex4 },
                                                                                                      partitionCount,
-                                                                                                     partitionDistribution,
-                                                                                                     operatorTupleQueues,
+                                                                                                     partitionDistribution, operatorQueues,
                                                                                                      partitionKeyExtractor );
 
         final Tuple tuple1 = new Tuple();
@@ -112,13 +107,13 @@ public class PartitionedDownstreamTupleSendersTest extends AbstractJokerTest
 
         tupleSender.send( tuples );
 
-        assertThat( operatorTupleQueue3.tuplesByPortIndex.get( destinationPortIndex1 ), equalTo( singletonList( tuple1 ) ) );
-        assertThat( operatorTupleQueue1.tuplesByPortIndex.get( destinationPortIndex2 ), equalTo( singletonList( tuple2 ) ) );
-        assertThat( operatorTupleQueue0.tuplesByPortIndex.get( destinationPortIndex3 ), equalTo( singletonList( tuple3 ) ) );
-        assertThat( operatorTupleQueue2.tuplesByPortIndex.get( destinationPortIndex4 ), equalTo( singletonList( tuple4 ) ) );
+        assertThat( operatorQueue3.tuplesByPortIndex.get( destinationPortIndex1 ), equalTo( singletonList( tuple1 ) ) );
+        assertThat( operatorQueue1.tuplesByPortIndex.get( destinationPortIndex2 ), equalTo( singletonList( tuple2 ) ) );
+        assertThat( operatorQueue0.tuplesByPortIndex.get( destinationPortIndex3 ), equalTo( singletonList( tuple3 ) ) );
+        assertThat( operatorQueue2.tuplesByPortIndex.get( destinationPortIndex4 ), equalTo( singletonList( tuple4 ) ) );
     }
 
-    private static class DummyPartitionedOperatorTupleQueue implements OperatorTupleQueue
+    private static class DummyPartitionedOperatorQueue implements OperatorQueue
     {
 
         private final Map<Integer, List<Tuple>> tuplesByPortIndex = new HashMap<>();

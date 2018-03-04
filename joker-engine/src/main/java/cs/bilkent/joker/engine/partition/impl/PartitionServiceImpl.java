@@ -320,10 +320,10 @@ public class PartitionServiceImpl implements PartitionService
             }
             else if ( p.size() > overCapacity )
             {
-                throw new IllegalStateException( "regionId=" + regionId
-                                                 + " rebalancing destination is over over-capacity! current ownerships: "
-                                                 + currentOwnerships + " new replica count: " + newReplicaCount + " normal capacity: "
-                                                 + normalCapacity + " destinations: " + destinations );
+                throw new IllegalStateException(
+                        "regionId=" + regionId + " rebalancing destination is over over-capacity! current ownerships: " + currentOwnerships
+                        + " new replica count: " + newReplicaCount + " normal capacity: " + normalCapacity + " destinations: "
+                        + destinations );
             }
         }
 

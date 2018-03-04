@@ -7,7 +7,7 @@ import java.util.Set;
 import org.junit.Test;
 
 import cs.bilkent.joker.engine.config.JokerConfig;
-import static cs.bilkent.joker.engine.config.ThreadingPreference.MULTI_THREADED;
+import static cs.bilkent.joker.engine.config.ThreadingPref.MULTI_THREADED;
 import cs.bilkent.joker.engine.partition.PartitionDistribution;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import cs.bilkent.joker.engine.partition.PartitionService;
@@ -15,7 +15,7 @@ import static cs.bilkent.joker.engine.partition.PartitionUtil.getPartitionId;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractor1;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
 import cs.bilkent.joker.engine.partition.impl.PartitionServiceImpl;
-import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
+import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
@@ -33,7 +33,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 
-public class OperatorTupleQueueManagerImplTest extends AbstractJokerTest
+public class OperatorQueueManagerImplTest extends AbstractJokerTest
 {
 
     private static final int REGION_ID = 1;
@@ -70,18 +70,18 @@ public class OperatorTupleQueueManagerImplTest extends AbstractJokerTest
 
     private final PartitionService partitionService = new PartitionServiceImpl( jokerConfig );
 
-    private final OperatorTupleQueueManagerImpl tupleQueueManager = new OperatorTupleQueueManagerImpl( jokerConfig,
-                                                                                                       new PartitionKeyExtractorFactoryImpl() );
+    private final OperatorQueueManagerImpl operatorQueueManager = new OperatorQueueManagerImpl( jokerConfig,
+                                                                                                new PartitionKeyExtractorFactoryImpl() );
 
     private final Set<Object> keys = new HashSet<>();
 
     @Test
-    public void shouldNotCreateOperatorTupleQueueMultipleTimes ()
+    public void shouldNotCreateOperatorQueueMultipleTimes ()
     {
-        tupleQueueManager.createDefaultOperatorTupleQueue( REGION_ID, 1, STATELESS_OPERATOR, MULTI_THREADED );
+        operatorQueueManager.createDefaultQueue( REGION_ID, STATELESS_OPERATOR, 1, MULTI_THREADED );
         try
         {
-            tupleQueueManager.createDefaultOperatorTupleQueue( REGION_ID, 1, STATELESS_OPERATOR, MULTI_THREADED );
+            operatorQueueManager.createDefaultQueue( REGION_ID, STATELESS_OPERATOR, 1, MULTI_THREADED );
             fail();
         }
         catch ( IllegalStateException ignored )
@@ -90,11 +90,11 @@ public class OperatorTupleQueueManagerImplTest extends AbstractJokerTest
         }
 
         final PartitionDistribution partitionDistribution = partitionService.createPartitionDistribution( REGION_ID, 1 );
-        tupleQueueManager.createPartitionedOperatorTupleQueues( 1, PARTITIONED_STATEFUL_OPERATOR, partitionDistribution );
+        operatorQueueManager.createPartitionedQueues( 1, PARTITIONED_STATEFUL_OPERATOR, partitionDistribution );
 
         try
         {
-            tupleQueueManager.createPartitionedOperatorTupleQueues( 1, PARTITIONED_STATEFUL_OPERATOR, partitionDistribution );
+            operatorQueueManager.createPartitionedQueues( 1, PARTITIONED_STATEFUL_OPERATOR, partitionDistribution );
             fail();
         }
         catch ( IllegalStateException ignored )
@@ -104,74 +104,71 @@ public class OperatorTupleQueueManagerImplTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldCleanOperatorTupleQueueOnRelease ()
+    public void shouldCleanOperatorQueueOnRelease ()
     {
-        final OperatorTupleQueue operatorTupleQueue = tupleQueueManager.createDefaultOperatorTupleQueue( REGION_ID, 1, STATELESS_OPERATOR,
-                                                                                                         MULTI_THREADED );
-        operatorTupleQueue.offer( 0, singletonList( new Tuple() ) );
-        tupleQueueManager.releaseDefaultOperatorTupleQueue( 1, 1, "op1" );
+        final OperatorQueue operatorQueue = operatorQueueManager.createDefaultQueue( REGION_ID, STATELESS_OPERATOR, 1, MULTI_THREADED );
+        operatorQueue.offer( 0, singletonList( new Tuple() ) );
+        operatorQueueManager.releaseDefaultQueue( 1, "op1", 1 );
     }
 
     @Test
-    public void shouldConvertMultiThreadedDefaultOperatorTupleQueueToSingleThreaded ()
+    public void shouldConvertMultiThreadedDefaultOperatorQueueToSingleThreaded ()
     {
-        final OperatorTupleQueue operatorTupleQueue = tupleQueueManager.createDefaultOperatorTupleQueue( REGION_ID, 1, STATELESS_OPERATOR,
-                                                                                                         MULTI_THREADED );
+        final OperatorQueue operatorQueue = operatorQueueManager.createDefaultQueue( REGION_ID, STATELESS_OPERATOR, 1, MULTI_THREADED );
         final Tuple tuple1 = new Tuple();
         tuple1.set( "key1", "val1" );
-        operatorTupleQueue.offer( 0, singletonList( tuple1 ) );
+        operatorQueue.offer( 0, singletonList( tuple1 ) );
         final Tuple tuple2 = new Tuple();
         tuple2.set( "key2", "val2" );
-        operatorTupleQueue.offer( 1, singletonList( tuple2 ) );
+        operatorQueue.offer( 1, singletonList( tuple2 ) );
 
-        final OperatorTupleQueue operatorTupleQueue2 = tupleQueueManager.switchThreadingPreference( 1, 1, "op1" );
+        final OperatorQueue operatorQueue2 = operatorQueueManager.switchThreadingPref( 1, "op1", 1 );
 
         final TuplesImpl result = new TuplesImpl( 2 );
         final GreedyDrainer drainer = new GreedyDrainer( 2 );
-        operatorTupleQueue2.drain( drainer, key -> result );
+        operatorQueue2.drain( drainer, key -> result );
         assertEquals( singletonList( tuple1 ), result.getTuples( 0 ) );
         assertEquals( singletonList( tuple2 ), result.getTuples( 1 ) );
     }
 
     @Test
-    public void shouldConvertSingleThreadedDefaultOperatorTupleQueueToMultiThreaded ()
+    public void shouldConvertSingleThreadedDefaultOperatorQueueToMultiThreaded ()
     {
-        final OperatorTupleQueue operatorTupleQueue = tupleQueueManager.createDefaultOperatorTupleQueue( 1, 1, STATELESS_OPERATOR,
-                                                                                                         MULTI_THREADED );
+        final OperatorQueue operatorQueue = operatorQueueManager.createDefaultQueue( 1, STATELESS_OPERATOR, 1, MULTI_THREADED );
         final Tuple tuple1 = new Tuple();
         tuple1.set( "key1", "val1" );
-        operatorTupleQueue.offer( 0, singletonList( tuple1 ) );
+        operatorQueue.offer( 0, singletonList( tuple1 ) );
         final Tuple tuple2 = new Tuple();
         tuple2.set( "key2", "val2" );
-        operatorTupleQueue.offer( 1, singletonList( tuple2 ) );
+        operatorQueue.offer( 1, singletonList( tuple2 ) );
 
-        final OperatorTupleQueue operatorTupleQueue2 = tupleQueueManager.switchThreadingPreference( REGION_ID, 1, "op1" );
+        final OperatorQueue operatorQueue2 = operatorQueueManager.switchThreadingPref( REGION_ID, "op1", 1 );
 
         final TuplesImpl result = new TuplesImpl( 2 );
         final GreedyDrainer drainer = new GreedyDrainer( 2 );
-        operatorTupleQueue2.drain( drainer, key -> result );
+        operatorQueue2.drain( drainer, key -> result );
         assertEquals( singletonList( tuple1 ), result.getTuples( 0 ) );
         assertEquals( singletonList( tuple2 ), result.getTuples( 1 ) );
     }
 
     @Test
-    public void shouldShrinkPartitionedOperatorTupleQueues ()
+    public void shouldShrinkPartitionedOperatorQueues ()
     {
-        testRebalancePartitionedOperatorTupleQueues( 4, 2 );
+        testRebalancePartitionedOperatorQueues( 4, 2 );
     }
 
     @Test
-    public void shouldExtendPartitionedOperatorTupleQueues ()
+    public void shouldExtendPartitionedOperatorQueues ()
     {
-        testRebalancePartitionedOperatorTupleQueues( 2, 4 );
+        testRebalancePartitionedOperatorQueues( 2, 4 );
     }
 
-    private void testRebalancePartitionedOperatorTupleQueues ( final int initialReplicaCount, final int newReplicaCount )
+    private void testRebalancePartitionedOperatorQueues ( final int initialReplicaCount, final int newReplicaCount )
     {
         final PartitionDistribution partitionDistribution = partitionService.createPartitionDistribution( REGION_ID, initialReplicaCount );
-        OperatorTupleQueue[] operatorTupleQueues = tupleQueueManager.createPartitionedOperatorTupleQueues( REGION_ID,
-                                                                                                           PARTITIONED_STATEFUL_OPERATOR,
-                                                                                                           partitionDistribution );
+        OperatorQueue[] operatorQueues = operatorQueueManager.createPartitionedQueues( REGION_ID,
+                                                                                       PARTITIONED_STATEFUL_OPERATOR,
+                                                                                       partitionDistribution );
 
         final Set<Tuple> tuples = new HashSet<>();
         for ( int partitionId = 0; partitionId < partitionDistribution.getPartitionCount(); partitionId++ )
@@ -179,23 +176,23 @@ public class OperatorTupleQueueManagerImplTest extends AbstractJokerTest
             final int replicaIndex = partitionDistribution.getReplicaIndex( partitionId );
             final Tuple tuple = generateTuple( partitionId );
             tuples.add( tuple );
-            operatorTupleQueues[ replicaIndex ].offer( 0, singletonList( tuple ) );
+            operatorQueues[ replicaIndex ].offer( 0, singletonList( tuple ) );
         }
 
         final PartitionDistribution newPartitionDistribution = partitionService.rebalancePartitionDistribution( 1, newReplicaCount );
-        operatorTupleQueues = tupleQueueManager.rebalancePartitionedOperatorTupleQueues( REGION_ID,
-                                                                                         PARTITIONED_STATEFUL_OPERATOR,
-                                                                                         partitionDistribution,
-                                                                                         newPartitionDistribution );
-        assertNotNull( operatorTupleQueues );
-        assertEquals( newReplicaCount, operatorTupleQueues.length );
+        operatorQueues = operatorQueueManager.rebalancePartitionedQueues( REGION_ID,
+                                                                          PARTITIONED_STATEFUL_OPERATOR,
+                                                                          partitionDistribution,
+                                                                          newPartitionDistribution );
+        assertNotNull( operatorQueues );
+        assertEquals( newReplicaCount, operatorQueues.length );
 
         final GreedyDrainer drainer = new GreedyDrainer( 1 );
         for ( int partitionId = 0; partitionId < partitionDistribution.getPartitionCount(); partitionId++ )
         {
             final TuplesImpl result = new TuplesImpl( 1 );
             final int replicaIndex = newPartitionDistribution.getReplicaIndex( partitionId );
-            operatorTupleQueues[ replicaIndex ].drain( drainer, key -> result );
+            operatorQueues[ replicaIndex ].drain( drainer, key -> result );
             tuples.removeAll( result.getTuplesByDefaultPort() );
         }
 

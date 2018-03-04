@@ -20,10 +20,14 @@ import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXTENDABLE_FIELD_SET, fields = { @SchemaField( name = VWAPAggregatorOperator.TICKER_SYMBOL_FIELD, type = String.class ),
                                                                                                  @SchemaField( name = VWAPAggregatorOperator.TUPLE_INPUT_VWAP_FIELD, type = Double.class ),
                                                                                                  @SchemaField( name = VWAPAggregatorOperator.TUPLE_VOLUME_FIELD, type = Double.class ),
-                                                                                                 @SchemaField( name = VWAPAggregatorOperator.TIMESTAMP_FIELD, type = Long.class ) } ) }, outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = VWAPAggregatorOperator.TICKER_SYMBOL_FIELD, type = String.class ),
-                                                                                                                                                                                                                                                                     @SchemaField( name = VWAPAggregatorOperator.SINGLE_VOLUME_FIELD, type = Double.class ),
-                                                                                                                                                                                                                                                                     @SchemaField( name = VWAPAggregatorOperator.SINGLE_VWAP_FIELD, type = Double.class ),
-                                                                                                                                                                                                                                                                     @SchemaField( name = VWAPAggregatorOperator.TIMESTAMP_FIELD, type = Long.class ) } ) } )
+                                                                                                 @SchemaField( name = VWAPAggregatorOperator.TIMESTAMP_FIELD, type = Long.class ) } ) }, outputs = {
+        @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = VWAPAggregatorOperator.TICKER_SYMBOL_FIELD,
+                type = String.class ),
+                                                                        @SchemaField( name = VWAPAggregatorOperator.SINGLE_VOLUME_FIELD,
+                                                                                type = Double.class ),
+                                                                        @SchemaField( name = VWAPAggregatorOperator.SINGLE_VWAP_FIELD,
+                                                                                type = Double.class ),
+                                                                        @SchemaField( name = VWAPAggregatorOperator.TIMESTAMP_FIELD, type = Long.class ) } ) } )
 public class VWAPAggregatorOperator implements Operator
 {
 

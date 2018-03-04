@@ -18,15 +18,14 @@ public class NonBlockingSinglePortDrainer extends SinglePortDrainer
 
     @Override
     public boolean drain ( final boolean maySkipBlocking,
-                           final PartitionKey key,
-                           final TupleQueue[] tupleQueues,
+                           final PartitionKey key, final TupleQueue[] queues,
                            final Function<PartitionKey, TuplesImpl> tuplesSupplier )
     {
-        checkArgument( tupleQueues != null );
-        checkArgument( tupleQueues.length == 1 );
+        checkArgument( queues != null );
+        checkArgument( queues.length == 1 );
         checkArgument( tuplesSupplier != null );
 
-        final TupleQueue tupleQueue = tupleQueues[ 0 ];
+        final TupleQueue tupleQueue = queues[ 0 ];
 
         if ( tupleQueue.size() >= tupleCountToCheck )
         {

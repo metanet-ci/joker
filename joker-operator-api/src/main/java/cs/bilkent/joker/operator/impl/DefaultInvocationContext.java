@@ -5,14 +5,13 @@ import java.util.List;
 import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import cs.bilkent.joker.operator.InvocationContext;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.partition.impl.PartitionKey;
 import static java.util.Arrays.copyOf;
 
 
-public class InvocationContextImpl implements InvocationContext
+public class DefaultInvocationContext implements InternalInvocationContext
 {
 
     private final int inputPortCount;
@@ -23,7 +22,7 @@ public class InvocationContextImpl implements InvocationContext
 
     private final List<PartitionKey> partitionKeys = new ArrayList<>();
 
-    private final TuplesImpl output;
+    private final OutputTupleCollector outputCollector;
 
     private InvocationReason reason;
 
@@ -33,21 +32,32 @@ public class InvocationContextImpl implements InvocationContext
 
     private int currentInput = 0;
 
-    public InvocationContextImpl ( final int inputPortCount,
-                                   final Function<PartitionKey, KVStore> kvStoreSupplier,
-                                   final TuplesImpl output )
+    public DefaultInvocationContext ( final int inputPortCount,
+                                      final Function<PartitionKey, KVStore> kvStoreSupplier,
+                                      final TuplesImpl output )
+    {
+        this( inputPortCount, kvStoreSupplier, new DefaultOutputTupleCollector( output ) );
+    }
+
+    public DefaultInvocationContext ( final int inputPortCount,
+                                      final Function<PartitionKey, KVStore> kvStoreSupplier,
+                                      final OutputTupleCollector outputCollector )
     {
         this.inputPortCount = inputPortCount;
         this.kvStoreSupplier = kvStoreSupplier;
-        this.output = output;
+        this.outputCollector = outputCollector;
     }
 
+    // InternalInvocationContext methods begin
+
+    @Override
     public void setInvocationReason ( final InvocationReason reason )
     {
         checkNotNull( reason );
         this.reason = reason;
     }
 
+    @Override
     public void reset ()
     {
         this.reason = null;
@@ -56,46 +66,38 @@ public class InvocationContextImpl implements InvocationContext
             input.clear();
         }
         partitionKeys.clear();
-        output.clear();
+        outputCollector.clear();
         inputCount = 0;
         currentInput = 0;
     }
 
-    public void setUpstreamConnectionStatuses ( final boolean[] upstreamConnectionStatuses )
-    {
-        this.upstreamConnectionStatuses = copyOf( upstreamConnectionStatuses, upstreamConnectionStatuses.length );
-    }
-
-    public TuplesImpl createInputTuples ( final PartitionKey partitionKey )
-    {
-        partitionKeys.add( partitionKey );
-        if ( inputs.size() <= inputCount )
-        {
-            inputs.add( new TuplesImpl( inputPortCount ) );
-        }
-
-        return inputs.get( inputCount++ );
-    }
-
+    @Override
     public int getInputCount ()
     {
         return inputCount;
     }
 
+    @Override
     public boolean nextInput ()
     {
         return ( ++currentInput < inputCount );
     }
 
-    public TuplesImpl getInput ()
+    @Override
+    public TuplesImpl getOutput ()
     {
-        return inputs.get( currentInput );
+        return outputCollector.getOutputTuples();
     }
 
-    public List<TuplesImpl> getInputs ()
+    @Override
+    public void setUpstreamConnectionStatuses ( final boolean[] upstreamConnectionStatuses )
     {
-        return inputs;
+        this.upstreamConnectionStatuses = copyOf( upstreamConnectionStatuses, upstreamConnectionStatuses.length );
     }
+
+    // InternalInvocationContext methods end
+
+    // InvocationContext methods begin
 
     @Override
     public List<Tuple> getInputTuples ( int portIndex )
@@ -118,30 +120,31 @@ public class InvocationContextImpl implements InvocationContext
     @Override
     public void output ( final Tuple tuple )
     {
-        output.add( tuple );
+        outputCollector.add( tuple );
     }
 
     @Override
     public void output ( final List<Tuple> tuples )
     {
-        output.addAll( tuples );
+        for ( int i = 0, j = tuples.size(); i < j; i++ )
+        {
+            outputCollector.add( tuples.get( i ) );
+        }
     }
 
     @Override
     public void output ( final int portIndex, final Tuple tuple )
     {
-        output.add( portIndex, tuple );
+        outputCollector.add( portIndex, tuple );
     }
 
     @Override
     public void output ( final int portIndex, final List<Tuple> tuples )
     {
-        output.addAll( portIndex, tuples );
-    }
-
-    public TuplesImpl getOutput ()
-    {
-        return output;
+        for ( int i = 0, j = tuples.size(); i < j; i++ )
+        {
+            outputCollector.add( portIndex, tuples.get( i ) );
+        }
     }
 
     @Override
@@ -157,12 +160,6 @@ public class InvocationContextImpl implements InvocationContext
     }
 
     @Override
-    public boolean isInputPortClosed ( final int portIndex )
-    {
-        return !upstreamConnectionStatuses[ portIndex ];
-    }
-
-    @Override
     public PartitionKey getPartitionKey ()
     {
         return partitionKeys.get( currentInput );
@@ -173,5 +170,28 @@ public class InvocationContextImpl implements InvocationContext
     {
         return kvStoreSupplier.apply( getPartitionKey() );
     }
+
+    public TuplesImpl createInputTuples ( final PartitionKey partitionKey )
+    {
+        partitionKeys.add( partitionKey );
+        if ( inputs.size() <= inputCount )
+        {
+            inputs.add( new TuplesImpl( inputPortCount ) );
+        }
+
+        return inputs.get( inputCount++ );
+    }
+
+    public TuplesImpl getInput ()
+    {
+        return inputs.get( currentInput );
+    }
+
+    public List<TuplesImpl> getInputs ()
+    {
+        return inputs;
+    }
+
+    // InvocationContext methods end
 
 }

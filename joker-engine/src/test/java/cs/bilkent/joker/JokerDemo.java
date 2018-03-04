@@ -20,11 +20,11 @@ import cs.bilkent.joker.Joker.JokerBuilder;
 import cs.bilkent.joker.engine.adaptation.impl.adaptationtracker.SmartAdaptationTracker;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.config.JokerConfigBuilder;
-import cs.bilkent.joker.engine.flow.FlowExecutionPlan;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.FlowExecPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import cs.bilkent.joker.engine.metric.PipelineMetricsHistory;
-import cs.bilkent.joker.engine.region.impl.DefaultRegionExecutionPlanFactory;
+import cs.bilkent.joker.engine.region.impl.DefaultRegionExecPlanFactory;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
@@ -108,7 +108,7 @@ public class JokerDemo extends AbstractJokerTest
         final SmartAdaptationTracker adaptationTracker = new SmartAdaptationTracker( jokerConfig );
 
         final Joker joker = new JokerBuilder().setJokerConfig( jokerConfig )
-                                              .setRegionExecutionPlanFactory( new DefaultRegionExecutionPlanFactory( jokerConfig ) )
+                                              .setRegionExecPlanFactory( new DefaultRegionExecPlanFactory( jokerConfig ) )
                                               .setAdaptationTracker( adaptationTracker )
                                               .build();
 
@@ -126,7 +126,7 @@ public class JokerDemo extends AbstractJokerTest
 
     private void logFinalMetrics ( final SmartAdaptationTracker adaptationTracker )
     {
-        for ( RegionExecutionPlan regionExecPlan : adaptationTracker.getInitialFlowExecutionPlan().getRegionExecutionPlans() )
+        for ( RegionExecPlan regionExecPlan : adaptationTracker.getInitialExecPlan().getRegionExecPlans() )
         {
             if ( regionExecPlan.getRegionDef().isSource() )
             {
@@ -134,10 +134,10 @@ public class JokerDemo extends AbstractJokerTest
             }
 
             final int regionId = regionExecPlan.getRegionId();
-            final PipelineMetricsHistory initialMetricsHistory = adaptationTracker.getInitialFlowMetrics()
+            final PipelineMetricsHistory initialMetricsHistory = adaptationTracker.getInitialMetrics()
                                                                                   .getRegionMetrics( regionId )
                                                                                   .get( 0 );
-            final PipelineMetricsHistory finalMetricsHistory = adaptationTracker.getFinalFlowMetrics()
+            final PipelineMetricsHistory finalMetricsHistory = adaptationTracker.getFinalMetrics()
                                                                                 .getRegionMetrics( regionId )
                                                                                 .get( 0 );
 
@@ -169,7 +169,7 @@ public class JokerDemo extends AbstractJokerTest
         final FlowDef flow = flowExample.build();
 
         final Joker joker = newJokerInstance( false );
-        final FlowExecutionPlan flowExecPlan = joker.run( flow );
+        final FlowExecPlan flowExecPlan = joker.run( flow );
 
         sleepUninterruptibly( 40, SECONDS );
 
@@ -202,11 +202,11 @@ public class JokerDemo extends AbstractJokerTest
         final FlowDef flow = flowExample.build();
 
         final Joker joker = newJokerInstance( false );
-        final FlowExecutionPlan flowExecPlan = joker.run( flow );
+        final FlowExecPlan flowExecPlan = joker.run( flow );
 
         sleepUninterruptibly( 40, SECONDS );
 
-        final RegionExecutionPlan regionExecPlan = getMiddleRegionExecPlan( flowExecPlan );
+        final RegionExecPlan regionExecPlan = getMiddleRegionExecPlan( flowExecPlan );
 
         joker.rebalanceRegion( flowExecPlan.getVersion(), regionExecPlan.getRegionId(), 2 );
 
@@ -230,14 +230,13 @@ public class JokerDemo extends AbstractJokerTest
         configBuilder.getFlowDefOptimizerConfigBuilder().disableMergeRegions();
 
         final JokerConfig jokerConfig = configBuilder.build();
-        return new JokerBuilder().setJokerConfig( jokerConfig )
-                                 .setRegionExecutionPlanFactory( new DefaultRegionExecutionPlanFactory( jokerConfig ) )
+        return new JokerBuilder().setJokerConfig( jokerConfig ).setRegionExecPlanFactory( new DefaultRegionExecPlanFactory( jokerConfig ) )
                                  .build();
     }
 
-    private RegionExecutionPlan getMiddleRegionExecPlan ( FlowExecutionPlan flowExecPlan )
+    private RegionExecPlan getMiddleRegionExecPlan ( FlowExecPlan flowExecPlan )
     {
-        for ( RegionExecutionPlan regionExecPlan : flowExecPlan.getRegionExecutionPlans() )
+        for ( RegionExecPlan regionExecPlan : flowExecPlan.getRegionExecPlans() )
         {
             if ( regionExecPlan.getRegionDef().getRegionType() == MIDDLE_REGION_TYPE )
             {
@@ -248,10 +247,9 @@ public class JokerDemo extends AbstractJokerTest
         throw new IllegalArgumentException();
     }
 
-    private void splitPipeline ( Joker joker,
-                                 FlowExecutionPlan flowExecPlan ) throws InterruptedException, ExecutionException, TimeoutException
+    private void splitPipeline ( Joker joker, FlowExecPlan flowExecPlan ) throws InterruptedException, ExecutionException, TimeoutException
     {
-        RegionExecutionPlan regionExecPlan = getMiddleRegionExecPlan( flowExecPlan );
+        RegionExecPlan regionExecPlan = getMiddleRegionExecPlan( flowExecPlan );
         joker.splitPipeline( flowExecPlan.getVersion(), regionExecPlan.getPipelineIds().get( 0 ), singletonList( 1 ) ).get( 60, SECONDS );
     }
 

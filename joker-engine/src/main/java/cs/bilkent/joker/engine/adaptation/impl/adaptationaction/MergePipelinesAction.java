@@ -6,29 +6,29 @@ import java.util.List;
 import cs.bilkent.joker.engine.adaptation.AdaptationAction;
 import cs.bilkent.joker.engine.adaptation.AdaptationPerformer;
 import cs.bilkent.joker.engine.flow.PipelineId;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
-import static cs.bilkent.joker.engine.region.impl.RegionExecutionPlanUtil.getMergeablePipelineStartIndices;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
+import static cs.bilkent.joker.engine.region.impl.RegionExecPlanUtil.getMergeablePipelineStartIndices;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import static java.util.stream.Collectors.toList;
 
 public class MergePipelinesAction implements AdaptationAction
 {
 
-    private final RegionExecutionPlan currentRegionExecutionPlan, newRegionExecutionPlan;
+    private final RegionExecPlan currentExecPlan, newExecPlan;
 
     private final List<PipelineId> pipelineIds = new ArrayList<>();
 
-    public MergePipelinesAction ( final RegionExecutionPlan regionExecutionPlan, final List<PipelineId> pipelineIds )
+    public MergePipelinesAction ( final RegionExecPlan execPlan, final List<PipelineId> pipelineIds )
     {
-        checkArgument( regionExecutionPlan != null );
+        checkArgument( execPlan != null );
         checkArgument( pipelineIds != null && pipelineIds.size() > 0 );
-        this.currentRegionExecutionPlan = regionExecutionPlan;
-        final List<Integer> startIndicesToMerge = getMergeablePipelineStartIndices( regionExecutionPlan, pipelineIds );
-        this.newRegionExecutionPlan = regionExecutionPlan.withMergedPipelines( startIndicesToMerge );
+        this.currentExecPlan = execPlan;
+        final List<Integer> startIndicesToMerge = getMergeablePipelineStartIndices( execPlan, pipelineIds );
+        this.newExecPlan = execPlan.withMergedPipelines( startIndicesToMerge );
         int pipelineStartIndex = -1;
         for ( PipelineId pipelineId : pipelineIds )
         {
-            checkArgument( regionExecutionPlan.getRegionId() == pipelineId.getRegionId() );
+            checkArgument( execPlan.getRegionId() == pipelineId.getRegionId() );
             checkArgument( pipelineId.getPipelineStartIndex() > pipelineStartIndex );
             pipelineStartIndex = pipelineId.getPipelineStartIndex();
         }
@@ -43,22 +43,22 @@ public class MergePipelinesAction implements AdaptationAction
     }
 
     @Override
-    public RegionExecutionPlan getCurrentRegionExecutionPlan ()
+    public RegionExecPlan getCurrentExecPlan ()
     {
-        return currentRegionExecutionPlan;
+        return currentExecPlan;
     }
 
     @Override
-    public RegionExecutionPlan getNewRegionExecutionPlan ()
+    public RegionExecPlan getNewExecPlan ()
     {
-        return newRegionExecutionPlan;
+        return newExecPlan;
     }
 
     @Override
     public AdaptationAction revert ()
     {
         final List<Integer> pipelineOperatorIndices = getSplitIndices();
-        return new SplitPipelineAction( newRegionExecutionPlan, pipelineIds.get( 0 ), pipelineOperatorIndices );
+        return new SplitPipelineAction( newExecPlan, pipelineIds.get( 0 ), pipelineOperatorIndices );
     }
 
     private List<Integer> getSplitIndices ()
@@ -75,8 +75,8 @@ public class MergePipelinesAction implements AdaptationAction
     @Override
     public String toString ()
     {
-        return "MergePipelineAction{" + "currentRegionExecutionPlan=" + currentRegionExecutionPlan + ", newRegionExecutionPlan="
-               + newRegionExecutionPlan + ", pipelineIds=" + pipelineIds + '}';
+        return "MergePipelineAction{" + "currentExecPlan=" + currentExecPlan + ", newExecPlan=" + newExecPlan + ", pipelineIds="
+               + pipelineIds + '}';
     }
 
     @Override
@@ -93,7 +93,7 @@ public class MergePipelinesAction implements AdaptationAction
 
         final MergePipelinesAction action = (MergePipelinesAction) o;
 
-        if ( !currentRegionExecutionPlan.equals( action.currentRegionExecutionPlan ) )
+        if ( !currentExecPlan.equals( action.currentExecPlan ) )
         {
             return false;
         }
@@ -103,7 +103,7 @@ public class MergePipelinesAction implements AdaptationAction
     @Override
     public int hashCode ()
     {
-        int result = currentRegionExecutionPlan.hashCode();
+        int result = currentExecPlan.hashCode();
         result = 31 * result + pipelineIds.hashCode();
         return result;
     }

@@ -10,7 +10,7 @@ import com.google.inject.Injector;
 import cs.bilkent.joker.JokerModule;
 import cs.bilkent.joker.engine.config.JokerConfigBuilder;
 import cs.bilkent.joker.engine.flow.RegionDef;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.RUNNING;
 import cs.bilkent.joker.engine.region.FlowDefOptimizer;
 import cs.bilkent.joker.engine.region.Region;
@@ -118,9 +118,9 @@ public class PipelineOperatorPortCountsTest extends AbstractJokerTest
         assertThat( regionDefs, hasSize( 2 ) );
 
         final RegionDef regionDef = regionDefs.get( 1 );
-        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regionDef, singletonList( 0 ), 1 );
+        final RegionExecPlan regionExecPlan = new RegionExecPlan( regionDef, singletonList( 0 ), 1 );
 
-        final Region region = regionManager.createRegion( result._1, regionExecutionPlan );
+        final Region region = regionManager.createRegion( result._1, regionExecPlan );
         final PipelineReplica[] pipelineReplicas = region.getPipelineReplicas( 0 );
         final Pipeline pipeline = new Pipeline( pipelineReplicas[ 0 ].id().pipelineId, region );
         pipeline.init();

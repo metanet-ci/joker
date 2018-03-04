@@ -8,9 +8,9 @@ import java.util.function.Consumer;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.adaptation.impl.adaptationtracker.ExperimentalAdaptationTracker.FlowMetricsReporter;
 import cs.bilkent.joker.engine.config.JokerConfig;
-import cs.bilkent.joker.engine.flow.FlowExecutionPlan;
+import cs.bilkent.joker.engine.flow.FlowExecPlan;
 import cs.bilkent.joker.engine.flow.PipelineId;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.metric.FlowMetrics;
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import cs.bilkent.joker.engine.metric.PipelineMetricsHistory;
@@ -35,41 +35,38 @@ public class FlowMetricsFileReporter implements FlowMetricsReporter
     }
 
     @Override
-    public void report ( final FlowExecutionPlan flowExecutionPlan, final FlowMetrics flowMetrics )
+    public void report ( final FlowExecPlan execPlan, final FlowMetrics metrics )
     {
-        writeToFile( "last.txt", writer -> writer.println( flowExecutionPlan.getVersion() ) );
+        writeToFile( "last.txt", writer -> writer.println( execPlan.getVersion() ) );
 
-        writeToFile( "flow" + flowExecutionPlan.getVersion() + "_summary.txt", writer ->
-        {
-            writer.println( flowExecutionPlan.toPlanSummaryString() );
+        writeToFile( "flow" + execPlan.getVersion() + "_summary.txt", writer -> {
+            writer.println( execPlan.toSummaryString() );
         } );
 
-        writeToFile( "flow" + flowExecutionPlan.getVersion() + "_metricPeriod.txt", writer ->
-        {
-            writer.println( flowMetrics.getPeriod() );
+        writeToFile( "flow" + execPlan.getVersion() + "_metricPeriod.txt", writer -> {
+            writer.println( metrics.getPeriod() );
         } );
 
-        writeToFile( "flow" + flowExecutionPlan.getVersion() + "_regionCount.txt", writer ->
-        {
-            writer.println( flowExecutionPlan.getRegionCount() );
+        writeToFile( "flow" + execPlan.getVersion() + "_regionCount.txt", writer -> {
+            writer.println( execPlan.getRegionCount() );
         } );
 
-        for ( final RegionExecutionPlan regionExecPlan : flowExecutionPlan.getRegionExecutionPlans() )
+        for ( final RegionExecPlan regionExecPlan : execPlan.getRegionExecPlans() )
         {
-            final String regionFileNamePrefix = "flow" + flowExecutionPlan.getVersion() + "_r" + regionExecPlan.getRegionId();
+            final String regionFileNamePrefix = "flow" + execPlan.getVersion() + "_r" + regionExecPlan.getRegionId();
             writeToFile( regionFileNamePrefix + "_replicaCount.txt", writer -> writer.println( regionExecPlan.getReplicaCount() ) );
             writeToFile( regionFileNamePrefix + "_pipelineCount.txt", writer -> writer.println( regionExecPlan.getPipelineCount() ) );
 
             for ( PipelineId pipelineId : regionExecPlan.getPipelineIds() )
             {
-                final String pipelineFileNamePrefix = "flow" + flowExecutionPlan.getVersion() + "_p" + pipelineId.getRegionId() + "_"
+                final String pipelineFileNamePrefix = "flow" + execPlan.getVersion() + "_p" + pipelineId.getRegionId() + "_"
                                                       + pipelineId.getPipelineStartIndex();
 
                 writeToFile( pipelineFileNamePrefix + "_operatorCount.txt",
                              writer -> writer.println( regionExecPlan.getOperatorCountByPipelineStartIndex( pipelineId
                                                                                                                     .getPipelineStartIndex() ) ) );
 
-                final PipelineMetricsHistory pipelineMetricsHistory = flowMetrics.getPipelineMetricsHistory( pipelineId );
+                final PipelineMetricsHistory pipelineMetricsHistory = metrics.getPipelineMetricsHistory( pipelineId );
                 final PipelineMetrics pipelineMetrics = pipelineMetricsHistorySummarizer.summarize( pipelineMetricsHistory );
 
                 writeToFile( pipelineFileNamePrefix + "_cpu.txt", writer -> writer.println( pipelineMetrics.getAvgCpuUtilizationRatio() ) );
@@ -78,8 +75,7 @@ public class FlowMetricsFileReporter implements FlowMetricsReporter
                 for ( int i = 0; i < pipelineMetrics.getInputPortCount(); i++ )
                 {
                     final int index = i;
-                    writeToFile( pipelineFileNamePrefix + "_throughput_" + i + ".txt", writer ->
-                    {
+                    writeToFile( pipelineFileNamePrefix + "_throughput_" + i + ".txt", writer -> {
                         writer.println( totalInboundThroughputs[ index ] );
                     } );
                 }
@@ -91,15 +87,14 @@ public class FlowMetricsFileReporter implements FlowMetricsReporter
                 for ( int i = 0; i < pipelineMetrics.getOperatorCount(); i++ )
                 {
                     final int index = i;
-                    writeToFile( pipelineFileNamePrefix + "_costOperator_" + i + ".txt", writer ->
-                    {
+                    writeToFile( pipelineFileNamePrefix + "_costOperator_" + i + ".txt", writer -> {
                         writer.println( avgOperatorCosts[ index ] );
                     } );
                 }
             }
         }
 
-        //        visualize( flowExecutionPlan, dir.getPath() );
+        //        visualize( flowExecPlan, dir.getPath() );
     }
 
     private void writeToFile ( final String fileName, final Consumer<PrintWriter> consumer )

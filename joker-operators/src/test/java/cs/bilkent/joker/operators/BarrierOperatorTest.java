@@ -12,8 +12,8 @@ import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
 import cs.bilkent.joker.operator.impl.InitializationContextImpl;
-import cs.bilkent.joker.operator.impl.InvocationContextImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
@@ -45,7 +45,7 @@ public class BarrierOperatorTest extends AbstractJokerTest
 
     private final TuplesImpl output = new TuplesImpl( 3 );
 
-    private final InvocationContextImpl invocationContext = new InvocationContextImpl( inputPorts.length, key -> null, output );
+    private final DefaultInvocationContext invocationContext = new DefaultInvocationContext( inputPorts.length, key -> null, output );
 
     private final TuplesImpl input = invocationContext.createInputTuples( null );
 
@@ -139,12 +139,11 @@ public class BarrierOperatorTest extends AbstractJokerTest
         config.set( MERGE_POLICY_CONfIG_PARAMETER, mergePolicy );
         operator.init( initContext );
 
-        IntStream.of( inputPorts ).forEach( portIndex ->
-                                            {
-                                                final Tuple tuple = new Tuple();
-                                                tuple.set( "count", portIndex );
-                                                input.add( portIndex, tuple );
-                                            } );
+        IntStream.of( inputPorts ).forEach( portIndex -> {
+            final Tuple tuple = new Tuple();
+            tuple.set( "count", portIndex );
+            input.add( portIndex, tuple );
+        } );
 
         operator.invoke( invocationContext );
 
@@ -158,12 +157,11 @@ public class BarrierOperatorTest extends AbstractJokerTest
         config.set( MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
         operator.init( initContext );
 
-        IntStream.of( inputPorts ).forEach( portIndex ->
-                                            {
-                                                final Tuple tuple = new Tuple();
-                                                tuple.set( "count", portIndex );
-                                                input.add( portIndex, tuple );
-                                            } );
+        IntStream.of( inputPorts ).forEach( portIndex -> {
+            final Tuple tuple = new Tuple();
+            tuple.set( "count", portIndex );
+            input.add( portIndex, tuple );
+        } );
         final Tuple tuple = new Tuple();
         tuple.set( "count", -1 );
         input.add( tuple );
@@ -197,12 +195,11 @@ public class BarrierOperatorTest extends AbstractJokerTest
 
     private void populateTuplesWithUniqueFields ( final TuplesImpl input )
     {
-        IntStream.of( inputPorts ).forEach( portIndex ->
-                                            {
-                                                final Tuple tuple = new Tuple();
-                                                tuple.set( "field" + portIndex, portIndex );
-                                                input.add( portIndex, tuple );
-                                            } );
+        IntStream.of( inputPorts ).forEach( portIndex -> {
+            final Tuple tuple = new Tuple();
+            tuple.set( "field" + portIndex, portIndex );
+            input.add( portIndex, tuple );
+        } );
     }
 
     private void assertSchedulingStrategy ( final SchedulingStrategy initialStrategy )

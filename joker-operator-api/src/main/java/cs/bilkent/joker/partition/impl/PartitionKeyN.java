@@ -79,6 +79,12 @@ public class PartitionKeyN extends AbstractList<Object> implements PartitionKey
         return hashCode;
     }
 
+    @Override
+    public String toString ()
+    {
+        return "PartitionKeyN{" + "values=" + Arrays.toString( values ) + '}';
+    }
+
     public static int computeHashCode ( final Tuple tuple, final List<String> partitionFieldNames )
     {
         int hashCode = hashHead( tuple.getObject( partitionFieldNames.get( 0 ) ) );

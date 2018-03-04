@@ -9,9 +9,9 @@ import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
 import cs.bilkent.joker.operator.impl.InMemoryKVStore;
 import cs.bilkent.joker.operator.impl.InitializationContextImpl;
-import cs.bilkent.joker.operator.impl.InvocationContextImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
@@ -38,7 +38,7 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
 
     private final TuplesImpl output = new TuplesImpl( 1 );
 
-    private final InvocationContextImpl invocationContext = new InvocationContextImpl( 1, key -> kvStore, output );
+    private final DefaultInvocationContext invocationContext = new DefaultInvocationContext( 1, key -> kvStore, output );
 
     private final TuplesImpl input = invocationContext.createInputTuples( null );
 

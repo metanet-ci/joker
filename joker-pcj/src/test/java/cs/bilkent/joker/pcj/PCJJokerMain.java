@@ -37,8 +37,7 @@ public class PCJJokerMain
         final Random random = new Random();
         final OperatorConfig beaconConfig = new OperatorConfig();
         beaconConfig.set( BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER, 10 );
-        beaconConfig.set( TUPLE_POPULATOR_CONFIG_PARAMETER, (Consumer<Tuple>) tuple ->
-        {
+        beaconConfig.set( TUPLE_POPULATOR_CONFIG_PARAMETER, (Consumer<Tuple>) tuple -> {
             sleepUninterruptibly( 250 + random.nextInt( 100 ), TimeUnit.MILLISECONDS );
             tuple.set( "field1", random.nextInt( 10 ) );
         } );
@@ -67,32 +66,30 @@ public class PCJJokerMain
                                                                                                                       .build();
         JokerRegistry.getInstance().start( factory );
 
-        new Thread( () ->
-                    {
-                        Collection<Joker> jokerInstances;
-                        while ( ( jokerInstances = JokerRegistry.getInstance().getJokerInstances() ).size() < nodes.length )
-                        {
-                            sleepUninterruptibly( 1, TimeUnit.MILLISECONDS );
-                        }
-                        jokerInstances.forEach( joker -> joker.run( flowDef ) );
-                        sleepUninterruptibly( 10, TimeUnit.SECONDS );
-                        jokerInstances.forEach( joker ->
-                                                {
-                                                    try
-                                                    {
-                                                        joker.shutdown().get( 30, TimeUnit.SECONDS );
-                                                    }
-                                                    catch ( InterruptedException e )
-                                                    {
-                                                        e.printStackTrace();
-                                                        Thread.currentThread().interrupt();
-                                                    }
-                                                    catch ( ExecutionException | TimeoutException e )
-                                                    {
-                                                        e.printStackTrace();
-                                                    }
-                                                } );
-                    } ).start();
+        new Thread( () -> {
+            Collection<Joker> jokerInstances;
+            while ( ( jokerInstances = JokerRegistry.getInstance().getJokerInstances() ).size() < nodes.length )
+            {
+                sleepUninterruptibly( 1, TimeUnit.MILLISECONDS );
+            }
+            jokerInstances.forEach( joker -> joker.run( flowDef ) );
+            sleepUninterruptibly( 10, TimeUnit.SECONDS );
+            jokerInstances.forEach( joker -> {
+                try
+                {
+                    joker.shutdown().get( 30, TimeUnit.SECONDS );
+                }
+                catch ( InterruptedException e )
+                {
+                    e.printStackTrace();
+                    Thread.currentThread().interrupt();
+                }
+                catch ( ExecutionException | TimeoutException e )
+                {
+                    e.printStackTrace();
+                }
+            } );
+        } ).start();
 
         PCJ.deploy( PCJJokerWrapper.class, PCJJokerWrapper.class, nodes );
 

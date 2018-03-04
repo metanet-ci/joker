@@ -22,7 +22,7 @@ import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
+public class PartitionedOperatorQueueTest extends AbstractJokerTest
 {
 
     private static final int PARTITION_COUNT = 1;
@@ -34,17 +34,17 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
     private static final String PARTITION_KEY_FIELD = "key";
 
 
-    private PartitionedOperatorTupleQueue operatorTupleQueue;
+    private PartitionedOperatorQueue operatorQueue;
 
     @Before
     public void init ()
     {
-        operatorTupleQueue = new PartitionedOperatorTupleQueue( "op1",
-                                                                INPUT_PORT_COUNT,
-                                                                PARTITION_COUNT,
-                                                                0,
-                                                                TUPLE_QUEUE_CAPACITY,
-                                                                new PartitionKeyExtractor1( singletonList( PARTITION_KEY_FIELD ) ) );
+        operatorQueue = new PartitionedOperatorQueue( "op1",
+                                                      INPUT_PORT_COUNT,
+                                                      PARTITION_COUNT,
+                                                      0,
+                                                      TUPLE_QUEUE_CAPACITY,
+                                                      new PartitionKeyExtractor1( singletonList( PARTITION_KEY_FIELD ) ) );
     }
 
     @Test
@@ -53,13 +53,13 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
         final Tuple tuple = new Tuple();
         tuple.set( PARTITION_KEY_FIELD, "key1" );
         final List<Tuple> input = singletonList( tuple );
-        operatorTupleQueue.offer( 0, input );
+        operatorQueue.offer( 0, input );
 
         final NonBlockingMultiPortDisjunctiveDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( INPUT_PORT_COUNT, 100 );
         drainer.setParameters( AT_LEAST, new int[] { 0, 1 }, new int[] { 1, 1 } );
 
         final TuplesImpl result = new TuplesImpl( INPUT_PORT_COUNT );
-        operatorTupleQueue.drain( drainer, key -> result );
+        operatorQueue.drain( drainer, key -> result );
 
         assertEquals( input, result.getTuples( 0 ) );
     }
@@ -69,13 +69,13 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
     {
         final Tuple tuple1 = new Tuple();
         tuple1.set( PARTITION_KEY_FIELD, "key1" );
-        operatorTupleQueue.offer( 0, singletonList( tuple1 ) );
+        operatorQueue.offer( 0, singletonList( tuple1 ) );
         final Tuple tuple2 = new Tuple();
         tuple2.set( PARTITION_KEY_FIELD, "key2" );
-        operatorTupleQueue.offer( 0, singletonList( tuple2 ) );
+        operatorQueue.offer( 0, singletonList( tuple2 ) );
         final Tuple tuple3 = new Tuple();
         tuple3.set( PARTITION_KEY_FIELD, "key3" );
-        operatorTupleQueue.offer( 0, singletonList( tuple3 ) );
+        operatorQueue.offer( 0, singletonList( tuple3 ) );
 
         final NonBlockingMultiPortDisjunctiveDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( INPUT_PORT_COUNT, 100 );
         drainer.setParameters( AT_LEAST, new int[] { 0, 1 }, new int[] { 1, 1 } );
@@ -87,7 +87,7 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
             return tuples;
         };
 
-        operatorTupleQueue.drain( drainer, tuplesSupplier );
+        operatorQueue.drain( drainer, tuplesSupplier );
 
         assertEquals( 3, results.size() );
 
@@ -105,13 +105,13 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
     {
         final Tuple tuple1 = new Tuple();
         tuple1.set( PARTITION_KEY_FIELD, "key1" );
-        operatorTupleQueue.offer( 0, singletonList( tuple1 ) );
+        operatorQueue.offer( 0, singletonList( tuple1 ) );
         final Tuple tuple2 = new Tuple();
         tuple2.set( PARTITION_KEY_FIELD, "key1" );
-        operatorTupleQueue.offer( 0, singletonList( tuple2 ) );
+        operatorQueue.offer( 0, singletonList( tuple2 ) );
         final Tuple tuple3 = new Tuple();
         tuple3.set( PARTITION_KEY_FIELD, "key1" );
-        operatorTupleQueue.offer( 0, singletonList( tuple3 ) );
+        operatorQueue.offer( 0, singletonList( tuple3 ) );
 
         final NonBlockingMultiPortDisjunctiveDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( INPUT_PORT_COUNT, 100 );
         drainer.setParameters( EXACT, new int[] { 0, 1 }, new int[] { 1, 1 } );
@@ -123,8 +123,8 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
             return tuples;
         };
 
-        operatorTupleQueue.setTupleCounts( new int[] { 1, 1 }, ANY_PORT );
-        operatorTupleQueue.drain( drainer, tuplesSupplier );
+        operatorQueue.setTupleCounts( new int[] { 1, 1 }, ANY_PORT );
+        operatorQueue.drain( drainer, tuplesSupplier );
 
         assertEquals( 3, results.size() );
 
@@ -140,17 +140,17 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
     @Test
     public void testOfferedTuplesDrainedGreedilyWhenTupleCountsUpdated ()
     {
-        operatorTupleQueue.setTupleCounts( new int[] { 2, 2 }, ANY_PORT );
+        operatorQueue.setTupleCounts( new int[] { 2, 2 }, ANY_PORT );
         final Tuple tuple = new Tuple();
         tuple.set( PARTITION_KEY_FIELD, "key1" );
         final List<Tuple> tuples = singletonList( tuple );
-        operatorTupleQueue.offer( 0, tuples );
+        operatorQueue.offer( 0, tuples );
 
-        operatorTupleQueue.setTupleCounts( new int[] { 1, 1 }, ANY_PORT );
+        operatorQueue.setTupleCounts( new int[] { 1, 1 }, ANY_PORT );
 
         final TuplesImpl result = new TuplesImpl( INPUT_PORT_COUNT );
         final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT );
-        operatorTupleQueue.drain( drainer, key -> result );
+        operatorQueue.drain( drainer, key -> result );
 
         assertEquals( tuples, result.getTuples( 0 ) );
     }
@@ -162,11 +162,11 @@ public class PartitionedOperatorTupleQueueTest extends AbstractJokerTest
         final Tuple tuple = new Tuple();
         tuple.set( PARTITION_KEY_FIELD, "key1" );
         final List<Tuple> tuples = singletonList( tuple );
-        operatorTupleQueue.offer( 0, tuples );
+        operatorQueue.offer( 0, tuples );
 
         final TuplesImpl result = new TuplesImpl( INPUT_PORT_COUNT );
         final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT );
-        operatorTupleQueue.drain( drainer, key -> result );
+        operatorQueue.drain( drainer, key -> result );
 
         assertEquals( tuples, result.getTuples( 0 ) );
     }

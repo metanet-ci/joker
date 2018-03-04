@@ -3,7 +3,7 @@ package cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender;
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSenderFailureFlag;
-import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
+import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 
 public class PartitionedDownstreamTupleSenderN extends AbstractPartitionedDownstreamTupleSender
@@ -17,16 +17,14 @@ public class PartitionedDownstreamTupleSenderN extends AbstractPartitionedDownst
                                                final int[] sourcePorts,
                                                final int[] destinationPorts,
                                                final int partitionCount,
-                                               final int[] partitionDistribution,
-                                               final OperatorTupleQueue[] operatorTupleQueues,
+                                               final int[] partitionDistribution, final OperatorQueue[] operatorQueues,
                                                final PartitionKeyExtractor partitionKeyExtractor )
     {
-        super( failureFlag, partitionCount, partitionDistribution, operatorTupleQueues, partitionKeyExtractor );
+        super( failureFlag, partitionCount, partitionDistribution, operatorQueues, partitionKeyExtractor );
         checkArgument( sourcePorts.length == destinationPorts.length,
                        "source ports size = %s and destination ports = %s ! destination operatorId=%s",
                        sourcePorts.length,
-                       destinationPorts.length,
-                       operatorTupleQueues[ 0 ].getOperatorId() );
+                       destinationPorts.length, operatorQueues[ 0 ].getOperatorId() );
         final int portCount = sourcePorts.length;
         this.ports = new int[ portCount * 2 ];
         this.limit = this.ports.length - 1;

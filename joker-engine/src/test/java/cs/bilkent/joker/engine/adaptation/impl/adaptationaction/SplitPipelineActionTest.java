@@ -10,12 +10,12 @@ import cs.bilkent.joker.engine.adaptation.AdaptationPerformer;
 import cs.bilkent.joker.engine.adaptation.impl.adaptationaction.MergePipelinesActionTest.StatefulOperatorInput0Output1;
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionDef;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
 import cs.bilkent.joker.engine.region.impl.IdGenerator;
 import cs.bilkent.joker.engine.region.impl.PipelineTransformerImplTest.StatelessInput1Output1Operator;
 import cs.bilkent.joker.engine.region.impl.RegionDefFormerImpl;
-import static cs.bilkent.joker.engine.region.impl.RegionExecutionPlanUtil.getPipelineStartIndicesToSplit;
+import static cs.bilkent.joker.engine.region.impl.RegionExecPlanUtil.getPipelineStartIndicesToSplit;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
 import cs.bilkent.joker.operator.OperatorDef;
@@ -48,7 +48,7 @@ public class SplitPipelineActionTest extends AbstractJokerTest
 
     private final List<Integer> pipelineStartIndices = asList( 0, 1, 5 );
 
-    private RegionExecutionPlan regionExecutionPlan;
+    private RegionExecPlan regionExecPlan;
 
 
     @Before
@@ -72,25 +72,25 @@ public class SplitPipelineActionTest extends AbstractJokerTest
         final RegionDefFormer regionDefFormer = new RegionDefFormerImpl( new IdGenerator() );
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
         final RegionDef region = RegionRebalanceActionTest.getRegion( regions, STATELESS );
-        regionExecutionPlan = new RegionExecutionPlan( region, pipelineStartIndices, 1 );
+        regionExecPlan = new RegionExecPlan( region, pipelineStartIndices, 1 );
     }
 
     @Test
     public void testSplitPipelines ()
     {
-        final PipelineId splitPipelineId = regionExecutionPlan.getPipelineId( 1 );
+        final PipelineId splitPipelineId = regionExecPlan.getPipelineId( 1 );
         final List<Integer> pipelineOperatorIndices = singletonList( 3 );
-        final SplitPipelineAction action = new SplitPipelineAction( regionExecutionPlan, splitPipelineId, pipelineOperatorIndices );
-        final RegionExecutionPlan newRegionExecutionPlan = action.getNewRegionExecutionPlan();
+        final SplitPipelineAction action = new SplitPipelineAction( regionExecPlan, splitPipelineId, pipelineOperatorIndices );
+        final RegionExecPlan newRegionExecPlan = action.getNewExecPlan();
 
-        assertThat( action.getCurrentRegionExecutionPlan(), equalTo( regionExecutionPlan ) );
-        assertThat( newRegionExecutionPlan,
-                    equalTo( regionExecutionPlan.withSplitPipeline( getPipelineStartIndicesToSplit( regionExecutionPlan,
-                                                                                                    splitPipelineId,
-                                                                                                    pipelineOperatorIndices ) ) ) );
+        assertThat( action.getCurrentExecPlan(), equalTo( regionExecPlan ) );
+        assertThat( newRegionExecPlan,
+                    equalTo( regionExecPlan.withSplitPipeline( getPipelineStartIndicesToSplit( regionExecPlan,
+                                                                                               splitPipelineId,
+                                                                                               pipelineOperatorIndices ) ) ) );
 
-        final int regionId = regionExecutionPlan.getRegionId();
-        assertThat( newRegionExecutionPlan.getPipelineIds(),
+        final int regionId = regionExecPlan.getRegionId();
+        assertThat( newRegionExecPlan.getPipelineIds(),
                     equalTo( asList( new PipelineId( regionId, 0 ),
                                      new PipelineId( regionId, 1 ),
                                      new PipelineId( regionId, 4 ),
@@ -100,24 +100,24 @@ public class SplitPipelineActionTest extends AbstractJokerTest
     @Test
     public void testSplitPipelinesRevert ()
     {
-        final PipelineId splitPipelineId = regionExecutionPlan.getPipelineId( 1 );
+        final PipelineId splitPipelineId = regionExecPlan.getPipelineId( 1 );
         final List<Integer> pipelineOperatorIndices = singletonList( 3 );
-        final SplitPipelineAction action = new SplitPipelineAction( regionExecutionPlan, splitPipelineId, pipelineOperatorIndices );
+        final SplitPipelineAction action = new SplitPipelineAction( regionExecPlan, splitPipelineId, pipelineOperatorIndices );
         final AdaptationAction revert = action.revert();
 
-        assertThat( revert.getCurrentRegionExecutionPlan(),
-                    equalTo( regionExecutionPlan.withSplitPipeline( getPipelineStartIndicesToSplit( regionExecutionPlan,
-                                                                                                    splitPipelineId,
-                                                                                                    pipelineOperatorIndices ) ) ) );
-        assertThat( revert.getNewRegionExecutionPlan(), equalTo( regionExecutionPlan ) );
+        assertThat( revert.getCurrentExecPlan(),
+                    equalTo( regionExecPlan.withSplitPipeline( getPipelineStartIndicesToSplit( regionExecPlan,
+                                                                                               splitPipelineId,
+                                                                                               pipelineOperatorIndices ) ) ) );
+        assertThat( revert.getNewExecPlan(), equalTo( regionExecPlan ) );
     }
 
     @Test
     public void testSplitPipelinesActionApply ()
     {
-        final PipelineId splitPipelineId = regionExecutionPlan.getPipelineId( 1 );
+        final PipelineId splitPipelineId = regionExecPlan.getPipelineId( 1 );
         final List<Integer> pipelineOperatorIndices = singletonList( 3 );
-        final SplitPipelineAction action = new SplitPipelineAction( regionExecutionPlan, splitPipelineId, pipelineOperatorIndices );
+        final SplitPipelineAction action = new SplitPipelineAction( regionExecPlan, splitPipelineId, pipelineOperatorIndices );
 
         final AdaptationPerformer adaptationPerformer = mock( AdaptationPerformer.class );
 

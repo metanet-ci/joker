@@ -16,7 +16,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.flow.RegionDef;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import static cs.bilkent.joker.engine.util.ExceptionUtils.checkInterruption;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.spec.OperatorType;
@@ -24,13 +24,13 @@ import static java.util.stream.Collectors.toList;
 
 @Singleton
 @NotThreadSafe
-public class InteractiveRegionExecutionPlanFactory extends AbstractRegionExecutionPlanFactory
+public class InteractiveRegionExecPlanFactory extends AbstractRegionExecPlanFactory
 {
 
     private BufferedReader br;
 
     @Inject
-    public InteractiveRegionExecutionPlanFactory ( final JokerConfig jokerConfig )
+    public InteractiveRegionExecPlanFactory ( final JokerConfig jokerConfig )
     {
         super( jokerConfig );
     }
@@ -48,7 +48,7 @@ public class InteractiveRegionExecutionPlanFactory extends AbstractRegionExecuti
     }
 
     @Override
-    protected RegionExecutionPlan createRegionExecutionPlan ( final RegionDef regionDef )
+    protected RegionExecPlan createRegionExecPlan ( final RegionDef regionDef )
     {
         checkArgument( regionDef != null, "null region def!" );
 
@@ -58,7 +58,7 @@ public class InteractiveRegionExecutionPlanFactory extends AbstractRegionExecuti
             final int replicaCount = readReplicaCount( regionDef );
             final List<Integer> pipelineStartIndices = readPipelineStartIndices( regionDef );
 
-            return new RegionExecutionPlan( regionDef, pipelineStartIndices, replicaCount );
+            return new RegionExecPlan( regionDef, pipelineStartIndices, replicaCount );
         }
         catch ( Exception e )
         {

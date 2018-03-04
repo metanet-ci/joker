@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 import cs.bilkent.joker.engine.adaptation.AdaptationTracker;
 import cs.bilkent.joker.engine.config.AdaptationConfig;
 import cs.bilkent.joker.engine.config.JokerConfig;
-import cs.bilkent.joker.engine.flow.FlowExecutionPlan;
+import cs.bilkent.joker.engine.flow.FlowExecPlan;
 import cs.bilkent.joker.engine.metric.FlowMetrics;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
@@ -23,9 +23,9 @@ public class ExperimentalAdaptationTracker implements AdaptationTracker
 
     private ShutdownHook shutdownHook;
 
-    private FlowExecutionPlan flowExecutionPlan;
+    private FlowExecPlan execPlan;
 
-    private FlowMetrics flowMetrics;
+    private FlowMetrics metrics;
 
     private int stableCount;
 
@@ -38,10 +38,10 @@ public class ExperimentalAdaptationTracker implements AdaptationTracker
     }
 
     @Override
-    public void init ( final ShutdownHook hook, final FlowExecutionPlan initialFlowExecutionPlan )
+    public void init ( final ShutdownHook hook, final FlowExecPlan execPlan )
     {
         checkArgument( hook != null );
-        checkArgument( initialFlowExecutionPlan != null );
+        checkArgument( execPlan != null );
 
         if ( !isEnabled() )
         {
@@ -51,14 +51,14 @@ public class ExperimentalAdaptationTracker implements AdaptationTracker
         checkNotInitialized();
 
         this.shutdownHook = hook;
-        this.flowExecutionPlan = initialFlowExecutionPlan;
+        this.execPlan = execPlan;
     }
 
     @Override
-    public void onPeriod ( final FlowExecutionPlan flowExecutionPlan, final FlowMetrics flowMetrics )
+    public void onPeriod ( final FlowExecPlan execPlan, final FlowMetrics metrics )
     {
-        checkArgument( flowExecutionPlan != null );
-        checkArgument( flowMetrics != null );
+        checkArgument( execPlan != null );
+        checkArgument( metrics != null );
 
         if ( !isEnabled() )
         {
@@ -67,24 +67,24 @@ public class ExperimentalAdaptationTracker implements AdaptationTracker
 
         checkRunning();
 
-        checkState( this.flowExecutionPlan.equals( flowExecutionPlan ) );
+        checkState( this.execPlan.equals( execPlan ) );
 
-        this.flowMetrics = flowMetrics;
+        this.metrics = metrics;
 
         if ( stableCount++ > adaptationConfig.getStablePeriodCountToStop() )
         {
-            LOGGER.info( "Decided to shutdown with flow execution plan: " + flowExecutionPlan.toPlanSummaryString() );
-            flowMetricsReporter.report( flowExecutionPlan, flowMetrics );
+            LOGGER.info( "Decided to shutdown with flow execution plan: " + execPlan.toSummaryString() );
+            flowMetricsReporter.report( execPlan, metrics );
             shutdownHook.shutdown();
             shutdownTriggered = true;
         }
     }
 
     @Override
-    public void onFlowExecutionPlanChange ( final FlowExecutionPlan newFlowExecutionPlan )
+    public void onExecPlanChange ( final FlowExecPlan newExecPlan )
     {
-        checkArgument( newFlowExecutionPlan != null );
-        checkArgument( !flowExecutionPlan.equals( newFlowExecutionPlan ) );
+        checkArgument( newExecPlan != null );
+        checkArgument( !execPlan.equals( newExecPlan ) );
 
         if ( !isEnabled() )
         {
@@ -93,12 +93,12 @@ public class ExperimentalAdaptationTracker implements AdaptationTracker
 
         checkRunning();
 
-        flowMetricsReporter.report( flowExecutionPlan, flowMetrics );
-        this.flowExecutionPlan = newFlowExecutionPlan;
-        this.flowMetrics = null;
+        flowMetricsReporter.report( execPlan, metrics );
+        this.execPlan = newExecPlan;
+        this.metrics = null;
 
         stableCount = 0;
-        LOGGER.info( "Stable period count is reset with new flow execution plan: " + newFlowExecutionPlan.toPlanSummaryString() );
+        LOGGER.info( "Stable period count is reset with new flow execution plan: " + newExecPlan.toSummaryString() );
     }
 
     public boolean isShutdownTriggered ()
@@ -125,7 +125,7 @@ public class ExperimentalAdaptationTracker implements AdaptationTracker
     @FunctionalInterface
     public interface FlowMetricsReporter
     {
-        void report ( FlowExecutionPlan flowExecutionPlan, FlowMetrics flowMetrics );
+        void report ( FlowExecPlan execPlan, FlowMetrics metrics );
     }
 
 }

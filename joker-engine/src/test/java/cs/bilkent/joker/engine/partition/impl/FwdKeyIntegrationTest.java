@@ -19,7 +19,7 @@ import org.junit.runners.Parameterized.Parameters;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import cs.bilkent.joker.Joker;
 import cs.bilkent.joker.Joker.JokerBuilder;
-import cs.bilkent.joker.JokerTest.StaticRegionExecutionPlanFactory2;
+import cs.bilkent.joker.JokerTest.StaticRegionExecPlanFactory2;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
@@ -139,8 +139,8 @@ public class FwdKeyIntegrationTest extends AbstractJokerTest
                                                  .build();
 
         final JokerConfig jokerConfig = new JokerConfig();
-        final StaticRegionExecutionPlanFactory2 regionExecPlanFactory = new StaticRegionExecutionPlanFactory2( jokerConfig, 4 );
-        final Joker joker = new JokerBuilder().setRegionExecutionPlanFactory( regionExecPlanFactory ).setJokerConfig( jokerConfig ).build();
+        final StaticRegionExecPlanFactory2 regionExecPlanFactory = new StaticRegionExecPlanFactory2( jokerConfig, 4 );
+        final Joker joker = new JokerBuilder().setRegionExecPlanFactory( regionExecPlanFactory ).setJokerConfig( jokerConfig ).build();
 
         joker.run( flow );
 

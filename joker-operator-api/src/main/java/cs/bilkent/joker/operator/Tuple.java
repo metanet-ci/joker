@@ -326,7 +326,7 @@ public final class Tuple implements Fields<String>
     public String toString ()
     {
         final StringBuilder sb = new StringBuilder();
-        sb.append( "Tuple{" );
+        sb.append( "Tuple(" );
         for ( int i = 0; i < schema.getFieldCount(); i++ )
         {
             final Object val = values.get( i );
@@ -347,7 +347,7 @@ public final class Tuple implements Fields<String>
             sb.deleteCharAt( sb.length() - 1 );
         }
 
-        return sb.append( "}" ).toString();
+        return sb.append( ")" ).toString();
     }
 
 }

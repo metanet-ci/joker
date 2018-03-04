@@ -7,8 +7,8 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
-import static cs.bilkent.joker.engine.pipeline.UpstreamContext.UpstreamConnectionStatus.CLOSED;
-import static cs.bilkent.joker.engine.pipeline.UpstreamContext.UpstreamConnectionStatus.OPEN;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.ConnectionStatus.CLOSED;
+import static cs.bilkent.joker.engine.pipeline.UpstreamContext.ConnectionStatus.OPEN;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.Port;
 import cs.bilkent.joker.operator.OperatorDef;
@@ -29,7 +29,7 @@ public class UpstreamContext
     public static final int INITIAL_VERSION = 0;
 
 
-    public enum UpstreamConnectionStatus
+    public enum ConnectionStatus
     {
         OPEN, CLOSED
     }
@@ -37,22 +37,22 @@ public class UpstreamContext
 
     public static UpstreamContext newSourceOperatorInitialUpstreamContext ()
     {
-        return new UpstreamContext( INITIAL_VERSION, new UpstreamConnectionStatus[ 0 ] );
+        return new UpstreamContext( INITIAL_VERSION, new ConnectionStatus[ 0 ] );
     }
 
     public static UpstreamContext newSourceOperatorShutdownUpstreamContext ()
     {
-        return new UpstreamContext( INITIAL_VERSION + 1, new UpstreamConnectionStatus[ 0 ] );
+        return new UpstreamContext( INITIAL_VERSION + 1, new ConnectionStatus[ 0 ] );
     }
 
-    public static UpstreamContext newInitialUpstreamContext ( final UpstreamConnectionStatus... statuses )
+    public static UpstreamContext newInitialUpstreamContext ( final ConnectionStatus... statuses )
     {
         return new UpstreamContext( INITIAL_VERSION, statuses );
     }
 
     public static UpstreamContext newInitialUpstreamContextWithAllPortsConnected ( final int portCount )
     {
-        final UpstreamConnectionStatus[] statuses = new UpstreamConnectionStatus[ portCount ];
+        final ConnectionStatus[] statuses = new ConnectionStatus[ portCount ];
         fill( statuses, OPEN );
 
         return new UpstreamContext( INITIAL_VERSION, statuses );
@@ -62,7 +62,7 @@ public class UpstreamContext
     {
         final OperatorDef operatorDef = flow.getOperator( operatorId );
         final int inputPortCount = operatorDef.getInputPortCount();
-        final UpstreamConnectionStatus[] statuses = new UpstreamConnectionStatus[ inputPortCount ];
+        final ConnectionStatus[] statuses = new ConnectionStatus[ inputPortCount ];
         fill( statuses, CLOSED );
         for ( Port inputPort : flow.getInboundConnections( operatorDef.getId() ).keySet() )
         {
@@ -75,9 +75,9 @@ public class UpstreamContext
 
     private final int version;
 
-    private final UpstreamConnectionStatus[] statuses;
+    private final ConnectionStatus[] statuses;
 
-    public UpstreamContext ( final int version, final UpstreamConnectionStatus[] statuses )
+    public UpstreamContext ( final int version, final ConnectionStatus[] statuses )
     {
         checkArgument( version >= INITIAL_VERSION );
         this.version = version;
@@ -104,15 +104,15 @@ public class UpstreamContext
         return statuses.length;
     }
 
-    public UpstreamConnectionStatus getUpstreamConnectionStatus ( int index )
+    public ConnectionStatus getConnectionStatus ( int index )
     {
         checkArgument( index < statuses.length );
         return statuses[ index ];
     }
 
-    boolean isOpenUpstreamConnectionPresent ()
+    boolean isOpenConnectionPresent ()
     {
-        for ( UpstreamConnectionStatus status : statuses )
+        for ( ConnectionStatus status : statuses )
         {
             if ( status == OPEN )
             {
@@ -123,12 +123,12 @@ public class UpstreamContext
         return false;
     }
 
-    boolean isOpenUpstreamConnectionAbsent ()
+    boolean isOpenConnectionAbsent ()
     {
-        return !isOpenUpstreamConnectionPresent();
+        return !isOpenConnectionPresent();
     }
 
-    public boolean[] getUpstreamConnectionStatuses ()
+    public boolean[] getConnectionStatuses ()
     {
         final boolean[] b = new boolean[ statuses.length ];
         for ( int portIndex = 0, j = statuses.length; portIndex < j; portIndex++ )
@@ -171,8 +171,8 @@ public class UpstreamContext
 
             for ( int i = 0; i < operatorDef.getInputPortCount(); i++ )
             {
-                final boolean validWhenClosed = ( getUpstreamConnectionStatus( i ) == CLOSED && s.getTupleCount( i ) == 0 );
-                final boolean validWhenOpen = ( getUpstreamConnectionStatus( i ) == OPEN && s.getTupleCount( i ) > 0 );
+                final boolean validWhenClosed = ( getConnectionStatus( i ) == CLOSED && s.getTupleCount( i ) == 0 );
+                final boolean validWhenOpen = ( getConnectionStatus( i ) == OPEN && s.getTupleCount( i ) > 0 );
                 checkArgument( validWhenClosed || validWhenOpen, "Invalid %s for %s of %s", s, this, operatorDef );
             }
         }
@@ -221,7 +221,7 @@ public class UpstreamContext
             {
                 for ( int i = 0; i < operatorDef.getInputPortCount(); i++ )
                 {
-                    if ( s.getTupleCount( i ) > 0 && getUpstreamConnectionStatus( i ) == OPEN )
+                    if ( s.getTupleCount( i ) > 0 && getConnectionStatus( i ) == OPEN )
                     {
                         return true;
                     }
@@ -235,7 +235,7 @@ public class UpstreamContext
             {
                 for ( int i = 0; i < operatorDef.getInputPortCount(); i++ )
                 {
-                    if ( s.getTupleCount( i ) > 0 && getUpstreamConnectionStatus( i ) != OPEN )
+                    if ( s.getTupleCount( i ) > 0 && getConnectionStatus( i ) != OPEN )
                     {
                         LOGGER.warn( "Operator: {} with {} is not invokable anymore since input port: {} is closed",
                                      operatorDef.getId(),
@@ -253,7 +253,7 @@ public class UpstreamContext
         throw new IllegalStateException( "Invalid " + schedulingStrategy + " for operator: " + operatorDef.getId() );
     }
 
-    public UpstreamContext withUpstreamConnectionClosed ( final int portIndex )
+    public UpstreamContext withConnectionClosed ( final int portIndex )
     {
         checkArgument( portIndex < statuses.length );
 
@@ -262,20 +262,20 @@ public class UpstreamContext
             return this;
         }
 
-        final UpstreamConnectionStatus[] s = copyOf( statuses, statuses.length );
+        final ConnectionStatus[] s = copyOf( statuses, statuses.length );
         s[ portIndex ] = CLOSED;
 
         return new UpstreamContext( version + 1, s );
     }
 
-    public UpstreamContext withAllUpstreamConnectionsClosed ()
+    public UpstreamContext withAllConnectionsClosed ()
     {
         if ( statuses.length == stream( statuses ).filter( s -> s == CLOSED ).count() )
         {
             return this;
         }
 
-        final UpstreamConnectionStatus[] s = copyOf( statuses, statuses.length );
+        final ConnectionStatus[] s = copyOf( statuses, statuses.length );
         fill( s, CLOSED );
 
         return new UpstreamContext( version + 1, s );

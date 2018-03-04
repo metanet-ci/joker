@@ -84,6 +84,12 @@ public class PartitionKey3 extends AbstractList<Object> implements PartitionKey
         return hashCode;
     }
 
+    @Override
+    public String toString ()
+    {
+        return "PartitionKey3{" + "val0=" + val0 + ", val1=" + val1 + ", val2=" + val2 + '}';
+    }
+
     public static int computeHashCode ( final Object val0, final Object val1, final Object val2 )
     {
         return hashTail( hashTail( hashHead( val0 ), val1 ), val2 );

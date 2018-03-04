@@ -329,6 +329,7 @@ public class JokerConfigBuilderTest extends AbstractJokerTest
 
         assertEquals( val, builder.build().getTupleQueueManagerConfig().getTupleQueueCapacity() );
     }
+
     @Test
     public void test_TupleQueueManagerConfig_multiThreadedQueueDrainLimit ()
     {

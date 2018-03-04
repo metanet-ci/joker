@@ -27,8 +27,7 @@ public class ReportCosts
             final int c = cost;
             final String costDir = dir + S + cost;
 
-            writeToFile( costDir + S + "costs" + regionId + "_" + pipelineStartIndex + ".txt", writer ->
-            {
+            writeToFile( costDir + S + "costs" + regionId + "_" + pipelineStartIndex + ".txt", writer -> {
                 final int lastFlowVersion = parseInt( readSingleLine( costDir + S + "last.txt" ) );
 
                 int flowVersion = 0;

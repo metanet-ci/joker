@@ -24,12 +24,11 @@ public class BlockingGreedyDrainer implements TupleQueueDrainer
 
     @Override
     public boolean drain ( final boolean maySkipBlocking,
-                           final PartitionKey key,
-                           final TupleQueue[] tupleQueues,
+                           final PartitionKey key, final TupleQueue[] queues,
                            final Function<PartitionKey, TuplesImpl> tuplesSupplier )
     {
-        checkArgument( tupleQueues != null );
-        checkArgument( tupleQueues.length == inputPortCount );
+        checkArgument( queues != null );
+        checkArgument( queues.length == inputPortCount );
         checkArgument( tuplesSupplier != null );
 
         boolean idle = maySkipBlocking;
@@ -39,7 +38,7 @@ public class BlockingGreedyDrainer implements TupleQueueDrainer
         {
             for ( int i = 0; i < inputPortCount; i++ )
             {
-                if ( !tupleQueues[ i ].isEmpty() )
+                if ( !queues[ i ].isEmpty() )
                 {
                     empty = false;
                     break;
@@ -58,7 +57,7 @@ public class BlockingGreedyDrainer implements TupleQueueDrainer
 
         for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
         {
-            tupleQueues[ portIndex ].poll( Integer.MAX_VALUE, tuples.getTuplesModifiable( portIndex ) );
+            queues[ portIndex ].poll( Integer.MAX_VALUE, tuples.getTuplesModifiable( portIndex ) );
         }
 
         return false;

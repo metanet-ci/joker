@@ -10,7 +10,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
-import cs.bilkent.joker.engine.region.RegionExecutionPlanFactory;
+import cs.bilkent.joker.engine.region.RegionExecPlanFactory;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
 import cs.bilkent.joker.operator.OperatorConfig;
@@ -27,7 +27,7 @@ import static cs.bilkent.joker.operators.TupleCountBasedWindowReducerOperator.AC
 import static cs.bilkent.joker.operators.TupleCountBasedWindowReducerOperator.REDUCER_CONFIG_PARAMETER;
 import static java.util.Collections.singletonList;
 
-public class InteractiveRegionExecutionPlanFactoryMain
+public class InteractiveRegionExecPlanFactoryMain
 {
 
     public static void main ( String[] args )
@@ -36,12 +36,11 @@ public class InteractiveRegionExecutionPlanFactoryMain
         final IdGenerator idGenerator = new IdGenerator();
         final RegionDefFormer regionFormer = new RegionDefFormerImpl( idGenerator );
         final JokerConfig jokerConfig = new JokerConfig();
-        final RegionExecutionPlanFactory regionExecutionPlanFactory = new InteractiveRegionExecutionPlanFactory( jokerConfig );
+        final RegionExecPlanFactory regionExecPlanFactory = new InteractiveRegionExecPlanFactory( jokerConfig );
 
         final OperatorConfig beaconConfig = new OperatorConfig();
         beaconConfig.set( BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER, 10 );
-        beaconConfig.set( TUPLE_POPULATOR_CONFIG_PARAMETER, (Consumer<Tuple>) tuple ->
-        {
+        beaconConfig.set( TUPLE_POPULATOR_CONFIG_PARAMETER, (Consumer<Tuple>) tuple -> {
             sleepUninterruptibly( 1 + random.nextInt( 100 ), TimeUnit.MILLISECONDS );
             tuple.set( "field1", random.nextInt( 1000 ) );
         } );
@@ -90,7 +89,7 @@ public class InteractiveRegionExecutionPlanFactoryMain
 
         final List<RegionDef> regions = regionFormer.createRegions( flow );
 
-        regionExecutionPlanFactory.createRegionExecutionPlans( regions );
+        regionExecPlanFactory.createRegionExecPlans( regions );
     }
 
 }

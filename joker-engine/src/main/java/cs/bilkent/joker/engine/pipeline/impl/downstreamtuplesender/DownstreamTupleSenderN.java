@@ -7,14 +7,14 @@ import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.exception.JokerException;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSenderFailureFlag;
-import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
+import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.util.concurrent.BackoffIdleStrategy;
 import cs.bilkent.joker.engine.util.concurrent.IdleStrategy;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import static java.util.Arrays.fill;
 
-public class DownstreamTupleSenderN implements DownstreamTupleSender, Supplier<OperatorTupleQueue>
+public class DownstreamTupleSenderN implements DownstreamTupleSender, Supplier<OperatorQueue>
 {
 
     private final IdleStrategy idleStrategy = BackoffIdleStrategy.newDefaultInstance();
@@ -29,19 +29,17 @@ public class DownstreamTupleSenderN implements DownstreamTupleSender, Supplier<O
 
     private final int limit;
 
-    private final OperatorTupleQueue operatorTupleQueue;
+    private final OperatorQueue operatorQueue;
 
     public DownstreamTupleSenderN ( final DownstreamTupleSenderFailureFlag failureFlag,
                                     final int[] sourcePorts,
-                                    final int[] destinationPorts,
-                                    final OperatorTupleQueue operatorTupleQueue )
+                                    final int[] destinationPorts, final OperatorQueue operatorQueue )
     {
         this.failureFlag = failureFlag;
         checkArgument( sourcePorts.length == destinationPorts.length,
                        "source ports size = %s and destination ports = %s ! operatorId=%s",
                        sourcePorts.length,
-                       destinationPorts.length,
-                       operatorTupleQueue.getOperatorId() );
+                       destinationPorts.length, operatorQueue.getOperatorId() );
         this.portCount = sourcePorts.length;
         this.ports = new int[ portCount * 2 ];
         this.fromIndices = new int[ portCount * 2 ];
@@ -51,7 +49,7 @@ public class DownstreamTupleSenderN implements DownstreamTupleSender, Supplier<O
             ports[ i * 2 ] = sourcePorts[ i ];
             ports[ i * 2 + 1 ] = destinationPorts[ i ];
         }
-        this.operatorTupleQueue = operatorTupleQueue;
+        this.operatorQueue = operatorQueue;
     }
 
     @Override
@@ -73,7 +71,7 @@ public class DownstreamTupleSenderN implements DownstreamTupleSender, Supplier<O
 
                 if ( fromIndex < tuples.size() )
                 {
-                    final int offered = operatorTupleQueue.offer( destinationPortIndex, tuples, fromIndex );
+                    final int offered = operatorQueue.offer( destinationPortIndex, tuples, fromIndex );
                     fromIndex += offered;
                     fromIndices[ sourcePortIndex ] = fromIndex;
                     if ( fromIndex == tuples.size() )
@@ -105,9 +103,9 @@ public class DownstreamTupleSenderN implements DownstreamTupleSender, Supplier<O
     }
 
     @Override
-    public OperatorTupleQueue get ()
+    public OperatorQueue get ()
     {
-        return operatorTupleQueue;
+        return operatorQueue;
     }
 
 }

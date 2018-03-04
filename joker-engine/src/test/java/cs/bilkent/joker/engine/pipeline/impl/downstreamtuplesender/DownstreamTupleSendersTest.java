@@ -7,7 +7,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 import cs.bilkent.joker.engine.exception.JokerException;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSenderFailureFlag;
-import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
+import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.test.AbstractJokerTest;
@@ -24,7 +24,7 @@ public class DownstreamTupleSendersTest extends AbstractJokerTest
     private final TuplesImpl tuples = new TuplesImpl( 10 );
 
     @Mock
-    private OperatorTupleQueue operatorTupleQueue;
+    private OperatorQueue operatorQueue;
 
     private int sourcePortIndex1 = 1, sourcePortIndex2 = 2, sourcePortIndex3 = 3, sourcePortIndex4 = 4;
 
@@ -48,9 +48,7 @@ public class DownstreamTupleSendersTest extends AbstractJokerTest
     {
 
         final DownstreamTupleSender1 tupleSender = new DownstreamTupleSender1( failureFlag,
-                                                                               sourcePortIndex1,
-                                                                               destinationPortIndex1,
-                                                                               operatorTupleQueue );
+                                                                               sourcePortIndex1, destinationPortIndex1, operatorQueue );
         addTuple( "key", "val", sourcePortIndex1 );
 
         setMock( sourcePortIndex1, destinationPortIndex1, offerResult );
@@ -83,9 +81,8 @@ public class DownstreamTupleSendersTest extends AbstractJokerTest
                                                                                            sourcePortIndex4 },
                                                                                new int[] { destinationPortIndex1,
                                                                                            destinationPortIndex2,
-                                                                                           destinationPortIndex3,
-                                                                                           destinationPortIndex4 },
-                                                                               operatorTupleQueue );
+                                                                                           destinationPortIndex3, destinationPortIndex4 },
+                                                                               operatorQueue );
         addTuple( "key1", "val", sourcePortIndex1 );
         addTuple( "key2", "val", sourcePortIndex2 );
         addTuple( "key3", "val", sourcePortIndex3 );
@@ -113,16 +110,14 @@ public class DownstreamTupleSendersTest extends AbstractJokerTest
 
     private void setMock ( final int sourcePortIndex, final int destinationPortIndex, final int offerResult )
     {
-        when( operatorTupleQueue.offer( destinationPortIndex,
-                                        tuples.getTuplesModifiable( sourcePortIndex ),
-                                        0 ) ).thenReturn( offerResult );
+        when( operatorQueue.offer( destinationPortIndex, tuples.getTuplesModifiable( sourcePortIndex ), 0 ) ).thenReturn( offerResult );
     }
 
     private void verifyMock ( final String key, final Object val, final int destinationPortIndex )
     {
         final Tuple expected = new Tuple();
         expected.set( key, val );
-        verify( operatorTupleQueue ).offer( destinationPortIndex, singletonList( expected ), 0 );
+        verify( operatorQueue ).offer( destinationPortIndex, singletonList( expected ), 0 );
     }
 
 }

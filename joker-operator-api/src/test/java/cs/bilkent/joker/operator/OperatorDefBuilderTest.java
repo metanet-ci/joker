@@ -403,7 +403,8 @@ public class OperatorDefBuilderTest extends AbstractJokerTest
     }
 
     @OperatorSpec( type = PARTITIONED_STATEFUL, inputPortCount = 1, outputPortCount = 1 )
-    @OperatorSchema( inputs = { @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = int.class ) } ) }, outputs = { @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = EXTENDABLE_FIELD_SET, fields = { @SchemaField( name = "field2", type = long.class ) } ) } )
+    @OperatorSchema( inputs = { @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = int.class ) } ) }, outputs = {
+            @PortSchema( portIndex = DEFAULT_PORT_INDEX, scope = EXTENDABLE_FIELD_SET, fields = { @SchemaField( name = "field2", type = long.class ) } ) } )
     public static class PartitionedStatefulOperatorWithExactInputPortSchema extends NopOperator
     {
     }

@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 import com.typesafe.config.Config;
 
 import cs.bilkent.joker.engine.flow.PipelineId;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import cs.bilkent.joker.engine.metric.PipelineMetricsHistorySummarizer;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
@@ -173,8 +173,7 @@ public class AdaptationConfig
 
     public BiPredicate<PipelineMetrics, PipelineMetrics> getLoadChangePredicate ()
     {
-        return ( oldMetrics, newMetrics ) ->
-        {
+        return ( oldMetrics, newMetrics ) -> {
             if ( oldMetrics == null )
             {
                 return false;
@@ -206,12 +205,11 @@ public class AdaptationConfig
         return pipelineMetrics -> pipelineMetrics.getAvgCpuUtilizationRatio() >= cpuUtilBottleneckThreshold;
     }
 
-    public BiFunction<RegionExecutionPlan, PipelineMetrics, Integer> getPipelineSplitIndexExtractor ()
+    public BiFunction<RegionExecPlan, PipelineMetrics, Integer> getPipelineSplitIndexExtractor ()
     {
-        return ( regionExecutionPlan, pipelineMetrics ) ->
-        {
+        return ( execPlan, pipelineMetrics ) -> {
             final PipelineId pipelineId = pipelineMetrics.getPipelineId();
-            final int operatorCount = regionExecutionPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() );
+            final int operatorCount = execPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() );
             checkState( operatorCount > 1 );
 
             final double pipelineCost = pipelineMetrics.getAvgPipelineCost();
@@ -249,8 +247,7 @@ public class AdaptationConfig
 
     public BiPredicate<PipelineMetrics, PipelineMetrics> getAdaptationEvaluationPredicate ()
     {
-        return ( oldMetrics, newMetrics ) ->
-        {
+        return ( oldMetrics, newMetrics ) -> {
             for ( int portIndex = 0; portIndex < oldMetrics.getInputPortCount(); portIndex++ )
             {
                 final long bottleneckThroughput = oldMetrics.getTotalInboundThroughput( portIndex );

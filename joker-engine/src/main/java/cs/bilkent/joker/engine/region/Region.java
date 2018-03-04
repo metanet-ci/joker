@@ -3,14 +3,14 @@ package cs.bilkent.joker.engine.region;
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionDef;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
+import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.joker.engine.pipeline.UpstreamContext;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
-import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST_BUT_SAME_ON_ALL_PORTS;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import static java.lang.System.arraycopy;
 import static java.util.Arrays.copyOf;
@@ -18,26 +18,26 @@ import static java.util.Arrays.copyOf;
 public class Region
 {
 
-    private final RegionExecutionPlan executionPlan;
+    private final RegionExecPlan execPlan;
 
-    private final SchedulingStrategy[] operatorSchedulingStrategies;
+    private final SchedulingStrategy[] schedulingStrategies;
 
-    private final UpstreamContext[] operatorUpstreamContexts;
+    private final UpstreamContext[] upstreamContexts;
 
-    private final int[] operatorFusionStartIndices;
+    private final int[] fusionStartIndices;
 
     // [pipelineIndex, replicaIndex]
     private final PipelineReplica[][] pipelines;
 
-    public Region ( final RegionExecutionPlan executionPlan,
-                    final SchedulingStrategy[] operatorSchedulingStrategies,
-                    final UpstreamContext[] operatorUpstreamContexts,
+    public Region ( final RegionExecPlan execPlan,
+                    final SchedulingStrategy[] schedulingStrategies,
+                    final UpstreamContext[] upstreamContexts,
                     final PipelineReplica[][] pipelines )
     {
-        this.executionPlan = executionPlan;
-        this.operatorSchedulingStrategies = copyOf( operatorSchedulingStrategies, operatorSchedulingStrategies.length );
-        this.operatorFusionStartIndices = findOperatorFusionStartIndices( operatorSchedulingStrategies );
-        this.operatorUpstreamContexts = copyOf( operatorUpstreamContexts, operatorUpstreamContexts.length );
+        this.execPlan = execPlan;
+        this.schedulingStrategies = copyOf( schedulingStrategies, schedulingStrategies.length );
+        this.fusionStartIndices = findFusionStartIndices( schedulingStrategies );
+        this.upstreamContexts = copyOf( upstreamContexts, upstreamContexts.length );
         this.pipelines = copyOf( pipelines, pipelines.length );
         for ( int i = 0; i < pipelines.length; i++ )
         {
@@ -47,23 +47,23 @@ public class Region
 
     public int getRegionId ()
     {
-        return executionPlan.getRegionId();
+        return execPlan.getRegionId();
     }
 
-    public RegionExecutionPlan getExecutionPlan ()
+    public RegionExecPlan getExecPlan ()
     {
-        return executionPlan;
+        return execPlan;
     }
 
     public RegionDef getRegionDef ()
     {
-        return executionPlan.getRegionDef();
+        return execPlan.getRegionDef();
     }
 
     public PipelineReplica[] getReplicaPipelines ( final int replicaIndex )
     {
-        final PipelineReplica[] p = new PipelineReplica[ executionPlan.getPipelineCount() ];
-        for ( int i = 0; i < executionPlan.getPipelineCount(); i++ )
+        final PipelineReplica[] p = new PipelineReplica[ execPlan.getPipelineCount() ];
+        for ( int i = 0; i < execPlan.getPipelineCount(); i++ )
         {
             p[ i ] = pipelines[ i ][ replicaIndex ];
         }
@@ -75,91 +75,150 @@ public class Region
         return pipelines[ pipelineIndex ];
     }
 
-    public PipelineReplica[] getPipelineReplicasByPipelineId ( final PipelineId pipelineId )
+    public PipelineReplica[] getPipelineReplicas ( final PipelineId pipelineId )
     {
-        for ( int i = 0; i < executionPlan.getPipelineCount(); i++ )
+        for ( int i = 0; i < execPlan.getPipelineCount(); i++ )
         {
             if ( pipelines[ i ][ 0 ].id().pipelineId.equals( pipelineId ) )
             {
-                return copyOf( pipelines[ i ], executionPlan.getReplicaCount() );
+                return copyOf( pipelines[ i ], execPlan.getReplicaCount() );
             }
         }
 
         throw new IllegalArgumentException( "Invalid pipeline id: " + pipelineId );
     }
 
-    public SchedulingStrategy[] getOperatorSchedulingStrategies ()
+    public PipelineReplica getPipelineReplica ( final PipelineReplicaId pipelineReplicaId )
     {
-        return copyOf( operatorSchedulingStrategies, operatorSchedulingStrategies.length );
+        return getPipelineReplicas( pipelineReplicaId.pipelineId )[ pipelineReplicaId.replicaIndex ];
     }
 
-    public int[] getOperatorFusionStartIndices ()
+    public SchedulingStrategy[] getSchedulingStrategies ()
     {
-        return copyOf( operatorFusionStartIndices, operatorFusionStartIndices.length );
+        return copyOf( schedulingStrategies, schedulingStrategies.length );
     }
 
-    public SchedulingStrategy[] getOperatorSchedulingStrategies ( final PipelineId pipelineId )
+    public int[] getFusionStartIndices ()
+    {
+        return copyOf( fusionStartIndices, fusionStartIndices.length );
+    }
+
+    public SchedulingStrategy getSchedulingStrategy ( final int operatorIndex )
+    {
+        return schedulingStrategies[ operatorIndex ];
+    }
+
+    public SchedulingStrategy[] getSchedulingStrategies ( final PipelineId pipelineId )
     {
         final int pipelineStartIndex = pipelineId.getPipelineStartIndex();
-        final int operatorCount = executionPlan.getOperatorCountByPipelineStartIndex( pipelineStartIndex );
+        final int operatorCount = execPlan.getOperatorCountByPipelineStartIndex( pipelineStartIndex );
 
         final SchedulingStrategy[] schedulingStrategies = new SchedulingStrategy[ operatorCount ];
-        arraycopy( operatorSchedulingStrategies, pipelineStartIndex, schedulingStrategies, 0, operatorCount );
+        arraycopy( this.schedulingStrategies, pipelineStartIndex, schedulingStrategies, 0, operatorCount );
 
         return schedulingStrategies;
     }
 
-    public UpstreamContext[] getOperatorUpstreamContexts ()
+    public SchedulingStrategy[][] getFusedSchedulingStrategies ( final PipelineId pipelineId )
     {
-        return copyOf( operatorUpstreamContexts, operatorUpstreamContexts.length );
+        final SchedulingStrategy[] schedulingStrategies = getSchedulingStrategies( pipelineId );
+        final int[] fusionStartIndices = findFusionStartIndices( schedulingStrategies );
+        final SchedulingStrategy[][] fusedSchedulingStrategies = new SchedulingStrategy[ fusionStartIndices.length ][];
+        for ( int i = 0; i < fusionStartIndices.length; i++ )
+        {
+            final int fusionStartIndex = fusionStartIndices[ i ];
+            final int pipelineOperatorCount = execPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() );
+            final int length =
+                    ( i == ( fusionStartIndices.length - 1 ) ? pipelineOperatorCount : fusionStartIndices[ i + 1 ] ) - fusionStartIndex;
+            SchedulingStrategy[] s = new SchedulingStrategy[ length ];
+            arraycopy( schedulingStrategies, fusionStartIndex, s, 0, length );
+            fusedSchedulingStrategies[ i ] = s;
+        }
+
+        return fusedSchedulingStrategies;
     }
 
-    public UpstreamContext[] getOperatorUpstreamContexts ( final PipelineId pipelineId )
+    public UpstreamContext[][] getFusedUpstreamContexts ( final PipelineId pipelineId )
     {
-        final int pipelineStartIndex = pipelineId.getPipelineStartIndex();
-        final int operatorCount = executionPlan.getOperatorCountByPipelineStartIndex( pipelineStartIndex );
+        final UpstreamContext[] upstreamContexts = getUpstreamContexts( pipelineId );
+        final int[] fusionStartIndices = findFusionStartIndices( getSchedulingStrategies( pipelineId ) );
+        final UpstreamContext[][] fusedUpstreamContexts = new UpstreamContext[ fusionStartIndices.length ][];
+        for ( int i = 0; i < fusionStartIndices.length; i++ )
+        {
+            final int fusionStartIndex = fusionStartIndices[ i ];
+            final int pipelineOperatorCount = execPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() );
+            final int length =
+                    ( i == ( fusionStartIndices.length - 1 ) ? pipelineOperatorCount : fusionStartIndices[ i + 1 ] ) - fusionStartIndex;
+            UpstreamContext[] u = new UpstreamContext[ length ];
+            arraycopy( upstreamContexts, fusionStartIndex, u, 0, length );
+            fusedUpstreamContexts[ i ] = u;
+        }
+
+        return fusedUpstreamContexts;
+    }
+
+
+    public UpstreamContext[] getUpstreamContexts ()
+    {
+        return copyOf( upstreamContexts, upstreamContexts.length );
+    }
+
+    public UpstreamContext[] getUpstreamContexts ( final PipelineId pipelineId )
+    {
+        return getUpstreamContexts( pipelineId.getPipelineStartIndex() );
+    }
+
+    public UpstreamContext[] getUpstreamContexts ( final int pipelineStartIndex )
+    {
+        final int operatorCount = execPlan.getOperatorCountByPipelineStartIndex( pipelineStartIndex );
 
         final UpstreamContext[] upstreamContexts = new UpstreamContext[ operatorCount ];
-        arraycopy( operatorUpstreamContexts, pipelineStartIndex, upstreamContexts, 0, operatorCount );
+        arraycopy( this.upstreamContexts, pipelineStartIndex, upstreamContexts, 0, operatorCount );
 
         return upstreamContexts;
     }
 
-    public static int[] findOperatorFusionStartIndices ( final SchedulingStrategy[] operatorSchedulingStrategies )
+    public static int[] findFusionStartIndices ( final SchedulingStrategy[] operatorSchedulingStrategies )
     {
         final int[] indices = new int[ operatorSchedulingStrategies.length ];
         indices[ 0 ] = 0;
         int j = 1;
         for ( int i = 1; i < operatorSchedulingStrategies.length; i++ )
         {
-            final SchedulingStrategy strategy = operatorSchedulingStrategies[ i ];
-            if ( strategy instanceof ScheduleWhenAvailable )
+            if ( !isFusible( operatorSchedulingStrategies[ i ] ) )
             {
                 indices[ j++ ] = i;
-                continue;
-            }
-
-            checkArgument( strategy instanceof ScheduleWhenTuplesAvailable );
-
-            final ScheduleWhenTuplesAvailable st = (ScheduleWhenTuplesAvailable) strategy;
-            final TupleAvailabilityByCount tupleAvailabilityByCount = st.getTupleAvailabilityByCount();
-            if ( !( tupleAvailabilityByCount == AT_LEAST || tupleAvailabilityByCount == AT_LEAST_BUT_SAME_ON_ALL_PORTS ) )
-            {
-                indices[ j++ ] = i;
-                continue;
-            }
-
-            for ( int portIndex = 0; portIndex < st.getPortCount(); portIndex++ )
-            {
-                if ( st.getTupleCount( portIndex ) > 1 )
-                {
-                    indices[ j++ ] = i;
-                    break;
-                }
             }
         }
 
         return copyOf( indices, j );
+    }
+
+    public static boolean isFusible ( SchedulingStrategy strategy )
+    {
+        if ( strategy instanceof ScheduleWhenAvailable )
+        {
+            return false;
+        }
+
+        checkArgument( strategy instanceof ScheduleWhenTuplesAvailable );
+
+        final ScheduleWhenTuplesAvailable st = (ScheduleWhenTuplesAvailable) strategy;
+        final TupleAvailabilityByCount tupleAvailabilityByCount = st.getTupleAvailabilityByCount();
+        if ( tupleAvailabilityByCount != AT_LEAST )
+        {
+            return false;
+        }
+
+        for ( int portIndex = 0; portIndex < st.getPortCount(); portIndex++ )
+        {
+            if ( st.getTupleCount( portIndex ) > 1 )
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
 }

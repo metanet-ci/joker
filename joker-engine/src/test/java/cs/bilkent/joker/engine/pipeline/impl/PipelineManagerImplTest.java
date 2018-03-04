@@ -13,7 +13,7 @@ import com.google.inject.Injector;
 import cs.bilkent.joker.JokerModule;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.flow.RegionDef;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIAL;
 import cs.bilkent.joker.engine.pipeline.Pipeline;
@@ -23,7 +23,7 @@ import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.CompositeDown
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.DownstreamTupleSender1;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDownstreamTupleSender1;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
-import cs.bilkent.joker.engine.tuplequeue.OperatorTupleQueue;
+import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
 import cs.bilkent.joker.operator.InitializationContext;
@@ -80,9 +80,9 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         final FlowDef flow = new FlowDefBuilder().add( operatorDef ).build();
 
         final List<RegionDef> regions = regionDefFormer.createRegions( flow );
-        final RegionExecutionPlan regionExecutionPlan = new RegionExecutionPlan( regions.get( 0 ), singletonList( 0 ), 1 );
+        final RegionExecPlan regionExecPlan = new RegionExecPlan( regions.get( 0 ), singletonList( 0 ), 1 );
 
-        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, singletonList( regionExecutionPlan ) );
+        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, singletonList( regionExecPlan ) );
 
         assertEquals( 1, pipelines.size() );
 
@@ -113,13 +113,11 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         final RegionDef statefulRegionDef0 = findRegion( regions, operatorDef0 );
         final RegionDef partitionedStatefulRegionDef = findRegion( regions, operatorDef1 );
         final RegionDef statefulRegionDef1 = findRegion( regions, operatorDef2 );
-        final RegionExecutionPlan regionExecutionPlan0 = new RegionExecutionPlan( statefulRegionDef0, singletonList( 0 ), 1 );
-        final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( partitionedStatefulRegionDef, singletonList( 0 ), 2 );
-        final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( statefulRegionDef1, singletonList( 0 ), 1 );
+        final RegionExecPlan regionExecPlan0 = new RegionExecPlan( statefulRegionDef0, singletonList( 0 ), 1 );
+        final RegionExecPlan regionExecPlan1 = new RegionExecPlan( partitionedStatefulRegionDef, singletonList( 0 ), 2 );
+        final RegionExecPlan regionExecPlan2 = new RegionExecPlan( statefulRegionDef1, singletonList( 0 ), 1 );
         final List<Pipeline> pipelines = pipelineManager.createPipelines( flow,
-                                                                          asList( regionExecutionPlan0,
-                                                                                  regionExecutionPlan1,
-                                                                                  regionExecutionPlan2 ) );
+                                                                          asList( regionExecPlan0, regionExecPlan1, regionExecPlan2 ) );
 
         assertEquals( 3, pipelines.size() );
 
@@ -133,10 +131,10 @@ public class PipelineManagerImplTest extends AbstractJokerTest
 
         final Pipeline pipeline2 = pipelines.get( 2 );
         assertEquals( INITIAL, pipeline2.getPipelineStatus() );
-        assertEquals( ( (Supplier<OperatorTupleQueue>) pipeline1.getDownstreamTupleSender( 0 ) ).get(),
-                      pipeline2.getPipelineReplica( 0 ).getPipelineTupleQueue() );
-        assertEquals( ( (Supplier<OperatorTupleQueue>) pipeline1.getDownstreamTupleSender( 1 ) ).get(),
-                      pipeline2.getPipelineReplica( 0 ).getPipelineTupleQueue() );
+        assertEquals( ( (Supplier<OperatorQueue>) pipeline1.getDownstreamTupleSender( 0 ) ).get(),
+                      pipeline2.getPipelineReplica( 0 ).getEffectiveQueue() );
+        assertEquals( ( (Supplier<OperatorQueue>) pipeline1.getDownstreamTupleSender( 1 ) ).get(),
+                      pipeline2.getPipelineReplica( 0 ).getEffectiveQueue() );
     }
 
     @Test
@@ -163,15 +161,15 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         final RegionDef partitionedStatefulRegionDef = findRegion( regions, operatorDef1 );
         final RegionDef statefulRegionDef1 = findRegion( regions, operatorDef2 );
         final RegionDef statelessRegionDef = findRegion( regions, operatorDef3 );
-        final RegionExecutionPlan regionExecutionPlan0 = new RegionExecutionPlan( statefulRegionDef0, singletonList( 0 ), 1 );
-        final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( partitionedStatefulRegionDef, singletonList( 0 ), 2 );
-        final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( statefulRegionDef1, singletonList( 0 ), 1 );
-        final RegionExecutionPlan regionExecutionPlan3 = new RegionExecutionPlan( statelessRegionDef, singletonList( 0 ), 1 );
+        final RegionExecPlan regionExecPlan0 = new RegionExecPlan( statefulRegionDef0, singletonList( 0 ), 1 );
+        final RegionExecPlan regionExecPlan1 = new RegionExecPlan( partitionedStatefulRegionDef, singletonList( 0 ), 2 );
+        final RegionExecPlan regionExecPlan2 = new RegionExecPlan( statefulRegionDef1, singletonList( 0 ), 1 );
+        final RegionExecPlan regionExecPlan3 = new RegionExecPlan( statelessRegionDef, singletonList( 0 ), 1 );
         final List<Pipeline> pipelines = pipelineManager.createPipelines( flow,
-                                                                          asList( regionExecutionPlan0,
-                                                                                  regionExecutionPlan1,
-                                                                                  regionExecutionPlan2,
-                                                                                  regionExecutionPlan3 ) );
+                                                                          asList( regionExecPlan0,
+                                                                                  regionExecPlan1,
+                                                                                  regionExecPlan2,
+                                                                                  regionExecPlan3 ) );
 
         assertEquals( 4, pipelines.size() );
 
@@ -200,32 +198,26 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         final DownstreamTupleSender[] senders1 = ( (CompositeDownstreamTupleSender) pipeline1.getDownstreamTupleSender( 1 ) )
                                                          .getDownstreamTupleSenders();
 
-        if ( ( (Supplier<OperatorTupleQueue>) senders0[ 0 ] ).get().equals( pipeline2.getPipelineReplica( 0 ).getPipelineTupleQueue() ) )
+        if ( ( (Supplier<OperatorQueue>) senders0[ 0 ] ).get().equals( pipeline2.getPipelineReplica( 0 ).getEffectiveQueue() ) )
         {
-            assertEquals( ( (Supplier<OperatorTupleQueue>) senders0[ 1 ] ).get(),
-                          pipeline3.getPipelineReplica( 0 ).getPipelineTupleQueue() );
+            assertEquals( ( (Supplier<OperatorQueue>) senders0[ 1 ] ).get(), pipeline3.getPipelineReplica( 0 ).getEffectiveQueue() );
         }
-        else if ( ( (Supplier<OperatorTupleQueue>) senders0[ 1 ] ).get()
-                                                                  .equals( pipeline2.getPipelineReplica( 0 ).getPipelineTupleQueue() ) )
+        else if ( ( (Supplier<OperatorQueue>) senders0[ 1 ] ).get().equals( pipeline2.getPipelineReplica( 0 ).getEffectiveQueue() ) )
         {
-            assertEquals( ( (Supplier<OperatorTupleQueue>) senders0[ 0 ] ).get(),
-                          pipeline3.getPipelineReplica( 0 ).getPipelineTupleQueue() );
+            assertEquals( ( (Supplier<OperatorQueue>) senders0[ 0 ] ).get(), pipeline3.getPipelineReplica( 0 ).getEffectiveQueue() );
         }
         else
         {
             fail();
         }
 
-        if ( ( (Supplier<OperatorTupleQueue>) senders1[ 0 ] ).get().equals( pipeline2.getPipelineReplica( 0 ).getPipelineTupleQueue() ) )
+        if ( ( (Supplier<OperatorQueue>) senders1[ 0 ] ).get().equals( pipeline2.getPipelineReplica( 0 ).getEffectiveQueue() ) )
         {
-            assertEquals( ( (Supplier<OperatorTupleQueue>) senders1[ 1 ] ).get(),
-                          pipeline3.getPipelineReplica( 0 ).getPipelineTupleQueue() );
+            assertEquals( ( (Supplier<OperatorQueue>) senders1[ 1 ] ).get(), pipeline3.getPipelineReplica( 0 ).getEffectiveQueue() );
         }
-        else if ( ( (Supplier<OperatorTupleQueue>) senders1[ 1 ] ).get()
-                                                                  .equals( pipeline2.getPipelineReplica( 0 ).getPipelineTupleQueue() ) )
+        else if ( ( (Supplier<OperatorQueue>) senders1[ 1 ] ).get().equals( pipeline2.getPipelineReplica( 0 ).getEffectiveQueue() ) )
         {
-            assertEquals( ( (Supplier<OperatorTupleQueue>) senders1[ 0 ] ).get(),
-                          pipeline3.getPipelineReplica( 0 ).getPipelineTupleQueue() );
+            assertEquals( ( (Supplier<OperatorQueue>) senders1[ 0 ] ).get(), pipeline3.getPipelineReplica( 0 ).getEffectiveQueue() );
         }
         else
         {
@@ -252,10 +244,10 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         assertEquals( 2, regions.size() );
         final RegionDef statefulRegionDef = findRegion( regions, operatorDef1 );
         final RegionDef partitionedStatefulRegionDef = findRegion( regions, operatorDef2 );
-        final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( statefulRegionDef, singletonList( 0 ), 1 );
-        final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( partitionedStatefulRegionDef, asList( 0, 1 ), 2 );
+        final RegionExecPlan regionExecPlan1 = new RegionExecPlan( statefulRegionDef, singletonList( 0 ), 1 );
+        final RegionExecPlan regionExecPlan2 = new RegionExecPlan( partitionedStatefulRegionDef, asList( 0, 1 ), 2 );
 
-        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, asList( regionExecutionPlan1, regionExecutionPlan2 ) );
+        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, asList( regionExecPlan1, regionExecPlan2 ) );
 
         assertEquals( 3, pipelines.size() );
 
@@ -270,19 +262,19 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         assertEquals( statefulRegionDef, pipeline1.getRegionDef() );
         assertEquals( 0, pipeline1.getOperatorIndex( operatorDef1 ) );
         assertTrue( pipeline1.getDownstreamTupleSender( 0 ) instanceof PartitionedDownstreamTupleSender1 );
-        assertArrayEquals( ( (Supplier<OperatorTupleQueue[]>) pipeline1.getDownstreamTupleSender( 0 ) ).get(),
-                           new OperatorTupleQueue[] { pipeline2.getPipelineReplica( 0 ).getPipelineTupleQueue(),
-                                                      pipeline2.getPipelineReplica( 1 ).getPipelineTupleQueue() } );
+        assertArrayEquals( ( (Supplier<OperatorQueue[]>) pipeline1.getDownstreamTupleSender( 0 ) ).get(),
+                           new OperatorQueue[] { pipeline2.getPipelineReplica( 0 ).getEffectiveQueue(),
+                                                 pipeline2.getPipelineReplica( 1 ).getEffectiveQueue() } );
 
         assertEquals( partitionedStatefulRegionDef, pipeline2.getRegionDef() );
         assertEquals( 0, pipeline2.getOperatorIndex( operatorDef2 ) );
         assertFalse( pipeline2.getPipelineReplica( 0 ) == pipeline2.getPipelineReplica( 1 ) );
         assertTrue( pipeline2.getDownstreamTupleSender( 0 ) instanceof DownstreamTupleSender1 );
         assertTrue( pipeline2.getDownstreamTupleSender( 1 ) instanceof DownstreamTupleSender1 );
-        assertEquals( ( (Supplier<OperatorTupleQueue>) pipeline2.getDownstreamTupleSender( 0 ) ).get(),
-                      pipeline3.getPipelineReplica( 0 ).getPipelineTupleQueue() );
-        assertEquals( ( (Supplier<OperatorTupleQueue>) pipeline2.getDownstreamTupleSender( 1 ) ).get(),
-                      pipeline3.getPipelineReplica( 1 ).getPipelineTupleQueue() );
+        assertEquals( ( (Supplier<OperatorQueue>) pipeline2.getDownstreamTupleSender( 0 ) ).get(),
+                      pipeline3.getPipelineReplica( 0 ).getEffectiveQueue() );
+        assertEquals( ( (Supplier<OperatorQueue>) pipeline2.getDownstreamTupleSender( 1 ) ).get(),
+                      pipeline3.getPipelineReplica( 1 ).getEffectiveQueue() );
 
         assertEquals( partitionedStatefulRegionDef, pipeline3.getRegionDef() );
         assertEquals( 0, pipeline3.getOperatorIndex( operatorDef3 ) );
@@ -311,10 +303,10 @@ public class PipelineManagerImplTest extends AbstractJokerTest
 
         final RegionDef statefulRegionDef = findRegion( regions, operatorDef1 );
         final RegionDef partitionedStatefulRegionDef = findRegion( regions, operatorDef3 );
-        final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( statefulRegionDef, singletonList( 0 ), 1 );
-        final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( partitionedStatefulRegionDef, asList( 0, 1 ), 2 );
+        final RegionExecPlan regionExecPlan1 = new RegionExecPlan( statefulRegionDef, singletonList( 0 ), 1 );
+        final RegionExecPlan regionExecPlan2 = new RegionExecPlan( partitionedStatefulRegionDef, asList( 0, 1 ), 2 );
 
-        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, asList( regionExecutionPlan1, regionExecutionPlan2 ) );
+        final List<Pipeline> pipelines = pipelineManager.createPipelines( flow, asList( regionExecPlan1, regionExecPlan2 ) );
 
         assertEquals( 3, pipelines.size() );
 
@@ -329,19 +321,19 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         assertEquals( statefulRegionDef, pipeline1.getRegionDef() );
         assertEquals( 0, pipeline1.getOperatorIndex( operatorDef1 ) );
         assertTrue( pipeline1.getDownstreamTupleSender( 0 ) instanceof PartitionedDownstreamTupleSender1 );
-        assertArrayEquals( ( (Supplier<OperatorTupleQueue[]>) pipeline1.getDownstreamTupleSender( 0 ) ).get(),
-                           new OperatorTupleQueue[] { pipeline2.getPipelineReplica( 0 ).getPipelineTupleQueue(),
-                                                      pipeline2.getPipelineReplica( 1 ).getPipelineTupleQueue() } );
+        assertArrayEquals( ( (Supplier<OperatorQueue[]>) pipeline1.getDownstreamTupleSender( 0 ) ).get(),
+                           new OperatorQueue[] { pipeline2.getPipelineReplica( 0 ).getEffectiveQueue(),
+                                                 pipeline2.getPipelineReplica( 1 ).getEffectiveQueue() } );
 
         assertEquals( partitionedStatefulRegionDef, pipeline2.getRegionDef() );
         assertEquals( 0, pipeline2.getOperatorIndex( operatorDef2 ) );
         assertFalse( pipeline2.getPipelineReplica( 0 ) == pipeline2.getPipelineReplica( 1 ) );
         assertTrue( pipeline2.getDownstreamTupleSender( 0 ) instanceof DownstreamTupleSender1 );
         assertTrue( pipeline2.getDownstreamTupleSender( 1 ) instanceof DownstreamTupleSender1 );
-        assertEquals( ( (Supplier<OperatorTupleQueue>) pipeline2.getDownstreamTupleSender( 0 ) ).get(),
-                      pipeline3.getPipelineReplica( 0 ).getPipelineTupleQueue() );
-        assertEquals( ( (Supplier<OperatorTupleQueue>) pipeline2.getDownstreamTupleSender( 1 ) ).get(),
-                      pipeline3.getPipelineReplica( 1 ).getPipelineTupleQueue() );
+        assertEquals( ( (Supplier<OperatorQueue>) pipeline2.getDownstreamTupleSender( 0 ) ).get(),
+                      pipeline3.getPipelineReplica( 0 ).getEffectiveQueue() );
+        assertEquals( ( (Supplier<OperatorQueue>) pipeline2.getDownstreamTupleSender( 1 ) ).get(),
+                      pipeline3.getPipelineReplica( 1 ).getEffectiveQueue() );
 
         assertEquals( partitionedStatefulRegionDef, pipeline3.getRegionDef() );
         assertEquals( 0, pipeline3.getOperatorIndex( operatorDef3 ) );
@@ -374,14 +366,12 @@ public class PipelineManagerImplTest extends AbstractJokerTest
 
         final RegionDef statefulRegionDef1 = statefulRegionDefs.get( 0 ), statefulRegionDef2 = statefulRegionDefs.get( 1 );
 
-        final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( statefulRegionDef1, singletonList( 0 ), 1 );
-        final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( statefulRegionDef2, singletonList( 0 ), 1 );
-        final RegionExecutionPlan regionExecutionPlan3 = new RegionExecutionPlan( statelessRegionDef, singletonList( 0 ), 1 );
+        final RegionExecPlan regionExecPlan1 = new RegionExecPlan( statefulRegionDef1, singletonList( 0 ), 1 );
+        final RegionExecPlan regionExecPlan2 = new RegionExecPlan( statefulRegionDef2, singletonList( 0 ), 1 );
+        final RegionExecPlan regionExecPlan3 = new RegionExecPlan( statelessRegionDef, singletonList( 0 ), 1 );
 
         final List<Pipeline> pipelines = pipelineManager.createPipelines( flow,
-                                                                          asList( regionExecutionPlan1,
-                                                                                  regionExecutionPlan2,
-                                                                                  regionExecutionPlan3 ) );
+                                                                          asList( regionExecPlan1, regionExecPlan2, regionExecPlan3 ) );
 
         final Pipeline pipeline1 = pipelines.get( 0 );
         final Pipeline pipeline2 = pipelines.get( 1 );
@@ -394,14 +384,14 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         assertEquals( statefulRegionDef1, pipeline1.getRegionDef() );
         assertEquals( 0, pipeline1.getOperatorIndex( statefulRegionDef1.getOperators().get( 0 ) ) );
         assertTrue( pipeline1.getDownstreamTupleSender( 0 ) instanceof DownstreamTupleSender1 );
-        assertEquals( ( (Supplier<OperatorTupleQueue>) pipeline1.getDownstreamTupleSender( 0 ) ).get(),
-                      pipeline3.getPipelineReplica( 0 ).getPipelineTupleQueue() );
+        assertEquals( ( (Supplier<OperatorQueue>) pipeline1.getDownstreamTupleSender( 0 ) ).get(),
+                      pipeline3.getPipelineReplica( 0 ).getEffectiveQueue() );
 
         assertEquals( statefulRegionDef2, pipeline2.getRegionDef() );
         assertEquals( 0, pipeline2.getOperatorIndex( statefulRegionDef2.getOperators().get( 0 ) ) );
         assertTrue( pipeline2.getDownstreamTupleSender( 0 ) instanceof DownstreamTupleSender1 );
-        assertEquals( ( (Supplier<OperatorTupleQueue>) pipeline2.getDownstreamTupleSender( 0 ) ).get(),
-                      pipeline3.getPipelineReplica( 0 ).getPipelineTupleQueue() );
+        assertEquals( ( (Supplier<OperatorQueue>) pipeline2.getDownstreamTupleSender( 0 ) ).get(),
+                      pipeline3.getPipelineReplica( 0 ).getEffectiveQueue() );
 
         assertEquals( statelessRegionDef, pipeline3.getRegionDef() );
         assertEquals( 0, pipeline3.getOperatorIndex( operatorDef3 ) );
@@ -432,14 +422,12 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         final RegionDef statelessRegionDef = findRegion( regions, operatorDef2 );
         final RegionDef partitionedStatefulRegionDef = findRegion( regions, operatorDef3 );
 
-        final RegionExecutionPlan regionExecutionPlan1 = new RegionExecutionPlan( statefulRegionDef, singletonList( 0 ), 1 );
-        final RegionExecutionPlan regionExecutionPlan2 = new RegionExecutionPlan( statelessRegionDef, singletonList( 0 ), 1 );
-        final RegionExecutionPlan regionExecutionPlan3 = new RegionExecutionPlan( partitionedStatefulRegionDef, singletonList( 0 ), 1 );
+        final RegionExecPlan regionExecPlan1 = new RegionExecPlan( statefulRegionDef, singletonList( 0 ), 1 );
+        final RegionExecPlan regionExecPlan2 = new RegionExecPlan( statelessRegionDef, singletonList( 0 ), 1 );
+        final RegionExecPlan regionExecPlan3 = new RegionExecPlan( partitionedStatefulRegionDef, singletonList( 0 ), 1 );
 
         final List<Pipeline> pipelines = pipelineManager.createPipelines( flow,
-                                                                          asList( regionExecutionPlan1,
-                                                                                  regionExecutionPlan2,
-                                                                                  regionExecutionPlan3 ) );
+                                                                          asList( regionExecPlan1, regionExecPlan2, regionExecPlan3 ) );
 
         final Pipeline pipeline1 = pipelines.get( 0 );
         final Pipeline pipeline2 = pipelines.get( 1 );
@@ -488,7 +476,8 @@ public class PipelineManagerImplTest extends AbstractJokerTest
 
 
     @OperatorSpec( type = STATEFUL, inputPortCount = 1, outputPortCount = 1 )
-    @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = Integer.class ) } ) }, outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = Integer.class ) } ) } )
+    @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = Integer.class ) } ) }, outputs = {
+            @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = Integer.class ) } ) } )
     public static class StatefulOperatorInput1Output1 implements Operator
     {
 
@@ -508,7 +497,8 @@ public class PipelineManagerImplTest extends AbstractJokerTest
 
 
     @OperatorSpec( type = STATELESS, inputPortCount = 1, outputPortCount = 1 )
-    @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = Integer.class ) } ) }, outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = Integer.class ) } ) } )
+    @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = Integer.class ) } ) }, outputs = {
+            @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = Integer.class ) } ) } )
     public static class StatelessOperatorInput1Output1 implements Operator
     {
 
@@ -529,7 +519,8 @@ public class PipelineManagerImplTest extends AbstractJokerTest
 
     @OperatorSpec( type = PARTITIONED_STATEFUL, inputPortCount = 2, outputPortCount = 2 )
     @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = Integer.class ) } ),
-                                @PortSchema( portIndex = 1, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = Integer.class ) } ) }, outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = Integer.class ) } ) } )
+                                @PortSchema( portIndex = 1, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = Integer.class ) } ) }, outputs = {
+            @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = Integer.class ) } ) } )
     public static class PartitionedStatefulOperatorInput2Output2 implements Operator
     {
 

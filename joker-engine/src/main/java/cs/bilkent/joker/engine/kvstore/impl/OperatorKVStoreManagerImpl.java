@@ -35,7 +35,7 @@ public class OperatorKVStoreManagerImpl implements OperatorKVStoreManager
     private final Map<Pair<Integer, String>, KVStoreContainer[]> kvStoreContainersByOperatorId = new HashMap<>();
 
     @Override
-    public OperatorKVStore createDefaultOperatorKVStore ( final int regionId, final String operatorId )
+    public OperatorKVStore createDefaultKVStore ( final int regionId, final String operatorId )
     {
         checkArgument( regionId >= 0, "invalid regionId %s", regionId );
         checkArgument( operatorId != null, "null operatorId for regionId %s", regionId );
@@ -52,15 +52,16 @@ public class OperatorKVStoreManagerImpl implements OperatorKVStoreManager
         return operatorKVStore;
     }
 
-    public OperatorKVStore getDefaultOperatorKVStore ( final int regionId, final String operatorId )
+    @Override
+    public OperatorKVStore getDefaultKVStore ( final int regionId, final String operatorId )
     {
         return defaultOperatorKVStores.get( Pair.of( regionId, operatorId ) );
     }
 
     @Override
-    public OperatorKVStore[] createPartitionedOperatorKVStores ( final int regionId,
-                                                                 final String operatorId,
-                                                                 final PartitionDistribution partitionDistribution )
+    public OperatorKVStore[] createPartitionedKVStores ( final int regionId,
+                                                         final String operatorId,
+                                                         final PartitionDistribution partitionDistribution )
     {
         checkArgument( regionId >= 0, "invalid regionId %s", regionId );
         checkArgument( operatorId != null, "null operatorId for regionId %s", regionId );
@@ -96,10 +97,10 @@ public class OperatorKVStoreManagerImpl implements OperatorKVStoreManager
     }
 
     @Override
-    public OperatorKVStore[] rebalancePartitionedOperatorKVStores ( final int regionId,
-                                                                    final String operatorId,
-                                                                    final PartitionDistribution currentPartitionDistribution,
-                                                                    final PartitionDistribution newPartitionDistribution )
+    public OperatorKVStore[] rebalancePartitionedKVStores ( final int regionId,
+                                                            final String operatorId,
+                                                            final PartitionDistribution currentPartitionDistribution,
+                                                            final PartitionDistribution newPartitionDistribution )
     {
         final Pair<Integer, String> key = Pair.of( regionId, operatorId );
         PartitionedOperatorKVStore[] kvStores = partitionedOperatorKVStores.get( key );
@@ -200,7 +201,7 @@ public class OperatorKVStoreManagerImpl implements OperatorKVStoreManager
 
 
     @Override
-    public OperatorKVStore[] getPartitionedOperatorKVStores ( final int regionId, final String operatorId )
+    public OperatorKVStore[] getPartitionedKVStores ( final int regionId, final String operatorId )
     {
         final Pair<Integer, String> key = Pair.of( regionId, operatorId );
         final PartitionedOperatorKVStore[] operatorKVStores = partitionedOperatorKVStores.get( key );
@@ -214,7 +215,7 @@ public class OperatorKVStoreManagerImpl implements OperatorKVStoreManager
     }
 
     @Override
-    public void releaseDefaultOperatorKVStore ( final int regionId, final String operatorId )
+    public void releaseDefaultKVStore ( final int regionId, final String operatorId )
     {
         final DefaultOperatorKVStore operatorKVStore = defaultOperatorKVStores.remove( Pair.of( regionId, operatorId ) );
         checkState( operatorKVStore != null,
@@ -228,7 +229,7 @@ public class OperatorKVStoreManagerImpl implements OperatorKVStoreManager
     }
 
     @Override
-    public void releasePartitionedOperatorKVStores ( final int regionId, final String operatorId )
+    public void releasePartitionedKVStores ( final int regionId, final String operatorId )
     {
         final PartitionedOperatorKVStore[] operatorKVStores = partitionedOperatorKVStores.remove( Pair.of( regionId, operatorId ) );
         checkState( operatorKVStores != null,

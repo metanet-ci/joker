@@ -13,8 +13,7 @@ public class NopDrainer implements TupleQueueDrainer
 
     @Override
     public boolean drain ( final boolean maySkipBlocking,
-                           @Nullable final PartitionKey key,
-                           final TupleQueue[] tupleQueues,
+                           @Nullable final PartitionKey key, final TupleQueue[] queues,
                            final Function<PartitionKey, TuplesImpl> tuplesSupplier )
     {
         return false;

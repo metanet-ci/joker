@@ -9,9 +9,9 @@ import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAva
 import cs.bilkent.joker.partition.impl.PartitionKey;
 
 /**
- * Manages input {@link Tuple} queues for a single operator instance replica
+ * Manages input {@link Tuple} queues for a single operator instance
  */
-public interface OperatorTupleQueue
+public interface OperatorQueue
 {
 
     String getOperatorId ();

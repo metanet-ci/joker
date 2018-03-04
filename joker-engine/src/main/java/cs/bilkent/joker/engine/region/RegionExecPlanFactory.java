@@ -3,9 +3,9 @@ package cs.bilkent.joker.engine.region;
 import java.util.List;
 
 import cs.bilkent.joker.engine.flow.RegionDef;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 
-public interface RegionExecutionPlanFactory
+public interface RegionExecPlanFactory
 {
 
     default void init ()
@@ -18,6 +18,6 @@ public interface RegionExecutionPlanFactory
 
     }
 
-    List<RegionExecutionPlan> createRegionExecutionPlans ( List<RegionDef> regionDefs );
+    List<RegionExecPlan> createRegionExecPlans ( List<RegionDef> regionDefs );
 
 }

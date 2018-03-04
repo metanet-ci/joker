@@ -115,7 +115,8 @@ public class OperatorRuntimeSchemaBuilderTest extends AbstractJokerTest
         assertThat( field2, equalTo( new RuntimeSchemaField( "field2", long.class ) ) );
     }
 
-    @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = int.class ) } ) }, outputs = { @PortSchema( portIndex = 0, scope = EXTENDABLE_FIELD_SET, fields = { @SchemaField( name = "field2", type = long.class ) } ) } )
+    @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "field1", type = int.class ) } ) }, outputs = {
+            @PortSchema( portIndex = 0, scope = EXTENDABLE_FIELD_SET, fields = { @SchemaField( name = "field2", type = long.class ) } ) } )
     private static class AnnotatedClass
     {
 

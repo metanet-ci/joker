@@ -5,10 +5,10 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.flow.PipelineId;
-import cs.bilkent.joker.engine.flow.RegionExecutionPlan;
+import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import static java.util.stream.Collectors.toList;
 
-public class RegionExecutionPlanUtil
+public class RegionExecPlanUtil
 {
 
     private static List<PipelineId> getMergeablePipelineIds ( final List<PipelineId> pipelineIds )
@@ -29,23 +29,21 @@ public class RegionExecutionPlanUtil
     }
 
 
-    public static List<Integer> getMergeablePipelineStartIndices ( final RegionExecutionPlan regionExecutionPlan,
+    public static List<Integer> getMergeablePipelineStartIndices ( final RegionExecPlan regionExecPlan,
                                                                    final List<PipelineId> pipelineIds )
     {
         final List<Integer> startIndicesToMerge = getMergeablePipelineIds( pipelineIds ).stream()
                                                                                         .map( PipelineId::getPipelineStartIndex )
                                                                                         .collect( toList() );
 
-        checkArgument( checkPipelineStartIndicesToMerge( regionExecutionPlan, startIndicesToMerge ),
+        checkArgument( checkPipelineStartIndicesToMerge( regionExecPlan, startIndicesToMerge ),
                        "invalid pipeline start indices to merge: %s current pipeline start indices: %s region=%s",
-                       startIndicesToMerge,
-                       regionExecutionPlan.getPipelineStartIndices(),
-                       regionExecutionPlan.getRegionId() );
+                       startIndicesToMerge, regionExecPlan.getPipelineStartIndices(), regionExecPlan.getRegionId() );
 
         return startIndicesToMerge;
     }
 
-    public static boolean checkPipelineStartIndicesToMerge ( final RegionExecutionPlan regionExecutionPlan,
+    public static boolean checkPipelineStartIndicesToMerge ( final RegionExecPlan regionExecPlan,
                                                              final List<Integer> pipelineStartIndicesToMerge )
     {
         if ( pipelineStartIndicesToMerge.size() < 2 )
@@ -53,7 +51,7 @@ public class RegionExecutionPlanUtil
             return false;
         }
 
-        final List<Integer> pipelineStartIndices = regionExecutionPlan.getPipelineStartIndices();
+        final List<Integer> pipelineStartIndices = regionExecPlan.getPipelineStartIndices();
 
         int index = pipelineStartIndices.indexOf( pipelineStartIndicesToMerge.get( 0 ) );
         if ( index < 0 )
@@ -74,7 +72,7 @@ public class RegionExecutionPlanUtil
         return true;
     }
 
-    public static List<Integer> getPipelineStartIndicesToSplit ( final RegionExecutionPlan regionExecutionPlan,
+    public static List<Integer> getPipelineStartIndicesToSplit ( final RegionExecPlan regionExecPlan,
                                                                  final PipelineId pipelineId,
                                                                  final List<Integer> pipelineOperatorIndicesToSplit )
     {
@@ -84,7 +82,7 @@ public class RegionExecutionPlanUtil
                        pipelineId );
 
         int curr = 0;
-        final int operatorCount = regionExecutionPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() );
+        final int operatorCount = regionExecPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() );
         for ( int p : pipelineOperatorIndicesToSplit )
         {
             checkArgument( p > curr && p < operatorCount );
@@ -101,7 +99,7 @@ public class RegionExecutionPlanUtil
         return pipelineStartIndicesToSplit;
     }
 
-    public static boolean checkPipelineStartIndicesToSplit ( final RegionExecutionPlan regionExecutionPlan,
+    public static boolean checkPipelineStartIndicesToSplit ( final RegionExecPlan regionExecPlan,
                                                              final List<Integer> pipelineStartIndicesToSplit )
     {
         if ( pipelineStartIndicesToSplit.size() < 2 )
@@ -109,7 +107,7 @@ public class RegionExecutionPlanUtil
             return false;
         }
 
-        final List<Integer> pipelineStartIndices = regionExecutionPlan.getPipelineStartIndices();
+        final List<Integer> pipelineStartIndices = regionExecPlan.getPipelineStartIndices();
 
         int start = pipelineStartIndices.indexOf( pipelineStartIndicesToSplit.get( 0 ) );
         if ( start < 0 )
@@ -118,8 +116,7 @@ public class RegionExecutionPlanUtil
         }
 
         final int limit = ( start < pipelineStartIndices.size() - 1 )
-                          ? pipelineStartIndices.get( start + 1 )
-                          : regionExecutionPlan.getRegionDef().getOperatorCount();
+                          ? pipelineStartIndices.get( start + 1 ) : regionExecPlan.getRegionDef().getOperatorCount();
 
         for ( int i = 1; i < pipelineStartIndicesToSplit.size(); i++ )
         {
@@ -131,6 +128,28 @@ public class RegionExecutionPlanUtil
         }
 
         return true;
+    }
+
+    public static boolean checkPipelineStartIndicesToSplit ( final RegionExecPlan regionExecPlan,
+                                                             final int pipelineStartIndex,
+                                                             final int newPipelineStartIndex )
+    {
+        final List<Integer> pipelineStartIndices = regionExecPlan.getPipelineStartIndices();
+        final int pipelineIndex = pipelineStartIndices.indexOf( pipelineStartIndex );
+        if ( pipelineIndex < 0 )
+        {
+            return false;
+        }
+
+        if ( newPipelineStartIndex <= pipelineStartIndex )
+        {
+            return false;
+        }
+
+        final int nextPipelineStartIndex = ( pipelineIndex < pipelineStartIndices.size() - 1 ) ? pipelineStartIndices.get(
+                pipelineIndex + 1 ) : regionExecPlan.getRegionDef().getOperatorCount();
+
+        return newPipelineStartIndex > nextPipelineStartIndex;
     }
 
 }

@@ -15,7 +15,7 @@ public interface MetricManager
 
     void resume ();
 
-    FlowMetrics getFlowMetrics ();
+    FlowMetrics getMetrics ();
 
     void shutdown ();
 

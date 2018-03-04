@@ -86,10 +86,7 @@ public class SentenceBeaconOperator2 implements Operator
         final int sentenceCountPerLength = config.getInteger( SENTENCE_COUNT_PER_LENGTH_PARAM );
         final int shuffledSentenceCount = config.getInteger( SHUFFLED_SENTENCE_COUNT_PARAM );
 
-        this.shuffler = new Thread( new Shuffler( minSentenceLength,
-                                                  maxSentenceLength,
-                                                  sentenceCountPerLength,
-                                                  shuffledSentenceCount ) );
+        this.shuffler = new Thread( new Shuffler( minSentenceLength, maxSentenceLength, sentenceCountPerLength, shuffledSentenceCount ) );
         shuffler.start();
 
         while ( true )

@@ -19,7 +19,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith( MockitoJUnitRunner.class )
-public class InvocationContextImplTest extends AbstractJokerTest
+public class DefaultInvocationContextTest extends AbstractJokerTest
 {
 
     @Mock
@@ -28,7 +28,7 @@ public class InvocationContextImplTest extends AbstractJokerTest
     @Test
     public void testSingleInput ()
     {
-        final InvocationContextImpl ctx = new InvocationContextImpl( 1, kvStoreSupplier, new TuplesImpl( 1 ) );
+        final DefaultInvocationContext ctx = new DefaultInvocationContext( 1, kvStoreSupplier, new TuplesImpl( 1 ) );
 
         final PartitionKey key = mock( PartitionKey.class );
         final KVStore kvStore = mock( KVStore.class );
@@ -49,7 +49,7 @@ public class InvocationContextImplTest extends AbstractJokerTest
     @Test
     public void testMultipleInputs ()
     {
-        final InvocationContextImpl ctx = new InvocationContextImpl( 1, kvStoreSupplier, new TuplesImpl( 1 ) );
+        final DefaultInvocationContext ctx = new DefaultInvocationContext( 1, kvStoreSupplier, new TuplesImpl( 1 ) );
 
         final PartitionKey key1 = mock( PartitionKey.class );
         final KVStore kvStore1 = mock( KVStore.class );
