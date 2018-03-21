@@ -345,8 +345,9 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertTrue( pipelineOperator0.getInvocationContext( 4 ) instanceof FusedPartitionedInvocationContext );
 
         assertTrue( pipelineOperator0.getQueue() instanceof PartitionedOperatorQueue );
-        assertTrue(
-                pipelineOperator0.getQueue() == operatorQueueManager.getPartitionedQueue( region.getRegionId(), operatorDef1.getId(), 0 ) );
+        assertTrue( pipelineOperator0.getQueue() == operatorQueueManager.getPartitionedQueueOrFail( region.getRegionId(),
+                                                                                                    operatorDef1.getId(),
+                                                                                                    0 ) );
         assertTrue( pipelineOperator0.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
         assertTrue( newPipelineReplica.getQueue() instanceof DefaultOperatorQueue );
 
@@ -835,8 +836,9 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
                                                                                                  0 ) );
 
         assertTrue( pipelineOperator0.getQueue() instanceof PartitionedOperatorQueue );
-        assertTrue(
-                pipelineOperator0.getQueue() == operatorQueueManager.getPartitionedQueue( region.getRegionId(), operatorDef1.getId(), 0 ) );
+        assertTrue( pipelineOperator0.getQueue() == operatorQueueManager.getPartitionedQueueOrFail( region.getRegionId(),
+                                                                                                    operatorDef1.getId(),
+                                                                                                    0 ) );
         assertTrue( pipelineOperator0.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
         assertThat( pipelineOperator0.getOperatorDef( 0 ), equalTo( operatorDef1 ) );
         assertTrue( pipelineOperator0.getInvocationContext( 0 ) instanceof DefaultInvocationContext );

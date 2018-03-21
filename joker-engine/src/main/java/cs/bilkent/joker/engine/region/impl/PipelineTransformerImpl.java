@@ -45,9 +45,9 @@ import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
-import cs.bilkent.joker.operator.impl.DefaultOutputTupleCollector;
+import cs.bilkent.joker.operator.impl.DefaultOutputCollector;
 import cs.bilkent.joker.operator.impl.InternalInvocationContext;
-import cs.bilkent.joker.operator.impl.OutputTupleCollector;
+import cs.bilkent.joker.operator.impl.OutputCollector;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
@@ -173,7 +173,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                 final OperatorQueue downOperatorQueue;
                 if ( downOperatorDef.getOperatorType() == PARTITIONED_STATEFUL )
                 {
-                    downOperatorQueue = operatorQueueManager.getPartitionedQueue( regionId, downOperatorDef.getId(), replicaIndex );
+                    downOperatorQueue = operatorQueueManager.getPartitionedQueueOrFail( regionId, downOperatorDef.getId(), replicaIndex );
                 }
                 else
                 {
@@ -221,7 +221,6 @@ public class PipelineTransformerImpl implements PipelineTransformer
             for ( int replicaIndex = 0; replicaIndex < regionExecPlan.getReplicaCount(); replicaIndex++ )
             {
                 final OperatorQueue queue = operatorQueueManager.getDefaultQueueOrFail( regionId, operatorId, replicaIndex );
-
                 checkState( queue.isEmpty() );
 
                 operatorQueueManager.releaseDefaultQueue( regionId, operatorId, replicaIndex );
@@ -229,8 +228,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
 
             if ( operatorDef.getOperatorType() == PARTITIONED_STATEFUL )
             {
-                final OperatorQueue[] queues = operatorQueueManager.getPartitionedQueuesOrFail( regionId, operatorId );
-                for ( OperatorQueue queue : queues )
+                for ( OperatorQueue queue : operatorQueueManager.getPartitionedQueuesOrFail( regionId, operatorId ) )
                 {
                     checkState( queue.isEmpty() );
                 }
@@ -243,9 +241,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
             for ( int replicaIndex = 0; replicaIndex < regionExecPlan.getReplicaCount(); replicaIndex++ )
             {
                 final OperatorQueue pipelineQueue = operatorQueueManager.getDefaultQueueOrFail( regionId, operatorId, replicaIndex );
-
-                final OperatorQueue operatorQueue = operatorQueueManager.getPartitionedQueue( regionId, operatorId, replicaIndex );
-
+                final OperatorQueue operatorQueue = operatorQueueManager.getPartitionedQueueOrFail( regionId, operatorId, replicaIndex );
                 drainPipelineQueue( pipelineQueue, operatorQueue, operatorDef );
 
                 operatorQueueManager.releaseDefaultQueue( regionId, operatorId, replicaIndex );
@@ -319,16 +315,16 @@ public class PipelineTransformerImpl implements PipelineTransformer
 
         // create a new fused invocation context for the first operator of the downstream operator replica
         final OperatorDef fusingOperatorDef = downOperatorReplica.getOperatorDef( 0 );
-        final OutputTupleCollector fusingOutputCollector;
+        final OutputCollector fusingOutputCollector;
         if ( downOperatorCount == 1 )
         {
             // TODO we should use the next operatorDef...
             final TuplesImpl output = new TuplesImpl( fusingOperatorDef.getOutputPortCount() );
-            fusingOutputCollector = new DefaultOutputTupleCollector( output );
+            fusingOutputCollector = new DefaultOutputCollector( output );
         }
         else
         {
-            fusingOutputCollector = (OutputTupleCollector) invocationContexts[ upOperatorCount + 1 ];
+            fusingOutputCollector = (OutputCollector) invocationContexts[ upOperatorCount + 1 ];
         }
 
         if ( fusingOperatorDef.getOperatorType() == PARTITIONED_STATEFUL )
@@ -368,7 +364,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
         for ( int i = upOperatorCount - 1; i > 0; i-- )
         {
             final OperatorDef operatorDef = upOperatorReplica.getOperatorDef( i );
-            final OutputTupleCollector outputSupplier = (OutputTupleCollector) invocationContexts[ i + 1 ];
+            final OutputCollector outputCollector = (OutputCollector) invocationContexts[ i + 1 ];
 
             if ( operatorDef.getOperatorType() == PARTITIONED_STATEFUL )
             {
@@ -379,8 +375,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                                                                                                             forwardedKeySize );
                 invocationContexts[ i ] = new FusedPartitionedInvocationContext( operatorDef.getInputPortCount(),
                                                                                  kvStore::getKVStore,
-                                                                                 ext,
-                                                                                 outputSupplier );
+                                                                                 ext, outputCollector );
             }
             else
             {
@@ -394,7 +389,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                     kvStoreSupplier = k -> null;
                 }
 
-                invocationContexts[ i ] = new FusedInvocationContext( operatorDef.getInputPortCount(), kvStoreSupplier, outputSupplier );
+                invocationContexts[ i ] = new FusedInvocationContext( operatorDef.getInputPortCount(), kvStoreSupplier, outputCollector );
             }
         }
 
@@ -414,8 +409,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
         }
 
         invocationContexts[ 0 ] = new DefaultInvocationContext( upOperatorDef.getInputPortCount(),
-                                                                kvStoreSupplier,
-                                                                (OutputTupleCollector) invocationContexts[ 1 ] );
+                                                                kvStoreSupplier, (OutputCollector) invocationContexts[ 1 ] );
 
         final Function<PartitionKey, TuplesImpl> drainerTuplesSupplier = ( (DefaultInvocationContext) invocationContexts[ 0 ] )
                                                                                  ::createInputTuples;
@@ -732,7 +726,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
         final TupleQueueDrainerPool headTupleQueueDrainerPool;
         if ( operatorDef.getOperatorType() == PARTITIONED_STATEFUL )
         {
-            headOperatorQueue = operatorQueueManager.getPartitionedQueue( regionId, operatorDef.getId(), replicaIndex );
+            headOperatorQueue = operatorQueueManager.getPartitionedQueueOrFail( regionId, operatorDef.getId(), replicaIndex );
             headTupleQueueDrainerPool = new NonBlockingTupleQueueDrainerPool( config, operatorDef );
         }
         else
@@ -779,14 +773,14 @@ public class PipelineTransformerImpl implements PipelineTransformer
         {
             final int j = i - from;
             final OperatorDef operatorDef = operatorReplica.getOperatorDef( i );
-            final OutputTupleCollector outputCollector;
+            final OutputCollector outputCollector;
             if ( i < ( until - 1 ) )
             {
-                outputCollector = (OutputTupleCollector) invocationContexts[ j + 1 ];
+                outputCollector = (OutputCollector) invocationContexts[ j + 1 ];
             }
             else
             {
-                outputCollector = new DefaultOutputTupleCollector( new TuplesImpl( operatorDef.getOutputPortCount() ) );
+                outputCollector = new DefaultOutputCollector( new TuplesImpl( operatorDef.getOutputPortCount() ) );
             }
 
             if ( operatorDef.getOperatorType() == PARTITIONED_STATEFUL )
@@ -836,14 +830,14 @@ public class PipelineTransformerImpl implements PipelineTransformer
             kvStoreSupplier = k -> null;
         }
 
-        final OutputTupleCollector outputCollector;
+        final OutputCollector outputCollector;
         if ( invocationContexts.length > 1 )
         {
-            outputCollector = (OutputTupleCollector) invocationContexts[ 1 ];
+            outputCollector = (OutputCollector) invocationContexts[ 1 ];
         }
         else
         {
-            outputCollector = new DefaultOutputTupleCollector( new TuplesImpl( headOperatorDef.getOutputPortCount() ) );
+            outputCollector = new DefaultOutputCollector( new TuplesImpl( headOperatorDef.getOutputPortCount() ) );
         }
 
         invocationContexts[ 0 ] = new DefaultInvocationContext( headOperatorDef.getInputPortCount(), kvStoreSupplier, outputCollector );

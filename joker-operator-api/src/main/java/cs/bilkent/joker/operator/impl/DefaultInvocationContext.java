@@ -22,7 +22,7 @@ public class DefaultInvocationContext implements InternalInvocationContext
 
     private final List<PartitionKey> partitionKeys = new ArrayList<>();
 
-    private final OutputTupleCollector outputCollector;
+    private final OutputCollector outputCollector;
 
     private InvocationReason reason;
 
@@ -36,12 +36,11 @@ public class DefaultInvocationContext implements InternalInvocationContext
                                       final Function<PartitionKey, KVStore> kvStoreSupplier,
                                       final TuplesImpl output )
     {
-        this( inputPortCount, kvStoreSupplier, new DefaultOutputTupleCollector( output ) );
+        this( inputPortCount, kvStoreSupplier, new DefaultOutputCollector( output ) );
     }
 
     public DefaultInvocationContext ( final int inputPortCount,
-                                      final Function<PartitionKey, KVStore> kvStoreSupplier,
-                                      final OutputTupleCollector outputCollector )
+                                      final Function<PartitionKey, KVStore> kvStoreSupplier, final OutputCollector outputCollector )
     {
         this.inputPortCount = inputPortCount;
         this.kvStoreSupplier = kvStoreSupplier;

@@ -63,10 +63,10 @@ import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
-import cs.bilkent.joker.operator.impl.DefaultOutputTupleCollector;
+import cs.bilkent.joker.operator.impl.DefaultOutputCollector;
 import cs.bilkent.joker.operator.impl.InitializationContextImpl;
 import cs.bilkent.joker.operator.impl.InternalInvocationContext;
-import cs.bilkent.joker.operator.impl.OutputTupleCollector;
+import cs.bilkent.joker.operator.impl.OutputCollector;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
@@ -203,16 +203,16 @@ public class RegionManagerImpl implements RegionManager
                         fusedOperatorDefs[ replicaIndex ][ j ] = operatorDef;
                         final Function<PartitionKey, KVStore> kvStoreSupplier = operatorKvStores[ replicaIndex ]::getKVStore;
 
-                        final OutputTupleCollector outputCollector;
+                        final OutputCollector outputCollector;
                         if ( j == fusedOperatorCount - 1 )
                         {
                             // TODO we should use the next operatorDef...
                             final TuplesImpl output = new TuplesImpl( operatorDef.getOutputPortCount() );
-                            outputCollector = new DefaultOutputTupleCollector( output );
+                            outputCollector = new DefaultOutputCollector( output );
                         }
                         else
                         {
-                            outputCollector = (OutputTupleCollector) fusedInvocationContexts[ replicaIndex ][ j + 1 ];
+                            outputCollector = (OutputCollector) fusedInvocationContexts[ replicaIndex ][ j + 1 ];
                         }
 
                         final InternalInvocationContext invocationContext;
@@ -650,14 +650,14 @@ public class RegionManagerImpl implements RegionManager
                         fusedOperatorDefs[ j ] = operatorDef;
                         final Function<PartitionKey, KVStore> fusedKVStoreSupplier = kvStore::getKVStore;
 
-                        final OutputTupleCollector outputCollector;
+                        final OutputCollector outputCollector;
                         if ( j == fusedOperatorCount - 1 )
                         {
-                            outputCollector = new DefaultOutputTupleCollector( new TuplesImpl( operatorDef.getOutputPortCount() ) );
+                            outputCollector = new DefaultOutputCollector( new TuplesImpl( operatorDef.getOutputPortCount() ) );
                         }
                         else
                         {
-                            outputCollector = (OutputTupleCollector) fusedInvocationContexts[ j + 1 ];
+                            outputCollector = (OutputCollector) fusedInvocationContexts[ j + 1 ];
                         }
 
                         final InternalInvocationContext invocationContext;

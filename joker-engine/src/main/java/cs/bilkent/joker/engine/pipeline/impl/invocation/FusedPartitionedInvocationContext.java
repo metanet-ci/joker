@@ -9,14 +9,14 @@ import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.InternalInvocationContext;
-import cs.bilkent.joker.operator.impl.OutputTupleCollector;
+import cs.bilkent.joker.operator.impl.OutputCollector;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.partition.impl.PartitionKey;
 import gnu.trove.map.hash.TObjectIntHashMap;
 import static java.util.Arrays.copyOf;
 
-public class FusedPartitionedInvocationContext implements InternalInvocationContext, OutputTupleCollector
+public class FusedPartitionedInvocationContext implements InternalInvocationContext, OutputCollector
 {
 
     private static final int NA = -1;
@@ -34,7 +34,7 @@ public class FusedPartitionedInvocationContext implements InternalInvocationCont
 
     private final TObjectIntHashMap<PartitionKey> partitionKeyInputIndices = new TObjectIntHashMap<>( 16, 0.75f, NA );
 
-    private final OutputTupleCollector outputCollector;
+    private final OutputCollector outputCollector;
 
     private int inputCount;
 
@@ -46,8 +46,7 @@ public class FusedPartitionedInvocationContext implements InternalInvocationCont
 
     public FusedPartitionedInvocationContext ( final int inputPortCount,
                                                final Function<PartitionKey, KVStore> kvStoreSupplier,
-                                               final PartitionKeyExtractor partitionKeyExtractor,
-                                               final OutputTupleCollector outputCollector )
+                                               final PartitionKeyExtractor partitionKeyExtractor, final OutputCollector outputCollector )
     {
         this.inputPortCount = inputPortCount;
         this.kvStoreSupplier = kvStoreSupplier;

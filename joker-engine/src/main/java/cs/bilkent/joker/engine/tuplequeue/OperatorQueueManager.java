@@ -42,7 +42,7 @@ public interface OperatorQueueManager
 
     OperatorQueue[] getPartitionedQueues ( int regionId, String operatorId );
 
-    default OperatorQueue getPartitionedQueue ( int regionId, String operatorId, int replicaIndex )
+    default OperatorQueue getPartitionedQueueOrFail ( int regionId, String operatorId, int replicaIndex )
     {
         return getPartitionedQueuesOrFail( regionId, operatorId )[ replicaIndex ];
     }

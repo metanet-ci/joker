@@ -39,7 +39,7 @@ import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
-import cs.bilkent.joker.operator.impl.DefaultOutputTupleCollector;
+import cs.bilkent.joker.operator.impl.DefaultOutputCollector;
 import cs.bilkent.joker.operator.impl.InternalInvocationContext;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
@@ -80,7 +80,7 @@ public class OperatorReplicaInvocationTest extends AbstractJokerTest
 
         final DefaultInvocationContext statefulInvocationContext = new DefaultInvocationContext( 1,
                                                                                                  key -> null,
-                                                                                                 new DefaultOutputTupleCollector( 1 ) );
+                                                                                                 new DefaultOutputCollector( 1 ) );
 
         final InternalInvocationContext[] invocationContexts = new InternalInvocationContext[] { statefulInvocationContext };
 
@@ -134,8 +134,7 @@ public class OperatorReplicaInvocationTest extends AbstractJokerTest
         final PipelineReplicaMeter meter = new PipelineReplicaMeter( 1, pipelineReplicaId, operatorDefs[ 0 ] );
 
         final FusedInvocationContext mapperInvocationContext = new FusedInvocationContext( 1,
-                                                                                           key -> null,
-                                                                                           new DefaultOutputTupleCollector( 1 ) );
+                                                                                           key -> null, new DefaultOutputCollector( 1 ) );
 
         final FusedInvocationContext filterInvocationContext = new FusedInvocationContext( 1, key -> null, mapperInvocationContext );
         final DefaultInvocationContext statefulInvocationContext = new DefaultInvocationContext( 1, key -> null, filterInvocationContext );
@@ -220,7 +219,7 @@ public class OperatorReplicaInvocationTest extends AbstractJokerTest
 
         final DefaultInvocationContext statefulInvocationContext = new DefaultInvocationContext( 1,
                                                                                                  key -> null,
-                                                                                                 new DefaultOutputTupleCollector( 1 ) );
+                                                                                                 new DefaultOutputCollector( 1 ) );
 
         final InternalInvocationContext[] invocationContexts = new InternalInvocationContext[] { statefulInvocationContext };
 
@@ -268,7 +267,7 @@ public class OperatorReplicaInvocationTest extends AbstractJokerTest
 
         final DefaultInvocationContext statefulInvocationContext = new DefaultInvocationContext( 1,
                                                                                                  key -> null,
-                                                                                                 new DefaultOutputTupleCollector( 1 ) );
+                                                                                                 new DefaultOutputCollector( 1 ) );
 
         final InternalInvocationContext[] invocationContexts = new InternalInvocationContext[] { statefulInvocationContext };
 
@@ -312,7 +311,7 @@ public class OperatorReplicaInvocationTest extends AbstractJokerTest
 
         final DefaultInvocationContext statefulInvocationContext = new DefaultInvocationContext( 0,
                                                                                                  key -> null,
-                                                                                                 new DefaultOutputTupleCollector( 1 ) );
+                                                                                                 new DefaultOutputCollector( 1 ) );
 
         final InternalInvocationContext[] invocationContexts = new InternalInvocationContext[] { statefulInvocationContext };
 
@@ -351,7 +350,7 @@ public class OperatorReplicaInvocationTest extends AbstractJokerTest
 
         final DefaultInvocationContext statefulInvocationContext = new DefaultInvocationContext( 0,
                                                                                                  key -> null,
-                                                                                                 new DefaultOutputTupleCollector( 1 ) );
+                                                                                                 new DefaultOutputCollector( 1 ) );
 
         final InternalInvocationContext[] invocationContexts = new InternalInvocationContext[] { statefulInvocationContext };
 
@@ -400,7 +399,7 @@ public class OperatorReplicaInvocationTest extends AbstractJokerTest
 
         final DefaultInvocationContext statefulInvocationContext = new DefaultInvocationContext( 2,
                                                                                                  key -> null,
-                                                                                                 new DefaultOutputTupleCollector( 1 ) );
+                                                                                                 new DefaultOutputCollector( 1 ) );
 
         final InternalInvocationContext[] invocationContexts = new InternalInvocationContext[] { statefulInvocationContext };
 
@@ -456,7 +455,7 @@ public class OperatorReplicaInvocationTest extends AbstractJokerTest
 
         final DefaultInvocationContext statefulInvocationContext = new DefaultInvocationContext( 2,
                                                                                                  key -> null,
-                                                                                                 new DefaultOutputTupleCollector( 1 ) );
+                                                                                                 new DefaultOutputCollector( 1 ) );
 
         final InternalInvocationContext[] invocationContexts = new InternalInvocationContext[] { statefulInvocationContext };
 

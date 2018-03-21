@@ -8,13 +8,13 @@ import com.google.common.collect.ImmutableList;
 import static com.google.common.base.Preconditions.checkNotNull;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.InternalInvocationContext;
-import cs.bilkent.joker.operator.impl.OutputTupleCollector;
+import cs.bilkent.joker.operator.impl.OutputCollector;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.partition.impl.PartitionKey;
 import static java.util.Arrays.copyOf;
 
-public class FusedInvocationContext implements InternalInvocationContext, OutputTupleCollector
+public class FusedInvocationContext implements InternalInvocationContext, OutputCollector
 {
 
     private final Function<PartitionKey, KVStore> kvStoreSupplier;
@@ -23,15 +23,14 @@ public class FusedInvocationContext implements InternalInvocationContext, Output
 
     private final List<TuplesImpl> inputs;
 
-    private final OutputTupleCollector outputCollector;
+    private final OutputCollector outputCollector;
 
     private InvocationReason reason;
 
     private boolean[] upstreamConnectionStatuses;
 
     public FusedInvocationContext ( final int inputPortCount,
-                                    final Function<PartitionKey, KVStore> kvStoreSupplier,
-                                    final OutputTupleCollector outputCollector )
+                                    final Function<PartitionKey, KVStore> kvStoreSupplier, final OutputCollector outputCollector )
     {
         this.input = new TuplesImpl( inputPortCount );
         this.inputs = ImmutableList.of( input );

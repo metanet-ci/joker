@@ -9,6 +9,7 @@ import org.agrona.concurrent.ManyToOneConcurrentArrayQueue;
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
 import cs.bilkent.joker.operator.Tuple;
+import static java.lang.Math.min;
 
 @ThreadSafe
 public class MultiThreadedTupleQueue implements TupleQueue
@@ -69,7 +70,7 @@ public class MultiThreadedTupleQueue implements TupleQueue
     @Override
     public List<Tuple> poll ( final int count )
     {
-        final List<Tuple> tuples = new ArrayList<>();
+        final List<Tuple> tuples = new ArrayList<>( min( count, size() ) );
         queue.drainTo( tuples, count );
         return tuples;
     }

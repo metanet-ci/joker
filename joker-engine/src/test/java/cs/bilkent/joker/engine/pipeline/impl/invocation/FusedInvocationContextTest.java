@@ -9,7 +9,7 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.impl.OutputTupleCollector;
+import cs.bilkent.joker.operator.impl.OutputCollector;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.partition.impl.PartitionKey;
 import cs.bilkent.joker.test.AbstractJokerTest;
@@ -25,7 +25,7 @@ public class FusedInvocationContextTest extends AbstractJokerTest
     private Function<PartitionKey, KVStore> kvStoreSupplier;
 
     @Mock
-    private OutputTupleCollector outputCollector;
+    private OutputCollector outputCollector;
 
     private FusedInvocationContext invocationContext;
 

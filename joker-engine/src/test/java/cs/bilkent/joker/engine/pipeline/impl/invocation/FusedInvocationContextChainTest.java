@@ -5,7 +5,7 @@ import org.junit.Test;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractor1;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
-import cs.bilkent.joker.operator.impl.DefaultOutputTupleCollector;
+import cs.bilkent.joker.operator.impl.DefaultOutputCollector;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Arrays.asList;
@@ -21,7 +21,7 @@ public class FusedInvocationContextChainTest extends AbstractJokerTest
     public void testNonPartitionedInvocationContextFusion ()
     {
         final TuplesImpl output = new TuplesImpl( 1 );
-        final FusedInvocationContext last = new FusedInvocationContext( 1, key -> null, new DefaultOutputTupleCollector( output ) );
+        final FusedInvocationContext last = new FusedInvocationContext( 1, key -> null, new DefaultOutputCollector( output ) );
         final DefaultInvocationContext first = new DefaultInvocationContext( 1, key -> null, last );
 
         final Tuple input1 = new Tuple();
@@ -50,7 +50,7 @@ public class FusedInvocationContextChainTest extends AbstractJokerTest
         final FusedPartitionedInvocationContext last = new FusedPartitionedInvocationContext( 1,
                                                                                               key -> null,
                                                                                               partitionKeyExtractor,
-                                                                                              new DefaultOutputTupleCollector( output ) );
+                                                                                              new DefaultOutputCollector( output ) );
         final DefaultInvocationContext first = new DefaultInvocationContext( 1, key -> null, last );
         final Tuple input1 = new Tuple();
         input1.set( "key", "val1" );
@@ -76,7 +76,7 @@ public class FusedInvocationContextChainTest extends AbstractJokerTest
         final FusedPartitionedInvocationContext last = new FusedPartitionedInvocationContext( 1,
                                                                                               key -> null,
                                                                                               partitionKeyExtractor,
-                                                                                              new DefaultOutputTupleCollector( output ) );
+                                                                                              new DefaultOutputCollector( output ) );
         final DefaultInvocationContext first = new DefaultInvocationContext( 1, key -> null, last );
         final Tuple input1 = new Tuple();
         input1.set( "key", "val1" );
@@ -98,7 +98,7 @@ public class FusedInvocationContextChainTest extends AbstractJokerTest
     public void testChain ()
     {
         final TuplesImpl output = new TuplesImpl( 1 );
-        final FusedInvocationContext last = new FusedInvocationContext( 1, key -> null, new DefaultOutputTupleCollector( output ) );
+        final FusedInvocationContext last = new FusedInvocationContext( 1, key -> null, new DefaultOutputCollector( output ) );
         final FusedInvocationContext middle = new FusedInvocationContext( 1, key -> null, last );
         final DefaultInvocationContext first = new DefaultInvocationContext( 1, key -> null, middle );
 

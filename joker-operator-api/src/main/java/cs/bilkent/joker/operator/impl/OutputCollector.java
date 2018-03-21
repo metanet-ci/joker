@@ -2,7 +2,7 @@ package cs.bilkent.joker.operator.impl;
 
 import cs.bilkent.joker.operator.Tuple;
 
-public interface OutputTupleCollector
+public interface OutputCollector
 {
 
     void add ( Tuple tuple );

@@ -344,7 +344,7 @@ public class OperatorQueueManagerImpl implements OperatorQueueManager
             {
                 final TupleQueue currentQueue = operatorQueue.getTupleQueue( portIndex );
                 final MultiThreadedTupleQueue newQueue = new MultiThreadedTupleQueue( capacity );
-                drain( currentQueue, newQueue );
+                convey( currentQueue, newQueue );
                 tupleQueues[ portIndex ] = newQueue;
             }
         }
@@ -362,7 +362,7 @@ public class OperatorQueueManagerImpl implements OperatorQueueManager
                 }
 
                 final SingleThreadedTupleQueue newQueue = new SingleThreadedTupleQueue( capacity );
-                drain( currentQueue, newQueue );
+                convey( currentQueue, newQueue );
                 tupleQueues[ portIndex ] = newQueue;
             }
         }
@@ -392,14 +392,11 @@ public class OperatorQueueManagerImpl implements OperatorQueueManager
         return newOperatorQueue;
     }
 
-    private void drain ( final TupleQueue sourceQueue, final TupleQueue targetQueue )
+    private void convey ( final TupleQueue sourceQueue, final TupleQueue targetQueue )
     {
-        Tuple tuple;
-        while ( ( tuple = sourceQueue.poll() ) != null )
-        {
-            final boolean offered = targetQueue.offer( tuple );
-            assert offered;
-        }
+        final List<Tuple> tuples = sourceQueue.poll( Integer.MAX_VALUE );
+        final int count = targetQueue.offer( tuples );
+        assert count == tuples.size();
     }
 
 }

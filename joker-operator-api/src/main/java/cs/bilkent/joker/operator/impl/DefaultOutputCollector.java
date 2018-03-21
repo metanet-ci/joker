@@ -2,17 +2,17 @@ package cs.bilkent.joker.operator.impl;
 
 import cs.bilkent.joker.operator.Tuple;
 
-public class DefaultOutputTupleCollector implements OutputTupleCollector
+public class DefaultOutputCollector implements OutputCollector
 {
 
     private final TuplesImpl output;
 
-    public DefaultOutputTupleCollector ( final int portCount )
+    public DefaultOutputCollector ( final int portCount )
     {
         this( new TuplesImpl( portCount ) );
     }
 
-    public DefaultOutputTupleCollector ( final TuplesImpl output )
+    public DefaultOutputCollector ( final TuplesImpl output )
     {
         this.output = output;
     }

@@ -10,7 +10,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.impl.OutputTupleCollector;
+import cs.bilkent.joker.operator.impl.OutputCollector;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.partition.impl.PartitionKey;
 import cs.bilkent.joker.partition.impl.PartitionKey1;
@@ -35,7 +35,7 @@ public class FusedPartitionedInvocationContextTest extends AbstractJokerTest
     private PartitionKeyExtractor partitionKeyExtractor;
 
     @Mock
-    private OutputTupleCollector outputCollector;
+    private OutputCollector outputCollector;
 
     private FusedPartitionedInvocationContext invocationContext;
 
