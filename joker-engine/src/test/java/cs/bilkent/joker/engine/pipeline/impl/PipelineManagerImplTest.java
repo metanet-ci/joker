@@ -14,14 +14,14 @@ import cs.bilkent.joker.JokerModule;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.engine.flow.RegionExecPlan;
-import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
+import cs.bilkent.joker.engine.pipeline.DownstreamCollector;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIAL;
 import cs.bilkent.joker.engine.pipeline.Pipeline;
 import cs.bilkent.joker.engine.pipeline.PipelineManager;
-import cs.bilkent.joker.engine.pipeline.impl.PipelineManagerImpl.NopDownstreamTupleSender;
-import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.CompositeDownstreamTupleSender;
-import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.DownstreamTupleSender1;
-import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDownstreamTupleSender1;
+import cs.bilkent.joker.engine.pipeline.impl.PipelineManagerImpl.NopDownstreamCollector;
+import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.CompositeDownstreamCollector;
+import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.DownstreamCollector1;
+import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.PartitionedDownstreamCollector1;
 import cs.bilkent.joker.engine.region.RegionDefFormer;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.flow.FlowDef;
@@ -91,7 +91,7 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         assertEquals( INITIAL, pipeline.getPipelineStatus() );
 
         assertNotNull( pipeline.getPipelineReplica( 0 ) );
-        assertNotNull( pipeline.getDownstreamTupleSender( 0 ) );
+        assertNotNull( pipeline.getDownstreamCollector( 0 ) );
     }
 
     @Test
@@ -125,15 +125,15 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         assertEquals( partitionedStatefulRegionDef, pipeline1.getRegionDef() );
         assertEquals( 0, pipeline1.getOperatorIndex( operatorDef1 ) );
         assertNotEquals( pipeline1.getPipelineReplica( 0 ), pipeline1.getPipelineReplica( 1 ) );
-        assertTrue( pipeline1.getDownstreamTupleSender( 0 ) instanceof DownstreamTupleSender1 );
-        assertTrue( pipeline1.getDownstreamTupleSender( 1 ) instanceof DownstreamTupleSender1 );
+        assertTrue( pipeline1.getDownstreamCollector( 0 ) instanceof DownstreamCollector1 );
+        assertTrue( pipeline1.getDownstreamCollector( 1 ) instanceof DownstreamCollector1 );
         assertEquals( INITIAL, pipeline1.getPipelineStatus() );
 
         final Pipeline pipeline2 = pipelines.get( 2 );
         assertEquals( INITIAL, pipeline2.getPipelineStatus() );
-        assertEquals( ( (Supplier<OperatorQueue>) pipeline1.getDownstreamTupleSender( 0 ) ).get(),
+        assertEquals( ( (Supplier<OperatorQueue>) pipeline1.getDownstreamCollector( 0 ) ).get(),
                       pipeline2.getPipelineReplica( 0 ).getEffectiveQueue() );
-        assertEquals( ( (Supplier<OperatorQueue>) pipeline1.getDownstreamTupleSender( 1 ) ).get(),
+        assertEquals( ( (Supplier<OperatorQueue>) pipeline1.getDownstreamCollector( 1 ) ).get(),
                       pipeline2.getPipelineReplica( 0 ).getEffectiveQueue() );
     }
 
@@ -190,34 +190,34 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         assertEquals( 0, pipeline1.getOperatorIndex( operatorDef1 ) );
         assertNotEquals( pipeline1.getPipelineReplica( 0 ), pipeline1.getPipelineReplica( 1 ) );
 
-        assertTrue( pipeline1.getDownstreamTupleSender( 0 ) instanceof CompositeDownstreamTupleSender );
-        assertTrue( pipeline1.getDownstreamTupleSender( 1 ) instanceof CompositeDownstreamTupleSender );
-        final DownstreamTupleSender[] senders0 = ( (CompositeDownstreamTupleSender) pipeline1.getDownstreamTupleSender( 0 ) )
-                                                         .getDownstreamTupleSenders();
+        assertTrue( pipeline1.getDownstreamCollector( 0 ) instanceof CompositeDownstreamCollector );
+        assertTrue( pipeline1.getDownstreamCollector( 1 ) instanceof CompositeDownstreamCollector );
+        final DownstreamCollector[] collectors0 = ( (CompositeDownstreamCollector) pipeline1.getDownstreamCollector( 0 ) )
+                                                          .getDownstreamCollectors();
 
-        final DownstreamTupleSender[] senders1 = ( (CompositeDownstreamTupleSender) pipeline1.getDownstreamTupleSender( 1 ) )
-                                                         .getDownstreamTupleSenders();
+        final DownstreamCollector[] collectors1 = ( (CompositeDownstreamCollector) pipeline1.getDownstreamCollector( 1 ) )
+                                                          .getDownstreamCollectors();
 
-        if ( ( (Supplier<OperatorQueue>) senders0[ 0 ] ).get().equals( pipeline2.getPipelineReplica( 0 ).getEffectiveQueue() ) )
+        if ( ( (Supplier<OperatorQueue>) collectors0[ 0 ] ).get().equals( pipeline2.getPipelineReplica( 0 ).getEffectiveQueue() ) )
         {
-            assertEquals( ( (Supplier<OperatorQueue>) senders0[ 1 ] ).get(), pipeline3.getPipelineReplica( 0 ).getEffectiveQueue() );
+            assertEquals( ( (Supplier<OperatorQueue>) collectors0[ 1 ] ).get(), pipeline3.getPipelineReplica( 0 ).getEffectiveQueue() );
         }
-        else if ( ( (Supplier<OperatorQueue>) senders0[ 1 ] ).get().equals( pipeline2.getPipelineReplica( 0 ).getEffectiveQueue() ) )
+        else if ( ( (Supplier<OperatorQueue>) collectors0[ 1 ] ).get().equals( pipeline2.getPipelineReplica( 0 ).getEffectiveQueue() ) )
         {
-            assertEquals( ( (Supplier<OperatorQueue>) senders0[ 0 ] ).get(), pipeline3.getPipelineReplica( 0 ).getEffectiveQueue() );
+            assertEquals( ( (Supplier<OperatorQueue>) collectors0[ 0 ] ).get(), pipeline3.getPipelineReplica( 0 ).getEffectiveQueue() );
         }
         else
         {
             fail();
         }
 
-        if ( ( (Supplier<OperatorQueue>) senders1[ 0 ] ).get().equals( pipeline2.getPipelineReplica( 0 ).getEffectiveQueue() ) )
+        if ( ( (Supplier<OperatorQueue>) collectors1[ 0 ] ).get().equals( pipeline2.getPipelineReplica( 0 ).getEffectiveQueue() ) )
         {
-            assertEquals( ( (Supplier<OperatorQueue>) senders1[ 1 ] ).get(), pipeline3.getPipelineReplica( 0 ).getEffectiveQueue() );
+            assertEquals( ( (Supplier<OperatorQueue>) collectors1[ 1 ] ).get(), pipeline3.getPipelineReplica( 0 ).getEffectiveQueue() );
         }
-        else if ( ( (Supplier<OperatorQueue>) senders1[ 1 ] ).get().equals( pipeline2.getPipelineReplica( 0 ).getEffectiveQueue() ) )
+        else if ( ( (Supplier<OperatorQueue>) collectors1[ 1 ] ).get().equals( pipeline2.getPipelineReplica( 0 ).getEffectiveQueue() ) )
         {
-            assertEquals( ( (Supplier<OperatorQueue>) senders1[ 0 ] ).get(), pipeline3.getPipelineReplica( 0 ).getEffectiveQueue() );
+            assertEquals( ( (Supplier<OperatorQueue>) collectors1[ 0 ] ).get(), pipeline3.getPipelineReplica( 0 ).getEffectiveQueue() );
         }
         else
         {
@@ -261,25 +261,25 @@ public class PipelineManagerImplTest extends AbstractJokerTest
 
         assertEquals( statefulRegionDef, pipeline1.getRegionDef() );
         assertEquals( 0, pipeline1.getOperatorIndex( operatorDef1 ) );
-        assertTrue( pipeline1.getDownstreamTupleSender( 0 ) instanceof PartitionedDownstreamTupleSender1 );
-        assertArrayEquals( ( (Supplier<OperatorQueue[]>) pipeline1.getDownstreamTupleSender( 0 ) ).get(),
+        assertTrue( pipeline1.getDownstreamCollector( 0 ) instanceof PartitionedDownstreamCollector1 );
+        assertArrayEquals( ( (Supplier<OperatorQueue[]>) pipeline1.getDownstreamCollector( 0 ) ).get(),
                            new OperatorQueue[] { pipeline2.getPipelineReplica( 0 ).getEffectiveQueue(),
                                                  pipeline2.getPipelineReplica( 1 ).getEffectiveQueue() } );
 
         assertEquals( partitionedStatefulRegionDef, pipeline2.getRegionDef() );
         assertEquals( 0, pipeline2.getOperatorIndex( operatorDef2 ) );
         assertFalse( pipeline2.getPipelineReplica( 0 ) == pipeline2.getPipelineReplica( 1 ) );
-        assertTrue( pipeline2.getDownstreamTupleSender( 0 ) instanceof DownstreamTupleSender1 );
-        assertTrue( pipeline2.getDownstreamTupleSender( 1 ) instanceof DownstreamTupleSender1 );
-        assertEquals( ( (Supplier<OperatorQueue>) pipeline2.getDownstreamTupleSender( 0 ) ).get(),
+        assertTrue( pipeline2.getDownstreamCollector( 0 ) instanceof DownstreamCollector1 );
+        assertTrue( pipeline2.getDownstreamCollector( 1 ) instanceof DownstreamCollector1 );
+        assertEquals( ( (Supplier<OperatorQueue>) pipeline2.getDownstreamCollector( 0 ) ).get(),
                       pipeline3.getPipelineReplica( 0 ).getEffectiveQueue() );
-        assertEquals( ( (Supplier<OperatorQueue>) pipeline2.getDownstreamTupleSender( 1 ) ).get(),
+        assertEquals( ( (Supplier<OperatorQueue>) pipeline2.getDownstreamCollector( 1 ) ).get(),
                       pipeline3.getPipelineReplica( 1 ).getEffectiveQueue() );
 
         assertEquals( partitionedStatefulRegionDef, pipeline3.getRegionDef() );
         assertEquals( 0, pipeline3.getOperatorIndex( operatorDef3 ) );
         assertFalse( pipeline3.getPipelineReplica( 0 ) == pipeline3.getPipelineReplica( 1 ) );
-        assertTrue( pipeline3.getDownstreamTupleSender( 0 ) instanceof NopDownstreamTupleSender );
+        assertTrue( pipeline3.getDownstreamCollector( 0 ) instanceof NopDownstreamCollector );
     }
 
     @Test
@@ -320,25 +320,25 @@ public class PipelineManagerImplTest extends AbstractJokerTest
 
         assertEquals( statefulRegionDef, pipeline1.getRegionDef() );
         assertEquals( 0, pipeline1.getOperatorIndex( operatorDef1 ) );
-        assertTrue( pipeline1.getDownstreamTupleSender( 0 ) instanceof PartitionedDownstreamTupleSender1 );
-        assertArrayEquals( ( (Supplier<OperatorQueue[]>) pipeline1.getDownstreamTupleSender( 0 ) ).get(),
+        assertTrue( pipeline1.getDownstreamCollector( 0 ) instanceof PartitionedDownstreamCollector1 );
+        assertArrayEquals( ( (Supplier<OperatorQueue[]>) pipeline1.getDownstreamCollector( 0 ) ).get(),
                            new OperatorQueue[] { pipeline2.getPipelineReplica( 0 ).getEffectiveQueue(),
                                                  pipeline2.getPipelineReplica( 1 ).getEffectiveQueue() } );
 
         assertEquals( partitionedStatefulRegionDef, pipeline2.getRegionDef() );
         assertEquals( 0, pipeline2.getOperatorIndex( operatorDef2 ) );
         assertFalse( pipeline2.getPipelineReplica( 0 ) == pipeline2.getPipelineReplica( 1 ) );
-        assertTrue( pipeline2.getDownstreamTupleSender( 0 ) instanceof DownstreamTupleSender1 );
-        assertTrue( pipeline2.getDownstreamTupleSender( 1 ) instanceof DownstreamTupleSender1 );
-        assertEquals( ( (Supplier<OperatorQueue>) pipeline2.getDownstreamTupleSender( 0 ) ).get(),
+        assertTrue( pipeline2.getDownstreamCollector( 0 ) instanceof DownstreamCollector1 );
+        assertTrue( pipeline2.getDownstreamCollector( 1 ) instanceof DownstreamCollector1 );
+        assertEquals( ( (Supplier<OperatorQueue>) pipeline2.getDownstreamCollector( 0 ) ).get(),
                       pipeline3.getPipelineReplica( 0 ).getEffectiveQueue() );
-        assertEquals( ( (Supplier<OperatorQueue>) pipeline2.getDownstreamTupleSender( 1 ) ).get(),
+        assertEquals( ( (Supplier<OperatorQueue>) pipeline2.getDownstreamCollector( 1 ) ).get(),
                       pipeline3.getPipelineReplica( 1 ).getEffectiveQueue() );
 
         assertEquals( partitionedStatefulRegionDef, pipeline3.getRegionDef() );
         assertEquals( 0, pipeline3.getOperatorIndex( operatorDef3 ) );
         assertFalse( pipeline3.getPipelineReplica( 0 ) == pipeline3.getPipelineReplica( 1 ) );
-        assertTrue( pipeline3.getDownstreamTupleSender( 0 ) instanceof NopDownstreamTupleSender );
+        assertTrue( pipeline3.getDownstreamCollector( 0 ) instanceof NopDownstreamCollector );
     }
 
     @Test
@@ -383,19 +383,19 @@ public class PipelineManagerImplTest extends AbstractJokerTest
 
         assertEquals( statefulRegionDef1, pipeline1.getRegionDef() );
         assertEquals( 0, pipeline1.getOperatorIndex( statefulRegionDef1.getOperators().get( 0 ) ) );
-        assertTrue( pipeline1.getDownstreamTupleSender( 0 ) instanceof DownstreamTupleSender1 );
-        assertEquals( ( (Supplier<OperatorQueue>) pipeline1.getDownstreamTupleSender( 0 ) ).get(),
+        assertTrue( pipeline1.getDownstreamCollector( 0 ) instanceof DownstreamCollector1 );
+        assertEquals( ( (Supplier<OperatorQueue>) pipeline1.getDownstreamCollector( 0 ) ).get(),
                       pipeline3.getPipelineReplica( 0 ).getEffectiveQueue() );
 
         assertEquals( statefulRegionDef2, pipeline2.getRegionDef() );
         assertEquals( 0, pipeline2.getOperatorIndex( statefulRegionDef2.getOperators().get( 0 ) ) );
-        assertTrue( pipeline2.getDownstreamTupleSender( 0 ) instanceof DownstreamTupleSender1 );
-        assertEquals( ( (Supplier<OperatorQueue>) pipeline2.getDownstreamTupleSender( 0 ) ).get(),
+        assertTrue( pipeline2.getDownstreamCollector( 0 ) instanceof DownstreamCollector1 );
+        assertEquals( ( (Supplier<OperatorQueue>) pipeline2.getDownstreamCollector( 0 ) ).get(),
                       pipeline3.getPipelineReplica( 0 ).getEffectiveQueue() );
 
         assertEquals( statelessRegionDef, pipeline3.getRegionDef() );
         assertEquals( 0, pipeline3.getOperatorIndex( operatorDef3 ) );
-        assertTrue( pipeline3.getDownstreamTupleSender( 0 ) instanceof NopDownstreamTupleSender );
+        assertTrue( pipeline3.getDownstreamCollector( 0 ) instanceof NopDownstreamCollector );
     }
 
     @Test
@@ -439,15 +439,15 @@ public class PipelineManagerImplTest extends AbstractJokerTest
 
         assertEquals( statefulRegionDef, pipeline1.getRegionDef() );
         assertEquals( 0, pipeline1.getOperatorIndex( statefulRegionDef.getOperators().get( 0 ) ) );
-        assertTrue( pipeline1.getDownstreamTupleSender( 0 ) instanceof CompositeDownstreamTupleSender );
+        assertTrue( pipeline1.getDownstreamCollector( 0 ) instanceof CompositeDownstreamCollector );
 
         assertEquals( statelessRegionDef, pipeline2.getRegionDef() );
         assertEquals( 0, pipeline2.getOperatorIndex( statelessRegionDef.getOperators().get( 0 ) ) );
-        assertTrue( pipeline2.getDownstreamTupleSender( 0 ) instanceof NopDownstreamTupleSender );
+        assertTrue( pipeline2.getDownstreamCollector( 0 ) instanceof NopDownstreamCollector );
 
         assertEquals( partitionedStatefulRegionDef, pipeline3.getRegionDef() );
         assertEquals( 0, pipeline3.getOperatorIndex( operatorDef3 ) );
-        assertTrue( pipeline3.getDownstreamTupleSender( 0 ) instanceof NopDownstreamTupleSender );
+        assertTrue( pipeline3.getDownstreamCollector( 0 ) instanceof NopDownstreamCollector );
     }
 
     private RegionDef findRegion ( Collection<RegionDef> regions, final OperatorDef operator )

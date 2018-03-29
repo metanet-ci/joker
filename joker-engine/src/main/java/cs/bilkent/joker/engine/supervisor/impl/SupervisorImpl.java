@@ -31,7 +31,7 @@ import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.metric.FlowMetrics;
 import cs.bilkent.joker.engine.metric.MetricManager;
 import cs.bilkent.joker.engine.metric.PipelineMeter;
-import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
+import cs.bilkent.joker.engine.pipeline.DownstreamCollector;
 import cs.bilkent.joker.engine.pipeline.PipelineManager;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.joker.engine.pipeline.UpstreamContext;
@@ -380,9 +380,9 @@ public class SupervisorImpl implements Supervisor
     }
 
     @Override
-    public DownstreamTupleSender getDownstreamTupleSender ( final PipelineReplicaId id )
+    public DownstreamCollector getDownstreamCollector ( final PipelineReplicaId id )
     {
-        return pipelineManager.getDownstreamTupleSender( id );
+        return pipelineManager.getDownstreamCollector( id );
     }
 
     @Override

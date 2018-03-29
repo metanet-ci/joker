@@ -41,7 +41,7 @@ public class PipelineReplicaRunner implements Runnable
 
     private final Supervisor supervisor;
 
-    private DownstreamTupleSender downstreamTupleSender;
+    private DownstreamCollector downstreamCollector;
 
     private PipelineReplicaRunnerStatus status = RUNNING;
 
@@ -50,14 +50,13 @@ public class PipelineReplicaRunner implements Runnable
 
     PipelineReplicaRunner ( final JokerConfig config,
                             final PipelineReplica pipeline,
-                            final Supervisor supervisor,
-                            final DownstreamTupleSender downstreamTupleSender )
+                            final Supervisor supervisor, final DownstreamCollector downstreamCollector )
     {
         this.pipeline = pipeline;
         this.id = pipeline.id();
         this.waitTimeoutInMillis = config.getPipelineReplicaRunnerConfig().getRunnerWaitTimeoutInMillis();
         this.supervisor = supervisor;
-        this.downstreamTupleSender = downstreamTupleSender;
+        this.downstreamCollector = downstreamCollector;
     }
 
     public PipelineReplicaRunnerStatus getStatus ()
@@ -423,20 +422,20 @@ public class PipelineReplicaRunner implements Runnable
                 }
 
                 final UpstreamContext pipelineUpstreamContext = supervisor.getUpstreamContext( id );
-                final DownstreamTupleSender downstreamTupleSender = supervisor.getDownstreamTupleSender( id );
+                final DownstreamCollector downstreamCollector = supervisor.getDownstreamCollector( id );
 
                 checkNotNull( pipelineUpstreamContext, "Pipeline %s has null upstream context!", pipeline.id() );
                 final PipelineReplicaRunnerCommandType commandType = command.type;
                 if ( commandType == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
                 {
-                    update( pipelineUpstreamContext, downstreamTupleSender );
+                    update( pipelineUpstreamContext, downstreamCollector );
                     LOGGER.debug( "{}: update {} command is handled", id, pipeline.getUpstreamContext() );
                     this.command = null;
                     command.complete();
                 }
                 else if ( commandType == STOP )
                 {
-                    update( pipelineUpstreamContext, downstreamTupleSender );
+                    update( pipelineUpstreamContext, downstreamCollector );
                     LOGGER.debug( "{}: stopping while {}", id, status );
                     status = COMPLETED;
                 }
@@ -444,7 +443,7 @@ public class PipelineReplicaRunner implements Runnable
                 {
                     if ( commandType == PAUSE )
                     {
-                        update( pipelineUpstreamContext, downstreamTupleSender );
+                        update( pipelineUpstreamContext, downstreamCollector );
                         LOGGER.debug( "{}: pausing", id );
                         command.complete();
                         this.command = null;
@@ -463,7 +462,7 @@ public class PipelineReplicaRunner implements Runnable
                 {
                     if ( commandType == RESUME )
                     {
-                        update( pipelineUpstreamContext, downstreamTupleSender );
+                        update( pipelineUpstreamContext, downstreamCollector );
                         LOGGER.debug( "{}: resuming", id );
                         command.complete();
                         this.command = null;
@@ -484,10 +483,10 @@ public class PipelineReplicaRunner implements Runnable
         return status;
     }
 
-    private void update ( final UpstreamContext pipelineUpstreamContext, final DownstreamTupleSender downstreamTupleSender )
+    private void update ( final UpstreamContext pipelineUpstreamContext, final DownstreamCollector downstreamCollector )
     {
         pipeline.setUpstreamContext( pipelineUpstreamContext );
-        this.downstreamTupleSender = downstreamTupleSender;
+        this.downstreamCollector = downstreamCollector;
     }
 
     private void completeRun ()
@@ -527,7 +526,7 @@ public class PipelineReplicaRunner implements Runnable
     {
         if ( output != null && output.isNonEmpty() )
         {
-            downstreamTupleSender.send( output );
+            downstreamCollector.accept( output );
         }
     }
 

@@ -1,30 +1,35 @@
-package cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender;
+package cs.bilkent.joker.engine.pipeline.impl.downstreamcollector;
+
+import java.util.concurrent.atomic.AtomicBoolean;
+import javax.inject.Named;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static cs.bilkent.joker.JokerModule.DOWNSTREAM_FAILURE_FLAG_NAME;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
-import cs.bilkent.joker.engine.pipeline.DownstreamTupleSenderFailureFlag;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 
-public class PartitionedDownstreamTupleSenderN extends AbstractPartitionedDownstreamTupleSender
+public class PartitionedDownstreamCollectorN extends AbstractPartitionedDownstreamCollector
 {
 
     private final int[] ports;
 
     private final int limit;
 
-    public PartitionedDownstreamTupleSenderN ( final DownstreamTupleSenderFailureFlag failureFlag,
-                                               final int[] sourcePorts,
-                                               final int[] destinationPorts,
-                                               final int partitionCount,
-                                               final int[] partitionDistribution, final OperatorQueue[] operatorQueues,
-                                               final PartitionKeyExtractor partitionKeyExtractor )
+    public PartitionedDownstreamCollectorN ( @Named( DOWNSTREAM_FAILURE_FLAG_NAME ) final AtomicBoolean failureFlag,
+                                             final int[] sourcePorts,
+                                             final int[] destinationPorts,
+                                             final int partitionCount,
+                                             final int[] partitionDistribution,
+                                             final OperatorQueue[] operatorQueues,
+                                             final PartitionKeyExtractor partitionKeyExtractor )
     {
         super( failureFlag, partitionCount, partitionDistribution, operatorQueues, partitionKeyExtractor );
         checkArgument( sourcePorts.length == destinationPorts.length,
                        "source ports size = %s and destination ports = %s ! destination operatorId=%s",
                        sourcePorts.length,
-                       destinationPorts.length, operatorQueues[ 0 ].getOperatorId() );
+                       destinationPorts.length,
+                       operatorQueues[ 0 ].getOperatorId() );
         final int portCount = sourcePorts.length;
         this.ports = new int[ portCount * 2 ];
         this.limit = this.ports.length - 1;
@@ -36,7 +41,7 @@ public class PartitionedDownstreamTupleSenderN extends AbstractPartitionedDownst
     }
 
     @Override
-    public void send ( final TuplesImpl tuples )
+    public void accept ( final TuplesImpl tuples )
     {
         for ( int i = 0; i < limit; i += 2 )
         {

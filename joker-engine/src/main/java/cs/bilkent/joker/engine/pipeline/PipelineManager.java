@@ -32,7 +32,7 @@ public interface PipelineManager
 
     UpstreamContext getUpstreamContext ( PipelineReplicaId id );
 
-    DownstreamTupleSender getDownstreamTupleSender ( PipelineReplicaId id );
+    DownstreamCollector getDownstreamCollector ( PipelineReplicaId id );
 
     boolean handlePipelineReplicaCompleted ( PipelineReplicaId id );
 

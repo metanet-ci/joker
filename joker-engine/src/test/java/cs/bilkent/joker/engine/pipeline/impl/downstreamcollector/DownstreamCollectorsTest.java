@@ -1,4 +1,6 @@
-package cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender;
+package cs.bilkent.joker.engine.pipeline.impl.downstreamcollector;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -6,7 +8,6 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import cs.bilkent.joker.engine.exception.JokerException;
-import cs.bilkent.joker.engine.pipeline.DownstreamTupleSenderFailureFlag;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -16,10 +17,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith( MockitoJUnitRunner.class )
-public class DownstreamTupleSendersTest extends AbstractJokerTest
+public class DownstreamCollectorsTest extends AbstractJokerTest
 {
 
-    private final DownstreamTupleSenderFailureFlag failureFlag = new DownstreamTupleSenderFailureFlag();
+    private final AtomicBoolean failureFlag = new AtomicBoolean();
 
     private final TuplesImpl tuples = new TuplesImpl( 10 );
 
@@ -31,58 +32,61 @@ public class DownstreamTupleSendersTest extends AbstractJokerTest
     private int destinationPortIndex1 = 4, destinationPortIndex2 = 3, destinationPortIndex3 = 2, destinationPortIndex4 = 1;
 
     @Test
-    public void testDownstreamTupleSender1 ()
+    public void testDownstreamCollector1 ()
     {
-        sendViaDownstreamTupleSender1( 1 );
+        sendViaDownstreamCollector1( 1 );
     }
 
     @Test( expected = JokerException.class )
-    public void testDownstreamTupleSender1FailureWhenFailureFlagIsSet ()
+    public void testDownstreamCollector1FailureWhenFailureFlagIsSet ()
     {
-        failureFlag.setFailed();
+        failureFlag.set( true );
 
-        sendViaDownstreamTupleSender1( 0 );
+        sendViaDownstreamCollector1( 0 );
     }
 
-    private void sendViaDownstreamTupleSender1 ( final int offerResult )
+    private void sendViaDownstreamCollector1 ( final int offerResult )
     {
 
-        final DownstreamTupleSender1 tupleSender = new DownstreamTupleSender1( failureFlag,
-                                                                               sourcePortIndex1, destinationPortIndex1, operatorQueue );
+        final DownstreamCollector1 tupleSender = new DownstreamCollector1( failureFlag,
+                                                                           sourcePortIndex1,
+                                                                           destinationPortIndex1,
+                                                                           operatorQueue );
         addTuple( "key", "val", sourcePortIndex1 );
 
         setMock( sourcePortIndex1, destinationPortIndex1, offerResult );
 
-        tupleSender.send( tuples );
+        tupleSender.accept( tuples );
 
         verifyMock( "key", "val", destinationPortIndex1 );
     }
 
     @Test
-    public void testDownstreamTupleSenderN ()
+    public void testDownstreamCollectorN ()
     {
-        sendViaDownstreamTupleSenderN( 1 );
+        sendViaDownstreamCollectorN( 1 );
     }
 
     @Test( expected = JokerException.class )
-    public void testDownstreamTupleSenderNFailureWhenFailureFlagIsSet ()
+    public void testDownstreamCollectorNFailureWhenFailureFlagIsSet ()
     {
-        failureFlag.setFailed();
+        failureFlag.set( true );
 
-        sendViaDownstreamTupleSenderN( 0 );
+        sendViaDownstreamCollectorN( 0 );
     }
 
-    private void sendViaDownstreamTupleSenderN ( final int offerResult )
+    private void sendViaDownstreamCollectorN ( final int offerResult )
     {
-        final DownstreamTupleSenderN tupleSender = new DownstreamTupleSenderN( failureFlag,
-                                                                               new int[] { sourcePortIndex1,
-                                                                                           sourcePortIndex2,
-                                                                                           sourcePortIndex3,
-                                                                                           sourcePortIndex4 },
-                                                                               new int[] { destinationPortIndex1,
-                                                                                           destinationPortIndex2,
-                                                                                           destinationPortIndex3, destinationPortIndex4 },
-                                                                               operatorQueue );
+        final DownstreamCollectorN collector = new DownstreamCollectorN( failureFlag,
+                                                                         new int[] { sourcePortIndex1,
+                                                                                     sourcePortIndex2,
+                                                                                     sourcePortIndex3,
+                                                                                     sourcePortIndex4 },
+                                                                         new int[] { destinationPortIndex1,
+                                                                                     destinationPortIndex2,
+                                                                                     destinationPortIndex3,
+                                                                                     destinationPortIndex4 },
+                                                                         operatorQueue );
         addTuple( "key1", "val", sourcePortIndex1 );
         addTuple( "key2", "val", sourcePortIndex2 );
         addTuple( "key3", "val", sourcePortIndex3 );
@@ -93,7 +97,7 @@ public class DownstreamTupleSendersTest extends AbstractJokerTest
         setMock( sourcePortIndex3, destinationPortIndex3, offerResult );
         setMock( sourcePortIndex4, destinationPortIndex4, offerResult );
 
-        tupleSender.send( tuples );
+        collector.accept( tuples );
 
         verifyMock( "key1", "val", destinationPortIndex1 );
         verifyMock( "key2", "val", destinationPortIndex2 );

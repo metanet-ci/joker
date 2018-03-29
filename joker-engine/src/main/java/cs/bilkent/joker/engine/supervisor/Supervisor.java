@@ -1,6 +1,6 @@
 package cs.bilkent.joker.engine.supervisor;
 
-import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
+import cs.bilkent.joker.engine.pipeline.DownstreamCollector;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.joker.engine.pipeline.UpstreamContext;
 
@@ -17,7 +17,7 @@ public interface Supervisor
      */
     UpstreamContext getUpstreamContext ( PipelineReplicaId id );
 
-    DownstreamTupleSender getDownstreamTupleSender ( PipelineReplicaId id );
+    DownstreamCollector getDownstreamCollector ( PipelineReplicaId id );
 
     /**
      * Notifies that pipeline instance has completed running all of its operators.

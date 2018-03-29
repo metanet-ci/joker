@@ -5,6 +5,7 @@ import java.lang.management.OperatingSystemMXBean;
 import java.lang.management.RuntimeMXBean;
 import java.lang.management.ThreadMXBean;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.inject.AbstractModule;
 
@@ -24,7 +25,6 @@ import cs.bilkent.joker.engine.partition.PartitionKeyExtractorFactory;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
 import cs.bilkent.joker.engine.partition.impl.PartitionServiceImpl;
-import cs.bilkent.joker.engine.pipeline.DownstreamTupleSenderFailureFlag;
 import cs.bilkent.joker.engine.pipeline.PipelineManager;
 import cs.bilkent.joker.engine.pipeline.impl.PipelineManagerImpl;
 import cs.bilkent.joker.engine.region.FlowDefOptimizer;
@@ -45,6 +45,8 @@ import cs.bilkent.joker.engine.tuplequeue.impl.OperatorQueueManagerImpl;
 
 public class JokerModule extends AbstractModule
 {
+
+    public static final String DOWNSTREAM_FAILURE_FLAG_NAME = "downstreamFailureFlag";
 
     private Object jokerId;
 
@@ -111,7 +113,7 @@ public class JokerModule extends AbstractModule
         bind( RuntimeMXBean.class ).toInstance( ManagementFactory.getRuntimeMXBean() );
         bind( OperatingSystemMXBean.class ).toInstance( ManagementFactory.getOperatingSystemMXBean() );
         bind( IdGenerator.class ).toInstance( new IdGenerator() );
-        bind( DownstreamTupleSenderFailureFlag.class ).toInstance( new DownstreamTupleSenderFailureFlag() );
+        bind( AtomicBoolean.class ).annotatedWith( named( DOWNSTREAM_FAILURE_FLAG_NAME ) ).toInstance( new AtomicBoolean() );
         bind( Object.class ).annotatedWith( named( JOKER_ID ) ).toInstance( jokerId );
     }
 

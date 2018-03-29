@@ -144,7 +144,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         pipeline.init( new SchedulingStrategy[][] { { scheduleWhenTuplesAvailableOnDefaultPort( 1 ) } },
                        new UpstreamContext[][] { { newInitialUpstreamContextWithAllPortsConnected( 1 ) } } );
 
-        final TupleCollectorDownstreamTupleSender tupleCollector = new TupleCollectorDownstreamTupleSender( mapperOperatorDef
+        final TupleQueueDownstreamCollector tupleCollector = new TupleQueueDownstreamCollector( mapperOperatorDef
                                                                                                                     .getOutputPortCount() );
         final PipelineReplicaRunner runner = new PipelineReplicaRunner( jokerConfig, pipeline, supervisor, tupleCollector );
 
@@ -244,7 +244,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                        new UpstreamContext[][] { { newInitialUpstreamContextWithAllPortsConnected( 1 ) },
                                                  { newInitialUpstreamContextWithAllPortsConnected( 1 ) } } );
 
-        final TupleCollectorDownstreamTupleSender tupleCollector = new TupleCollectorDownstreamTupleSender( filterOperatorDef
+        final TupleQueueDownstreamCollector tupleCollector = new TupleQueueDownstreamCollector( filterOperatorDef
                                                                                                                     .getOutputPortCount() );
 
         final PipelineReplicaRunner runner = new PipelineReplicaRunner( jokerConfig, pipeline, supervisor, tupleCollector );
@@ -380,7 +380,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                  { newInitialUpstreamContextWithAllPortsConnected( 1 ) } } );
 
         final PipelineReplicaRunner runner = new PipelineReplicaRunner( jokerConfig, pipeline, supervisor,
-                                                                        mock( DownstreamTupleSender.class ) );
+                                                                        mock( DownstreamCollector.class ) );
 
         final Thread runnerThread = spawnThread( runner );
 
@@ -462,7 +462,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                            REPLICA_INDEX,
                                                                                            MULTI_THREADED );
 
-        final DownstreamTupleSenderImpl tupleSender = new DownstreamTupleSenderImpl( filterOperatorQueue, new Pair[] { Pair.of( 0, 0 ) } );
+        final DownstreamCollectorImpl tupleSender = new DownstreamCollectorImpl( filterOperatorQueue, new Pair[] { Pair.of( 0, 0 ) } );
 
         final TupleQueueDrainerPool filterDrainerPool = new BlockingTupleQueueDrainerPool( jokerConfig, filterOperatorDef );
         final DefaultInvocationContext filterInvocationContext = new DefaultInvocationContext( filterOperatorDef.getInputPortCount(),
@@ -490,12 +490,12 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                         new UpstreamContext[][] { { supervisor.upstreamContexts.get( pipelineReplicaId2 ) } } );
 
         final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig, pipeline1, supervisor, tupleSender );
-        supervisor.downstreamTupleSenders.put( pipeline1.id(), tupleSender );
+        supervisor.downstreamCollectors.put( pipeline1.id(), tupleSender );
 
-        final TupleCollectorDownstreamTupleSender tupleCollector = new TupleCollectorDownstreamTupleSender( filterOperatorDef.getOutputPortCount() );
+        final TupleQueueDownstreamCollector tupleCollector = new TupleQueueDownstreamCollector( filterOperatorDef.getOutputPortCount() );
 
         final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( jokerConfig, pipeline2, supervisor, tupleCollector );
-        supervisor.downstreamTupleSenders.put( pipeline2.id(), tupleCollector );
+        supervisor.downstreamCollectors.put( pipeline2.id(), tupleCollector );
 
         supervisor.targetPipelineReplicaId = pipelineReplicaId2;
         supervisor.runner = runner2;
@@ -708,17 +708,17 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                   { newInitialUpstreamContextWithAllPortsConnected( 1 ) },
                                                   { newInitialUpstreamContextWithAllPortsConnected( 1 ) } } );
 
-        final DownstreamTupleSenderImpl sender1 = new DownstreamTupleSenderImpl( sinkOperatorQueue, new Pair[] { Pair.of( 0, 0 ) } );
+        final DownstreamCollectorImpl sender1 = new DownstreamCollectorImpl( sinkOperatorQueue, new Pair[] { Pair.of( 0, 0 ) } );
         final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig, pipeline1, supervisor, sender1 );
-        supervisor.downstreamTupleSenders.put( pipeline1.id(), sender1 );
+        supervisor.downstreamCollectors.put( pipeline1.id(), sender1 );
 
-        final DownstreamTupleSenderImpl sender2 = new DownstreamTupleSenderImpl( sinkOperatorQueue, new Pair[] { Pair.of( 0, 1 ) } );
+        final DownstreamCollectorImpl sender2 = new DownstreamCollectorImpl( sinkOperatorQueue, new Pair[] { Pair.of( 0, 1 ) } );
         final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( jokerConfig, pipeline2, supervisor, sender2 );
-        supervisor.downstreamTupleSenders.put( pipeline2.id(), sender2 );
+        supervisor.downstreamCollectors.put( pipeline2.id(), sender2 );
 
-        final DownstreamTupleSenderImpl sender3 = new DownstreamTupleSenderImpl( null, new Pair[] {} );
+        final DownstreamCollectorImpl sender3 = new DownstreamCollectorImpl( null, new Pair[] {} );
         final PipelineReplicaRunner runner3 = new PipelineReplicaRunner( jokerConfig, pipeline3, supervisor, sender3 );
-        supervisor.downstreamTupleSenders.put( pipeline3.id(), sender3 );
+        supervisor.downstreamCollectors.put( pipeline3.id(), sender3 );
 
         supervisor.targetPipelineReplicaId = pipelineReplicaId3;
         supervisor.runner = runner3;
@@ -875,14 +875,14 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         pipeline2.init( new SchedulingStrategy[][] { { scheduleWhenTuplesAvailableOnDefaultPort( EXACT, 1 ) } },
                         new UpstreamContext[][] { { supervisor.upstreamContexts.get( pipelineReplicaId2 ) } } );
 
-        final DownstreamTupleSenderImpl sender1 = new DownstreamTupleSenderImpl( pipeline2.getEffectiveQueue(),
-                                                                                 new Pair[] { Pair.of( 0, 0 ) } );
-        supervisor.downstreamTupleSenders.put( pipeline1.id(), sender1 );
+        final DownstreamCollectorImpl sender1 = new DownstreamCollectorImpl( pipeline2.getEffectiveQueue(),
+                                                                             new Pair[] { Pair.of( 0, 0 ) } );
+        supervisor.downstreamCollectors.put( pipeline1.id(), sender1 );
         final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig, pipeline1, supervisor, sender1 );
 
-        final DownstreamTupleSender sender2 = mock( DownstreamTupleSender.class );
-        final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( jokerConfig, pipeline2, supervisor, sender2 );
-        supervisor.downstreamTupleSenders.put( pipeline2.id(), sender2 );
+        final DownstreamCollector collector2 = mock( DownstreamCollector.class );
+        final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( jokerConfig, pipeline2, supervisor, collector2 );
+        supervisor.downstreamCollectors.put( pipeline2.id(), collector2 );
 
         supervisor.targetPipelineReplicaId = pipelineReplicaId2;
         supervisor.runner = runner2;
@@ -923,12 +923,12 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         return count;
     }
 
-    private static class TupleCollectorDownstreamTupleSender implements DownstreamTupleSender
+    private static class TupleQueueDownstreamCollector implements DownstreamCollector
     {
 
         private final TupleQueue[] tupleQueues;
 
-        TupleCollectorDownstreamTupleSender ( final int portCount )
+        TupleQueueDownstreamCollector ( final int portCount )
         {
             tupleQueues = new TupleQueue[ portCount ];
             for ( int i = 0; i < portCount; i++ )
@@ -938,7 +938,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         }
 
         @Override
-        public void send ( final TuplesImpl tuples )
+        public void accept ( final TuplesImpl tuples )
         {
             for ( int i = 0; i < tuples.getPortCount(); i++ )
             {
@@ -1071,7 +1071,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     }
 
 
-    public static class DownstreamTupleSenderImpl implements DownstreamTupleSender
+    public static class DownstreamCollectorImpl implements DownstreamCollector
     {
 
         private final IdleStrategy idleStrategy = BackoffIdleStrategy.newDefaultInstance();
@@ -1080,14 +1080,14 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         private final Pair<Integer, Integer>[] ports;
 
-        public DownstreamTupleSenderImpl ( final OperatorQueue operatorQueue, final Pair<Integer, Integer>[] ports )
+        public DownstreamCollectorImpl ( final OperatorQueue operatorQueue, final Pair<Integer, Integer>[] ports )
         {
             this.operatorQueue = operatorQueue;
             this.ports = ports;
         }
 
         @Override
-        public void send ( final TuplesImpl input )
+        public void accept ( final TuplesImpl input )
         {
             for ( Pair<Integer, Integer> p : ports )
             {
@@ -1125,7 +1125,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         private final Map<PipelineReplicaId, UpstreamContext> upstreamContexts = new ConcurrentHashMap<>();
 
-        private final Map<PipelineReplicaId, DownstreamTupleSender> downstreamTupleSenders = new ConcurrentHashMap<>();
+        private final Map<PipelineReplicaId, DownstreamCollector> downstreamCollectors = new ConcurrentHashMap<>();
 
         private final Map<PipelineReplicaId, Integer> inputPortIndices = new HashMap<>();
 
@@ -1142,9 +1142,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         }
 
         @Override
-        public DownstreamTupleSender getDownstreamTupleSender ( final PipelineReplicaId id )
+        public DownstreamCollector getDownstreamCollector ( final PipelineReplicaId id )
         {
-            return downstreamTupleSenders.get( id );
+            return downstreamCollectors.get( id );
         }
 
         @Override

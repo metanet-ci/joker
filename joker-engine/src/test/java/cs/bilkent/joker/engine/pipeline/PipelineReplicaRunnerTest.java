@@ -60,7 +60,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
     private UpstreamContext upstreamContext;
 
     @Mock
-    private DownstreamTupleSender downstreamTupleSender;
+    private DownstreamCollector downstreamCollector;
 
     private PipelineReplica pipeline;
 
@@ -95,7 +95,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
         upstreamContexts[ 0 ][ 0 ] = upstreamContext;
 
         pipeline.init( schedulingStrategies, upstreamContexts );
-        runner = new PipelineReplicaRunner( config, pipeline, supervisor, downstreamTupleSender );
+        runner = new PipelineReplicaRunner( config, pipeline, supervisor, downstreamCollector );
 
         thread = new Thread( runner );
 
@@ -244,7 +244,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
         invocationDoneLatch.countDown();
 
         assertTrueEventually( () -> assertEquals( runner.getStatus(), COMPLETED ) );
-        verify( downstreamTupleSender ).send( output );
+        verify( downstreamCollector ).accept( output );
     }
 
     @Test
@@ -341,8 +341,8 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
         pipeline.getCompletionTracker().onStatusChange( operatorDef.getId(), OperatorReplicaStatus.COMPLETED );
 
         assertTrueEventually( () -> assertEquals( runner.getStatus(), COMPLETED ), 10 );
-        verify( downstreamTupleSender, atLeastOnce() ).send( output1 );
-        verify( downstreamTupleSender, atLeastOnce() ).send( output2 );
+        verify( downstreamCollector, atLeastOnce() ).accept( output1 );
+        verify( downstreamCollector, atLeastOnce() ).accept( output2 );
     }
 
     @Test

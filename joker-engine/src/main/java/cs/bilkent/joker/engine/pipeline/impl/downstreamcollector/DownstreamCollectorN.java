@@ -1,12 +1,14 @@
-package cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender;
+package cs.bilkent.joker.engine.pipeline.impl.downstreamcollector;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
+import javax.inject.Named;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static cs.bilkent.joker.JokerModule.DOWNSTREAM_FAILURE_FLAG_NAME;
 import cs.bilkent.joker.engine.exception.JokerException;
-import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
-import cs.bilkent.joker.engine.pipeline.DownstreamTupleSenderFailureFlag;
+import cs.bilkent.joker.engine.pipeline.DownstreamCollector;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.util.concurrent.BackoffIdleStrategy;
 import cs.bilkent.joker.engine.util.concurrent.IdleStrategy;
@@ -14,12 +16,12 @@ import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import static java.util.Arrays.fill;
 
-public class DownstreamTupleSenderN implements DownstreamTupleSender, Supplier<OperatorQueue>
+public class DownstreamCollectorN implements DownstreamCollector, Supplier<OperatorQueue>
 {
 
     private final IdleStrategy idleStrategy = BackoffIdleStrategy.newDefaultInstance();
 
-    private final DownstreamTupleSenderFailureFlag failureFlag;
+    private final AtomicBoolean failureFlag;
 
     private final int portCount;
 
@@ -31,15 +33,17 @@ public class DownstreamTupleSenderN implements DownstreamTupleSender, Supplier<O
 
     private final OperatorQueue operatorQueue;
 
-    public DownstreamTupleSenderN ( final DownstreamTupleSenderFailureFlag failureFlag,
-                                    final int[] sourcePorts,
-                                    final int[] destinationPorts, final OperatorQueue operatorQueue )
+    public DownstreamCollectorN ( @Named( DOWNSTREAM_FAILURE_FLAG_NAME ) final AtomicBoolean failureFlag,
+                                  final int[] sourcePorts,
+                                  final int[] destinationPorts,
+                                  final OperatorQueue operatorQueue )
     {
         this.failureFlag = failureFlag;
         checkArgument( sourcePorts.length == destinationPorts.length,
                        "source ports size = %s and destination ports = %s ! operatorId=%s",
                        sourcePorts.length,
-                       destinationPorts.length, operatorQueue.getOperatorId() );
+                       destinationPorts.length,
+                       operatorQueue.getOperatorId() );
         this.portCount = sourcePorts.length;
         this.ports = new int[ portCount * 2 ];
         this.fromIndices = new int[ portCount * 2 ];
@@ -53,7 +57,7 @@ public class DownstreamTupleSenderN implements DownstreamTupleSender, Supplier<O
     }
 
     @Override
-    public void send ( final TuplesImpl input )
+    public void accept ( final TuplesImpl input )
     {
         fill( fromIndices, 0 );
         idleStrategy.reset();
@@ -93,7 +97,7 @@ public class DownstreamTupleSenderN implements DownstreamTupleSender, Supplier<O
             {
                 if ( idleStrategy.idle() )
                 {
-                    if ( failureFlag.isFailed() )
+                    if ( failureFlag.get() )
                     {
                         throw new JokerException( "Not sending tuples to downstream since failure flag is set" );
                     }

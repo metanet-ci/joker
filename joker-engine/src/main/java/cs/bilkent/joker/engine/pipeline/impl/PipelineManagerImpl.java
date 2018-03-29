@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -24,6 +25,7 @@ import com.google.common.collect.Multimap;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static cs.bilkent.joker.JokerModule.DOWNSTREAM_FAILURE_FLAG_NAME;
 import cs.bilkent.joker.engine.FlowStatus;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_THREAD_GROUP_NAME;
@@ -38,8 +40,7 @@ import cs.bilkent.joker.engine.partition.PartitionDistribution;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractorFactory;
 import cs.bilkent.joker.engine.partition.PartitionService;
-import cs.bilkent.joker.engine.pipeline.DownstreamTupleSender;
-import cs.bilkent.joker.engine.pipeline.DownstreamTupleSenderFailureFlag;
+import cs.bilkent.joker.engine.pipeline.DownstreamCollector;
 import cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus;
 import cs.bilkent.joker.engine.pipeline.Pipeline;
 import cs.bilkent.joker.engine.pipeline.PipelineManager;
@@ -50,11 +51,11 @@ import cs.bilkent.joker.engine.pipeline.UpstreamContext.ConnectionStatus;
 import static cs.bilkent.joker.engine.pipeline.UpstreamContext.ConnectionStatus.CLOSED;
 import static cs.bilkent.joker.engine.pipeline.UpstreamContext.ConnectionStatus.OPEN;
 import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newSourceOperatorShutdownUpstreamContext;
-import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.CompositeDownstreamTupleSender;
-import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.DownstreamTupleSender1;
-import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.DownstreamTupleSenderN;
-import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDownstreamTupleSender1;
-import cs.bilkent.joker.engine.pipeline.impl.downstreamtuplesender.PartitionedDownstreamTupleSenderN;
+import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.CompositeDownstreamCollector;
+import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.DownstreamCollector1;
+import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.DownstreamCollectorN;
+import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.PartitionedDownstreamCollector1;
+import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.PartitionedDownstreamCollectorN;
 import cs.bilkent.joker.engine.region.Region;
 import cs.bilkent.joker.engine.region.RegionManager;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
@@ -97,15 +98,14 @@ public class PipelineManagerImpl implements PipelineManager
 
     private final PartitionKeyExtractorFactory partitionKeyExtractorFactory;
 
-    private final DownstreamTupleSenderFailureFlag downstreamTupleSenderFailureFlag;
+    private final AtomicBoolean downstreamCollectorFailureFlag;
 
     private final ThreadGroup jokerThreadGroup;
 
-    private final BiFunction<List<Pair<Integer, Integer>>, OperatorQueue, DownstreamTupleSender>[]
-            defaultDownstreamTupleSenderConstructors = new BiFunction[ 6 ];
+    private final BiFunction<List<Pair<Integer, Integer>>, OperatorQueue, DownstreamCollector>[] defaultDownstreamCollectorCtors = new BiFunction[ 6 ];
 
-    private final Function6<List<Pair<Integer, Integer>>, Integer, int[], OperatorQueue[], PartitionKeyExtractor,
-                                   DownstreamTupleSender>[] partitionedDownstreamTupleSenderConstructors = new Function6[ 6 ];
+    private final Function6<List<Pair<Integer, Integer>>, Integer, int[], OperatorQueue[], PartitionKeyExtractor, DownstreamCollector>[]
+            partitionedDownstreamCollectorCtors = new Function6[ 6 ];
 
     private Supervisor supervisor;
 
@@ -124,16 +124,16 @@ public class PipelineManagerImpl implements PipelineManager
                                  final RegionManager regionManager,
                                  final PartitionService partitionService,
                                  final PartitionKeyExtractorFactory partitionKeyExtractorFactory,
-                                 final DownstreamTupleSenderFailureFlag downstreamTupleSenderFailureFlag,
+                                 @Named( DOWNSTREAM_FAILURE_FLAG_NAME ) final AtomicBoolean downstreamCollectorFailureFlag,
                                  @Named( JOKER_THREAD_GROUP_NAME ) final ThreadGroup jokerThreadGroup )
     {
         this.jokerConfig = jokerConfig;
         this.regionManager = regionManager;
         this.partitionService = partitionService;
         this.partitionKeyExtractorFactory = partitionKeyExtractorFactory;
-        this.downstreamTupleSenderFailureFlag = downstreamTupleSenderFailureFlag;
+        this.downstreamCollectorFailureFlag = downstreamCollectorFailureFlag;
         this.jokerThreadGroup = jokerThreadGroup;
-        createDownstreamTupleSenderFactories();
+        createDownstreamCollectorFactories();
     }
 
     @Inject
@@ -142,41 +142,39 @@ public class PipelineManagerImpl implements PipelineManager
         this.supervisor = supervisor;
     }
 
-    private void createDownstreamTupleSenderFactories ()
+    private void createDownstreamCollectorFactories ()
     {
-        defaultDownstreamTupleSenderConstructors[ 1 ] = ( pairs, tupleQueue ) -> {
+        defaultDownstreamCollectorCtors[ 1 ] = ( pairs, tupleQueue ) -> {
             final Pair<Integer, Integer> pair1 = pairs.get( 0 );
-            return new DownstreamTupleSender1( downstreamTupleSenderFailureFlag, pair1._1, pair1._2, tupleQueue );
+            return new DownstreamCollector1( downstreamCollectorFailureFlag, pair1._1, pair1._2, tupleQueue );
         };
-        defaultDownstreamTupleSenderConstructors[ 2 ] = ( pairs, tupleQueue ) -> {
+        defaultDownstreamCollectorCtors[ 2 ] = ( pairs, tupleQueue ) -> {
             final int[] sourcePorts = new int[ pairs.size() ];
             final int[] destinationPorts = new int[ pairs.size() ];
             copyPorts( pairs, sourcePorts, destinationPorts );
-            return new DownstreamTupleSenderN( downstreamTupleSenderFailureFlag, sourcePorts, destinationPorts, tupleQueue );
+            return new DownstreamCollectorN( downstreamCollectorFailureFlag, sourcePorts, destinationPorts, tupleQueue );
         };
-        partitionedDownstreamTupleSenderConstructors[ 1 ] = ( pairs, partitionCount, partitionDistribution, tupleQueues,
-                                                              partitionKeyFunction ) -> {
+        partitionedDownstreamCollectorCtors[ 1 ] = ( pairs, partitionCount, partitionDistribution, tupleQueues, partitionKeyFunction ) -> {
             final Pair<Integer, Integer> pair1 = pairs.get( 0 );
-            return new PartitionedDownstreamTupleSender1( downstreamTupleSenderFailureFlag,
-                                                          pair1._1,
-                                                          pair1._2,
-                                                          partitionCount,
-                                                          partitionDistribution,
-                                                          tupleQueues,
-                                                          partitionKeyFunction );
+            return new PartitionedDownstreamCollector1( downstreamCollectorFailureFlag,
+                                                        pair1._1,
+                                                        pair1._2,
+                                                        partitionCount,
+                                                        partitionDistribution,
+                                                        tupleQueues,
+                                                        partitionKeyFunction );
         };
-        partitionedDownstreamTupleSenderConstructors[ 2 ] = ( pairs, partitionCount, partitionDistribution, tupleQueues,
-                                                              partitionKeyFunction ) -> {
+        partitionedDownstreamCollectorCtors[ 2 ] = ( pairs, partitionCount, partitionDistribution, tupleQueues, partitionKeyFunction ) -> {
             final int[] sourcePorts = new int[ pairs.size() ];
             final int[] destinationPorts = new int[ pairs.size() ];
             copyPorts( pairs, sourcePorts, destinationPorts );
-            return new PartitionedDownstreamTupleSenderN( downstreamTupleSenderFailureFlag,
-                                                          sourcePorts,
-                                                          destinationPorts,
-                                                          partitionCount,
-                                                          partitionDistribution,
-                                                          tupleQueues,
-                                                          partitionKeyFunction );
+            return new PartitionedDownstreamCollectorN( downstreamCollectorFailureFlag,
+                                                        sourcePorts,
+                                                        destinationPorts,
+                                                        partitionCount,
+                                                        partitionDistribution,
+                                                        tupleQueues,
+                                                        partitionKeyFunction );
         };
     }
 
@@ -212,7 +210,7 @@ public class PipelineManagerImpl implements PipelineManager
 
         for ( Pipeline pipeline : pipelines.values() )
         {
-            createDownstreamTupleSenders( flow, pipeline );
+            createDownstreamCollectors( flow, pipeline );
         }
 
         return p;
@@ -319,10 +317,10 @@ public class PipelineManagerImpl implements PipelineManager
     }
 
     @Override
-    public DownstreamTupleSender getDownstreamTupleSender ( final PipelineReplicaId id )
+    public DownstreamCollector getDownstreamCollector ( final PipelineReplicaId id )
     {
         final Pipeline pipeline = getPipelineOrFail( id.pipelineId );
-        return pipeline.getDownstreamTupleSender( id.replicaIndex );
+        return pipeline.getDownstreamCollector( id.replicaIndex );
     }
 
     @Override
@@ -479,7 +477,7 @@ public class PipelineManagerImpl implements PipelineManager
             final Pipeline pipeline = new Pipeline( firstPipelineId, region );
             pipeline.init();
             addPipeline( pipeline );
-            createDownstreamTupleSenders( flow, pipeline );
+            createDownstreamCollectors( flow, pipeline );
             pipeline.startPipelineReplicaRunners( jokerConfig, supervisor, jokerThreadGroup );
             incrementFlowVersion();
         }
@@ -535,7 +533,7 @@ public class PipelineManagerImpl implements PipelineManager
 
             for ( Pipeline pipeline : newPipelines )
             {
-                createDownstreamTupleSenders( flow, pipeline );
+                createDownstreamCollectors( flow, pipeline );
             }
 
             for ( Pipeline pipeline : newPipelines )
@@ -615,7 +613,7 @@ public class PipelineManagerImpl implements PipelineManager
 
             for ( Pipeline pipeline : newPipelines )
             {
-                createDownstreamTupleSenders( flow, pipeline );
+                createDownstreamCollectors( flow, pipeline );
             }
 
             for ( Pipeline pipeline : newPipelines )
@@ -626,7 +624,7 @@ public class PipelineManagerImpl implements PipelineManager
 
             for ( Pipeline pausedPipeline : upstreamPipelines )
             {
-                createDownstreamTupleSenders( flow, pausedPipeline );
+                createDownstreamCollectors( flow, pausedPipeline );
             }
 
             incrementFlowVersion();
@@ -759,7 +757,7 @@ public class PipelineManagerImpl implements PipelineManager
         }
     }
 
-    private void createDownstreamTupleSenders ( final FlowDef flow, final Pipeline pipeline )
+    private void createDownstreamCollectors ( final FlowDef flow, final Pipeline pipeline )
     {
         final OperatorDef lastOperator = pipeline.getLastOperatorDef();
         final Map<String, List<Pair<Integer, Integer>>> connectionsByOperatorId = getDownstreamConnectionsByOperatorId( flow,
@@ -769,10 +767,10 @@ public class PipelineManagerImpl implements PipelineManager
                      lastOperator.getId(),
                      connectionsByOperatorId );
 
-        final DownstreamTupleSender[] senders = new DownstreamTupleSender[ pipeline.getReplicaCount() ];
+        final DownstreamCollector[] collectors = new DownstreamCollector[ pipeline.getReplicaCount() ];
         for ( int replicaIndex = 0; replicaIndex < pipeline.getReplicaCount(); replicaIndex++ )
         {
-            final DownstreamTupleSender[] sendersToDownstreamOperators = new DownstreamTupleSender[ connectionsByOperatorId.size() ];
+            final DownstreamCollector[] collectorsToDownstreamOperators = new DownstreamCollector[ connectionsByOperatorId.size() ];
             int i = 0;
             for ( Entry<String, List<Pair<Integer, Integer>>> e : connectionsByOperatorId.entrySet() )
             {
@@ -787,19 +785,19 @@ public class PipelineManagerImpl implements PipelineManager
                 if ( pipeline.getId().getRegionId() == downstreamPipeline.getId().getRegionId() )
                 {
                     final OperatorQueue pipelineQueue = pipelineQueues[ replicaIndex ];
-                    sendersToDownstreamOperators[ i ] = defaultDownstreamTupleSenderConstructors[ j ].apply( pairs, pipelineQueue );
+                    collectorsToDownstreamOperators[ i ] = defaultDownstreamCollectorCtors[ j ].apply( pairs, pipelineQueue );
                 }
                 else if ( downstreamRegionDef.getRegionType() == PARTITIONED_STATEFUL )
                 {
                     final int[] partitionDistribution = getPartitionDistribution( downstreamOperator );
                     final PartitionKeyExtractor partitionKeyExtractor = partitionKeyExtractorFactory.createPartitionKeyExtractor(
                             downstreamRegionDef.getPartitionFieldNames() );
-                    sendersToDownstreamOperators[ i ] = partitionedDownstreamTupleSenderConstructors[ j ].apply( pairs,
-                                                                                                                 partitionService
+                    collectorsToDownstreamOperators[ i ] = partitionedDownstreamCollectorCtors[ j ].apply( pairs,
+                                                                                                           partitionService
                                                                                                                          .getPartitionCount(),
-                                                                                                                 partitionDistribution,
-                                                                                                                 pipelineQueues,
-                                                                                                                 partitionKeyExtractor );
+                                                                                                           partitionDistribution,
+                                                                                                           pipelineQueues,
+                                                                                                           partitionKeyExtractor );
                 }
                 else if ( downstreamRegionDef.getRegionType() == STATELESS )
                 {
@@ -815,7 +813,7 @@ public class PipelineManagerImpl implements PipelineManager
 
                     if ( pipelineQueue != null )
                     {
-                        sendersToDownstreamOperators[ i ] = defaultDownstreamTupleSenderConstructors[ j ].apply( pairs, pipelineQueue );
+                        collectorsToDownstreamOperators[ i ] = defaultDownstreamCollectorCtors[ j ].apply( pairs, pipelineQueue );
                     }
                     else
                     {
@@ -830,7 +828,7 @@ public class PipelineManagerImpl implements PipelineManager
                     final int l = pipelineQueues.length;
                     checkState( l == 1, "Operator %s can not have %s replicas", downstreamOperatorId, l );
                     final OperatorQueue pipelineQueue = pipelineQueues[ 0 ];
-                    sendersToDownstreamOperators[ i ] = defaultDownstreamTupleSenderConstructors[ j ].apply( pairs, pipelineQueue );
+                    collectorsToDownstreamOperators[ i ] = defaultDownstreamCollectorCtors[ j ].apply( pairs, pipelineQueue );
                 }
                 else
                 {
@@ -840,26 +838,29 @@ public class PipelineManagerImpl implements PipelineManager
                 i++;
             }
 
-            DownstreamTupleSender sender;
+            DownstreamCollector collector;
             if ( i == 0 )
             {
-                sender = new NopDownstreamTupleSender();
+                collector = new NopDownstreamCollector();
             }
             else if ( i == 1 )
             {
-                sender = sendersToDownstreamOperators[ 0 ];
+                collector = collectorsToDownstreamOperators[ 0 ];
             }
             else
             {
-                sender = new CompositeDownstreamTupleSender( sendersToDownstreamOperators );
+                collector = new CompositeDownstreamCollector( collectorsToDownstreamOperators );
             }
 
-            LOGGER.info( "Created {} for Pipeline {} replica index {}", sender.getClass().getSimpleName(), pipeline.getId(), replicaIndex );
+            LOGGER.info( "Created {} for Pipeline {} replica index {}",
+                         collector.getClass().getSimpleName(),
+                         pipeline.getId(),
+                         replicaIndex );
 
-            senders[ replicaIndex ] = sender;
+            collectors[ replicaIndex ] = collector;
         }
 
-        pipeline.setDownstreamTupleSenders( senders );
+        pipeline.setDownstreamCollectors( collectors );
     }
 
     private Map<String, List<Pair<Integer, Integer>>> getDownstreamConnectionsByOperatorId ( final FlowDef flow,
@@ -1033,7 +1034,7 @@ public class PipelineManagerImpl implements PipelineManager
             if ( reason != null )
             {
                 LOGGER.error( "Shutting down flow", reason );
-                downstreamTupleSenderFailureFlag.setFailed();
+                downstreamCollectorFailureFlag.set( true );
             }
             else
             {
@@ -1059,11 +1060,11 @@ public class PipelineManagerImpl implements PipelineManager
     }
 
 
-    static class NopDownstreamTupleSender implements DownstreamTupleSender
+    static class NopDownstreamCollector implements DownstreamCollector
     {
 
         @Override
-        public void send ( final TuplesImpl tuples )
+        public void accept ( final TuplesImpl tuples )
         {
         }
 

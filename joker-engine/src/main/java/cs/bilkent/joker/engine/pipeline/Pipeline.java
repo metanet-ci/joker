@@ -61,7 +61,7 @@ public class Pipeline
 
     private Thread[] threads;
 
-    private volatile DownstreamTupleSender[] downstreamTupleSenders;
+    private volatile DownstreamCollector[] downstreamCollectors;
 
     private PipelineReplicaRunnerStatus runnerStatus;
 
@@ -82,7 +82,7 @@ public class Pipeline
         this.replicaStatuses = new OperatorReplicaStatus[ replicaCount ];
         fill( this.replicaStatuses, INITIAL );
         this.runners = new PipelineReplicaRunner[ replicaCount ];
-        this.downstreamTupleSenders = new DownstreamTupleSender[ replicaCount ];
+        this.downstreamCollectors = new DownstreamCollector[ replicaCount ];
     }
 
     public PipelineId getId ()
@@ -162,29 +162,28 @@ public class Pipeline
         this.upstreamContext = upstreamContext;
     }
 
-    public void setDownstreamTupleSenders ( final DownstreamTupleSender[] downstreamTupleSenders )
+    public void setDownstreamCollectors ( final DownstreamCollector[] downstreamCollectors )
     {
-        checkArgument( downstreamTupleSenders != null, "Cannot set null DownstreamTupleSenders for Pipeline %s", id );
-        checkArgument( downstreamTupleSenders.length == getReplicaCount(),
-                       "Cannot set DownstreamTupleSenders with %s replicas for Pipeline %s with %s replicas",
+        checkArgument( downstreamCollectors != null, "Cannot set null downstream collectors for Pipeline %s", id );
+        checkArgument( downstreamCollectors.length == getReplicaCount(),
+                       "Cannot set downstream collectors with %s replicas for Pipeline %s with %s replicas",
                        id,
-                       downstreamTupleSenders.length,
+                       downstreamCollectors.length,
                        getReplicaCount() );
 
         for ( int replicaIndex = 0; replicaIndex < getReplicaCount(); replicaIndex++ )
         {
-            checkArgument( downstreamTupleSenders[ replicaIndex ] != null,
-                           "argument DownstreamTupleSender null for Pipeline %s replicaIndex=%s",
+            checkArgument( downstreamCollectors[ replicaIndex ] != null, "downstream collector null for Pipeline %s replicaIndex=%s",
                            id,
                            replicaIndex );
         }
 
-        this.downstreamTupleSenders = Arrays.copyOf( downstreamTupleSenders, downstreamTupleSenders.length );
+        this.downstreamCollectors = Arrays.copyOf( downstreamCollectors, downstreamCollectors.length );
     }
 
-    public DownstreamTupleSender getDownstreamTupleSender ( final int replicaIndex )
+    public DownstreamCollector getDownstreamCollector ( final int replicaIndex )
     {
-        return downstreamTupleSenders[ replicaIndex ];
+        return downstreamCollectors[ replicaIndex ];
     }
 
     public void init ()
@@ -360,8 +359,8 @@ public class Pipeline
         for ( int replicaIndex = 0; replicaIndex < getReplicaCount(); replicaIndex++ )
         {
             final PipelineReplica replica = replicas[ replicaIndex ];
-            final DownstreamTupleSender downstreamTupleSender = downstreamTupleSenders[ replicaIndex ];
-            final PipelineReplicaRunner runner = new PipelineReplicaRunner( jokerConfig, replica, supervisor, downstreamTupleSender );
+            final DownstreamCollector downstreamCollector = downstreamCollectors[ replicaIndex ];
+            final PipelineReplicaRunner runner = new PipelineReplicaRunner( jokerConfig, replica, supervisor, downstreamCollector );
             final String threadName = getThreadName( threadGroup, replica );
             final Thread thread = new Thread( threadGroup, runner, threadName );
             setPipelineReplicaRunner( replicaIndex, runner, thread );
