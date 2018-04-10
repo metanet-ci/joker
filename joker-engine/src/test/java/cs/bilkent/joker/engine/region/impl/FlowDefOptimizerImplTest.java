@@ -16,8 +16,8 @@ import static cs.bilkent.joker.engine.region.impl.FlowDefOptimizerImpl.toDuplica
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
 import cs.bilkent.joker.flow.Port;
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
@@ -639,13 +639,13 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return null;
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
         }
 
@@ -657,13 +657,13 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return null;
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
         }
 
@@ -675,13 +675,13 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return null;
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
         }
 
@@ -693,13 +693,13 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return null;
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
         }
 
@@ -711,13 +711,13 @@ public class FlowDefOptimizerImplTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return null;
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
         }
 

@@ -7,7 +7,7 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.Tuples;
@@ -16,7 +16,7 @@ import static java.util.Collections.unmodifiableList;
 
 /**
  * Contains {@link Tuple} instances mapped to some ports specified by indices.
- * Used for providing input tuples and output tuples of the {@link Operator#invoke(InvocationContext)} method.
+ * Used for providing input tuples and output tuples of the {@link Operator#invoke(InvocationCtx)} method.
  */
 public final class TuplesImpl implements Tuples
 {
@@ -66,28 +66,31 @@ public final class TuplesImpl implements Tuples
     }
 
     @Override
-    public void add ( final Tuple tuple )
+    public TuplesImpl add ( final Tuple tuple )
     {
         checkArgument( tuple != null );
         add( DEFAULT_PORT_INDEX, tuple );
+        return this;
     }
 
     @Override
-    public void addAll ( final List<Tuple> tuples )
+    public TuplesImpl add ( final List<Tuple> tuples )
     {
         checkArgument( tuples != null );
-        addAll( DEFAULT_PORT_INDEX, tuples );
+        add( DEFAULT_PORT_INDEX, tuples );
+        return this;
     }
 
     @Override
-    public void add ( final int portIndex, final Tuple tuple )
+    public TuplesImpl add ( final int portIndex, final Tuple tuple )
     {
         checkArgument( tuple != null );
         ports[ portIndex ].add( tuple );
+        return this;
     }
 
     @Override
-    public void addAll ( final int portIndex, final List<Tuple> tuples )
+    public void add ( final int portIndex, final List<Tuple> tuples )
     {
         checkArgument( tuples != null );
 
@@ -136,6 +139,22 @@ public final class TuplesImpl implements Tuples
         {
             tuples.clear();
         }
+    }
+
+    public TuplesImpl copyForAttachment ()
+    {
+        final int portCount = getPortCount();
+        final TuplesImpl copy = new TuplesImpl( portCount );
+        for ( int portIndex = 0; portIndex < portCount; portIndex++ )
+        {
+            final List<Tuple> l = ports[ portIndex ];
+            for ( int i = 0, j = l.size(); i < j; i++ )
+            {
+                copy.add( portIndex, l.get( i ).copyForAttachment() );
+            }
+        }
+
+        return copy;
     }
 
     @Override

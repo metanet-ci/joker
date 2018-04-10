@@ -29,8 +29,7 @@ public class RegionExecPlanUtil
     }
 
 
-    public static List<Integer> getMergeablePipelineStartIndices ( final RegionExecPlan regionExecPlan,
-                                                                   final List<PipelineId> pipelineIds )
+    public static List<Integer> getMergeablePipelineStartIndices ( final RegionExecPlan regionExecPlan, final List<PipelineId> pipelineIds )
     {
         final List<Integer> startIndicesToMerge = getMergeablePipelineIds( pipelineIds ).stream()
                                                                                         .map( PipelineId::getPipelineStartIndex )
@@ -38,7 +37,9 @@ public class RegionExecPlanUtil
 
         checkArgument( checkPipelineStartIndicesToMerge( regionExecPlan, startIndicesToMerge ),
                        "invalid pipeline start indices to merge: %s current pipeline start indices: %s region=%s",
-                       startIndicesToMerge, regionExecPlan.getPipelineStartIndices(), regionExecPlan.getRegionId() );
+                       startIndicesToMerge,
+                       regionExecPlan.getPipelineStartIndices(),
+                       regionExecPlan.getRegionId() );
 
         return startIndicesToMerge;
     }
@@ -116,7 +117,8 @@ public class RegionExecPlanUtil
         }
 
         final int limit = ( start < pipelineStartIndices.size() - 1 )
-                          ? pipelineStartIndices.get( start + 1 ) : regionExecPlan.getRegionDef().getOperatorCount();
+                          ? pipelineStartIndices.get( start + 1 )
+                          : regionExecPlan.getRegionDef().getOperatorCount();
 
         for ( int i = 1; i < pipelineStartIndicesToSplit.size(); i++ )
         {

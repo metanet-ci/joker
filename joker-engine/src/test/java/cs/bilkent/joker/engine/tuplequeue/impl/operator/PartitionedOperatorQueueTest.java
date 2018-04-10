@@ -50,8 +50,7 @@ public class PartitionedOperatorQueueTest extends AbstractJokerTest
     @Test
     public void testOfferedTuplesDrained ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( PARTITION_KEY_FIELD, "key1" );
+        final Tuple tuple = Tuple.of( PARTITION_KEY_FIELD, "key1" );
         final List<Tuple> input = singletonList( tuple );
         operatorQueue.offer( 0, input );
 
@@ -67,14 +66,11 @@ public class PartitionedOperatorQueueTest extends AbstractJokerTest
     @Test
     public void testMultipleKeysDrainedAtOnce ()
     {
-        final Tuple tuple1 = new Tuple();
-        tuple1.set( PARTITION_KEY_FIELD, "key1" );
+        final Tuple tuple1 = Tuple.of( PARTITION_KEY_FIELD, "key1" );
         operatorQueue.offer( 0, singletonList( tuple1 ) );
-        final Tuple tuple2 = new Tuple();
-        tuple2.set( PARTITION_KEY_FIELD, "key2" );
+        final Tuple tuple2 = Tuple.of( PARTITION_KEY_FIELD, "key2" );
         operatorQueue.offer( 0, singletonList( tuple2 ) );
-        final Tuple tuple3 = new Tuple();
-        tuple3.set( PARTITION_KEY_FIELD, "key3" );
+        final Tuple tuple3 = Tuple.of( PARTITION_KEY_FIELD, "key3" );
         operatorQueue.offer( 0, singletonList( tuple3 ) );
 
         final NonBlockingMultiPortDisjunctiveDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( INPUT_PORT_COUNT, 100 );
@@ -103,14 +99,11 @@ public class PartitionedOperatorQueueTest extends AbstractJokerTest
     @Test
     public void testSingleKeyDrainedMultipleTimesAtOnce ()
     {
-        final Tuple tuple1 = new Tuple();
-        tuple1.set( PARTITION_KEY_FIELD, "key1" );
+        final Tuple tuple1 = Tuple.of( PARTITION_KEY_FIELD, "key1" );
         operatorQueue.offer( 0, singletonList( tuple1 ) );
-        final Tuple tuple2 = new Tuple();
-        tuple2.set( PARTITION_KEY_FIELD, "key1" );
+        final Tuple tuple2 = Tuple.of( PARTITION_KEY_FIELD, "key1" );
         operatorQueue.offer( 0, singletonList( tuple2 ) );
-        final Tuple tuple3 = new Tuple();
-        tuple3.set( PARTITION_KEY_FIELD, "key1" );
+        final Tuple tuple3 = Tuple.of( PARTITION_KEY_FIELD, "key1" );
         operatorQueue.offer( 0, singletonList( tuple3 ) );
 
         final NonBlockingMultiPortDisjunctiveDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( INPUT_PORT_COUNT, 100 );
@@ -141,8 +134,7 @@ public class PartitionedOperatorQueueTest extends AbstractJokerTest
     public void testOfferedTuplesDrainedGreedilyWhenTupleCountsUpdated ()
     {
         operatorQueue.setTupleCounts( new int[] { 2, 2 }, ANY_PORT );
-        final Tuple tuple = new Tuple();
-        tuple.set( PARTITION_KEY_FIELD, "key1" );
+        final Tuple tuple = Tuple.of( PARTITION_KEY_FIELD, "key1" );
         final List<Tuple> tuples = singletonList( tuple );
         operatorQueue.offer( 0, tuples );
 
@@ -159,8 +151,7 @@ public class PartitionedOperatorQueueTest extends AbstractJokerTest
     @Test
     public void testOfferedTuplesDrainedGreedilyWhenTupleCountsNotUpdated ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( PARTITION_KEY_FIELD, "key1" );
+        final Tuple tuple = Tuple.of( PARTITION_KEY_FIELD, "key1" );
         final List<Tuple> tuples = singletonList( tuple );
         operatorQueue.offer( 0, tuples );
 

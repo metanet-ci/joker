@@ -2,7 +2,7 @@ package cs.bilkent.joker.engine.supervisor;
 
 import cs.bilkent.joker.engine.pipeline.DownstreamCollector;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
-import cs.bilkent.joker.engine.pipeline.UpstreamContext;
+import cs.bilkent.joker.engine.pipeline.UpstreamCtx;
 
 public interface Supervisor
 {
@@ -15,7 +15,7 @@ public interface Supervisor
      *
      * @return the upstream context for the first operator of the pipeline specified with the given id
      */
-    UpstreamContext getUpstreamContext ( PipelineReplicaId id );
+    UpstreamCtx getUpstreamCtx ( PipelineReplicaId id );
 
     DownstreamCollector getDownstreamCollector ( PipelineReplicaId id );
 

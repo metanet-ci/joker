@@ -42,8 +42,7 @@ public class Joker
         this( UUID.randomUUID().toString(), config, null, null );
     }
 
-    private Joker ( final Object jokerId,
-                    final JokerConfig config, final RegionExecPlanFactory regionExecPlanFactory,
+    private Joker ( final Object jokerId, final JokerConfig config, final RegionExecPlanFactory regionExecPlanFactory,
                     final AdaptationTracker adaptationTracker )
     {
         this.injector = Guice.createInjector( new JokerModule( jokerId, config, regionExecPlanFactory, adaptationTracker ) );

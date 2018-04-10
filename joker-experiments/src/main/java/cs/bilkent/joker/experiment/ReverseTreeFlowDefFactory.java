@@ -45,18 +45,16 @@ public class ReverseTreeFlowDefFactory implements FlowDefFactory
 
         final FlowDefBuilder flowDefBuilder = new FlowDefBuilder();
 
-        OperatorConfig beaconConfig = new OperatorConfig();
-        beaconConfig.set( KEY_RANGE_CONFIG_PARAMETER, keyRange );
-        beaconConfig.set( VALUE_RANGE_CONFIG_PARAMETER, valueRange );
-        beaconConfig.set( TUPLES_PER_KEY_CONFIG_PARAMETER, tuplesPerKey );
-        beaconConfig.set( KEYS_PER_INVOCATION_CONFIG_PARAMETER, keysPerInvocation );
+        OperatorConfig beaconConfig = new OperatorConfig().set( KEY_RANGE_CONFIG_PARAMETER, keyRange )
+                                                          .set( VALUE_RANGE_CONFIG_PARAMETER, valueRange )
+                                                          .set( TUPLES_PER_KEY_CONFIG_PARAMETER, tuplesPerKey )
+                                                          .set( KEYS_PER_INVOCATION_CONFIG_PARAMETER, keysPerInvocation );
 
         OperatorDef beacon = OperatorDefBuilder.newInstance( "bc", MemorizingBeaconOperator.class ).setConfig( beaconConfig ).build();
 
         flowDefBuilder.add( beacon );
 
-        OperatorConfig ptioner2Config = new OperatorConfig();
-        ptioner2Config.set( MULTIPLICATION_COUNT, operatorCostsDown.get( 0 ) );
+        OperatorConfig ptioner2Config = new OperatorConfig().set( MULTIPLICATION_COUNT, operatorCostsDown.get( 0 ) );
 
         OperatorDef ptioner2 = OperatorDefBuilder.newInstance( "m20", PartitionedStatefulMultiplierOperator.class )
                                                  .setConfig( ptioner2Config )
@@ -68,8 +66,7 @@ public class ReverseTreeFlowDefFactory implements FlowDefFactory
         for ( int i = 0; i < upstreamOperatorCosts.size(); i++ )
         {
             final List<Integer> operatorCosts = upstreamOperatorCosts.get( i );
-            OperatorConfig ptioner1Config = new OperatorConfig();
-            ptioner1Config.set( MULTIPLICATION_COUNT, operatorCosts.get( 0 ) );
+            OperatorConfig ptioner1Config = new OperatorConfig().set( MULTIPLICATION_COUNT, operatorCosts.get( 0 ) );
 
             OperatorDef ptioner1 = OperatorDefBuilder.newInstance( "m1" + i + "0", PartitionedStatefulMultiplierOperator.class )
                                                      .setConfig( ptioner1Config )
@@ -81,8 +78,7 @@ public class ReverseTreeFlowDefFactory implements FlowDefFactory
 
             for ( int j = 1; j < operatorCosts.size(); j++ )
             {
-                OperatorConfig multiplierConfig = new OperatorConfig();
-                multiplierConfig.set( MULTIPLICATION_COUNT, operatorCosts.get( j ) );
+                OperatorConfig multiplierConfig = new OperatorConfig().set( MULTIPLICATION_COUNT, operatorCosts.get( j ) );
 
                 OperatorDef multiplier = OperatorDefBuilder.newInstance( "m1" + i + "" + j, StatelessMultiplierOperator.class )
                                                            .setConfig( multiplierConfig )
@@ -97,8 +93,7 @@ public class ReverseTreeFlowDefFactory implements FlowDefFactory
 
         for ( int i = 1; i < operatorCostsDown.size(); i++ )
         {
-            OperatorConfig multiplierConfig = new OperatorConfig();
-            multiplierConfig.set( MULTIPLICATION_COUNT, operatorCostsDown.get( i ) );
+            OperatorConfig multiplierConfig = new OperatorConfig().set( MULTIPLICATION_COUNT, operatorCostsDown.get( i ) );
 
             OperatorDef multiplier = OperatorDefBuilder.newInstance( "m2" + i, StatelessMultiplierOperator.class )
                                                        .setConfig( multiplierConfig )

@@ -1,8 +1,9 @@
 package cs.bilkent.joker.experiment;
 
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
+import cs.bilkent.joker.operator.Tuple;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
@@ -17,18 +18,21 @@ public class DuplicatorOperator implements Operator
     private int duplicateCount;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext ctx )
+    public SchedulingStrategy init ( final InitCtx ctx )
     {
         this.duplicateCount = ctx.getConfig().getInteger( DUPLICATE_COUNT_PARAMETER );
         return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
     }
 
     @Override
-    public void invoke ( final InvocationContext ctx )
+    public void invoke ( final InvocationCtx ctx )
     {
-        for ( int i = 0; i < duplicateCount; i++ )
+        for ( Tuple tuple : ctx.getInputTuplesByDefaultPort() )
         {
-            ctx.output( ctx.getInputTuplesByDefaultPort() );
+            for ( int i = 0; i < duplicateCount; i++ )
+            {
+                ctx.output( tuple );
+            }
         }
     }
 

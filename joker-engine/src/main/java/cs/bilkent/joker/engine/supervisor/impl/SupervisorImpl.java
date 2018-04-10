@@ -34,7 +34,7 @@ import cs.bilkent.joker.engine.metric.PipelineMeter;
 import cs.bilkent.joker.engine.pipeline.DownstreamCollector;
 import cs.bilkent.joker.engine.pipeline.PipelineManager;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
-import cs.bilkent.joker.engine.pipeline.UpstreamContext;
+import cs.bilkent.joker.engine.pipeline.UpstreamCtx;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import static cs.bilkent.joker.engine.util.ExceptionUtils.checkInterruption;
 import cs.bilkent.joker.flow.FlowDef;
@@ -374,9 +374,9 @@ public class SupervisorImpl implements Supervisor
     }
 
     @Override
-    public UpstreamContext getUpstreamContext ( final PipelineReplicaId id )
+    public UpstreamCtx getUpstreamCtx ( final PipelineReplicaId id )
     {
-        return pipelineManager.getUpstreamContext( id );
+        return pipelineManager.getUpstreamCtx( id );
     }
 
     @Override

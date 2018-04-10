@@ -22,24 +22,18 @@ public class SplitPipelineAction implements AdaptationAction
 
     private final List<Integer> pipelineOperatorIndices;
 
-    public SplitPipelineAction ( final RegionExecPlan execPlan,
-                                 final PipelineId pipelineId,
-                                 final int pipelineOperatorIndex )
+    public SplitPipelineAction ( final RegionExecPlan execPlan, final PipelineId pipelineId, final int pipelineOperatorIndex )
     {
         this( execPlan, pipelineId, singletonList( pipelineOperatorIndex ) );
     }
 
-    public SplitPipelineAction ( final RegionExecPlan execPlan,
-                                 final PipelineId pipelineId,
-                                 final List<Integer> pipelineOperatorIndices )
+    public SplitPipelineAction ( final RegionExecPlan execPlan, final PipelineId pipelineId, final List<Integer> pipelineOperatorIndices )
     {
         checkArgument( execPlan != null );
         checkArgument( pipelineId != null );
         checkArgument( pipelineOperatorIndices != null && pipelineOperatorIndices.size() > 0 );
         this.currentExecPlan = execPlan;
-        final List<Integer> pipelineStartIndicesToSplit = getPipelineStartIndicesToSplit( execPlan,
-                                                                                          pipelineId,
-                                                                                          pipelineOperatorIndices );
+        final List<Integer> pipelineStartIndicesToSplit = getPipelineStartIndicesToSplit( execPlan, pipelineId, pipelineOperatorIndices );
         this.newExecPlan = execPlan.withSplitPipeline( pipelineStartIndicesToSplit );
         checkState( newExecPlan != null );
         this.pipelineId = pipelineId;

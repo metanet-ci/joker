@@ -24,16 +24,16 @@ import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainerPool;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
 import static cs.bilkent.joker.engine.util.ExceptionUtils.checkInterruption;
 import cs.bilkent.joker.flow.FlowDef;
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext.InvocationReason;
-import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.INPUT_PORT_CLOSED;
-import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SHUTDOWN;
-import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SUCCESS;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx.InvocationReason;
+import static cs.bilkent.joker.operator.InvocationCtx.InvocationReason.INPUT_PORT_CLOSED;
+import static cs.bilkent.joker.operator.InvocationCtx.InvocationReason.SHUTDOWN;
+import static cs.bilkent.joker.operator.InvocationCtx.InvocationReason.SUCCESS;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.impl.InitializationContextImpl;
-import cs.bilkent.joker.operator.impl.InternalInvocationContext;
+import cs.bilkent.joker.operator.impl.InitCtxImpl;
+import cs.bilkent.joker.operator.impl.InternalInvocationCtx;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleNever;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
@@ -72,11 +72,11 @@ public class OperatorReplica
 
     private final PipelineReplicaMeter meter;
 
-    private final InternalInvocationContext invocationContext;
+    private final InternalInvocationCtx invocationCtx;
 
-    private final InternalInvocationContext[] fusedInvocationContexts;
+    private final InternalInvocationCtx[] fusedInvocationCtxes;
 
-    private final InternalInvocationContext lastInvocationContext;
+    private final InternalInvocationCtx lastInvocationCtx;
 
     private final Function<PartitionKey, TuplesImpl> drainerTuplesSupplier;
 
@@ -84,11 +84,11 @@ public class OperatorReplica
 
     private OperatorReplicaStatus status = INITIAL;
 
-    private UpstreamContext upstreamContext;
+    private UpstreamCtx upstreamCtx;
 
-    private UpstreamContext[] fusedUpstreamContexts;
+    private UpstreamCtx[] fusedUpstreamCtxes;
 
-    private UpstreamContext downstreamContext;
+    private UpstreamCtx downstreamCtx;
 
     private InvocationReason completionReason;
 
@@ -108,7 +108,7 @@ public class OperatorReplica
                              final PipelineReplicaMeter meter,
                              final Function<PartitionKey, TuplesImpl> drainerTuplesSupplier,
                              final OperatorDef[] operatorDefs,
-                             final InternalInvocationContext[] invocationContexts )
+                             final InternalInvocationCtx[] invocationCtxes )
     {
         checkArgument( pipelineReplicaId != null );
         checkArgument( queue != null );
@@ -116,7 +116,7 @@ public class OperatorReplica
         checkArgument( meter != null );
         checkArgument( drainerTuplesSupplier != null );
         checkArgument( operatorDefs != null && operatorDefs.length > 0 );
-        checkArgument( invocationContexts != null && invocationContexts.length == operatorDefs.length );
+        checkArgument( invocationCtxes != null && invocationCtxes.length == operatorDefs.length );
         this.operatorName = generateOperatorName( pipelineReplicaId, operatorDefs );
         this.queue = queue;
         this.drainerPool = drainerPool;
@@ -130,14 +130,14 @@ public class OperatorReplica
             arraycopy( operatorDefs, 1, this.fusedOperatorDefs, 0, fusedOperatorCount );
         }
         this.fusedOperators = new Operator[ fusedOperatorCount ];
-        this.invocationContext = invocationContexts[ 0 ];
-        this.fusedInvocationContexts = new InternalInvocationContext[ fusedOperatorCount ];
+        this.invocationCtx = invocationCtxes[ 0 ];
+        this.fusedInvocationCtxes = new InternalInvocationCtx[ fusedOperatorCount ];
         if ( fusedOperatorCount > 0 )
         {
-            arraycopy( invocationContexts, 1, fusedInvocationContexts, 0, fusedOperatorCount );
+            arraycopy( invocationCtxes, 1, fusedInvocationCtxes, 0, fusedOperatorCount );
         }
-        this.lastInvocationContext = invocationContexts[ fusedOperatorCount ];
-        this.fusedUpstreamContexts = new UpstreamContext[ fusedOperatorCount ];
+        this.lastInvocationCtx = invocationCtxes[ fusedOperatorCount ];
+        this.fusedUpstreamCtxes = new UpstreamCtx[ fusedOperatorCount ];
     }
 
     private OperatorReplica ( final PipelineReplicaId pipelineReplicaId,
@@ -146,22 +146,22 @@ public class OperatorReplica
                               final PipelineReplicaMeter meter,
                               final Function<PartitionKey, TuplesImpl> drainerTuplesSupplier,
                               final OperatorDef[] operatorDefs,
-                              final InternalInvocationContext[] invocationContexts,
+                              final InternalInvocationCtx[] invocationCtxes,
                               final SchedulingStrategy schedulingStrategy,
                               final Operator operator,
                               final Operator[] fusedOperators,
-                              final UpstreamContext upstreamContext,
-                              final UpstreamContext[] fusedUpstreamContexts,
-                              final UpstreamContext downstreamContext )
+                              final UpstreamCtx upstreamCtx,
+                              final UpstreamCtx[] fusedUpstreamCtxes,
+                              final UpstreamCtx downstreamCtx )
     {
-        this( pipelineReplicaId, queue, drainerPool, meter, drainerTuplesSupplier, operatorDefs, invocationContexts );
+        this( pipelineReplicaId, queue, drainerPool, meter, drainerTuplesSupplier, operatorDefs, invocationCtxes );
 
-        this.downstreamContext = downstreamContext;
+        this.downstreamCtx = downstreamCtx;
 
-        setUpstreamContext( 0, upstreamContext );
-        for ( int i = 0; i < fusedUpstreamContexts.length; i++ )
+        setUpstreamCtx( 0, upstreamCtx );
+        for ( int i = 0; i < fusedUpstreamCtxes.length; i++ )
         {
-            setUpstreamContext( i + 1, fusedUpstreamContexts[ i ] );
+            setUpstreamCtx( i + 1, fusedUpstreamCtxes[ i ] );
         }
 
         this.operator = operator;
@@ -188,11 +188,11 @@ public class OperatorReplica
 
     /**
      * Initializes its internal state to get ready for operator invocation. After initialization is completed successfully, it moves
-     * the status to {@link OperatorReplicaStatus#RUNNING}. If {@link Operator#init(InitializationContext)} throws an exception,
+     * the status to {@link OperatorReplicaStatus#RUNNING}. If {@link Operator#init(InitCtx)} throws an exception,
      * it moves the status to {@link OperatorReplicaStatus#INITIALIZATION_FAILED} and propagates the exception to the caller after
      * wrapping it with {@link InitializationException}.
      */
-    public SchedulingStrategy[] init ( final UpstreamContext[] upstreamContexts, final UpstreamContext downstreamContext )
+    public SchedulingStrategy[] init ( final UpstreamCtx[] upstreamCtxes, final UpstreamCtx downstreamCtx )
     {
         checkState( status == INITIAL, "Cannot initialize %s as it is in %s state", operatorName, status );
 
@@ -200,15 +200,15 @@ public class OperatorReplica
         {
             final SchedulingStrategy[] schedulingStrategies = new SchedulingStrategy[ getOperatorCount() ];
 
-            this.downstreamContext = downstreamContext;
-            for ( int i = 0; i < upstreamContexts.length; i++ )
+            this.downstreamCtx = downstreamCtx;
+            for ( int i = 0; i < upstreamCtxes.length; i++ )
             {
-                setUpstreamContext( i, upstreamContexts[ i ] );
+                setUpstreamCtx( i, upstreamCtxes[ i ] );
             }
 
             operator = operatorDef.createOperator();
             checkState( operator != null, "%s implementation can not be null", operatorName );
-            final SchedulingStrategy schedulingStrategy = initializeOperator( operatorDef, operator, upstreamContext );
+            final SchedulingStrategy schedulingStrategy = initializeOperator( operatorDef, operator, upstreamCtx );
             schedulingStrategies[ 0 ] = schedulingStrategy;
 
             setSchedulingStrategy( schedulingStrategy );
@@ -219,14 +219,11 @@ public class OperatorReplica
             {
                 fusedOperators[ i ] = fusedOperatorDefs[ i ].createOperator();
                 checkState( fusedOperators[ i ] != null, "%s implementation can not be null", operatorName );
-                schedulingStrategies[ i + 1 ] = initializeOperator( fusedOperatorDefs[ i ],
-                                                                    fusedOperators[ i ],
-                                                                    fusedUpstreamContexts[ i ] );
+                schedulingStrategies[ i + 1 ] = initializeOperator( fusedOperatorDefs[ i ], fusedOperators[ i ], fusedUpstreamCtxes[ i ] );
             }
 
             setStatus( RUNNING );
-            LOGGER.info( "{} initialized. Initial scheduling strategies: {} Drainer: {}",
-                         operatorName, schedulingStrategies,
+            LOGGER.info( "{} initialized. Initial scheduling strategies: {} Drainer: {}", operatorName, schedulingStrategies,
                          drainer.getClass().getSimpleName() );
 
             return schedulingStrategies;
@@ -245,13 +242,11 @@ public class OperatorReplica
         listener.onStatusChange( operatorDef.getId(), status );
     }
 
-    private SchedulingStrategy initializeOperator ( final OperatorDef operatorDef,
-                                                    final Operator operator,
-                                                    final UpstreamContext upstreamContext )
+    private SchedulingStrategy initializeOperator ( final OperatorDef operatorDef, final Operator operator, final UpstreamCtx upstreamCtx )
     {
-        final InitializationContext initContext = new InitializationContextImpl( operatorDef, upstreamContext.getConnectionStatuses() );
-        final SchedulingStrategy schedulingStrategy = operator.init( initContext );
-        upstreamContext.verifyInitializable( operatorDef, schedulingStrategy );
+        final InitCtx initCtx = new InitCtxImpl( operatorDef, upstreamCtx.getConnectionStatuses() );
+        final SchedulingStrategy schedulingStrategy = operator.init( initCtx );
+        upstreamCtx.verifyInitializable( operatorDef, schedulingStrategy );
 
         return schedulingStrategy;
     }
@@ -273,9 +268,9 @@ public class OperatorReplica
 
     private void closeDownstreamContext ()
     {
-        if ( downstreamContext != null )
+        if ( downstreamCtx != null )
         {
-            downstreamContext = downstreamContext.withAllConnectionsClosed();
+            downstreamCtx = downstreamCtx.withAllConnectionsClosed();
         }
     }
 
@@ -304,12 +299,12 @@ public class OperatorReplica
      *         blocking drainer
      * @param upstreamInput
      *         input of the operator which is sent by the upstream operator
-     * @param upstreamContext
+     * @param upstreamCtx
      *         status of the upstream connections
      *
      * @return output of the operator invocation
      */
-    public TuplesImpl invoke ( final boolean drainerMaySkipBlocking, final TuplesImpl upstreamInput, final UpstreamContext upstreamContext )
+    public TuplesImpl invoke ( final boolean drainerMaySkipBlocking, final TuplesImpl upstreamInput, final UpstreamCtx upstreamCtx )
     {
         if ( status == COMPLETED )
         {
@@ -319,16 +314,16 @@ public class OperatorReplica
         checkState( status == RUNNING || status == COMPLETING, operatorName );
 
         offer( upstreamInput );
-        resetInvocationContexts();
+        resetInvocationCtxes();
         drainQueue( drainerMaySkipBlocking );
 
         if ( status == RUNNING )
         {
             if ( schedulingStrategy instanceof ScheduleWhenAvailable )
             {
-                if ( handleNewUpstreamContext( upstreamContext ) )
+                if ( handleNewUpstreamCtx( upstreamCtx ) )
                 {
-                    closeFusedUpstreamContexts();
+                    closeFusedUpstreamCtxes();
                     invokeOperators( SHUTDOWN );
                     completeRun();
                     completionReason = SHUTDOWN;
@@ -338,18 +333,18 @@ public class OperatorReplica
                     invokeOperators( SUCCESS );
                 }
             }
-            else if ( invocationContext.getInputCount() > 0 )
+            else if ( invocationCtx.getInputCount() > 0 )
             {
                 invokeOperators( SUCCESS );
             }
-            else if ( handleNewUpstreamContext( upstreamContext ) && !upstreamContext.isInvokable( operatorDef, schedulingStrategy ) )
+            else if ( handleNewUpstreamCtx( upstreamCtx ) && !upstreamCtx.isInvokable( operatorDef, schedulingStrategy ) )
             {
-                closeFusedUpstreamContexts();
+                closeFusedUpstreamCtxes();
                 setStatus( COMPLETING );
                 completionReason = INPUT_PORT_CLOSED;
                 setGreedyDrainerForCompletion();
                 drainQueue( drainerMaySkipBlocking );
-                if ( invocationContext.getInputCount() > 0 )
+                if ( invocationCtx.getInputCount() > 0 )
                 {
                     invokeOperators( INPUT_PORT_CLOSED );
                 }
@@ -363,18 +358,18 @@ public class OperatorReplica
                 return null;
             }
         }
-        else if ( invocationContext.getInputCount() > 0 )
+        else if ( invocationCtx.getInputCount() > 0 )
         {
             // status = COMPLETING
             invokeOperators( INPUT_PORT_CLOSED );
         }
-        else if ( handleNewUpstreamContext( upstreamContext ) )
+        else if ( handleNewUpstreamCtx( upstreamCtx ) )
         {
             // status = COMPLETING
             drainerTuplesSupplier.apply( null );
             invokeOperators( INPUT_PORT_CLOSED );
 
-            if ( upstreamContext.isOpenConnectionAbsent() )
+            if ( upstreamCtx.isOpenConnectionAbsent() )
             {
                 completeRun();
             }
@@ -382,7 +377,7 @@ public class OperatorReplica
         else
         {
             // status = COMPLETING
-            if ( upstreamContext.isOpenConnectionAbsent() )
+            if ( upstreamCtx.isOpenConnectionAbsent() )
             {
                 completeRun();
             }
@@ -390,7 +385,7 @@ public class OperatorReplica
             return null;
         }
 
-        return lastInvocationContext.getOutput();
+        return lastInvocationCtx.getOutput();
     }
 
     private void drainQueue ( final boolean drainerMaySkipBlocking )
@@ -421,45 +416,43 @@ public class OperatorReplica
         }
     }
 
-    private void resetInvocationContexts ()
+    private void resetInvocationCtxes ()
     {
-        invocationContext.reset();
-        for ( int i = 0; i < fusedInvocationContexts.length; i++ )
+        invocationCtx.reset();
+        for ( int i = 0; i < fusedInvocationCtxes.length; i++ )
         {
-            fusedInvocationContexts[ i ].reset();
+            fusedInvocationCtxes[ i ].reset();
         }
     }
 
     private void invokeOperators ( final InvocationReason reason )
     {
-        invokeOperator( operatorDef, reason, invocationContext, operator );
+        invokeOperator( operatorDef, reason, invocationCtx, operator );
 
         for ( int i = 0; i < fusedOperators.length; i++ )
         {
-            final InternalInvocationContext invocationContext = fusedInvocationContexts[ i ];
-            if ( invocationContext.getInputCount() == 0 )
+            final InternalInvocationCtx invocationCtx = fusedInvocationCtxes[ i ];
+            if ( invocationCtx.getInputCount() == 0 )
             {
                 break;
             }
 
-            invokeOperator( fusedOperatorDefs[ i ], reason, invocationContext, fusedOperators[ i ] );
+            invokeOperator( fusedOperatorDefs[ i ], reason, invocationCtx, fusedOperators[ i ] );
         }
     }
 
-    private void invokeOperator ( final OperatorDef operatorDef,
-                                  final InvocationReason reason,
-                                  final InternalInvocationContext invocationContext,
+    private void invokeOperator ( final OperatorDef operatorDef, final InvocationReason reason, final InternalInvocationCtx invocationCtx,
                                   final Operator operator )
     {
-        invocationContext.setInvocationReason( reason );
+        invocationCtx.setInvocationReason( reason );
         meter.onInvocationStart( operatorDef.getId() );
         do
         {
-            operator.invoke( invocationContext );
-        } while ( invocationContext.nextInput() );
+            operator.invoke( invocationCtx );
+        } while ( invocationCtx.nextInput() );
         meter.onInvocationComplete( operatorDef.getId() );
 
-        meter.addTuples( operatorDef.getId(), invocationContext.getInputs(), invocationContext.getInputCount() );
+        meter.count( operatorDef.getId(), invocationCtx.getInputs(), invocationCtx.getInputCount() );
     }
 
     /**
@@ -477,41 +470,41 @@ public class OperatorReplica
      *
      * @return true if current upstream context is updated.
      */
-    private boolean handleNewUpstreamContext ( final UpstreamContext upstreamContext )
+    private boolean handleNewUpstreamCtx ( final UpstreamCtx upstreamCtx )
     {
-        final boolean isNew = this.upstreamContext.getVersion() < upstreamContext.getVersion();
+        final boolean isNew = this.upstreamCtx.getVersion() < upstreamCtx.getVersion();
         if ( isNew )
         {
-            setUpstreamContext( 0, upstreamContext );
+            setUpstreamCtx( 0, upstreamCtx );
         }
 
         return isNew;
     }
 
-    private void closeFusedUpstreamContexts ()
+    private void closeFusedUpstreamCtxes ()
     {
-        for ( int i = 0; i < fusedUpstreamContexts.length; i++ )
+        for ( int i = 0; i < fusedUpstreamCtxes.length; i++ )
         {
-            setUpstreamContext( i + 1, fusedUpstreamContexts[ i ].withAllConnectionsClosed() );
+            setUpstreamCtx( i + 1, fusedUpstreamCtxes[ i ].withAllConnectionsClosed() );
         }
     }
 
     /**
      * Sets the new upstream context and updates the upstream connection statuses of the invocation context
      */
-    private void setUpstreamContext ( final int index, final UpstreamContext upstreamContext )
+    private void setUpstreamCtx ( final int index, final UpstreamCtx upstreamCtx )
     {
         checkArgument( index >= 0 );
-        checkArgument( upstreamContext != null, "%s upstream context is null!", operatorName );
+        checkArgument( upstreamCtx != null, "%s upstream context is null!", operatorName );
         if ( index == 0 )
         {
-            this.upstreamContext = upstreamContext;
-            invocationContext.setUpstreamConnectionStatuses( upstreamContext.getConnectionStatuses() );
+            this.upstreamCtx = upstreamCtx;
+            invocationCtx.setUpstreamConnectionStatuses( upstreamCtx.getConnectionStatuses() );
         }
         else
         {
-            fusedUpstreamContexts[ index - 1 ] = upstreamContext;
-            fusedInvocationContexts[ index - 1 ].setUpstreamConnectionStatuses( upstreamContext.getConnectionStatuses() );
+            fusedUpstreamCtxes[ index - 1 ] = upstreamCtx;
+            fusedInvocationCtxes[ index - 1 ].setUpstreamConnectionStatuses( upstreamCtx.getConnectionStatuses() );
         }
     }
 
@@ -575,9 +568,7 @@ public class OperatorReplica
 
     public OperatorReplica duplicate ( final PipelineReplicaId pipelineReplicaId,
                                        final PipelineReplicaMeter meter,
-                                       final OperatorQueue queue,
-                                       final TupleQueueDrainerPool drainerPool,
-                                       final UpstreamContext downstreamContext )
+                                       final OperatorQueue queue, final TupleQueueDrainerPool drainerPool, final UpstreamCtx downstreamCtx )
     {
         checkState( this.status == RUNNING,
                     "cannot duplicate %s to %s because status is %s",
@@ -589,48 +580,36 @@ public class OperatorReplica
                                     queue,
                                     drainerPool,
                                     meter,
-                                    this.drainerTuplesSupplier,
-                                    getOperatorDefs(),
-                                    getInvocationContexts(),
+                                    this.drainerTuplesSupplier, getOperatorDefs(), getInvocationCtxes(),
                                     this.schedulingStrategy,
-                                    this.operator,
-                                    this.fusedOperators,
-                                    this.upstreamContext,
-                                    this.fusedUpstreamContexts,
-                                    downstreamContext );
+                                    this.operator, this.fusedOperators, this.upstreamCtx, this.fusedUpstreamCtxes, downstreamCtx );
     }
 
-    public static OperatorReplica running ( final PipelineReplicaId pipelineReplicaId,
-                                            final PipelineReplicaMeter meter,
-                                            final OperatorQueue queue,
-                                            final TupleQueueDrainerPool drainerPool,
-                                            final OperatorDef[] operatorDefs,
-                                            final Function<PartitionKey, TuplesImpl> drainerTuplesSupplier,
-                                            final InternalInvocationContext[] invocationContexts,
-                                            final Operator[] operators,
-                                            final UpstreamContext[] upstreamContexts,
-                                            final SchedulingStrategy schedulingStrategy,
-                                            final UpstreamContext downstreamContext )
+    public static OperatorReplica newRunningInstance ( final PipelineReplicaId pipelineReplicaId,
+                                                       final PipelineReplicaMeter meter,
+                                                       final OperatorQueue queue,
+                                                       final TupleQueueDrainerPool drainerPool,
+                                                       final OperatorDef[] operatorDefs,
+                                                       final Function<PartitionKey, TuplesImpl> drainerTuplesSupplier,
+                                                       final InternalInvocationCtx[] invocationCtxes,
+                                                       final Operator[] operators,
+                                                       final UpstreamCtx[] upstreamCtxes,
+                                                       final SchedulingStrategy schedulingStrategy,
+                                                       final UpstreamCtx downstreamCtx )
     {
         final Operator[] fusedOperators = new Operator[ operators.length - 1 ];
         arraycopy( operators, 1, fusedOperators, 0, fusedOperators.length );
 
-        final UpstreamContext[] fusedUpstreamContexts = new UpstreamContext[ upstreamContexts.length - 1 ];
-        arraycopy( upstreamContexts, 1, fusedUpstreamContexts, 0, fusedUpstreamContexts.length );
+        final UpstreamCtx[] fusedUpstreamCtxes = new UpstreamCtx[ upstreamCtxes.length - 1 ];
+        arraycopy( upstreamCtxes, 1, fusedUpstreamCtxes, 0, fusedUpstreamCtxes.length );
 
         return new OperatorReplica( pipelineReplicaId,
                                     queue,
                                     drainerPool,
                                     meter,
-                                    drainerTuplesSupplier,
-                                    operatorDefs,
-                                    invocationContexts,
+                                    drainerTuplesSupplier, operatorDefs, invocationCtxes,
                                     schedulingStrategy,
-                                    operators[ 0 ],
-                                    fusedOperators,
-                                    upstreamContexts[ 0 ],
-                                    fusedUpstreamContexts,
-                                    downstreamContext );
+                                    operators[ 0 ], fusedOperators, upstreamCtxes[ 0 ], fusedUpstreamCtxes, downstreamCtx );
     }
 
     void setOperatorReplicaListener ( final OperatorReplicaListener listener )
@@ -683,18 +662,18 @@ public class OperatorReplica
         return -1;
     }
 
-    public InternalInvocationContext getInvocationContext ( int index )
+    public InternalInvocationCtx getInvocationCtx ( int index )
     {
-        return index == 0 ? invocationContext : fusedInvocationContexts[ index - 1 ];
+        return index == 0 ? invocationCtx : fusedInvocationCtxes[ index - 1 ];
     }
 
-    public InternalInvocationContext[] getInvocationContexts ()
+    public InternalInvocationCtx[] getInvocationCtxes ()
     {
-        final InternalInvocationContext[] invocationContexts = new InternalInvocationContext[ fusedInvocationContexts.length + 1 ];
-        invocationContexts[ 0 ] = invocationContext;
-        arraycopy( fusedInvocationContexts, 0, invocationContexts, 1, fusedInvocationContexts.length );
+        final InternalInvocationCtx[] invocationCtxes = new InternalInvocationCtx[ fusedInvocationCtxes.length + 1 ];
+        invocationCtxes[ 0 ] = invocationCtx;
+        arraycopy( fusedInvocationCtxes, 0, invocationCtxes, 1, fusedInvocationCtxes.length );
 
-        return invocationContexts;
+        return invocationCtxes;
     }
 
     public PipelineReplicaMeter getMeter ()
@@ -744,23 +723,23 @@ public class OperatorReplica
     }
     // used during testing
 
-    public UpstreamContext getUpstreamContext ( int index )
+    public UpstreamCtx getUpstreamCtx ( int index )
     {
-        return index == 0 ? upstreamContext : fusedUpstreamContexts[ index - 1 ];
+        return index == 0 ? upstreamCtx : fusedUpstreamCtxes[ index - 1 ];
     }
 
-    public UpstreamContext[] getUpstreamContexts ()
+    public UpstreamCtx[] getUpstreamCtxes ()
     {
-        final UpstreamContext[] upstreamContexts = new UpstreamContext[ fusedUpstreamContexts.length + 1 ];
-        upstreamContexts[ 0 ] = upstreamContext;
-        arraycopy( fusedUpstreamContexts, 0, upstreamContexts, 1, fusedUpstreamContexts.length );
+        final UpstreamCtx[] upstreamCtxes = new UpstreamCtx[ fusedUpstreamCtxes.length + 1 ];
+        upstreamCtxes[ 0 ] = upstreamCtx;
+        arraycopy( fusedUpstreamCtxes, 0, upstreamCtxes, 1, fusedUpstreamCtxes.length );
 
-        return upstreamContexts;
+        return upstreamCtxes;
     }
 
-    public UpstreamContext getDownstreamContext ()
+    public UpstreamCtx getDownstreamCtx ()
     {
-        return downstreamContext;
+        return downstreamCtx;
     }
 
     boolean isInvokable ()
@@ -778,8 +757,8 @@ public class OperatorReplica
     {
         return "OperatorReplica{" + "operatorName='" + operatorName + '\'' + ", operatorType=" + operatorDef.getOperatorType() + ", queue="
                + queue.getClass().getSimpleName() + ", drainer=" + ( drainer != null ? drainer.getClass().getSimpleName() : null )
-               + ", status=" + status + ", upstreamContext=" + upstreamContext + ", downstreamContext=" + downstreamContext
-               + ", completionReason=" + completionReason + ", schedulingStrategy=" + schedulingStrategy + '}';
+               + ", status=" + status + ", upstreamCtx=" + upstreamCtx + ", downstreamCtx=" + downstreamCtx + ", completionReason="
+               + completionReason + ", schedulingStrategy=" + schedulingStrategy + '}';
     }
 
 }

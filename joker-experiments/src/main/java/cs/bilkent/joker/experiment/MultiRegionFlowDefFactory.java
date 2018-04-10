@@ -44,18 +44,16 @@ public class MultiRegionFlowDefFactory implements FlowDefFactory
 
         final FlowDefBuilder flowDefBuilder = new FlowDefBuilder();
 
-        OperatorConfig beaconConfig = new OperatorConfig();
-        beaconConfig.set( KEY_RANGE_CONFIG_PARAMETER, keyRange );
-        beaconConfig.set( VALUE_RANGE_CONFIG_PARAMETER, valueRange );
-        beaconConfig.set( TUPLES_PER_KEY_CONFIG_PARAMETER, tuplesPerKey );
-        beaconConfig.set( KEYS_PER_INVOCATION_CONFIG_PARAMETER, keysPerInvocation );
+        OperatorConfig beaconConfig = new OperatorConfig().set( KEY_RANGE_CONFIG_PARAMETER, keyRange )
+                                                          .set( VALUE_RANGE_CONFIG_PARAMETER, valueRange )
+                                                          .set( TUPLES_PER_KEY_CONFIG_PARAMETER, tuplesPerKey )
+                                                          .set( KEYS_PER_INVOCATION_CONFIG_PARAMETER, keysPerInvocation );
 
         OperatorDef beacon = OperatorDefBuilder.newInstance( "bc", MemorizingBeaconOperator.class ).setConfig( beaconConfig ).build();
 
         flowDefBuilder.add( beacon );
 
-        OperatorConfig ptioner1Config = new OperatorConfig();
-        ptioner1Config.set( MULTIPLICATION_COUNT, operatorCosts1.get( 0 ) );
+        OperatorConfig ptioner1Config = new OperatorConfig().set( MULTIPLICATION_COUNT, operatorCosts1.get( 0 ) );
 
         OperatorDef ptioner1 = OperatorDefBuilder.newInstance( "m10", PartitionedStatefulMultiplierOperator.class )
                                                  .setConfig( ptioner1Config )
@@ -67,8 +65,7 @@ public class MultiRegionFlowDefFactory implements FlowDefFactory
 
         for ( int i = 1; i < operatorCosts1.size(); i++ )
         {
-            OperatorConfig multiplierConfig = new OperatorConfig();
-            multiplierConfig.set( MULTIPLICATION_COUNT, operatorCosts1.get( i ) );
+            OperatorConfig multiplierConfig = new OperatorConfig().set( MULTIPLICATION_COUNT, operatorCosts1.get( i ) );
 
             OperatorDef multiplier = OperatorDefBuilder.newInstance( "m1" + i, StatelessMultiplierOperator.class )
                                                        .setConfig( multiplierConfig )
@@ -78,8 +75,7 @@ public class MultiRegionFlowDefFactory implements FlowDefFactory
             flowDefBuilder.connect( "m1" + ( i - 1 ), multiplier.getId() );
         }
 
-        OperatorConfig ptioner2Config = new OperatorConfig();
-        ptioner2Config.set( MULTIPLICATION_COUNT, operatorCosts2.get( 0 ) );
+        OperatorConfig ptioner2Config = new OperatorConfig().set( MULTIPLICATION_COUNT, operatorCosts2.get( 0 ) );
 
         OperatorDef ptioner2 = OperatorDefBuilder.newInstance( "m20", PartitionedStatefulMultiplierOperator.class )
                                                  .setConfig( ptioner2Config )
@@ -92,8 +88,7 @@ public class MultiRegionFlowDefFactory implements FlowDefFactory
 
         for ( int i = 1; i < operatorCosts2.size(); i++ )
         {
-            OperatorConfig multiplierConfig = new OperatorConfig();
-            multiplierConfig.set( MULTIPLICATION_COUNT, operatorCosts2.get( i ) );
+            OperatorConfig multiplierConfig = new OperatorConfig().set( MULTIPLICATION_COUNT, operatorCosts2.get( i ) );
 
             OperatorDef multiplier = OperatorDefBuilder.newInstance( "m2" + i, StatelessMultiplierOperator.class )
                                                        .setConfig( multiplierConfig )

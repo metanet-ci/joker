@@ -312,8 +312,7 @@ public class RegionAdaptationContext
         checkArgument( metrics != null );
         checkArgument( adaptationEvaluationPredicate != null );
         metrics.stream().map( PipelineMetrics::getPipelineId ).forEach( this::checkPipelineId );
-        checkState( !adaptationActions.isEmpty(),
-                    "Cannot evaluate metrics: %s for Region %s has no adaptation action", metrics,
+        checkState( !adaptationActions.isEmpty(), "Cannot evaluate metrics: %s for Region %s has no adaptation action", metrics,
                     getRegionId() );
 
         final PipelineMetrics newInboundMetrics = metrics.get( 0 );
@@ -324,14 +323,18 @@ public class RegionAdaptationContext
         if ( success )
         {
             LOGGER.info( "Adaptations are beneficial for Region {} with new metrics: {} bottleneck metrics: {} and adaptation actions: {}",
-                         getRegionId(), newInboundMetrics, bottleneckInboundMetrics,
+                         getRegionId(),
+                         newInboundMetrics,
+                         bottleneckInboundMetrics,
                          adaptationActions );
         }
         else
         {
             LOGGER.info(
                     "Adaptations are not beneficial for Region {} with new metrics: {} bottleneck metrics: {} and adaptation actions: {}",
-                    getRegionId(), newInboundMetrics, bottleneckInboundMetrics,
+                    getRegionId(),
+                    newInboundMetrics,
+                    bottleneckInboundMetrics,
                     adaptationActions );
         }
 
@@ -343,7 +346,8 @@ public class RegionAdaptationContext
         checkArgument( metrics != null );
         metrics.stream().map( PipelineMetrics::getPipelineId ).forEach( this::checkPipelineId );
         checkState( !adaptationActions.isEmpty(),
-                    "Cannot finalize adaptation with metrics: %s for Region %s has no adaptation action", metrics,
+                    "Cannot finalize adaptation with metrics: %s for Region %s has no adaptation action",
+                    metrics,
                     getRegionId() );
 
         final List<PipelineId> adaptingPipelineIds = getAdaptingPipelineIds();

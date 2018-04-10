@@ -18,8 +18,8 @@ import cs.bilkent.joker.engine.region.RegionDefFormer;
 import cs.bilkent.joker.engine.region.RegionManager;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
@@ -133,13 +133,13 @@ public class PipelineOperatorPortCountsTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return ctx.getInputPortCount() == 0 ? ScheduleWhenAvailable.INSTANCE : scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
 
         }
@@ -152,14 +152,14 @@ public class PipelineOperatorPortCountsTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             final int inputPortCount = ctx.getInputPortCount();
             return scheduleWhenTuplesAvailableOnAny( AT_LEAST, inputPortCount, 1, range( 0, inputPortCount ).toArray() );
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
 
         }

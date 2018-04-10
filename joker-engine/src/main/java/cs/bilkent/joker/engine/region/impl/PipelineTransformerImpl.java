@@ -24,9 +24,9 @@ import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.pipeline.OperatorReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
-import cs.bilkent.joker.engine.pipeline.UpstreamContext;
-import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedInvocationContext;
-import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedPartitionedInvocationContext;
+import cs.bilkent.joker.engine.pipeline.UpstreamCtx;
+import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedInvocationCtx;
+import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedPartitionedInvocationCtx;
 import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.Region;
 import static cs.bilkent.joker.engine.region.Region.isFusible;
@@ -44,9 +44,9 @@ import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkSt
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
+import cs.bilkent.joker.operator.impl.DefaultInvocationCtx;
 import cs.bilkent.joker.operator.impl.DefaultOutputCollector;
-import cs.bilkent.joker.operator.impl.InternalInvocationContext;
+import cs.bilkent.joker.operator.impl.InternalInvocationCtx;
 import cs.bilkent.joker.operator.impl.OutputCollector;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
@@ -143,9 +143,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                 final OperatorReplica operator = upPipelineReplica.getOperatorReplica( i );
                 operatorReplicas.add( operator.duplicate( upPipelineReplicaId,
                                                           meter,
-                                                          operator.getQueue(),
-                                                          operator.getDrainerPool(),
-                                                          operator.getDownstreamContext() ) );
+                                                          operator.getQueue(), operator.getDrainerPool(), operator.getDownstreamCtx() ) );
             }
 
             if ( isFusible( schedulingStrategies[ downPipelineStartIndex ] ) )
@@ -167,7 +165,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                                                             meter,
                                                             upOperator.getQueue(),
                                                             upOperator.getDrainerPool(),
-                                                            tailOperator.getUpstreamContext( 0 ) ) );
+                                                            tailOperator.getUpstreamCtx( 0 ) ) );
                 // first operator of the downstream pipeline gets a new pipeline replica id
                 final OperatorDef downOperatorDef = tailOperator.getOperatorDef( 0 );
                 final OperatorQueue downOperatorQueue;
@@ -182,9 +180,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                 final TupleQueueDrainerPool drainerPool = new NonBlockingTupleQueueDrainerPool( config, downOperatorDef );
                 operatorReplicas.add( tailOperator.duplicate( upPipelineReplicaId,
                                                               meter,
-                                                              downOperatorQueue,
-                                                              drainerPool,
-                                                              tailOperator.getDownstreamContext() ) );
+                                                              downOperatorQueue, drainerPool, tailOperator.getDownstreamCtx() ) );
             }
 
             // operators of the downstream pipeline except the first operator are duplicated
@@ -193,9 +189,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                 final OperatorReplica operator = downPipelineReplica.getOperatorReplica( i );
                 operatorReplicas.add( operator.duplicate( upPipelineReplicaId,
                                                           meter,
-                                                          operator.getQueue(),
-                                                          operator.getDrainerPool(),
-                                                          operator.getDownstreamContext() ) );
+                                                          operator.getQueue(), operator.getDrainerPool(), operator.getDownstreamCtx() ) );
             }
 
             final OperatorReplica[] operatorReplicasArray = operatorReplicas.toArray( new OperatorReplica[ 0 ] );
@@ -204,7 +198,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
 
         return new Region( execPlan.withMergedPipelines( asList( upPipelineStartIndex, downPipelineStartIndex ) ),
                            region.getSchedulingStrategies(),
-                           region.getUpstreamContexts(),
+                           region.getUpstreamCtxes(),
                            newPipelineReplicas );
     }
 
@@ -288,15 +282,15 @@ public class PipelineTransformerImpl implements PipelineTransformer
         final int downOperatorCount = downOperatorReplica.getOperatorCount();
         final OperatorDef[] operatorDefs = new OperatorDef[ upOperatorCount + downOperatorCount ];
         final Operator[] operators = new Operator[ upOperatorCount + downOperatorCount ];
-        final UpstreamContext[] upstreamContexts = new UpstreamContext[ upOperatorCount + downOperatorCount ];
-        final InternalInvocationContext[] invocationContexts = new InternalInvocationContext[ upOperatorCount + downOperatorCount ];
+        final UpstreamCtx[] upstreamCtxes = new UpstreamCtx[ upOperatorCount + downOperatorCount ];
+        final InternalInvocationCtx[] invocationCtxes = new InternalInvocationCtx[ upOperatorCount + downOperatorCount ];
 
         // copy from the upstream operator replica
         for ( int i = 0; i < upOperatorCount; i++ )
         {
             operatorDefs[ i ] = upOperatorReplica.getOperatorDef( i );
             operators[ i ] = upOperatorReplica.getOperator( i );
-            upstreamContexts[ i ] = upOperatorReplica.getUpstreamContext( i );
+            upstreamCtxes[ i ] = upOperatorReplica.getUpstreamCtx( i );
         }
 
         // copy from the downstream operator replica
@@ -304,13 +298,13 @@ public class PipelineTransformerImpl implements PipelineTransformer
         {
             operatorDefs[ upOperatorCount + i ] = downOperatorReplica.getOperatorDef( i );
             operators[ upOperatorCount + i ] = downOperatorReplica.getOperator( i );
-            upstreamContexts[ upOperatorCount + i ] = downOperatorReplica.getUpstreamContext( i );
+            upstreamCtxes[ upOperatorCount + i ] = downOperatorReplica.getUpstreamCtx( i );
         }
 
         // copy fused invocation contexts of the downstream operator replica
         for ( int i = 1; i < downOperatorCount; i++ )
         {
-            invocationContexts[ upOperatorCount + i ] = downOperatorReplica.getInvocationContext( i );
+            invocationCtxes[ upOperatorCount + i ] = downOperatorReplica.getInvocationCtx( i );
         }
 
         // create a new fused invocation context for the first operator of the downstream operator replica
@@ -324,7 +318,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
         }
         else
         {
-            fusingOutputCollector = (OutputCollector) invocationContexts[ upOperatorCount + 1 ];
+            fusingOutputCollector = (OutputCollector) invocationCtxes[ upOperatorCount + 1 ];
         }
 
         if ( fusingOperatorDef.getOperatorType() == PARTITIONED_STATEFUL )
@@ -337,10 +331,10 @@ public class PipelineTransformerImpl implements PipelineTransformer
             final PartitionKeyExtractor ext = partitionKeyExtractorFactory.createPartitionKeyExtractor( partitionFieldNames,
                                                                                                         forwardedKeySize );
 
-            invocationContexts[ upOperatorCount ] = new FusedPartitionedInvocationContext( fusingOperatorDef.getInputPortCount(),
-                                                                                           kvStore::getKVStore,
-                                                                                           ext,
-                                                                                           fusingOutputCollector );
+            invocationCtxes[ upOperatorCount ] = new FusedPartitionedInvocationCtx( fusingOperatorDef.getInputPortCount(),
+                                                                                    kvStore::getKVStore,
+                                                                                    ext,
+                                                                                    fusingOutputCollector );
 
         }
         else
@@ -355,16 +349,16 @@ public class PipelineTransformerImpl implements PipelineTransformer
                 kvStoreSupplier = k -> null;
             }
 
-            invocationContexts[ upOperatorCount ] = new FusedInvocationContext( fusingOperatorDef.getInputPortCount(),
-                                                                                kvStoreSupplier,
-                                                                                fusingOutputCollector );
+            invocationCtxes[ upOperatorCount ] = new FusedInvocationCtx( fusingOperatorDef.getInputPortCount(),
+                                                                         kvStoreSupplier,
+                                                                         fusingOutputCollector );
         }
 
         // create new fused invocation contexts for fused operators of the upstream operator replica
         for ( int i = upOperatorCount - 1; i > 0; i-- )
         {
             final OperatorDef operatorDef = upOperatorReplica.getOperatorDef( i );
-            final OutputCollector outputCollector = (OutputCollector) invocationContexts[ i + 1 ];
+            final OutputCollector outputCollector = (OutputCollector) invocationCtxes[ i + 1 ];
 
             if ( operatorDef.getOperatorType() == PARTITIONED_STATEFUL )
             {
@@ -373,9 +367,10 @@ public class PipelineTransformerImpl implements PipelineTransformer
                 final int forwardedKeySize = region.getRegionDef().getForwardedKeySize();
                 final PartitionKeyExtractor ext = partitionKeyExtractorFactory.createPartitionKeyExtractor( partitionFieldNames,
                                                                                                             forwardedKeySize );
-                invocationContexts[ i ] = new FusedPartitionedInvocationContext( operatorDef.getInputPortCount(),
-                                                                                 kvStore::getKVStore,
-                                                                                 ext, outputCollector );
+                invocationCtxes[ i ] = new FusedPartitionedInvocationCtx( operatorDef.getInputPortCount(),
+                                                                          kvStore::getKVStore,
+                                                                          ext,
+                                                                          outputCollector );
             }
             else
             {
@@ -389,7 +384,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                     kvStoreSupplier = k -> null;
                 }
 
-                invocationContexts[ i ] = new FusedInvocationContext( operatorDef.getInputPortCount(), kvStoreSupplier, outputCollector );
+                invocationCtxes[ i ] = new FusedInvocationCtx( operatorDef.getInputPortCount(), kvStoreSupplier, outputCollector );
             }
         }
 
@@ -408,22 +403,22 @@ public class PipelineTransformerImpl implements PipelineTransformer
             kvStoreSupplier = k -> null;
         }
 
-        invocationContexts[ 0 ] = new DefaultInvocationContext( upOperatorDef.getInputPortCount(),
-                                                                kvStoreSupplier, (OutputCollector) invocationContexts[ 1 ] );
+        invocationCtxes[ 0 ] = new DefaultInvocationCtx( upOperatorDef.getInputPortCount(),
+                                                         kvStoreSupplier,
+                                                         (OutputCollector) invocationCtxes[ 1 ] );
 
-        final Function<PartitionKey, TuplesImpl> drainerTuplesSupplier = ( (DefaultInvocationContext) invocationContexts[ 0 ] )
-                                                                                 ::createInputTuples;
-        return OperatorReplica.running( pipelineReplicaId,
-                                        meter,
-                                        upOperatorReplica.getQueue(),
-                                        upOperatorReplica.getDrainerPool(),
-                                        operatorDefs,
-                                        drainerTuplesSupplier,
-                                        invocationContexts,
-                                        operators,
-                                        upstreamContexts,
-                                        region.getSchedulingStrategy( pipelineReplicaId.pipelineId.getPipelineStartIndex() ),
-                                        downOperatorReplica.getDownstreamContext() );
+        final Function<PartitionKey, TuplesImpl> drainerTuplesSupplier = ( (DefaultInvocationCtx) invocationCtxes[ 0 ] )::createInputTuples;
+        return OperatorReplica.newRunningInstance( pipelineReplicaId,
+                                                   meter,
+                                                   upOperatorReplica.getQueue(),
+                                                   upOperatorReplica.getDrainerPool(),
+                                                   operatorDefs,
+                                                   drainerTuplesSupplier,
+                                                   invocationCtxes,
+                                                   operators,
+                                                   upstreamCtxes,
+                                                   region.getSchedulingStrategy( pipelineReplicaId.pipelineId.getPipelineStartIndex() ),
+                                                   downOperatorReplica.getDownstreamCtx() );
     }
 
     private void drainPipelineQueue ( final OperatorQueue pipelineQueue, final OperatorQueue operatorQueue, final OperatorDef operatorDef )
@@ -562,7 +557,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                                                                                                     downstreamOperators.toArray( new OperatorReplica[ 0 ] ),
                                                                                                     pipelineQueue,
                                                                                                     downMeter,
-                                                                                                    region.getUpstreamContexts()[
+                                                                                                    region.getUpstreamCtxes()[
                                                                                                             splitPipelineStartIndex ] );
             }
 
@@ -585,7 +580,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
 
         return new Region( execPlan.withSplitPipeline( asList( pipelineStartIndex, splitPipelineStartIndex ) ),
                            region.getSchedulingStrategies(),
-                           region.getUpstreamContexts(),
+                           region.getUpstreamCtxes(),
                            newPipelineReplicas );
     }
 
@@ -627,7 +622,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                                                                       upMeter,
                                                                       operatorReplica.getQueue(),
                                                                       operatorReplica.getDrainerPool(),
-                                                                      operatorReplica.getDownstreamContext() ) );
+                                                                      operatorReplica.getDownstreamCtx() ) );
                 }
                 else
                 {
@@ -640,7 +635,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                                                                     downMeter,
                                                                     operatorReplica.getQueue(),
                                                                     operatorReplica.getDrainerPool(),
-                                                                    operatorReplica.getDownstreamContext() ) );
+                                                                    operatorReplica.getDownstreamCtx() ) );
             }
         }
 
@@ -667,32 +662,32 @@ public class PipelineTransformerImpl implements PipelineTransformer
     {
         final OperatorDef[] operatorDefs = new OperatorDef[ until ];
         final Operator[] operators = new Operator[ until ];
-        final UpstreamContext[] upstreamContexts = new UpstreamContext[ until ];
-        final InternalInvocationContext[] invocationContexts = new InternalInvocationContext[ until ];
+        final UpstreamCtx[] upstreamCtxes = new UpstreamCtx[ until ];
+        final InternalInvocationCtx[] invocationCtxes = new InternalInvocationCtx[ until ];
 
         final RegionDef regionDef = region.getRegionDef();
 
-        duplicateFusedOperatorInvocationContexts( regionDef,
-                                                  pipelineReplicaId,
-                                                  operatorReplica,
-                                                  0,
-                                                  until,
-                                                  operatorDefs,
-                                                  operators,
-                                                  upstreamContexts,
-                                                  invocationContexts );
+        duplicateFusedOperatorInvocationCtxes( regionDef,
+                                               pipelineReplicaId,
+                                               operatorReplica,
+                                               0,
+                                               until,
+                                               operatorDefs,
+                                               operators,
+                                               upstreamCtxes,
+                                               invocationCtxes );
 
-        return OperatorReplica.running( pipelineReplicaId,
-                                        meter,
-                                        operatorReplica.getQueue(),
-                                        operatorReplica.getDrainerPool(),
-                                        operatorDefs,
-                                        ( (DefaultInvocationContext) invocationContexts[ 0 ] )::createInputTuples,
-                                        invocationContexts,
-                                        operators,
-                                        upstreamContexts,
-                                        region.getSchedulingStrategy( pipelineReplicaId.pipelineId.getPipelineStartIndex() ),
-                                        null );
+        return OperatorReplica.newRunningInstance( pipelineReplicaId,
+                                                   meter,
+                                                   operatorReplica.getQueue(),
+                                                   operatorReplica.getDrainerPool(),
+                                                   operatorDefs,
+                                                   ( (DefaultInvocationCtx) invocationCtxes[ 0 ] )::createInputTuples,
+                                                   invocationCtxes,
+                                                   operators,
+                                                   upstreamCtxes,
+                                                   region.getSchedulingStrategy( pipelineReplicaId.pipelineId.getPipelineStartIndex() ),
+                                                   null );
     }
 
     private OperatorReplica duplicateSplitFusedOperatorReplicaTail ( final Region region,
@@ -706,21 +701,21 @@ public class PipelineTransformerImpl implements PipelineTransformer
         final int operatorCount = operatorReplica.getOperatorCount() - from;
         final OperatorDef[] operatorDefs = new OperatorDef[ operatorCount ];
         final Operator[] operators = new Operator[ operatorCount ];
-        final UpstreamContext[] upstreamContexts = new UpstreamContext[ operatorCount ];
-        final InternalInvocationContext[] invocationContexts = new InternalInvocationContext[ operatorCount ];
+        final UpstreamCtx[] upstreamCtxes = new UpstreamCtx[ operatorCount ];
+        final InternalInvocationCtx[] invocationCtxes = new InternalInvocationCtx[ operatorCount ];
 
         final RegionDef regionDef = region.getRegionDef();
         final int regionId = regionDef.getRegionId();
 
-        duplicateFusedOperatorInvocationContexts( regionDef,
-                                                  pipelineReplicaId,
-                                                  operatorReplica,
-                                                  from,
-                                                  operatorReplica.getOperatorCount(),
-                                                  operatorDefs,
-                                                  operators,
-                                                  upstreamContexts,
-                                                  invocationContexts );
+        duplicateFusedOperatorInvocationCtxes( regionDef,
+                                               pipelineReplicaId,
+                                               operatorReplica,
+                                               from,
+                                               operatorReplica.getOperatorCount(),
+                                               operatorDefs,
+                                               operators,
+                                               upstreamCtxes,
+                                               invocationCtxes );
 
         final OperatorQueue headOperatorQueue;
         final TupleQueueDrainerPool headTupleQueueDrainerPool;
@@ -735,29 +730,29 @@ public class PipelineTransformerImpl implements PipelineTransformer
             headTupleQueueDrainerPool = new BlockingTupleQueueDrainerPool( config, operatorDef );
         }
 
-        return OperatorReplica.running( pipelineReplicaId,
-                                        meter,
-                                        headOperatorQueue,
-                                        headTupleQueueDrainerPool,
-                                        operatorDefs,
-                                        ( (DefaultInvocationContext) invocationContexts[ 0 ] )::createInputTuples,
-                                        invocationContexts,
-                                        operators,
-                                        upstreamContexts,
-                                        region.getSchedulingStrategy( pipelineReplicaId.pipelineId.getPipelineStartIndex() ),
-                                        operatorReplica.getDownstreamContext() );
+        return OperatorReplica.newRunningInstance( pipelineReplicaId,
+                                                   meter,
+                                                   headOperatorQueue,
+                                                   headTupleQueueDrainerPool,
+                                                   operatorDefs,
+                                                   ( (DefaultInvocationCtx) invocationCtxes[ 0 ] )::createInputTuples,
+                                                   invocationCtxes,
+                                                   operators,
+                                                   upstreamCtxes,
+                                                   region.getSchedulingStrategy( pipelineReplicaId.pipelineId.getPipelineStartIndex() ),
+                                                   operatorReplica.getDownstreamCtx() );
     }
 
     // from: inclusive, until: exclusive
-    private void duplicateFusedOperatorInvocationContexts ( final RegionDef regionDef,
-                                                            final PipelineReplicaId pipelineReplicaId,
-                                                            final OperatorReplica operatorReplica,
-                                                            final int from,
-                                                            final int until,
-                                                            final OperatorDef[] operatorDefs,
-                                                            final Operator[] operators,
-                                                            final UpstreamContext[] upstreamContexts,
-                                                            final InternalInvocationContext[] invocationContexts )
+    private void duplicateFusedOperatorInvocationCtxes ( final RegionDef regionDef,
+                                                         final PipelineReplicaId pipelineReplicaId,
+                                                         final OperatorReplica operatorReplica,
+                                                         final int from,
+                                                         final int until,
+                                                         final OperatorDef[] operatorDefs,
+                                                         final Operator[] operators,
+                                                         final UpstreamCtx[] upstreamCtxes,
+                                                         final InternalInvocationCtx[] invocationCtxes )
     {
         checkState( from < until );
 
@@ -766,7 +761,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
             final int j = i - from;
             operatorDefs[ j ] = operatorReplica.getOperatorDef( i );
             operators[ j ] = operatorReplica.getOperator( i );
-            upstreamContexts[ j ] = operatorReplica.getUpstreamContext( i );
+            upstreamCtxes[ j ] = operatorReplica.getUpstreamCtx( i );
         }
 
         for ( int i = ( until - 1 ); i > from; i-- )
@@ -776,7 +771,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
             final OutputCollector outputCollector;
             if ( i < ( until - 1 ) )
             {
-                outputCollector = (OutputCollector) invocationContexts[ j + 1 ];
+                outputCollector = (OutputCollector) invocationCtxes[ j + 1 ];
             }
             else
             {
@@ -792,10 +787,10 @@ public class PipelineTransformerImpl implements PipelineTransformer
                 final int forwardedKeySize = regionDef.getForwardedKeySize();
                 final PartitionKeyExtractor ext = partitionKeyExtractorFactory.createPartitionKeyExtractor( partitionFieldNames,
                                                                                                             forwardedKeySize );
-                invocationContexts[ j ] = new FusedPartitionedInvocationContext( operatorDef.getInputPortCount(),
-                                                                                 kvStore::getKVStore,
-                                                                                 ext,
-                                                                                 outputCollector );
+                invocationCtxes[ j ] = new FusedPartitionedInvocationCtx( operatorDef.getInputPortCount(),
+                                                                          kvStore::getKVStore,
+                                                                          ext,
+                                                                          outputCollector );
             }
             else
             {
@@ -809,7 +804,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                     kvStoreSupplier = k -> null;
                 }
 
-                invocationContexts[ j ] = new FusedInvocationContext( operatorDef.getInputPortCount(), kvStoreSupplier, outputCollector );
+                invocationCtxes[ j ] = new FusedInvocationCtx( operatorDef.getInputPortCount(), kvStoreSupplier, outputCollector );
             }
         }
 
@@ -831,16 +826,16 @@ public class PipelineTransformerImpl implements PipelineTransformer
         }
 
         final OutputCollector outputCollector;
-        if ( invocationContexts.length > 1 )
+        if ( invocationCtxes.length > 1 )
         {
-            outputCollector = (OutputCollector) invocationContexts[ 1 ];
+            outputCollector = (OutputCollector) invocationCtxes[ 1 ];
         }
         else
         {
             outputCollector = new DefaultOutputCollector( new TuplesImpl( headOperatorDef.getOutputPortCount() ) );
         }
 
-        invocationContexts[ 0 ] = new DefaultInvocationContext( headOperatorDef.getInputPortCount(), kvStoreSupplier, outputCollector );
+        invocationCtxes[ 0 ] = new DefaultInvocationCtx( headOperatorDef.getInputPortCount(), kvStoreSupplier, outputCollector );
     }
 
     private PipelineReplica duplicateSplitPipelineHead ( final PipelineReplica pipelineReplica,
@@ -855,7 +850,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                                                                                            meter,
                                                                                            op.getQueue(),
                                                                                            op.getDrainerPool(),
-                                                                                           op.getDownstreamContext() ) )
+                                                                                           op.getDownstreamCtx() ) )
                                                                  .collect( toList() );
         duplicates.add( tailOperatorReplica.duplicate( pipelineReplica.id(),
                                                        meter,
@@ -911,20 +906,18 @@ public class PipelineTransformerImpl implements PipelineTransformer
                                                                                                     meter,
                                                                                                     op.getQueue(),
                                                                                                     op.getDrainerPool(),
-                                                                                                    op.getDownstreamContext() ) )
+                                                                                                    op.getDownstreamCtx() ) )
                                                                           .collect( toList() );
         newOperatorReplicas.add( 0,
                                  headOperatorReplica.duplicate( newPipelineReplicaId,
                                                                 meter,
                                                                 headOperatorQueue,
                                                                 headOperatorDrainerPool,
-                                                                headOperatorReplica.getDownstreamContext() ) );
+                                                                headOperatorReplica.getDownstreamCtx() ) );
 
         return PipelineReplica.running( newPipelineReplicaId,
                                         newOperatorReplicas.toArray( new OperatorReplica[ 0 ] ),
-                                        pipelineQueue,
-                                        meter,
-                                        newOperatorReplicas.get( 0 ).getUpstreamContext( 0 ) );
+                                        pipelineQueue, meter, newOperatorReplicas.get( 0 ).getUpstreamCtx( 0 ) );
     }
 
     private void splitOperatorReplicas ( final OperatorDef splitOperator,

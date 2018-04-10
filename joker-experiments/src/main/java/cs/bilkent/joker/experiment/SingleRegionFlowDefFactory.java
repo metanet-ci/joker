@@ -40,18 +40,16 @@ public class SingleRegionFlowDefFactory implements FlowDefFactory
 
         final FlowDefBuilder flowDefBuilder = new FlowDefBuilder();
 
-        OperatorConfig beaconConfig = new OperatorConfig();
-        beaconConfig.set( KEY_RANGE_CONFIG_PARAMETER, keyRange );
-        beaconConfig.set( VALUE_RANGE_CONFIG_PARAMETER, valueRange );
-        beaconConfig.set( TUPLES_PER_KEY_CONFIG_PARAMETER, tuplesPerKey );
-        beaconConfig.set( KEYS_PER_INVOCATION_CONFIG_PARAMETER, keysPerInvocation );
+        OperatorConfig beaconConfig = new OperatorConfig().set( KEY_RANGE_CONFIG_PARAMETER, keyRange )
+                                                          .set( VALUE_RANGE_CONFIG_PARAMETER, valueRange )
+                                                          .set( TUPLES_PER_KEY_CONFIG_PARAMETER, tuplesPerKey )
+                                                          .set( KEYS_PER_INVOCATION_CONFIG_PARAMETER, keysPerInvocation );
 
         OperatorDef beacon = OperatorDefBuilder.newInstance( "bc", MemorizingBeaconOperator.class ).setConfig( beaconConfig ).build();
 
         flowDefBuilder.add( beacon );
 
-        OperatorConfig ptionerConfig = new OperatorConfig();
-        ptionerConfig.set( MULTIPLICATION_COUNT, operatorCosts.get( 0 ) );
+        OperatorConfig ptionerConfig = new OperatorConfig().set( MULTIPLICATION_COUNT, operatorCosts.get( 0 ) );
 
         OperatorDef ptioner = OperatorDefBuilder.newInstance( "m0", PartitionedStatefulMultiplierOperator.class )
                                                 .setConfig( ptionerConfig )
@@ -64,8 +62,7 @@ public class SingleRegionFlowDefFactory implements FlowDefFactory
 
         for ( int i = 1; i < operatorCosts.size(); i++ )
         {
-            OperatorConfig multiplierConfig = new OperatorConfig();
-            multiplierConfig.set( MULTIPLICATION_COUNT, operatorCosts.get( i ) );
+            OperatorConfig multiplierConfig = new OperatorConfig().set( MULTIPLICATION_COUNT, operatorCosts.get( i ) );
 
             OperatorDef multiplier = OperatorDefBuilder.newInstance( "m" + i, StatelessMultiplierOperator.class )
                                                        .setConfig( multiplierConfig )

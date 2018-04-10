@@ -35,7 +35,10 @@ import cs.bilkent.joker.engine.flow.FlowExecPlan;
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.engine.flow.RegionExecPlan;
+import cs.bilkent.joker.engine.metric.LatencyMeter;
+import cs.bilkent.joker.engine.metric.MetricManager;
 import cs.bilkent.joker.engine.metric.PipelineMeter;
+import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
 import cs.bilkent.joker.engine.partition.PartitionDistribution;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractorFactory;
@@ -46,11 +49,11 @@ import cs.bilkent.joker.engine.pipeline.Pipeline;
 import cs.bilkent.joker.engine.pipeline.PipelineManager;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
-import cs.bilkent.joker.engine.pipeline.UpstreamContext;
-import cs.bilkent.joker.engine.pipeline.UpstreamContext.ConnectionStatus;
-import static cs.bilkent.joker.engine.pipeline.UpstreamContext.ConnectionStatus.CLOSED;
-import static cs.bilkent.joker.engine.pipeline.UpstreamContext.ConnectionStatus.OPEN;
-import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newSourceOperatorShutdownUpstreamContext;
+import cs.bilkent.joker.engine.pipeline.UpstreamCtx;
+import cs.bilkent.joker.engine.pipeline.UpstreamCtx.ConnectionStatus;
+import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.ConnectionStatus.CLOSED;
+import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.ConnectionStatus.OPEN;
+import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createSourceOperatorShutdownUpstreamCtx;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.CompositeDownstreamCollector;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.DownstreamCollector1;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.DownstreamCollectorN;
@@ -64,6 +67,9 @@ import static cs.bilkent.joker.engine.util.RegionUtil.getFirstOperator;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.Port;
 import cs.bilkent.joker.operator.OperatorDef;
+import cs.bilkent.joker.operator.Tuple;
+import static cs.bilkent.joker.operator.TupleAccessor.record;
+import static cs.bilkent.joker.operator.TupleAccessor.setIngestionTime;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
@@ -98,6 +104,8 @@ public class PipelineManagerImpl implements PipelineManager
 
     private final PartitionKeyExtractorFactory partitionKeyExtractorFactory;
 
+    private final MetricManager metricManager;
+
     private final AtomicBoolean downstreamCollectorFailureFlag;
 
     private final ThreadGroup jokerThreadGroup;
@@ -124,6 +132,7 @@ public class PipelineManagerImpl implements PipelineManager
                                  final RegionManager regionManager,
                                  final PartitionService partitionService,
                                  final PartitionKeyExtractorFactory partitionKeyExtractorFactory,
+                                 final MetricManager metricManager,
                                  @Named( DOWNSTREAM_FAILURE_FLAG_NAME ) final AtomicBoolean downstreamCollectorFailureFlag,
                                  @Named( JOKER_THREAD_GROUP_NAME ) final ThreadGroup jokerThreadGroup )
     {
@@ -131,6 +140,7 @@ public class PipelineManagerImpl implements PipelineManager
         this.regionManager = regionManager;
         this.partitionService = partitionService;
         this.partitionKeyExtractorFactory = partitionKeyExtractorFactory;
+        this.metricManager = metricManager;
         this.downstreamCollectorFailureFlag = downstreamCollectorFailureFlag;
         this.jokerThreadGroup = jokerThreadGroup;
         createDownstreamCollectorFactories();
@@ -310,10 +320,10 @@ public class PipelineManagerImpl implements PipelineManager
     }
 
     @Override
-    public UpstreamContext getUpstreamContext ( final PipelineReplicaId id )
+    public UpstreamCtx getUpstreamCtx ( final PipelineReplicaId id )
     {
         final Pipeline pipeline = getPipelineOrFail( id.pipelineId );
-        return pipeline.getUpstreamContext();
+        return pipeline.getUpstreamCtx();
     }
 
     @Override
@@ -334,16 +344,16 @@ public class PipelineManagerImpl implements PipelineManager
         {
             for ( Pipeline downstreamPipeline : getDownstreamPipelines( pipeline ) )
             {
-                final UpstreamContext updatedUpstreamContext = getUpdatedUpstreamContext( downstreamPipeline );
-                if ( updatedUpstreamContext != null )
+                final UpstreamCtx updatedUpstreamCtx = getUpdatedUpstreamCtx( downstreamPipeline );
+                if ( updatedUpstreamCtx != null )
                 {
-                    downstreamPipeline.handleUpstreamContextUpdated( updatedUpstreamContext );
+                    downstreamPipeline.handleUpstreamCtxUpdated( updatedUpstreamCtx );
                 }
                 else
                 {
                     LOGGER.info( "Upstream Pipeline {} is completed but {} of Downstream Pipeline {} is same.",
                                  id,
-                                 downstreamPipeline.getUpstreamContext(),
+                                 downstreamPipeline.getUpstreamCtx(),
                                  downstreamPipeline.getId() );
                 }
             }
@@ -364,20 +374,20 @@ public class PipelineManagerImpl implements PipelineManager
                    .collect( toList() );
     }
 
-    private UpstreamContext getUpdatedUpstreamContext ( final Pipeline pipeline )
+    private UpstreamCtx getUpdatedUpstreamCtx ( final Pipeline pipeline )
     {
         final ConnectionStatus[] connectionStatuses = getUpstreamConnectionStatuses( pipeline );
-        final UpstreamContext current = pipeline.getUpstreamContext();
-        UpstreamContext newContext = current;
+        final UpstreamCtx currentCtx = pipeline.getUpstreamCtx();
+        UpstreamCtx newCtx = currentCtx;
         for ( int i = 0; i < connectionStatuses.length; i++ )
         {
             if ( connectionStatuses[ i ] == CLOSED )
             {
-                newContext = newContext.withConnectionClosed( i );
+                newCtx = newCtx.withConnectionClosed( i );
             }
         }
 
-        return newContext != current ? newContext : null;
+        return newCtx != currentCtx ? newCtx : null;
     }
 
     private ConnectionStatus[] getUpstreamConnectionStatuses ( final Pipeline pipeline )
@@ -443,7 +453,7 @@ public class PipelineManagerImpl implements PipelineManager
             final OperatorDef operatorDef = pipeline.getFirstOperatorDef();
             if ( flow.isSourceOperator( operatorDef.getId() ) )
             {
-                pipeline.handleUpstreamContextUpdated( newSourceOperatorShutdownUpstreamContext() );
+                pipeline.handleUpstreamCtxUpdated( createSourceOperatorShutdownUpstreamCtx() );
             }
         }
     }
@@ -793,8 +803,7 @@ public class PipelineManagerImpl implements PipelineManager
                     final PartitionKeyExtractor partitionKeyExtractor = partitionKeyExtractorFactory.createPartitionKeyExtractor(
                             downstreamRegionDef.getPartitionFieldNames() );
                     collectorsToDownstreamOperators[ i ] = partitionedDownstreamCollectorCtors[ j ].apply( pairs,
-                                                                                                           partitionService
-                                                                                                                         .getPartitionCount(),
+                                                                                                           partitionService.getPartitionCount(),
                                                                                                            partitionDistribution,
                                                                                                            pipelineQueues,
                                                                                                            partitionKeyExtractor );
@@ -838,19 +847,36 @@ public class PipelineManagerImpl implements PipelineManager
                 i++;
             }
 
-            DownstreamCollector collector;
-            if ( i == 0 )
-            {
-                collector = new NopDownstreamCollector();
-            }
-            else if ( i == 1 )
+            DownstreamCollector collector = null;
+            if ( i == 1 )
             {
                 collector = collectorsToDownstreamOperators[ 0 ];
             }
-            else
+            else if ( i > 1 )
             {
                 collector = new CompositeDownstreamCollector( collectorsToDownstreamOperators );
             }
+
+            if ( pipeline.getRegionDef().isSource() )
+            {
+                if ( i > 0 )
+                {
+                    final PipelineReplica pipelineReplica = pipeline.getPipelineReplica( replicaIndex );
+                    final PipelineReplicaMeter meter = pipelineReplica.getMeter();
+                    collector = new IngestionTimeInjector( meter, collector );
+                }
+                else
+                {
+                    collector = new NopDownstreamCollector();
+                }
+            }
+            else if ( i == 0 )
+            {
+                final LatencyMeter latencyMeter = metricManager.createLatencyMeter( pipeline.getLastOperatorDef().getId(), replicaIndex );
+                collector = new LatencyRecorder( latencyMeter );
+            }
+
+            checkState( collector != null );
 
             LOGGER.info( "Created {} for Pipeline {} replica index {}",
                          collector.getClass().getSimpleName(),
@@ -1068,6 +1094,76 @@ public class PipelineManagerImpl implements PipelineManager
         {
         }
 
+    }
+
+
+    static class IngestionTimeInjector implements DownstreamCollector
+    {
+
+        private final PipelineReplicaMeter meter;
+
+        private final DownstreamCollector downstream;
+
+        IngestionTimeInjector ( final PipelineReplicaMeter meter, final DownstreamCollector downstream )
+        {
+            this.meter = meter;
+            this.downstream = downstream;
+        }
+
+        @Override
+        public void accept ( final TuplesImpl tuples )
+        {
+            if ( meter.isTicked() )
+            {
+                final long ingestionTime = System.nanoTime();
+
+                for ( int i = 0, p = tuples.getPortCount(); i < p; i++ )
+                {
+                    final List<Tuple> l = tuples.getTuplesModifiable( i );
+                    for ( int j = 0, t = l.size(); j < t; j++ )
+                    {
+                        setIngestionTime( l.get( j ), ingestionTime );
+                    }
+                }
+            }
+
+            downstream.accept( tuples );
+        }
+
+        public DownstreamCollector getDownstream ()
+        {
+            return downstream;
+        }
+    }
+
+
+    static class LatencyRecorder implements DownstreamCollector
+    {
+
+        private final LatencyMeter latencyMeter;
+
+        LatencyRecorder ( final LatencyMeter latencyMeter )
+        {
+            this.latencyMeter = latencyMeter;
+        }
+
+        @Override
+        public void accept ( final TuplesImpl tuples )
+        {
+            if ( tuples.isNonEmpty() )
+            {
+                final long now = System.nanoTime();
+
+                for ( int i = 0; i < tuples.getPortCount(); i++ )
+                {
+                    final List<Tuple> l = tuples.getTuplesModifiable( i );
+                    for ( int j = 0; j < l.size(); j++ )
+                    {
+                        record( l.get( j ), latencyMeter, now );
+                    }
+                }
+            }
+        }
     }
 
 }

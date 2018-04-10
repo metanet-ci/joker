@@ -1,6 +1,6 @@
 package cs.bilkent.joker.engine.pipeline;
 
-import cs.bilkent.joker.operator.InitializationContext;
+import cs.bilkent.joker.operator.InitCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.scheduling.ScheduleNever;
 
@@ -16,7 +16,7 @@ public enum OperatorReplicaStatus
     INITIAL,
 
     /**
-     * Indicates that initialization of an operator has failed. It may be because {@link Operator#init(InitializationContext)} method
+     * Indicates that initialization of an operator has failed. It may be because {@link Operator#init(InitCtx)} method
      * throws an exception or it returns an invalid scheduling strategy.
      */
     INITIALIZATION_FAILED,

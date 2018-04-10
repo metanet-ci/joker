@@ -59,8 +59,7 @@ public class PartitionedDownstreamCollectorsTest extends AbstractJokerTest
                                                                                                operatorQueues,
                                                                                                partitionKeyExtractor );
 
-        final Tuple tuple = new Tuple();
-        tuple.set( "key", "val" );
+        final Tuple tuple = Tuple.of( "key", "val" );
         tuples.add( sourcePortIndex1, tuple );
         final int replicaIndex = 3;
         when( partitionKeyExtractor.getPartitionHash( tuple ) ).thenReturn( replicaIndex );
@@ -89,17 +88,13 @@ public class PartitionedDownstreamCollectorsTest extends AbstractJokerTest
                                                                                                operatorQueues,
                                                                                                partitionKeyExtractor );
 
-        final Tuple tuple1 = new Tuple();
-        tuple1.set( "key1", "val" );
+        final Tuple tuple1 = Tuple.of( "key1", "val" );
         tuples.add( sourcePortIndex1, tuple1 );
-        final Tuple tuple2 = new Tuple();
-        tuple2.set( "key2", "val" );
+        final Tuple tuple2 = Tuple.of( "key2", "val" );
         tuples.add( sourcePortIndex2, tuple2 );
-        final Tuple tuple3 = new Tuple();
-        tuple3.set( "key3", "val" );
+        final Tuple tuple3 = Tuple.of( "key3", "val" );
         tuples.add( sourcePortIndex3, tuple3 );
-        final Tuple tuple4 = new Tuple();
-        tuple4.set( "key4", "val" );
+        final Tuple tuple4 = Tuple.of( "key4", "val" );
         tuples.add( sourcePortIndex4, tuple4 );
         final int replicaIndex1 = 3, replicaIndex2 = 1, replicaIndex3 = 0, replicaIndex4 = 2;
         when( partitionKeyExtractor.getPartitionHash( tuple1 ) ).thenReturn( replicaIndex1 );

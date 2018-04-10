@@ -39,15 +39,13 @@ public class BargainDiscoveryFlowTest extends AbstractJokerTest
 
         flowBuilder.add( beaconOperatorBuilder );
 
-        final OperatorConfig vwapAggregatorConfig = new OperatorConfig();
-        vwapAggregatorConfig.set( WINDOW_SIZE_CONfIG_PARAMETER, 5 );
+        final OperatorConfig vwapAggregatorConfig = new OperatorConfig().set( WINDOW_SIZE_CONfIG_PARAMETER, 5 );
 
         flowBuilder.add( OperatorDefBuilder.newInstance( "vwapAggregator", VWAPAggregatorOperator.class )
                                            .setConfig( vwapAggregatorConfig )
                                            .setPartitionFieldNames( singletonList( TICKER_SYMBOL_FIELD ) ) );
 
-        final OperatorConfig cvwapConfig = new OperatorConfig();
-        cvwapConfig.set( MAPPER_CONFIG_PARAMETER, new CVWAPFunction() );
+        final OperatorConfig cvwapConfig = new OperatorConfig().set( MAPPER_CONFIG_PARAMETER, new CVWAPFunction() );
 
         final OperatorRuntimeSchemaBuilder cvwapSchemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
         cvwapSchemaBuilder.addInputField( 0, TICKER_SYMBOL_FIELD, String.class )

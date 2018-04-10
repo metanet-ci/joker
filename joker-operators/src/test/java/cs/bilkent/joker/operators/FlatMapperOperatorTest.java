@@ -5,13 +5,13 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 
-import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SUCCESS;
+import static cs.bilkent.joker.operator.InvocationCtx.InvocationReason.SUCCESS;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
-import cs.bilkent.joker.operator.impl.InitializationContextImpl;
+import cs.bilkent.joker.operator.impl.DefaultInvocationCtx;
+import cs.bilkent.joker.operator.impl.InitCtxImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import static cs.bilkent.joker.operators.FlatMapperOperator.FLAT_MAPPER_CONFIG_PARAMETER;
 import cs.bilkent.joker.test.AbstractJokerTest;
@@ -22,9 +22,9 @@ public class FlatMapperOperatorTest extends AbstractJokerTest
 
     private final TuplesImpl output = new TuplesImpl( 1 );
 
-    private final DefaultInvocationContext invocationContext = new DefaultInvocationContext( 1, key -> null, output );
+    private final DefaultInvocationCtx invocationCtx = new DefaultInvocationCtx( 1, key -> null, output );
 
-    private final TuplesImpl input = invocationContext.createInputTuples( null );
+    private final TuplesImpl input = invocationCtx.createInputTuples( null );
 
     private final OperatorConfig config = new OperatorConfig();
 
@@ -33,7 +33,7 @@ public class FlatMapperOperatorTest extends AbstractJokerTest
     @Before
     public void init () throws InstantiationException, IllegalAccessException
     {
-        invocationContext.setInvocationReason( SUCCESS );
+        invocationCtx.setInvocationReason( SUCCESS );
 
         final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "flatMapper", FlatMapperOperator.class )
                                                           .setConfig( config )
@@ -54,19 +54,18 @@ public class FlatMapperOperatorTest extends AbstractJokerTest
         };
 
         config.set( FLAT_MAPPER_CONFIG_PARAMETER, flatMapperFunc );
-        final InitializationContextImpl initContext = new InitializationContextImpl( operatorDef, new boolean[] { true } );
-        operator.init( initContext );
+        final InitCtxImpl initCtx = new InitCtxImpl( operatorDef, new boolean[] { true } );
+        operator.init( initCtx );
     }
 
     @Test
     public void shouldFlatMapValues ()
     {
-        final Tuple tuple = new Tuple();
         final int value = 5;
-        tuple.set( "val", value );
+        final Tuple tuple = Tuple.of( "val", value );
         input.add( tuple );
 
-        operator.invoke( invocationContext );
+        operator.invoke( invocationCtx );
 
         final List<Tuple> outputTuples = output.getTuples( 0 );
         assertEquals( 2, outputTuples.size() );

@@ -23,8 +23,8 @@ import cs.bilkent.joker.JokerTest.StaticRegionExecPlanFactory2;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
@@ -101,9 +101,8 @@ public class FwdKeyIntegrationTest extends AbstractJokerTest
         passer2Schema.addOutputField( 0, "value", Integer.class );
         foreachSchema.addInputField( 0, "value", Integer.class );
 
-        final OperatorConfig beacon1Config = new OperatorConfig();
-        beacon1Config.set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator );
-        beacon1Config.set( TUPLE_COUNT_CONFIG_PARAMETER, 20 );
+        final OperatorConfig beacon1Config = new OperatorConfig().set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator )
+                                                                 .set( TUPLE_COUNT_CONFIG_PARAMETER, 20 );
 
         final OperatorDef beacon = OperatorDefBuilder.newInstance( "beacon", BeaconOperator.class )
                                                      .setConfig( beacon1Config )
@@ -121,8 +120,7 @@ public class FwdKeyIntegrationTest extends AbstractJokerTest
                                                       .setPartitionFieldNames( partitionFieldNames )
                                                       .build();
 
-        final OperatorConfig collectorConfig = new OperatorConfig();
-        collectorConfig.set( CONSUMER_FUNCTION_CONFIG_PARAMETER, valueCollector );
+        final OperatorConfig collectorConfig = new OperatorConfig().set( CONSUMER_FUNCTION_CONFIG_PARAMETER, valueCollector );
 
         final OperatorDef collector = OperatorDefBuilder.newInstance( "collector", ForEachOperator.class )
                                                         .setConfig( collectorConfig )
@@ -166,13 +164,13 @@ public class FwdKeyIntegrationTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
             ctx.getInputTuplesByDefaultPort().forEach( ctx::output );
         }

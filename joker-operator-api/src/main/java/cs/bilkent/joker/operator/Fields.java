@@ -54,7 +54,7 @@ public interface Fields<K>
      * @param <T>
      *         type of the given value
      */
-    <T> void set ( K key, T value );
+    <T> Fields<K> set ( K key, T value );
 
     /**
      * Deletes the value associated with the given key if it exists, and returns the value or {@code NULL} if it doesn't exist.

@@ -18,7 +18,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.verify;
 
 @RunWith( MockitoJUnitRunner.class )
-public class FusedInvocationContextTest extends AbstractJokerTest
+public class FusedInvocationCtxTest extends AbstractJokerTest
 {
 
     @Mock
@@ -27,41 +27,41 @@ public class FusedInvocationContextTest extends AbstractJokerTest
     @Mock
     private OutputCollector outputCollector;
 
-    private FusedInvocationContext invocationContext;
+    private FusedInvocationCtx invocationCtx;
 
     @Before
     public void init ()
     {
-        invocationContext = new FusedInvocationContext( 1, kvStoreSupplier, outputCollector );
+        invocationCtx = new FusedInvocationCtx( 1, kvStoreSupplier, outputCollector );
     }
 
     @Test
     public void when_noOutputIsAdded_then_noInputIsPresent ()
     {
-        assertThat( invocationContext.getInputCount(), equalTo( 0 ) );
+        assertThat( invocationCtx.getInputCount(), equalTo( 0 ) );
     }
 
     @Test
     public void when_outputIsAdded_then_singleInputIsPresent ()
     {
-        invocationContext.add( new Tuple() );
+        invocationCtx.add( new Tuple() );
 
-        assertThat( invocationContext.getInputCount(), equalTo( 1 ) );
+        assertThat( invocationCtx.getInputCount(), equalTo( 1 ) );
     }
 
     @Test
     public void when_outputIsAddedMultipleTimes_then_singleInputIsPresent ()
     {
-        invocationContext.add( new Tuple() );
-        invocationContext.add( new Tuple() );
+        invocationCtx.add( new Tuple() );
+        invocationCtx.add( new Tuple() );
 
-        assertThat( invocationContext.getInputCount(), equalTo( 1 ) );
+        assertThat( invocationCtx.getInputCount(), equalTo( 1 ) );
     }
 
     @Test
     public void when_invocationContextIsReset_then_outputSupplierIsCleared ()
     {
-        invocationContext.reset();
+        invocationCtx.reset();
 
         verify( outputCollector ).clear();
     }
@@ -69,10 +69,10 @@ public class FusedInvocationContextTest extends AbstractJokerTest
     @Test
     public void when_invocationContextIsReset_then_noInputIsPresent ()
     {
-        invocationContext.add( new Tuple() );
-        invocationContext.reset();
+        invocationCtx.add( new Tuple() );
+        invocationCtx.reset();
 
-        assertThat( invocationContext.getInputCount(), equalTo( 0 ) );
+        assertThat( invocationCtx.getInputCount(), equalTo( 0 ) );
     }
 
 }

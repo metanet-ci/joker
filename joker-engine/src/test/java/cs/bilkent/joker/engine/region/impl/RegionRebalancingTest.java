@@ -27,8 +27,8 @@ import cs.bilkent.joker.engine.partition.impl.PartitionServiceImpl;
 import cs.bilkent.joker.engine.pipeline.OperatorReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
-import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedInvocationContext;
-import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedPartitionedInvocationContext;
+import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedInvocationCtx;
+import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedPartitionedInvocationCtx;
 import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.Region;
 import cs.bilkent.joker.engine.region.impl.RegionManagerImplTest.FlowExample6;
@@ -86,7 +86,9 @@ public class RegionRebalancingTest extends AbstractJokerTest
                                                                                          partitionKeyExtractorFactory );
 
     private final RegionManagerImpl regionManager = new RegionManagerImpl( config,
-                                                                           partitionService, operatorKVStoreManager, operatorQueueManager,
+                                                                           partitionService,
+                                                                           operatorKVStoreManager,
+                                                                           operatorQueueManager,
                                                                            pipelineTransformer,
                                                                            partitionKeyExtractorFactory );
 
@@ -173,7 +175,7 @@ public class RegionRebalancingTest extends AbstractJokerTest
             assertPartitionedOperatorQueue( operatorReplica10 );
             assertNonBlockingTupleQueueDrainerPool( operatorReplica10 );
 
-            assertTrue( operatorReplica10.getInvocationContext( 1 ) instanceof FusedInvocationContext );
+            assertTrue( operatorReplica10.getInvocationCtx( 1 ) instanceof FusedInvocationCtx );
         }
 
         assertNull( operatorKVStoreManager.getDefaultKVStore( region.getRegionId(), flowExample6.operatorDef3.getId() ) );
@@ -274,7 +276,7 @@ public class RegionRebalancingTest extends AbstractJokerTest
             assertNull( operatorKVStoreManager.getDefaultKVStore( region.getRegionId(), flowExample6.operatorDef1.getId() ) );
             assertNull( operatorKVStoreManager.getPartitionedKVStores( region.getRegionId(), flowExample6.operatorDef1.getId() ) );
 
-            assertTrue( operatorReplica00.getInvocationContext( 1 ) instanceof FusedPartitionedInvocationContext );
+            assertTrue( operatorReplica00.getInvocationCtx( 1 ) instanceof FusedPartitionedInvocationCtx );
 
             final OperatorReplica operatorReplica10 = pipeline1.getOperatorReplica( 0 );
             assertOperatorDef( operatorReplica10, 0, flowExample6.operatorDef3 );

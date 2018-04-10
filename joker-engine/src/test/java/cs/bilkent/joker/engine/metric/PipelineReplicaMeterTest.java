@@ -44,15 +44,15 @@ public class PipelineReplicaMeterTest extends AbstractJokerTest
     @Test
     public void shouldGetCurrentlyExecutingComponentOnTick ()
     {
-        pipelineReplicaMeter.tick();
+        pipelineReplicaMeter.tryTick();
 
         assertNull( pipelineReplicaMeter.getCurrentlyExecutingComponent() );
 
-        pipelineReplicaMeter.tick();
+        pipelineReplicaMeter.tryTick();
 
         assertEquals( PIPELINE_REPLICA_ID, pipelineReplicaMeter.getCurrentlyExecutingComponent() );
 
-        pipelineReplicaMeter.tick();
+        pipelineReplicaMeter.tryTick();
 
         assertNull( pipelineReplicaMeter.getCurrentlyExecutingComponent() );
     }
@@ -64,7 +64,7 @@ public class PipelineReplicaMeterTest extends AbstractJokerTest
 
         assertNull( pipelineReplicaMeter.getCurrentlyExecutingComponent() );
 
-        pipelineReplicaMeter.tick();
+        pipelineReplicaMeter.tryTick();
 
         assertNull( pipelineReplicaMeter.getCurrentlyExecutingComponent() );
     }
@@ -72,8 +72,8 @@ public class PipelineReplicaMeterTest extends AbstractJokerTest
     @Test
     public void shouldSetExecutingOperatorOnTick ()
     {
-        pipelineReplicaMeter.tick();
-        pipelineReplicaMeter.tick();
+        pipelineReplicaMeter.tryTick();
+        pipelineReplicaMeter.tryTick();
 
         pipelineReplicaMeter.onInvocationStart( "id" );
 
@@ -83,8 +83,8 @@ public class PipelineReplicaMeterTest extends AbstractJokerTest
     @Test
     public void shouldCompleteExecutingOperatorOnTick ()
     {
-        pipelineReplicaMeter.tick();
-        pipelineReplicaMeter.tick();
+        pipelineReplicaMeter.tryTick();
+        pipelineReplicaMeter.tryTick();
 
         pipelineReplicaMeter.onInvocationStart( "id" );
 
@@ -99,11 +99,10 @@ public class PipelineReplicaMeterTest extends AbstractJokerTest
     public void shouldCountInboundThroughputOnHeadOperator ()
     {
         final TuplesImpl tuples = new TuplesImpl( 2 );
-        tuples.add( 0, new Tuple() );
-        tuples.add( 0, new Tuple() );
+        tuples.add( 0, new Tuple(), new Tuple() );
         tuples.add( 1, new Tuple() );
 
-        pipelineReplicaMeter.addTuples( headOperatorId, tuples );
+        pipelineReplicaMeter.count( headOperatorId, tuples );
 
         final long[] buffer = new long[] { 0, 0 };
         pipelineReplicaMeter.readInboundThroughput( buffer );
@@ -114,10 +113,9 @@ public class PipelineReplicaMeterTest extends AbstractJokerTest
     public void shouldNotCountInboundThroughputOnAnotherOperator ()
     {
         final TuplesImpl tuples = new TuplesImpl( 1 );
-        tuples.add( 0, new Tuple() );
-        tuples.add( 0, new Tuple() );
+        tuples.add( 0, new Tuple(), new Tuple() );
 
-        pipelineReplicaMeter.addTuples( tailOperatorId, tuples );
+        pipelineReplicaMeter.count( tailOperatorId, tuples );
 
         final long[] buffer = new long[] { 0, 0 };
         pipelineReplicaMeter.readInboundThroughput( buffer );

@@ -3,14 +3,14 @@ package cs.bilkent.joker.operator.impl;
 import java.util.Arrays;
 import java.util.List;
 
-import cs.bilkent.joker.operator.InitializationContext;
+import cs.bilkent.joker.operator.InitCtx;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
 import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 
 
-public class InitializationContextImpl implements InitializationContext
+public class InitCtxImpl implements InitCtx
 {
     private String id;
 
@@ -26,7 +26,7 @@ public class InitializationContextImpl implements InitializationContext
 
     private boolean[] upstreamConnectionStatuses;
 
-    public InitializationContextImpl ( final OperatorDef operatorDef, final boolean[] upstreamConnectionStatuses )
+    public InitCtxImpl ( final OperatorDef operatorDef, final boolean[] upstreamConnectionStatuses )
     {
         this.id = operatorDef.getId();
         this.inputPortCount = operatorDef.getInputPortCount();

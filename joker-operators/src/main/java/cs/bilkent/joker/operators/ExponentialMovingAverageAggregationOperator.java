@@ -1,8 +1,8 @@
 package cs.bilkent.joker.operators;
 
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.Tuple;
@@ -52,7 +52,7 @@ public class ExponentialMovingAverageAggregationOperator implements Operator
     private TupleSchema windowSchema;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext ctx )
+    public SchedulingStrategy init ( final InitCtx ctx )
     {
         this.outputSchema = ctx.getOutputPortSchema( 0 );
 
@@ -67,7 +67,7 @@ public class ExponentialMovingAverageAggregationOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext ctx )
+    public void invoke ( final InvocationCtx ctx )
     {
         final KVStore kvStore = ctx.getKVStore();
 
@@ -76,18 +76,17 @@ public class ExponentialMovingAverageAggregationOperator implements Operator
         double value = currentWindow.getDoubleValueOrDefault( VALUE_FIELD, 0d );
         int tupleCount = currentWindow.getIntegerValueOrDefault( TUPLE_COUNT_FIELD, 0 );
 
-        for ( Tuple tuple : ctx.getInputTuplesByDefaultPort() )
+        for ( Tuple input : ctx.getInputTuplesByDefaultPort() )
         {
-            final double tupleValue = tuple.getDoubleValueOrDefault( fieldName, 0d );
+            final double tupleValue = input.getDoubleValueOrDefault( fieldName, 0d );
             value = ( tupleCount++ == 0 ) ? tupleValue : ( weight * tupleValue + ( 1 - weight ) * value );
-            final Tuple avgTuple = new Tuple( outputSchema );
-            avgTuple.set( VALUE_FIELD, value );
+            final Tuple avgTuple = Tuple.of( outputSchema, VALUE_FIELD, value );
+            avgTuple.attach( input );
 
             ctx.output( avgTuple );
         }
 
-        currentWindow.set( VALUE_FIELD, value );
-        currentWindow.set( TUPLE_COUNT_FIELD, tupleCount );
+        currentWindow.set( VALUE_FIELD, value ).set( TUPLE_COUNT_FIELD, tupleCount );
 
         kvStore.set( CURRENT_WINDOW_KEY, currentWindow );
     }

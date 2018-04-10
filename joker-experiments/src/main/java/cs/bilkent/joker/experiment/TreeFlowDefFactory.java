@@ -45,18 +45,16 @@ public class TreeFlowDefFactory implements FlowDefFactory
 
         final FlowDefBuilder flowDefBuilder = new FlowDefBuilder();
 
-        OperatorConfig beaconConfig = new OperatorConfig();
-        beaconConfig.set( KEY_RANGE_CONFIG_PARAMETER, keyRange );
-        beaconConfig.set( VALUE_RANGE_CONFIG_PARAMETER, valueRange );
-        beaconConfig.set( TUPLES_PER_KEY_CONFIG_PARAMETER, tuplesPerKey );
-        beaconConfig.set( KEYS_PER_INVOCATION_CONFIG_PARAMETER, keysPerInvocation );
+        OperatorConfig beaconConfig = new OperatorConfig().set( KEY_RANGE_CONFIG_PARAMETER, keyRange )
+                                                          .set( VALUE_RANGE_CONFIG_PARAMETER, valueRange )
+                                                          .set( TUPLES_PER_KEY_CONFIG_PARAMETER, tuplesPerKey )
+                                                          .set( KEYS_PER_INVOCATION_CONFIG_PARAMETER, keysPerInvocation );
 
         OperatorDef beacon = OperatorDefBuilder.newInstance( "bc", MemorizingBeaconOperator.class ).setConfig( beaconConfig ).build();
 
         flowDefBuilder.add( beacon );
 
-        OperatorConfig ptioner1Config = new OperatorConfig();
-        ptioner1Config.set( MULTIPLICATION_COUNT, operatorCostsUp.get( 0 ) );
+        OperatorConfig ptioner1Config = new OperatorConfig().set( MULTIPLICATION_COUNT, operatorCostsUp.get( 0 ) );
 
         OperatorDef ptioner1 = OperatorDefBuilder.newInstance( "m10", PartitionedStatefulMultiplierOperator.class )
                                                  .setConfig( ptioner1Config )
@@ -69,8 +67,7 @@ public class TreeFlowDefFactory implements FlowDefFactory
 
         for ( int i = 1; i < operatorCostsUp.size(); i++ )
         {
-            OperatorConfig multiplierConfig = new OperatorConfig();
-            multiplierConfig.set( MULTIPLICATION_COUNT, operatorCostsUp.get( i ) );
+            OperatorConfig multiplierConfig = new OperatorConfig().set( MULTIPLICATION_COUNT, operatorCostsUp.get( i ) );
 
             OperatorDef multiplier = OperatorDefBuilder.newInstance( "m1" + i, StatelessMultiplierOperator.class )
                                                        .setConfig( multiplierConfig )
@@ -83,8 +80,7 @@ public class TreeFlowDefFactory implements FlowDefFactory
         for ( int i = 0; i < downstreamOperatorCosts.size(); i++ )
         {
             final List<Integer> operatorCosts = downstreamOperatorCosts.get( i );
-            OperatorConfig ptioner3Config = new OperatorConfig();
-            ptioner3Config.set( MULTIPLICATION_COUNT, operatorCosts.get( 0 ) );
+            OperatorConfig ptioner3Config = new OperatorConfig().set( MULTIPLICATION_COUNT, operatorCosts.get( 0 ) );
 
             OperatorDef ptioner3 = OperatorDefBuilder.newInstance( "m2" + i + "0", PartitionedStatefulMultiplierOperator.class )
                                                      .setConfig( ptioner3Config )
@@ -96,8 +92,7 @@ public class TreeFlowDefFactory implements FlowDefFactory
 
             for ( int j = 1; j < operatorCosts.size(); j++ )
             {
-                OperatorConfig multiplierConfig = new OperatorConfig();
-                multiplierConfig.set( MULTIPLICATION_COUNT, operatorCosts.get( j ) );
+                OperatorConfig multiplierConfig = new OperatorConfig().set( MULTIPLICATION_COUNT, operatorCosts.get( j ) );
 
                 OperatorDef multiplier = OperatorDefBuilder.newInstance( "m2" + i + "" + j, StatelessMultiplierOperator.class )
                                                            .setConfig( multiplierConfig )

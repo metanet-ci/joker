@@ -47,9 +47,9 @@ public class Pipeline
 
     private final SchedulingStrategy[][] fusedOperatorSchedulingStrategies;
 
-    private final UpstreamContext[] operatorUpstreamContexts;
+    private final UpstreamCtx[] operatorUpstreamCtxes;
 
-    private final UpstreamContext[][] fusedOperatorUpstreamContexts;
+    private final UpstreamCtx[][] fusedOperatorUpstreamCtxes;
 
     private final PipelineReplica[] replicas;
 
@@ -65,7 +65,7 @@ public class Pipeline
 
     private PipelineReplicaRunnerStatus runnerStatus;
 
-    private volatile UpstreamContext upstreamContext;
+    private volatile UpstreamCtx upstreamCtx;
 
     public Pipeline ( final PipelineId id, final Region region )
     {
@@ -73,8 +73,8 @@ public class Pipeline
         this.regionExecPlan = region.getExecPlan();
         this.operatorSchedulingStrategies = region.getSchedulingStrategies( id );
         this.fusedOperatorSchedulingStrategies = region.getFusedSchedulingStrategies( id );
-        this.operatorUpstreamContexts = region.getUpstreamContexts( id );
-        this.fusedOperatorUpstreamContexts = region.getFusedUpstreamContexts( id );
+        this.operatorUpstreamCtxes = region.getUpstreamCtxes( id );
+        this.fusedOperatorUpstreamCtxes = region.getFusedUpstreamCtxes( id );
         this.replicas = region.getPipelineReplicas( id );
         final int replicaCount = regionExecPlan.getReplicaCount();
         this.threads = new Thread[ replicaCount ];
@@ -122,9 +122,9 @@ public class Pipeline
         return pipelineStatus;
     }
 
-    public UpstreamContext getUpstreamContext ()
+    public UpstreamCtx getUpstreamCtx ()
     {
-        return upstreamContext;
+        return upstreamCtx;
     }
 
     public int getOperatorIndex ( final OperatorDef operator )
@@ -151,15 +151,15 @@ public class Pipeline
         return replicas[ replicaIndex ];
     }
 
-    private void setUpstreamContext ( final UpstreamContext upstreamContext )
+    private void setUpstreamCtx ( final UpstreamCtx upstreamCtx )
     {
-        checkArgument( upstreamContext != null, "Cannot set null upstream context of Pipeline: %s", id );
-        checkArgument( this.upstreamContext == null || this.upstreamContext.getVersion() < upstreamContext.getVersion(),
+        checkArgument( upstreamCtx != null, "Cannot set null upstream context of Pipeline: %s", id );
+        checkArgument( this.upstreamCtx == null || this.upstreamCtx.getVersion() < upstreamCtx.getVersion(),
                        "Cannot set new: %s for current : of Pipeline: %s",
-                       upstreamContext,
-                       this.upstreamContext,
+                       upstreamCtx,
+                       this.upstreamCtx,
                        id );
-        this.upstreamContext = upstreamContext;
+        this.upstreamCtx = upstreamCtx;
     }
 
     public void setDownstreamCollectors ( final DownstreamCollector[] downstreamCollectors )
@@ -195,11 +195,11 @@ public class Pipeline
             {
                 checkState( replicaStatuses[ replicaIndex ] == INITIAL );
                 final PipelineReplica pipelineReplica = replicas[ replicaIndex ];
-                LOGGER.debug( "Initializing Replica {} of Pipeline {} with {}", replicaIndex, id, upstreamContext );
-                pipelineReplica.init( fusedOperatorSchedulingStrategies, fusedOperatorUpstreamContexts );
+                LOGGER.debug( "Initializing Replica {} of Pipeline {} with {}", replicaIndex, id, upstreamCtx );
+                pipelineReplica.init( fusedOperatorSchedulingStrategies, fusedOperatorUpstreamCtxes );
             }
 
-            setUpstreamContext( operatorUpstreamContexts[ 0 ] );
+            setUpstreamCtx( operatorUpstreamCtxes[ 0 ] );
             pipelineStatus = RUNNING;
             fill( replicaStatuses, RUNNING );
         }
@@ -260,23 +260,23 @@ public class Pipeline
         return replicaIndex;
     }
 
-    public void handleUpstreamContextUpdated ( final UpstreamContext upstreamContext )
+    public void handleUpstreamCtxUpdated ( final UpstreamCtx upstreamCtx )
     {
         checkState( pipelineStatus == RUNNING || pipelineStatus == COMPLETING,
                     "Cannot handle updated pipeline upstream since Pipeline %s is in %s status",
                     id,
                     pipelineStatus );
 
-        LOGGER.info( "Updating upstream context of Pipeline {} to {}", id, upstreamContext );
+        LOGGER.info( "Updating upstream context of Pipeline {} to {}", id, upstreamCtx );
 
-        setUpstreamContext( upstreamContext );
-        if ( pipelineStatus == RUNNING && !upstreamContext.isInvokable( getFirstOperatorDef(), operatorSchedulingStrategies[ 0 ] ) )
+        setUpstreamCtx( upstreamCtx );
+        if ( pipelineStatus == RUNNING && !upstreamCtx.isInvokable( getFirstOperatorDef(), operatorSchedulingStrategies[ 0 ] ) )
         {
             LOGGER.info( "Pipeline {} is not invokable anymore. Setting pipeline status to {}", id, COMPLETING );
             setPipelineCompleting();
         }
 
-        notifyPipelineReplicaRunners( upstreamContext );
+        notifyPipelineReplicaRunners( upstreamCtx );
     }
 
     private void setPipelineCompleting ()
@@ -301,13 +301,13 @@ public class Pipeline
         pipelineStatus = COMPLETING;
     }
 
-    private void notifyPipelineReplicaRunners ( final UpstreamContext upstreamContext )
+    private void notifyPipelineReplicaRunners ( final UpstreamCtx upstreamCtx )
     {
-        LOGGER.info( "Notifying runners about new {} of Pipeline {}", upstreamContext, id );
+        LOGGER.info( "Notifying runners about new {} of Pipeline {}", upstreamCtx, id );
         for ( int i = 0; i < getReplicaCount(); i++ )
         {
             final PipelineReplicaRunner runner = runners[ i ];
-            runner.updatePipelineUpstreamContext();
+            runner.updatePipelineUpstreamCtx();
         }
     }
 

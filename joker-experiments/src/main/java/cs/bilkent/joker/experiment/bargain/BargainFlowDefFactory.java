@@ -47,35 +47,31 @@ public class BargainFlowDefFactory implements FlowDefFactory
 
         TickerGenerator.init( tickerCount );
 
-        final OperatorConfig tradeBeaconConfig = new OperatorConfig();
-        tradeBeaconConfig.set( MIN_PRICE_CONFIG_PARAMETER, minPrice );
-        tradeBeaconConfig.set( MAX_PRICE_CONFIG_PARAMETER, maxPrice );
-        tradeBeaconConfig.set( TICKERS_PER_TIME_UNIT_CONFIG_PARAMETER, tradesPerTimeUnit );
-        tradeBeaconConfig.set( TUPLES_PER_INVOCATION_CONFIG_PARAMETER, tuplesPerInvocation );
+        final OperatorConfig tradeBeaconConfig = new OperatorConfig().set( MIN_PRICE_CONFIG_PARAMETER, minPrice )
+                                                                     .set( MAX_PRICE_CONFIG_PARAMETER, maxPrice )
+                                                                     .set( TICKERS_PER_TIME_UNIT_CONFIG_PARAMETER, tradesPerTimeUnit )
+                                                                     .set( TUPLES_PER_INVOCATION_CONFIG_PARAMETER, tuplesPerInvocation );
 
         final OperatorDef tradeBeaconOperator = OperatorDefBuilder.newInstance( "tb", TradeBeaconOperator.class )
                                                                   .setConfig( tradeBeaconConfig )
                                                                   .build();
 
-        final OperatorConfig quoteBeaconConfig = new OperatorConfig();
-        quoteBeaconConfig.set( MIN_PRICE_CONFIG_PARAMETER, minPrice );
-        quoteBeaconConfig.set( MAX_PRICE_CONFIG_PARAMETER, maxPrice );
-        quoteBeaconConfig.set( TICKERS_PER_TIME_UNIT_CONFIG_PARAMETER, quotesPerTimeUnit );
-        quoteBeaconConfig.set( TUPLES_PER_INVOCATION_CONFIG_PARAMETER, tuplesPerInvocation );
+        final OperatorConfig quoteBeaconConfig = new OperatorConfig().set( MIN_PRICE_CONFIG_PARAMETER, minPrice )
+                                                                     .set( MAX_PRICE_CONFIG_PARAMETER, maxPrice )
+                                                                     .set( TICKERS_PER_TIME_UNIT_CONFIG_PARAMETER, quotesPerTimeUnit )
+                                                                     .set( TUPLES_PER_INVOCATION_CONFIG_PARAMETER, tuplesPerInvocation );
 
         final OperatorDef quoteBeaconOperator = OperatorDefBuilder.newInstance( "qb", QuoteBeaconOperator.class )
                                                                   .setConfig( quoteBeaconConfig )
                                                                   .build();
 
-        final OperatorConfig vwapAggregatorConfig = new OperatorConfig();
-        vwapAggregatorConfig.set( WINDOW_SIZE_CONfIG_PARAMETER, 5 );
+        final OperatorConfig vwapAggregatorConfig = new OperatorConfig().set( WINDOW_SIZE_CONfIG_PARAMETER, 5 );
 
         final OperatorDefBuilder vwapAggregatorOperator = OperatorDefBuilder.newInstance( "vw", VWAPAggregatorOperator.class )
                                                                             .setConfig( vwapAggregatorConfig )
                                                                             .setPartitionFieldNames( singletonList( TICKER_SYMBOL_FIELD ) );
 
-        final OperatorConfig cvwapConfig = new OperatorConfig();
-        cvwapConfig.set( MAPPER_CONFIG_PARAMETER, new CVWAPFunction() );
+        final OperatorConfig cvwapConfig = new OperatorConfig().set( MAPPER_CONFIG_PARAMETER, new CVWAPFunction() );
 
         final OperatorRuntimeSchemaBuilder cvwapSchemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
         cvwapSchemaBuilder.addInputField( 0, TICKER_SYMBOL_FIELD, String.class )
@@ -94,8 +90,7 @@ public class BargainFlowDefFactory implements FlowDefFactory
                                                                    .setPartitionFieldNames( singletonList( TICKER_SYMBOL_FIELD ) )
                                                                    .build();
 
-        final OperatorConfig sinkOperatorConfig = new OperatorConfig();
-        sinkOperatorConfig.set( CONSUMER_FUNCTION_CONFIG_PARAMETER, (Consumer<Tuple>) tuple -> {
+        final OperatorConfig sinkOperatorConfig = new OperatorConfig().set( CONSUMER_FUNCTION_CONFIG_PARAMETER, (Consumer<Tuple>) tuple -> {
         } );
 
         final OperatorDef sinkOperator = OperatorDefBuilder.newInstance( "si", ForEachOperator.class )

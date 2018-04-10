@@ -29,16 +29,14 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldSet ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "field", "value" );
+        final Tuple tuple = Tuple.of( "field", "value" );
         assertThat( tuple.getObject( "field" ), equalTo( "value" ) );
     }
 
     @Test
     public void shouldRemove ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "field", "value" );
+        final Tuple tuple = Tuple.of( "field", "value" );
         assertNotNull( tuple.remove( "field" ) );
         assertNull( tuple.getObject( "field" ) );
     }
@@ -53,8 +51,7 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldDelete ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "field", "value" );
+        final Tuple tuple = Tuple.of( "field", "value" );
         assertTrue( tuple.delete( "field" ) );
         assertNull( tuple.getObject( "field" ) );
     }
@@ -69,16 +66,14 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExisting ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "field", "value" );
+        final Tuple tuple = Tuple.of( "field", "value" );
         assertThat( tuple.<String>get( "field" ), equalTo( "value" ) );
     }
 
     @Test
     public void shouldGetExistingOrDefault ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "field", "value" );
+        final Tuple tuple = Tuple.of( "field", "value" );
         assertThat( tuple.getOrDefault( "field", "value2" ), equalTo( "value" ) );
     }
 
@@ -92,8 +87,7 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldContainExistingField ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "field", "value" );
+        final Tuple tuple = Tuple.of( "field", "value" );
         assertTrue( tuple.contains( "field" ) );
     }
 
@@ -107,8 +101,7 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingObject ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "field", "value" );
+        final Tuple tuple = Tuple.of( "field", "value" );
         assertThat( tuple.getObject( "field" ), equalTo( "value" ) );
     }
 
@@ -122,8 +115,7 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingObjectOrDefault ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "field", "value" );
+        final Tuple tuple = Tuple.of( "field", "value" );
         assertThat( tuple.getObjectOrDefault( "field", "value2" ), equalTo( "value" ) );
     }
 
@@ -137,8 +129,7 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingString ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "field", "value" );
+        final Tuple tuple = Tuple.of( "field", "value" );
         assertThat( tuple.getString( "field" ), equalTo( "value" ) );
     }
 
@@ -152,8 +143,7 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingStringOrDefault ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "field", "value" );
+        final Tuple tuple = Tuple.of( "field", "value" );
         assertThat( tuple.getStringOrDefault( "field", "value2" ), equalTo( "value" ) );
     }
 
@@ -167,8 +157,7 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingInteger ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "field", 1 );
+        final Tuple tuple = Tuple.of( "field", 1 );
         assertThat( tuple.getInteger( "field" ), equalTo( 1 ) );
     }
 
@@ -182,8 +171,7 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingIntegerOrDefault ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "field", 1 );
+        final Tuple tuple = Tuple.of( "field", 1 );
         assertThat( tuple.getIntegerOrDefault( "field", 2 ), equalTo( 1 ) );
     }
 
@@ -197,8 +185,7 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingLong ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "field", 1L );
+        final Tuple tuple = Tuple.of( "field", 1L );
         assertThat( tuple.getLong( "field" ), equalTo( 1L ) );
     }
 
@@ -212,8 +199,7 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingLongOrDefault ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "field", 1L );
+        final Tuple tuple = Tuple.of( "field", 1L );
         assertThat( tuple.getLongOrDefault( "field", 2L ), equalTo( 1L ) );
     }
 
@@ -227,8 +213,7 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingBoolean ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "field", Boolean.TRUE );
+        final Tuple tuple = Tuple.of( "field", Boolean.TRUE );
         assertTrue( tuple.getBoolean( "field" ) );
     }
 
@@ -242,8 +227,7 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingBooleanOrDefault ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "field", Boolean.TRUE );
+        final Tuple tuple = Tuple.of( "field", Boolean.TRUE );
         assertTrue( tuple.getBooleanOrDefault( "field", Boolean.FALSE ) );
     }
 
@@ -257,9 +241,8 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetGetExistingShort ()
     {
-        final Tuple tuple = new Tuple();
         final short val = 1;
-        tuple.set( "field", val );
+        final Tuple tuple = Tuple.of( "field", val );
         assertThat( tuple.getShort( "field" ), equalTo( val ) );
     }
 
@@ -273,10 +256,9 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingShortOrDefault ()
     {
-        final Tuple tuple = new Tuple();
         final short val = 1;
+        final Tuple tuple = Tuple.of( "field", val );
         final short other = 2;
-        tuple.set( "field", val );
         assertThat( tuple.getShortOrDefault( "field", other ), equalTo( val ) );
     }
 
@@ -291,9 +273,8 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingByte ()
     {
-        final Tuple tuple = new Tuple();
         final byte val = 1;
-        tuple.set( "field", val );
+        final Tuple tuple = Tuple.of( "field", val );
         assertThat( tuple.getByte( "field" ), equalTo( val ) );
     }
 
@@ -307,10 +288,9 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingByteOrDefault ()
     {
-        final Tuple tuple = new Tuple();
         final byte val = 1;
         final byte other = 1;
-        tuple.set( "field", val );
+        final Tuple tuple = Tuple.of( "field", val );
         assertThat( tuple.getByteOrDefault( "field", other ), equalTo( val ) );
     }
 
@@ -325,8 +305,7 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingDouble ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "field", 1d );
+        final Tuple tuple = Tuple.of( "field", 1d );
         assertThat( tuple.getDouble( "field" ), equalTo( 1d ) );
     }
 
@@ -340,8 +319,7 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingDoubleOrDefault ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "field", 1d );
+        final Tuple tuple = Tuple.of( "field", 1d );
         assertThat( tuple.getDoubleOrDefault( "field", 2d ), equalTo( 1d ) );
     }
 
@@ -355,8 +333,7 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingFloat ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "field", 1f );
+        final Tuple tuple = Tuple.of( "field", 1f );
         assertThat( tuple.getFloat( "field" ), equalTo( 1f ) );
     }
 
@@ -370,8 +347,7 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingFloatOrDefault ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "field", 1f );
+        final Tuple tuple = Tuple.of( "field", 1f );
         assertThat( tuple.getFloatOrDefault( "field", 2f ), equalTo( 1f ) );
     }
 
@@ -385,18 +361,16 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingBinary ()
     {
-        final Tuple tuple = new Tuple();
         final byte[] val = new byte[] { 1 };
-        tuple.set( "field", val );
+        final Tuple tuple = Tuple.of( "field", val );
         assertThat( tuple.getBinary( "field" ), equalTo( val ) );
     }
 
     @Test
     public void shouldGetExistingBinaryOrDefault ()
     {
-        final Tuple tuple = new Tuple();
         final byte[] val = new byte[] { 1 };
-        tuple.set( "field", val );
+        final Tuple tuple = Tuple.of( "field", val );
         assertThat( tuple.getBinaryOrDefault( "field", new byte[] {} ), equalTo( val ) );
     }
 
@@ -416,12 +390,7 @@ public class TupleTest extends AbstractJokerTest
         fields.add( new RuntimeSchemaField( "doubleField", Double.class ) );
         fields.add( new RuntimeSchemaField( "stringField", String.class ) );
         final PortRuntimeSchema schema = new PortRuntimeSchema( fields );
-        final Tuple tuple = new Tuple( schema );
-
-        tuple.set( "schemalessField", 10 );
-        tuple.set( "intField", 5 );
-        tuple.set( "doubleField", 1.5 );
-        tuple.set( "stringField", "str" );
+        final Tuple tuple = Tuple.of( schema, "schemalessField", 10, "intField", 5, "doubleField", 1.5, "stringField", "str" );
 
         assertThat( tuple.get( "schemalessField" ), equalTo( 10 ) );
         assertThat( tuple.get( "intField" ), equalTo( 5 ) );
@@ -437,12 +406,7 @@ public class TupleTest extends AbstractJokerTest
         fields.add( new RuntimeSchemaField( "doubleField", Double.class ) );
         fields.add( new RuntimeSchemaField( "stringField", String.class ) );
         final PortRuntimeSchema schema = new PortRuntimeSchema( fields );
-        final Tuple tuple = new Tuple( schema );
-
-        tuple.set( "schemalessField", 10 );
-        tuple.set( "intField", 5 );
-        tuple.set( "doubleField", 1.5 );
-        tuple.set( "stringField", "str" );
+        final Tuple tuple = Tuple.of( schema, "schemalessField", 10, "intField", 5, "doubleField", 1.5, "stringField", "str" );
 
         final int intIndex = tuple.getSchema().getFieldIndex( "intField" );
         final int doubleIndex = tuple.getSchema().getFieldIndex( "doubleField" );
@@ -457,7 +421,6 @@ public class TupleTest extends AbstractJokerTest
     public void shouldNotGetAtSchemaIndexWithInvalidValue ()
     {
         final Tuple tuple = new Tuple();
-
         tuple.getAtSchemaIndex( 0 );
     }
 
@@ -507,12 +470,7 @@ public class TupleTest extends AbstractJokerTest
         fields.add( new RuntimeSchemaField( "doubleField", Double.class ) );
         fields.add( new RuntimeSchemaField( "stringField", String.class ) );
         final PortRuntimeSchema schema = new PortRuntimeSchema( fields );
-        final Tuple tuple = new Tuple( schema );
-
-        tuple.set( "schemalessField", 10 );
-        tuple.set( "intField", 5 );
-        tuple.set( "doubleField", 1.5 );
-        tuple.set( "stringField", "str" );
+        final Tuple tuple = Tuple.of( schema, "schemalessField", 10, "intField", 5, "doubleField", 1.5, "stringField", "str" );
 
         assertThat( tuple.get( "schemalessField" ), equalTo( 10 ) );
         assertThat( tuple.get( "intField" ), equalTo( 5 ) );
@@ -526,9 +484,7 @@ public class TupleTest extends AbstractJokerTest
         final List<RuntimeSchemaField> fields = new ArrayList<>();
         fields.add( new RuntimeSchemaField( "intField", Integer.class ) );
         final PortRuntimeSchema schema = new PortRuntimeSchema( fields );
-        final Tuple tuple = new Tuple( schema );
-
-        tuple.set( "intField", "val" );
+        final Tuple tuple = Tuple.of( schema, "intField", "val" );
 
         assertThat( tuple.get( "intField" ), equalTo( "val" ) );
     }
@@ -541,12 +497,7 @@ public class TupleTest extends AbstractJokerTest
         fields.add( new RuntimeSchemaField( "doubleField", Double.class ) );
         fields.add( new RuntimeSchemaField( "stringField", String.class ) );
         final PortRuntimeSchema schema = new PortRuntimeSchema( fields );
-        final Tuple tuple = new Tuple( schema );
-
-        tuple.set( "schemalessField", 10 );
-        tuple.set( "intField", 5 );
-        tuple.set( "doubleField", 1.5 );
-        tuple.set( "stringField", "str" );
+        final Tuple tuple = Tuple.of( schema, "schemalessField", 10, "intField", 5, "doubleField", 1.5, "stringField", "str" );
 
         assertTrue( tuple.contains( "schemalessField" ) );
         assertTrue( tuple.contains( "intField" ) );
@@ -562,13 +513,17 @@ public class TupleTest extends AbstractJokerTest
         fields.add( new RuntimeSchemaField( "doubleField", Double.class ) );
         fields.add( new RuntimeSchemaField( "stringField", String.class ) );
         final PortRuntimeSchema schema = new PortRuntimeSchema( fields );
-        final Tuple tuple = new Tuple( schema );
-
-        tuple.set( "schemalessField", 10 );
-        tuple.set( "schemalessField2", 20 );
-        tuple.set( "intField", 5 );
-        tuple.set( "doubleField", 1.5 );
-        tuple.set( "stringField", "str" );
+        final Tuple tuple = Tuple.of( schema,
+                                      "schemalessField",
+                                      10,
+                                      "schemalessField2",
+                                      20,
+                                      "intField",
+                                      5,
+                                      "doubleField",
+                                      1.5,
+                                      "stringField",
+                                      "str" );
 
         assertThat( tuple.remove( "schemalessField" ), equalTo( 10 ) );
         assertThat( tuple.remove( "schemalessField2" ), equalTo( 20 ) );
@@ -585,13 +540,17 @@ public class TupleTest extends AbstractJokerTest
         fields.add( new RuntimeSchemaField( "doubleField", Double.class ) );
         fields.add( new RuntimeSchemaField( "stringField", String.class ) );
         final PortRuntimeSchema schema = new PortRuntimeSchema( fields );
-        final Tuple tuple = new Tuple( schema );
-
-        tuple.set( "schemalessField", 10 );
-        tuple.set( "schemalessField2", 20 );
-        tuple.set( "intField", 5 );
-        tuple.set( "doubleField", 1.5 );
-        tuple.set( "stringField", "str" );
+        final Tuple tuple = Tuple.of( schema,
+                                      "schemalessField",
+                                      10,
+                                      "schemalessField2",
+                                      20,
+                                      "intField",
+                                      5,
+                                      "doubleField",
+                                      1.5,
+                                      "stringField",
+                                      "str" );
 
         assertTrue( tuple.delete( "schemalessField" ) );
         assertTrue( tuple.delete( "schemalessField2" ) );
@@ -608,13 +567,17 @@ public class TupleTest extends AbstractJokerTest
         fields.add( new RuntimeSchemaField( "doubleField", Double.class ) );
         fields.add( new RuntimeSchemaField( "stringField", String.class ) );
         final PortRuntimeSchema schema = new PortRuntimeSchema( fields );
-        final Tuple tuple = new Tuple( schema );
-
-        tuple.set( "schemalessField", 10 );
-        tuple.set( "schemalessField2", 20 );
-        tuple.set( "intField", 5 );
-        tuple.set( "doubleField", 1.5 );
-        tuple.set( "stringField", "str" );
+        final Tuple tuple = Tuple.of( schema,
+                                      "schemalessField",
+                                      10,
+                                      "schemalessField2",
+                                      20,
+                                      "intField",
+                                      5,
+                                      "doubleField",
+                                      1.5,
+                                      "stringField",
+                                      "str" );
 
         tuple.clear();
 
@@ -633,19 +596,28 @@ public class TupleTest extends AbstractJokerTest
         fields.add( new RuntimeSchemaField( "doubleField", Double.class ) );
         fields.add( new RuntimeSchemaField( "stringField", String.class ) );
         final PortRuntimeSchema schema = new PortRuntimeSchema( fields );
-        final Tuple tuple1 = new Tuple( schema );
-        final Tuple tuple2 = new Tuple( schema );
-
-        tuple1.set( "schemalessField", 10 );
-        tuple1.set( "schemalessField2", 20 );
-        tuple1.set( "intField", 5 );
-        tuple1.set( "doubleField", 1.5 );
-        tuple1.set( "stringField", "str" );
-        tuple2.set( "schemalessField", 10 );
-        tuple2.set( "schemalessField2", 20 );
-        tuple2.set( "intField", 5 );
-        tuple2.set( "doubleField", 1.5 );
-        tuple2.set( "stringField", "str" );
+        final Tuple tuple1 = Tuple.of( schema,
+                                       "schemalessField",
+                                       10,
+                                       "schemalessField2",
+                                       20,
+                                       "intField",
+                                       5,
+                                       "doubleField",
+                                       1.5,
+                                       "stringField",
+                                       "str" );
+        final Tuple tuple2 = Tuple.of( schema,
+                                       "schemalessField",
+                                       10,
+                                       "schemalessField2",
+                                       20,
+                                       "intField",
+                                       5,
+                                       "doubleField",
+                                       1.5,
+                                       "stringField",
+                                       "str" );
 
         assertTrue( tuple1.equals( tuple2 ) );
         assertTrue( tuple2.equals( tuple1 ) );
@@ -657,23 +629,32 @@ public class TupleTest extends AbstractJokerTest
         final List<RuntimeSchemaField> fields1 = new ArrayList<>();
         fields1.add( new RuntimeSchemaField( "intField", Integer.class ) );
         fields1.add( new RuntimeSchemaField( "stringField", String.class ) );
-        final Tuple tuple1 = new Tuple( new PortRuntimeSchema( fields1 ) );
+        final Tuple tuple1 = Tuple.of( new PortRuntimeSchema( fields1 ),
+                                       "schemalessField",
+                                       10,
+                                       "schemalessField2",
+                                       20,
+                                       "intField",
+                                       5,
+                                       "doubleField",
+                                       1.5,
+                                       "stringField",
+                                       "str" );
 
         final List<RuntimeSchemaField> fields2 = new ArrayList<>();
         fields2.add( new RuntimeSchemaField( "doubleField", Double.class ) );
         fields2.add( new RuntimeSchemaField( "stringField", String.class ) );
-        final Tuple tuple2 = new Tuple( new PortRuntimeSchema( fields2 ) );
-
-        tuple1.set( "schemalessField", 10 );
-        tuple1.set( "schemalessField2", 20 );
-        tuple1.set( "intField", 5 );
-        tuple1.set( "doubleField", 1.5 );
-        tuple1.set( "stringField", "str" );
-        tuple2.set( "schemalessField", 10 );
-        tuple2.set( "schemalessField2", 20 );
-        tuple2.set( "intField", 5 );
-        tuple2.set( "doubleField", 1.5 );
-        tuple2.set( "stringField", "str" );
+        final Tuple tuple2 = Tuple.of( new PortRuntimeSchema( fields2 ),
+                                       "schemalessField",
+                                       10,
+                                       "schemalessField2",
+                                       20,
+                                       "intField",
+                                       5,
+                                       "doubleField",
+                                       1.5,
+                                       "stringField",
+                                       "str" );
 
         assertTrue( tuple1.equals( tuple2 ) );
         assertTrue( tuple2.equals( tuple1 ) );
@@ -687,19 +668,28 @@ public class TupleTest extends AbstractJokerTest
         fields.add( new RuntimeSchemaField( "doubleField", Double.class ) );
         fields.add( new RuntimeSchemaField( "stringField", String.class ) );
         final PortRuntimeSchema schema = new PortRuntimeSchema( fields );
-        final Tuple tuple1 = new Tuple( schema );
-        final Tuple tuple2 = new Tuple( schema );
-
-        tuple1.set( "schemalessField", 10 );
-        tuple1.set( "schemalessField2", 20 );
-        tuple1.set( "intField", 5 );
-        tuple1.set( "doubleField", 1.5 );
-        tuple1.set( "stringField", "str" );
-        tuple2.set( "schemalessField", 10 );
-        tuple2.set( "schemalessField2", 20 );
-        tuple2.set( "intField", 5 );
-        tuple2.set( "doubleField", 1.5 );
-        tuple2.set( "stringField", "str" );
+        final Tuple tuple1 = Tuple.of( schema,
+                                       "schemalessField",
+                                       10,
+                                       "schemalessField2",
+                                       20,
+                                       "intField",
+                                       5,
+                                       "doubleField",
+                                       1.5,
+                                       "stringField",
+                                       "str" );
+        final Tuple tuple2 = Tuple.of( schema,
+                                       "schemalessField",
+                                       10,
+                                       "schemalessField2",
+                                       20,
+                                       "intField",
+                                       5,
+                                       "doubleField",
+                                       1.5,
+                                       "stringField",
+                                       "str" );
 
         assertThat( tuple1.hashCode(), equalTo( tuple2.hashCode() ) );
     }
@@ -710,23 +700,32 @@ public class TupleTest extends AbstractJokerTest
         final List<RuntimeSchemaField> fields1 = new ArrayList<>();
         fields1.add( new RuntimeSchemaField( "intField", Integer.class ) );
         fields1.add( new RuntimeSchemaField( "stringField", String.class ) );
-        final Tuple tuple1 = new Tuple( new PortRuntimeSchema( fields1 ) );
+        final Tuple tuple1 = Tuple.of( new PortRuntimeSchema( fields1 ),
+                                       "schemalessField",
+                                       10,
+                                       "schemalessField2",
+                                       20,
+                                       "intField",
+                                       5,
+                                       "doubleField",
+                                       1.5,
+                                       "stringField",
+                                       "str" );
 
         final List<RuntimeSchemaField> fields2 = new ArrayList<>();
         fields2.add( new RuntimeSchemaField( "doubleField", Double.class ) );
         fields2.add( new RuntimeSchemaField( "stringField", String.class ) );
-        final Tuple tuple2 = new Tuple( new PortRuntimeSchema( fields2 ) );
-
-        tuple1.set( "schemalessField", 10 );
-        tuple1.set( "schemalessField2", 20 );
-        tuple1.set( "intField", 5 );
-        tuple1.set( "doubleField", 1.5 );
-        tuple1.set( "stringField", "str" );
-        tuple2.set( "schemalessField", 10 );
-        tuple2.set( "schemalessField2", 20 );
-        tuple2.set( "intField", 5 );
-        tuple2.set( "doubleField", 1.5 );
-        tuple2.set( "stringField", "str" );
+        final Tuple tuple2 = Tuple.of( new PortRuntimeSchema( fields2 ),
+                                       "schemalessField",
+                                       10,
+                                       "schemalessField2",
+                                       20,
+                                       "intField",
+                                       5,
+                                       "doubleField",
+                                       1.5,
+                                       "stringField",
+                                       "str" );
 
         assertThat( tuple1.hashCode(), equalTo( tuple2.hashCode() ) );
     }
@@ -739,18 +738,18 @@ public class TupleTest extends AbstractJokerTest
         fields.add( new RuntimeSchemaField( "doubleField", Double.class ) );
         fields.add( new RuntimeSchemaField( "stringField", String.class ) );
         final PortRuntimeSchema schema = new PortRuntimeSchema( fields );
-        final Tuple tuple1 = new Tuple( schema );
-        final Tuple tuple2 = new Tuple( schema );
-
-        tuple1.set( "schemalessField", 10 );
-        tuple1.set( "schemalessField2", 20 );
-        tuple1.set( "intField", 5 );
-        tuple1.set( "doubleField", 1.5 );
-        tuple1.set( "stringField", "str" );
-        tuple2.set( "schemalessField", 10 );
-        tuple2.set( "schemalessField2", 20 );
-        tuple2.set( "intField", 5 );
-        tuple2.set( "doubleField", 1.5 );
+        final Tuple tuple1 = Tuple.of( schema,
+                                       "schemalessField",
+                                       10,
+                                       "schemalessField2",
+                                       20,
+                                       "intField",
+                                       5,
+                                       "doubleField",
+                                       1.5,
+                                       "stringField",
+                                       "str" );
+        final Tuple tuple2 = Tuple.of( schema, "schemalessField", 10, "schemalessField2", 20, "intField", 5, "doubleField", 1.5 );
 
         assertFalse( tuple1.equals( tuple2 ) );
         assertFalse( tuple2.equals( tuple1 ) );
@@ -762,22 +761,30 @@ public class TupleTest extends AbstractJokerTest
         final List<RuntimeSchemaField> fields1 = new ArrayList<>();
         fields1.add( new RuntimeSchemaField( "intField", Integer.class ) );
         fields1.add( new RuntimeSchemaField( "stringField", String.class ) );
-        final Tuple tuple1 = new Tuple( new PortRuntimeSchema( fields1 ) );
+        final Tuple tuple1 = Tuple.of( new PortRuntimeSchema( fields1 ),
+                                       "schemalessField",
+                                       10,
+                                       "schemalessField2",
+                                       20,
+                                       "intField",
+                                       5,
+                                       "doubleField",
+                                       1.5,
+                                       "stringField",
+                                       "str" );
 
         final List<RuntimeSchemaField> fields2 = new ArrayList<>();
         fields2.add( new RuntimeSchemaField( "doubleField", Double.class ) );
         fields2.add( new RuntimeSchemaField( "stringField", String.class ) );
-        final Tuple tuple2 = new Tuple( new PortRuntimeSchema( fields2 ) );
-
-        tuple1.set( "schemalessField", 10 );
-        tuple1.set( "schemalessField2", 20 );
-        tuple1.set( "intField", 5 );
-        tuple1.set( "doubleField", 1.5 );
-        tuple1.set( "stringField", "str" );
-        tuple2.set( "schemalessField", 10 );
-        tuple2.set( "schemalessField2", 20 );
-        tuple2.set( "doubleField", 1.5 );
-        tuple2.set( "stringField", "str" );
+        final Tuple tuple2 = Tuple.of( new PortRuntimeSchema( fields2 ),
+                                       "schemalessField",
+                                       10,
+                                       "schemalessField2",
+                                       20,
+                                       "doubleField",
+                                       1.5,
+                                       "stringField",
+                                       "str" );
 
         assertFalse( tuple1.equals( tuple2 ) );
         assertFalse( tuple2.equals( tuple1 ) );
@@ -792,12 +799,7 @@ public class TupleTest extends AbstractJokerTest
         fields.add( new RuntimeSchemaField( "doubleField", Double.class ) );
         fields.add( new RuntimeSchemaField( "stringField", String.class ) );
         final PortRuntimeSchema schema = new PortRuntimeSchema( fields );
-        final Tuple tuple = new Tuple( schema );
-
-        tuple.set( "schemalessField", 10 );
-        tuple.set( "schemalessField2", 20 );
-        tuple.set( "doubleField", 1.5 );
-        tuple.set( "stringField", "str" );
+        final Tuple tuple = Tuple.of( schema, "schemalessField", 10, "schemalessField2", 20, "doubleField", 1.5, "stringField", "str" );
 
         assertThat( tuple.size(), equalTo( 4 ) );
     }
@@ -839,9 +841,8 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingCollection ()
     {
-        final Tuple tuple = new Tuple();
         final Collection<Integer> value = makeArrayList();
-        tuple.set( "field", value );
+        final Tuple tuple = Tuple.of( "field", value );
         assertThat( tuple.getCollection( "field" ), equalTo( value ) );
     }
 
@@ -855,9 +856,8 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingCollectionOrDefault ()
     {
-        final Tuple tuple = new Tuple();
         final Collection<Integer> value = makeArrayList();
-        tuple.set( "field", value );
+        final Tuple tuple = Tuple.of( "field", value );
         assertThat( tuple.getCollectionOrDefault( "field", Collections.emptyList() ), equalTo( value ) );
     }
 
@@ -872,9 +872,8 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingCollectionOrEmpty ()
     {
-        final Tuple tuple = new Tuple();
         final Collection<Integer> value = makeArrayList();
-        tuple.set( "field", value );
+        final Tuple tuple = Tuple.of( "field", value );
         assertThat( tuple.getCollectionOrEmpty( "field" ), equalTo( value ) );
     }
 
@@ -888,9 +887,8 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingList ()
     {
-        final Tuple tuple = new Tuple();
         final List<Integer> value = makeArrayList();
-        tuple.set( "field", value );
+        final Tuple tuple = Tuple.of( "field", value );
         assertThat( tuple.getList( "field" ), equalTo( value ) );
     }
 
@@ -904,9 +902,8 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingListOrDefault ()
     {
-        final Tuple tuple = new Tuple();
         final List<Integer> value = makeArrayList();
-        tuple.set( "field", value );
+        final Tuple tuple = Tuple.of( "field", value );
         assertThat( tuple.getListOrDefault( "field", Collections.emptyList() ), equalTo( value ) );
     }
 
@@ -921,9 +918,8 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingListOrEmpty ()
     {
-        final Tuple tuple = new Tuple();
         final List<Integer> value = makeArrayList();
-        tuple.set( "field", value );
+        final Tuple tuple = Tuple.of( "field", value );
         assertThat( tuple.getListOrEmpty( "field" ), equalTo( value ) );
     }
 
@@ -937,9 +933,8 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingSet ()
     {
-        final Tuple tuple = new Tuple();
         final Set<Integer> value = makeHashSet();
-        tuple.set( "field", value );
+        final Tuple tuple = Tuple.of( "field", value );
         assertThat( tuple.getSet( "field" ), equalTo( value ) );
     }
 
@@ -953,9 +948,8 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingSetOrDefault ()
     {
-        final Tuple tuple = new Tuple();
         final Set<Integer> value = makeHashSet();
-        tuple.set( "field", value );
+        final Tuple tuple = Tuple.of( "field", value );
         assertThat( tuple.getSetOrDefault( "field", Collections.emptySet() ), equalTo( value ) );
     }
 
@@ -970,9 +964,8 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingSetOrEmpty ()
     {
-        final Tuple tuple = new Tuple();
         final Set<Integer> value = makeHashSet();
-        tuple.set( "field", value );
+        final Tuple tuple = Tuple.of( "field", value );
         assertThat( tuple.getSetOrEmpty( "field" ), equalTo( value ) );
     }
 
@@ -986,9 +979,8 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingMap ()
     {
-        final Tuple tuple = new Tuple();
         final Map<Integer, Integer> value = makeHashMap();
-        tuple.set( "field", value );
+        final Tuple tuple = Tuple.of( "field", value );
         assertThat( tuple.getMap( "field" ), equalTo( value ) );
     }
 
@@ -1002,9 +994,8 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingMapOrDefault ()
     {
-        final Tuple tuple = new Tuple();
         final Map<Integer, Integer> value = makeHashMap();
-        tuple.set( "field", value );
+        final Tuple tuple = Tuple.of( "field", value );
         assertThat( tuple.getMapOrDefault( "field", Collections.emptyMap() ), equalTo( value ) );
     }
 
@@ -1019,9 +1010,8 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetExistingMapOrEmpty ()
     {
-        final Tuple tuple = new Tuple();
         final Map<Integer, Integer> value = makeHashMap();
-        tuple.set( "field", value );
+        final Tuple tuple = Tuple.of( "field", value );
         assertThat( tuple.getMapOrEmpty( "field" ), equalTo( value ) );
     }
 
@@ -1035,8 +1025,7 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldClear ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "field", "value" );
+        final Tuple tuple = Tuple.of( "field", "value" );
         tuple.clear();
         assertThat( tuple.size(), equalTo( 0 ) );
     }
@@ -1044,22 +1033,15 @@ public class TupleTest extends AbstractJokerTest
     @Test
     public void shouldGetSize ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "field", "value" );
+        final Tuple tuple = Tuple.of( "field", "value" );
         assertThat( tuple.size(), equalTo( 1 ) );
     }
 
     @Test
     public void testTupleEquality ()
     {
-        final Tuple tuple1 = new Tuple();
-        final Tuple tuple2 = new Tuple();
-
-        tuple1.set( "k1", "v1" );
-        tuple1.set( "k2", "v2" );
-
-        tuple2.set( "k1", "v1" );
-        tuple2.set( "k2", "v2" );
+        final Tuple tuple1 = Tuple.of( "k1", "v1", "k2", "v2" );
+        final Tuple tuple2 = Tuple.of( "k1", "v1", "k2", "v2" );
 
         assertThat( tuple1, equalTo( tuple2 ) );
         assertThat( tuple1.hashCode(), equalTo( tuple2.hashCode() ) );

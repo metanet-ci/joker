@@ -36,18 +36,16 @@ public class VaryingSelectivityRegionFlowDefFactory implements FlowDefFactory
 
         final FlowDefBuilder flowDefBuilder = new FlowDefBuilder();
 
-        OperatorConfig beaconConfig = new OperatorConfig();
-        beaconConfig.set( KEY_RANGE_CONFIG_PARAMETER, keyRange );
-        beaconConfig.set( VALUE_RANGE_CONFIG_PARAMETER, valueRange );
-        beaconConfig.set( TUPLES_PER_KEY_CONFIG_PARAMETER, tuplesPerKey );
-        beaconConfig.set( KEYS_PER_INVOCATION_CONFIG_PARAMETER, keysPerInvocation );
+        OperatorConfig beaconConfig = new OperatorConfig().set( KEY_RANGE_CONFIG_PARAMETER, keyRange )
+                                                          .set( VALUE_RANGE_CONFIG_PARAMETER, valueRange )
+                                                          .set( TUPLES_PER_KEY_CONFIG_PARAMETER, tuplesPerKey )
+                                                          .set( KEYS_PER_INVOCATION_CONFIG_PARAMETER, keysPerInvocation );
 
         OperatorDef beacon = OperatorDefBuilder.newInstance( "bc", MemorizingBeaconOperator.class ).setConfig( beaconConfig ).build();
 
         flowDefBuilder.add( beacon );
 
-        OperatorConfig ptionerConfig = new OperatorConfig();
-        ptionerConfig.set( MULTIPLICATION_COUNT, 1024 );
+        OperatorConfig ptionerConfig = new OperatorConfig().set( MULTIPLICATION_COUNT, 1024 );
 
         OperatorDef ptioner = OperatorDefBuilder.newInstance( "m0", PartitionedStatefulMultiplierOperator.class )
                                                 .setConfig( ptionerConfig )
@@ -66,8 +64,7 @@ public class VaryingSelectivityRegionFlowDefFactory implements FlowDefFactory
                        .addOutputField( 0, "val1", Integer.class )
                        .addOutputField( 0, "val2", Integer.class );
 
-        final OperatorConfig s1Config = new OperatorConfig();
-        s1Config.set( DUPLICATE_COUNT_PARAMETER, 4 );
+        final OperatorConfig s1Config = new OperatorConfig().set( DUPLICATE_COUNT_PARAMETER, 4 );
 
         final OperatorDef s1 = OperatorDefBuilder.newInstance( "s1", DuplicatorOperator.class )
                                                  .setExtendingSchema( s1SchemaBuilder )
@@ -76,8 +73,7 @@ public class VaryingSelectivityRegionFlowDefFactory implements FlowDefFactory
 
         flowDefBuilder.add( s1 ).connect( ptioner.getId(), s1.getId() );
 
-        final OperatorConfig multiplier1Config = new OperatorConfig();
-        multiplier1Config.set( MULTIPLICATION_COUNT, 256 );
+        final OperatorConfig multiplier1Config = new OperatorConfig().set( MULTIPLICATION_COUNT, 256 );
 
         final OperatorDef multiplier1 = OperatorDefBuilder.newInstance( "m1", StatelessMultiplierOperator.class )
                                                           .setConfig( multiplier1Config )
@@ -95,8 +91,7 @@ public class VaryingSelectivityRegionFlowDefFactory implements FlowDefFactory
                        .addOutputField( 0, "val1", Integer.class )
                        .addOutputField( 0, "val2", Integer.class );
 
-        final OperatorConfig s2Config = new OperatorConfig();
-        s2Config.set( PREDICATE_CONFIG_PARAMETER, new StaticSelectivityPredicate( 4 ) );
+        final OperatorConfig s2Config = new OperatorConfig().set( PREDICATE_CONFIG_PARAMETER, new StaticSelectivityPredicate( 4 ) );
 
         final OperatorDef s2 = OperatorDefBuilder.newInstance( "s2", FilterOperator.class )
                                                  .setExtendingSchema( s2SchemaBuilder )
@@ -105,8 +100,7 @@ public class VaryingSelectivityRegionFlowDefFactory implements FlowDefFactory
 
         flowDefBuilder.add( s2 ).connect( multiplier1.getId(), s2.getId() );
 
-        final OperatorConfig multiplier2Config = new OperatorConfig();
-        multiplier2Config.set( MULTIPLICATION_COUNT, 1024 );
+        final OperatorConfig multiplier2Config = new OperatorConfig().set( MULTIPLICATION_COUNT, 1024 );
 
         final OperatorDef multiplier2 = OperatorDefBuilder.newInstance( "m2", StatelessMultiplierOperator.class )
                                                           .setConfig( multiplier2Config )
@@ -124,8 +118,7 @@ public class VaryingSelectivityRegionFlowDefFactory implements FlowDefFactory
                        .addOutputField( 0, "val1", Integer.class )
                        .addOutputField( 0, "val2", Integer.class );
 
-        final OperatorConfig s3Config = new OperatorConfig();
-        s3Config.set( PREDICATE_CONFIG_PARAMETER, new StaticSelectivityPredicate( 2 ) );
+        final OperatorConfig s3Config = new OperatorConfig().set( PREDICATE_CONFIG_PARAMETER, new StaticSelectivityPredicate( 2 ) );
 
         final OperatorDef s3 = OperatorDefBuilder.newInstance( "s3", FilterOperator.class )
                                                  .setExtendingSchema( s3SchemaBuilder )
@@ -134,8 +127,7 @@ public class VaryingSelectivityRegionFlowDefFactory implements FlowDefFactory
 
         flowDefBuilder.add( s3 ).connect( multiplier2.getId(), s3.getId() );
 
-        final OperatorConfig multiplier3Config = new OperatorConfig();
-        multiplier3Config.set( MULTIPLICATION_COUNT, 2048 );
+        final OperatorConfig multiplier3Config = new OperatorConfig().set( MULTIPLICATION_COUNT, 2048 );
 
         final OperatorDef multiplier3 = OperatorDefBuilder.newInstance( "m3", StatelessMultiplierOperator.class )
                                                           .setConfig( multiplier3Config )

@@ -5,8 +5,8 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.Tuple;
@@ -59,7 +59,7 @@ public class TupleCountBasedWindowReducerOperator implements Operator
     private TupleSchema windowSchema;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext ctx )
+    public SchedulingStrategy init ( final InitCtx ctx )
     {
         final OperatorConfig config = ctx.getConfig();
 
@@ -80,7 +80,7 @@ public class TupleCountBasedWindowReducerOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext ctx )
+    public void invoke ( final InvocationCtx ctx )
     {
         final KVStore kvStore = ctx.getKVStore();
 
@@ -89,25 +89,24 @@ public class TupleCountBasedWindowReducerOperator implements Operator
         int windowCount = window.getIntegerOrDefault( WINDOW_FIELD, 0 );
         Tuple accumulator = kvStore.getOrDefault( ACCUMULATOR_TUPLE_KEY, accumulatorSupplier );
 
-        for ( Tuple tuple : ctx.getInputTuplesByDefaultPort() )
+        for ( Tuple input : ctx.getInputTuplesByDefaultPort() )
         {
-            reducer.accept( accumulator, tuple );
+            reducer.accept( accumulator, input );
 
             if ( ++currentTupleCount == tupleCount )
             {
                 currentTupleCount = 0;
                 accumulator.set( WINDOW_FIELD, windowCount++ );
 
+                accumulator.attach( input );
                 ctx.output( accumulator );
                 accumulator = accumulatorSupplier.get();
             }
         }
 
-        window.set( WINDOW_FIELD, windowCount );
-        window.set( TUPLE_COUNT_FIELD, currentTupleCount );
+        window.set( WINDOW_FIELD, windowCount ).set( TUPLE_COUNT_FIELD, currentTupleCount );
 
-        kvStore.set( CURRENT_WINDOW_KEY, window );
-        kvStore.set( ACCUMULATOR_TUPLE_KEY, accumulator );
+        kvStore.set( CURRENT_WINDOW_KEY, window ).set( ACCUMULATOR_TUPLE_KEY, accumulator );
     }
 
 }

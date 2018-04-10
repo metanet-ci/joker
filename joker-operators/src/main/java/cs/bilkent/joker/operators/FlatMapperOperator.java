@@ -3,8 +3,8 @@ package cs.bilkent.joker.operators;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.Tuple;
@@ -33,7 +33,7 @@ public class FlatMapperOperator implements Operator
     private Supplier<Tuple> outputTupleSupplier;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext ctx )
+    public SchedulingStrategy init ( final InitCtx ctx )
     {
         final OperatorConfig config = ctx.getConfig();
 
@@ -45,17 +45,18 @@ public class FlatMapperOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext ctx )
+    public void invoke ( final InvocationCtx ctx )
     {
-        final Consumer<Tuple> outputCollector = ctx::output;
-
-        for ( Tuple tuple : ctx.getInputTuplesByDefaultPort() )
+        for ( Tuple input : ctx.getInputTuplesByDefaultPort() )
         {
-
-            flatMapper.accept( tuple, outputTupleSupplier, outputCollector );
+            flatMapper.accept( input, outputTupleSupplier, output -> {
+                output.attach( input );
+                ctx.output( output );
+            } );
         }
     }
 
+    @FunctionalInterface
     public interface FlatMapperConsumer
     {
         void accept ( Tuple input, Supplier<Tuple> outputTupleSupplier, Consumer<Tuple> outputCollector );

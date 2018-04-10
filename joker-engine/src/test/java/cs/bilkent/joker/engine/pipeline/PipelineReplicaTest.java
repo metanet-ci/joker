@@ -11,7 +11,7 @@ import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIAL;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.RUNNING;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.SHUT_DOWN;
-import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newInitialUpstreamContextWithAllPortsConnected;
+import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createInitialClosedUpstreamCtx;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
@@ -54,13 +54,13 @@ public class PipelineReplicaTest extends AbstractJokerTest
 
     private final TuplesImpl output = new TuplesImpl( 1 );
 
-    private final UpstreamContext upstreamContext0 = newInitialUpstreamContextWithAllPortsConnected( 1 );
+    private final UpstreamCtx upstreamCtx0 = createInitialClosedUpstreamCtx( 1 );
 
-    private final UpstreamContext upstreamContext1 = newInitialUpstreamContextWithAllPortsConnected( 1 );
+    private final UpstreamCtx upstreamCtx1 = createInitialClosedUpstreamCtx( 1 );
 
-    private final UpstreamContext upstreamContext2 = newInitialUpstreamContextWithAllPortsConnected( 1 );
+    private final UpstreamCtx upstreamCtx2 = createInitialClosedUpstreamCtx( 1 );
 
-    private final UpstreamContext[][] upstreamContexts = new UpstreamContext[ 3 ][ 1 ];
+    private final UpstreamCtx[][] upstreamCtxes = new UpstreamCtx[ 3 ][ 1 ];
 
     private final SchedulingStrategy schedulingStrategy1 = scheduleWhenTuplesAvailableOnDefaultPort( 1 );
 
@@ -73,9 +73,9 @@ public class PipelineReplicaTest extends AbstractJokerTest
     @Before
     public void before ()
     {
-        upstreamContexts[ 0 ][ 0 ] = upstreamContext0;
-        upstreamContexts[ 1 ][ 0 ] = upstreamContext1;
-        upstreamContexts[ 2 ][ 0 ] = upstreamContext2;
+        upstreamCtxes[ 0 ][ 0 ] = upstreamCtx0;
+        upstreamCtxes[ 1 ][ 0 ] = upstreamCtx1;
+        upstreamCtxes[ 2 ][ 0 ] = upstreamCtx2;
 
         schedulingStrategies[ 0 ][ 0 ] = schedulingStrategy1;
         schedulingStrategies[ 1 ][ 0 ] = schedulingStrategy2;
@@ -101,43 +101,39 @@ public class PipelineReplicaTest extends AbstractJokerTest
         pipeline = new PipelineReplica( pipelineReplicaId, new OperatorReplica[] { operator0, operator1, operator2 }, pipelineQueue,
                                         pipelineReplicaMeter );
 
-        final Tuple input1 = new Tuple();
-        input1.set( "k1", "v1" );
+        final Tuple input1 = Tuple.of( "k1", "v1" );
         upstreamInput1.add( input1 );
-        final Tuple input2 = new Tuple();
-        input2.set( "k2", "v2" );
+        final Tuple input2 = Tuple.of( "k2", "v2" );
         upstreamInput2.add( input2 );
-        final Tuple output1 = new Tuple();
-        output1.set( "k3", "v3" );
+        final Tuple output1 = Tuple.of( "k3", "v3" );
         output.add( output1 );
     }
 
     @Test
     public void shouldInitOperatorsSuccessfully ()
     {
-        when( operator0.init( new UpstreamContext[] { upstreamContext0 }, upstreamContext1 ) ).thenReturn( new SchedulingStrategy[] {
+        when( operator0.init( new UpstreamCtx[] { upstreamCtx0 }, upstreamCtx1 ) ).thenReturn( new SchedulingStrategy[] {
                 schedulingStrategy1 } );
-        when( operator1.init( new UpstreamContext[] { upstreamContext1 }, upstreamContext2 ) ).thenReturn( new SchedulingStrategy[] {
+        when( operator1.init( new UpstreamCtx[] { upstreamCtx1 }, upstreamCtx2 ) ).thenReturn( new SchedulingStrategy[] {
                 schedulingStrategy2 } );
-        when( operator2.init( new UpstreamContext[] { upstreamContext2 }, null ) ).thenReturn( new SchedulingStrategy[] {
-                schedulingStrategy3 } );
+        when( operator2.init( new UpstreamCtx[] { upstreamCtx2 }, null ) ).thenReturn( new SchedulingStrategy[] { schedulingStrategy3 } );
 
-        pipeline.init( schedulingStrategies, upstreamContexts );
+        pipeline.init( schedulingStrategies, upstreamCtxes );
 
         assertThat( pipeline.getStatus(), equalTo( RUNNING ) );
-        assertThat( pipeline.getUpstreamContext(), equalTo( upstreamContext0 ) );
+        assertThat( pipeline.getUpstreamCtx(), equalTo( upstreamCtx0 ) );
     }
 
     @Test
     public void shouldShutdownInitializedOperatorsWhenAnOperatorFailsToInit ()
     {
-        when( operator0.init( new UpstreamContext[] { upstreamContext0 }, upstreamContext1 ) ).thenReturn( new SchedulingStrategy[] {
+        when( operator0.init( new UpstreamCtx[] { upstreamCtx0 }, upstreamCtx1 ) ).thenReturn( new SchedulingStrategy[] {
                 schedulingStrategy1 } );
-        doThrow( new InitializationException( "" ) ).when( operator1 ).init( new UpstreamContext[] { upstreamContext1 }, upstreamContext2 );
+        doThrow( new InitializationException( "" ) ).when( operator1 ).init( new UpstreamCtx[] { upstreamCtx1 }, upstreamCtx2 );
         when( operator2.getStatus() ).thenReturn( INITIAL );
         try
         {
-            pipeline.init( schedulingStrategies, upstreamContexts );
+            pipeline.init( schedulingStrategies, upstreamCtxes );
             fail();
         }
         catch ( InitializationException expected )
@@ -145,10 +141,10 @@ public class PipelineReplicaTest extends AbstractJokerTest
             assertThat( pipeline.getStatus(), equalTo( SHUT_DOWN ) );
         }
 
-        verify( operator0 ).init( new UpstreamContext[] { upstreamContext0 }, upstreamContext1 );
+        verify( operator0 ).init( new UpstreamCtx[] { upstreamCtx0 }, upstreamCtx1 );
         verify( operator0 ).shutdown();
 
-        verify( operator1 ).init( new UpstreamContext[] { upstreamContext1 }, upstreamContext2 );
+        verify( operator1 ).init( new UpstreamCtx[] { upstreamCtx1 }, upstreamCtx2 );
         verify( operator1 ).shutdown();
 
         verify( operator2, never() ).init( anyObject(), anyObject() );
@@ -158,14 +154,13 @@ public class PipelineReplicaTest extends AbstractJokerTest
     @Test
     public void shouldShutdownOperators ()
     {
-        when( operator0.init( new UpstreamContext[] { upstreamContext0 }, upstreamContext1 ) ).thenReturn( new SchedulingStrategy[] {
+        when( operator0.init( new UpstreamCtx[] { upstreamCtx0 }, upstreamCtx1 ) ).thenReturn( new SchedulingStrategy[] {
                 schedulingStrategy1 } );
-        when( operator1.init( new UpstreamContext[] { upstreamContext1 }, upstreamContext2 ) ).thenReturn( new SchedulingStrategy[] {
+        when( operator1.init( new UpstreamCtx[] { upstreamCtx1 }, upstreamCtx2 ) ).thenReturn( new SchedulingStrategy[] {
                 schedulingStrategy2 } );
-        when( operator2.init( new UpstreamContext[] { upstreamContext2 }, null ) ).thenReturn( new SchedulingStrategy[] {
-                schedulingStrategy3 } );
+        when( operator2.init( new UpstreamCtx[] { upstreamCtx2 }, null ) ).thenReturn( new SchedulingStrategy[] { schedulingStrategy3 } );
 
-        pipeline.init( schedulingStrategies, upstreamContexts );
+        pipeline.init( schedulingStrategies, upstreamCtxes );
         pipeline.shutdown();
 
         assertThat( pipeline.getStatus(), equalTo( SHUT_DOWN ) );
@@ -178,14 +173,13 @@ public class PipelineReplicaTest extends AbstractJokerTest
     @Test
     public void shouldShutdownOperatorsOnlyOnce ()
     {
-        when( operator0.init( new UpstreamContext[] { upstreamContext0 }, upstreamContext1 ) ).thenReturn( new SchedulingStrategy[] {
+        when( operator0.init( new UpstreamCtx[] { upstreamCtx0 }, upstreamCtx1 ) ).thenReturn( new SchedulingStrategy[] {
                 schedulingStrategy1 } );
-        when( operator1.init( new UpstreamContext[] { upstreamContext1 }, upstreamContext2 ) ).thenReturn( new SchedulingStrategy[] {
+        when( operator1.init( new UpstreamCtx[] { upstreamCtx1 }, upstreamCtx2 ) ).thenReturn( new SchedulingStrategy[] {
                 schedulingStrategy2 } );
-        when( operator2.init( new UpstreamContext[] { upstreamContext2 }, null ) ).thenReturn( new SchedulingStrategy[] {
-                schedulingStrategy3 } );
+        when( operator2.init( new UpstreamCtx[] { upstreamCtx2 }, null ) ).thenReturn( new SchedulingStrategy[] { schedulingStrategy3 } );
 
-        pipeline.init( schedulingStrategies, upstreamContexts );
+        pipeline.init( schedulingStrategies, upstreamCtxes );
         pipeline.shutdown();
         pipeline.shutdown();
 
@@ -197,48 +191,46 @@ public class PipelineReplicaTest extends AbstractJokerTest
     @Test
     public void shouldInvokeFirstOperatorWithUpdatedUpstreamContext ()
     {
-        when( operator0.init( new UpstreamContext[] { upstreamContext0 }, upstreamContext1 ) ).thenReturn( new SchedulingStrategy[] {
+        when( operator0.init( new UpstreamCtx[] { upstreamCtx0 }, upstreamCtx1 ) ).thenReturn( new SchedulingStrategy[] {
                 schedulingStrategy1 } );
-        when( operator1.init( new UpstreamContext[] { upstreamContext1 }, upstreamContext2 ) ).thenReturn( new SchedulingStrategy[] {
+        when( operator1.init( new UpstreamCtx[] { upstreamCtx1 }, upstreamCtx2 ) ).thenReturn( new SchedulingStrategy[] {
                 schedulingStrategy2 } );
-        when( operator2.init( new UpstreamContext[] { upstreamContext2 }, null ) ).thenReturn( new SchedulingStrategy[] {
-                schedulingStrategy3 } );
+        when( operator2.init( new UpstreamCtx[] { upstreamCtx2 }, null ) ).thenReturn( new SchedulingStrategy[] { schedulingStrategy3 } );
 
-        pipeline.init( schedulingStrategies, upstreamContexts );
+        pipeline.init( schedulingStrategies, upstreamCtxes );
 
-        final UpstreamContext upstreamContext0New = upstreamContext0.withConnectionClosed( 0 );
-        pipeline.setUpstreamContext( upstreamContext0New );
+        final UpstreamCtx upstreamCtx0New = upstreamCtx0.withConnectionClosed( 0 );
+        pipeline.setUpstreamCtx( upstreamCtx0New );
         pipeline.invoke();
 
-        verify( operator0 ).invoke( true, null, upstreamContext0New );
+        verify( operator0 ).invoke( true, null, upstreamCtx0New );
     }
 
     @Test
     public void shouldInvokeOperators ()
     {
-        when( operator0.getDownstreamContext() ).thenReturn( upstreamContext1 );
-        when( operator1.getDownstreamContext() ).thenReturn( upstreamContext2 );
+        when( operator0.getDownstreamCtx() ).thenReturn( upstreamCtx1 );
+        when( operator1.getDownstreamCtx() ).thenReturn( upstreamCtx2 );
 
-        when( operator0.init( new UpstreamContext[] { upstreamContext0 }, upstreamContext1 ) ).thenReturn( new SchedulingStrategy[] {
+        when( operator0.init( new UpstreamCtx[] { upstreamCtx0 }, upstreamCtx1 ) ).thenReturn( new SchedulingStrategy[] {
                 schedulingStrategy1 } );
-        when( operator1.init( new UpstreamContext[] { upstreamContext1 }, upstreamContext2 ) ).thenReturn( new SchedulingStrategy[] {
+        when( operator1.init( new UpstreamCtx[] { upstreamCtx1 }, upstreamCtx2 ) ).thenReturn( new SchedulingStrategy[] {
                 schedulingStrategy2 } );
-        when( operator2.init( new UpstreamContext[] { upstreamContext2 }, null ) ).thenReturn( new SchedulingStrategy[] {
-                schedulingStrategy3 } );
+        when( operator2.init( new UpstreamCtx[] { upstreamCtx2 }, null ) ).thenReturn( new SchedulingStrategy[] { schedulingStrategy3 } );
 
-        pipeline.init( schedulingStrategies, upstreamContexts );
+        pipeline.init( schedulingStrategies, upstreamCtxes );
 
-        when( operator0.invoke( true, null, upstreamContext0 ) ).thenReturn( upstreamInput1 );
-        when( operator1.invoke( true, upstreamInput1, upstreamContext1 ) ).thenReturn( upstreamInput2 );
-        when( operator2.invoke( true, upstreamInput2, upstreamContext2 ) ).thenReturn( output );
+        when( operator0.invoke( true, null, upstreamCtx0 ) ).thenReturn( upstreamInput1 );
+        when( operator1.invoke( true, upstreamInput1, upstreamCtx1 ) ).thenReturn( upstreamInput2 );
+        when( operator2.invoke( true, upstreamInput2, upstreamCtx2 ) ).thenReturn( output );
 
         final TuplesImpl result = pipeline.invoke();
 
         assertThat( result, equalTo( output ) );
 
-        verify( operator0 ).invoke( true, null, upstreamContext0 );
-        verify( operator1 ).invoke( true, upstreamInput1, upstreamContext1 );
-        verify( operator2 ).invoke( true, upstreamInput2, upstreamContext2 );
+        verify( operator0 ).invoke( true, null, upstreamCtx0 );
+        verify( operator1 ).invoke( true, upstreamInput1, upstreamCtx1 );
+        verify( operator2 ).invoke( true, upstreamInput2, upstreamCtx2 );
     }
 
 }

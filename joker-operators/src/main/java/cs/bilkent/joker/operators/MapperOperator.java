@@ -2,8 +2,8 @@ package cs.bilkent.joker.operators;
 
 import java.util.function.BiConsumer;
 
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.Tuple;
@@ -31,7 +31,7 @@ public class MapperOperator implements Operator
     private TupleSchema outputSchema;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext ctx )
+    public SchedulingStrategy init ( final InitCtx ctx )
     {
         final OperatorConfig config = ctx.getConfig();
 
@@ -41,13 +41,14 @@ public class MapperOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext ctx )
+    public void invoke ( final InvocationCtx ctx )
     {
-        for ( Tuple tuple : ctx.getInputTuplesByDefaultPort() )
+        for ( Tuple input : ctx.getInputTuplesByDefaultPort() )
         {
-            final Tuple mapped = new Tuple( outputSchema );
-            mapper.accept( tuple, mapped );
-            ctx.output( mapped );
+            final Tuple result = new Tuple( outputSchema );
+            result.attach( input );
+            mapper.accept( input, result );
+            ctx.output( result );
         }
     }
 

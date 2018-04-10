@@ -2,8 +2,8 @@ package cs.bilkent.joker.operators;
 
 import java.util.function.Function;
 
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.Tuple;
@@ -30,11 +30,10 @@ public class ConsoleAppenderOperator implements Operator
     private Function<Tuple, String> toStringFunction;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext ctx )
+    public SchedulingStrategy init ( final InitCtx ctx )
     {
         final OperatorConfig config = ctx.getConfig();
-
-        Object toStringObject = config.getObject( TO_STRING_FUNCTION_CONFIG_PARAMETER );
+        final Object toStringObject = config.getObject( TO_STRING_FUNCTION_CONFIG_PARAMETER );
 
         if ( toStringObject instanceof Function )
         {
@@ -51,7 +50,7 @@ public class ConsoleAppenderOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext ctx )
+    public void invoke ( final InvocationCtx ctx )
     {
         for ( Tuple tuple : ctx.getInputTuplesByDefaultPort() )
         {

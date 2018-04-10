@@ -17,6 +17,8 @@ public interface MetricManager
 
     FlowMetrics getMetrics ();
 
+    LatencyMeter createLatencyMeter ( String operatorId, int replicaIndex );
+
     void shutdown ();
 
 }

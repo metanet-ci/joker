@@ -10,7 +10,7 @@ import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 /**
  * Contains information about configuration and initialization state of an operator
  */
-public interface InitializationContext
+public interface InitCtx
 {
 
     /**

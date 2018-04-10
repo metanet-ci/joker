@@ -28,8 +28,8 @@ import cs.bilkent.joker.engine.region.impl.DefaultRegionExecPlanFactory;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
@@ -137,9 +137,7 @@ public class JokerDemo extends AbstractJokerTest
             final PipelineMetricsHistory initialMetricsHistory = adaptationTracker.getInitialMetrics()
                                                                                   .getRegionMetrics( regionId )
                                                                                   .get( 0 );
-            final PipelineMetricsHistory finalMetricsHistory = adaptationTracker.getFinalMetrics()
-                                                                                .getRegionMetrics( regionId )
-                                                                                .get( 0 );
+            final PipelineMetricsHistory finalMetricsHistory = adaptationTracker.getFinalMetrics().getRegionMetrics( regionId ).get( 0 );
 
             for ( int portIndex = 0; portIndex < initialMetricsHistory.getInputPortCount(); portIndex++ )
             {
@@ -270,10 +268,8 @@ public class JokerDemo extends AbstractJokerTest
         @Override
         public void accept ( final Tuple tuple )
         {
-            tuple.set( "key", key );
             double val = this.val;
-            tuple.set( "val1", val );
-            tuple.set( "val2", val );
+            tuple.set( "key", key ).set( "val1", val ).set( "val2", val );
             if ( count++ > limit )
             {
                 key = random.nextInt( KEY_RANGE );
@@ -291,24 +287,24 @@ public class JokerDemo extends AbstractJokerTest
         private TupleSchema outputSchema;
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             outputSchema = ctx.getOutputPortSchema( 0 );
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
-            for ( Tuple tuple : ctx.getInputTuplesByDefaultPort() )
+            for ( Tuple input : ctx.getInputTuplesByDefaultPort() )
             {
-                Tuple summed = new Tuple( outputSchema );
-                Object pKey = tuple.get( "key" );
-                summed.set( "key", pKey );
-                double sum = tuple.getDouble( "val1" ) + tuple.getDouble( "val2" );
+                Object pKey = input.get( "key" );
+                Tuple summed = Tuple.of( outputSchema, "key", pKey );
+                summed.attach( input );
+                double sum = input.getDouble( "val1" ) + input.getDouble( "val2" );
                 for ( int i = 0; i < PARTITIONER_COST; i++ )
                 {
-                    sum *= tuple.getDouble( "val1" ) / 4;
+                    sum *= input.getDouble( "val1" ) / 4;
                 }
                 summed.set( "val", sum );
                 ctx.output( summed );
@@ -344,8 +340,7 @@ public class JokerDemo extends AbstractJokerTest
                 val *= ( val / 2 );
             }
 
-            output.set( "key", input.get( "key" ) );
-            output.set( "val", val );
+            output.set( "key", input.get( "key" ) ).set( "val", val );
         }
 
     }
@@ -382,9 +377,8 @@ public class JokerDemo extends AbstractJokerTest
 
         private FlowDef build ()
         {
-            OperatorConfig beaconConfig = new OperatorConfig();
-            beaconConfig.set( TUPLE_COUNT_CONFIG_PARAMETER, 4096 * 4 );
-            beaconConfig.set( TUPLE_POPULATOR_CONFIG_PARAMETER, new BeaconFn() );
+            OperatorConfig beaconConfig = new OperatorConfig().set( TUPLE_COUNT_CONFIG_PARAMETER, 4096 * 4 )
+                                                              .set( TUPLE_POPULATOR_CONFIG_PARAMETER, new BeaconFn() );
 
             OperatorRuntimeSchemaBuilder beaconSchemaBuilder = new OperatorRuntimeSchemaBuilder( 0, 1 );
             beaconSchemaBuilder.addOutputField( 0, "key", Integer.class )
@@ -414,8 +408,7 @@ public class JokerDemo extends AbstractJokerTest
                                                                                  : singletonList( "key" ) )
                                                         .build();
 
-            OperatorConfig multiplierConfig = new OperatorConfig();
-            multiplierConfig.set( MAPPER_CONFIG_PARAMETER, new MultiplierFn() );
+            OperatorConfig multiplierConfig = new OperatorConfig().set( MAPPER_CONFIG_PARAMETER, new MultiplierFn() );
 
             OperatorRuntimeSchemaBuilder multiplierSchemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
             OperatorRuntimeSchema multiplierSchema = multiplierSchemaBuilder.addInputField( 0, "key", Integer.class )
@@ -439,8 +432,7 @@ public class JokerDemo extends AbstractJokerTest
                                                         .setExtendingSchema( multiplierSchema )
                                                         .build();
 
-            OperatorConfig tupleCounterConfig = new OperatorConfig();
-            tupleCounterConfig.set( CONSUMER_FUNCTION_CONFIG_PARAMETER, tupleCounterFn );
+            OperatorConfig tupleCounterConfig = new OperatorConfig().set( CONSUMER_FUNCTION_CONFIG_PARAMETER, tupleCounterFn );
             OperatorDef tupleCounter = OperatorDefBuilder.newInstance( "tc", ForEachOperator.class )
                                                          .setConfig( tupleCounterConfig )
                                                          .build();
@@ -478,7 +470,7 @@ public class JokerDemo extends AbstractJokerTest
         private Histogram histogram = new Histogram( new ExponentiallyDecayingReservoir() );
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             final OperatorConfig config = ctx.getConfig();
 
@@ -488,13 +480,14 @@ public class JokerDemo extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
             final List<Tuple> tuples = ctx.getInputTuplesByDefaultPort();
-            for ( Tuple tuple : tuples )
+            for ( Tuple input : tuples )
             {
                 final Tuple mapped = new Tuple( outputSchema );
-                mapper.accept( tuple, mapped );
+                mapped.attach( input );
+                mapper.accept( input, mapped );
                 ctx.output( mapped );
             }
 

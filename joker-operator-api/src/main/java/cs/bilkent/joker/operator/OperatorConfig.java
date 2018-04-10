@@ -43,10 +43,12 @@ public final class OperatorConfig implements Fields<String>
     }
 
     @Override
-    public void set ( final String key, final Object value )
+    public OperatorConfig set ( final String key, final Object value )
     {
         checkArgument( value != null, "value can't be null!" );
         this.values.put( key, value );
+
+        return this;
     }
 
     @Override

@@ -53,16 +53,15 @@ public class AuthLogsFlowDefFactory implements FlowDefFactory
         final Config config = jokerConfig.getRootConfig();
         final int failureWindowDurationInSeconds = config.getInt( "failureWindowDurationInSeconds" );
 
-        final OperatorConfig logBeaconConfig = new OperatorConfig();
-        logBeaconConfig.set( "filePath", config.getString( "filePath" ) );
-        logBeaconConfig.set( "batchSize", config.getInt( "batchSize" ) );
-        logBeaconConfig.set( "uidRange", config.getInt( "uidRange" ) );
-        logBeaconConfig.set( "euidRange", config.getInt( "euidRange" ) );
-        logBeaconConfig.set( "rhostCount", config.getInt( "rhostCount" ) );
-        logBeaconConfig.set( "userCount", config.getInt( "userCount" ) );
-        logBeaconConfig.set( "authFailureRatio", config.getDouble( "authFailureRatio" ) );
-        logBeaconConfig.set( "logsPerSecond", config.getInt( "logsPerSecond" ) );
-        logBeaconConfig.set( "tuplesPerInvocation", config.getInt( "tuplesPerInvocation" ) );
+        final OperatorConfig logBeaconConfig = new OperatorConfig().set( "filePath", config.getString( "filePath" ) )
+                                                                   .set( "batchSize", config.getInt( "batchSize" ) )
+                                                                   .set( "uidRange", config.getInt( "uidRange" ) )
+                                                                   .set( "euidRange", config.getInt( "euidRange" ) )
+                                                                   .set( "rhostCount", config.getInt( "rhostCount" ) )
+                                                                   .set( "userCount", config.getInt( "userCount" ) )
+                                                                   .set( "authFailureRatio", config.getDouble( "authFailureRatio" ) )
+                                                                   .set( "logsPerSecond", config.getInt( "logsPerSecond" ) )
+                                                                   .set( "tuplesPerInvocation", config.getInt( "tuplesPerInvocation" ) );
 
         final OperatorDef logBeacon = OperatorDefBuilder.newInstance( "logBeacon", LogBeaconOperator.class )
                                                         .setConfig( logBeaconConfig )
@@ -84,8 +83,8 @@ public class AuthLogsFlowDefFactory implements FlowDefFactory
                    && msg[ 2 ].equals( "failure;" );
         };
 
-        final OperatorConfig authFailureFilterConfig = new OperatorConfig();
-        authFailureFilterConfig.set( FilterOperator.PREDICATE_CONFIG_PARAMETER, authFailureFilterPredicate );
+        final OperatorConfig authFailureFilterConfig = new OperatorConfig().set( FilterOperator.PREDICATE_CONFIG_PARAMETER,
+                                                                                 authFailureFilterPredicate );
 
         final OperatorDef authFailureFilter = OperatorDefBuilder.newInstance( "authFailureFilter", FilterOperator.class )
                                                                 .setExtendingSchema( authFailureFilterSchema )
@@ -105,17 +104,16 @@ public class AuthLogsFlowDefFactory implements FlowDefFactory
                            .addOutputField( 0, USER_FIELD_NAME, String.class );
 
         final BiConsumer<Tuple, Tuple> failureParserFunc = ( input, output ) -> {
-            output.set( TIMESTAMP_FIELD_NAME, input.getLong( TIMESTAMP_FIELD_NAME ) );
             final String[] tokens = input.getOrFail( MESSAGE_FIELD_NAME );
-            output.set( UID_FIELD_NAME, tokens[ 5 ] );
-            output.set( EUID_FIELD_NAME, tokens[ 7 ] );
-            output.set( TTY_FIELD_NAME, tokens[ 9 ] );
-            output.set( RHOST_FIELD_NAME, tokens[ 12 ] );
-            output.set( USER_FIELD_NAME, tokens[ 14 ] );
+            output.set( TIMESTAMP_FIELD_NAME, input.getLong( TIMESTAMP_FIELD_NAME ) )
+                  .set( UID_FIELD_NAME, tokens[ 5 ] )
+                  .set( EUID_FIELD_NAME, tokens[ 7 ] )
+                  .set( TTY_FIELD_NAME, tokens[ 9 ] )
+                  .set( RHOST_FIELD_NAME, tokens[ 12 ] )
+                  .set( USER_FIELD_NAME, tokens[ 14 ] );
         };
 
-        final OperatorConfig failureParserConfig = new OperatorConfig();
-        failureParserConfig.set( MapperOperator.MAPPER_CONFIG_PARAMETER, failureParserFunc );
+        final OperatorConfig failureParserConfig = new OperatorConfig().set( MapperOperator.MAPPER_CONFIG_PARAMETER, failureParserFunc );
 
         final OperatorDef failureParser = OperatorDefBuilder.newInstance( "failureParser", MapperOperator.class )
                                                             .setExtendingSchema( failureParserSchema )
@@ -138,17 +136,17 @@ public class AuthLogsFlowDefFactory implements FlowDefFactory
             final long maxTimestamp = accumulator.getLongOrDefault( MAX_TIMESTAMP_FIELD_NAME, Long.MIN_VALUE );
             final long minTimestamp = accumulator.getLongOrDefault( MIN_TIMESTAMP_FIELD_NAME, Long.MAX_VALUE );
 
-            accumulator.set( MAX_TIMESTAMP_FIELD_NAME, max( maxTimestamp, input.getLong( TIMESTAMP_FIELD_NAME ) ) );
-            accumulator.set( MIN_TIMESTAMP_FIELD_NAME, min( minTimestamp, input.getLong( TIMESTAMP_FIELD_NAME ) ) );
-            accumulator.set( RHOST_FIELD_NAME, input.get( RHOST_FIELD_NAME ) );
-            accumulator.set( USER_FIELD_NAME, input.get( USER_FIELD_NAME ) );
+            accumulator.set( MAX_TIMESTAMP_FIELD_NAME, max( maxTimestamp, input.getLong( TIMESTAMP_FIELD_NAME ) ) )
+                       .set( MIN_TIMESTAMP_FIELD_NAME, min( minTimestamp, input.getLong( TIMESTAMP_FIELD_NAME ) ) )
+                       .set( RHOST_FIELD_NAME, input.get( RHOST_FIELD_NAME ) )
+                       .set( USER_FIELD_NAME, input.get( USER_FIELD_NAME ) );
         };
 
-        final OperatorConfig failureWindowConfig = new OperatorConfig();
-        failureWindowConfig.set( REDUCER_CONFIG_PARAMETER, windowReducerFunc );
-        failureWindowConfig.set( ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER, (Consumer<Tuple>) t -> {
-        } );
-        failureWindowConfig.set( TUPLE_COUNT_CONFIG_PARAMETER, FAILURE_WINDOW_TUPLE_COUNT );
+        final OperatorConfig failureWindowConfig = new OperatorConfig().set( REDUCER_CONFIG_PARAMETER, windowReducerFunc )
+                                                                       .set( ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER,
+                                                                             (Consumer<Tuple>) t -> {
+                                                                             } )
+                                                                       .set( TUPLE_COUNT_CONFIG_PARAMETER, FAILURE_WINDOW_TUPLE_COUNT );
 
         final OperatorDef failureWindow = OperatorDefBuilder.newInstance( "failureWindow", TupleCountBasedWindowReducerOperator.class )
                                                             .setExtendingSchema( failureWindowSchema )
@@ -170,8 +168,7 @@ public class AuthLogsFlowDefFactory implements FlowDefFactory
         final Predicate<Tuple> cutOffPredicate = input -> ( input.getLong( MIN_TIMESTAMP_FIELD_NAME ) + failureWindowDurationInMillis )
                                                           > input.getLong( MAX_TIMESTAMP_FIELD_NAME );
 
-        final OperatorConfig cutOffConfig = new OperatorConfig();
-        cutOffConfig.set( FilterOperator.PREDICATE_CONFIG_PARAMETER, cutOffPredicate );
+        final OperatorConfig cutOffConfig = new OperatorConfig().set( FilterOperator.PREDICATE_CONFIG_PARAMETER, cutOffPredicate );
 
         final OperatorDef cutOff = OperatorDefBuilder.newInstance( "cutOff", FilterOperator.class )
                                                      .setExtendingSchema( cutOffSchema )
@@ -189,14 +186,13 @@ public class AuthLogsFlowDefFactory implements FlowDefFactory
                             .addOutputField( 0, DIFF_FIELD_NAME, Long.class );
 
         final BiConsumer<Tuple, Tuple> diffCalculatorFunc = ( input, output ) -> {
-            output.set( RHOST_FIELD_NAME, input.get( RHOST_FIELD_NAME ) );
-            output.set( LAST_FAILURE_FIELD_NAME, input.get( MAX_TIMESTAMP_FIELD_NAME ) );
             final long timeDiff = input.getLong( MAX_TIMESTAMP_FIELD_NAME ) - input.getLong( MIN_TIMESTAMP_FIELD_NAME );
-            output.set( DIFF_FIELD_NAME, MILLISECONDS.toSeconds( timeDiff ) );
+            output.set( RHOST_FIELD_NAME, input.get( RHOST_FIELD_NAME ) )
+                  .set( LAST_FAILURE_FIELD_NAME, input.get( MAX_TIMESTAMP_FIELD_NAME ) )
+                  .set( DIFF_FIELD_NAME, MILLISECONDS.toSeconds( timeDiff ) );
         };
 
-        final OperatorConfig diffCalculatorConfig = new OperatorConfig();
-        diffCalculatorConfig.set( MapperOperator.MAPPER_CONFIG_PARAMETER, diffCalculatorFunc );
+        final OperatorConfig diffCalculatorConfig = new OperatorConfig().set( MapperOperator.MAPPER_CONFIG_PARAMETER, diffCalculatorFunc );
 
         final OperatorDef diffCalculator = OperatorDefBuilder.newInstance( "diffCalculator", MapperOperator.class )
                                                              .setExtendingSchema( diffCalculatorSchema )

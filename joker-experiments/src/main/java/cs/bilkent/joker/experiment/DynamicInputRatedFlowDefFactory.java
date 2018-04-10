@@ -41,13 +41,12 @@ public class DynamicInputRatedFlowDefFactory implements FlowDefFactory
 
         final FlowDefBuilder flowDefBuilder = new FlowDefBuilder();
 
-        OperatorConfig beaconConfig = new OperatorConfig();
-        beaconConfig.set( KEY_RANGE_CONFIG_PARAMETER, keyRange );
-        beaconConfig.set( VALUE_RANGE_CONFIG_PARAMETER, valueRange );
-        beaconConfig.set( TUPLES_PER_KEY_CONFIG_PARAMETER, tuplesPerKey );
-        beaconConfig.set( KEYS_PER_INVOCATION_CONFIG_PARAMETER, keysPerInvocation );
-        beaconConfig.set( TOKEN_COUNT_CONFIG_PARAMETER, tokenCount );
-        beaconConfig.set( PERIOD_IN_MILLIS_CONFIG_PARAMETER, periodInMillis );
+        OperatorConfig beaconConfig = new OperatorConfig().set( KEY_RANGE_CONFIG_PARAMETER, keyRange )
+                                                          .set( VALUE_RANGE_CONFIG_PARAMETER, valueRange )
+                                                          .set( TUPLES_PER_KEY_CONFIG_PARAMETER, tuplesPerKey )
+                                                          .set( KEYS_PER_INVOCATION_CONFIG_PARAMETER, keysPerInvocation )
+                                                          .set( TOKEN_COUNT_CONFIG_PARAMETER, tokenCount )
+                                                          .set( PERIOD_IN_MILLIS_CONFIG_PARAMETER, periodInMillis );
 
         OperatorDef beacon = OperatorDefBuilder.newInstance( "bc", DynamicInputRatedBeaconOperator.class )
                                                .setConfig( beaconConfig )
@@ -55,8 +54,7 @@ public class DynamicInputRatedFlowDefFactory implements FlowDefFactory
 
         flowDefBuilder.add( beacon );
 
-        OperatorConfig ptionerConfig = new OperatorConfig();
-        ptionerConfig.set( MULTIPLICATION_COUNT, operatorCosts.get( 0 ) );
+        OperatorConfig ptionerConfig = new OperatorConfig().set( MULTIPLICATION_COUNT, operatorCosts.get( 0 ) );
 
         OperatorDef ptioner = OperatorDefBuilder.newInstance( "m0", PartitionedStatefulMultiplierOperator.class )
                                                 .setConfig( ptionerConfig )
@@ -69,8 +67,7 @@ public class DynamicInputRatedFlowDefFactory implements FlowDefFactory
 
         for ( int i = 1; i < operatorCosts.size(); i++ )
         {
-            OperatorConfig multiplierConfig = new OperatorConfig();
-            multiplierConfig.set( MULTIPLICATION_COUNT, operatorCosts.get( i ) );
+            OperatorConfig multiplierConfig = new OperatorConfig().set( MULTIPLICATION_COUNT, operatorCosts.get( i ) );
 
             OperatorDef multiplier = OperatorDefBuilder.newInstance( "m" + i, StatelessMultiplierOperator.class )
                                                        .setConfig( multiplierConfig )

@@ -38,12 +38,12 @@ public class InteractiveRegionExecPlanFactoryMain
         final JokerConfig jokerConfig = new JokerConfig();
         final RegionExecPlanFactory regionExecPlanFactory = new InteractiveRegionExecPlanFactory( jokerConfig );
 
-        final OperatorConfig beaconConfig = new OperatorConfig();
-        beaconConfig.set( BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER, 10 );
-        beaconConfig.set( TUPLE_POPULATOR_CONFIG_PARAMETER, (Consumer<Tuple>) tuple -> {
-            sleepUninterruptibly( 1 + random.nextInt( 100 ), TimeUnit.MILLISECONDS );
-            tuple.set( "field1", random.nextInt( 1000 ) );
-        } );
+        final OperatorConfig beaconConfig = new OperatorConfig().set( BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER, 10 )
+                                                                .set( TUPLE_POPULATOR_CONFIG_PARAMETER, (Consumer<Tuple>) tuple -> {
+                                                                    sleepUninterruptibly( 1 + random.nextInt( 100 ),
+                                                                                          TimeUnit.MILLISECONDS );
+                                                                    tuple.set( "field1", random.nextInt( 1000 ) );
+                                                                } );
         final OperatorRuntimeSchemaBuilder beaconSchema = new OperatorRuntimeSchemaBuilder( 0, 1 );
         beaconSchema.getOutputPortSchemaBuilder( 0 ).addField( "field1", Integer.class );
 
@@ -52,9 +52,10 @@ public class InteractiveRegionExecPlanFactoryMain
                                                      .setExtendingSchema( beaconSchema )
                                                      .build();
 
-        final OperatorConfig mapperConfig = new OperatorConfig();
-        mapperConfig.set( MAPPER_CONFIG_PARAMETER,
-                          (BiConsumer<Tuple, Tuple>) ( input, output ) -> output.set( "field1", input.get( "field1" ) ) );
+        final OperatorConfig mapperConfig = new OperatorConfig().set( MAPPER_CONFIG_PARAMETER,
+                                                                      (BiConsumer<Tuple, Tuple>) ( input, output ) -> output.set( "field1",
+                                                                                                                                  input.get(
+                                                                                                                                          "field1" ) ) );
 
         final OperatorRuntimeSchemaBuilder mapperSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
         mapperSchema.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field1", Integer.class );
@@ -64,12 +65,15 @@ public class InteractiveRegionExecPlanFactoryMain
                                                      .setExtendingSchema( mapperSchema )
                                                      .build();
 
-        final OperatorConfig windowConfig = new OperatorConfig();
-        windowConfig.set( ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER, (Consumer<Tuple>) tuple -> tuple.set( "field1", 0 ) );
-        windowConfig.set( TupleCountBasedWindowReducerOperator.TUPLE_COUNT_CONFIG_PARAMETER, 1 );
-        windowConfig.set( REDUCER_CONFIG_PARAMETER,
-                          (BiConsumer<Tuple, Tuple>) ( acc, val ) -> acc.set( "field1",
-                                                                              acc.getInteger( "field1" ) + val.getInteger( "field1" ) ) );
+        final OperatorConfig windowConfig = new OperatorConfig().set( ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER,
+                                                                      (Consumer<Tuple>) tuple -> tuple.set( "field1", 0 ) )
+                                                                .set( TupleCountBasedWindowReducerOperator.TUPLE_COUNT_CONFIG_PARAMETER, 1 )
+                                                                .set( REDUCER_CONFIG_PARAMETER,
+                                                                      (BiConsumer<Tuple, Tuple>) ( acc, val ) -> acc.set( "field1",
+                                                                                                                          acc.getInteger(
+                                                                                                                                  "field1" )
+                                                                                                                          + val.getInteger(
+                                                                                                                                  "field1" ) ) );
 
         final OperatorRuntimeSchemaBuilder windowSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
         windowSchema.addInputField( 0, "field1", Integer.class );

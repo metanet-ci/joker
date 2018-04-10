@@ -2,8 +2,8 @@ package cs.bilkent.joker.operators;
 
 import java.util.function.Consumer;
 
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.Tuple;
@@ -33,7 +33,7 @@ public class BeaconOperator implements Operator
     private TupleSchema outputSchema;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext ctx )
+    public SchedulingStrategy init ( final InitCtx ctx )
     {
         final OperatorConfig config = ctx.getConfig();
 
@@ -45,7 +45,7 @@ public class BeaconOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext ctx )
+    public void invoke ( final InvocationCtx ctx )
     {
         for ( int i = 0; i < tupleCount; i++ )
         {

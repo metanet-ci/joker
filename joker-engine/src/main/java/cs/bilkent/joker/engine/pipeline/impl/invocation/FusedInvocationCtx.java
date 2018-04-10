@@ -1,56 +1,41 @@
 package cs.bilkent.joker.engine.pipeline.impl.invocation;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
+import com.google.common.collect.ImmutableList;
+
 import static com.google.common.base.Preconditions.checkNotNull;
-import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
-import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.impl.InternalInvocationContext;
+import cs.bilkent.joker.operator.impl.InternalInvocationCtx;
 import cs.bilkent.joker.operator.impl.OutputCollector;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.partition.impl.PartitionKey;
-import gnu.trove.map.hash.TObjectIntHashMap;
 import static java.util.Arrays.copyOf;
 
-public class FusedPartitionedInvocationContext implements InternalInvocationContext, OutputCollector
+public class FusedInvocationCtx implements InternalInvocationCtx, OutputCollector
 {
-
-    private static final int NA = -1;
-
-
-    private final int inputPortCount;
 
     private final Function<PartitionKey, KVStore> kvStoreSupplier;
 
-    private final List<TuplesImpl> inputs = new ArrayList<>();
+    private final TuplesImpl input;
 
-    private final List<PartitionKey> partitionKeys = new ArrayList<>();
-
-    private final PartitionKeyExtractor partitionKeyExtractor;
-
-    private final TObjectIntHashMap<PartitionKey> partitionKeyInputIndices = new TObjectIntHashMap<>( 16, 0.75f, NA );
+    private final List<TuplesImpl> inputs;
 
     private final OutputCollector outputCollector;
-
-    private int inputCount;
-
-    private int currentInput = 0;
 
     private InvocationReason reason;
 
     private boolean[] upstreamConnectionStatuses;
 
-    public FusedPartitionedInvocationContext ( final int inputPortCount,
-                                               final Function<PartitionKey, KVStore> kvStoreSupplier,
-                                               final PartitionKeyExtractor partitionKeyExtractor, final OutputCollector outputCollector )
+    public FusedInvocationCtx ( final int inputPortCount,
+                                final Function<PartitionKey, KVStore> kvStoreSupplier,
+                                final OutputCollector outputCollector )
     {
-        this.inputPortCount = inputPortCount;
+        this.input = new TuplesImpl( inputPortCount );
+        this.inputs = ImmutableList.of( input );
         this.kvStoreSupplier = kvStoreSupplier;
-        this.partitionKeyExtractor = partitionKeyExtractor;
         this.outputCollector = outputCollector;
     }
 
@@ -67,27 +52,20 @@ public class FusedPartitionedInvocationContext implements InternalInvocationCont
     public void reset ()
     {
         this.reason = null;
-        for ( TuplesImpl input : inputs )
-        {
-            input.clear();
-        }
-        partitionKeys.clear();
+        input.clear();
         outputCollector.clear();
-        partitionKeyInputIndices.clear();
-        inputCount = 0;
-        currentInput = 0;
     }
 
     @Override
     public int getInputCount ()
     {
-        return inputCount;
+        return input.isNonEmpty() ? 1 : 0;
     }
 
     @Override
     public boolean nextInput ()
     {
-        return ( ++currentInput < inputCount );
+        return false;
     }
 
     @Override
@@ -115,19 +93,19 @@ public class FusedPartitionedInvocationContext implements InternalInvocationCont
     @Override
     public List<Tuple> getInputTuples ( final int portIndex )
     {
-        return getInput().getTuples( portIndex );
+        return input.getTuples( portIndex );
     }
 
     @Override
     public Tuple getInputTupleOrNull ( final int portIndex, final int tupleIndex )
     {
-        return getInput().getTupleOrNull( portIndex, tupleIndex );
+        return input.getTupleOrNull( portIndex, tupleIndex );
     }
 
     @Override
     public int getInputTupleCount ( final int portIndex )
     {
-        return getInput().getTupleCount( portIndex );
+        return input.getTupleCount( portIndex );
     }
 
     @Override
@@ -173,20 +151,15 @@ public class FusedPartitionedInvocationContext implements InternalInvocationCont
     }
 
     @Override
-    public PartitionKey getPartitionKey ()
+    public List<Object> getPartitionKey ()
     {
-        return partitionKeys.get( currentInput );
+        return null;
     }
 
     @Override
     public KVStore getKVStore ()
     {
-        return kvStoreSupplier.apply( getPartitionKey() );
-    }
-
-    public TuplesImpl getInput ()
-    {
-        return inputs.get( currentInput );
+        return kvStoreSupplier.apply( null );
     }
 
     // InvocationContext methods end
@@ -196,13 +169,13 @@ public class FusedPartitionedInvocationContext implements InternalInvocationCont
     @Override
     public void add ( final Tuple tuple )
     {
-        addOutputTuple( DEFAULT_PORT_INDEX, tuple );
+        input.add( tuple );
     }
 
     @Override
     public void add ( final int portIndex, final Tuple tuple )
     {
-        addOutputTuple( portIndex, tuple );
+        input.add( portIndex, tuple );
     }
 
     @Override
@@ -217,30 +190,6 @@ public class FusedPartitionedInvocationContext implements InternalInvocationCont
         // no need to implement
     }
 
-    private void addOutputTuple ( final int portIndex, final Tuple tuple )
-    {
-        final PartitionKey partitionKey = partitionKeyExtractor.getPartitionKey( tuple );
-        final int idx = partitionKeyInputIndices.get( partitionKey );
-        if ( idx == NA )
-        {
-            partitionKeyInputIndices.put( partitionKey, partitionKeyInputIndices.size() );
-            createOutputTuples( partitionKey ).add( portIndex, tuple );
-            return;
-        }
-
-        inputs.get( idx ).add( portIndex, tuple );
-    }
-
-    private TuplesImpl createOutputTuples ( final PartitionKey partitionKey )
-    {
-        partitionKeys.add( partitionKey );
-        if ( inputs.size() <= inputCount )
-        {
-            inputs.add( new TuplesImpl( inputPortCount ) );
-        }
-
-        return inputs.get( inputCount++ );
-    }
-
     // OutputTuplesSupplier methods end
+
 }

@@ -18,7 +18,8 @@ import cs.bilkent.joker.engine.pipeline.DownstreamCollector;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIAL;
 import cs.bilkent.joker.engine.pipeline.Pipeline;
 import cs.bilkent.joker.engine.pipeline.PipelineManager;
-import cs.bilkent.joker.engine.pipeline.impl.PipelineManagerImpl.NopDownstreamCollector;
+import cs.bilkent.joker.engine.pipeline.impl.PipelineManagerImpl.IngestionTimeInjector;
+import cs.bilkent.joker.engine.pipeline.impl.PipelineManagerImpl.LatencyRecorder;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.CompositeDownstreamCollector;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.DownstreamCollector1;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.PartitionedDownstreamCollector1;
@@ -26,8 +27,8 @@ import cs.bilkent.joker.engine.region.RegionDefFormer;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
@@ -261,8 +262,10 @@ public class PipelineManagerImplTest extends AbstractJokerTest
 
         assertEquals( statefulRegionDef, pipeline1.getRegionDef() );
         assertEquals( 0, pipeline1.getOperatorIndex( operatorDef1 ) );
-        assertTrue( pipeline1.getDownstreamCollector( 0 ) instanceof PartitionedDownstreamCollector1 );
-        assertArrayEquals( ( (Supplier<OperatorQueue[]>) pipeline1.getDownstreamCollector( 0 ) ).get(),
+        final DownstreamCollector pipeline1Downstream = pipeline1.getDownstreamCollector( 0 );
+        assertTrue( pipeline1Downstream instanceof IngestionTimeInjector );
+        assertTrue( ( (IngestionTimeInjector) pipeline1Downstream ).getDownstream() instanceof PartitionedDownstreamCollector1 );
+        assertArrayEquals( ( (Supplier<OperatorQueue[]>) ( (IngestionTimeInjector) pipeline1Downstream ).getDownstream() ).get(),
                            new OperatorQueue[] { pipeline2.getPipelineReplica( 0 ).getEffectiveQueue(),
                                                  pipeline2.getPipelineReplica( 1 ).getEffectiveQueue() } );
 
@@ -279,7 +282,7 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         assertEquals( partitionedStatefulRegionDef, pipeline3.getRegionDef() );
         assertEquals( 0, pipeline3.getOperatorIndex( operatorDef3 ) );
         assertFalse( pipeline3.getPipelineReplica( 0 ) == pipeline3.getPipelineReplica( 1 ) );
-        assertTrue( pipeline3.getDownstreamCollector( 0 ) instanceof NopDownstreamCollector );
+        assertTrue( pipeline3.getDownstreamCollector( 0 ) instanceof LatencyRecorder );
     }
 
     @Test
@@ -320,8 +323,13 @@ public class PipelineManagerImplTest extends AbstractJokerTest
 
         assertEquals( statefulRegionDef, pipeline1.getRegionDef() );
         assertEquals( 0, pipeline1.getOperatorIndex( operatorDef1 ) );
-        assertTrue( pipeline1.getDownstreamCollector( 0 ) instanceof PartitionedDownstreamCollector1 );
-        assertArrayEquals( ( (Supplier<OperatorQueue[]>) pipeline1.getDownstreamCollector( 0 ) ).get(),
+        final DownstreamCollector sourceDownstream = pipeline1.getDownstreamCollector( 0 );
+        assertTrue( sourceDownstream instanceof IngestionTimeInjector );
+        assertTrue( ( (IngestionTimeInjector) sourceDownstream ).getDownstream() instanceof PartitionedDownstreamCollector1 );
+        final PartitionedDownstreamCollector1 partitionedDownstream = (PartitionedDownstreamCollector1) ( (IngestionTimeInjector)
+                                                                                                                  sourceDownstream )
+                                                                                                                .getDownstream();
+        assertArrayEquals( ( partitionedDownstream ).get(),
                            new OperatorQueue[] { pipeline2.getPipelineReplica( 0 ).getEffectiveQueue(),
                                                  pipeline2.getPipelineReplica( 1 ).getEffectiveQueue() } );
 
@@ -338,7 +346,7 @@ public class PipelineManagerImplTest extends AbstractJokerTest
         assertEquals( partitionedStatefulRegionDef, pipeline3.getRegionDef() );
         assertEquals( 0, pipeline3.getOperatorIndex( operatorDef3 ) );
         assertFalse( pipeline3.getPipelineReplica( 0 ) == pipeline3.getPipelineReplica( 1 ) );
-        assertTrue( pipeline3.getDownstreamCollector( 0 ) instanceof NopDownstreamCollector );
+        assertTrue( pipeline3.getDownstreamCollector( 0 ) instanceof LatencyRecorder );
     }
 
     @Test
@@ -383,19 +391,23 @@ public class PipelineManagerImplTest extends AbstractJokerTest
 
         assertEquals( statefulRegionDef1, pipeline1.getRegionDef() );
         assertEquals( 0, pipeline1.getOperatorIndex( statefulRegionDef1.getOperators().get( 0 ) ) );
-        assertTrue( pipeline1.getDownstreamCollector( 0 ) instanceof DownstreamCollector1 );
-        assertEquals( ( (Supplier<OperatorQueue>) pipeline1.getDownstreamCollector( 0 ) ).get(),
+        final DownstreamCollector pipeline1Downstream = pipeline1.getDownstreamCollector( 0 );
+        assertTrue( pipeline1Downstream instanceof IngestionTimeInjector );
+        assertTrue( ( (IngestionTimeInjector) pipeline1Downstream ).getDownstream() instanceof DownstreamCollector1 );
+        assertEquals( ( (Supplier<OperatorQueue>) ( ( (IngestionTimeInjector) pipeline1Downstream ).getDownstream() ) ).get(),
                       pipeline3.getPipelineReplica( 0 ).getEffectiveQueue() );
 
         assertEquals( statefulRegionDef2, pipeline2.getRegionDef() );
         assertEquals( 0, pipeline2.getOperatorIndex( statefulRegionDef2.getOperators().get( 0 ) ) );
-        assertTrue( pipeline2.getDownstreamCollector( 0 ) instanceof DownstreamCollector1 );
-        assertEquals( ( (Supplier<OperatorQueue>) pipeline2.getDownstreamCollector( 0 ) ).get(),
+        final DownstreamCollector pipeline2Downstream = pipeline2.getDownstreamCollector( 0 );
+        assertTrue( pipeline2Downstream instanceof IngestionTimeInjector );
+        assertTrue( ( (IngestionTimeInjector) pipeline2Downstream ).getDownstream() instanceof DownstreamCollector1 );
+        assertEquals( ( (Supplier<OperatorQueue>) ( ( (IngestionTimeInjector) pipeline2Downstream ).getDownstream() ) ).get(),
                       pipeline3.getPipelineReplica( 0 ).getEffectiveQueue() );
 
         assertEquals( statelessRegionDef, pipeline3.getRegionDef() );
         assertEquals( 0, pipeline3.getOperatorIndex( operatorDef3 ) );
-        assertTrue( pipeline3.getDownstreamCollector( 0 ) instanceof NopDownstreamCollector );
+        assertTrue( pipeline3.getDownstreamCollector( 0 ) instanceof LatencyRecorder );
     }
 
     @Test
@@ -439,15 +451,17 @@ public class PipelineManagerImplTest extends AbstractJokerTest
 
         assertEquals( statefulRegionDef, pipeline1.getRegionDef() );
         assertEquals( 0, pipeline1.getOperatorIndex( statefulRegionDef.getOperators().get( 0 ) ) );
-        assertTrue( pipeline1.getDownstreamCollector( 0 ) instanceof CompositeDownstreamCollector );
+        final DownstreamCollector sourceDownstream = pipeline1.getDownstreamCollector( 0 );
+        assertTrue( sourceDownstream instanceof IngestionTimeInjector );
+        assertTrue( ( (IngestionTimeInjector) sourceDownstream ).getDownstream() instanceof CompositeDownstreamCollector );
 
         assertEquals( statelessRegionDef, pipeline2.getRegionDef() );
         assertEquals( 0, pipeline2.getOperatorIndex( statelessRegionDef.getOperators().get( 0 ) ) );
-        assertTrue( pipeline2.getDownstreamCollector( 0 ) instanceof NopDownstreamCollector );
+        assertTrue( pipeline2.getDownstreamCollector( 0 ) instanceof LatencyRecorder );
 
         assertEquals( partitionedStatefulRegionDef, pipeline3.getRegionDef() );
         assertEquals( 0, pipeline3.getOperatorIndex( operatorDef3 ) );
-        assertTrue( pipeline3.getDownstreamCollector( 0 ) instanceof NopDownstreamCollector );
+        assertTrue( pipeline3.getDownstreamCollector( 0 ) instanceof LatencyRecorder );
     }
 
     private RegionDef findRegion ( Collection<RegionDef> regions, final OperatorDef operator )
@@ -461,13 +475,13 @@ public class PipelineManagerImplTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return ScheduleWhenAvailable.INSTANCE;
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
 
         }
@@ -482,13 +496,13 @@ public class PipelineManagerImplTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
 
         }
@@ -503,13 +517,13 @@ public class PipelineManagerImplTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
 
         }
@@ -525,14 +539,14 @@ public class PipelineManagerImplTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             final int[] openPorts = IntStream.range( 0, ctx.getInputPortCount() ).filter( ctx::isInputPortOpen ).toArray();
             return scheduleWhenTuplesAvailableOnAny( AT_LEAST, ctx.getInputPortCount(), 1, openPorts );
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
 
         }

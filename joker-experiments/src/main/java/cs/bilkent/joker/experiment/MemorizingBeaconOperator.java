@@ -8,8 +8,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.Tuple;
@@ -75,7 +75,7 @@ public class MemorizingBeaconOperator implements Operator
     private volatile boolean shutdown;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext ctx )
+    public SchedulingStrategy init ( final InitCtx ctx )
     {
         this.outputSchema = ctx.getOutputPortSchema( 0 );
         final OperatorConfig config = ctx.getConfig();
@@ -112,7 +112,7 @@ public class MemorizingBeaconOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext ctx )
+    public void invoke ( final InvocationCtx ctx )
     {
         if ( inv == currentOutputs.size() )
         {
@@ -137,10 +137,7 @@ public class MemorizingBeaconOperator implements Operator
             keyIndex = ++keyIndex % keyRange;
             for ( int j = 0; j < tuplesPerKey; j++ )
             {
-                final Tuple tuple = new Tuple( outputSchema );
-                tuple.set( "key1", key );
-                tuple.set( "key2", key );
-                tuple.set( "val1", value );
+                final Tuple tuple = Tuple.of( outputSchema, "key1", key, "key2", key, "val1", value );
                 value = value++ % valueRange;
                 tuple.set( "val2", value );
                 output.add( tuple );

@@ -11,7 +11,7 @@ import cs.bilkent.joker.partition.impl.PartitionKey;
 import static java.util.Arrays.copyOf;
 
 
-public class DefaultInvocationContext implements InternalInvocationContext
+public class DefaultInvocationCtx implements InternalInvocationCtx
 {
 
     private final int inputPortCount;
@@ -32,15 +32,14 @@ public class DefaultInvocationContext implements InternalInvocationContext
 
     private int currentInput = 0;
 
-    public DefaultInvocationContext ( final int inputPortCount,
-                                      final Function<PartitionKey, KVStore> kvStoreSupplier,
-                                      final TuplesImpl output )
+    public DefaultInvocationCtx ( final int inputPortCount, final Function<PartitionKey, KVStore> kvStoreSupplier, final TuplesImpl output )
     {
         this( inputPortCount, kvStoreSupplier, new DefaultOutputCollector( output ) );
     }
 
-    public DefaultInvocationContext ( final int inputPortCount,
-                                      final Function<PartitionKey, KVStore> kvStoreSupplier, final OutputCollector outputCollector )
+    public DefaultInvocationCtx ( final int inputPortCount,
+                                  final Function<PartitionKey, KVStore> kvStoreSupplier,
+                                  final OutputCollector outputCollector )
     {
         this.inputPortCount = inputPortCount;
         this.kvStoreSupplier = kvStoreSupplier;

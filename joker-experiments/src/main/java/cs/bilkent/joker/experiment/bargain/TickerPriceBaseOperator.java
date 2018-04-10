@@ -2,8 +2,8 @@ package cs.bilkent.joker.experiment.bargain;
 
 import java.util.List;
 
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.Tuple;
@@ -43,7 +43,7 @@ public abstract class TickerPriceBaseOperator implements Operator
     private int tuplesPerInvocation;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext ctx )
+    public SchedulingStrategy init ( final InitCtx ctx )
     {
         final OperatorConfig config = ctx.getConfig();
         this.tickersPerTimeUnit = config.getInteger( TICKERS_PER_TIME_UNIT_CONFIG_PARAMETER );
@@ -60,7 +60,7 @@ public abstract class TickerPriceBaseOperator implements Operator
     }
 
     @Override
-    public final void invoke ( final InvocationContext ctx )
+    public final void invoke ( final InvocationCtx ctx )
     {
         for ( int i = 0; i < tuplesPerInvocation; i++ )
         {

@@ -1,6 +1,7 @@
 package cs.bilkent.joker.engine.pipeline;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +42,8 @@ public class PipelineReplicaRunner implements Runnable
 
     private final Supervisor supervisor;
 
-    private DownstreamCollector downstreamCollector;
+    private Consumer<TuplesImpl> downstream;
+
 
     private PipelineReplicaRunnerStatus status = RUNNING;
 
@@ -50,13 +52,14 @@ public class PipelineReplicaRunner implements Runnable
 
     PipelineReplicaRunner ( final JokerConfig config,
                             final PipelineReplica pipeline,
-                            final Supervisor supervisor, final DownstreamCollector downstreamCollector )
+                            final Supervisor supervisor,
+                            final DownstreamCollector downstreamCollector )
     {
         this.pipeline = pipeline;
         this.id = pipeline.id();
         this.waitTimeoutInMillis = config.getPipelineReplicaRunnerConfig().getRunnerWaitTimeoutInMillis();
         this.supervisor = supervisor;
-        this.downstreamCollector = downstreamCollector;
+        this.downstream = downstreamCollector;
     }
 
     public PipelineReplicaRunnerStatus getStatus ()
@@ -67,11 +70,11 @@ public class PipelineReplicaRunner implements Runnable
         }
     }
 
-    UpstreamContext getPipelineUpstreamContext ()
+    UpstreamCtx getPipelineUpstreamCtx ()
     {
         synchronized ( monitor )
         {
-            return pipeline.getUpstreamContext();
+            return pipeline.getUpstreamCtx();
         }
     }
 
@@ -315,7 +318,7 @@ public class PipelineReplicaRunner implements Runnable
         return result;
     }
 
-    CompletableFuture<Boolean> updatePipelineUpstreamContext ()
+    CompletableFuture<Boolean> updatePipelineUpstreamCtx ()
     {
         final CompletableFuture<Boolean> result;
         synchronized ( monitor )
@@ -421,21 +424,21 @@ public class PipelineReplicaRunner implements Runnable
                     return this.status;
                 }
 
-                final UpstreamContext pipelineUpstreamContext = supervisor.getUpstreamContext( id );
+                final UpstreamCtx pipelineUpstreamCtx = supervisor.getUpstreamCtx( id );
                 final DownstreamCollector downstreamCollector = supervisor.getDownstreamCollector( id );
 
-                checkNotNull( pipelineUpstreamContext, "Pipeline %s has null upstream context!", pipeline.id() );
+                checkNotNull( pipelineUpstreamCtx, "Pipeline %s has null upstream context!", pipeline.id() );
                 final PipelineReplicaRunnerCommandType commandType = command.type;
                 if ( commandType == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
                 {
-                    update( pipelineUpstreamContext, downstreamCollector );
-                    LOGGER.debug( "{}: update {} command is handled", id, pipeline.getUpstreamContext() );
+                    update( pipelineUpstreamCtx, downstreamCollector );
+                    LOGGER.debug( "{}: update {} command is handled", id, pipeline.getUpstreamCtx() );
                     this.command = null;
                     command.complete();
                 }
                 else if ( commandType == STOP )
                 {
-                    update( pipelineUpstreamContext, downstreamCollector );
+                    update( pipelineUpstreamCtx, downstreamCollector );
                     LOGGER.debug( "{}: stopping while {}", id, status );
                     status = COMPLETED;
                 }
@@ -443,7 +446,7 @@ public class PipelineReplicaRunner implements Runnable
                 {
                     if ( commandType == PAUSE )
                     {
-                        update( pipelineUpstreamContext, downstreamCollector );
+                        update( pipelineUpstreamCtx, downstreamCollector );
                         LOGGER.debug( "{}: pausing", id );
                         command.complete();
                         this.command = null;
@@ -462,7 +465,7 @@ public class PipelineReplicaRunner implements Runnable
                 {
                     if ( commandType == RESUME )
                     {
-                        update( pipelineUpstreamContext, downstreamCollector );
+                        update( pipelineUpstreamCtx, downstreamCollector );
                         LOGGER.debug( "{}: resuming", id );
                         command.complete();
                         this.command = null;
@@ -483,10 +486,10 @@ public class PipelineReplicaRunner implements Runnable
         return status;
     }
 
-    private void update ( final UpstreamContext pipelineUpstreamContext, final DownstreamCollector downstreamCollector )
+    private void update ( final UpstreamCtx pipelineUpstreamCtx, final DownstreamCollector downstreamCollector )
     {
-        pipeline.setUpstreamContext( pipelineUpstreamContext );
-        this.downstreamCollector = downstreamCollector;
+        pipeline.setUpstreamCtx( pipelineUpstreamCtx );
+        this.downstream = downstreamCollector;
     }
 
     private void completeRun ()
@@ -526,7 +529,7 @@ public class PipelineReplicaRunner implements Runnable
     {
         if ( output != null && output.isNonEmpty() )
         {
-            downstreamCollector.accept( output );
+            downstream.accept( output );
         }
     }
 

@@ -16,15 +16,15 @@ import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.
 import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.WINDOW_KEY;
 import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.WINDOW_SIZE_CONfIG_PARAMETER;
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
-import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SUCCESS;
+import static cs.bilkent.joker.operator.InvocationCtx.InvocationReason.SUCCESS;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
+import cs.bilkent.joker.operator.impl.DefaultInvocationCtx;
 import cs.bilkent.joker.operator.impl.InMemoryKVStore;
-import cs.bilkent.joker.operator.impl.InitializationContextImpl;
+import cs.bilkent.joker.operator.impl.InitCtxImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.partition.impl.PartitionKey;
@@ -46,21 +46,21 @@ public class VWAPAggregatorOperatorTest extends AbstractJokerTest
 
     private final TuplesImpl output = new TuplesImpl( 1 );
 
-    private final DefaultInvocationContext invocationContext = new DefaultInvocationContext( 1, key -> kvStore, output );
+    private final DefaultInvocationCtx invocationCtx = new DefaultInvocationCtx( 1, key -> kvStore, output );
 
-    private final TuplesImpl input = invocationContext.createInputTuples( PARTITION_KEY );
+    private final TuplesImpl input = invocationCtx.createInputTuples( PARTITION_KEY );
 
     private final OperatorConfig config = new OperatorConfig();
 
     private Operator operator;
 
-    private InitializationContextImpl initContext;
+    private InitCtxImpl initCtx;
 
 
     @Before
     public void init () throws InstantiationException, IllegalAccessException
     {
-        invocationContext.setInvocationReason( SUCCESS );
+        invocationCtx.setInvocationReason( SUCCESS );
 
         final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "op", VWAPAggregatorOperator.class )
                                                           .setPartitionFieldNames( singletonList( TICKER_SYMBOL_FIELD ) )
@@ -68,13 +68,13 @@ public class VWAPAggregatorOperatorTest extends AbstractJokerTest
                                                           .build();
 
         operator = operatorDef.createOperator();
-        initContext = new InitializationContextImpl( operatorDef, new boolean[] { true } );
+        initCtx = new InitCtxImpl( operatorDef, new boolean[] { true } );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailToInitWithNoWindowSize ()
     {
-        operator.init( initContext );
+        operator.init( initCtx );
     }
 
     @Test
@@ -85,7 +85,7 @@ public class VWAPAggregatorOperatorTest extends AbstractJokerTest
         addInputTuple( 5, 20, 1 );
         addInputTuple( 10, 25, 2 );
 
-        operator.invoke( invocationContext );
+        operator.invoke( invocationCtx );
 
         assertThat( output.getTupleCount( 0 ), equalTo( 0 ) );
         assertWindow( 2, new double[] { 5, 10, 0 }, new double[] { 20, 25, 0 }, 15, 45 );
@@ -100,7 +100,7 @@ public class VWAPAggregatorOperatorTest extends AbstractJokerTest
         addInputTuple( 10, 25, 2 );
         addInputTuple( 30, 60, 3 );
 
-        operator.invoke( invocationContext );
+        operator.invoke( invocationCtx );
 
         assertThat( output.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
         assertTuple( output.getTupleOrFail( DEFAULT_PORT_INDEX, 0 ), 45, 105 );
@@ -118,7 +118,7 @@ public class VWAPAggregatorOperatorTest extends AbstractJokerTest
         addInputTuple( 30, 60, 3 );
         addInputTuple( 40, 50, 4 );
 
-        operator.invoke( invocationContext );
+        operator.invoke( invocationCtx );
 
         assertThat( output.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
         assertTuple( output.getTupleOrFail( DEFAULT_PORT_INDEX, 0 ), 45, 105 );
@@ -137,7 +137,7 @@ public class VWAPAggregatorOperatorTest extends AbstractJokerTest
         addInputTuple( 40, 50, 4 );
         addInputTuple( 50, 40, 5 );
 
-        operator.invoke( invocationContext );
+        operator.invoke( invocationCtx );
 
         assertThat( output.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 2 ) );
         assertTuple( output.getTupleOrFail( DEFAULT_PORT_INDEX, 0 ), 45, 105 );
@@ -151,19 +151,21 @@ public class VWAPAggregatorOperatorTest extends AbstractJokerTest
         final int windowSize = 3;
         final int slideFactor = 2;
 
-        config.set( WINDOW_SIZE_CONfIG_PARAMETER, windowSize );
-        config.set( SLIDE_FACTOR_CONfIG_PARAMETER, slideFactor );
+        config.set( WINDOW_SIZE_CONfIG_PARAMETER, windowSize ).set( SLIDE_FACTOR_CONfIG_PARAMETER, slideFactor );
 
-        operator.init( initContext );
+        operator.init( initCtx );
     }
 
     private void addInputTuple ( final double vwap, final double volume, final long timestamp )
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( TUPLE_INPUT_VWAP_FIELD, vwap );
-        tuple.set( TUPLE_VOLUME_FIELD, volume );
-        tuple.set( TICKER_SYMBOL_FIELD, TUPLE_PARTITION_KEY );
-        tuple.set( TIMESTAMP_FIELD, timestamp );
+        final Tuple tuple = Tuple.of( TUPLE_INPUT_VWAP_FIELD,
+                                      vwap,
+                                      TUPLE_VOLUME_FIELD,
+                                      volume,
+                                      TICKER_SYMBOL_FIELD,
+                                      TUPLE_PARTITION_KEY,
+                                      TIMESTAMP_FIELD,
+                                      timestamp );
 
         input.add( tuple );
     }

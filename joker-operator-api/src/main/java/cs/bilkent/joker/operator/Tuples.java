@@ -18,7 +18,28 @@ public interface Tuples
      *
      * @see Port#DEFAULT_PORT_INDEX
      */
-    void add ( Tuple tuple );
+    Tuples add ( Tuple tuple );
+
+    default Tuples add ( Tuple tuple1, Tuple tuple2 )
+    {
+        return add( tuple1 ).add( tuple2 );
+    }
+
+    default Tuples add ( Tuple tuple1, Tuple tuple2, Tuple tuple3 )
+    {
+        return add( tuple1 ).add( tuple2 ).add( tuple3 );
+    }
+
+    default Tuples add ( Tuple tuple1, Tuple tuple2, Tuple tuple3, Tuple tuple4 )
+    {
+        return add( tuple1 ).add( tuple2 ).add( tuple3 ).add( tuple4 );
+    }
+
+    default Tuples add ( Tuple tuple1, Tuple tuple2, Tuple tuple3, Tuple tuple4, Tuple tuple5 )
+    {
+        return add( tuple1 ).add( tuple2 ).add( tuple3 ).add( tuple4 ).add( tuple5 );
+    }
+
 
     /**
      * Adds the tuples to the default port.
@@ -28,7 +49,7 @@ public interface Tuples
      *
      * @see Port#DEFAULT_PORT_INDEX
      */
-    void addAll ( List<Tuple> tuples );
+    Tuples add ( List<Tuple> tuples );
 
     /**
      * Adds the tuple to the port specified by the port index.
@@ -38,17 +59,37 @@ public interface Tuples
      * @param tuple
      *         tuple to add to the specified port
      */
-    void add ( int portIndex, Tuple tuple );
+    Tuples add ( int portIndex, Tuple tuple );
+
+    default Tuples add ( int portIndex, Tuple tuple1, Tuple tuple2 )
+    {
+        return add( portIndex, tuple1 ).add( portIndex, tuple2 );
+    }
+
+    default Tuples add ( int portIndex, Tuple tuple1, Tuple tuple2, Tuple tuple3 )
+    {
+        return add( portIndex, tuple1 ).add( portIndex, tuple2 ).add( portIndex, tuple3 );
+    }
+
+    default Tuples add ( int portIndex, Tuple tuple1, Tuple tuple2, Tuple tuple3, Tuple tuple4 )
+    {
+        return add( portIndex, tuple1 ).add( portIndex, tuple2 ).add( portIndex, tuple3 ).add( portIndex, tuple4 );
+    }
+
+    default Tuples add ( int portIndex, Tuple tuple1, Tuple tuple2, Tuple tuple3, Tuple tuple4, Tuple tuple5 )
+    {
+        return add( portIndex, tuple1 ).add( portIndex, tuple2 ).add( portIndex, tuple3 ).add( portIndex, tuple4 ).add( portIndex, tuple5 );
+    }
 
     /**
      * Adds the tuples to the port specified by the port index.
      *
      * @param portIndex
      *         the index of the port to which the tuple is added
-     * @param tuplesToAdd
+     * @param tuples
      *         tuples to add to the specified port
      */
-    void addAll ( int portIndex, List<Tuple> tuplesToAdd );
+    void add ( int portIndex, List<Tuple> tuples );
 
     /**
      * Returns the tuples added to the given port index.

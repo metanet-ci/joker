@@ -22,15 +22,15 @@ public class TickerTest extends AbstractJokerTest
     @Test
     public void shouldBeTickedWithEnoughCalls ()
     {
-        ticker.tick();
+        ticker.tryTick();
 
         assertFalse( ticker.isTicked() );
 
-        ticker.tick();
+        ticker.tryTick();
 
         assertTrue( ticker.isTicked() );
 
-        ticker.tick();
+        ticker.tryTick();
 
         assertFalse( ticker.isTicked() );
 
@@ -40,8 +40,8 @@ public class TickerTest extends AbstractJokerTest
     @Test
     public void shouldResetTickState ()
     {
-        ticker.tick();
-        ticker.tick();
+        ticker.tryTick();
+        ticker.tryTick();
 
         assertTrue( ticker.isTicked() );
         assertEquals( 2, ticker.getCount() );

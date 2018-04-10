@@ -10,14 +10,14 @@ import cs.bilkent.joker.operator.spec.OperatorType;
 
 
 /**
- * Contains necessary objects and information for an invocation of {@link Operator#invoke(InvocationContext)} method.
+ * Contains necessary objects and information for an invocation of {@link Operator#invoke(InvocationCtx)} method.
  */
-public interface InvocationContext
+public interface InvocationCtx
 {
 
     /**
      * Returns the tuples available for processing on the given input port index.
-     * Once the invocation of {@link Operator#invoke(InvocationContext)} method is completed, these tuples are considered as processed.
+     * Once the invocation of {@link Operator#invoke(InvocationCtx)} method is completed, these tuples are considered as processed.
      *
      * @param portIndex
      *         the port index to get the input tuples
@@ -28,7 +28,7 @@ public interface InvocationContext
 
     /**
      * Returns the tuples available for processing on the default port.
-     * Once the invocation of {@link Operator#invoke(InvocationContext)} method is completed, these tuples are considered as processed.
+     * Once the invocation of {@link Operator#invoke(InvocationCtx)} method is completed, these tuples are considered as processed.
      *
      * @return the tuples available for processing on the default port
      *
@@ -130,9 +130,9 @@ public interface InvocationContext
     void output ( int portIndex, List<Tuple> tuples );
 
     /**
-     * Returns the reason of a particular {@link Operator#invoke(InvocationContext)} method invocation.
+     * Returns the reason of a particular {@link Operator#invoke(InvocationCtx)} method invocation.
      *
-     * @return the reason of a particular {@link Operator#invoke(InvocationContext)} method invocation.
+     * @return the reason of a particular {@link Operator#invoke(InvocationCtx)} method invocation.
      */
     InvocationReason getReason ();
 
@@ -193,7 +193,7 @@ public interface InvocationContext
      * and {@link OperatorType#STATEFUL} operators.
      * <p>
      * Different {@link KVStore} objects can be given for different invocations. Therefore, {@link KVStore} objects must not be stored
-     * as a local field and only the {@link KVStore} object provided by {@link InvocationContext} for the current invocation must be used.
+     * as a local field and only the {@link KVStore} object provided by {@link InvocationCtx} for the current invocation must be used.
      *
      * @return the {@link KVStore} that can be used within only the particular invocation for only {@link OperatorType#PARTITIONED_STATEFUL}
      * and {@link OperatorType#STATEFUL} operators.
@@ -201,7 +201,7 @@ public interface InvocationContext
     KVStore getKVStore ();
 
     /**
-     * Indicates the reason for a particular invocation of {@link Operator#invoke(InvocationContext)} method.
+     * Indicates the reason for a particular invocation of {@link Operator#invoke(InvocationCtx)} method.
      */
     enum InvocationReason
     {

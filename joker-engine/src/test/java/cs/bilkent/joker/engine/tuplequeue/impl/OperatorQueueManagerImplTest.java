@@ -115,11 +115,9 @@ public class OperatorQueueManagerImplTest extends AbstractJokerTest
     public void shouldConvertMultiThreadedDefaultOperatorQueueToSingleThreaded ()
     {
         final OperatorQueue operatorQueue = operatorQueueManager.createDefaultQueue( REGION_ID, STATELESS_OPERATOR, 1, MULTI_THREADED );
-        final Tuple tuple1 = new Tuple();
-        tuple1.set( "key1", "val1" );
+        final Tuple tuple1 = Tuple.of( "key1", "val1" );
         operatorQueue.offer( 0, singletonList( tuple1 ) );
-        final Tuple tuple2 = new Tuple();
-        tuple2.set( "key2", "val2" );
+        final Tuple tuple2 = Tuple.of( "key2", "val2" );
         operatorQueue.offer( 1, singletonList( tuple2 ) );
 
         final OperatorQueue operatorQueue2 = operatorQueueManager.switchThreadingPref( 1, "op1", 1 );
@@ -135,11 +133,9 @@ public class OperatorQueueManagerImplTest extends AbstractJokerTest
     public void shouldConvertSingleThreadedDefaultOperatorQueueToMultiThreaded ()
     {
         final OperatorQueue operatorQueue = operatorQueueManager.createDefaultQueue( 1, STATELESS_OPERATOR, 1, MULTI_THREADED );
-        final Tuple tuple1 = new Tuple();
-        tuple1.set( "key1", "val1" );
+        final Tuple tuple1 = Tuple.of( "key1", "val1" );
         operatorQueue.offer( 0, singletonList( tuple1 ) );
-        final Tuple tuple2 = new Tuple();
-        tuple2.set( "key2", "val2" );
+        final Tuple tuple2 = Tuple.of( "key2", "val2" );
         operatorQueue.offer( 1, singletonList( tuple2 ) );
 
         final OperatorQueue operatorQueue2 = operatorQueueManager.switchThreadingPref( REGION_ID, "op1", 1 );

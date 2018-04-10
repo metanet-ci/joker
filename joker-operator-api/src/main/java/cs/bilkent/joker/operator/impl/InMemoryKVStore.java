@@ -31,10 +31,12 @@ public class InMemoryKVStore implements KVStore
     }
 
     @Override
-    public void set ( final Object key, final Object value )
+    public InMemoryKVStore set ( final Object key, final Object value )
     {
         checkArgument( value != null, "value can't be null" );
         values.put( key, value );
+
+        return this;
     }
 
     @Override

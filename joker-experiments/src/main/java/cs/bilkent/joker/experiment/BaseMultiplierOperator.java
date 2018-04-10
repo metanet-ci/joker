@@ -2,8 +2,8 @@ package cs.bilkent.joker.experiment;
 
 import java.util.Random;
 
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.kvstore.KVStore;
@@ -41,7 +41,7 @@ public abstract class BaseMultiplierOperator implements Operator
     private int i;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext ctx )
+    public SchedulingStrategy init ( final InitCtx ctx )
     {
         this.outputSchema = ctx.getOutputPortSchema( 0 );
         this.multiplicationCount = ctx.getConfig().getInteger( MULTIPLICATION_COUNT );
@@ -51,24 +51,22 @@ public abstract class BaseMultiplierOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext ctx )
+    public void invoke ( final InvocationCtx ctx )
     {
-        for ( Tuple tuple : ctx.getInputTuplesByDefaultPort() )
+        for ( Tuple input : ctx.getInputTuplesByDefaultPort() )
         {
-            final Tuple result = new Tuple( outputSchema );
-            final Object pKey1 = tuple.get( "key1" );
-            final Object pKey2 = tuple.get( "key2" );
-            result.set( "key1", pKey1 );
-            result.set( "key2", pKey2 );
-            int sum = tuple.getInteger( "val1" ) + tuple.getInteger( "val2" );
+            final Object pKey1 = input.get( "key1" );
+            final Object pKey2 = input.get( "key2" );
+            final Tuple result = Tuple.of( outputSchema, "key1", pKey1, "key2", pKey2 );
+            result.attach( input );
+            int sum = input.getInteger( "val1" ) + input.getInteger( "val2" );
             final int m = getMultiplicationCount();
-            final double val1 = tuple.getDouble( "val1" );
+            final double val1 = input.getDouble( "val1" );
             for ( int i = 0; i < m; i++ )
             {
                 sum *= val1;
             }
-            result.set( "val1", sum );
-            result.set( "val2", -sum );
+            result.set( "val1", sum ).set( "val2", -sum );
             ctx.output( result );
         }
 

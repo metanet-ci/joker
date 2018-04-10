@@ -15,7 +15,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -29,6 +28,7 @@ import javax.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.codahale.metrics.CsvReporter;
+import com.codahale.metrics.ExponentiallyDecayingReservoir;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
@@ -43,6 +43,7 @@ import cs.bilkent.joker.engine.config.MetricManagerConfig;
 import cs.bilkent.joker.engine.exception.JokerException;
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.metric.FlowMetrics;
+import cs.bilkent.joker.engine.metric.LatencyMeter;
 import cs.bilkent.joker.engine.metric.MetricManager;
 import cs.bilkent.joker.engine.metric.PipelineMeter;
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
@@ -74,7 +75,7 @@ public class MetricManagerImpl implements MetricManager
 
     private final MetricManagerConfig metricManagerConfig;
 
-    private final MetricRegistry metricRegistry;
+    private final MetricRegistry pipelineMetricRegistry;
 
     private final ThreadMXBean threadMXBean;
 
@@ -94,6 +95,8 @@ public class MetricManagerImpl implements MetricManager
 
     private final AtomicReference<TaskStatus> samplingFlag = new AtomicReference<>( TaskStatus.INITIAL );
 
+    private final Map<Pair<String, Integer>, LatencyMeter> latencyMeters = new ConcurrentHashMap<>();
+
     private volatile CsvReporter csvReporter;
 
     private volatile Histogram scanOperatorsHistogram;
@@ -107,15 +110,14 @@ public class MetricManagerImpl implements MetricManager
     private volatile boolean pause;
 
     @Inject
-    public MetricManagerImpl ( final JokerConfig jokerConfig,
-                               final MetricRegistry metricRegistry,
+    public MetricManagerImpl ( final JokerConfig jokerConfig, final MetricRegistry pipelineMetricRegistry,
                                final ThreadMXBean threadMXBean,
                                final RuntimeMXBean runtimeMXBean,
                                final OperatingSystemMXBean osMXBean,
                                @Named( JOKER_THREAD_GROUP_NAME ) final ThreadGroup threadGroup )
     {
         this.metricManagerConfig = jokerConfig.getMetricManagerConfig();
-        this.metricRegistry = metricRegistry;
+        this.pipelineMetricRegistry = pipelineMetricRegistry;
         this.threadMXBean = threadMXBean;
         this.runtimeMXBean = runtimeMXBean;
         this.osMXBean = osMXBean;
@@ -131,8 +133,8 @@ public class MetricManagerImpl implements MetricManager
                                             0,
                                             metricManagerConfig.getOperatorInvocationSamplingPeriodInMicros(),
                                             MICROSECONDS );
-        this.scanOperatorsHistogram = metricRegistry.histogram( "scanOperators" );
-        this.scanMetricsHistogram = metricRegistry.histogram( "scanMetrics" );
+        this.scanOperatorsHistogram = pipelineMetricRegistry.histogram( "scanOperators" );
+        this.scanMetricsHistogram = pipelineMetricRegistry.histogram( "scanMetrics" );
     }
 
     @Override
@@ -166,6 +168,23 @@ public class MetricManagerImpl implements MetricManager
     }
 
     @Override
+    public LatencyMeter createLatencyMeter ( final String operatorId, final int replicaIndex )
+    {
+        synchronized ( monitor )
+        {
+            checkState( !scheduler.isShutdown() );
+
+            final LatencyMeter latencyMeter = new LatencyMeter( operatorId,
+                                                                replicaIndex,
+                                                                new Histogram( new ExponentiallyDecayingReservoir() ) );
+            latencyMeters.put( latencyMeter.getKey(), latencyMeter );
+            LOGGER.info( "Created {}", latencyMeter );
+
+            return latencyMeter;
+        }
+    }
+
+    @Override
     public void shutdown ()
     {
         synchronized ( monitor )
@@ -179,8 +198,7 @@ public class MetricManagerImpl implements MetricManager
             scheduler.shutdown();
             try
             {
-                final boolean success = scheduler.awaitTermination( 30, SECONDS );
-                if ( success )
+                if ( scheduler.awaitTermination( 30, SECONDS ) )
                 {
                     LOGGER.info( "Shutdown completed" );
                 }
@@ -203,8 +221,7 @@ public class MetricManagerImpl implements MetricManager
         {
             try
             {
-                final Future<Void> future = scheduler.submit( callable );
-                future.get();
+                scheduler.submit( callable ).get();
             }
             catch ( InterruptedException e )
             {
@@ -250,7 +267,7 @@ public class MetricManagerImpl implements MetricManager
         final boolean dirCreated = directory.mkdir();
         checkState( dirCreated, "Metrics dir %s could not be created! Please make sure base dir: %s exists", dir, baseDir );
         LOGGER.info( "Metrics directory: {} is created", dir );
-        csvReporter = CsvReporter.forRegistry( metricRegistry ).build( directory );
+        csvReporter = CsvReporter.forRegistry( pipelineMetricRegistry ).build( directory );
         csvReporter.start( metricManagerConfig.getCsvReportPeriodInMillis(), MILLISECONDS );
     }
 
@@ -273,14 +290,14 @@ public class MetricManagerImpl implements MetricManager
                 final PipelineMetrics latest = getLatestPipelineMetrics( pipelineId, period );
                 return latest != null ? latest.getCpuUtilizationRatio( r ) : 0d;
             };
-            metricRegistry.register( cpuMetricName, new PipelineGauge<>( pipelineId, cpuGauge ) );
+            pipelineMetricRegistry.register( cpuMetricName, new PipelineGauge<>( pipelineId, cpuGauge ) );
 
             final String pipelineCostMetricName = getMetricName( pipelineId, context.getFlowVersion(), replicaIndex, "cost", "p" );
             final Supplier<Double> pipelineCostGauge = () -> {
                 final PipelineMetrics latest = getLatestPipelineMetrics( pipelineId, period );
                 return latest != null ? latest.getPipelineCost( r ) : 0d;
             };
-            metricRegistry.register( pipelineCostMetricName, new PipelineGauge<>( pipelineId, pipelineCostGauge ) );
+            pipelineMetricRegistry.register( pipelineCostMetricName, new PipelineGauge<>( pipelineId, pipelineCostGauge ) );
 
             for ( int operatorIndex = 0; operatorIndex < pipelineMeter.getOperatorCount(); operatorIndex++ )
             {
@@ -294,7 +311,7 @@ public class MetricManagerImpl implements MetricManager
                     final PipelineMetrics latest = getLatestPipelineMetrics( pipelineId, period );
                     return latest != null ? latest.getOperatorCost( r, o ) : 0d;
                 };
-                metricRegistry.register( operatorCostMetricName, new PipelineGauge<>( pipelineId, operatorCostGauge ) );
+                pipelineMetricRegistry.register( operatorCostMetricName, new PipelineGauge<>( pipelineId, operatorCostGauge ) );
             }
 
             for ( int portIndex = 0; portIndex < pipelineMeter.getInputPortCount(); portIndex++ )
@@ -305,7 +322,7 @@ public class MetricManagerImpl implements MetricManager
                     final PipelineMetrics latest = getLatestPipelineMetrics( pipelineId, period );
                     return latest != null ? latest.getInboundThroughput( r, p ) : 0;
                 };
-                metricRegistry.register( metricName, new PipelineGauge<>( pipelineId, throughputGauge ) );
+                pipelineMetricRegistry.register( metricName, new PipelineGauge<>( pipelineId, throughputGauge ) );
             }
         }
     }
@@ -317,7 +334,7 @@ public class MetricManagerImpl implements MetricManager
             return;
         }
 
-        metricRegistry.removeMatching( ( name, metric ) -> {
+        pipelineMetricRegistry.removeMatching( ( name, metric ) -> {
             if ( metric instanceof PipelineGauge )
             {
                 final PipelineGauge gauge = (PipelineGauge) metric;
@@ -557,14 +574,13 @@ public class MetricManagerImpl implements MetricManager
 
         private void logPipelineMetrics ( final long timeSpent )
         {
-            final PipelineMetricsVisitor logVisitor = ( pipelineReplicaId, flowVersion, inboundThroughput, threadUtilizationRatio, pipelineCost, operatorCosts ) -> {
+            final PipelineMetricsVisitor logVisitor = ( pipelineReplicaId, flowVersion, inboundThroughput, threadUtilizationRatio,
+                                                        pipelineCost, operatorCosts ) -> {
                 final double cpuUsage = threadUtilizationRatio / numberOfCores;
 
                 final String log = String.format(
                         "%s -> flow version: %d thread utilization: %.3f cpu usage: %.3f throughput: %s pipeline cost: %s operator costs:"
-                        + " %s",
-                        pipelineReplicaId,
-                        flowVersion, threadUtilizationRatio, cpuUsage, Arrays.toString( inboundThroughput ),
+                        + " %s", pipelineReplicaId, flowVersion, threadUtilizationRatio, cpuUsage, Arrays.toString( inboundThroughput ),
                         pipelineCost,
                         Arrays.toString( operatorCosts ) );
                 LOGGER.info( log );
@@ -584,27 +600,49 @@ public class MetricManagerImpl implements MetricManager
             LOGGER.debug( "SCAN METRICS   -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .99: {} .999: {}",
                           scanMetricsSnapshot.getMin(),
                           scanMetricsSnapshot.getMax(),
-                          scanMetricsSnapshot.getMean(),
-                          scanMetricsSnapshot.getStdDev(),
-                          scanMetricsSnapshot.getMedian(),
-                          scanMetricsSnapshot.get75thPercentile(),
-                          scanMetricsSnapshot.get95thPercentile(),
-                          scanMetricsSnapshot.get99thPercentile(),
-                          scanMetricsSnapshot.get999thPercentile() );
+                          format( scanMetricsSnapshot.getMean() ),
+                          format( scanMetricsSnapshot.getStdDev() ),
+                          format( scanMetricsSnapshot.getMedian() ),
+                          format( scanMetricsSnapshot.get75thPercentile() ),
+                          format( scanMetricsSnapshot.get95thPercentile() ),
+                          format( scanMetricsSnapshot.get99thPercentile() ),
+                          format( scanMetricsSnapshot.get999thPercentile() ) );
 
             LOGGER.debug( "SCAN OPERATORS -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .99: {} .999: {}",
                           scanOperatorsSnapshot.getMin(),
                           scanOperatorsSnapshot.getMax(),
-                          scanOperatorsSnapshot.getMean(),
-                          scanOperatorsSnapshot.getStdDev(),
-                          scanOperatorsSnapshot.getMedian(),
-                          scanOperatorsSnapshot.get75thPercentile(),
-                          scanOperatorsSnapshot.get95thPercentile(),
-                          scanOperatorsSnapshot.get99thPercentile(),
-                          scanOperatorsSnapshot.get999thPercentile() );
+                          format( scanOperatorsSnapshot.getMean() ),
+                          format( scanOperatorsSnapshot.getStdDev() ),
+                          format( scanOperatorsSnapshot.getMedian() ),
+                          format( scanOperatorsSnapshot.get75thPercentile() ),
+                          format( scanOperatorsSnapshot.get95thPercentile() ),
+                          format( scanOperatorsSnapshot.get99thPercentile() ),
+                          format( scanOperatorsSnapshot.get999thPercentile() ) );
+
+            for ( LatencyMeter latencyMeter : latencyMeters.values() )
+            {
+                final Histogram histogram = latencyMeter.getHistogram();
+                final Snapshot snapshot = histogram.getSnapshot();
+                LOGGER.info( "SCAN LATENCIES -> {} : min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .99: {} .999: {}",
+                             latencyMeter.getKey(),
+                             snapshot.getMin(),
+                             snapshot.getMax(),
+                             format( snapshot.getMean() ),
+                             format( snapshot.getStdDev() ),
+                             format( snapshot.getMedian() ),
+                             format( snapshot.get75thPercentile() ),
+                             format( snapshot.get95thPercentile() ),
+                             format( snapshot.get99thPercentile() ),
+                             format( snapshot.get999thPercentile() ) );
+            }
 
             final int period = metrics != null ? metrics.getPeriod() : -1;
             LOGGER.info( "Time spent (ns): {}. New flow period: {}", timeSpent, period );
+        }
+
+        private String format ( double val )
+        {
+            return String.format( "%f", val );
         }
 
     }
@@ -638,8 +676,8 @@ public class MetricManagerImpl implements MetricManager
 
             LOGGER.info( "Starting metrics collector..." );
 
-            scanMetricsHistogram = metricRegistry.histogram( "scanMetrics" );
-            scanOperatorsHistogram = metricRegistry.histogram( "scanOperators" );
+            scanMetricsHistogram = pipelineMetricRegistry.histogram( "scanMetrics" );
+            scanOperatorsHistogram = pipelineMetricRegistry.histogram( "scanOperators" );
 
             LOGGER.info( "JVM: {}", runtimeMXBean.getVmName() );
             LOGGER.info( "JVM Version: {}", runtimeMXBean.getVmVersion() );
@@ -807,7 +845,7 @@ public class MetricManagerImpl implements MetricManager
             setTaskPaused( samplingFlag );
 
             pipelineMetricsContextMap.clear();
-            metricRegistry.removeMatching( MetricFilter.ALL );
+            pipelineMetricRegistry.removeMatching( MetricFilter.ALL );
 
             if ( csvReporter != null )
             {
@@ -815,6 +853,8 @@ public class MetricManagerImpl implements MetricManager
             }
 
             iteration = 0;
+
+            latencyMeters.clear();
 
             LOGGER.info( "Metric collector is shut down." );
 

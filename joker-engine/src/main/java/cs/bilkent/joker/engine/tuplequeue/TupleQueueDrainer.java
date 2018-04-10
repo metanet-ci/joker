@@ -28,8 +28,7 @@ public interface TupleQueueDrainer
      * @param queues
      *         tuple queues to be drained
      */
-    boolean drain ( boolean maySkipBlocking,
-                    @Nullable PartitionKey key, TupleQueue[] queues,
+    boolean drain ( boolean maySkipBlocking, @Nullable PartitionKey key, TupleQueue[] queues,
                     Function<PartitionKey, TuplesImpl> tuplesSupplier );
 
 }

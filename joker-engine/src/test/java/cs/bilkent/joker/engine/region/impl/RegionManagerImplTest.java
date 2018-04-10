@@ -20,8 +20,8 @@ import cs.bilkent.joker.engine.partition.impl.PartitionServiceImpl;
 import cs.bilkent.joker.engine.pipeline.OperatorReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
-import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedInvocationContext;
-import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedPartitionedInvocationContext;
+import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedInvocationCtx;
+import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedPartitionedInvocationCtx;
 import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.Region;
 import static cs.bilkent.joker.engine.region.Region.findFusionStartIndices;
@@ -34,12 +34,12 @@ import cs.bilkent.joker.engine.tuplequeue.impl.operator.EmptyOperatorQueue;
 import cs.bilkent.joker.engine.tuplequeue.impl.operator.PartitionedOperatorQueue;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
-import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
+import cs.bilkent.joker.operator.impl.DefaultInvocationCtx;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST_BUT_SAME_ON_ALL_PORTS;
@@ -91,8 +91,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
                                                                                          kvStoreManager,
                                                                                          partitionKeyExtractorFactory );
 
-    private final RegionManagerImpl regionManager = new RegionManagerImpl( config,
-                                                                           partitionService, kvStoreManager, tupleQueueManager,
+    private final RegionManagerImpl regionManager = new RegionManagerImpl( config, partitionService, kvStoreManager, tupleQueueManager,
                                                                            pipelineTransformer,
                                                                            partitionKeyExtractorFactory );
 
@@ -152,8 +151,8 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertOperatorDef( operatorReplica, 1, ex.operatorDef2 );
         assertDefaultOperatorQueue( operatorReplica, ex.operatorDef1.getInputPortCount(), MULTI_THREADED );
         assertBlockingTupleQueueDrainerPool( operatorReplica );
-        assertTrue( operatorReplica.getInvocationContext( 0 ) instanceof DefaultInvocationContext );
-        assertTrue( operatorReplica.getInvocationContext( 1 ) instanceof FusedInvocationContext );
+        assertTrue( operatorReplica.getInvocationCtx( 0 ) instanceof DefaultInvocationCtx );
+        assertTrue( operatorReplica.getInvocationCtx( 1 ) instanceof FusedInvocationCtx );
 
         assertArrayEquals( new SchedulingStrategy[] { scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
                                                       scheduleWhenTuplesAvailableOnDefaultPort( 1 ) }, region.getSchedulingStrategies() );
@@ -230,8 +229,8 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertDefaultOperatorQueue( operator, ex.operatorDef1.getInputPortCount(), MULTI_THREADED );
         assertNull( tupleQueueManager.getDefaultQueue( region.getRegionId(), ex.operatorDef2.getId(), 0 ) );
         assertBlockingTupleQueueDrainerPool( operator );
-        assertTrue( operator.getInvocationContext( 0 ) instanceof DefaultInvocationContext );
-        assertTrue( operator.getInvocationContext( 1 ) instanceof FusedInvocationContext );
+        assertTrue( operator.getInvocationCtx( 0 ) instanceof DefaultInvocationCtx );
+        assertTrue( operator.getInvocationCtx( 1 ) instanceof FusedInvocationCtx );
 
         assertArrayEquals( new SchedulingStrategy[] { scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
                                                       scheduleWhenTuplesAvailableOnDefaultPort( 1 ) }, region.getSchedulingStrategies() );
@@ -273,14 +272,14 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertDefaultOperatorQueue( operatorReplica1, ex.operatorDef1.getInputPortCount(), MULTI_THREADED );
         assertBlockingTupleQueueDrainerPool( operatorReplica1 );
         assertNotNull( kvStoreManager.getDefaultKVStore( region.getRegionId(), ex.operatorDef1.getId() ) );
-        assertTrue( operatorReplica1.getInvocationContext( 0 ) instanceof DefaultInvocationContext );
+        assertTrue( operatorReplica1.getInvocationCtx( 0 ) instanceof DefaultInvocationCtx );
 
         final OperatorReplica operatorReplica2 = pipeline.getOperatorReplica( 1 );
         assertOperatorDef( operatorReplica2, 0, ex.operatorDef2 );
         assertDefaultOperatorQueue( operatorReplica2, ex.operatorDef1.getInputPortCount(), SINGLE_THREADED );
         assertNonBlockingTupleQueueDrainerPool( operatorReplica2 );
         assertNotNull( kvStoreManager.getDefaultKVStore( region.getRegionId(), ex.operatorDef2.getId() ) );
-        assertTrue( operatorReplica2.getInvocationContext( 0 ) instanceof DefaultInvocationContext );
+        assertTrue( operatorReplica2.getInvocationCtx( 0 ) instanceof DefaultInvocationCtx );
 
         assertArrayEquals( new SchedulingStrategy[] { scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
                                                       scheduleWhenTuplesAvailableOnDefaultPort( 2 ) }, region.getSchedulingStrategies() );
@@ -407,8 +406,8 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertNull( tupleQueueManager.getPartitionedQueues( region.getRegionId(), ex.operatorDef2.getId() ) );
         assertNotNull( kvStoreManager.getPartitionedKVStores( region.getRegionId(), ex.operatorDef2.getId() ) );
 
-        assertTrue( operatorReplica.getInvocationContext( 0 ) instanceof DefaultInvocationContext );
-        assertTrue( operatorReplica.getInvocationContext( 1 ) instanceof FusedPartitionedInvocationContext );
+        assertTrue( operatorReplica.getInvocationCtx( 0 ) instanceof DefaultInvocationCtx );
+        assertTrue( operatorReplica.getInvocationCtx( 1 ) instanceof FusedPartitionedInvocationCtx );
 
         assertArrayEquals( new SchedulingStrategy[] { scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
                                                       scheduleWhenTuplesAvailableOnDefaultPort( 1 ) }, region.getSchedulingStrategies() );
@@ -456,8 +455,8 @@ public class RegionManagerImplTest extends AbstractJokerTest
 
             assertOperatorDef( operatorReplica, 1, ex.operatorDef2 );
 
-            assertTrue( operatorReplica.getInvocationContext( 0 ) instanceof DefaultInvocationContext );
-            assertTrue( operatorReplica.getInvocationContext( 1 ) instanceof FusedPartitionedInvocationContext );
+            assertTrue( operatorReplica.getInvocationCtx( 0 ) instanceof DefaultInvocationCtx );
+            assertTrue( operatorReplica.getInvocationCtx( 1 ) instanceof FusedPartitionedInvocationCtx );
 
             assertPipelineReplicaMeter( pipelineReplica0 );
         }
@@ -510,7 +509,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertNull( kvStoreManager.getDefaultKVStore( region.getRegionId(), ex.operatorDef1.getId() ) );
         assertNull( kvStoreManager.getPartitionedKVStores( region.getRegionId(), ex.operatorDef1.getId() ) );
         assertBlockingTupleQueueDrainerPool( operatorReplica1 );
-        assertTrue( operatorReplica1.getInvocationContext( 0 ) instanceof DefaultInvocationContext );
+        assertTrue( operatorReplica1.getInvocationCtx( 0 ) instanceof DefaultInvocationCtx );
 
         final OperatorReplica operatorReplica2 = pipeline1.getOperatorReplica( 0 );
         assertOperatorDef( operatorReplica2, 0, ex.operatorDef2 );
@@ -523,8 +522,8 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertNull( kvStoreManager.getDefaultKVStore( region.getRegionId(), ex.operatorDef3.getId() ) );
         assertNull( kvStoreManager.getPartitionedKVStores( region.getRegionId(), ex.operatorDef3.getId() ) );
 
-        assertTrue( operatorReplica2.getInvocationContext( 0 ) instanceof DefaultInvocationContext );
-        assertTrue( operatorReplica2.getInvocationContext( 1 ) instanceof FusedInvocationContext );
+        assertTrue( operatorReplica2.getInvocationCtx( 0 ) instanceof DefaultInvocationCtx );
+        assertTrue( operatorReplica2.getInvocationCtx( 1 ) instanceof FusedInvocationCtx );
 
         assertArrayEquals( new SchedulingStrategy[] { scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
                                                       scheduleWhenTuplesAvailableOnDefaultPort( 1 ),
@@ -579,8 +578,8 @@ public class RegionManagerImplTest extends AbstractJokerTest
         assertNull( tupleQueueManager.getPartitionedQueues( region.getRegionId(), ex.operatorDef2.getId() ) );
         assertNotNull( kvStoreManager.getPartitionedKVStores( region.getRegionId(), ex.operatorDef2.getId() ) );
 
-        assertTrue( operatorReplica1.getInvocationContext( 0 ) instanceof DefaultInvocationContext );
-        assertTrue( operatorReplica1.getInvocationContext( 1 ) instanceof FusedPartitionedInvocationContext );
+        assertTrue( operatorReplica1.getInvocationCtx( 0 ) instanceof DefaultInvocationCtx );
+        assertTrue( operatorReplica1.getInvocationCtx( 1 ) instanceof FusedPartitionedInvocationCtx );
 
         final OperatorReplica operatorReplica2 = pipeline1.getOperatorReplica( 0 );
         assertOperatorDef( operatorReplica2, 0, ex.operatorDef3 );
@@ -823,7 +822,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
     public static class StatelessOperatorWithSingleInputOutputPort extends NopOperator
     {
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
@@ -834,7 +833,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
     public static class StatelessOperatorWithZeroInputSingleOutputPort extends NopOperator
     {
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return ScheduleWhenAvailable.INSTANCE;
         }
@@ -845,7 +844,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
     public static class PartitionedStatefulOperatorWithSingleInputOutputPort extends NopOperator
     {
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
@@ -856,7 +855,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
     public static class StatefulOperatorWithSingleInputOutputPort extends NopOperator
     {
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
@@ -867,7 +866,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
     public static class NonFusibleStatefulOperatorWithSingleInputOutputPort extends NopOperator
     {
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return scheduleWhenTuplesAvailableOnDefaultPort( 2 );
         }
@@ -878,7 +877,7 @@ public class RegionManagerImplTest extends AbstractJokerTest
     public static class StatefulOperatorWithZeroInputSingleOutputPort extends NopOperator
     {
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return ScheduleWhenAvailable.INSTANCE;
         }
@@ -889,14 +888,14 @@ public class RegionManagerImplTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             throw new UnsupportedOperationException();
         }
 
 
         @Override
-        public final void invoke ( final InvocationContext ctx )
+        public final void invoke ( final InvocationCtx ctx )
         {
 
         }

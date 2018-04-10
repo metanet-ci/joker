@@ -11,9 +11,11 @@ import java.util.Map.Entry;
 import java.util.function.BiConsumer;
 
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.operator.schema.runtime.RuntimeSchemaField;
 import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import static cs.bilkent.joker.operator.schema.runtime.TupleSchema.FIELD_NOT_FOUND;
+import static java.lang.Math.max;
 
 
 /**
@@ -22,7 +24,7 @@ import static cs.bilkent.joker.operator.schema.runtime.TupleSchema.FIELD_NOT_FOU
  * guaranteed to exist, using {@link TupleSchema} objects, and they can also contain additional arbitrary fields.
  * <p/>
  * If a {@code Tuple} object is created to be sent to an output port of an operator, corresponding {@link TupleSchema} object,
- * which can be accessed via {@link InitializationContext#getOutputPortSchema(int)} method, should be provided to the tuple. If not
+ * which can be accessed via {@link InitCtx#getOutputPortSchema(int)} method, should be provided to the tuple. If not
  * specified, an empty schema will be used by default, which can cause negative performance effects on the downstream. It is recommended
  * to specify schema objects properly as they will decrease memory overhead of the tuples and make field accesses in constant time.
  */
@@ -32,6 +34,8 @@ public final class Tuple implements Fields<String>
     private static final String INITIAL_CAPACITY_SYS_PARAM = "cs.bilkent.joker.Tuple.EMPTY_SCHEMA_INITIAL_CAPACITY";
 
     private static final int DEFAULT_EMPTY_SCHEMA_INITIAL_CAPACITY = 2;
+
+    static final long INGESTION_TIME_NA = Long.MIN_VALUE;
 
     static
     {
@@ -88,10 +92,108 @@ public final class Tuple implements Fields<String>
         }
     };
 
+    public static Tuple of ( final String key, final Object val )
+    {
+        return of( EMPTY_SCHEMA, key, val );
+    }
+
+    public static Tuple of ( final String key1, final Object val1, final String key2, final Object val2 )
+    {
+        return of( EMPTY_SCHEMA, key1, val1, key2, val2 );
+    }
+
+    public static Tuple of ( final String key1,
+                             final Object val1,
+                             final String key2,
+                             final Object val2,
+                             final String key3,
+                             final Object val3 )
+    {
+        return of( EMPTY_SCHEMA, key1, val1, key2, val2, key3, val3 );
+    }
+
+    public static Tuple of ( final String key1,
+                             final Object val1,
+                             final String key2,
+                             final Object val2,
+                             final String key3,
+                             final Object val3,
+                             final String key4,
+                             final Object val4 )
+    {
+        return of( EMPTY_SCHEMA, key1, val1, key2, val2, key3, val3, key4, val4 );
+    }
+
+    public static Tuple of ( final String key1,
+                             final Object val1,
+                             final String key2,
+                             final Object val2,
+                             final String key3,
+                             final Object val3,
+                             final String key4,
+                             final Object val4,
+                             final String key5,
+                             final Object val5 )
+    {
+        return of( EMPTY_SCHEMA, key1, val1, key2, val2, key3, val3, key4, val4, key5, val5 );
+    }
+
+
+    public static Tuple of ( final TupleSchema schema, final String key, final Object val )
+    {
+        return new Tuple( schema ).set( key, val );
+    }
+
+    public static Tuple of ( final TupleSchema schema, final String key1, final Object val1, final String key2, final Object val2 )
+    {
+        return new Tuple( schema ).set( key1, val1 ).set( key2, val2 );
+    }
+
+    public static Tuple of ( final TupleSchema schema,
+                             final String key1,
+                             final Object val1,
+                             final String key2,
+                             final Object val2,
+                             final String key3,
+                             final Object val3 )
+    {
+        return new Tuple( schema ).set( key1, val1 ).set( key2, val2 ).set( key3, val3 );
+    }
+
+    public static Tuple of ( final TupleSchema schema,
+                             final String key1,
+                             final Object val1,
+                             final String key2,
+                             final Object val2,
+                             final String key3,
+                             final Object val3,
+                             final String key4,
+                             final Object val4 )
+    {
+        return new Tuple( schema ).set( key1, val1 ).set( key2, val2 ).set( key3, val3 ).set( key4, val4 );
+    }
+
+    public static Tuple of ( final TupleSchema schema,
+                             final String key1,
+                             final Object val1,
+                             final String key2,
+                             final Object val2,
+                             final String key3,
+                             final Object val3,
+                             final String key4,
+                             final Object val4,
+                             final String key5,
+                             final Object val5 )
+    {
+        return new Tuple( schema ).set( key1, val1 ).set( key2, val2 ).set( key3, val3 ).set( key4, val4 ).set( key5, val5 );
+    }
+
 
     private final TupleSchema schema;
 
     private final ArrayList<Object> values;
+
+    private long ingestionTime = INGESTION_TIME_NA;
 
     public Tuple ()
     {
@@ -107,6 +209,13 @@ public final class Tuple implements Fields<String>
         {
             this.values.add( null );
         }
+    }
+
+    private Tuple ( final TupleSchema schema, final ArrayList<Object> values, final long ingestionTime )
+    {
+        this.schema = schema;
+        this.values = values;
+        this.ingestionTime = ingestionTime;
     }
 
     @SuppressWarnings( "unchecked" )
@@ -159,7 +268,7 @@ public final class Tuple implements Fields<String>
     }
 
     @Override
-    public void set ( final String key, final Object value )
+    public Tuple set ( final String key, final Object value )
     {
         checkArgument( value != null, "value can't be null" );
 
@@ -176,12 +285,14 @@ public final class Tuple implements Fields<String>
                 if ( entry.getKey().equals( key ) )
                 {
                     entry.setValue( value );
-                    return;
+                    return this;
                 }
             }
 
             values.add( new SimpleEntry<>( key, value ) );
         }
+
+        return this;
     }
 
     public void setAtSchemaIndex ( final int i, final Object value )
@@ -229,7 +340,7 @@ public final class Tuple implements Fields<String>
         return remove( key ) != null;
     }
 
-    public void consumeEntries ( final BiConsumer<String, Object> consumer )
+    public void sinkTo ( final BiConsumer<String, Object> consumer )
     {
         for ( int i = 0; i < schema.getFieldCount(); i++ )
         {
@@ -275,6 +386,39 @@ public final class Tuple implements Fields<String>
     public TupleSchema getSchema ()
     {
         return schema;
+    }
+
+    public void attach ( final Tuple source )
+    {
+        ingestionTime = max( ingestionTime, source.ingestionTime );
+    }
+
+    public Tuple copyForAttachment ()
+    {
+        return new Tuple( schema, values, ingestionTime );
+    }
+
+    void setIngestionTime ( final long ingestionTime )
+    {
+        checkArgument( ingestionTime != INGESTION_TIME_NA );
+        checkState( this.ingestionTime == INGESTION_TIME_NA );
+        this.ingestionTime = ingestionTime;
+    }
+
+    boolean overwriteIngestionTime ( final long ingestionTime )
+    {
+        if ( ingestionTime == INGESTION_TIME_NA )
+        {
+            return false;
+        }
+
+        this.ingestionTime = ingestionTime;
+        return true;
+    }
+
+    long getIngestionTime ()
+    {
+        return ingestionTime;
     }
 
     private Map<String, Object> asMap ()

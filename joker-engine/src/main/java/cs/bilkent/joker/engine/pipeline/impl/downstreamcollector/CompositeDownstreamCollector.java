@@ -2,6 +2,7 @@ package cs.bilkent.joker.engine.pipeline.impl.downstreamcollector;
 
 import java.util.Arrays;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.pipeline.DownstreamCollector;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 
@@ -14,6 +15,7 @@ public class CompositeDownstreamCollector implements DownstreamCollector
 
     public CompositeDownstreamCollector ( final DownstreamCollector[] collectors )
     {
+        checkArgument( collectors != null && collectors.length > 0 );
         this.collectors = Arrays.copyOf( collectors, collectors.length );
         this.size = collectors.length;
     }
@@ -21,9 +23,10 @@ public class CompositeDownstreamCollector implements DownstreamCollector
     @Override
     public void accept ( final TuplesImpl tuples )
     {
-        for ( int i = 0; i < size; i++ )
+        collectors[ 0 ].accept( tuples );
+        for ( int i = 1; i < size; i++ )
         {
-            collectors[ i ].accept( tuples );
+            collectors[ i ].accept( tuples.copyForAttachment() );
         }
     }
 

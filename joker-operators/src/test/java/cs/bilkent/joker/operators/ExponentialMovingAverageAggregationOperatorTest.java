@@ -4,14 +4,14 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
-import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SUCCESS;
+import static cs.bilkent.joker.operator.InvocationCtx.InvocationReason.SUCCESS;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
+import cs.bilkent.joker.operator.impl.DefaultInvocationCtx;
 import cs.bilkent.joker.operator.impl.InMemoryKVStore;
-import cs.bilkent.joker.operator.impl.InitializationContextImpl;
+import cs.bilkent.joker.operator.impl.InitCtxImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
@@ -38,38 +38,38 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
 
     private final TuplesImpl output = new TuplesImpl( 1 );
 
-    private final DefaultInvocationContext invocationContext = new DefaultInvocationContext( 1, key -> kvStore, output );
+    private final DefaultInvocationCtx invocationCtx = new DefaultInvocationCtx( 1, key -> kvStore, output );
 
-    private final TuplesImpl input = invocationContext.createInputTuples( null );
+    private final TuplesImpl input = invocationCtx.createInputTuples( null );
 
     private final OperatorConfig config = new OperatorConfig();
 
-    private InitializationContextImpl initContext;
+    private InitCtxImpl initCtx;
 
     @Before
     public void init () throws InstantiationException, IllegalAccessException
     {
-        invocationContext.setInvocationReason( SUCCESS );
+        invocationCtx.setInvocationReason( SUCCESS );
 
         final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "op", ExponentialMovingAverageAggregationOperator.class )
                                                           .setConfig( config )
                                                           .build();
         operator = (ExponentialMovingAverageAggregationOperator) operatorDef.createOperator();
-        initContext = new InitializationContextImpl( operatorDef, new boolean[] { true } );
+        initCtx = new InitCtxImpl( operatorDef, new boolean[] { true } );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithNoTupleCount ()
     {
         config.set( FIELD_NAME_CONFIG_PARAMETER, "val" );
-        operator.init( initContext );
+        operator.init( initCtx );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithNoFieldName ()
     {
         config.set( WEIGHT_CONFIG_PARAMETER, .5 );
-        operator.init( initContext );
+        operator.init( initCtx );
     }
 
     @Test
@@ -77,7 +77,7 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
     {
         configure();
 
-        final SchedulingStrategy strategy = operator.init( initContext );
+        final SchedulingStrategy strategy = operator.init( initCtx );
         assertTrue( strategy instanceof ScheduleWhenTuplesAvailable );
 
         final ScheduleWhenTuplesAvailable tupleAvailabilitySchedule = (ScheduleWhenTuplesAvailable) strategy;
@@ -90,12 +90,11 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
     {
         configure();
 
-        operator.init( initContext );
-        final Tuple tuple = new Tuple();
-        tuple.set( "val", 10 );
+        operator.init( initCtx );
+        final Tuple tuple = Tuple.of( "val", 10 );
         input.add( tuple );
 
-        operator.invoke( invocationContext );
+        operator.invoke( invocationCtx );
 
         final Tuple value = kvStore.get( CURRENT_WINDOW_KEY );
         assertNotNull( value );
@@ -109,12 +108,11 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
         configure();
         setCurrentAvgInKVStore( 0, 5 );
 
-        operator.init( initContext );
-        final Tuple tuple = new Tuple();
-        tuple.set( "val", 10 );
+        operator.init( initCtx );
+        final Tuple tuple = Tuple.of( "val", 10 );
         input.add( tuple );
 
-        operator.invoke( invocationContext );
+        operator.invoke( invocationCtx );
 
         final Tuple value = kvStore.get( CURRENT_WINDOW_KEY );
         assertNotNull( value );
@@ -128,12 +126,11 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
         configure();
         setCurrentAvgInKVStore( 3, 6 );
 
-        operator.init( initContext );
-        final Tuple val = new Tuple();
-        val.set( "val", 4 );
+        operator.init( initCtx );
+        final Tuple val = Tuple.of( "val", 4 );
         input.add( val );
 
-        operator.invoke( invocationContext );
+        operator.invoke( invocationCtx );
 
         assertThat( output.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
         final Tuple tuple = output.getTupleOrFail( DEFAULT_PORT_INDEX, 0 );
@@ -152,11 +149,10 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
         configure();
         setCurrentAvgInKVStore( 4, 10 );
 
-        operator.init( initContext );
-        final Tuple t = new Tuple();
-        t.set( "val", 5 );
+        operator.init( initCtx );
+        final Tuple t = Tuple.of( "val", 5 );
         input.add( t );
-        operator.invoke( invocationContext );
+        operator.invoke( invocationCtx );
 
         assertThat( output.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 1 ) );
         final Tuple tuple = output.getTupleOrFail( DEFAULT_PORT_INDEX, 0 );
@@ -175,15 +171,12 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
         configure();
         setCurrentAvgInKVStore( 3, 6 );
 
-        operator.init( initContext );
-        final Tuple t1 = new Tuple();
-        t1.set( "val", 4 );
-        input.add( t1 );
-        final Tuple t2 = new Tuple();
-        t2.set( "val", 7 );
-        input.add( t2 );
+        operator.init( initCtx );
+        final Tuple t1 = Tuple.of( "val", 4 );
+        final Tuple t2 = Tuple.of( "val", 7 );
+        input.add( t1, t2 );
 
-        operator.invoke( invocationContext );
+        operator.invoke( invocationCtx );
 
         assertThat( output.getTupleCount( DEFAULT_PORT_INDEX ), equalTo( 2 ) );
 
@@ -196,15 +189,12 @@ public class ExponentialMovingAverageAggregationOperatorTest extends AbstractJok
 
     private void configure ()
     {
-        config.set( FIELD_NAME_CONFIG_PARAMETER, "val" );
-        config.set( WEIGHT_CONFIG_PARAMETER, .5 );
+        config.set( FIELD_NAME_CONFIG_PARAMETER, "val" ).set( WEIGHT_CONFIG_PARAMETER, .5 );
     }
 
     private void setCurrentAvgInKVStore ( final int tupleCount, final double value )
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( TUPLE_COUNT_FIELD, tupleCount );
-        tuple.set( VALUE_FIELD, value );
+        final Tuple tuple = Tuple.of( TUPLE_COUNT_FIELD, tupleCount, VALUE_FIELD, value );
         kvStore.set( CURRENT_WINDOW_KEY, tuple );
     }
 

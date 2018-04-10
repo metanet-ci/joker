@@ -2,9 +2,9 @@ package cs.bilkent.joker.operator.impl;
 
 import java.util.List;
 
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InvocationCtx;
 
-public interface InternalInvocationContext extends InvocationContext
+public interface InternalInvocationCtx extends InvocationCtx
 {
 
     void setInvocationReason ( InvocationReason reason );

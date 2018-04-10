@@ -6,14 +6,14 @@ import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Test;
 
-import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SHUTDOWN;
-import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SUCCESS;
+import static cs.bilkent.joker.operator.InvocationCtx.InvocationReason.SHUTDOWN;
+import static cs.bilkent.joker.operator.InvocationCtx.InvocationReason.SUCCESS;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
-import cs.bilkent.joker.operator.impl.InitializationContextImpl;
+import cs.bilkent.joker.operator.impl.DefaultInvocationCtx;
+import cs.bilkent.joker.operator.impl.InitCtxImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
@@ -37,7 +37,7 @@ public class BarrierOperatorTest extends AbstractJokerTest
 
     private final OperatorConfig config = new OperatorConfig();
 
-    private InitializationContextImpl initContext;
+    private InitCtxImpl initCtx;
 
     private final int[] inputPorts = new int[] { 0, 1, 2 };
 
@@ -45,9 +45,9 @@ public class BarrierOperatorTest extends AbstractJokerTest
 
     private final TuplesImpl output = new TuplesImpl( 3 );
 
-    private final DefaultInvocationContext invocationContext = new DefaultInvocationContext( inputPorts.length, key -> null, output );
+    private final DefaultInvocationCtx invocationCtx = new DefaultInvocationCtx( inputPorts.length, key -> null, output );
 
-    private final TuplesImpl input = invocationContext.createInputTuples( null );
+    private final TuplesImpl input = invocationCtx.createInputTuples( null );
 
     @Before
     public void init ()
@@ -61,46 +61,37 @@ public class BarrierOperatorTest extends AbstractJokerTest
         final boolean[] upstream = new boolean[ inputPorts.length ];
         fill( upstream, true );
 
-        initContext = new InitializationContextImpl( operatorDef, upstream );
-        invocationContext.setInvocationReason( SUCCESS );
+        initCtx = new InitCtxImpl( operatorDef, upstream );
+        invocationCtx.setInvocationReason( SUCCESS );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithNoMergePolicy ()
     {
-        operator.init( initContext );
+        operator.init( initCtx );
     }
 
     @Test
     public void shouldScheduleOnGivenInputPorts ()
     {
         config.set( MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
-        final SchedulingStrategy initialStrategy = operator.init( initContext );
+        final SchedulingStrategy initialStrategy = operator.init( initCtx );
         assertSchedulingStrategy( initialStrategy );
-    }
-
-    @Test( expected = IllegalArgumentException.class )
-    public void shouldFailWithMissingTuplesOnSuccessfulInvocation ()
-    {
-        config.set( MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
-        operator.init( initContext );
-        operator.invoke( invocationContext );
     }
 
     @Test
     public void shouldNotFailWithMissingTuplesOnErroneousInvocation ()
     {
         config.set( MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
-        operator.init( initContext );
+        operator.init( initCtx );
 
-        invocationContext.setInvocationReason( SHUTDOWN );
+        invocationCtx.setInvocationReason( SHUTDOWN );
 
         populateTuplesWithUniqueFields( input );
-        final Tuple tuple = new Tuple();
-        tuple.set( "field0", 0 );
+        final Tuple tuple = Tuple.of( "field0", 0 );
         input.add( tuple );
 
-        operator.invoke( invocationContext );
+        operator.invoke( invocationCtx );
         final Tuple outputTuple = output.getTupleOrFail( 0, 0 );
         final int matchingFieldCount = getMatchingFieldCount( outputTuple );
 
@@ -111,11 +102,11 @@ public class BarrierOperatorTest extends AbstractJokerTest
     public void shouldMergeSingleTuplePerPort ()
     {
         config.set( MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
-        operator.init( initContext );
+        operator.init( initCtx );
 
         populateTuplesWithUniqueFields( input );
 
-        operator.invoke( invocationContext );
+        operator.invoke( invocationCtx );
         final Tuple outputTuple = output.getTupleOrFail( 0, 0 );
         final int matchingFieldCount = getMatchingFieldCount( outputTuple );
 
@@ -137,15 +128,14 @@ public class BarrierOperatorTest extends AbstractJokerTest
     private void testTupleMergeWithMergePolicy ( final TupleValueMergePolicy mergePolicy, final int expectedValue )
     {
         config.set( MERGE_POLICY_CONfIG_PARAMETER, mergePolicy );
-        operator.init( initContext );
+        operator.init( initCtx );
 
         IntStream.of( inputPorts ).forEach( portIndex -> {
-            final Tuple tuple = new Tuple();
-            tuple.set( "count", portIndex );
+            final Tuple tuple = Tuple.of( "count", portIndex );
             input.add( portIndex, tuple );
         } );
 
-        operator.invoke( invocationContext );
+        operator.invoke( invocationCtx );
 
         final Tuple outputTuple = output.getTupleOrFail( 0, 0 );
         assertThat( outputTuple.getInteger( "count" ), equalTo( expectedValue ) );
@@ -155,30 +145,28 @@ public class BarrierOperatorTest extends AbstractJokerTest
     public void shouldFailForDifferentNumberOfTuplesPerPort ()
     {
         config.set( MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
-        operator.init( initContext );
+        operator.init( initCtx );
 
         IntStream.of( inputPorts ).forEach( portIndex -> {
-            final Tuple tuple = new Tuple();
-            tuple.set( "count", portIndex );
+            final Tuple tuple = Tuple.of( "count", portIndex );
             input.add( portIndex, tuple );
         } );
-        final Tuple tuple = new Tuple();
-        tuple.set( "count", -1 );
+        final Tuple tuple = Tuple.of( "count", -1 );
         input.add( tuple );
 
-        operator.invoke( invocationContext );
+        operator.invoke( invocationCtx );
     }
 
     @Test
     public void shouldMergeMultipleTuplesPerPort ()
     {
         config.set( MERGE_POLICY_CONfIG_PARAMETER, KEEP_EXISTING_VALUE );
-        operator.init( initContext );
+        operator.init( initCtx );
 
         populateTuplesWithUniqueFields( input );
         populateTuplesWithUniqueFields( input );
 
-        operator.invoke( invocationContext );
+        operator.invoke( invocationCtx );
 
         final List<Tuple> outputTuples = output.getTuplesByDefaultPort();
         assertThat( outputTuples, hasSize( 2 ) );
@@ -196,8 +184,7 @@ public class BarrierOperatorTest extends AbstractJokerTest
     private void populateTuplesWithUniqueFields ( final TuplesImpl input )
     {
         IntStream.of( inputPorts ).forEach( portIndex -> {
-            final Tuple tuple = new Tuple();
-            tuple.set( "field" + portIndex, portIndex );
+            final Tuple tuple = Tuple.of( "field" + portIndex, portIndex );
             input.add( portIndex, tuple );
         } );
     }

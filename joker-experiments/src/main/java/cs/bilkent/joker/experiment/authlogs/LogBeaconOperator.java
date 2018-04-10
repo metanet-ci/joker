@@ -3,8 +3,8 @@ package cs.bilkent.joker.experiment.authlogs;
 import java.util.List;
 
 import static cs.bilkent.joker.experiment.authlogs.LogFileReader.readFile;
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.Tuple;
@@ -64,7 +64,7 @@ public class LogBeaconOperator implements Operator
     private int tuplesPerInvocation;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext ctx )
+    public SchedulingStrategy init ( final InitCtx ctx )
     {
         final OperatorConfig config = ctx.getConfig();
         final List<String> lines = readFile( config.get( "filePath" ) );
@@ -93,7 +93,7 @@ public class LogBeaconOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext ctx )
+    public void invoke ( final InvocationCtx ctx )
     {
         for ( int i = 0; i < tuplesPerInvocation; i++ )
         {
@@ -135,13 +135,15 @@ public class LogBeaconOperator implements Operator
 
     private Tuple createOutputTuple ( final long timestamp, final Triple<String, String, String[]> log )
     {
-        final Tuple output = new Tuple( outputSchema );
-        output.set( TIMESTAMP_FIELD_NAME, timestamp );
-        output.set( HOST_FIELD_NAME, log._1 );
-        output.set( SERVICE_FIELD_NAME, log._2 );
-        output.set( MESSAGE_FIELD_NAME, log._3 );
-
-        return output;
+        return Tuple.of( outputSchema,
+                         TIMESTAMP_FIELD_NAME,
+                         timestamp,
+                         HOST_FIELD_NAME,
+                         log._1,
+                         SERVICE_FIELD_NAME,
+                         log._2,
+                         MESSAGE_FIELD_NAME,
+                         log._3 );
     }
 
     @Override

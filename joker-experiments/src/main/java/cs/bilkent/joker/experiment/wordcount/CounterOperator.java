@@ -2,8 +2,8 @@ package cs.bilkent.joker.experiment.wordcount;
 
 import java.util.List;
 
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.kvstore.KVStore;
@@ -24,7 +24,7 @@ public class CounterOperator implements Operator
     private List<String> partitionFieldNames;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext ctx )
+    public SchedulingStrategy init ( final InitCtx ctx )
     {
         outputSchema = ctx.getOutputPortSchema( 0 );
         partitionFieldNames = ctx.getPartitionFieldNames();
@@ -32,14 +32,19 @@ public class CounterOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext ctx )
+    public void invoke ( final InvocationCtx ctx )
     {
         final KVStore kvStore = ctx.getKVStore();
 
-        final int count = kvStore.getIntegerOrDefault( COUNT_FIELD, 0 ) + ctx.getInputTupleCount( 0 );
+        final int inputTupleCount = ctx.getInputTupleCount( 0 );
+        final int count = kvStore.getIntegerOrDefault( COUNT_FIELD, 0 ) + inputTupleCount;
         kvStore.set( COUNT_FIELD, count );
 
         final Tuple result = new Tuple( outputSchema );
+        if ( inputTupleCount > 0 )
+        {
+            result.attach( ctx.getInputTupleOrFail( 0, 0 ) );
+        }
 
         final Tuple keyTuple = ctx.getInputTupleOrFail( 0, 0 );
         for ( int i = 0; i < partitionFieldNames.size(); i++ )

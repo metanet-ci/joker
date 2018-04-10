@@ -30,7 +30,7 @@ public interface PipelineManager
 
     void rebalanceRegion ( int flowVersion, int regionId, int newReplicaCount );
 
-    UpstreamContext getUpstreamContext ( PipelineReplicaId id );
+    UpstreamCtx getUpstreamCtx ( PipelineReplicaId id );
 
     DownstreamCollector getDownstreamCollector ( PipelineReplicaId id );
 

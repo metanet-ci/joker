@@ -10,14 +10,14 @@ import static cs.bilkent.joker.examples.bargaindiscovery.CVWAPFunction.CVWAP_FIE
 import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.TICKER_SYMBOL_FIELD;
 import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.TIMESTAMP_FIELD;
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
-import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SUCCESS;
+import static cs.bilkent.joker.operator.InvocationCtx.InvocationReason.SUCCESS;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
+import cs.bilkent.joker.operator.impl.DefaultInvocationCtx;
 import cs.bilkent.joker.operator.impl.InMemoryKVStore;
-import cs.bilkent.joker.operator.impl.InitializationContextImpl;
+import cs.bilkent.joker.operator.impl.InitCtxImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.partition.impl.PartitionKey;
@@ -40,21 +40,21 @@ public class BargainIndexOperatorTest extends AbstractJokerTest
 
     private final TuplesImpl output = new TuplesImpl( 1 );
 
-    private final DefaultInvocationContext invocationContext = new DefaultInvocationContext( 2, key -> kvStore, output );
+    private final DefaultInvocationCtx invocationCtx = new DefaultInvocationCtx( 2, key -> kvStore, output );
 
-    private final TuplesImpl input = invocationContext.createInputTuples( PARTITION_KEY );
+    private final TuplesImpl input = invocationCtx.createInputTuples( PARTITION_KEY );
 
     @Before
     public void init () throws InstantiationException, IllegalAccessException
     {
-        invocationContext.setInvocationReason( SUCCESS );
+        invocationCtx.setInvocationReason( SUCCESS );
 
         final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "op", BargainIndexOperator.class )
                                                           .setPartitionFieldNames( singletonList( TICKER_SYMBOL_FIELD ) )
                                                           .build();
         operator = operatorDef.createOperator();
-        final InitializationContextImpl initContext = new InitializationContextImpl( operatorDef, new boolean[] { true, true } );
-        operator.init( initContext );
+        final InitCtxImpl initCtx = new InitCtxImpl( operatorDef, new boolean[] { true, true } );
+        operator.init( initCtx );
     }
 
     @Test
@@ -62,7 +62,7 @@ public class BargainIndexOperatorTest extends AbstractJokerTest
     {
         input.add( 1, newQuoteTuple( 0, 5d, 100 ) );
 
-        operator.invoke( invocationContext );
+        operator.invoke( invocationCtx );
 
         assertThat( output.getTupleCount( 0 ), equalTo( 0 ) );
     }
@@ -73,7 +73,7 @@ public class BargainIndexOperatorTest extends AbstractJokerTest
         setCVWAPInKvStore( 50 );
         input.add( 1, newQuoteTuple( 0, 0.6, 1 ) );
 
-        operator.invoke( invocationContext );
+        operator.invoke( invocationCtx );
 
         assertThat( output.getTupleCount( 0 ), equalTo( 0 ) );
     }
@@ -84,7 +84,7 @@ public class BargainIndexOperatorTest extends AbstractJokerTest
         setCVWAPInKvStore( 50 );
         input.add( 1, newQuoteTuple( 0, 0.4, 1 ) );
 
-        operator.invoke( invocationContext );
+        operator.invoke( invocationCtx );
 
         assertThat( output.getNonEmptyPortCount(), equalTo( 1 ) );
 
@@ -96,11 +96,10 @@ public class BargainIndexOperatorTest extends AbstractJokerTest
     public void shouldReturnOutputsFromQuotesWithUpToDateVWAPs ()
     {
         setCVWAPInKvStore( 50 );
-        input.add( 1, newQuoteTuple( 0, 0.4, 1 ) );
+        input.add( 1, newQuoteTuple( 0, 0.4, 1 ), newQuoteTuple( 1, 0.3, 2 ) );
         input.add( 0, newCVWAPTuple( 1, 60 ) );
-        input.add( 1, newQuoteTuple( 1, 0.3, 2 ) );
 
-        operator.invoke( invocationContext );
+        operator.invoke( invocationCtx );
 
         assertThat( output.getNonEmptyPortCount(), equalTo( 1 ) );
 
@@ -114,23 +113,19 @@ public class BargainIndexOperatorTest extends AbstractJokerTest
 
     private Tuple newCVWAPTuple ( final long timestamp, final double cvwap )
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( TICKER_SYMBOL_FIELD, TUPLE_PARTITION_KEY );
-        tuple.set( CVWAP_FIELD, cvwap );
-        tuple.set( TIMESTAMP_FIELD, timestamp );
-
-        return tuple;
+        return Tuple.of( TICKER_SYMBOL_FIELD, TUPLE_PARTITION_KEY, CVWAP_FIELD, cvwap, TIMESTAMP_FIELD, timestamp );
     }
 
     private Tuple newQuoteTuple ( final long timestamp, final double askedPrice, final int askedSize )
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( TICKER_SYMBOL_FIELD, TUPLE_PARTITION_KEY );
-        tuple.set( TIMESTAMP_FIELD, timestamp );
-        tuple.set( ASKED_TICKER_SYMBOL_PRICE_FIELD, askedPrice );
-        tuple.set( ASKED_SIZE_FIELD, askedSize );
-
-        return tuple;
+        return Tuple.of( TICKER_SYMBOL_FIELD,
+                         TUPLE_PARTITION_KEY,
+                         TIMESTAMP_FIELD,
+                         timestamp,
+                         ASKED_TICKER_SYMBOL_PRICE_FIELD,
+                         askedPrice,
+                         ASKED_SIZE_FIELD,
+                         askedSize );
     }
 
     private void setCVWAPInKvStore ( final double cvwap )

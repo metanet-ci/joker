@@ -25,7 +25,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith( MockitoJUnitRunner.class )
-public class FusedPartitionedInvocationContextTest extends AbstractJokerTest
+public class FusedPartitionedInvocationCtxTest extends AbstractJokerTest
 {
 
     @Mock
@@ -37,18 +37,18 @@ public class FusedPartitionedInvocationContextTest extends AbstractJokerTest
     @Mock
     private OutputCollector outputCollector;
 
-    private FusedPartitionedInvocationContext invocationContext;
+    private FusedPartitionedInvocationCtx invocationCtx;
 
     @Before
     public void init ()
     {
-        invocationContext = new FusedPartitionedInvocationContext( 1, kvStoreSupplier, partitionKeyExtractor, outputCollector );
+        invocationCtx = new FusedPartitionedInvocationCtx( 1, kvStoreSupplier, partitionKeyExtractor, outputCollector );
     }
 
     @Test
     public void when_noOutputIsAdded_then_noInputIsPresent ()
     {
-        assertThat( invocationContext.getInputCount(), equalTo( 0 ) );
+        assertThat( invocationCtx.getInputCount(), equalTo( 0 ) );
     }
 
     @Test
@@ -58,9 +58,9 @@ public class FusedPartitionedInvocationContextTest extends AbstractJokerTest
         final PartitionKey key = new PartitionKey1( "val" );
         when( partitionKeyExtractor.getPartitionKey( tuple ) ).thenReturn( key );
 
-        invocationContext.add( tuple );
+        invocationCtx.add( tuple );
 
-        assertThat( invocationContext.getInputCount(), equalTo( 1 ) );
+        assertThat( invocationCtx.getInputCount(), equalTo( 1 ) );
     }
 
     @Test
@@ -72,29 +72,27 @@ public class FusedPartitionedInvocationContextTest extends AbstractJokerTest
         when( partitionKeyExtractor.getPartitionKey( tuple1 ) ).thenReturn( key );
         when( partitionKeyExtractor.getPartitionKey( tuple2 ) ).thenReturn( key );
 
-        invocationContext.add( tuple1 );
-        invocationContext.add( tuple2 );
+        invocationCtx.add( tuple1 );
+        invocationCtx.add( tuple2 );
 
-        assertThat( invocationContext.getInputCount(), equalTo( 1 ) );
+        assertThat( invocationCtx.getInputCount(), equalTo( 1 ) );
     }
 
     @Test
     public void when_singleMultipleTuplesAreAdded_then_multipleInputsArePresent ()
     {
-        final Tuple tuple1 = new Tuple();
-        tuple1.set( "field", "val1" );
-        final Tuple tuple2 = new Tuple();
-        tuple2.set( "field", "val2" );
+        final Tuple tuple1 = Tuple.of( "field", "val1" );
+        final Tuple tuple2 = Tuple.of( "field", "val2" );
         final PartitionKey key1 = new PartitionKey1( "val1" );
         final PartitionKey key2 = new PartitionKey1( "val2" );
         when( partitionKeyExtractor.getPartitionKey( tuple1 ) ).thenReturn( key1 );
         when( partitionKeyExtractor.getPartitionKey( tuple2 ) ).thenReturn( key2 );
 
-        invocationContext.add( tuple1 );
-        invocationContext.add( tuple2 );
-        invocationContext.add( tuple1 );
+        invocationCtx.add( tuple1 );
+        invocationCtx.add( tuple2 );
+        invocationCtx.add( tuple1 );
 
-        assertThat( invocationContext.getInputCount(), equalTo( 2 ) );
+        assertThat( invocationCtx.getInputCount(), equalTo( 2 ) );
     }
 
     @Test
@@ -106,21 +104,19 @@ public class FusedPartitionedInvocationContextTest extends AbstractJokerTest
         when( partitionKeyExtractor.getPartitionKey( tuple1 ) ).thenReturn( key );
         when( partitionKeyExtractor.getPartitionKey( tuple2 ) ).thenReturn( key );
 
-        invocationContext.add( tuple1 );
-        invocationContext.add( tuple2 );
+        invocationCtx.add( tuple1 );
+        invocationCtx.add( tuple2 );
 
-        assertThat( invocationContext.getInputTuples( 0 ), equalTo( asList( tuple1, tuple2 ) ) );
-        assertThat( invocationContext.getPartitionKey(), equalTo( key ) );
-        assertFalse( invocationContext.nextInput() );
+        assertThat( invocationCtx.getInputTuples( 0 ), equalTo( asList( tuple1, tuple2 ) ) );
+        assertThat( invocationCtx.getPartitionKey(), equalTo( key ) );
+        assertFalse( invocationCtx.nextInput() );
     }
 
     @Test
     public void when_tuplesAreAddedForMultipleKeys_then_theyAreReturnedAsInput ()
     {
-        final Tuple tuple1 = new Tuple();
-        tuple1.set( "field", "val1" );
-        final Tuple tuple2 = new Tuple();
-        tuple2.set( "field", "val2" );
+        final Tuple tuple1 = Tuple.of( "field", "val1" );
+        final Tuple tuple2 = Tuple.of( "field", "val2" );
         final PartitionKey key1 = new PartitionKey1( "val1" );
         final PartitionKey key2 = new PartitionKey1( "val2" );
         when( partitionKeyExtractor.getPartitionKey( tuple1 ) ).thenReturn( key1 );
@@ -130,28 +126,26 @@ public class FusedPartitionedInvocationContextTest extends AbstractJokerTest
         when( kvStoreSupplier.apply( key1 ) ).thenReturn( kvStore1 );
         when( kvStoreSupplier.apply( key2 ) ).thenReturn( kvStore2 );
 
-        invocationContext.add( tuple1 );
-        invocationContext.add( tuple2 );
-        invocationContext.add( tuple1 );
+        invocationCtx.add( tuple1 );
+        invocationCtx.add( tuple2 );
+        invocationCtx.add( tuple1 );
 
-        assertThat( invocationContext.getInputTuples( 0 ), equalTo( asList( tuple1, tuple1 ) ) );
-        assertThat( invocationContext.getPartitionKey(), equalTo( key1 ) );
-        assertThat( invocationContext.getKVStore(), equalTo( kvStore1 ) );
-        assertTrue( invocationContext.nextInput() );
+        assertThat( invocationCtx.getInputTuples( 0 ), equalTo( asList( tuple1, tuple1 ) ) );
+        assertThat( invocationCtx.getPartitionKey(), equalTo( key1 ) );
+        assertThat( invocationCtx.getKVStore(), equalTo( kvStore1 ) );
+        assertTrue( invocationCtx.nextInput() );
 
-        assertThat( invocationContext.getInputTuples( 0 ), equalTo( singletonList( tuple2 ) ) );
-        assertThat( invocationContext.getPartitionKey(), equalTo( key2 ) );
-        assertThat( invocationContext.getKVStore(), equalTo( kvStore2 ) );
-        assertFalse( invocationContext.nextInput() );
+        assertThat( invocationCtx.getInputTuples( 0 ), equalTo( singletonList( tuple2 ) ) );
+        assertThat( invocationCtx.getPartitionKey(), equalTo( key2 ) );
+        assertThat( invocationCtx.getKVStore(), equalTo( kvStore2 ) );
+        assertFalse( invocationCtx.nextInput() );
     }
 
     @Test
     public void when_invocationContextIsReset_then_tuplesAreAddedCorrectlyAfterwards ()
     {
-        final Tuple tuple1 = new Tuple();
-        tuple1.set( "field", "val1" );
-        final Tuple tuple2 = new Tuple();
-        tuple2.set( "field", "val2" );
+        final Tuple tuple1 = Tuple.of( "field", "val1" );
+        final Tuple tuple2 = Tuple.of( "field", "val2" );
         final PartitionKey key1 = new PartitionKey1( "val1" );
         final PartitionKey key2 = new PartitionKey1( "val2" );
         when( partitionKeyExtractor.getPartitionKey( tuple1 ) ).thenReturn( key1 );
@@ -161,17 +155,17 @@ public class FusedPartitionedInvocationContextTest extends AbstractJokerTest
         when( kvStoreSupplier.apply( key1 ) ).thenReturn( kvStore1 );
         when( kvStoreSupplier.apply( key2 ) ).thenReturn( kvStore2 );
 
-        invocationContext.add( tuple1 );
-        invocationContext.add( tuple2 );
-        invocationContext.add( tuple1 );
+        invocationCtx.add( tuple1 );
+        invocationCtx.add( tuple2 );
+        invocationCtx.add( tuple1 );
 
-        invocationContext.reset();
+        invocationCtx.reset();
 
-        invocationContext.add( tuple1 );
-        invocationContext.add( tuple2 );
-        invocationContext.add( tuple1 );
+        invocationCtx.add( tuple1 );
+        invocationCtx.add( tuple2 );
+        invocationCtx.add( tuple1 );
 
-        assertThat( invocationContext.getInputCount(), equalTo( 2 ) );
+        assertThat( invocationCtx.getInputCount(), equalTo( 2 ) );
     }
 
 }

@@ -30,8 +30,8 @@ import cs.bilkent.joker.engine.pipeline.impl.PipelineManagerImplTest.StatefulOpe
 import cs.bilkent.joker.engine.region.RegionDefFormer;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
@@ -198,7 +198,7 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
         public static volatile boolean fail;
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             if ( fail )
             {
@@ -211,7 +211,7 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
 
         }
@@ -225,13 +225,13 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return ScheduleWhenAvailable.INSTANCE;
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
             //            System.out.println("INVOKED1");
             ctx.output( new Tuple() );
@@ -249,13 +249,13 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
         private int invocationCount = 0;
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
             invocationCount++;
             if ( invocationCount == 10000 )
@@ -273,13 +273,13 @@ public class SupervisorImplFlowLifecycleTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return ScheduleWhenAvailable.INSTANCE;
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
 
         }

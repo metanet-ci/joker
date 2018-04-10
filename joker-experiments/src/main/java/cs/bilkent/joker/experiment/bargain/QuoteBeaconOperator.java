@@ -4,7 +4,7 @@ import static cs.bilkent.joker.examples.bargaindiscovery.BargainIndexOperator.AS
 import static cs.bilkent.joker.examples.bargaindiscovery.BargainIndexOperator.ASKED_TICKER_SYMBOL_PRICE_FIELD;
 import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.TICKER_SYMBOL_FIELD;
 import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.TIMESTAMP_FIELD;
-import cs.bilkent.joker.operator.InitializationContext;
+import cs.bilkent.joker.operator.InitCtx;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.schema.annotation.OperatorSchema;
@@ -24,7 +24,7 @@ public class QuoteBeaconOperator extends TickerPriceBaseOperator
     private TupleSchema outputSchema;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext ctx )
+    public SchedulingStrategy init ( final InitCtx ctx )
     {
         this.outputSchema = ctx.getOutputPortSchema( 0 );
         return super.init( ctx );
@@ -33,14 +33,16 @@ public class QuoteBeaconOperator extends TickerPriceBaseOperator
     @Override
     Tuple nextTuple ()
     {
-        final Tuple tuple = new Tuple( outputSchema );
         final Pair<String, Double> tickerPrice = nextTickerPrice();
-        tuple.set( TICKER_SYMBOL_FIELD, tickerPrice._1 );
-        tuple.set( ASKED_TICKER_SYMBOL_PRICE_FIELD, tickerPrice._2 );
-        tuple.set( ASKED_SIZE_FIELD, 1 );
-        tuple.set( TIMESTAMP_FIELD, nextTimestamp() );
-
-        return tuple;
+        return Tuple.of( outputSchema,
+                         TICKER_SYMBOL_FIELD,
+                         tickerPrice._1,
+                         ASKED_TICKER_SYMBOL_PRICE_FIELD,
+                         tickerPrice._2,
+                         ASKED_SIZE_FIELD,
+                         1,
+                         TIMESTAMP_FIELD,
+                         nextTimestamp() );
     }
 
 }

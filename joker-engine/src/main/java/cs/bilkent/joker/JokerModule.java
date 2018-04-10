@@ -7,6 +7,7 @@ import java.lang.management.ThreadMXBean;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.inject.AbstractModule;
 
 import static com.google.inject.name.Names.named;
@@ -48,6 +49,7 @@ public class JokerModule extends AbstractModule
 
     public static final String DOWNSTREAM_FAILURE_FLAG_NAME = "downstreamFailureFlag";
 
+
     private Object jokerId;
 
     private final JokerConfig config;
@@ -61,8 +63,7 @@ public class JokerModule extends AbstractModule
         this( UUID.randomUUID().toString(), config, null, null );
     }
 
-    JokerModule ( final Object jokerId,
-                  final JokerConfig config, final RegionExecPlanFactory regionExecPlanFactory,
+    JokerModule ( final Object jokerId, final JokerConfig config, final RegionExecPlanFactory regionExecPlanFactory,
                   final AdaptationTracker adaptationTracker )
     {
         this.jokerId = jokerId;
@@ -115,6 +116,7 @@ public class JokerModule extends AbstractModule
         bind( IdGenerator.class ).toInstance( new IdGenerator() );
         bind( AtomicBoolean.class ).annotatedWith( named( DOWNSTREAM_FAILURE_FLAG_NAME ) ).toInstance( new AtomicBoolean() );
         bind( Object.class ).annotatedWith( named( JOKER_ID ) ).toInstance( jokerId );
+        bind( MetricRegistry.class ).toInstance( new MetricRegistry() );
     }
 
 }

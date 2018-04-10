@@ -35,12 +35,12 @@ public class PCJJokerMain
         final String[] nodes = new String[] { "localhost", "localhost" };
 
         final Random random = new Random();
-        final OperatorConfig beaconConfig = new OperatorConfig();
-        beaconConfig.set( BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER, 10 );
-        beaconConfig.set( TUPLE_POPULATOR_CONFIG_PARAMETER, (Consumer<Tuple>) tuple -> {
-            sleepUninterruptibly( 250 + random.nextInt( 100 ), TimeUnit.MILLISECONDS );
-            tuple.set( "field1", random.nextInt( 10 ) );
-        } );
+        final OperatorConfig beaconConfig = new OperatorConfig().set( BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER, 10 )
+                                                                .set( TUPLE_POPULATOR_CONFIG_PARAMETER, (Consumer<Tuple>) tuple -> {
+                                                                    sleepUninterruptibly( 250 + random.nextInt( 100 ),
+                                                                                          TimeUnit.MILLISECONDS );
+                                                                    tuple.set( "field1", random.nextInt( 10 ) );
+                                                                } );
         final OperatorRuntimeSchemaBuilder beaconSchema = new OperatorRuntimeSchemaBuilder( 0, 1 );
         beaconSchema.addOutputField( 0, "field1", Integer.class );
 
@@ -49,9 +49,10 @@ public class PCJJokerMain
                                                      .setExtendingSchema( beaconSchema )
                                                      .build();
 
-        final OperatorConfig mapperConfig = new OperatorConfig();
-        mapperConfig.set( MAPPER_CONFIG_PARAMETER,
-                          (BiConsumer<Tuple, Tuple>) ( input, output ) -> output.set( "field1", input.get( "field1" ) ) );
+        final OperatorConfig mapperConfig = new OperatorConfig().set( MAPPER_CONFIG_PARAMETER,
+                                                                      (BiConsumer<Tuple, Tuple>) ( input, output ) -> output.set( "field1",
+                                                                                                                                  input.get(
+                                                                                                                                          "field1" ) ) );
 
         final OperatorRuntimeSchemaBuilder mapperSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
         mapperSchema.addInputField( 0, "field1", Integer.class ).addOutputField( 0, "field1", Integer.class );

@@ -52,8 +52,7 @@ public class PartitionKeyTest extends AbstractJokerTest
     @Test
     public void shouldHash2Fields ()
     {
-        tuple.set( "val0", val0 );
-        tuple.set( "val1", val1 );
+        tuple.set( "val0", val0 ).set( "val1", val1 );
 
         final PartitionKey key = new PartitionKey2( val0, val1 );
         final PartitionKeyExtractor extractor = new PartitionKeyExtractor2( asList( "val0", "val1" ) );
@@ -72,8 +71,7 @@ public class PartitionKeyTest extends AbstractJokerTest
     @Test
     public void shouldHash2FieldsWith1Forward ()
     {
-        tuple.set( "val0", val0 );
-        tuple.set( "val1", val1 );
+        tuple.set( "val0", val0 ).set( "val1", val1 );
 
         final PartitionKey key = new PartitionKey2Fwd1( val0, val1 );
         final PartitionKeyExtractor extractor = new PartitionKeyExtractor2Fwd1( asList( "val0", "val1" ) );
@@ -94,9 +92,7 @@ public class PartitionKeyTest extends AbstractJokerTest
     @Test
     public void shouldHash3Fields ()
     {
-        tuple.set( "val0", val0 );
-        tuple.set( "val1", val1 );
-        tuple.set( "val2", val2 );
+        tuple.set( "val0", val0 ).set( "val1", val1 ).set( "val2", val2 );
 
         final PartitionKey key = new PartitionKey3( val0, val1, val2 );
         final PartitionKeyExtractor extractor = new PartitionKeyExtractor3( asList( "val0", "val1", "val2" ) );
@@ -114,9 +110,7 @@ public class PartitionKeyTest extends AbstractJokerTest
     @Test
     public void shouldHash3FieldsWith1Forward ()
     {
-        tuple.set( "val0", val0 );
-        tuple.set( "val1", val1 );
-        tuple.set( "val2", val2 );
+        tuple.set( "val0", val0 ).set( "val1", val1 ).set( "val2", val2 );
 
         final PartitionKey key = new PartitionKey3Fwd1( val0, val1, val2 );
         final PartitionKeyExtractor extractor = new PartitionKeyExtractor3Fwd1( asList( "val0", "val1", "val2" ) );
@@ -137,9 +131,7 @@ public class PartitionKeyTest extends AbstractJokerTest
     @Test
     public void shouldHash3FieldsWith2Forwards ()
     {
-        tuple.set( "val0", val0 );
-        tuple.set( "val1", val1 );
-        tuple.set( "val2", val2 );
+        tuple.set( "val0", val0 ).set( "val1", val1 ).set( "val2", val2 );
 
         final PartitionKey key = new PartitionKey3Fwd2( val0, val1, val2 );
         final PartitionKeyExtractor extractor = new PartitionKeyExtractor3Fwd2( asList( "val0", "val1", "val2" ) );
@@ -159,8 +151,7 @@ public class PartitionKeyTest extends AbstractJokerTest
     @Test
     public void shouldHashN1Field ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "val0", val0 );
+        final Tuple tuple = Tuple.of( "val0", val0 );
 
         final PartitionKey key = new PartitionKeyN( tuple, singletonList( "val0" ) );
         final PartitionKeyExtractor extractor = new PartitionKeyExtractorN( singletonList( "val0" ) );
@@ -182,12 +173,7 @@ public class PartitionKeyTest extends AbstractJokerTest
     @Test
     public void shouldHashN5Fields ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "val0", val0 );
-        tuple.set( "val1", val1 );
-        tuple.set( "val2", val2 );
-        tuple.set( "val3", val3 );
-        tuple.set( "val4", val4 );
+        final Tuple tuple = Tuple.of( "val0", val0, "val1", val1, "val2", val2, "val3", val3, "val4", val4 );
 
         final PartitionKey key = new PartitionKeyN( tuple, asList( "val0", "val1", "val2", "val3", "val4" ) );
         final PartitionKeyExtractor extractor = new PartitionKeyExtractorN( asList( "val0", "val1", "val2", "val3", "val4" ) );
@@ -205,12 +191,7 @@ public class PartitionKeyTest extends AbstractJokerTest
     @Test
     public void shouldHashN5Fields1Forward ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "val0", val0 );
-        tuple.set( "val1", val1 );
-        tuple.set( "val2", val2 );
-        tuple.set( "val3", val3 );
-        tuple.set( "val4", val4 );
+        final Tuple tuple = Tuple.of( "val0", val0, "val1", val1, "val2", val2, "val3", val3, "val4", val4 );
 
         final PartitionKey key = new PartitionKeyNFwd1( tuple, asList( "val0", "val1", "val2", "val3", "val4" ) );
         final PartitionKeyExtractor extractor = new PartitionKeyExtractorNFwd1( asList( "val0", "val1", "val2", "val3", "val4" ) );
@@ -232,12 +213,7 @@ public class PartitionKeyTest extends AbstractJokerTest
     @Test
     public void shouldHashN5Fields2Forward ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "val0", val0 );
-        tuple.set( "val1", val1 );
-        tuple.set( "val2", val2 );
-        tuple.set( "val3", val3 );
-        tuple.set( "val4", val4 );
+        final Tuple tuple = Tuple.of( "val0", val0, "val1", val1, "val2", val2, "val3", val3, "val4", val4 );
 
         final PartitionKey key = new PartitionKeyNFwd2( tuple, asList( "val0", "val1", "val2", "val3", "val4" ) );
         final PartitionKeyExtractor extractor = new PartitionKeyExtractorNFwd2( asList( "val0", "val1", "val2", "val3", "val4" ) );
@@ -258,12 +234,7 @@ public class PartitionKeyTest extends AbstractJokerTest
     @Test
     public void shouldHashN5Fields3Forward ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "val0", val0 );
-        tuple.set( "val1", val1 );
-        tuple.set( "val2", val2 );
-        tuple.set( "val3", val3 );
-        tuple.set( "val4", val4 );
+        final Tuple tuple = Tuple.of( "val0", val0, "val1", val1, "val2", val2, "val3", val3, "val4", val4 );
 
         final PartitionKey key = new PartitionKeyNFwd3( tuple, asList( "val0", "val1", "val2", "val3", "val4" ) );
         final PartitionKeyExtractor extractor = new PartitionKeyExtractorNFwd3( asList( "val0", "val1", "val2", "val3", "val4" ) );
@@ -282,12 +253,7 @@ public class PartitionKeyTest extends AbstractJokerTest
     @Test
     public void shouldHashN5FieldsM4Forward ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( "val0", val0 );
-        tuple.set( "val1", val1 );
-        tuple.set( "val2", val2 );
-        tuple.set( "val3", val3 );
-        tuple.set( "val4", val4 );
+        final Tuple tuple = Tuple.of( "val0", val0, "val1", val1, "val2", val2, "val3", val3, "val4", val4 );
 
         final PartitionKey key = new PartitionKeyNFwdM( tuple, asList( "val0", "val1", "val2", "val3", "val4" ), 4 );
         final PartitionKeyExtractor extractor = new PartitionKeyExtractorNFwdM( asList( "val0", "val1", "val2", "val3", "val4" ), 4 );

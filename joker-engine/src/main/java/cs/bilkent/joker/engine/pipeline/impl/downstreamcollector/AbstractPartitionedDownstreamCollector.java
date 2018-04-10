@@ -21,9 +21,9 @@ import cs.bilkent.joker.operator.impl.TuplesImpl;
 public abstract class AbstractPartitionedDownstreamCollector implements DownstreamCollector, Supplier<OperatorQueue[]>
 {
 
-    final IdleStrategy idleStrategy = BackoffIdleStrategy.newDefaultInstance();
+    private final IdleStrategy idleStrategy = BackoffIdleStrategy.newDefaultInstance();
 
-    final AtomicBoolean failureFlag;
+    private final AtomicBoolean failureFlag;
 
     private final int partitionCount;
 

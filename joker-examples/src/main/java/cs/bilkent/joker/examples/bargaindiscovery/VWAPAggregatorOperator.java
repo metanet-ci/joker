@@ -1,7 +1,7 @@
 package cs.bilkent.joker.examples.bargaindiscovery;
 
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.kvstore.KVStore;
@@ -63,7 +63,7 @@ public class VWAPAggregatorOperator implements Operator
     private TupleSchema outputSchema;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext ctx )
+    public SchedulingStrategy init ( final InitCtx ctx )
     {
         this.windowSize = ctx.getConfig().getOrFail( WINDOW_SIZE_CONfIG_PARAMETER );
         this.slideFactor = ctx.getConfig().getOrDefault( SLIDE_FACTOR_CONfIG_PARAMETER, 1 );
@@ -73,7 +73,7 @@ public class VWAPAggregatorOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext ctx )
+    public void invoke ( final InvocationCtx ctx )
     {
         final KVStore kvStore = ctx.getKVStore();
 
@@ -84,10 +84,10 @@ public class VWAPAggregatorOperator implements Operator
         double volumeSum = currentWindow.get( SINGLE_VOLUME_FIELD );
         int tupleCount = currentWindow.get( TUPLE_COUNT_FIELD );
 
-        for ( Tuple tuple : ctx.getInputTuplesByDefaultPort() )
+        for ( Tuple input : ctx.getInputTuplesByDefaultPort() )
         {
-            final double vwap = tuple.getDoubleValueOrDefault( TUPLE_INPUT_VWAP_FIELD, 0d );
-            final double volume = tuple.getDoubleValueOrDefault( TUPLE_VOLUME_FIELD, 0d );
+            final double vwap = input.getDoubleValueOrDefault( TUPLE_INPUT_VWAP_FIELD, 0d );
+            final double volume = input.getDoubleValueOrDefault( TUPLE_VOLUME_FIELD, 0d );
 
             final int i = tupleCount++ % windowSize;
 
@@ -102,30 +102,31 @@ public class VWAPAggregatorOperator implements Operator
 
             if ( endOfWindow( tupleCount ) || endOfSlide( tupleCount ) )
             {
-                final Tuple outputTuple = createOutputTuple( tuple.getString( TICKER_SYMBOL_FIELD ),
-                                                             tuple.getLong( TIMESTAMP_FIELD ),
-                                                             vwapSum,
-                                                             volumeSum );
-
-                ctx.output( outputTuple );
+                final Tuple result = createOutputTuple( input.getString( TICKER_SYMBOL_FIELD ),
+                                                        input.getLong( TIMESTAMP_FIELD ),
+                                                        vwapSum,
+                                                        volumeSum );
+                result.attach( input );
+                ctx.output( result );
             }
         }
 
-        currentWindow.set( SINGLE_VWAP_FIELD, vwapSum );
-        currentWindow.set( SINGLE_VOLUME_FIELD, volumeSum );
-        currentWindow.set( TUPLE_COUNT_FIELD, tupleCount );
+        currentWindow.set( SINGLE_VWAP_FIELD, vwapSum ).set( SINGLE_VOLUME_FIELD, volumeSum ).set( TUPLE_COUNT_FIELD, tupleCount );
         kvStore.set( WINDOW_KEY, currentWindow );
     }
 
     private Tuple createWindowTuple ()
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( VWAPS_FIELD, new double[ windowSize ] );
-        tuple.set( VOLUMES_FIELD, new double[ windowSize ] );
-        tuple.set( SINGLE_VWAP_FIELD, 0d );
-        tuple.set( SINGLE_VOLUME_FIELD, 0d );
-        tuple.set( TUPLE_COUNT_FIELD, 0 );
-        return tuple;
+        return Tuple.of( VWAPS_FIELD,
+                         new double[ windowSize ],
+                         VOLUMES_FIELD,
+                         new double[ windowSize ],
+                         SINGLE_VWAP_FIELD,
+                         0d,
+                         SINGLE_VOLUME_FIELD,
+                         0d,
+                         TUPLE_COUNT_FIELD,
+                         0 );
     }
 
     private boolean endOfWindow ( final int tupleCount )
@@ -140,14 +141,15 @@ public class VWAPAggregatorOperator implements Operator
 
     private Tuple createOutputTuple ( final String tickerSymbol, final long timestamp, final double vwapSum, final double volumeSum )
     {
-        final Tuple tuple = new Tuple( outputSchema );
-        tuple.set( TICKER_SYMBOL_FIELD, tickerSymbol );
-        tuple.set( TIMESTAMP_FIELD, timestamp );
-
-        tuple.set( SINGLE_VWAP_FIELD, vwapSum );
-        tuple.set( SINGLE_VOLUME_FIELD, volumeSum );
-
-        return tuple;
+        return Tuple.of( outputSchema,
+                         TICKER_SYMBOL_FIELD,
+                         tickerSymbol,
+                         TIMESTAMP_FIELD,
+                         timestamp,
+                         SINGLE_VWAP_FIELD,
+                         vwapSum,
+                         SINGLE_VOLUME_FIELD,
+                         volumeSum );
     }
 
 }

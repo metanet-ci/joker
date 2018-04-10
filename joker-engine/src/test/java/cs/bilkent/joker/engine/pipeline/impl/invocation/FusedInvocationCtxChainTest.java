@@ -4,7 +4,7 @@ import org.junit.Test;
 
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractor1;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
+import cs.bilkent.joker.operator.impl.DefaultInvocationCtx;
 import cs.bilkent.joker.operator.impl.DefaultOutputCollector;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.test.AbstractJokerTest;
@@ -14,21 +14,18 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertTrue;
 
-public class FusedInvocationContextChainTest extends AbstractJokerTest
+public class FusedInvocationCtxChainTest extends AbstractJokerTest
 {
 
     @Test
     public void testNonPartitionedInvocationContextFusion ()
     {
         final TuplesImpl output = new TuplesImpl( 1 );
-        final FusedInvocationContext last = new FusedInvocationContext( 1, key -> null, new DefaultOutputCollector( output ) );
-        final DefaultInvocationContext first = new DefaultInvocationContext( 1, key -> null, last );
+        final FusedInvocationCtx last = new FusedInvocationCtx( 1, key -> null, new DefaultOutputCollector( output ) );
+        final DefaultInvocationCtx first = new DefaultInvocationCtx( 1, key -> null, last );
 
-        final Tuple input1 = new Tuple();
-        input1.set( "key", "val1" );
-
-        final Tuple input2 = new Tuple();
-        input2.set( "key", "val1" );
+        final Tuple input1 = Tuple.of( "key", "val1" );
+        final Tuple input2 = Tuple.of( "key", "val1" );
 
         first.createInputTuples( null ).add( input1 );
         first.createInputTuples( null ).add( input2 );
@@ -47,20 +44,15 @@ public class FusedInvocationContextChainTest extends AbstractJokerTest
     {
         final PartitionKeyExtractor1 partitionKeyExtractor = new PartitionKeyExtractor1( singletonList( "key" ) );
         final TuplesImpl output = new TuplesImpl( 1 );
-        final FusedPartitionedInvocationContext last = new FusedPartitionedInvocationContext( 1,
-                                                                                              key -> null,
-                                                                                              partitionKeyExtractor,
-                                                                                              new DefaultOutputCollector( output ) );
-        final DefaultInvocationContext first = new DefaultInvocationContext( 1, key -> null, last );
-        final Tuple input1 = new Tuple();
-        input1.set( "key", "val1" );
-        input1.set( "f", "f1" );
+        final FusedPartitionedInvocationCtx last = new FusedPartitionedInvocationCtx( 1,
+                                                                                      key -> null,
+                                                                                      partitionKeyExtractor,
+                                                                                      new DefaultOutputCollector( output ) );
+        final DefaultInvocationCtx first = new DefaultInvocationCtx( 1, key -> null, last );
+        final Tuple input1 = Tuple.of( "key", "val1", "f", "f1" );
+        final Tuple input2 = Tuple.of( "key", "val1", "f", "f2" );
 
-        final Tuple input2 = new Tuple();
-        input2.set( "key", "val1" );
-        input2.set( "f", "f2" );
-
-        first.createInputTuples( null ).addAll( asList( input1, input2 ) );
+        first.createInputTuples( null ).add( input1, input2 );
 
         first.getInputTuples( 0 ).forEach( first::output );
 
@@ -73,18 +65,15 @@ public class FusedInvocationContextChainTest extends AbstractJokerTest
     {
         final PartitionKeyExtractor1 partitionKeyExtractor = new PartitionKeyExtractor1( singletonList( "key" ) );
         final TuplesImpl output = new TuplesImpl( 1 );
-        final FusedPartitionedInvocationContext last = new FusedPartitionedInvocationContext( 1,
-                                                                                              key -> null,
-                                                                                              partitionKeyExtractor,
-                                                                                              new DefaultOutputCollector( output ) );
-        final DefaultInvocationContext first = new DefaultInvocationContext( 1, key -> null, last );
-        final Tuple input1 = new Tuple();
-        input1.set( "key", "val1" );
+        final FusedPartitionedInvocationCtx last = new FusedPartitionedInvocationCtx( 1,
+                                                                                      key -> null,
+                                                                                      partitionKeyExtractor,
+                                                                                      new DefaultOutputCollector( output ) );
+        final DefaultInvocationCtx first = new DefaultInvocationCtx( 1, key -> null, last );
+        final Tuple input1 = Tuple.of( "key", "val1" );
+        final Tuple input2 = Tuple.of( "key", "val2" );
 
-        final Tuple input2 = new Tuple();
-        input2.set( "key", "val2" );
-
-        first.createInputTuples( null ).addAll( asList( input1, input2 ) );
+        first.createInputTuples( null ).add( input1, input2 );
 
         first.getInputTuples( 0 ).forEach( first::output );
 
@@ -98,12 +87,11 @@ public class FusedInvocationContextChainTest extends AbstractJokerTest
     public void testChain ()
     {
         final TuplesImpl output = new TuplesImpl( 1 );
-        final FusedInvocationContext last = new FusedInvocationContext( 1, key -> null, new DefaultOutputCollector( output ) );
-        final FusedInvocationContext middle = new FusedInvocationContext( 1, key -> null, last );
-        final DefaultInvocationContext first = new DefaultInvocationContext( 1, key -> null, middle );
+        final FusedInvocationCtx last = new FusedInvocationCtx( 1, key -> null, new DefaultOutputCollector( output ) );
+        final FusedInvocationCtx middle = new FusedInvocationCtx( 1, key -> null, last );
+        final DefaultInvocationCtx first = new DefaultInvocationCtx( 1, key -> null, middle );
 
-        final Tuple input = new Tuple();
-        input.set( "key", "val" );
+        final Tuple input = Tuple.of( "key", "val" );
         first.createInputTuples( null ).add( input );
 
         first.getInputTuples( 0 ).forEach( first::output );

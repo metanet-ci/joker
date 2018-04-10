@@ -42,23 +42,23 @@ public class WordCountFlowDefFactory2 implements FlowDefFactory
         final int maxPartitionIndex = config.getInt( MAX_PARTITION_INDEX_PARAM );
         final int sentenceCountPerInvocation = config.getInt( SENTENCE_COUNT_PER_INVOCATION_PARAM );
 
-        final OperatorConfig sentenceBeaconConfig = new OperatorConfig();
-        sentenceBeaconConfig.set( MIN_WORD_LENGTH_PARAM, minWordLength );
-        sentenceBeaconConfig.set( MAX_WORD_LENGTH_PARAM, maxWordLength );
-        sentenceBeaconConfig.set( WORD_COUNT_PER_LENGTH_PARAM, wordCountPerLength );
-        sentenceBeaconConfig.set( MIN_SENTENCE_LENGTH_PARAM, minSentenceLength );
-        sentenceBeaconConfig.set( MAX_SENTENCE_LENGTH_PARAM, maxSentenceLength );
-        sentenceBeaconConfig.set( SENTENCE_COUNT_PER_LENGTH_PARAM, sentenceCountPerLength );
-        sentenceBeaconConfig.set( SHUFFLED_SENTENCE_COUNT_PARAM, shuffledSentenceCount );
-        sentenceBeaconConfig.set( MAX_PARTITION_INDEX_PARAM, maxPartitionIndex );
-        sentenceBeaconConfig.set( SENTENCE_COUNT_PER_INVOCATION_PARAM, sentenceCountPerInvocation );
+        final OperatorConfig sentenceBeaconConfig = new OperatorConfig().set( MIN_WORD_LENGTH_PARAM, minWordLength )
+                                                                        .set( MAX_WORD_LENGTH_PARAM, maxWordLength )
+                                                                        .set( WORD_COUNT_PER_LENGTH_PARAM, wordCountPerLength )
+                                                                        .set( MIN_SENTENCE_LENGTH_PARAM, minSentenceLength )
+                                                                        .set( MAX_SENTENCE_LENGTH_PARAM, maxSentenceLength )
+                                                                        .set( SENTENCE_COUNT_PER_LENGTH_PARAM, sentenceCountPerLength )
+                                                                        .set( SHUFFLED_SENTENCE_COUNT_PARAM, shuffledSentenceCount )
+                                                                        .set( MAX_PARTITION_INDEX_PARAM, maxPartitionIndex )
+                                                                        .set( SENTENCE_COUNT_PER_INVOCATION_PARAM,
+                                                                              sentenceCountPerInvocation );
 
         final OperatorDef sentenceBeaconOp = OperatorDefBuilder.newInstance( "sb", SentenceBeaconOperator.class )
                                                                .setConfig( sentenceBeaconConfig )
                                                                .build();
 
-        final OperatorConfig flatMapperConfig = new OperatorConfig();
-        flatMapperConfig.set( FlatMapperOperator.FLAT_MAPPER_CONFIG_PARAMETER, new SentenceSplitterFunction() );
+        final OperatorConfig flatMapperConfig = new OperatorConfig().set( FlatMapperOperator.FLAT_MAPPER_CONFIG_PARAMETER,
+                                                                          new SentenceSplitterFunction() );
 
         final OperatorRuntimeSchemaBuilder flatMapperSchemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
         flatMapperSchemaBuilder.addInputField( 0, SENTENCE_FIELD, String.class )

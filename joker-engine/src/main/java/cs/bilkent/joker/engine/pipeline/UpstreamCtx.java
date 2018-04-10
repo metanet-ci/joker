@@ -7,8 +7,8 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
-import static cs.bilkent.joker.engine.pipeline.UpstreamContext.ConnectionStatus.CLOSED;
-import static cs.bilkent.joker.engine.pipeline.UpstreamContext.ConnectionStatus.OPEN;
+import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.ConnectionStatus.CLOSED;
+import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.ConnectionStatus.OPEN;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.Port;
 import cs.bilkent.joker.operator.OperatorDef;
@@ -21,10 +21,10 @@ import static java.util.Arrays.copyOf;
 import static java.util.Arrays.fill;
 import static java.util.Arrays.stream;
 
-public class UpstreamContext
+public class UpstreamCtx
 {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger( UpstreamContext.class );
+    private static final Logger LOGGER = LoggerFactory.getLogger( UpstreamCtx.class );
 
     public static final int INITIAL_VERSION = 0;
 
@@ -35,30 +35,30 @@ public class UpstreamContext
     }
 
 
-    public static UpstreamContext newSourceOperatorInitialUpstreamContext ()
+    public static UpstreamCtx createSourceOperatorInitialUpstreamCtx ()
     {
-        return new UpstreamContext( INITIAL_VERSION, new ConnectionStatus[ 0 ] );
+        return new UpstreamCtx( INITIAL_VERSION, new ConnectionStatus[ 0 ] );
     }
 
-    public static UpstreamContext newSourceOperatorShutdownUpstreamContext ()
+    public static UpstreamCtx createSourceOperatorShutdownUpstreamCtx ()
     {
-        return new UpstreamContext( INITIAL_VERSION + 1, new ConnectionStatus[ 0 ] );
+        return new UpstreamCtx( INITIAL_VERSION + 1, new ConnectionStatus[ 0 ] );
     }
 
-    public static UpstreamContext newInitialUpstreamContext ( final ConnectionStatus... statuses )
+    public static UpstreamCtx createInitialUpstreamCtx ( final ConnectionStatus... statuses )
     {
-        return new UpstreamContext( INITIAL_VERSION, statuses );
+        return new UpstreamCtx( INITIAL_VERSION, statuses );
     }
 
-    public static UpstreamContext newInitialUpstreamContextWithAllPortsConnected ( final int portCount )
+    public static UpstreamCtx createInitialClosedUpstreamCtx ( final int portCount )
     {
         final ConnectionStatus[] statuses = new ConnectionStatus[ portCount ];
         fill( statuses, OPEN );
 
-        return new UpstreamContext( INITIAL_VERSION, statuses );
+        return new UpstreamCtx( INITIAL_VERSION, statuses );
     }
 
-    public static UpstreamContext createInitialUpstreamContext ( final FlowDef flow, final String operatorId )
+    public static UpstreamCtx createInitialUpstreamCtx ( final FlowDef flow, final String operatorId )
     {
         final OperatorDef operatorDef = flow.getOperator( operatorId );
         final int inputPortCount = operatorDef.getInputPortCount();
@@ -69,7 +69,7 @@ public class UpstreamContext
             statuses[ inputPort.getPortIndex() ] = OPEN;
         }
 
-        return newInitialUpstreamContext( statuses );
+        return createInitialUpstreamCtx( statuses );
     }
 
 
@@ -77,7 +77,7 @@ public class UpstreamContext
 
     private final ConnectionStatus[] statuses;
 
-    public UpstreamContext ( final int version, final ConnectionStatus[] statuses )
+    public UpstreamCtx ( final int version, final ConnectionStatus[] statuses )
     {
         checkArgument( version >= INITIAL_VERSION );
         this.version = version;
@@ -253,7 +253,7 @@ public class UpstreamContext
         throw new IllegalStateException( "Invalid " + schedulingStrategy + " for operator: " + operatorDef.getId() );
     }
 
-    public UpstreamContext withConnectionClosed ( final int portIndex )
+    public UpstreamCtx withConnectionClosed ( final int portIndex )
     {
         checkArgument( portIndex < statuses.length );
 
@@ -265,10 +265,10 @@ public class UpstreamContext
         final ConnectionStatus[] s = copyOf( statuses, statuses.length );
         s[ portIndex ] = CLOSED;
 
-        return new UpstreamContext( version + 1, s );
+        return new UpstreamCtx( version + 1, s );
     }
 
-    public UpstreamContext withAllConnectionsClosed ()
+    public UpstreamCtx withAllConnectionsClosed ()
     {
         if ( statuses.length == stream( statuses ).filter( s -> s == CLOSED ).count() )
         {
@@ -278,7 +278,7 @@ public class UpstreamContext
         final ConnectionStatus[] s = copyOf( statuses, statuses.length );
         fill( s, CLOSED );
 
-        return new UpstreamContext( version + 1, s );
+        return new UpstreamCtx( version + 1, s );
     }
 
     @Override
@@ -293,7 +293,7 @@ public class UpstreamContext
             return false;
         }
 
-        final UpstreamContext that = (UpstreamContext) o;
+        final UpstreamCtx that = (UpstreamCtx) o;
 
         return version == that.version && Arrays.equals( statuses, that.statuses );
     }

@@ -9,8 +9,8 @@ import org.apache.commons.collections4.queue.CircularFifoQueue;
 import com.google.common.base.Charsets;
 
 import cs.bilkent.joker.experiment.MemorizingBeaconOperator;
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
@@ -52,7 +52,7 @@ public class DynamicInputRatedBeaconOperator implements Operator
 
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext ctx )
+    public SchedulingStrategy init ( final InitCtx ctx )
     {
         final OperatorConfig config = ctx.getConfig();
         this.tokenCount = config.getInteger( TOKEN_COUNT_CONFIG_PARAMETER );
@@ -68,7 +68,7 @@ public class DynamicInputRatedBeaconOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext ctx )
+    public void invoke ( final InvocationCtx ctx )
     {
         if ( tryAcquireToken() )
         {

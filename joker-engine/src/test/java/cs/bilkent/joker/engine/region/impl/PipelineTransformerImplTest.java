@@ -16,9 +16,9 @@ import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
 import cs.bilkent.joker.engine.partition.impl.PartitionServiceImpl;
 import cs.bilkent.joker.engine.pipeline.OperatorReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
-import cs.bilkent.joker.engine.pipeline.UpstreamContext;
-import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedInvocationContext;
-import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedPartitionedInvocationContext;
+import cs.bilkent.joker.engine.pipeline.UpstreamCtx;
+import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedInvocationCtx;
+import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedPartitionedInvocationCtx;
 import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.Region;
 import static cs.bilkent.joker.engine.region.impl.RegionExecPlanUtil.checkPipelineStartIndicesToMerge;
@@ -32,13 +32,12 @@ import cs.bilkent.joker.engine.tuplequeue.impl.operator.EmptyOperatorQueue;
 import cs.bilkent.joker.engine.tuplequeue.impl.operator.PartitionedOperatorQueue;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
-import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
+import cs.bilkent.joker.operator.impl.DefaultInvocationCtx;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
@@ -85,7 +84,8 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
 
     private final RegionManagerImpl regionManager = new RegionManagerImpl( config,
                                                                            partitionService,
-                                                                           operatorKVStoreManager, operatorQueueManager,
+                                                                           operatorKVStoreManager,
+                                                                           operatorQueueManager,
                                                                            pipelineTransformer,
                                                                            partitionKeyExtractorFactory );
 
@@ -147,11 +147,11 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertThat( pipelineOperator0.getOperatorDef( 3 ), equalTo( operatorDef4 ) );
         assertThat( pipelineOperator0.getOperatorDef( 4 ), equalTo( operatorDef5 ) );
 
-        assertTrue( pipelineOperator0.getInvocationContext( 0 ) instanceof DefaultInvocationContext );
-        assertTrue( pipelineOperator0.getInvocationContext( 1 ) instanceof FusedInvocationContext );
-        assertTrue( pipelineOperator0.getInvocationContext( 2 ) instanceof FusedInvocationContext );
-        assertTrue( pipelineOperator0.getInvocationContext( 3 ) instanceof FusedInvocationContext );
-        assertTrue( pipelineOperator0.getInvocationContext( 4 ) instanceof FusedInvocationContext );
+        assertTrue( pipelineOperator0.getInvocationCtx( 0 ) instanceof DefaultInvocationCtx );
+        assertTrue( pipelineOperator0.getInvocationCtx( 1 ) instanceof FusedInvocationCtx );
+        assertTrue( pipelineOperator0.getInvocationCtx( 2 ) instanceof FusedInvocationCtx );
+        assertTrue( pipelineOperator0.getInvocationCtx( 3 ) instanceof FusedInvocationCtx );
+        assertTrue( pipelineOperator0.getInvocationCtx( 4 ) instanceof FusedInvocationCtx );
 
         assertThat( ( (DefaultOperatorQueue) pipelineOperator0.getQueue() ).getThreadingPref(), equalTo( MULTI_THREADED ) );
         assertTrue( pipelineOperator0.getQueue() == operatorQueueManager.getDefaultQueue( region.getRegionId(), operatorDef1.getId(), 0 ) );
@@ -167,13 +167,13 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertThat( operatorKVStoreManager.getDefaultKVStore( region.getRegionId(), operatorDef5.getId() ).getKVStore( null ).get( "key5" ),
                     equalTo( "val5" ) );
 
-        final UpstreamContext[] upstreamContexts = region.getUpstreamContexts();
-        assertTrue( pipelineOperator0.getUpstreamContext( 0 ) == upstreamContexts[ 0 ] );
-        assertTrue( pipelineOperator0.getUpstreamContext( 1 ) == upstreamContexts[ 1 ] );
-        assertTrue( pipelineOperator0.getUpstreamContext( 2 ) == upstreamContexts[ 2 ] );
-        assertTrue( pipelineOperator0.getUpstreamContext( 3 ) == upstreamContexts[ 3 ] );
-        assertTrue( pipelineOperator0.getUpstreamContext( 4 ) == upstreamContexts[ 4 ] );
-        assertNull( pipelineOperator0.getDownstreamContext() );
+        final UpstreamCtx[] upstreamCtxes = region.getUpstreamCtxes();
+        assertTrue( pipelineOperator0.getUpstreamCtx( 0 ) == upstreamCtxes[ 0 ] );
+        assertTrue( pipelineOperator0.getUpstreamCtx( 1 ) == upstreamCtxes[ 1 ] );
+        assertTrue( pipelineOperator0.getUpstreamCtx( 2 ) == upstreamCtxes[ 2 ] );
+        assertTrue( pipelineOperator0.getUpstreamCtx( 3 ) == upstreamCtxes[ 3 ] );
+        assertTrue( pipelineOperator0.getUpstreamCtx( 4 ) == upstreamCtxes[ 4 ] );
+        assertNull( pipelineOperator0.getDownstreamCtx() );
 
         final PipelineReplicaMeter meter = newPipelineReplica.getMeter();
         assertThat( meter.getHeadOperatorId(), equalTo( pipelineOperator0.getOperatorDef( 0 ).getId() ) );
@@ -197,7 +197,9 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
                                                  .add( operatorDef3 )
                                                  .add( operatorDef4 )
                                                  .add( operatorDef5 )
-                                                 .connect( "op0", "op1" ).connect( "op1", "op2" ).connect( "op2", "op3" )
+                                                 .connect( "op0", "op1" )
+                                                 .connect( "op1", "op2" )
+                                                 .connect( "op2", "op3" )
                                                  .connect( "op3", "op4" )
                                                  .connect( "op4", "op5" )
                                                  .build();
@@ -232,8 +234,8 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertThat( pipelineOperator0.getOperatorCount(), equalTo( 2 ) );
         assertThat( pipelineOperator0.getOperatorDef( 0 ), equalTo( operatorDef1 ) );
         assertThat( pipelineOperator0.getOperatorDef( 1 ), equalTo( operatorDef2 ) );
-        assertTrue( pipelineOperator0.getInvocationContext( 0 ) instanceof DefaultInvocationContext );
-        assertTrue( pipelineOperator0.getInvocationContext( 1 ) instanceof FusedInvocationContext );
+        assertTrue( pipelineOperator0.getInvocationCtx( 0 ) instanceof DefaultInvocationCtx );
+        assertTrue( pipelineOperator0.getInvocationCtx( 1 ) instanceof FusedInvocationCtx );
         assertThat( ( (DefaultOperatorQueue) pipelineOperator0.getQueue() ).getThreadingPref(), equalTo( MULTI_THREADED ) );
         assertTrue( pipelineOperator0.getQueue() == operatorQueueManager.getDefaultQueue( region.getRegionId(), operatorDef1.getId(), 0 ) );
         assertTrue( pipelineOperator0.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
@@ -243,8 +245,8 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertThat( pipelineOperator1.getOperatorCount(), equalTo( 2 ) );
         assertThat( pipelineOperator1.getOperatorDef( 0 ), equalTo( operatorDef3 ) );
         assertThat( pipelineOperator1.getOperatorDef( 1 ), equalTo( operatorDef4 ) );
-        assertTrue( pipelineOperator1.getInvocationContext( 0 ) instanceof DefaultInvocationContext );
-        assertTrue( pipelineOperator1.getInvocationContext( 1 ) instanceof FusedInvocationContext );
+        assertTrue( pipelineOperator1.getInvocationCtx( 0 ) instanceof DefaultInvocationCtx );
+        assertTrue( pipelineOperator1.getInvocationCtx( 1 ) instanceof FusedInvocationCtx );
         assertThat( ( (DefaultOperatorQueue) pipelineOperator1.getQueue() ).getThreadingPref(), equalTo( SINGLE_THREADED ) );
         assertTrue( pipelineOperator1.getQueue() == operatorQueueManager.getDefaultQueue( region.getRegionId(), operatorDef3.getId(), 0 ) );
         assertTrue( pipelineOperator1.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
@@ -252,7 +254,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         final OperatorReplica pipelineOperator2 = newPipelineReplica.getOperatorReplica( 2 );
         assertThat( pipelineOperator2.getOperatorCount(), equalTo( 1 ) );
         assertThat( pipelineOperator2.getOperatorDef( 0 ), equalTo( operatorDef5 ) );
-        assertTrue( pipelineOperator2.getInvocationContext( 0 ) instanceof DefaultInvocationContext );
+        assertTrue( pipelineOperator2.getInvocationCtx( 0 ) instanceof DefaultInvocationCtx );
         assertThat( ( (DefaultOperatorQueue) pipelineOperator2.getQueue() ).getThreadingPref(), equalTo( SINGLE_THREADED ) );
         assertTrue( pipelineOperator2.getQueue() == operatorQueueManager.getDefaultQueue( region.getRegionId(), operatorDef5.getId(), 0 ) );
         assertTrue( pipelineOperator2.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
@@ -266,15 +268,15 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertThat( operatorKVStoreManager.getDefaultKVStore( region.getRegionId(), operatorDef5.getId() ).getKVStore( null ).get( "key5" ),
                     equalTo( "val5" ) );
 
-        final UpstreamContext[] upstreamContexts = region.getUpstreamContexts();
-        assertTrue( pipelineOperator0.getUpstreamContext( 0 ) == upstreamContexts[ 0 ] );
-        assertTrue( pipelineOperator0.getUpstreamContext( 1 ) == upstreamContexts[ 1 ] );
-        assertTrue( pipelineOperator0.getDownstreamContext() == upstreamContexts[ 2 ] );
-        assertTrue( pipelineOperator1.getUpstreamContext( 0 ) == upstreamContexts[ 2 ] );
-        assertTrue( pipelineOperator1.getUpstreamContext( 1 ) == upstreamContexts[ 3 ] );
-        assertTrue( pipelineOperator1.getDownstreamContext() == upstreamContexts[ 4 ] );
-        assertTrue( pipelineOperator2.getUpstreamContext( 0 ) == upstreamContexts[ 4 ] );
-        assertNull( pipelineOperator2.getDownstreamContext() );
+        final UpstreamCtx[] upstreamCtxes = region.getUpstreamCtxes();
+        assertTrue( pipelineOperator0.getUpstreamCtx( 0 ) == upstreamCtxes[ 0 ] );
+        assertTrue( pipelineOperator0.getUpstreamCtx( 1 ) == upstreamCtxes[ 1 ] );
+        assertTrue( pipelineOperator0.getDownstreamCtx() == upstreamCtxes[ 2 ] );
+        assertTrue( pipelineOperator1.getUpstreamCtx( 0 ) == upstreamCtxes[ 2 ] );
+        assertTrue( pipelineOperator1.getUpstreamCtx( 1 ) == upstreamCtxes[ 3 ] );
+        assertTrue( pipelineOperator1.getDownstreamCtx() == upstreamCtxes[ 4 ] );
+        assertTrue( pipelineOperator2.getUpstreamCtx( 0 ) == upstreamCtxes[ 4 ] );
+        assertNull( pipelineOperator2.getDownstreamCtx() );
 
         final PipelineReplicaMeter meter = newPipelineReplica.getMeter();
         assertThat( meter.getHeadOperatorId(), equalTo( pipelineOperator0.getOperatorDef( 0 ).getId() ) );
@@ -338,11 +340,11 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertThat( pipelineOperator0.getOperatorDef( 3 ), equalTo( operatorDef4 ) );
         assertThat( pipelineOperator0.getOperatorDef( 4 ), equalTo( operatorDef5 ) );
 
-        assertTrue( pipelineOperator0.getInvocationContext( 0 ) instanceof DefaultInvocationContext );
-        assertTrue( pipelineOperator0.getInvocationContext( 1 ) instanceof FusedInvocationContext );
-        assertTrue( pipelineOperator0.getInvocationContext( 2 ) instanceof FusedPartitionedInvocationContext );
-        assertTrue( pipelineOperator0.getInvocationContext( 3 ) instanceof FusedInvocationContext );
-        assertTrue( pipelineOperator0.getInvocationContext( 4 ) instanceof FusedPartitionedInvocationContext );
+        assertTrue( pipelineOperator0.getInvocationCtx( 0 ) instanceof DefaultInvocationCtx );
+        assertTrue( pipelineOperator0.getInvocationCtx( 1 ) instanceof FusedInvocationCtx );
+        assertTrue( pipelineOperator0.getInvocationCtx( 2 ) instanceof FusedPartitionedInvocationCtx );
+        assertTrue( pipelineOperator0.getInvocationCtx( 3 ) instanceof FusedInvocationCtx );
+        assertTrue( pipelineOperator0.getInvocationCtx( 4 ) instanceof FusedPartitionedInvocationCtx );
 
         assertTrue( pipelineOperator0.getQueue() instanceof PartitionedOperatorQueue );
         assertTrue( pipelineOperator0.getQueue() == operatorQueueManager.getPartitionedQueueOrFail( region.getRegionId(),
@@ -351,13 +353,13 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertTrue( pipelineOperator0.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
         assertTrue( newPipelineReplica.getQueue() instanceof DefaultOperatorQueue );
 
-        final UpstreamContext[] upstreamContexts = region.getUpstreamContexts();
-        assertTrue( pipelineOperator0.getUpstreamContext( 0 ) == upstreamContexts[ 0 ] );
-        assertTrue( pipelineOperator0.getUpstreamContext( 1 ) == upstreamContexts[ 1 ] );
-        assertTrue( pipelineOperator0.getUpstreamContext( 2 ) == upstreamContexts[ 2 ] );
-        assertTrue( pipelineOperator0.getUpstreamContext( 3 ) == upstreamContexts[ 3 ] );
-        assertTrue( pipelineOperator0.getUpstreamContext( 4 ) == upstreamContexts[ 4 ] );
-        assertNull( pipelineOperator0.getDownstreamContext() );
+        final UpstreamCtx[] upstreamCtxes = region.getUpstreamCtxes();
+        assertTrue( pipelineOperator0.getUpstreamCtx( 0 ) == upstreamCtxes[ 0 ] );
+        assertTrue( pipelineOperator0.getUpstreamCtx( 1 ) == upstreamCtxes[ 1 ] );
+        assertTrue( pipelineOperator0.getUpstreamCtx( 2 ) == upstreamCtxes[ 2 ] );
+        assertTrue( pipelineOperator0.getUpstreamCtx( 3 ) == upstreamCtxes[ 3 ] );
+        assertTrue( pipelineOperator0.getUpstreamCtx( 4 ) == upstreamCtxes[ 4 ] );
+        assertNull( pipelineOperator0.getDownstreamCtx() );
 
         final PipelineReplicaMeter pipelineReplicaMeter = newPipelineReplica.getMeter();
         final OperatorDef[] mergedOperatorDefs = newRegion.getExecPlan().getOperatorDefsByPipelineStartIndex( 0 );
@@ -422,24 +424,24 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertThat( pipelineOperator0.getOperatorDef( 3 ), equalTo( operatorDef5 ) );
         assertThat( pipelineOperator0.getOperatorDef( 4 ), equalTo( operatorDef6 ) );
 
-        assertTrue( pipelineOperator0.getInvocationContext( 0 ) instanceof DefaultInvocationContext );
-        assertTrue( pipelineOperator0.getInvocationContext( 1 ) instanceof FusedInvocationContext );
-        assertTrue( pipelineOperator0.getInvocationContext( 2 ) instanceof FusedInvocationContext );
-        assertTrue( pipelineOperator0.getInvocationContext( 3 ) instanceof FusedInvocationContext );
-        assertTrue( pipelineOperator0.getInvocationContext( 4 ) instanceof FusedInvocationContext );
+        assertTrue( pipelineOperator0.getInvocationCtx( 0 ) instanceof DefaultInvocationCtx );
+        assertTrue( pipelineOperator0.getInvocationCtx( 1 ) instanceof FusedInvocationCtx );
+        assertTrue( pipelineOperator0.getInvocationCtx( 2 ) instanceof FusedInvocationCtx );
+        assertTrue( pipelineOperator0.getInvocationCtx( 3 ) instanceof FusedInvocationCtx );
+        assertTrue( pipelineOperator0.getInvocationCtx( 4 ) instanceof FusedInvocationCtx );
 
         assertThat( ( (DefaultOperatorQueue) pipelineOperator0.getQueue() ).getThreadingPref(), equalTo( MULTI_THREADED ) );
         assertTrue( pipelineOperator0.getQueue() == operatorQueueManager.getDefaultQueue( region.getRegionId(), operatorDef2.getId(), 0 ) );
         assertTrue( pipelineOperator0.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
         assertTrue( newPipelineReplica.getQueue() instanceof EmptyOperatorQueue );
 
-        final UpstreamContext[] upstreamContexts = region.getUpstreamContexts();
-        assertTrue( pipelineOperator0.getUpstreamContext( 0 ) == upstreamContexts[ 0 ] );
-        assertTrue( pipelineOperator0.getUpstreamContext( 1 ) == upstreamContexts[ 1 ] );
-        assertTrue( pipelineOperator0.getUpstreamContext( 2 ) == upstreamContexts[ 2 ] );
-        assertTrue( pipelineOperator0.getUpstreamContext( 3 ) == upstreamContexts[ 3 ] );
-        assertTrue( pipelineOperator0.getUpstreamContext( 4 ) == upstreamContexts[ 4 ] );
-        assertNull( pipelineOperator0.getDownstreamContext() );
+        final UpstreamCtx[] upstreamCtxes = region.getUpstreamCtxes();
+        assertTrue( pipelineOperator0.getUpstreamCtx( 0 ) == upstreamCtxes[ 0 ] );
+        assertTrue( pipelineOperator0.getUpstreamCtx( 1 ) == upstreamCtxes[ 1 ] );
+        assertTrue( pipelineOperator0.getUpstreamCtx( 2 ) == upstreamCtxes[ 2 ] );
+        assertTrue( pipelineOperator0.getUpstreamCtx( 3 ) == upstreamCtxes[ 3 ] );
+        assertTrue( pipelineOperator0.getUpstreamCtx( 4 ) == upstreamCtxes[ 4 ] );
+        assertNull( pipelineOperator0.getDownstreamCtx() );
 
         final PipelineReplicaMeter meter = newPipelineReplica.getMeter();
         assertThat( meter.getHeadOperatorId(), equalTo( pipelineOperator0.getOperatorDef( 0 ).getId() ) );
@@ -631,7 +633,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertTrue( pipeline0Operator.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
         assertTrue( newPipelineReplicas[ 0 ].getQueue() instanceof EmptyOperatorQueue );
         assertThat( pipeline0Operator.getOperatorDef( 0 ), equalTo( operatorDef1 ) );
-        assertTrue( pipeline0Operator.getInvocationContext( 0 ) instanceof DefaultInvocationContext );
+        assertTrue( pipeline0Operator.getInvocationCtx( 0 ) instanceof DefaultInvocationCtx );
 
         assertThat( newPipelineReplicas[ 1 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 1 ) ) );
         assertTrue( pipeline1Operator.getQueue() == operatorQueueManager.getDefaultQueue( region.getRegionId(), operatorDef2.getId(), 0 ) );
@@ -643,15 +645,15 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertThat( pipeline1Operator.getOperatorDef( 0 ), equalTo( operatorDef2 ) );
         assertThat( pipeline1Operator.getOperatorDef( 1 ), equalTo( operatorDef3 ) );
         assertThat( pipeline1Operator.getOperatorDef( 2 ), equalTo( operatorDef4 ) );
-        assertTrue( pipeline1Operator.getInvocationContext( 0 ) instanceof DefaultInvocationContext );
-        assertTrue( pipeline1Operator.getInvocationContext( 1 ) instanceof FusedInvocationContext );
-        assertTrue( pipeline1Operator.getInvocationContext( 2 ) instanceof FusedInvocationContext );
+        assertTrue( pipeline1Operator.getInvocationCtx( 0 ) instanceof DefaultInvocationCtx );
+        assertTrue( pipeline1Operator.getInvocationCtx( 1 ) instanceof FusedInvocationCtx );
+        assertTrue( pipeline1Operator.getInvocationCtx( 2 ) instanceof FusedInvocationCtx );
 
         assertThat( newPipelineReplicas[ 2 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 4 ) ) );
         assertThat( ( (DefaultOperatorQueue) pipeline2Operator.getQueue() ).getThreadingPref(), equalTo( MULTI_THREADED ) );
         assertTrue( pipeline2Operator.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
         assertThat( pipeline2Operator.getOperatorDef( 0 ), equalTo( operatorDef5 ) );
-        assertTrue( pipeline2Operator.getInvocationContext( 0 ) instanceof DefaultInvocationContext );
+        assertTrue( pipeline2Operator.getInvocationCtx( 0 ) instanceof DefaultInvocationCtx );
 
         assertThat( operatorKVStoreManager.getDefaultKVStore( region.getRegionId(), operatorDef1.getId() ).getKVStore( null ).get( "key1" ),
                     equalTo( "val1" ) );
@@ -662,9 +664,9 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertThat( operatorKVStoreManager.getDefaultKVStore( region.getRegionId(), operatorDef5.getId() ).getKVStore( null ).get( "key5" ),
                     equalTo( "val5" ) );
 
-        assertNull( pipeline0Operator.getDownstreamContext() );
-        assertNull( pipeline1Operator.getDownstreamContext() );
-        assertNull( pipeline2Operator.getDownstreamContext() );
+        assertNull( pipeline0Operator.getDownstreamCtx() );
+        assertNull( pipeline1Operator.getDownstreamCtx() );
+        assertNull( pipeline2Operator.getDownstreamCtx() );
 
         assertThat( newPipelineReplicas[ 0 ].getMeter().getHeadOperatorId(), equalTo( operatorDef1.getId() ) );
         assertThat( newPipelineReplicas[ 1 ].getMeter().getHeadOperatorId(), equalTo( operatorDef2.getId() ) );
@@ -736,8 +738,8 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertTrue( newPipelineReplicas[ 0 ].getQueue() instanceof EmptyOperatorQueue );
         assertThat( pipeline0Operator.getOperatorDef( 0 ), equalTo( operatorDef1 ) );
         assertThat( pipeline0Operator.getOperatorDef( 1 ), equalTo( operatorDef2 ) );
-        assertTrue( pipeline0Operator.getInvocationContext( 0 ) instanceof DefaultInvocationContext );
-        assertTrue( pipeline0Operator.getInvocationContext( 1 ) instanceof FusedInvocationContext );
+        assertTrue( pipeline0Operator.getInvocationCtx( 0 ) instanceof DefaultInvocationCtx );
+        assertTrue( pipeline0Operator.getInvocationCtx( 1 ) instanceof FusedInvocationCtx );
 
         assertThat( newPipelineReplicas[ 1 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 2 ) ) );
         assertTrue(
@@ -751,19 +753,19 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertTrue( newPipelineReplicas[ 1 ].getQueue() instanceof EmptyOperatorQueue );
         assertThat( pipeline1Operator0.getOperatorDef( 0 ), equalTo( operatorDef3 ) );
         assertThat( pipeline1Operator1.getOperatorDef( 0 ), equalTo( operatorDef4 ) );
-        assertTrue( pipeline1Operator0.getInvocationContext( 0 ) instanceof DefaultInvocationContext );
-        assertTrue( pipeline1Operator1.getInvocationContext( 0 ) instanceof DefaultInvocationContext );
+        assertTrue( pipeline1Operator0.getInvocationCtx( 0 ) instanceof DefaultInvocationCtx );
+        assertTrue( pipeline1Operator1.getInvocationCtx( 0 ) instanceof DefaultInvocationCtx );
 
         assertThat( newPipelineReplicas[ 2 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 4 ) ) );
         assertThat( ( (DefaultOperatorQueue) pipeline2Operator.getQueue() ).getThreadingPref(), equalTo( MULTI_THREADED ) );
         assertTrue( pipeline2Operator.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
         assertThat( pipeline2Operator.getOperatorDef( 0 ), equalTo( operatorDef5 ) );
-        assertTrue( pipeline2Operator.getInvocationContext( 0 ) instanceof DefaultInvocationContext );
+        assertTrue( pipeline2Operator.getInvocationCtx( 0 ) instanceof DefaultInvocationCtx );
 
-        assertNull( pipeline0Operator.getDownstreamContext() );
-        assertThat( pipeline1Operator0.getDownstreamContext(), equalTo( pipeline1Operator1.getUpstreamContext( 0 ) ) );
-        assertNull( pipeline1Operator1.getDownstreamContext() );
-        assertNull( pipeline2Operator.getDownstreamContext() );
+        assertNull( pipeline0Operator.getDownstreamCtx() );
+        assertThat( pipeline1Operator0.getDownstreamCtx(), equalTo( pipeline1Operator1.getUpstreamCtx( 0 ) ) );
+        assertNull( pipeline1Operator1.getDownstreamCtx() );
+        assertNull( pipeline2Operator.getDownstreamCtx() );
 
         assertThat( newPipelineReplicas[ 0 ].getMeter().getHeadOperatorId(), equalTo( operatorDef1.getId() ) );
         assertThat( newPipelineReplicas[ 1 ].getMeter().getHeadOperatorId(), equalTo( operatorDef3.getId() ) );
@@ -841,7 +843,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
                                                                                                     0 ) );
         assertTrue( pipelineOperator0.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
         assertThat( pipelineOperator0.getOperatorDef( 0 ), equalTo( operatorDef1 ) );
-        assertTrue( pipelineOperator0.getInvocationContext( 0 ) instanceof DefaultInvocationContext );
+        assertTrue( pipelineOperator0.getInvocationCtx( 0 ) instanceof DefaultInvocationCtx );
 
         assertThat( newPipelineReplicas[ 1 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 1 ) ) );
         assertTrue( newPipelineReplicas[ 1 ].getQueue() instanceof EmptyOperatorQueue );
@@ -853,9 +855,9 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertThat( pipelineOperator1.getOperatorDef( 0 ), equalTo( operatorDef2 ) );
         assertThat( pipelineOperator1.getOperatorDef( 1 ), equalTo( operatorDef3 ) );
         assertThat( pipelineOperator1.getOperatorDef( 2 ), equalTo( operatorDef4 ) );
-        assertTrue( pipelineOperator1.getInvocationContext( 0 ) instanceof DefaultInvocationContext );
-        assertTrue( pipelineOperator1.getInvocationContext( 1 ) instanceof FusedPartitionedInvocationContext );
-        assertTrue( pipelineOperator1.getInvocationContext( 2 ) instanceof FusedInvocationContext );
+        assertTrue( pipelineOperator1.getInvocationCtx( 0 ) instanceof DefaultInvocationCtx );
+        assertTrue( pipelineOperator1.getInvocationCtx( 1 ) instanceof FusedPartitionedInvocationCtx );
+        assertTrue( pipelineOperator1.getInvocationCtx( 2 ) instanceof FusedInvocationCtx );
 
         assertThat( newPipelineReplicas[ 2 ].id().pipelineId, equalTo( new PipelineId( REGION_ID, 4 ) ) );
         assertTrue( newPipelineReplicas[ 2 ].getQueue() instanceof DefaultOperatorQueue );
@@ -866,11 +868,11 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertTrue( pipelineOperator2.getQueue() instanceof PartitionedOperatorQueue );
         assertTrue( pipelineOperator2.getDrainerPool() instanceof NonBlockingTupleQueueDrainerPool );
         assertThat( pipelineOperator2.getOperatorDef( 0 ), equalTo( operatorDef5 ) );
-        assertTrue( pipelineOperator2.getInvocationContext( 0 ) instanceof DefaultInvocationContext );
+        assertTrue( pipelineOperator2.getInvocationCtx( 0 ) instanceof DefaultInvocationCtx );
 
-        assertNull( pipelineOperator0.getDownstreamContext() );
-        assertNull( pipelineOperator1.getDownstreamContext() );
-        assertNull( pipelineOperator2.getDownstreamContext() );
+        assertNull( pipelineOperator0.getDownstreamCtx() );
+        assertNull( pipelineOperator1.getDownstreamCtx() );
+        assertNull( pipelineOperator2.getDownstreamCtx() );
 
         final PipelineReplicaMeter meter0 = newPipelineReplicas[ 0 ].getMeter();
         assertThat( meter0.getHeadOperatorId(), equalTo( pipelineOperator0.getOperatorDef( 0 ).getId() ) );
@@ -957,11 +959,11 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         assertThat( ( (DefaultOperatorQueue) pipelineOperator4.getQueue() ).getThreadingPref(), equalTo( MULTI_THREADED ) );
         assertTrue( pipelineOperator4.getDrainerPool() instanceof BlockingTupleQueueDrainerPool );
 
-        assertNull( pipelineOperator0.getDownstreamContext() );
-        assertNull( pipelineOperator1.getDownstreamContext() );
-        assertNull( pipelineOperator2.getDownstreamContext() );
-        assertNull( pipelineOperator3.getDownstreamContext() );
-        assertNull( pipelineOperator4.getDownstreamContext() );
+        assertNull( pipelineOperator0.getDownstreamCtx() );
+        assertNull( pipelineOperator1.getDownstreamCtx() );
+        assertNull( pipelineOperator2.getDownstreamCtx() );
+        assertNull( pipelineOperator3.getDownstreamCtx() );
+        assertNull( pipelineOperator4.getDownstreamCtx() );
 
         for ( PipelineReplica newPipelineReplica : newPipelineReplicas )
         {
@@ -1110,16 +1112,9 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
             for ( PipelineReplica pipelineReplica : region.getReplicaPipelines( replicaIndex ) )
             {
                 final PipelineId pipelineId = pipelineReplica.id().pipelineId;
-                pipelineReplica.init( region.getFusedSchedulingStrategies( pipelineId ), region.getFusedUpstreamContexts( pipelineId ) );
+                pipelineReplica.init( region.getFusedSchedulingStrategies( pipelineId ), region.getFusedUpstreamCtxes( pipelineId ) );
             }
         }
-    }
-
-    private Tuple newTuple ( final String key, final Object value )
-    {
-        final Tuple tuple = new Tuple();
-        tuple.set( key, value );
-        return tuple;
     }
 
     @OperatorSpec( type = STATELESS, inputPortCount = 0, outputPortCount = 1 )
@@ -1128,7 +1123,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return ScheduleWhenAvailable.INSTANCE;
         }
@@ -1143,7 +1138,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
@@ -1158,7 +1153,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
@@ -1173,7 +1168,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
@@ -1188,7 +1183,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return scheduleWhenTuplesAvailableOnDefaultPort( 2 );
         }
@@ -1202,7 +1197,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
@@ -1214,7 +1209,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
     {
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
 
         }

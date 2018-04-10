@@ -3,8 +3,8 @@ package cs.bilkent.joker.operators;
 import java.util.function.BiConsumer;
 import java.util.stream.IntStream;
 
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.Tuple;
@@ -41,7 +41,7 @@ public class BarrierOperator implements Operator
     private TupleSchema outputSchema;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext ctx )
+    public SchedulingStrategy init ( final InitCtx ctx )
     {
         final OperatorConfig config = ctx.getConfig();
         this.inputPortCount = ctx.getInputPortCount();
@@ -55,50 +55,43 @@ public class BarrierOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext ctx )
+    public void invoke ( final InvocationCtx ctx )
     {
-        int tupleCount = getTupleCountIfSameOnAllPorts( ctx );
-        if ( tupleCount == 0 )
+        for ( int i = 0, tupleCount = getTupleCountIfSameOnAllPorts( ctx ); i < tupleCount; i++ )
         {
-            if ( ctx.isSuccessfulInvocation() )
-            {
-                throw new IllegalArgumentException( "number of tuples are not equal for all ports!" );
-            }
-            else
-            {
-                tupleCount = getMinTupleCountOfAllPorts( ctx );
-            }
-        }
-
-        for ( int i = 0; i < tupleCount; i++ )
-        {
-            final Tuple prev = new Tuple( outputSchema );
-            entryMerger.target = prev;
+            final Tuple result = new Tuple( outputSchema );
+            entryMerger.target = result;
             for ( int j = 0; j < inputPortCount; j++ )
             {
-                final Tuple tuple = ctx.getInputTupleOrFail( j, i );
-                tuple.consumeEntries( entryMerger );
+                final Tuple input = ctx.getInputTupleOrFail( j, i );
+                result.attach( input );
+                input.sinkTo( entryMerger );
             }
 
-            ctx.output( prev );
+            ctx.output( result );
         }
     }
 
-    private int getTupleCountIfSameOnAllPorts ( final InvocationContext ctx )
+    private int getTupleCountIfSameOnAllPorts ( final InvocationCtx ctx )
     {
         int tupleCount = ctx.getInputTupleCount( 0 );
+        if ( ctx.isSuccessfulInvocation() )
+        {
+            return tupleCount;
+        }
+
         for ( int i = 1; i < inputPortCount; i++ )
         {
             if ( ctx.getInputTupleCount( i ) != tupleCount )
             {
-                return 0;
+                return getMinTupleCountOfAllPorts( ctx );
             }
         }
 
         return tupleCount;
     }
 
-    private int getMinTupleCountOfAllPorts ( final InvocationContext ctx )
+    private int getMinTupleCountOfAllPorts ( final InvocationCtx ctx )
     {
         int tupleCount = Integer.MAX_VALUE;
         for ( int i = 0; i < inputPortCount; i++ )

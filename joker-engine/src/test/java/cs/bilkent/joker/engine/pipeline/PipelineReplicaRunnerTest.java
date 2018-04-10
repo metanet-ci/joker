@@ -17,7 +17,7 @@ import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
 import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.COMPLETED;
 import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.PAUSED;
-import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newInitialUpstreamContextWithAllPortsConnected;
+import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createInitialClosedUpstreamCtx;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.operator.OperatorDef;
@@ -57,7 +57,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
     private SchedulingStrategy schedulingStrategy;
 
     @Mock
-    private UpstreamContext upstreamContext;
+    private UpstreamCtx upstreamCtx;
 
     @Mock
     private DownstreamCollector downstreamCollector;
@@ -75,26 +75,25 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
     @Before
     public void init ()
     {
-        when( supervisor.getUpstreamContext( id ) ).thenReturn( upstreamContext );
+        when( supervisor.getUpstreamCtx( id ) ).thenReturn( upstreamCtx );
+        when( supervisor.getDownstreamCollector( id ) ).thenReturn( mock( DownstreamCollector.class ) );
         when( operator.getOperatorDef( 0 ) ).thenReturn( operatorDef );
         when( operatorDef.getId() ).thenReturn( "op1" );
         when( operatorDef.getInputPortCount() ).thenReturn( inputOutputPortCount );
         when( operatorDef.getOutputPortCount() ).thenReturn( inputOutputPortCount );
 
-        when( operator.init( new UpstreamContext[] { upstreamContext },
-                             null ) ).thenReturn( new SchedulingStrategy[] { schedulingStrategy } );
+        when( operator.init( new UpstreamCtx[] { upstreamCtx }, null ) ).thenReturn( new SchedulingStrategy[] { schedulingStrategy } );
 
         final JokerConfig config = new JokerConfig();
-        pipeline = new PipelineReplica( id,
-                                        new OperatorReplica[] { operator }, mock( OperatorQueue.class ),
+        pipeline = new PipelineReplica( id, new OperatorReplica[] { operator }, mock( OperatorQueue.class ),
                                         new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(), id, operatorDef ) );
 
         final SchedulingStrategy[][] schedulingStrategies = new SchedulingStrategy[ 1 ][ 1 ];
         schedulingStrategies[ 0 ][ 0 ] = schedulingStrategy;
-        final UpstreamContext[][] upstreamContexts = new UpstreamContext[ 1 ][ 1 ];
-        upstreamContexts[ 0 ][ 0 ] = upstreamContext;
+        final UpstreamCtx[][] upstreamCtxes = new UpstreamCtx[ 1 ][ 1 ];
+        upstreamCtxes[ 0 ][ 0 ] = upstreamCtx;
 
-        pipeline.init( schedulingStrategies, upstreamContexts );
+        pipeline.init( schedulingStrategies, upstreamCtxes );
         runner = new PipelineReplicaRunner( config, pipeline, supervisor, downstreamCollector );
 
         thread = new Thread( runner );
@@ -256,17 +255,17 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
 
         assertTrueEventually( () -> assertEquals( runner.getStatus(), PAUSED ) );
 
-        final UpstreamContext upstreamContext = newInitialUpstreamContextWithAllPortsConnected( 1 ).withConnectionClosed( 0 );
-        when( supervisor.getUpstreamContext( pipeline.id() ) ).thenReturn( upstreamContext );
+        final UpstreamCtx upstreamCtx = createInitialClosedUpstreamCtx( 1 ).withConnectionClosed( 0 );
+        when( supervisor.getUpstreamCtx( pipeline.id() ) ).thenReturn( upstreamCtx );
 
-        final CompletableFuture<Boolean> future = runner.updatePipelineUpstreamContext();
+        final CompletableFuture<Boolean> future = runner.updatePipelineUpstreamCtx();
         assertTrue( future.get() );
         assertEquals( PAUSED, runner.getStatus() );
 
-        assertTrueEventually( () -> verify( supervisor, times( 2 ) ).getUpstreamContext( id ) );
+        assertTrueEventually( () -> verify( supervisor, times( 2 ) ).getUpstreamCtx( id ) );
         pipeline.getCompletionTracker().onStatusChange( operatorDef.getId(), OperatorReplicaStatus.COMPLETED );
 
-        assertThat( runner.getPipelineUpstreamContext(), equalTo( upstreamContext ) );
+        assertThat( runner.getPipelineUpstreamCtx(), equalTo( upstreamCtx ) );
     }
 
     @Test
@@ -278,7 +277,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
 
         assertTrueEventually( () -> assertEquals( runner.getStatus(), COMPLETED ) );
 
-        final CompletableFuture<Boolean> future = runner.updatePipelineUpstreamContext();
+        final CompletableFuture<Boolean> future = runner.updatePipelineUpstreamCtx();
         try
         {
             future.get();
@@ -299,7 +298,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
 
         assertTrueEventually( () -> assertEquals( runner.getStatus(), COMPLETED ) );
 
-        final CompletableFuture<Boolean> future = runner.updatePipelineUpstreamContext();
+        final CompletableFuture<Boolean> future = runner.updatePipelineUpstreamCtx();
         try
         {
             future.get();
@@ -324,13 +323,9 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
     public void shouldCompleteRunningAfterPipelineCompletesItself ()
     {
         final TuplesImpl output1 = new TuplesImpl( inputOutputPortCount );
-        final Tuple t1 = new Tuple();
-        t1.set( "k1", "v1" );
-        output1.add( t1 );
+        output1.add( Tuple.of( "k1", "v1" ) );
         final TuplesImpl output2 = new TuplesImpl( inputOutputPortCount );
-        final Tuple t2 = new Tuple();
-        t2.set( "k2", "v2" );
-        output2.add( t2 );
+        output2.add( Tuple.of( "k2", "v2" ) );
 
         when( operator.invoke( anyBoolean(), anyObject(), anyObject() ) ).thenReturn( output1, output2 );
 

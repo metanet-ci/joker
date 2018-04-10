@@ -6,7 +6,7 @@ import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
-import cs.bilkent.joker.engine.pipeline.UpstreamContext;
+import cs.bilkent.joker.engine.pipeline.UpstreamCtx;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount;
@@ -22,22 +22,20 @@ public class Region
 
     private final SchedulingStrategy[] schedulingStrategies;
 
-    private final UpstreamContext[] upstreamContexts;
+    private final UpstreamCtx[] upstreamCtxes;
 
     private final int[] fusionStartIndices;
 
     // [pipelineIndex, replicaIndex]
     private final PipelineReplica[][] pipelines;
 
-    public Region ( final RegionExecPlan execPlan,
-                    final SchedulingStrategy[] schedulingStrategies,
-                    final UpstreamContext[] upstreamContexts,
+    public Region ( final RegionExecPlan execPlan, final SchedulingStrategy[] schedulingStrategies, final UpstreamCtx[] upstreamCtxes,
                     final PipelineReplica[][] pipelines )
     {
         this.execPlan = execPlan;
         this.schedulingStrategies = copyOf( schedulingStrategies, schedulingStrategies.length );
         this.fusionStartIndices = findFusionStartIndices( schedulingStrategies );
-        this.upstreamContexts = copyOf( upstreamContexts, upstreamContexts.length );
+        this.upstreamCtxes = copyOf( upstreamCtxes, upstreamCtxes.length );
         this.pipelines = copyOf( pipelines, pipelines.length );
         for ( int i = 0; i < pipelines.length; i++ )
         {
@@ -138,44 +136,44 @@ public class Region
         return fusedSchedulingStrategies;
     }
 
-    public UpstreamContext[][] getFusedUpstreamContexts ( final PipelineId pipelineId )
+    public UpstreamCtx[][] getFusedUpstreamCtxes ( final PipelineId pipelineId )
     {
-        final UpstreamContext[] upstreamContexts = getUpstreamContexts( pipelineId );
+        final UpstreamCtx[] upstreamCtxes = getUpstreamCtxes( pipelineId );
         final int[] fusionStartIndices = findFusionStartIndices( getSchedulingStrategies( pipelineId ) );
-        final UpstreamContext[][] fusedUpstreamContexts = new UpstreamContext[ fusionStartIndices.length ][];
+        final UpstreamCtx[][] fusedUpstreamCtxes = new UpstreamCtx[ fusionStartIndices.length ][];
         for ( int i = 0; i < fusionStartIndices.length; i++ )
         {
             final int fusionStartIndex = fusionStartIndices[ i ];
             final int pipelineOperatorCount = execPlan.getOperatorCountByPipelineStartIndex( pipelineId.getPipelineStartIndex() );
             final int length =
                     ( i == ( fusionStartIndices.length - 1 ) ? pipelineOperatorCount : fusionStartIndices[ i + 1 ] ) - fusionStartIndex;
-            UpstreamContext[] u = new UpstreamContext[ length ];
-            arraycopy( upstreamContexts, fusionStartIndex, u, 0, length );
-            fusedUpstreamContexts[ i ] = u;
+            UpstreamCtx[] u = new UpstreamCtx[ length ];
+            arraycopy( upstreamCtxes, fusionStartIndex, u, 0, length );
+            fusedUpstreamCtxes[ i ] = u;
         }
 
-        return fusedUpstreamContexts;
+        return fusedUpstreamCtxes;
     }
 
 
-    public UpstreamContext[] getUpstreamContexts ()
+    public UpstreamCtx[] getUpstreamCtxes ()
     {
-        return copyOf( upstreamContexts, upstreamContexts.length );
+        return copyOf( upstreamCtxes, upstreamCtxes.length );
     }
 
-    public UpstreamContext[] getUpstreamContexts ( final PipelineId pipelineId )
+    public UpstreamCtx[] getUpstreamCtxes ( final PipelineId pipelineId )
     {
-        return getUpstreamContexts( pipelineId.getPipelineStartIndex() );
+        return getUpstreamCtxes( pipelineId.getPipelineStartIndex() );
     }
 
-    public UpstreamContext[] getUpstreamContexts ( final int pipelineStartIndex )
+    public UpstreamCtx[] getUpstreamCtxes ( final int pipelineStartIndex )
     {
         final int operatorCount = execPlan.getOperatorCountByPipelineStartIndex( pipelineStartIndex );
 
-        final UpstreamContext[] upstreamContexts = new UpstreamContext[ operatorCount ];
-        arraycopy( this.upstreamContexts, pipelineStartIndex, upstreamContexts, 0, operatorCount );
+        final UpstreamCtx[] upstreamCtxes = new UpstreamCtx[ operatorCount ];
+        arraycopy( this.upstreamCtxes, pipelineStartIndex, upstreamCtxes, 0, operatorCount );
 
-        return upstreamContexts;
+        return upstreamCtxes;
     }
 
     public static int[] findFusionStartIndices ( final SchedulingStrategy[] operatorSchedulingStrategies )

@@ -6,13 +6,13 @@ import java.util.function.Consumer;
 
 import org.junit.Test;
 
-import static cs.bilkent.joker.operator.InvocationContext.InvocationReason.SUCCESS;
+import static cs.bilkent.joker.operator.InvocationCtx.InvocationReason.SUCCESS;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
-import cs.bilkent.joker.operator.impl.InitializationContextImpl;
+import cs.bilkent.joker.operator.impl.DefaultInvocationCtx;
+import cs.bilkent.joker.operator.impl.InitCtxImpl;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
 import static cs.bilkent.joker.operators.BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER;
@@ -38,28 +38,27 @@ public class BeaconOperatorTest extends AbstractJokerTest
 
         final int tupleCount = 10;
         final int maxInt = 100;
-        final OperatorConfig config = new OperatorConfig();
         final Consumer<Tuple> populator = tuple -> tuple.set( "count", random.nextInt( maxInt ) );
-        config.set( TUPLE_POPULATOR_CONFIG_PARAMETER, populator );
-        config.set( TUPLE_COUNT_CONFIG_PARAMETER, tupleCount );
+        final OperatorConfig config = new OperatorConfig().set( TUPLE_POPULATOR_CONFIG_PARAMETER, populator )
+                                                          .set( TUPLE_COUNT_CONFIG_PARAMETER, tupleCount );
 
         final OperatorDef operatorDef = OperatorDefBuilder.newInstance( "beacon", BeaconOperator.class )
                                                           .setExtendingSchema( builder )
                                                           .setConfig( config )
                                                           .build();
 
-        final InitializationContextImpl initContext = new InitializationContextImpl( operatorDef, new boolean[] {} );
+        final InitCtxImpl initCtx = new InitCtxImpl( operatorDef, new boolean[] {} );
 
         final BeaconOperator operator = (BeaconOperator) operatorDef.createOperator();
-        operator.init( initContext );
+        operator.init( initCtx );
 
         final TuplesImpl output = new TuplesImpl( 1 );
 
-        final DefaultInvocationContext invocationContext = new DefaultInvocationContext( 0, key -> null, output );
-        invocationContext.createInputTuples( null );
-        invocationContext.setInvocationReason( SUCCESS );
+        final DefaultInvocationCtx invocationCtx = new DefaultInvocationCtx( 0, key -> null, output );
+        invocationCtx.createInputTuples( null );
+        invocationCtx.setInvocationReason( SUCCESS );
 
-        operator.invoke( invocationContext );
+        operator.invoke( invocationCtx );
 
         assertThat( output.getNonEmptyPortCount(), equalTo( 1 ) );
 

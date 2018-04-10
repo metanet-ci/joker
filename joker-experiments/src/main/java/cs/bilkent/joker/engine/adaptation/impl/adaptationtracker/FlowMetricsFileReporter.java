@@ -59,8 +59,8 @@ public class FlowMetricsFileReporter implements FlowMetricsReporter
 
             for ( PipelineId pipelineId : regionExecPlan.getPipelineIds() )
             {
-                final String pipelineFileNamePrefix = "flow" + execPlan.getVersion() + "_p" + pipelineId.getRegionId() + "_"
-                                                      + pipelineId.getPipelineStartIndex();
+                final String pipelineFileNamePrefix =
+                        "flow" + execPlan.getVersion() + "_p" + pipelineId.getRegionId() + "_" + pipelineId.getPipelineStartIndex();
 
                 writeToFile( pipelineFileNamePrefix + "_operatorCount.txt",
                              writer -> writer.println( regionExecPlan.getOperatorCountByPipelineStartIndex( pipelineId

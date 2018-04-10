@@ -9,11 +9,10 @@ import cs.bilkent.joker.engine.config.JokerConfig;
 import static cs.bilkent.joker.engine.config.ThreadingPref.SINGLE_THREADED;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
-import cs.bilkent.joker.engine.pipeline.UpstreamContext.ConnectionStatus;
-import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newInitialUpstreamContext;
-import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newInitialUpstreamContextWithAllPortsConnected;
-import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newSourceOperatorInitialUpstreamContext;
-import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedInvocationContext;
+import cs.bilkent.joker.engine.pipeline.UpstreamCtx.ConnectionStatus;
+import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createInitialClosedUpstreamCtx;
+import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createSourceOperatorInitialUpstreamCtx;
+import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedInvocationCtx;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainerPool;
@@ -21,17 +20,17 @@ import cs.bilkent.joker.engine.tuplequeue.impl.drainer.NonBlockingSinglePortDrai
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool.NonBlockingTupleQueueDrainerPool;
 import cs.bilkent.joker.engine.tuplequeue.impl.operator.DefaultOperatorQueue;
 import cs.bilkent.joker.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
-import cs.bilkent.joker.operator.InvocationContext.InvocationReason;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
+import cs.bilkent.joker.operator.InvocationCtx.InvocationReason;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
+import cs.bilkent.joker.operator.impl.DefaultInvocationCtx;
 import cs.bilkent.joker.operator.impl.DefaultOutputCollector;
-import cs.bilkent.joker.operator.impl.InternalInvocationContext;
+import cs.bilkent.joker.operator.impl.InternalInvocationCtx;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
@@ -70,32 +69,30 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
         final TupleQueueDrainerPool drainerPool = new NonBlockingTupleQueueDrainerPool( new JokerConfig(), operatorDefs[ 0 ] );
         final PipelineReplicaMeter meter = new PipelineReplicaMeter( 1, pipelineReplicaId, operatorDefs[ 0 ] );
 
-        final DefaultInvocationContext statefulInvocationContext = new DefaultInvocationContext( 1,
-                                                                                                 key -> null,
-                                                                                                 new DefaultOutputCollector( 1 ) );
+        final DefaultInvocationCtx statefulInvocationCtx = new DefaultInvocationCtx( 1, key -> null, new DefaultOutputCollector( 1 ) );
 
-        final InternalInvocationContext[] invocationContexts = new InternalInvocationContext[] { statefulInvocationContext };
+        final InternalInvocationCtx[] invocationCtxes = new InternalInvocationCtx[] { statefulInvocationCtx };
 
         operatorReplica = new OperatorReplica( pipelineReplicaId,
                                                operatorQueue,
                                                drainerPool,
                                                meter,
-                                               statefulInvocationContext::createInputTuples,
+                                               statefulInvocationCtx::createInputTuples,
                                                operatorDefs,
-                                               invocationContexts );
+                                               invocationCtxes );
 
-        final UpstreamContext statefulUpstreamContext = newInitialUpstreamContextWithAllPortsConnected( 1 );
-        final UpstreamContext mapperDownstreamContext = newInitialUpstreamContext( ConnectionStatus.CLOSED );
+        final UpstreamCtx statefulUpstreamCtx = createInitialClosedUpstreamCtx( 1 );
+        final UpstreamCtx mapperDownstreamCtx = UpstreamCtx.createInitialUpstreamCtx( ConnectionStatus.CLOSED );
 
-        final UpstreamContext[] upstreamContexts = new UpstreamContext[] { statefulUpstreamContext };
+        final UpstreamCtx[] upstreamCtxes = new UpstreamCtx[] { statefulUpstreamCtx };
 
-        final SchedulingStrategy[] schedulingStrategies = operatorReplica.init( upstreamContexts, mapperDownstreamContext );
+        final SchedulingStrategy[] schedulingStrategies = operatorReplica.init( upstreamCtxes, mapperDownstreamCtx );
 
         assertThat( schedulingStrategies.length, equalTo( 1 ) );
         assertThat( schedulingStrategies[ 0 ], equalTo( scheduleWhenTuplesAvailableOnDefaultPort( 2 ) ) );
         assertThat( operatorReplica.getOperatorDef( 0 ), equalTo( operatorDefs[ 0 ] ) );
-        assertThat( operatorReplica.getInvocationContext( 0 ), equalTo( statefulInvocationContext ) );
-        assertThat( operatorReplica.getDownstreamContext(), equalTo( mapperDownstreamContext ) );
+        assertThat( operatorReplica.getInvocationCtx( 0 ), equalTo( statefulInvocationCtx ) );
+        assertThat( operatorReplica.getDownstreamCtx(), equalTo( mapperDownstreamCtx ) );
         assertThat( operatorReplica.getStatus(), equalTo( OperatorReplicaStatus.RUNNING ) );
         assertTrue( operatorReplica.getDrainer() instanceof NonBlockingSinglePortDrainer );
     }
@@ -113,34 +110,31 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
         final TupleQueueDrainerPool drainerPool = new NonBlockingTupleQueueDrainerPool( new JokerConfig(), operatorDefs[ 0 ] );
         final PipelineReplicaMeter meter = new PipelineReplicaMeter( 1, pipelineReplicaId, operatorDefs[ 0 ] );
 
-        final FusedInvocationContext mapperInvocationContext = new FusedInvocationContext( 1,
-                                                                                           key -> null, new DefaultOutputCollector( 1 ) );
+        final FusedInvocationCtx mapperInvocationCtx = new FusedInvocationCtx( 1, key -> null, new DefaultOutputCollector( 1 ) );
 
-        final FusedInvocationContext filterInvocationContext = new FusedInvocationContext( 1, key -> null, mapperInvocationContext );
-        final DefaultInvocationContext statefulInvocationContext = new DefaultInvocationContext( 1, key -> null, filterInvocationContext );
+        final FusedInvocationCtx filterInvocationCtx = new FusedInvocationCtx( 1, key -> null, mapperInvocationCtx );
+        final DefaultInvocationCtx statefulInvocationCtx = new DefaultInvocationCtx( 1, key -> null, filterInvocationCtx );
 
-        final InternalInvocationContext[] invocationContexts = new InternalInvocationContext[] { statefulInvocationContext,
-                                                                                                 filterInvocationContext,
-                                                                                                 mapperInvocationContext };
+        final InternalInvocationCtx[] invocationCtxes = new InternalInvocationCtx[] { statefulInvocationCtx,
+                                                                                      filterInvocationCtx,
+                                                                                      mapperInvocationCtx };
 
         operatorReplica = new OperatorReplica( pipelineReplicaId,
                                                operatorQueue,
                                                drainerPool,
                                                meter,
-                                               statefulInvocationContext::createInputTuples,
+                                               statefulInvocationCtx::createInputTuples,
                                                operatorDefs,
-                                               invocationContexts );
+                                               invocationCtxes );
 
-        final UpstreamContext statefulUpstreamContext = newInitialUpstreamContextWithAllPortsConnected( 1 );
-        final UpstreamContext filterUpstreamContext = newInitialUpstreamContextWithAllPortsConnected( 1 );
-        final UpstreamContext mapperUpstreamContext = newInitialUpstreamContextWithAllPortsConnected( 1 );
-        final UpstreamContext mapperDownstreamContext = newInitialUpstreamContext( ConnectionStatus.CLOSED );
+        final UpstreamCtx statefulUpstreamCtx = createInitialClosedUpstreamCtx( 1 );
+        final UpstreamCtx filterUpstreamCtx = createInitialClosedUpstreamCtx( 1 );
+        final UpstreamCtx mapperUpstreamCtx = createInitialClosedUpstreamCtx( 1 );
+        final UpstreamCtx mapperDownstreamCtx = UpstreamCtx.createInitialUpstreamCtx( ConnectionStatus.CLOSED );
 
-        final UpstreamContext[] upstreamContexts = new UpstreamContext[] { statefulUpstreamContext,
-                                                                           filterUpstreamContext,
-                                                                           mapperUpstreamContext };
+        final UpstreamCtx[] upstreamCtxes = new UpstreamCtx[] { statefulUpstreamCtx, filterUpstreamCtx, mapperUpstreamCtx };
 
-        final SchedulingStrategy[] schedulingStrategies = operatorReplica.init( upstreamContexts, mapperDownstreamContext );
+        final SchedulingStrategy[] schedulingStrategies = operatorReplica.init( upstreamCtxes, mapperDownstreamCtx );
 
         assertThat( schedulingStrategies.length, equalTo( 3 ) );
         assertThat( schedulingStrategies[ 0 ], equalTo( scheduleWhenTuplesAvailableOnDefaultPort( 2 ) ) );
@@ -149,10 +143,10 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
         assertThat( operatorReplica.getOperatorDef( 0 ), equalTo( operatorDefs[ 0 ] ) );
         assertThat( operatorReplica.getOperatorDef( 1 ), equalTo( operatorDefs[ 1 ] ) );
         assertThat( operatorReplica.getOperatorDef( 2 ), equalTo( operatorDefs[ 2 ] ) );
-        assertThat( operatorReplica.getInvocationContext( 0 ), equalTo( statefulInvocationContext ) );
-        assertThat( operatorReplica.getInvocationContext( 1 ), equalTo( filterInvocationContext ) );
-        assertThat( operatorReplica.getInvocationContext( 2 ), equalTo( mapperInvocationContext ) );
-        assertThat( operatorReplica.getDownstreamContext(), equalTo( mapperDownstreamContext ) );
+        assertThat( operatorReplica.getInvocationCtx( 0 ), equalTo( statefulInvocationCtx ) );
+        assertThat( operatorReplica.getInvocationCtx( 1 ), equalTo( filterInvocationCtx ) );
+        assertThat( operatorReplica.getInvocationCtx( 2 ), equalTo( mapperInvocationCtx ) );
+        assertThat( operatorReplica.getDownstreamCtx(), equalTo( mapperDownstreamCtx ) );
         assertThat( operatorReplica.getStatus(), equalTo( OperatorReplicaStatus.RUNNING ) );
         assertTrue( operatorReplica.getDrainer() instanceof NonBlockingSinglePortDrainer );
     }
@@ -169,42 +163,39 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
         final TupleQueueDrainerPool drainerPool = new NonBlockingTupleQueueDrainerPool( new JokerConfig(), operatorDefs[ 0 ] );
         final PipelineReplicaMeter meter = new PipelineReplicaMeter( 1, pipelineReplicaId, operatorDefs[ 0 ] );
 
-        final FusedInvocationContext mapperInvocationContext = new FusedInvocationContext( 1,
-                                                                                           key -> null, new DefaultOutputCollector( 1 ) );
+        final FusedInvocationCtx mapperInvocationCtx = new FusedInvocationCtx( 1, key -> null, new DefaultOutputCollector( 1 ) );
 
-        final FusedInvocationContext filterInvocationContext = new FusedInvocationContext( 1, key -> null, mapperInvocationContext );
-        final DefaultInvocationContext statefulInvocationContext = new DefaultInvocationContext( 1, key -> null, filterInvocationContext );
+        final FusedInvocationCtx filterInvocationCtx = new FusedInvocationCtx( 1, key -> null, mapperInvocationCtx );
+        final DefaultInvocationCtx statefulInvocationCtx = new DefaultInvocationCtx( 1, key -> null, filterInvocationCtx );
 
-        final InternalInvocationContext[] invocationContexts = new InternalInvocationContext[] { statefulInvocationContext,
-                                                                                                 filterInvocationContext,
-                                                                                                 mapperInvocationContext };
+        final InternalInvocationCtx[] invocationCtxes = new InternalInvocationCtx[] { statefulInvocationCtx,
+                                                                                      filterInvocationCtx,
+                                                                                      mapperInvocationCtx };
 
         operatorReplica = new OperatorReplica( pipelineReplicaId,
                                                operatorQueue,
                                                drainerPool,
                                                meter,
-                                               statefulInvocationContext::createInputTuples,
+                                               statefulInvocationCtx::createInputTuples,
                                                operatorDefs,
-                                               invocationContexts );
+                                               invocationCtxes );
 
-        final UpstreamContext statefulUpstreamContext = newSourceOperatorInitialUpstreamContext();
-        final UpstreamContext filterUpstreamContext = newInitialUpstreamContextWithAllPortsConnected( 1 );
-        final UpstreamContext mapperUpstreamContext = newInitialUpstreamContextWithAllPortsConnected( 1 );
-        final UpstreamContext mapperDownstreamContext = newInitialUpstreamContext( ConnectionStatus.OPEN );
+        final UpstreamCtx statefulUpstreamCtx = createSourceOperatorInitialUpstreamCtx();
+        final UpstreamCtx filterUpstreamCtx = createInitialClosedUpstreamCtx( 1 );
+        final UpstreamCtx mapperUpstreamCtx = createInitialClosedUpstreamCtx( 1 );
+        final UpstreamCtx mapperDownstreamCtx = UpstreamCtx.createInitialUpstreamCtx( ConnectionStatus.OPEN );
 
-        final UpstreamContext[] upstreamContexts = new UpstreamContext[] { statefulUpstreamContext,
-                                                                           filterUpstreamContext,
-                                                                           mapperUpstreamContext };
+        final UpstreamCtx[] upstreamCtxes = new UpstreamCtx[] { statefulUpstreamCtx, filterUpstreamCtx, mapperUpstreamCtx };
 
         try
         {
-            operatorReplica.init( upstreamContexts, mapperDownstreamContext );
+            operatorReplica.init( upstreamCtxes, mapperDownstreamCtx );
             fail();
         }
         catch ( InitializationException e )
         {
             assertThat( operatorReplica.getStatus(), equalTo( OperatorReplicaStatus.INITIALIZATION_FAILED ) );
-            assertFalse( operatorReplica.getDownstreamContext().isOpenConnectionPresent() );
+            assertFalse( operatorReplica.getDownstreamCtx().isOpenConnectionPresent() );
         }
     }
 
@@ -216,30 +207,28 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
 
     static OperatorDef createFilterOperator ()
     {
-        final OperatorConfig config = new OperatorConfig();
-        config.set( FilterOperator.PREDICATE_CONFIG_PARAMETER, (Predicate<Tuple>) tuple -> true );
+        final OperatorConfig config = new OperatorConfig().set( FilterOperator.PREDICATE_CONFIG_PARAMETER,
+                                                                (Predicate<Tuple>) tuple -> true );
         return OperatorDefBuilder.newInstance( "f", FilterOperator.class ).setExtendingSchema( schema ).setConfig( config ).build();
     }
 
     static OperatorDef createFilterOperator ( final Predicate<Tuple> predicate )
     {
-        final OperatorConfig config = new OperatorConfig();
-        config.set( FilterOperator.PREDICATE_CONFIG_PARAMETER, predicate );
+        final OperatorConfig config = new OperatorConfig().set( FilterOperator.PREDICATE_CONFIG_PARAMETER, predicate );
         return OperatorDefBuilder.newInstance( "f", FilterOperator.class ).setExtendingSchema( schema ).setConfig( config ).build();
     }
 
     static OperatorDef createMapperOperator ()
     {
-        final OperatorConfig config = new OperatorConfig();
-        config.set( MapperOperator.MAPPER_CONFIG_PARAMETER,
-                    (BiConsumer<Tuple, Tuple>) ( input, output ) -> output.set( "f", input.get( "f" ) ) );
+        final OperatorConfig config = new OperatorConfig().set( MapperOperator.MAPPER_CONFIG_PARAMETER,
+                                                                (BiConsumer<Tuple, Tuple>) ( input, output ) -> output.set( "f",
+                                                                                                                            input.get( "f" ) ) );
         return OperatorDefBuilder.newInstance( "m", MapperOperator.class ).setExtendingSchema( schema ).setConfig( config ).build();
     }
 
     static OperatorDef createMapperOperator ( final BiConsumer<Tuple, Tuple> mapperFunction )
     {
-        final OperatorConfig config = new OperatorConfig();
-        config.set( MapperOperator.MAPPER_CONFIG_PARAMETER, mapperFunction );
+        final OperatorConfig config = new OperatorConfig().set( MapperOperator.MAPPER_CONFIG_PARAMETER, mapperFunction );
         return OperatorDefBuilder.newInstance( "m", MapperOperator.class ).setExtendingSchema( schema ).setConfig( config ).build();
     }
 
@@ -253,13 +242,13 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
         private boolean shutdown;
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return scheduleWhenTuplesAvailableOnDefaultPort( 2 );
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
             lastInvocationReason = ctx.getReason();
             ctx.getInputTuplesByDefaultPort().forEach( ctx::output );

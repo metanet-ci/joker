@@ -38,10 +38,10 @@ import static cs.bilkent.joker.engine.partition.PartitionUtil.getPartitionId;
 import cs.bilkent.joker.engine.pipeline.OperatorReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineReplica;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
-import cs.bilkent.joker.engine.pipeline.UpstreamContext;
-import static cs.bilkent.joker.engine.pipeline.UpstreamContext.createInitialUpstreamContext;
-import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedInvocationContext;
-import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedPartitionedInvocationContext;
+import cs.bilkent.joker.engine.pipeline.UpstreamCtx;
+import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createInitialUpstreamCtx;
+import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedInvocationCtx;
+import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedPartitionedInvocationCtx;
 import cs.bilkent.joker.engine.region.PipelineTransformer;
 import cs.bilkent.joker.engine.region.Region;
 import static cs.bilkent.joker.engine.region.Region.findFusionStartIndices;
@@ -62,10 +62,10 @@ import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
+import cs.bilkent.joker.operator.impl.DefaultInvocationCtx;
 import cs.bilkent.joker.operator.impl.DefaultOutputCollector;
-import cs.bilkent.joker.operator.impl.InitializationContextImpl;
-import cs.bilkent.joker.operator.impl.InternalInvocationContext;
+import cs.bilkent.joker.operator.impl.InitCtxImpl;
+import cs.bilkent.joker.operator.impl.InternalInvocationCtx;
 import cs.bilkent.joker.operator.impl.OutputCollector;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
@@ -104,7 +104,8 @@ public class RegionManagerImpl implements RegionManager
     @Inject
     public RegionManagerImpl ( final JokerConfig config,
                                final PartitionService partitionService,
-                               final OperatorKVStoreManager operatorKvStoreManager, final OperatorQueueManager operatorQueueManager,
+                               final OperatorKVStoreManager operatorKvStoreManager,
+                               final OperatorQueueManager operatorQueueManager,
                                final PipelineTransformer pipelineTransformer,
                                final PartitionKeyExtractorFactory partitionKeyExtractorFactory )
     {
@@ -140,8 +141,8 @@ public class RegionManagerImpl implements RegionManager
 
         final PipelineReplica[][] pipelineReplicas = new PipelineReplica[ pipelineCount ][ replicaCount ];
         final SchedulingStrategy[] schedulingStrategies = new SchedulingStrategy[ regionOperatorCount ];
-        final UpstreamContext[] upstreamContexts = new UpstreamContext[ regionOperatorCount ];
-        preInitializeRegionOperators( flow, regionDef, schedulingStrategies, upstreamContexts );
+        final UpstreamCtx[] upstreamCtxes = new UpstreamCtx[ regionOperatorCount ];
+        preInitializeRegionOperators( flow, regionDef, schedulingStrategies, upstreamCtxes );
 
         for ( int pipelineIndex = 0; pipelineIndex < pipelineCount; pipelineIndex++ )
         {
@@ -157,7 +158,9 @@ public class RegionManagerImpl implements RegionManager
             final OperatorReplica[][] operatorReplicas = new OperatorReplica[ replicaCount ][ pipelineOperatorReplicaCount ];
 
             LOGGER.debug( "Initializing pipeline replica for regionId={} pipelineIndex={} with {} fused operators",
-                          regionId, pipelineIndex, pipelineOperatorReplicaCount );
+                          regionId,
+                          pipelineIndex,
+                          pipelineOperatorReplicaCount );
 
             final PipelineReplicaId[] pipelineReplicaIds = createPipelineReplicaIds( regionId, replicaCount, pipelineId );
             final int forwardedKeySize = regionDef.getForwardedKeySize();
@@ -189,8 +192,7 @@ public class RegionManagerImpl implements RegionManager
                 final int fusedOperatorCount = toOperatorIndex - fromOperatorIndex;
 
                 final OperatorDef[][] fusedOperatorDefs = new OperatorDef[ replicaCount ][ fusedOperatorCount ];
-                final InternalInvocationContext[][] fusedInvocationContexts = new InternalInvocationContext[ replicaCount ][
-                        fusedOperatorCount ];
+                final InternalInvocationCtx[][] fusedInvocationCtxes = new InternalInvocationCtx[ replicaCount ][ fusedOperatorCount ];
 
                 for ( int j = fusedOperatorCount - 1; j >= 0; j-- )
                 {
@@ -212,43 +214,40 @@ public class RegionManagerImpl implements RegionManager
                         }
                         else
                         {
-                            outputCollector = (OutputCollector) fusedInvocationContexts[ replicaIndex ][ j + 1 ];
+                            outputCollector = (OutputCollector) fusedInvocationCtxes[ replicaIndex ][ j + 1 ];
                         }
 
-                        final InternalInvocationContext invocationContext;
+                        final InternalInvocationCtx invocationCtx;
                         if ( j == 0 )
                         {
-                            invocationContext = new DefaultInvocationContext( inputPortCount, kvStoreSupplier, outputCollector );
+                            invocationCtx = new DefaultInvocationCtx( inputPortCount, kvStoreSupplier, outputCollector );
                         }
                         else if ( operatorDef.getOperatorType() == PARTITIONED_STATEFUL )
                         {
                             final List<String> partitionFieldNames = operatorDef.getPartitionFieldNames();
                             final PartitionKeyExtractor ext = partitionKeyExtractorFactory.createPartitionKeyExtractor( partitionFieldNames,
                                                                                                                         forwardedKeySize );
-                            invocationContext = new FusedPartitionedInvocationContext( inputPortCount,
-                                                                                       kvStoreSupplier,
-                                                                                       ext,
-                                                                                       outputCollector );
+                            invocationCtx = new FusedPartitionedInvocationCtx( inputPortCount, kvStoreSupplier, ext, outputCollector );
                         }
                         else
                         {
-                            invocationContext = new FusedInvocationContext( inputPortCount, kvStoreSupplier, outputCollector );
+                            invocationCtx = new FusedInvocationCtx( inputPortCount, kvStoreSupplier, outputCollector );
                         }
 
-                        fusedInvocationContexts[ replicaIndex ][ j ] = invocationContext;
+                        fusedInvocationCtxes[ replicaIndex ][ j ] = invocationCtx;
                     }
                 }
 
                 for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
                 {
-                    final DefaultInvocationContext ctx = (DefaultInvocationContext) fusedInvocationContexts[ replicaIndex ][ 0 ];
+                    final DefaultInvocationCtx ctx = (DefaultInvocationCtx) fusedInvocationCtxes[ replicaIndex ][ 0 ];
                     operatorReplicas[ replicaIndex ][ i ] = new OperatorReplica( pipelineReplicaIds[ replicaIndex ],
                                                                                  operatorQueues[ replicaIndex ],
                                                                                  drainerPools[ replicaIndex ],
                                                                                  replicaMeters[ replicaIndex ],
                                                                                  ctx::createInputTuples,
                                                                                  fusedOperatorDefs[ replicaIndex ],
-                                                                                 fusedInvocationContexts[ replicaIndex ] );
+                                                                                 fusedInvocationCtxes[ replicaIndex ] );
                 }
             }
 
@@ -263,12 +262,13 @@ public class RegionManagerImpl implements RegionManager
                 final OperatorQueue pipelineQueue = createPipelineQueue( flow, regionId, replicaIndex, pipelineOperatorReplicas );
 
                 pipelineReplicas[ pipelineIndex ][ replicaIndex ] = new PipelineReplica( pipelineReplicaIds[ replicaIndex ],
-                                                                                         pipelineOperatorReplicas, pipelineQueue,
+                                                                                         pipelineOperatorReplicas,
+                                                                                         pipelineQueue,
                                                                                          replicaMeters[ replicaIndex ] );
             }
         }
 
-        final Region region = new Region( regionExecPlan, schedulingStrategies, upstreamContexts, pipelineReplicas );
+        final Region region = new Region( regionExecPlan, schedulingStrategies, upstreamCtxes, pipelineReplicas );
         regions.put( regionId, region );
         return region;
     }
@@ -345,7 +345,8 @@ public class RegionManagerImpl implements RegionManager
 
         LOGGER.info( "Rebalancing regionId={} to new replica count: {} from current replica count: {}",
                      regionId,
-                     newReplicaCount, regionExecPlan.getReplicaCount() );
+                     newReplicaCount,
+                     regionExecPlan.getReplicaCount() );
 
         drainPipelineQueues( region );
 
@@ -595,7 +596,8 @@ public class RegionManagerImpl implements RegionManager
                     {
                         LOGGER.debug( "Creating {} for regionId={} replicaIndex={} operatorId={}", EmptyOperatorQueue.class.getSimpleName(),
                                       regionId,
-                                      replicaIndex, firstOperatorId );
+                                      replicaIndex,
+                                      firstOperatorId );
                         operatorQueue = new EmptyOperatorQueue( firstOperatorId, firstOperatorDef.getInputPortCount() );
                     }
                     else if ( firstOperatorDef.getOperatorType() == PARTITIONED_STATEFUL )
@@ -611,15 +613,13 @@ public class RegionManagerImpl implements RegionManager
 
                     final TupleQueueDrainerPool drainerPool = createTupleQueueDrainerPool( firstOperatorDef, ( i == 0 ) );
                     LOGGER.debug( "Creating {} for regionId={} replicaIndex={} operatorId={}",
-                                  drainerPool.getClass().getSimpleName(),
-                                  regionId,
-                                  replicaIndex, firstOperatorId );
+                                  drainerPool.getClass().getSimpleName(), regionId, replicaIndex, firstOperatorId );
 
                     final int toOperatorIndex = ( i < fusionStartIndices.length - 1 ) ? fusionStartIndices[ i + 1 ] : pipelineOperatorCount;
                     final int fusedOperatorCount = toOperatorIndex - fromOperatorIndex;
 
                     final OperatorDef[] fusedOperatorDefs = new OperatorDef[ fusedOperatorCount ];
-                    final InternalInvocationContext[] fusedInvocationContexts = new InternalInvocationContext[ fusedOperatorCount ];
+                    final InternalInvocationCtx[] fusedInvocationCtxes = new InternalInvocationCtx[ fusedOperatorCount ];
 
                     for ( int j = fusedOperatorCount - 1; j >= 0; j-- )
                     {
@@ -657,51 +657,51 @@ public class RegionManagerImpl implements RegionManager
                         }
                         else
                         {
-                            outputCollector = (OutputCollector) fusedInvocationContexts[ j + 1 ];
+                            outputCollector = (OutputCollector) fusedInvocationCtxes[ j + 1 ];
                         }
 
-                        final InternalInvocationContext invocationContext;
+                        final InternalInvocationCtx invocationCtx;
                         if ( j == 0 )
                         {
-                            invocationContext = new DefaultInvocationContext( operatorDef.getInputPortCount(),
-                                                                              fusedKVStoreSupplier,
-                                                                              outputCollector );
+                            invocationCtx = new DefaultInvocationCtx( operatorDef.getInputPortCount(),
+                                                                      fusedKVStoreSupplier,
+                                                                      outputCollector );
                         }
                         else if ( operatorDef.getOperatorType() == PARTITIONED_STATEFUL )
                         {
                             final List<String> partitionFieldNames = operatorDef.getPartitionFieldNames();
                             final PartitionKeyExtractor ext = partitionKeyExtractorFactory.createPartitionKeyExtractor( partitionFieldNames,
                                                                                                                         forwardedKeySize );
-                            invocationContext = new FusedPartitionedInvocationContext( operatorDef.getInputPortCount(),
-                                                                                       fusedKVStoreSupplier,
-                                                                                       ext,
-                                                                                       outputCollector );
+                            invocationCtx = new FusedPartitionedInvocationCtx( operatorDef.getInputPortCount(),
+                                                                               fusedKVStoreSupplier,
+                                                                               ext,
+                                                                               outputCollector );
                         }
                         else
                         {
-                            invocationContext = new FusedInvocationContext( operatorDef.getInputPortCount(),
-                                                                            fusedKVStoreSupplier,
-                                                                            outputCollector );
+                            invocationCtx = new FusedInvocationCtx( operatorDef.getInputPortCount(),
+                                                                    fusedKVStoreSupplier,
+                                                                    outputCollector );
                         }
 
-                        fusedInvocationContexts[ j ] = invocationContext;
+                        fusedInvocationCtxes[ j ] = invocationCtx;
                     }
 
-                    final DefaultInvocationContext ctx = (DefaultInvocationContext) fusedInvocationContexts[ 0 ];
+                    final DefaultInvocationCtx ctx = (DefaultInvocationCtx) fusedInvocationCtxes[ 0 ];
                     operatorReplicas[ i ] = new OperatorReplica( pipelineReplicaId,
                                                                  operatorQueue,
                                                                  drainerPool,
                                                                  meter,
-                                                                 ctx::createInputTuples,
-                                                                 fusedOperatorDefs,
-                                                                 fusedInvocationContexts );
+                                                                 ctx::createInputTuples, fusedOperatorDefs, fusedInvocationCtxes );
 
                 }
 
                 final OperatorQueue pipelineQueue = createPipelineQueue( flow, regionId, replicaIndex, operatorReplicas );
 
                 newPipelineReplicas[ pipelineIndex ][ replicaIndex ] = new PipelineReplica( pipelineReplicaId,
-                                                                                            operatorReplicas, pipelineQueue, meter );
+                                                                                            operatorReplicas,
+                                                                                            pipelineQueue,
+                                                                                            meter );
             }
         }
 
@@ -711,8 +711,7 @@ public class RegionManagerImpl implements RegionManager
 
         LOGGER.info( "regionId={} is expanded to {} replicas", regionId, newReplicaCount );
 
-        return new Region( newRegionExecPlan, region.getSchedulingStrategies(), region.getUpstreamContexts(),
-                           newPipelineReplicas );
+        return new Region( newRegionExecPlan, region.getSchedulingStrategies(), region.getUpstreamCtxes(), newPipelineReplicas );
     }
 
     private Region shrinkRegionReplicas ( final Region region, final int newReplicaCount )
@@ -733,9 +732,7 @@ public class RegionManagerImpl implements RegionManager
                 if ( firstOperatorDef.getOperatorType() == PARTITIONED_STATEFUL )
                 {
                     operatorQueueManager.releaseDefaultQueue( regionId, firstOperatorDef.getId(), replicaIndex );
-                    LOGGER.debug( "Released pipeline queue of Pipeline {} Operator {}",
-                                  pipelineReplica.id(),
-                                  firstOperatorDef.getId() );
+                    LOGGER.debug( "Released pipeline queue of Pipeline {} Operator {}", pipelineReplica.id(), firstOperatorDef.getId() );
                 }
 
                 for ( OperatorReplica operatorReplica : operatorReplicas )
@@ -758,8 +755,7 @@ public class RegionManagerImpl implements RegionManager
                                                                      newReplicaCount );
         LOGGER.info( "regionId={} is shrank to {} replicas", regionId, newReplicaCount );
 
-        return new Region( newRegionExecPlan, region.getSchedulingStrategies(), region.getUpstreamContexts(),
-                           newPipelineReplicas );
+        return new Region( newRegionExecPlan, region.getSchedulingStrategies(), region.getUpstreamCtxes(), newPipelineReplicas );
     }
 
     @Override
@@ -1017,7 +1013,7 @@ public class RegionManagerImpl implements RegionManager
     private void preInitializeRegionOperators ( final FlowDef flow,
                                                 final RegionDef regionDef,
                                                 final SchedulingStrategy[] schedulingStrategies,
-                                                final UpstreamContext[] upstreamContexts )
+                                                final UpstreamCtx[] upstreamCtxes )
     {
         final Operator[] operators = new Operator[ regionDef.getOperatorCount() ];
         try
@@ -1025,19 +1021,18 @@ public class RegionManagerImpl implements RegionManager
             for ( int i = 0; i < regionDef.getOperatorCount(); i++ )
             {
                 final OperatorDef operatorDef = regionDef.getOperator( i );
-                final UpstreamContext upstreamContext = createInitialUpstreamContext( flow, operatorDef.getId() );
-                final boolean[] upstreamConnectionStatuses = upstreamContext.getConnectionStatuses();
-                final InitializationContextImpl initializationContext = new InitializationContextImpl( operatorDef,
-                                                                                                       upstreamConnectionStatuses );
+                final UpstreamCtx upstreamCtx = createInitialUpstreamCtx( flow, operatorDef.getId() );
+                final boolean[] upstreamConnectionStatuses = upstreamCtx.getConnectionStatuses();
+                final InitCtxImpl initCtx = new InitCtxImpl( operatorDef, upstreamConnectionStatuses );
                 try
                 {
                     final Operator operator = operatorDef.createOperator();
                     operators[ i ] = operator;
-                    final SchedulingStrategy schedulingStrategy = operator.init( initializationContext );
+                    final SchedulingStrategy schedulingStrategy = operator.init( initCtx );
                     verifyInitialSchedulingStrategyTupleCounts( operatorDef.getId(), schedulingStrategy );
-                    upstreamContext.verifyInitializable( operatorDef, schedulingStrategy );
+                    upstreamCtx.verifyInitializable( operatorDef, schedulingStrategy );
                     schedulingStrategies[ i ] = schedulingStrategy;
-                    upstreamContexts[ i ] = upstreamContext;
+                    upstreamCtxes[ i ] = upstreamCtx;
                 }
                 catch ( Exception e )
                 {

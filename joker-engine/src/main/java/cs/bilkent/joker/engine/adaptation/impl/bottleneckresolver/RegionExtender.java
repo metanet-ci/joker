@@ -62,8 +62,7 @@ public class RegionExtender implements BottleneckResolver
         {
             final List<PipelineId> pipelineIds = metrics.stream().map( PipelineMetrics::getPipelineId ).collect( toList() );
 
-            LOGGER.info( "Region: {} bottleneck pipelines: {} can be resolved with {}", execPlan.getRegionId(),
-                         pipelineIds, action );
+            LOGGER.info( "Region: {} bottleneck pipelines: {} can be resolved with {}", execPlan.getRegionId(), pipelineIds, action );
 
             return singletonList( Pair.of( action, pipelineIds ) );
         }

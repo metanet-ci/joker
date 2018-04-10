@@ -23,8 +23,8 @@ import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.region.impl.AbstractRegionExecPlanFactory;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
@@ -484,7 +484,7 @@ public class JokerTest extends AbstractJokerTest
         @Override
         public void accept ( final Tuple tuple )
         {
-            //                        sleepUninterruptibly( 1, MICROSECONDS );
+            //            sleepUninterruptibly( 1, MICROSECONDS );
             invocationCount.incrementAndGet();
 
             final int key = RANDOM.nextInt( keyRange );
@@ -494,8 +494,7 @@ public class JokerTest extends AbstractJokerTest
             final int existing = valueHolder.get();
             valueHolder.set( existing + value );
 
-            tuple.set( "key", key );
-            tuple.set( "value", value );
+            tuple.set( "key", key ).set( "value", value );
         }
 
     }
@@ -544,16 +543,37 @@ public class JokerTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return scheduleWhenTuplesAvailableOnAll( AT_LEAST, 2, 1, 0, 1 );
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
-            ctx.getInputTuples( 0 ).forEach( ctx::output );
-            ctx.getInputTuples( 1 ).forEach( ctx::output );
+            final List<Tuple> tuples0 = ctx.getInputTuples( 0 );
+            final List<Tuple> tuples1 = ctx.getInputTuples( 1 );
+            final int c = Math.min( tuples0.size(), tuples1.size() );
+
+            for ( int i = 0; i < c; i++ )
+            {
+                final Tuple t0 = tuples0.get( i ).copyForAttachment();
+                t0.attach( tuples1.get( i ) );
+                ctx.output( t0 );
+                final Tuple t1 = tuples1.get( i ).copyForAttachment();
+                t1.attach( tuples0.get( i ) );
+                ctx.output( t1 );
+            }
+
+            for ( int i = c; i < tuples0.size(); i++ )
+            {
+                ctx.output( tuples0.get( i ) );
+            }
+
+            for ( int i = c; i < tuples1.size(); i++ )
+            {
+                ctx.output( tuples1.get( i ) );
+            }
         }
 
     }
@@ -566,28 +586,27 @@ public class JokerTest extends AbstractJokerTest
         private TupleSchema outputSchema;
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             outputSchema = ctx.getOutputPortSchema( 0 );
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
             final KVStore kvStore = ctx.getKVStore();
 
-            for ( Tuple tuple : ctx.getInputTuples( 0 ) )
+            for ( Tuple input : ctx.getInputTuples( 0 ) )
             {
-                final Object key = tuple.get( "key" );
+                final Object key = input.get( "key" );
                 final int currSum = kvStore.getIntegerValueOrDefault( key, 0 );
-                final int newSum = currSum + tuple.getInteger( "value" );
+                final int newSum = currSum + input.getInteger( "value" );
 
                 kvStore.set( key, newSum );
 
-                final Tuple result = new Tuple( outputSchema );
-                result.set( "key", key );
-                result.set( "sum", newSum );
+                final Tuple result = Tuple.of( outputSchema, "key", key, "sum", newSum );
+                result.attach( input );
                 ctx.output( result );
             }
         }
@@ -600,13 +619,13 @@ public class JokerTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
             ctx.getInputTuplesByDefaultPort().forEach( ctx::output );
         }
@@ -629,9 +648,8 @@ public class JokerTest extends AbstractJokerTest
 
         FlowExample1 ()
         {
-            final OperatorConfig beacon1Config = new OperatorConfig();
-            beacon1Config.set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator1 );
-            beacon1Config.set( TUPLE_COUNT_CONFIG_PARAMETER, 20 );
+            final OperatorConfig beacon1Config = new OperatorConfig().set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator1 )
+                                                                     .set( TUPLE_COUNT_CONFIG_PARAMETER, 20 );
 
             final OperatorRuntimeSchemaBuilder beacon1Schema = new OperatorRuntimeSchemaBuilder( 0, 1 );
             beacon1Schema.getOutputPortSchemaBuilder( 0 ).addField( "key", Integer.class ).addField( "value", Integer.class );
@@ -641,9 +659,8 @@ public class JokerTest extends AbstractJokerTest
                                                           .setExtendingSchema( beacon1Schema )
                                                           .build();
 
-            final OperatorConfig beacon2Config = new OperatorConfig();
-            beacon2Config.set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator2 );
-            beacon2Config.set( TUPLE_COUNT_CONFIG_PARAMETER, 10 );
+            final OperatorConfig beacon2Config = new OperatorConfig().set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator2 )
+                                                                     .set( TUPLE_COUNT_CONFIG_PARAMETER, 10 );
 
             final OperatorRuntimeSchemaBuilder beacon2Schema = new OperatorRuntimeSchemaBuilder( 0, 1 );
             beacon2Schema.getOutputPortSchemaBuilder( 0 ).addField( "key", Integer.class ).addField( "value", Integer.class );
@@ -677,11 +694,13 @@ public class JokerTest extends AbstractJokerTest
                                                          .setPartitionFieldNames( singletonList( "key" ) )
                                                          .build();
 
-            final OperatorConfig multiplierConfig = new OperatorConfig();
-            multiplierConfig.set( MAPPER_CONFIG_PARAMETER, (BiConsumer<Tuple, Tuple>) ( input, output ) -> {
-                output.set( "key", input.get( "key" ) );
-                output.set( "mult", MULTIPLIER_VALUE * input.getInteger( "sum" ) );
-            } );
+            final OperatorConfig multiplierConfig = new OperatorConfig().set( MAPPER_CONFIG_PARAMETER,
+                                                                              (BiConsumer<Tuple, Tuple>) ( input, output ) -> {
+                                                                                  output.set( "key", input.get( "key" ) )
+                                                                                        .set( "mult",
+                                                                                              MULTIPLIER_VALUE
+                                                                                              * input.getInteger( "sum" ) );
+                                                                              } );
 
             final OperatorRuntimeSchemaBuilder multiplierSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
             multiplierSchema.addInputField( 0, "key", Integer.class )
@@ -741,9 +760,8 @@ public class JokerTest extends AbstractJokerTest
 
         FlowExample2 ()
         {
-            final OperatorConfig beacon1Config = new OperatorConfig();
-            beacon1Config.set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator1 );
-            beacon1Config.set( TUPLE_COUNT_CONFIG_PARAMETER, 2 );
+            final OperatorConfig beacon1Config = new OperatorConfig().set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator1 )
+                                                                     .set( TUPLE_COUNT_CONFIG_PARAMETER, 2 );
 
             final OperatorRuntimeSchemaBuilder beacon1Schema = new OperatorRuntimeSchemaBuilder( 0, 1 );
             beacon1Schema.getOutputPortSchemaBuilder( 0 ).addField( "key", Integer.class ).addField( "value", Integer.class );
@@ -753,9 +771,8 @@ public class JokerTest extends AbstractJokerTest
                                                           .setExtendingSchema( beacon1Schema )
                                                           .build();
 
-            final OperatorConfig beacon2Config = new OperatorConfig();
-            beacon2Config.set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator2 );
-            beacon2Config.set( TUPLE_COUNT_CONFIG_PARAMETER, 3 );
+            final OperatorConfig beacon2Config = new OperatorConfig().set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator2 )
+                                                                     .set( TUPLE_COUNT_CONFIG_PARAMETER, 3 );
 
             final OperatorRuntimeSchemaBuilder beacon2Schema = new OperatorRuntimeSchemaBuilder( 0, 1 );
             beacon2Schema.getOutputPortSchemaBuilder( 0 ).addField( "key", Integer.class ).addField( "value", Integer.class );
@@ -789,11 +806,13 @@ public class JokerTest extends AbstractJokerTest
                                                          .setPartitionFieldNames( singletonList( "key" ) )
                                                          .build();
 
-            final OperatorConfig multiplierConfig = new OperatorConfig();
-            multiplierConfig.set( MAPPER_CONFIG_PARAMETER, (BiConsumer<Tuple, Tuple>) ( input, output ) -> {
-                output.set( "key", input.get( "key" ) );
-                output.set( "mult", MULTIPLIER_VALUE * input.getInteger( "sum" ) );
-            } );
+            final OperatorConfig multiplierConfig = new OperatorConfig().set( MAPPER_CONFIG_PARAMETER,
+                                                                              (BiConsumer<Tuple, Tuple>) ( input, output ) -> {
+                                                                                  output.set( "key", input.get( "key" ) )
+                                                                                        .set( "mult",
+                                                                                              MULTIPLIER_VALUE
+                                                                                              * input.getInteger( "sum" ) );
+                                                                              } );
 
             final OperatorRuntimeSchemaBuilder multiplierSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
             multiplierSchema.addInputField( 0, "key", Integer.class )
@@ -806,8 +825,7 @@ public class JokerTest extends AbstractJokerTest
                                                              .setExtendingSchema( multiplierSchema )
                                                              .build();
 
-            final OperatorConfig collectorConfig1 = new OperatorConfig();
-            collectorConfig1.set( CONSUMER_FUNCTION_CONFIG_PARAMETER, valueCollector1 );
+            final OperatorConfig collectorConfig1 = new OperatorConfig().set( CONSUMER_FUNCTION_CONFIG_PARAMETER, valueCollector1 );
 
             final OperatorRuntimeSchemaBuilder foreachSchema = new OperatorRuntimeSchemaBuilder( 1, 1 );
             foreachSchema.addInputField( 0, "key", Integer.class )
@@ -824,25 +842,23 @@ public class JokerTest extends AbstractJokerTest
                                                                         .setExtendingSchema( foreachSchema )
                                                                         .build();
 
-            final OperatorConfig collectorConfig2 = new OperatorConfig();
-            collectorConfig2.set( CONSUMER_FUNCTION_CONFIG_PARAMETER, valueCollector2 );
+            final OperatorConfig collectorConfig2 = new OperatorConfig().set( CONSUMER_FUNCTION_CONFIG_PARAMETER, valueCollector2 );
 
             final OperatorDef collector2 = OperatorDefBuilder.newInstance( "collector2", ForEachOperator.class )
                                                              .setConfig( collectorConfig2 )
                                                              .setExtendingSchema( foreachSchema )
                                                              .build();
 
-            final OperatorConfig collectorConfig3 = new OperatorConfig();
-            collectorConfig3.set( CONSUMER_FUNCTION_CONFIG_PARAMETER, valueCollector3 );
+            final OperatorConfig collectorConfig3 = new OperatorConfig().set( CONSUMER_FUNCTION_CONFIG_PARAMETER, valueCollector3 );
 
             final OperatorDef collector3 = OperatorDefBuilder.newInstance( "collector3", ForEachOperator.class )
                                                              .setConfig( collectorConfig3 )
                                                              .setExtendingSchema( foreachSchema )
                                                              .build();
 
-            final OperatorConfig valuePasserStatefulConfig = new OperatorConfig();
-            valuePasserStatefulConfig.set( CONSUMER_FUNCTION_CONFIG_PARAMETER, (Consumer<Tuple>) tuple -> {
-            } );
+            final OperatorConfig valuePasserStatefulConfig = new OperatorConfig().set( CONSUMER_FUNCTION_CONFIG_PARAMETER,
+                                                                                       (Consumer<Tuple>) tuple -> {
+                                                                                       } );
 
             final OperatorDef valuePasserStateful1 = OperatorDefBuilder.newInstance( "valuePasserStateful1", ForEachOperator.class )
                                                                        .setConfig( valuePasserStatefulConfig )
@@ -858,8 +874,7 @@ public class JokerTest extends AbstractJokerTest
                                                                         .setExtendingSchema( foreachSchema )
                                                                         .build();
 
-            final OperatorConfig collectorConfig4 = new OperatorConfig();
-            collectorConfig4.set( CONSUMER_FUNCTION_CONFIG_PARAMETER, valueCollector4 );
+            final OperatorConfig collectorConfig4 = new OperatorConfig().set( CONSUMER_FUNCTION_CONFIG_PARAMETER, valueCollector4 );
 
             final OperatorDef collector4 = OperatorDefBuilder.newInstance( "collector4", ForEachOperator.class )
                                                              .setConfig( collectorConfig4 )

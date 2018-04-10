@@ -107,9 +107,7 @@ public class DownstreamCollectorsTest extends AbstractJokerTest
 
     private void addTuple ( final String key, final Object val, final int sourcePortIndex )
     {
-        final Tuple tuple = new Tuple();
-        tuple.set( key, val );
-        tuples.add( sourcePortIndex, tuple );
+        tuples.add( sourcePortIndex, Tuple.of( key, val ) );
     }
 
     private void setMock ( final int sourcePortIndex, final int destinationPortIndex, final int offerResult )
@@ -119,9 +117,7 @@ public class DownstreamCollectorsTest extends AbstractJokerTest
 
     private void verifyMock ( final String key, final Object val, final int destinationPortIndex )
     {
-        final Tuple expected = new Tuple();
-        expected.set( key, val );
-        verify( operatorQueue ).offer( destinationPortIndex, singletonList( expected ), 0 );
+        verify( operatorQueue ).offer( destinationPortIndex, singletonList( Tuple.of( key, val ) ), 0 );
     }
 
 }

@@ -8,8 +8,8 @@ import org.slf4j.LoggerFactory;
 import static cs.bilkent.joker.examples.bargaindiscovery.CVWAPFunction.CVWAP_FIELD;
 import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.TICKER_SYMBOL_FIELD;
 import static cs.bilkent.joker.examples.bargaindiscovery.VWAPAggregatorOperator.TIMESTAMP_FIELD;
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.kvstore.KVStore;
@@ -53,14 +53,14 @@ public class BargainIndexOperator implements Operator
     private TupleSchema outputSchema;
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext ctx )
+    public SchedulingStrategy init ( final InitCtx ctx )
     {
         outputSchema = ctx.getOutputPortSchema( 0 );
         return scheduleWhenTuplesAvailableOnAny( AT_LEAST, 2, 1, 0, 1 );
     }
 
     @Override
-    public void invoke ( final InvocationContext ctx )
+    public void invoke ( final InvocationCtx ctx )
     {
         final KVStore kvStore = ctx.getKVStore();
         final Iterator<Tuple> it = new MergedTupleListsIterator( ctx.getInputTuples( 0 ),
@@ -101,10 +101,7 @@ public class BargainIndexOperator implements Operator
             final int askedSize = quote.getInteger( ASKED_SIZE_FIELD );
             final double bargainIndex = Math.exp( cvwap - askedTickerSymbolPrice ) * askedSize;
 
-            final Tuple outputTuple = new Tuple( outputSchema );
-            outputTuple.set( BARGAIN_INDEX_FIELD, bargainIndex );
-
-            return outputTuple;
+            return Tuple.of( outputSchema, BARGAIN_INDEX_FIELD, bargainIndex );
         }
 
         return null;

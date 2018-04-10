@@ -11,8 +11,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.Tuple;
@@ -82,7 +82,7 @@ public class SentenceBeaconOperator implements Operator
 
 
     @Override
-    public SchedulingStrategy init ( final InitializationContext ctx )
+    public SchedulingStrategy init ( final InitCtx ctx )
     {
         this.outputSchema = ctx.getOutputPortSchema( 0 );
 
@@ -119,12 +119,11 @@ public class SentenceBeaconOperator implements Operator
     }
 
     @Override
-    public void invoke ( final InvocationContext ctx )
+    public void invoke ( final InvocationCtx ctx )
     {
         for ( int i = 0; i < sentenceCountPerInvocation; i++ )
         {
-            final Tuple result = new Tuple( outputSchema );
-            result.set( PARTITION_INDEX_FIELD, partitionIndex++ );
+            final Tuple result = Tuple.of( outputSchema, PARTITION_INDEX_FIELD, partitionIndex++ );
             if ( partitionIndex == maxPartitionIndex )
             {
                 partitionIndex = 0;

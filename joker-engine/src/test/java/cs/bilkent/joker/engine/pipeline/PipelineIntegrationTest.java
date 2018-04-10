@@ -25,9 +25,9 @@ import cs.bilkent.joker.engine.partition.PartitionDistribution;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
 import cs.bilkent.joker.engine.partition.impl.PartitionServiceImpl;
-import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newInitialUpstreamContextWithAllPortsConnected;
-import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newSourceOperatorInitialUpstreamContext;
-import static cs.bilkent.joker.engine.pipeline.UpstreamContext.newSourceOperatorShutdownUpstreamContext;
+import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createInitialClosedUpstreamCtx;
+import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createSourceOperatorInitialUpstreamCtx;
+import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createSourceOperatorShutdownUpstreamCtx;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
@@ -39,16 +39,16 @@ import cs.bilkent.joker.engine.tuplequeue.impl.operator.EmptyOperatorQueue;
 import cs.bilkent.joker.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
 import cs.bilkent.joker.engine.util.concurrent.BackoffIdleStrategy;
 import cs.bilkent.joker.engine.util.concurrent.IdleStrategy;
-import cs.bilkent.joker.operator.InitializationContext;
-import cs.bilkent.joker.operator.InvocationContext;
+import cs.bilkent.joker.operator.InitCtx;
+import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.impl.DefaultInvocationContext;
+import cs.bilkent.joker.operator.impl.DefaultInvocationCtx;
 import cs.bilkent.joker.operator.impl.DefaultOutputCollector;
-import cs.bilkent.joker.operator.impl.InternalInvocationContext;
+import cs.bilkent.joker.operator.impl.InternalInvocationCtx;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
@@ -106,10 +106,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     @Test
     public void testPipelineWithSingleOperator () throws InterruptedException
     {
-        final OperatorConfig mapperOperatorConfig = new OperatorConfig();
         final BiConsumer<Tuple, Tuple> multiplyBy2 = ( input, output ) -> output.set( "val",
                                                                                       2 * input.getIntegerValueOrDefault( "val", 0 ) );
-        mapperOperatorConfig.set( MAPPER_CONFIG_PARAMETER, multiplyBy2 );
+        final OperatorConfig mapperOperatorConfig = new OperatorConfig().set( MAPPER_CONFIG_PARAMETER, multiplyBy2 );
         final OperatorDef mapperOperatorDef = OperatorDefBuilder.newInstance( "map", MapperOperator.class )
                                                                 .setConfig( mapperOperatorConfig )
                                                                 .build();
@@ -124,28 +123,28 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                      MULTI_THREADED );
         final TupleQueueDrainerPool drainerPool = new BlockingTupleQueueDrainerPool( jokerConfig, mapperOperatorDef );
 
-        final DefaultInvocationContext mapperInvocationContext = new DefaultInvocationContext( mapperOperatorDef.getInputPortCount(),
-                                                                                               key -> null, new DefaultOutputCollector(
-                                                                                                       mapperOperatorDef
-                                                                                                               .getOutputPortCount() ) );
+        final DefaultInvocationCtx mapperInvocationCtx = new DefaultInvocationCtx( mapperOperatorDef.getInputPortCount(),
+                                                                                   key -> null,
+                                                                                   new DefaultOutputCollector( mapperOperatorDef
+                                                                                                                       .getOutputPortCount() ) );
         final OperatorReplica mapperOperator = new OperatorReplica( pipelineReplicaId1,
                                                                     operatorQueue,
                                                                     drainerPool,
                                                                     pipelineReplicaMeter,
-                                                                    mapperInvocationContext::createInputTuples,
+                                                                    mapperInvocationCtx::createInputTuples,
                                                                     new OperatorDef[] { mapperOperatorDef },
-                                                                    new InternalInvocationContext[] { mapperInvocationContext } );
+                                                                    new InternalInvocationCtx[] { mapperInvocationCtx } );
         final PipelineReplica pipeline = new PipelineReplica( pipelineReplicaId1,
                                                               new OperatorReplica[] { mapperOperator },
                                                               new EmptyOperatorQueue( "map", mapperOperatorDef.getInputPortCount() ),
                                                               pipelineReplicaMeter );
         final Supervisor supervisor = mock( Supervisor.class );
+        when( supervisor.getDownstreamCollector( pipelineReplicaId1 ) ).thenReturn( mock( DownstreamCollector.class ) );
 
         pipeline.init( new SchedulingStrategy[][] { { scheduleWhenTuplesAvailableOnDefaultPort( 1 ) } },
-                       new UpstreamContext[][] { { newInitialUpstreamContextWithAllPortsConnected( 1 ) } } );
+                       new UpstreamCtx[][] { { createInitialClosedUpstreamCtx( 1 ) } } );
 
-        final TupleQueueDownstreamCollector tupleCollector = new TupleQueueDownstreamCollector( mapperOperatorDef
-                                                                                                                    .getOutputPortCount() );
+        final TupleQueueDownstreamCollector tupleCollector = new TupleQueueDownstreamCollector( mapperOperatorDef.getOutputPortCount() );
         final PipelineReplicaRunner runner = new PipelineReplicaRunner( jokerConfig, pipeline, supervisor, tupleCollector );
 
         final Thread runnerThread = spawnThread( runner );
@@ -154,8 +153,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final int tupleCount = 200;
         for ( int i = 0; i < tupleCount; i++ )
         {
-            final Tuple tuple = new Tuple();
-            tuple.set( "val", initialVal + i );
+            final Tuple tuple = Tuple.of( "val", initialVal + i );
             operatorQueue.offer( 0, singletonList( tuple ) );
         }
 
@@ -164,31 +162,28 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         for ( int i = 0; i < tupleCount; i++ )
         {
             final Tuple expected = new Tuple();
-            final Tuple t = new Tuple();
-            t.set( "val", initialVal + i );
+            final Tuple t = Tuple.of( "val", initialVal + i );
             multiplyBy2.accept( t, expected );
             assertEquals( expected, tuples.get( i ) );
         }
 
-        final UpstreamContext updatedUpstreamContext = newInitialUpstreamContextWithAllPortsConnected( 1 ).withConnectionClosed( 0 );
-        when( supervisor.getUpstreamContext( pipelineReplicaId1 ) ).thenReturn( updatedUpstreamContext );
-        runner.updatePipelineUpstreamContext();
+        final UpstreamCtx updatedUpstreamCtx = createInitialClosedUpstreamCtx( 1 ).withConnectionClosed( 0 );
+        when( supervisor.getUpstreamCtx( pipelineReplicaId1 ) ).thenReturn( updatedUpstreamCtx );
+        runner.updatePipelineUpstreamCtx();
         runnerThread.join();
     }
 
     @Test
     public void testPipelineWithMultipleOperators_pipelineUpstreamClosed () throws InterruptedException
     {
-        final OperatorConfig mapperOperatorConfig = new OperatorConfig();
         final BiConsumer<Tuple, Tuple> add1 = ( input, output ) -> output.set( "val", 1 + input.getIntegerValueOrDefault( "val", -1 ) );
-        mapperOperatorConfig.set( MAPPER_CONFIG_PARAMETER, add1 );
+        final OperatorConfig mapperOperatorConfig = new OperatorConfig().set( MAPPER_CONFIG_PARAMETER, add1 );
         final OperatorDef mapperOperatorDef = OperatorDefBuilder.newInstance( "map", MapperOperator.class )
                                                                 .setConfig( mapperOperatorConfig )
                                                                 .build();
 
-        final OperatorConfig filterOperatorConfig = new OperatorConfig();
         final Predicate<Tuple> filterEvenVals = tuple -> tuple.getInteger( "val" ) % 2 == 0;
-        filterOperatorConfig.set( PREDICATE_CONFIG_PARAMETER, filterEvenVals );
+        final OperatorConfig filterOperatorConfig = new OperatorConfig().set( PREDICATE_CONFIG_PARAMETER, filterEvenVals );
         final OperatorDef filterOperatorDef = OperatorDefBuilder.newInstance( "filter", FilterOperator.class )
                                                                 .setConfig( filterOperatorConfig )
                                                                 .build();
@@ -203,34 +198,34 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                            MULTI_THREADED );
 
         final TupleQueueDrainerPool mapperDrainerPool = new BlockingTupleQueueDrainerPool( jokerConfig, mapperOperatorDef );
-        final DefaultInvocationContext mapperInvocationContext = new DefaultInvocationContext( mapperOperatorDef.getInputPortCount(),
-                                                                                               key -> null, new DefaultOutputCollector(
-                                                                                                       mapperOperatorDef
-                                                                                                               .getOutputPortCount() ) );
+        final DefaultInvocationCtx mapperInvocationCtx = new DefaultInvocationCtx( mapperOperatorDef.getInputPortCount(),
+                                                                                   key -> null,
+                                                                                   new DefaultOutputCollector( mapperOperatorDef
+                                                                                                                       .getOutputPortCount() ) );
         final OperatorReplica mapperOperator = new OperatorReplica( pipelineReplicaId1,
                                                                     mapperOperatorQueue,
                                                                     mapperDrainerPool,
                                                                     pipelineReplicaMeter,
-                                                                    mapperInvocationContext::createInputTuples,
+                                                                    mapperInvocationCtx::createInputTuples,
                                                                     new OperatorDef[] { mapperOperatorDef },
-                                                                    new InternalInvocationContext[] { mapperInvocationContext } );
+                                                                    new InternalInvocationCtx[] { mapperInvocationCtx } );
 
         final OperatorQueue filterOperatorQueue = operatorQueueManager.createDefaultQueue( REGION_ID,
                                                                                            filterOperatorDef,
                                                                                            REPLICA_INDEX,
                                                                                            SINGLE_THREADED );
         final TupleQueueDrainerPool filterDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, filterOperatorDef );
-        final DefaultInvocationContext filterInvocationContext = new DefaultInvocationContext( filterOperatorDef.getInputPortCount(),
-                                                                                               key -> null, new DefaultOutputCollector(
-                                                                                                       filterOperatorDef
-                                                                                                               .getOutputPortCount() ) );
+        final DefaultInvocationCtx filterInvocationCtx = new DefaultInvocationCtx( filterOperatorDef.getInputPortCount(),
+                                                                                   key -> null,
+                                                                                   new DefaultOutputCollector( filterOperatorDef
+                                                                                                                       .getOutputPortCount() ) );
         final OperatorReplica filterOperator = new OperatorReplica( pipelineReplicaId1,
                                                                     filterOperatorQueue,
                                                                     filterDrainerPool,
                                                                     pipelineReplicaMeter,
-                                                                    filterInvocationContext::createInputTuples,
+                                                                    filterInvocationCtx::createInputTuples,
                                                                     new OperatorDef[] { filterOperatorDef },
-                                                                    new InternalInvocationContext[] { filterInvocationContext } );
+                                                                    new InternalInvocationCtx[] { filterInvocationCtx } );
 
         final PipelineReplica pipeline = new PipelineReplica( pipelineReplicaId1,
                                                               new OperatorReplica[] { mapperOperator, filterOperator },
@@ -238,14 +233,13 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                               pipelineReplicaMeter );
 
         final Supervisor supervisor = mock( Supervisor.class );
+        when( supervisor.getDownstreamCollector( pipelineReplicaId1 ) ).thenReturn( mock( DownstreamCollector.class ) );
 
         pipeline.init( new SchedulingStrategy[][] { { scheduleWhenTuplesAvailableOnDefaultPort( 1 ) },
                                                     { scheduleWhenTuplesAvailableOnDefaultPort( 1 ) } },
-                       new UpstreamContext[][] { { newInitialUpstreamContextWithAllPortsConnected( 1 ) },
-                                                 { newInitialUpstreamContextWithAllPortsConnected( 1 ) } } );
+                       new UpstreamCtx[][] { { createInitialClosedUpstreamCtx( 1 ) }, { createInitialClosedUpstreamCtx( 1 ) } } );
 
-        final TupleQueueDownstreamCollector tupleCollector = new TupleQueueDownstreamCollector( filterOperatorDef
-                                                                                                                    .getOutputPortCount() );
+        final TupleQueueDownstreamCollector tupleCollector = new TupleQueueDownstreamCollector( filterOperatorDef.getOutputPortCount() );
 
         final PipelineReplicaRunner runner = new PipelineReplicaRunner( jokerConfig, pipeline, supervisor, tupleCollector );
 
@@ -257,8 +251,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         for ( int i = 0; i < tupleCount; i++ )
         {
             final int value = initialVal + i;
-            final Tuple tuple = new Tuple();
-            tuple.set( "val", value );
+            final Tuple tuple = Tuple.of( "val", value );
             mapperOperatorQueue.offer( 0, singletonList( tuple ) );
         }
 
@@ -268,8 +261,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         for ( int i = 0; i < evenValCount; i++ )
         {
             final Tuple expected = new Tuple();
-            final Tuple t = new Tuple();
-            t.set( "val", initialVal + ( i * 2 ) );
+            final Tuple t = Tuple.of( "val", initialVal + ( i * 2 ) );
             add1.accept( t, expected );
             if ( filterEvenVals.test( expected ) )
             {
@@ -277,9 +269,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
             }
         }
 
-        final UpstreamContext updatedUpstreamContext = newInitialUpstreamContextWithAllPortsConnected( 1 ).withConnectionClosed( 0 );
-        when( supervisor.getUpstreamContext( pipelineReplicaId1 ) ).thenReturn( updatedUpstreamContext );
-        runner.updatePipelineUpstreamContext();
+        final UpstreamCtx updatedUpstreamCtx = createInitialClosedUpstreamCtx( 1 ).withConnectionClosed( 0 );
+        when( supervisor.getUpstreamCtx( pipelineReplicaId1 ) ).thenReturn( updatedUpstreamCtx );
+        runner.updatePipelineUpstreamCtx();
         runnerThread.join();
     }
 
@@ -288,15 +280,13 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     {
         final int batchCount = 4;
 
-        final OperatorConfig generatorOperatorConfig = new OperatorConfig();
-        generatorOperatorConfig.set( "batchCount", batchCount );
+        final OperatorConfig generatorOperatorConfig = new OperatorConfig().set( "batchCount", batchCount );
         final OperatorDef generatorOperatorDef = OperatorDefBuilder.newInstance( "generator", ValueGeneratorOperator.class )
                                                                    .setConfig( generatorOperatorConfig )
                                                                    .build();
 
-        final OperatorConfig passerOperatorConfig = new OperatorConfig();
         final int passerBatchCount = batchCount / 2;
-        passerOperatorConfig.set( "batchCount", passerBatchCount );
+        final OperatorConfig passerOperatorConfig = new OperatorConfig().set( "batchCount", passerBatchCount );
         final OperatorDef passerOperatorDef = OperatorDefBuilder.newInstance( "passer", ValuePasserOperator.class )
                                                                 .setConfig( passerOperatorConfig )
                                                                 .build();
@@ -312,34 +302,34 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final OperatorQueue generatorOperatorQueue = new EmptyOperatorQueue( generatorOperatorDef.getId(),
                                                                              generatorOperatorDef.getInputPortCount() );
         final TupleQueueDrainerPool generatorDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, generatorOperatorDef );
-        final DefaultInvocationContext generatorInvocationContext = new DefaultInvocationContext( generatorOperatorDef.getInputPortCount(),
-                                                                                                  k -> null, new DefaultOutputCollector(
-                                                                                                          generatorOperatorDef
-                                                                                                                  .getOutputPortCount() ) );
+        final DefaultInvocationCtx generatorInvocationCtx = new DefaultInvocationCtx( generatorOperatorDef.getInputPortCount(),
+                                                                                      k -> null,
+                                                                                      new DefaultOutputCollector( generatorOperatorDef
+                                                                                                                          .getOutputPortCount() ) );
         final OperatorReplica generatorOperator = new OperatorReplica( pipelineReplicaId1,
                                                                        generatorOperatorQueue,
                                                                        generatorDrainerPool,
                                                                        pipelineReplicaMeter,
-                                                                       generatorInvocationContext::createInputTuples,
+                                                                       generatorInvocationCtx::createInputTuples,
                                                                        new OperatorDef[] { generatorOperatorDef },
-                                                                       new InternalInvocationContext[] { generatorInvocationContext } );
+                                                                       new InternalInvocationCtx[] { generatorInvocationCtx } );
 
         final OperatorQueue passerOperatorQueue = operatorQueueManager.createDefaultQueue( REGION_ID,
                                                                                            passerOperatorDef,
                                                                                            REPLICA_INDEX,
                                                                                            SINGLE_THREADED );
         final TupleQueueDrainerPool passerDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, passerOperatorDef );
-        final DefaultInvocationContext passerInvocationContext = new DefaultInvocationContext( passerOperatorDef.getInputPortCount(),
-                                                                                               k -> null, new DefaultOutputCollector(
-                                                                                                       passerOperatorDef
-                                                                                                               .getOutputPortCount() ) );
+        final DefaultInvocationCtx passerInvocationCtx = new DefaultInvocationCtx( passerOperatorDef.getInputPortCount(),
+                                                                                   k -> null,
+                                                                                   new DefaultOutputCollector( passerOperatorDef
+                                                                                                                       .getOutputPortCount() ) );
         final OperatorReplica passerOperator = new OperatorReplica( pipelineReplicaId1,
                                                                     passerOperatorQueue,
                                                                     passerDrainerPool,
                                                                     pipelineReplicaMeter,
-                                                                    passerInvocationContext::createInputTuples,
+                                                                    passerInvocationCtx::createInputTuples,
                                                                     new OperatorDef[] { passerOperatorDef },
-                                                                    new InternalInvocationContext[] { passerInvocationContext } );
+                                                                    new InternalInvocationCtx[] { passerInvocationCtx } );
 
         final PartitionDistribution partitionDistribution = partitionService.createPartitionDistribution( REGION_ID, 1 );
         final OperatorKVStore[] operatorKvStores = operatorKVStoreManager.createPartitionedKVStores( REGION_ID,
@@ -351,18 +341,18 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                                   partitionDistribution );
         final OperatorQueue stateOperatorQueue = stateOperatorQueues[ 0 ];
         final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, stateOperatorDef );
-        final DefaultInvocationContext stateInvocationContext = new DefaultInvocationContext( stateOperatorDef.getInputPortCount(),
-                                                                                              operatorKvStores[ 0 ]::getKVStore,
-                                                                                              new DefaultOutputCollector(
-                                                                                                      stateOperatorDef.getOutputPortCount
+        final DefaultInvocationCtx stateInvocationCtx = new DefaultInvocationCtx( stateOperatorDef.getInputPortCount(),
+                                                                                  operatorKvStores[ 0 ]::getKVStore,
+                                                                                  new DefaultOutputCollector( stateOperatorDef
+                                                                                                                      .getOutputPortCount
                                                                                                                                () ) );
         final OperatorReplica stateOperator = new OperatorReplica( pipelineReplicaId1,
                                                                    stateOperatorQueue,
                                                                    stateDrainerPool,
                                                                    pipelineReplicaMeter,
-                                                                   stateInvocationContext::createInputTuples,
+                                                                   stateInvocationCtx::createInputTuples,
                                                                    new OperatorDef[] { stateOperatorDef },
-                                                                   new InternalInvocationContext[] { stateInvocationContext } );
+                                                                   new InternalInvocationCtx[] { stateInvocationCtx } );
 
         final PipelineReplica pipeline = new PipelineReplica( pipelineReplicaId1,
                                                               new OperatorReplica[] { generatorOperator, passerOperator, stateOperator },
@@ -371,13 +361,14 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                               pipelineReplicaMeter );
 
         final Supervisor supervisor = mock( Supervisor.class );
+        when( supervisor.getDownstreamCollector( pipelineReplicaId1 ) ).thenReturn( mock( DownstreamCollector.class ) );
 
         pipeline.init( new SchedulingStrategy[][] { { ScheduleWhenAvailable.INSTANCE },
                                                     { scheduleWhenTuplesAvailableOnDefaultPort( EXACT, passerBatchCount ) },
                                                     { scheduleWhenTuplesAvailableOnDefaultPort( EXACT, 1 ) } },
-                       new UpstreamContext[][] { { newSourceOperatorInitialUpstreamContext() },
-                                                 { newInitialUpstreamContextWithAllPortsConnected( 1 ) },
-                                                 { newInitialUpstreamContextWithAllPortsConnected( 1 ) } } );
+                       new UpstreamCtx[][] { { createSourceOperatorInitialUpstreamCtx() },
+                                             { createInitialClosedUpstreamCtx( 1 ) },
+                                             { createInitialClosedUpstreamCtx( 1 ) } } );
 
         final PipelineReplicaRunner runner = new PipelineReplicaRunner( jokerConfig, pipeline, supervisor,
                                                                         mock( DownstreamCollector.class ) );
@@ -389,9 +380,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         assertTrueEventually( () -> assertTrue( generatorOp.count > 1000 ) );
 
-        final UpstreamContext updatedUpstreamContext = newSourceOperatorShutdownUpstreamContext();
-        when( supervisor.getUpstreamContext( pipelineReplicaId1 ) ).thenReturn( updatedUpstreamContext );
-        runner.updatePipelineUpstreamContext();
+        final UpstreamCtx updatedUpstreamCtx = createSourceOperatorShutdownUpstreamCtx();
+        when( supervisor.getUpstreamCtx( pipelineReplicaId1 ) ).thenReturn( updatedUpstreamCtx );
+        runner.updatePipelineUpstreamCtx();
 
         assertTrueEventually( () -> verify( supervisor ).notifyPipelineReplicaCompleted( pipelineReplicaId1 ) );
 
@@ -409,14 +400,13 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     public void testMultiplePipelines_singleInputPort () throws InterruptedException
     {
         final SupervisorImpl supervisor = new SupervisorImpl();
-        supervisor.upstreamContexts.put( pipelineReplicaId1, newInitialUpstreamContextWithAllPortsConnected( 1 ) );
-        supervisor.upstreamContexts.put( pipelineReplicaId2, newInitialUpstreamContextWithAllPortsConnected( 1 ) );
+        supervisor.upstreamCtxes.put( pipelineReplicaId1, createInitialClosedUpstreamCtx( 1 ) );
+        supervisor.upstreamCtxes.put( pipelineReplicaId2, createInitialClosedUpstreamCtx( 1 ) );
         supervisor.inputPortIndices.put( pipelineReplicaId1, 0 );
         supervisor.inputPortIndices.put( pipelineReplicaId2, 0 );
 
-        final OperatorConfig mapperOperatorConfig = new OperatorConfig();
         final BiConsumer<Tuple, Tuple> add1 = ( input, output ) -> output.set( "val", 1 + input.getIntegerValueOrDefault( "val", -1 ) );
-        mapperOperatorConfig.set( MAPPER_CONFIG_PARAMETER, add1 );
+        final OperatorConfig mapperOperatorConfig = new OperatorConfig().set( MAPPER_CONFIG_PARAMETER, add1 );
         final OperatorDef mapperOperatorDef = OperatorDefBuilder.newInstance( "map", MapperOperator.class )
                                                                 .setConfig( mapperOperatorConfig )
                                                                 .build();
@@ -427,10 +417,10 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                            MULTI_THREADED );
 
         final TupleQueueDrainerPool mapperDrainerPool = new BlockingTupleQueueDrainerPool( jokerConfig, mapperOperatorDef );
-        final DefaultInvocationContext mapperInvocationContext = new DefaultInvocationContext( mapperOperatorDef.getInputPortCount(),
-                                                                                               key -> null, new DefaultOutputCollector(
-                                                                                                       mapperOperatorDef
-                                                                                                               .getOutputPortCount() ) );
+        final DefaultInvocationCtx mapperInvocationCtx = new DefaultInvocationCtx( mapperOperatorDef.getInputPortCount(),
+                                                                                   key -> null,
+                                                                                   new DefaultOutputCollector( mapperOperatorDef
+                                                                                                                       .getOutputPortCount() ) );
         final PipelineReplicaMeter pipelineReplicaMeter1 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId1,
                                                                                      mapperOperatorDef );
@@ -438,9 +428,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                     mapperOperatorQueue,
                                                                     mapperDrainerPool,
                                                                     pipelineReplicaMeter1,
-                                                                    mapperInvocationContext::createInputTuples,
+                                                                    mapperInvocationCtx::createInputTuples,
                                                                     new OperatorDef[] { mapperOperatorDef },
-                                                                    new InternalInvocationContext[] { mapperInvocationContext } );
+                                                                    new InternalInvocationCtx[] { mapperInvocationCtx } );
 
         final PipelineReplica pipeline1 = new PipelineReplica( pipelineReplicaId1,
                                                                new OperatorReplica[] { mapperOperator },
@@ -448,11 +438,10 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                pipelineReplicaMeter1 );
 
         pipeline1.init( new SchedulingStrategy[][] { { scheduleWhenTuplesAvailableOnDefaultPort( 1 ) } },
-                        new UpstreamContext[][] { { supervisor.upstreamContexts.get( pipelineReplicaId1 ) } } );
+                        new UpstreamCtx[][] { { supervisor.upstreamCtxes.get( pipelineReplicaId1 ) } } );
 
-        final OperatorConfig filterOperatorConfig = new OperatorConfig();
         final Predicate<Tuple> filterEvenVals = tuple -> tuple.getInteger( "val" ) % 2 == 0;
-        filterOperatorConfig.set( PREDICATE_CONFIG_PARAMETER, filterEvenVals );
+        final OperatorConfig filterOperatorConfig = new OperatorConfig().set( PREDICATE_CONFIG_PARAMETER, filterEvenVals );
         final OperatorDef filterOperatorDef = OperatorDefBuilder.newInstance( "filter", FilterOperator.class )
                                                                 .setConfig( filterOperatorConfig )
                                                                 .build();
@@ -462,13 +451,13 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                            REPLICA_INDEX,
                                                                                            MULTI_THREADED );
 
-        final DownstreamCollectorImpl tupleSender = new DownstreamCollectorImpl( filterOperatorQueue, new Pair[] { Pair.of( 0, 0 ) } );
+        final DownstreamCollectorImpl tupleCollector1 = new DownstreamCollectorImpl( filterOperatorQueue, new Pair[] { Pair.of( 0, 0 ) } );
 
         final TupleQueueDrainerPool filterDrainerPool = new BlockingTupleQueueDrainerPool( jokerConfig, filterOperatorDef );
-        final DefaultInvocationContext filterInvocationContext = new DefaultInvocationContext( filterOperatorDef.getInputPortCount(),
-                                                                                               key -> null, new DefaultOutputCollector(
-                                                                                                       filterOperatorDef
-                                                                                                               .getOutputPortCount() ) );
+        final DefaultInvocationCtx filterInvocationCtx = new DefaultInvocationCtx( filterOperatorDef.getInputPortCount(),
+                                                                                   key -> null,
+                                                                                   new DefaultOutputCollector( filterOperatorDef
+                                                                                                                       .getOutputPortCount() ) );
 
         final PipelineReplicaMeter pipelineReplicaMeter2 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId2,
@@ -477,9 +466,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                     filterOperatorQueue,
                                                                     filterDrainerPool,
                                                                     pipelineReplicaMeter2,
-                                                                    filterInvocationContext::createInputTuples,
+                                                                    filterInvocationCtx::createInputTuples,
                                                                     new OperatorDef[] { filterOperatorDef },
-                                                                    new InternalInvocationContext[] { filterInvocationContext } );
+                                                                    new InternalInvocationCtx[] { filterInvocationCtx } );
 
         final PipelineReplica pipeline2 = new PipelineReplica( pipelineReplicaId2,
                                                                new OperatorReplica[] { filterOperator },
@@ -487,15 +476,15 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                pipelineReplicaMeter2 );
 
         pipeline2.init( new SchedulingStrategy[][] { { scheduleWhenTuplesAvailableOnDefaultPort( 1 ) } },
-                        new UpstreamContext[][] { { supervisor.upstreamContexts.get( pipelineReplicaId2 ) } } );
+                        new UpstreamCtx[][] { { supervisor.upstreamCtxes.get( pipelineReplicaId2 ) } } );
 
-        final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig, pipeline1, supervisor, tupleSender );
-        supervisor.downstreamCollectors.put( pipeline1.id(), tupleSender );
+        final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig, pipeline1, supervisor, tupleCollector1 );
+        supervisor.downstreamCollectors.put( pipeline1.id(), tupleCollector1 );
 
-        final TupleQueueDownstreamCollector tupleCollector = new TupleQueueDownstreamCollector( filterOperatorDef.getOutputPortCount() );
+        final TupleQueueDownstreamCollector tupleCollector2 = new TupleQueueDownstreamCollector( filterOperatorDef.getOutputPortCount() );
 
-        final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( jokerConfig, pipeline2, supervisor, tupleCollector );
-        supervisor.downstreamCollectors.put( pipeline2.id(), tupleCollector );
+        final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( jokerConfig, pipeline2, supervisor, tupleCollector2 );
+        supervisor.downstreamCollectors.put( pipeline2.id(), tupleCollector2 );
 
         supervisor.targetPipelineReplicaId = pipelineReplicaId2;
         supervisor.runner = runner2;
@@ -509,19 +498,17 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         for ( int i = 0; i < tupleCount; i++ )
         {
             final int value = initialVal + i;
-            final Tuple tuple = new Tuple();
-            tuple.set( "val", value );
+            final Tuple tuple = Tuple.of( "val", value );
             mapperOperatorQueue.offer( 0, singletonList( tuple ) );
         }
 
         final int evenValCount = tupleCount / 2;
-        assertTrueEventually( () -> assertEquals( evenValCount, tupleCollector.tupleQueues[ 0 ].size() ) );
-        final List<Tuple> tuples = tupleCollector.tupleQueues[ 0 ].poll( Integer.MAX_VALUE );
+        assertTrueEventually( () -> assertEquals( evenValCount, tupleCollector2.tupleQueues[ 0 ].size() ) );
+        final List<Tuple> tuples = tupleCollector2.tupleQueues[ 0 ].poll( Integer.MAX_VALUE );
         for ( int i = 0; i < evenValCount; i++ )
         {
             final Tuple expected = new Tuple();
-            final Tuple t = new Tuple();
-            t.set( "val", initialVal + ( i * 2 ) );
+            final Tuple t = Tuple.of( "val", initialVal + ( i * 2 ) );
             add1.accept( t, expected );
             if ( filterEvenVals.test( expected ) )
             {
@@ -529,9 +516,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
             }
         }
 
-        supervisor.upstreamContexts.put( pipelineReplicaId1,
-                                         newInitialUpstreamContextWithAllPortsConnected( 1 ).withConnectionClosed( 0 ) );
-        runner1.updatePipelineUpstreamContext();
+        supervisor.upstreamCtxes.put( pipelineReplicaId1, createInitialClosedUpstreamCtx( 1 ).withConnectionClosed( 0 ) );
+        runner1.updatePipelineUpstreamCtx();
         runnerThread1.join();
         runnerThread2.join();
         assertTrue( supervisor.completedPipelines.contains( pipelineReplicaId1 ) );
@@ -542,16 +528,15 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     public void testMultiplePipelines_multipleInputPorts () throws InterruptedException
     {
         final SupervisorImpl supervisor = new SupervisorImpl();
-        supervisor.upstreamContexts.put( pipelineReplicaId1, newSourceOperatorInitialUpstreamContext() );
-        supervisor.upstreamContexts.put( pipelineReplicaId2, newSourceOperatorInitialUpstreamContext() );
-        supervisor.upstreamContexts.put( pipelineReplicaId3, newInitialUpstreamContextWithAllPortsConnected( 2 ) );
+        supervisor.upstreamCtxes.put( pipelineReplicaId1, createSourceOperatorInitialUpstreamCtx() );
+        supervisor.upstreamCtxes.put( pipelineReplicaId2, createSourceOperatorInitialUpstreamCtx() );
+        supervisor.upstreamCtxes.put( pipelineReplicaId3, createInitialClosedUpstreamCtx( 2 ) );
         supervisor.inputPortIndices.put( pipelineReplicaId1, 0 );
         supervisor.inputPortIndices.put( pipelineReplicaId2, 1 );
 
         final int batchCount = 4;
 
-        final OperatorConfig generatorOperatorConfig1 = new OperatorConfig();
-        generatorOperatorConfig1.set( "batchCount", batchCount );
+        final OperatorConfig generatorOperatorConfig1 = new OperatorConfig().set( "batchCount", batchCount );
         final OperatorDef generatorOperatorDef1 = OperatorDefBuilder.newInstance( "generator1", ValueGeneratorOperator.class )
                                                                     .setConfig( generatorOperatorConfig1 )
                                                                     .build();
@@ -564,16 +549,18 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final PipelineReplicaMeter pipelineReplicaMeter1 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId1,
                                                                                      generatorOperatorDef1 );
-        final DefaultInvocationContext generatorInvocationContext1 = new DefaultInvocationContext( generatorOperatorDef1.getInputPortCount(),
-                                                                                                   k -> null, new DefaultOutputCollector(
-                                                                                                           generatorOperatorDef1.getOutputPortCount() ) );
+        final DefaultInvocationCtx generatorInvocationCtx1 = new DefaultInvocationCtx( generatorOperatorDef1.getInputPortCount(),
+                                                                                       k -> null,
+                                                                                       new DefaultOutputCollector(
+                                                                                               generatorOperatorDef1.getOutputPortCount()
+                                                                                       ) );
         final OperatorReplica generatorOperator1 = new OperatorReplica( pipelineReplicaId1,
                                                                         generatorOperatorQueue1,
                                                                         generatorDrainerPool1,
                                                                         pipelineReplicaMeter1,
-                                                                        generatorInvocationContext1::createInputTuples,
+                                                                        generatorInvocationCtx1::createInputTuples,
                                                                         new OperatorDef[] { generatorOperatorDef1 },
-                                                                        new InternalInvocationContext[] { generatorInvocationContext1 } );
+                                                                        new InternalInvocationCtx[] { generatorInvocationCtx1 } );
 
         final PipelineReplica pipeline1 = new PipelineReplica( pipelineReplicaId1,
                                                                new OperatorReplica[] { generatorOperator1 },
@@ -582,11 +569,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                pipelineReplicaMeter1 );
 
         pipeline1.init( new SchedulingStrategy[][] { { ScheduleWhenAvailable.INSTANCE } },
-                        new UpstreamContext[][] { { supervisor.upstreamContexts.get( pipelineReplicaId1 ) } } );
+                        new UpstreamCtx[][] { { supervisor.upstreamCtxes.get( pipelineReplicaId1 ) } } );
 
-        final OperatorConfig generatorOperatorConfig2 = new OperatorConfig();
-        generatorOperatorConfig2.set( "batchCount", batchCount );
-        generatorOperatorConfig2.set( "increment", false );
+        final OperatorConfig generatorOperatorConfig2 = new OperatorConfig().set( "batchCount", batchCount ).set( "increment", false );
         final OperatorDef generatorOperatorDef2 = OperatorDefBuilder.newInstance( "generator2", ValueGeneratorOperator.class )
                                                                     .setConfig( generatorOperatorConfig2 )
                                                                     .build();
@@ -595,9 +580,11 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
                                                                               generatorOperatorDef2.getInputPortCount() );
         final TupleQueueDrainerPool generatorDrainerPool2 = new NonBlockingTupleQueueDrainerPool( jokerConfig, generatorOperatorDef2 );
-        final DefaultInvocationContext generatorInvocationContext2 = new DefaultInvocationContext( generatorOperatorDef2.getInputPortCount(),
-                                                                                                   k -> null, new DefaultOutputCollector(
-                                                                                                           generatorOperatorDef2.getOutputPortCount() ) );
+        final DefaultInvocationCtx generatorInvocationCtx2 = new DefaultInvocationCtx( generatorOperatorDef2.getInputPortCount(),
+                                                                                       k -> null,
+                                                                                       new DefaultOutputCollector(
+                                                                                               generatorOperatorDef2.getOutputPortCount()
+                                                                                       ) );
 
         final PipelineReplicaMeter pipelineReplicaMeter2 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId2,
@@ -606,9 +593,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                         generatorOperatorQueue2,
                                                                         generatorDrainerPool2,
                                                                         pipelineReplicaMeter2,
-                                                                        generatorInvocationContext2::createInputTuples,
+                                                                        generatorInvocationCtx2::createInputTuples,
                                                                         new OperatorDef[] { generatorOperatorDef2 },
-                                                                        new InternalInvocationContext[] { generatorInvocationContext2 } );
+                                                                        new InternalInvocationCtx[] { generatorInvocationCtx2 } );
 
         final PipelineReplica pipeline2 = new PipelineReplica( pipelineReplicaId2,
                                                                new OperatorReplica[] { generatorOperator2 },
@@ -617,16 +604,15 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                pipelineReplicaMeter2 );
 
         pipeline2.init( new SchedulingStrategy[][] { { ScheduleWhenAvailable.INSTANCE } },
-                        new UpstreamContext[][] { { supervisor.upstreamContexts.get( pipelineReplicaId2 ) } } );
+                        new UpstreamCtx[][] { { supervisor.upstreamCtxes.get( pipelineReplicaId2 ) } } );
 
         final OperatorConfig sinkOperatorConfig = new OperatorConfig();
         final OperatorDef sinkOperatorDef = OperatorDefBuilder.newInstance( "sink", ValueSinkOperator.class )
                                                               .setConfig( sinkOperatorConfig )
                                                               .build();
 
-        final OperatorConfig passerOperatorConfig = new OperatorConfig();
         final int passerBatchCount = batchCount / 2;
-        passerOperatorConfig.set( "batchCount", passerBatchCount );
+        final OperatorConfig passerOperatorConfig = new OperatorConfig().set( "batchCount", passerBatchCount );
         final OperatorDef passerOperatorDef = OperatorDefBuilder.newInstance( "passer", ValuePasserOperator.class )
                                                                 .setConfig( passerOperatorConfig )
                                                                 .build();
@@ -645,35 +631,35 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                          MULTI_THREADED );
         final TupleQueueDrainerPool sinkDrainerPool = new BlockingTupleQueueDrainerPool( jokerConfig, sinkOperatorDef );
         final OperatorKVStore sinkOperatorKVStore = operatorKVStoreManager.createDefaultKVStore( REGION_ID, "sink" );
-        final DefaultInvocationContext sinkInvocationContext = new DefaultInvocationContext( sinkOperatorDef.getInputPortCount(),
-                                                                                             sinkOperatorKVStore::getKVStore,
-                                                                                             new DefaultOutputCollector(
-                                                                                                     sinkOperatorDef.getOutputPortCount()
-                                                                                             ) );
+        final DefaultInvocationCtx sinkInvocationCtx = new DefaultInvocationCtx( sinkOperatorDef.getInputPortCount(),
+                                                                                 sinkOperatorKVStore::getKVStore,
+                                                                                 new DefaultOutputCollector( sinkOperatorDef
+                                                                                                                     .getOutputPortCount
+                                                                                                                              () ) );
         final OperatorReplica sinkOperator = new OperatorReplica( pipelineReplicaId3,
                                                                   sinkOperatorQueue,
                                                                   sinkDrainerPool,
                                                                   pipelineReplicaMeter3,
-                                                                  sinkInvocationContext::createInputTuples,
+                                                                  sinkInvocationCtx::createInputTuples,
                                                                   new OperatorDef[] { sinkOperatorDef },
-                                                                  new InternalInvocationContext[] { sinkInvocationContext } );
+                                                                  new InternalInvocationCtx[] { sinkInvocationCtx } );
 
         final OperatorQueue passerOperatorQueue = operatorQueueManager.createDefaultQueue( REGION_ID,
                                                                                            passerOperatorDef,
                                                                                            REPLICA_INDEX,
                                                                                            SINGLE_THREADED );
         final TupleQueueDrainerPool passerDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, passerOperatorDef );
-        final DefaultInvocationContext passerInvocationContext = new DefaultInvocationContext( passerOperatorDef.getInputPortCount(),
-                                                                                               k -> null, new DefaultOutputCollector(
-                                                                                                       passerOperatorDef
-                                                                                                               .getOutputPortCount() ) );
+        final DefaultInvocationCtx passerInvocationCtx = new DefaultInvocationCtx( passerOperatorDef.getInputPortCount(),
+                                                                                   k -> null,
+                                                                                   new DefaultOutputCollector( passerOperatorDef
+                                                                                                                       .getOutputPortCount() ) );
         final OperatorReplica passerOperator = new OperatorReplica( pipelineReplicaId3,
                                                                     passerOperatorQueue,
                                                                     passerDrainerPool,
                                                                     pipelineReplicaMeter3,
-                                                                    passerInvocationContext::createInputTuples,
+                                                                    passerInvocationCtx::createInputTuples,
                                                                     new OperatorDef[] { passerOperatorDef },
-                                                                    new InternalInvocationContext[] { passerInvocationContext } );
+                                                                    new InternalInvocationCtx[] { passerInvocationCtx } );
         final PartitionDistribution partitionDistribution = partitionService.createPartitionDistribution( REGION_ID, 1 );
         final OperatorKVStore[] operatorKvStores = operatorKVStoreManager.createPartitionedKVStores( REGION_ID, "state",
 
@@ -683,18 +669,18 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                                   partitionDistribution );
         final OperatorQueue stateOperatorQueue = stateOperatorQueues[ 0 ];
         final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, stateOperatorDef );
-        final DefaultInvocationContext stateInvocationContext = new DefaultInvocationContext( stateOperatorDef.getInputPortCount(),
-                                                                                              operatorKvStores[ 0 ]::getKVStore,
-                                                                                              new DefaultOutputCollector(
-                                                                                                      stateOperatorDef.getOutputPortCount
+        final DefaultInvocationCtx stateInvocationCtx = new DefaultInvocationCtx( stateOperatorDef.getInputPortCount(),
+                                                                                  operatorKvStores[ 0 ]::getKVStore,
+                                                                                  new DefaultOutputCollector( stateOperatorDef
+                                                                                                                      .getOutputPortCount
                                                                                                                                () ) );
         final OperatorReplica stateOperator = new OperatorReplica( pipelineReplicaId3,
                                                                    stateOperatorQueue,
                                                                    stateDrainerPool,
                                                                    pipelineReplicaMeter3,
-                                                                   stateInvocationContext::createInputTuples,
+                                                                   stateInvocationCtx::createInputTuples,
                                                                    new OperatorDef[] { stateOperatorDef },
-                                                                   new InternalInvocationContext[] { stateInvocationContext } );
+                                                                   new InternalInvocationCtx[] { stateInvocationCtx } );
 
         final PipelineReplica pipeline3 = new PipelineReplica( pipelineReplicaId3,
                                                                new OperatorReplica[] { sinkOperator, passerOperator, stateOperator },
@@ -704,21 +690,21 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         pipeline3.init( new SchedulingStrategy[][] { { scheduleWhenTuplesAvailableOnAny( AT_LEAST, 2, 1, 0, 1 ) },
                                                      { scheduleWhenTuplesAvailableOnDefaultPort( EXACT, passerBatchCount ) },
                                                      { scheduleWhenTuplesAvailableOnDefaultPort( EXACT, 1 ) } },
-                        new UpstreamContext[][] { { supervisor.upstreamContexts.get( pipelineReplicaId3 ) },
-                                                  { newInitialUpstreamContextWithAllPortsConnected( 1 ) },
-                                                  { newInitialUpstreamContextWithAllPortsConnected( 1 ) } } );
+                        new UpstreamCtx[][] { { supervisor.upstreamCtxes.get( pipelineReplicaId3 ) },
+                                              { createInitialClosedUpstreamCtx( 1 ) },
+                                              { createInitialClosedUpstreamCtx( 1 ) } } );
 
-        final DownstreamCollectorImpl sender1 = new DownstreamCollectorImpl( sinkOperatorQueue, new Pair[] { Pair.of( 0, 0 ) } );
-        final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig, pipeline1, supervisor, sender1 );
-        supervisor.downstreamCollectors.put( pipeline1.id(), sender1 );
+        final DownstreamCollectorImpl collector1 = new DownstreamCollectorImpl( sinkOperatorQueue, new Pair[] { Pair.of( 0, 0 ) } );
+        final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig, pipeline1, supervisor, collector1 );
+        supervisor.downstreamCollectors.put( pipeline1.id(), collector1 );
 
-        final DownstreamCollectorImpl sender2 = new DownstreamCollectorImpl( sinkOperatorQueue, new Pair[] { Pair.of( 0, 1 ) } );
-        final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( jokerConfig, pipeline2, supervisor, sender2 );
-        supervisor.downstreamCollectors.put( pipeline2.id(), sender2 );
+        final DownstreamCollectorImpl collector2 = new DownstreamCollectorImpl( sinkOperatorQueue, new Pair[] { Pair.of( 0, 1 ) } );
+        final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( jokerConfig, pipeline2, supervisor, collector2 );
+        supervisor.downstreamCollectors.put( pipeline2.id(), collector2 );
 
-        final DownstreamCollectorImpl sender3 = new DownstreamCollectorImpl( null, new Pair[] {} );
-        final PipelineReplicaRunner runner3 = new PipelineReplicaRunner( jokerConfig, pipeline3, supervisor, sender3 );
-        supervisor.downstreamCollectors.put( pipeline3.id(), sender3 );
+        final DownstreamCollectorImpl collector3 = new DownstreamCollectorImpl( null, new Pair[] {} );
+        final PipelineReplicaRunner runner3 = new PipelineReplicaRunner( jokerConfig, pipeline3, supervisor, collector3 );
+        supervisor.downstreamCollectors.put( pipeline3.id(), collector3 );
 
         supervisor.targetPipelineReplicaId = pipelineReplicaId3;
         supervisor.runner = runner3;
@@ -733,13 +719,13 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final ValueGeneratorOperator generatorOp2 = (ValueGeneratorOperator) generatorOperator2.getOperator( 0 );
 
         assertTrueEventually( () -> assertTrue( generatorOp1.count > 5000 ) );
-        supervisor.upstreamContexts.put( pipelineReplicaId1, newSourceOperatorShutdownUpstreamContext() );
-        runner1.updatePipelineUpstreamContext();
+        supervisor.upstreamCtxes.put( pipelineReplicaId1, createSourceOperatorShutdownUpstreamCtx() );
+        runner1.updatePipelineUpstreamCtx();
 
         generatorOp2.start = true;
         assertTrueEventually( () -> assertTrue( generatorOp2.count < -5000 ) );
-        supervisor.upstreamContexts.put( pipelineReplicaId2, newSourceOperatorShutdownUpstreamContext() );
-        runner2.updatePipelineUpstreamContext();
+        supervisor.upstreamCtxes.put( pipelineReplicaId2, createSourceOperatorShutdownUpstreamCtx() );
+        runner2.updatePipelineUpstreamCtx();
 
         assertTrueEventually( () -> assertTrue( supervisor.completedPipelines.contains( pipelineReplicaId1 ) ) );
         assertTrueEventually( () -> assertTrue( supervisor.completedPipelines.contains( pipelineReplicaId2 ) ) );
@@ -762,21 +748,19 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     public void testMultiplePipelines_partitionedStatefulDownstreamPipeline () throws InterruptedException
     {
         final SupervisorImpl supervisor = new SupervisorImpl();
-        supervisor.upstreamContexts.put( pipelineReplicaId1, newSourceOperatorInitialUpstreamContext() );
-        supervisor.upstreamContexts.put( pipelineReplicaId2, newInitialUpstreamContextWithAllPortsConnected( 1 ) );
+        supervisor.upstreamCtxes.put( pipelineReplicaId1, createSourceOperatorInitialUpstreamCtx() );
+        supervisor.upstreamCtxes.put( pipelineReplicaId2, createInitialClosedUpstreamCtx( 1 ) );
         supervisor.inputPortIndices.put( pipelineReplicaId1, 0 );
         supervisor.inputPortIndices.put( pipelineReplicaId2, 0 );
 
         final int batchCount = 4;
-        final OperatorConfig generatorOperatorConfig = new OperatorConfig();
-        generatorOperatorConfig.set( "batchCount", batchCount );
+        final OperatorConfig generatorOperatorConfig = new OperatorConfig().set( "batchCount", batchCount );
         final OperatorDef generatorOperatorDef = OperatorDefBuilder.newInstance( "generator", ValueGeneratorOperator.class )
                                                                    .setConfig( generatorOperatorConfig )
                                                                    .build();
 
-        final OperatorConfig passerOperatorConfig = new OperatorConfig();
         final int passerBatchCount = batchCount / 2;
-        passerOperatorConfig.set( "batchCount", passerBatchCount );
+        final OperatorConfig passerOperatorConfig = new OperatorConfig().set( "batchCount", passerBatchCount );
         final OperatorDef passerOperatorDef = OperatorDefBuilder.newInstance( "passer", ValuePasserOperator.class )
                                                                 .setConfig( passerOperatorConfig )
                                                                 .build();
@@ -787,19 +771,19 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final OperatorQueue generatorOperatorQueue = new EmptyOperatorQueue( generatorOperatorDef.getId(),
                                                                              generatorOperatorDef.getInputPortCount() );
-        final DefaultInvocationContext generatorInvocationContext = new DefaultInvocationContext( generatorOperatorDef.getInputPortCount(),
-                                                                                                  k -> null, new DefaultOutputCollector(
-                                                                                                          generatorOperatorDef
-                                                                                                                  .getOutputPortCount() ) );
+        final DefaultInvocationCtx generatorInvocationCtx = new DefaultInvocationCtx( generatorOperatorDef.getInputPortCount(),
+                                                                                      k -> null,
+                                                                                      new DefaultOutputCollector( generatorOperatorDef
+                                                                                                                          .getOutputPortCount() ) );
         final TupleQueueDrainerPool generatorDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, generatorOperatorDef );
 
         final OperatorReplica generatorOperator = new OperatorReplica( pipelineReplicaId1,
                                                                        generatorOperatorQueue,
                                                                        generatorDrainerPool,
                                                                        pipelineReplicaMeter1,
-                                                                       generatorInvocationContext::createInputTuples,
+                                                                       generatorInvocationCtx::createInputTuples,
                                                                        new OperatorDef[] { generatorOperatorDef },
-                                                                       new InternalInvocationContext[] { generatorInvocationContext } );
+                                                                       new InternalInvocationCtx[] { generatorInvocationCtx } );
 
         final OperatorQueue passerOperatorQueue = operatorQueueManager.createDefaultQueue( REGION_ID,
                                                                                            passerOperatorDef,
@@ -807,18 +791,18 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                            SINGLE_THREADED );
 
         final TupleQueueDrainerPool passerDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, passerOperatorDef );
-        final DefaultInvocationContext passerInvocationContext = new DefaultInvocationContext( passerOperatorDef.getInputPortCount(),
-                                                                                               k -> null, new DefaultOutputCollector(
-                                                                                                       passerOperatorDef
-                                                                                                               .getOutputPortCount() ) );
+        final DefaultInvocationCtx passerInvocationCtx = new DefaultInvocationCtx( passerOperatorDef.getInputPortCount(),
+                                                                                   k -> null,
+                                                                                   new DefaultOutputCollector( passerOperatorDef
+                                                                                                                       .getOutputPortCount() ) );
 
         final OperatorReplica passerOperator = new OperatorReplica( pipelineReplicaId1,
                                                                     passerOperatorQueue,
                                                                     passerDrainerPool,
                                                                     pipelineReplicaMeter1,
-                                                                    passerInvocationContext::createInputTuples,
+                                                                    passerInvocationCtx::createInputTuples,
                                                                     new OperatorDef[] { passerOperatorDef },
-                                                                    new InternalInvocationContext[] { passerInvocationContext } );
+                                                                    new InternalInvocationCtx[] { passerInvocationCtx } );
 
         final PartitionDistribution partitionDistribution = partitionService.createPartitionDistribution( REGION_ID, 1 );
         final OperatorKVStore[] operatorKvStores = operatorKVStoreManager.createPartitionedKVStores( REGION_ID,
@@ -840,18 +824,18 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                      pipelineReplicaId2,
                                                                                      stateOperatorDef );
 
-        final DefaultInvocationContext stateInvocationContext = new DefaultInvocationContext( stateOperatorDef.getInputPortCount(),
-                                                                                              operatorKvStores[ 0 ]::getKVStore,
-                                                                                              new DefaultOutputCollector(
-                                                                                                      stateOperatorDef.getOutputPortCount
+        final DefaultInvocationCtx stateInvocationCtx = new DefaultInvocationCtx( stateOperatorDef.getInputPortCount(),
+                                                                                  operatorKvStores[ 0 ]::getKVStore,
+                                                                                  new DefaultOutputCollector( stateOperatorDef
+                                                                                                                      .getOutputPortCount
                                                                                                                                () ) );
         final OperatorReplica stateOperator = new OperatorReplica( pipelineReplicaId2,
                                                                    stateOperatorQueue,
                                                                    stateDrainerPool,
                                                                    pipelineReplicaMeter2,
-                                                                   stateInvocationContext::createInputTuples,
+                                                                   stateInvocationCtx::createInputTuples,
                                                                    new OperatorDef[] { stateOperatorDef },
-                                                                   new InternalInvocationContext[] { stateInvocationContext } );
+                                                                   new InternalInvocationCtx[] { stateInvocationCtx } );
 
         final PipelineReplica pipeline1 = new PipelineReplica( pipelineReplicaId1,
                                                                new OperatorReplica[] { generatorOperator, passerOperator },
@@ -861,8 +845,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         pipeline1.init( new SchedulingStrategy[][] { { ScheduleWhenAvailable.INSTANCE },
                                                      { scheduleWhenTuplesAvailableOnDefaultPort( EXACT, passerBatchCount ) } },
-                        new UpstreamContext[][] { { supervisor.upstreamContexts.get( pipelineReplicaId1 ) },
-                                                  { newInitialUpstreamContextWithAllPortsConnected( 1 ) } } );
+                        new UpstreamCtx[][] { { supervisor.upstreamCtxes.get( pipelineReplicaId1 ) },
+                                              { createInitialClosedUpstreamCtx( 1 ) } } );
 
         final PipelineReplica pipeline2 = new PipelineReplica( pipelineReplicaId2,
                                                                new OperatorReplica[] { stateOperator },
@@ -873,12 +857,12 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                pipelineReplicaMeter2 );
 
         pipeline2.init( new SchedulingStrategy[][] { { scheduleWhenTuplesAvailableOnDefaultPort( EXACT, 1 ) } },
-                        new UpstreamContext[][] { { supervisor.upstreamContexts.get( pipelineReplicaId2 ) } } );
+                        new UpstreamCtx[][] { { supervisor.upstreamCtxes.get( pipelineReplicaId2 ) } } );
 
-        final DownstreamCollectorImpl sender1 = new DownstreamCollectorImpl( pipeline2.getEffectiveQueue(),
-                                                                             new Pair[] { Pair.of( 0, 0 ) } );
-        supervisor.downstreamCollectors.put( pipeline1.id(), sender1 );
-        final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig, pipeline1, supervisor, sender1 );
+        final DownstreamCollectorImpl collector1 = new DownstreamCollectorImpl( pipeline2.getEffectiveQueue(),
+                                                                                new Pair[] { Pair.of( 0, 0 ) } );
+        supervisor.downstreamCollectors.put( pipeline1.id(), collector1 );
+        final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig, pipeline1, supervisor, collector1 );
 
         final DownstreamCollector collector2 = mock( DownstreamCollector.class );
         final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( jokerConfig, pipeline2, supervisor, collector2 );
@@ -895,8 +879,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         assertTrueEventually( () -> assertTrue( generatorOp.count > 1000 ) );
 
-        supervisor.upstreamContexts.put( pipelineReplicaId1, newSourceOperatorShutdownUpstreamContext() );
-        runner1.updatePipelineUpstreamContext();
+        supervisor.upstreamCtxes.put( pipelineReplicaId1, createSourceOperatorShutdownUpstreamCtx() );
+        runner1.updatePipelineUpstreamCtx();
 
         assertTrueEventually( () -> assertTrue( supervisor.completedPipelines.contains( pipelineReplicaId1 ) ) );
         assertTrueEventually( () -> assertTrue( supervisor.completedPipelines.contains( pipelineReplicaId2 ) ) );
@@ -958,16 +942,37 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     {
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             return scheduleWhenTuplesAvailableOnAny( AT_LEAST, 2, 1, 0, 1 );
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
-            ctx.output( ctx.getInputTuples( 0 ) );
-            ctx.output( ctx.getInputTuples( 1 ) );
+            final List<Tuple> tuples0 = ctx.getInputTuples( 0 );
+            final List<Tuple> tuples1 = ctx.getInputTuples( 1 );
+            final int c = Math.min( tuples0.size(), tuples1.size() );
+
+            for ( int i = 0; i < c; i++ )
+            {
+                final Tuple t0 = tuples0.get( i ).copyForAttachment();
+                t0.attach( tuples1.get( i ) );
+                ctx.output( t0 );
+                final Tuple t1 = tuples1.get( i ).copyForAttachment();
+                t1.attach( tuples0.get( i ) );
+                ctx.output( t1 );
+            }
+
+            for ( int i = c; i < tuples0.size(); i++ )
+            {
+                ctx.output( tuples0.get( i ) );
+            }
+
+            for ( int i = c; i < tuples1.size(); i++ )
+            {
+                ctx.output( tuples1.get( i ) );
+            }
         }
 
     }
@@ -987,7 +992,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         private boolean increment;
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             final OperatorConfig config = ctx.getConfig();
             batchCount = config.getInteger( "batchCount" );
@@ -997,16 +1002,14 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
             if ( start )
             {
                 for ( int i = 0; i < batchCount; i++ )
                 {
                     final int val = increment ? ++count : --count;
-                    final Tuple t = new Tuple();
-                    t.set( "val", val );
-                    ctx.output( t );
+                    ctx.output( Tuple.of( "val", val ) );
                 }
             }
             else
@@ -1027,23 +1030,24 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         private volatile int count;
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext ctx )
+        public SchedulingStrategy init ( final InitCtx ctx )
         {
             final int batchCount = ctx.getConfig().getInteger( "batchCount" );
             return scheduleWhenTuplesAvailableOnDefaultPort( EXACT, batchCount );
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
-            ctx.output( ctx.getInputTuplesByDefaultPort() );
-            count += ctx.getInputTupleCount( 0 );
+            final List<Tuple> tuples = ctx.getInputTuples( 0 );
+            ctx.output( tuples );
+            count += tuples.size();
         }
 
     }
 
 
-    @OperatorSpec( type = PARTITIONED_STATEFUL, inputPortCount = 1, outputPortCount = 1 )
+    @OperatorSpec( type = PARTITIONED_STATEFUL, inputPortCount = 1, outputPortCount = 0 )
     @OperatorSchema( inputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = "val", type = Integer.class ) } ) } )
     public static class ValueStateOperator implements Operator
     {
@@ -1051,13 +1055,13 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         private volatile int count;
 
         @Override
-        public SchedulingStrategy init ( final InitializationContext context )
+        public SchedulingStrategy init ( final InitCtx context )
         {
             return scheduleWhenTuplesAvailableOnDefaultPort( EXACT, 1 );
         }
 
         @Override
-        public void invoke ( final InvocationContext ctx )
+        public void invoke ( final InvocationCtx ctx )
         {
             final KVStore kvStore = ctx.getKVStore();
             for ( Tuple tuple : ctx.getInputTuplesByDefaultPort() )
@@ -1123,7 +1127,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     public static class SupervisorImpl implements Supervisor
     {
 
-        private final Map<PipelineReplicaId, UpstreamContext> upstreamContexts = new ConcurrentHashMap<>();
+        private final Map<PipelineReplicaId, UpstreamCtx> upstreamCtxes = new ConcurrentHashMap<>();
 
         private final Map<PipelineReplicaId, DownstreamCollector> downstreamCollectors = new ConcurrentHashMap<>();
 
@@ -1136,9 +1140,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         private PipelineReplicaRunner runner;
 
         @Override
-        public UpstreamContext getUpstreamContext ( final PipelineReplicaId id )
+        public UpstreamCtx getUpstreamCtx ( final PipelineReplicaId id )
         {
-            return upstreamContexts.get( id );
+            return upstreamCtxes.get( id );
         }
 
         @Override
@@ -1153,10 +1157,10 @@ public class PipelineIntegrationTest extends AbstractJokerTest
             assertTrue( completedPipelines.add( id ) );
             if ( !id.equals( targetPipelineReplicaId ) )
             {
-                final UpstreamContext currentUpstreamContext = upstreamContexts.get( targetPipelineReplicaId );
-                final UpstreamContext newUpstreamContext = currentUpstreamContext.withConnectionClosed( inputPortIndices.get( id ) );
-                upstreamContexts.put( targetPipelineReplicaId, newUpstreamContext );
-                runner.updatePipelineUpstreamContext();
+                final UpstreamCtx currentUpstreamCtx = upstreamCtxes.get( targetPipelineReplicaId );
+                final UpstreamCtx newUpstreamCtx = currentUpstreamCtx.withConnectionClosed( inputPortIndices.get( id ) );
+                upstreamCtxes.put( targetPipelineReplicaId, newUpstreamCtx );
+                runner.updatePipelineUpstreamCtx();
             }
         }
 

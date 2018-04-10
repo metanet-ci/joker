@@ -40,14 +40,14 @@ public class PipelineReplicaMeter
         return pipelineReplicaId;
     }
 
-    public void tick ()
+    public void tryTick ()
     {
         if ( ticker.isTicked() )
         {
             casOrFail( pipelineReplicaId, null );
         }
 
-        if ( ticker.tick() )
+        if ( ticker.tryTick() )
         {
             casOrFail( null, pipelineReplicaId );
         }
@@ -88,7 +88,7 @@ public class PipelineReplicaMeter
         }
     }
 
-    public void addTuples ( final String operatorId, final TuplesImpl tuples )
+    public void count ( final String operatorId, final TuplesImpl tuples )
     {
         checkNotNull( operatorId );
         checkNotNull( tuples );
@@ -104,7 +104,7 @@ public class PipelineReplicaMeter
         }
     }
 
-    public void addTuples ( final String operatorId, final List<TuplesImpl> tuplesList, final int count )
+    public void count ( final String operatorId, final List<TuplesImpl> tuplesList, final int count )
     {
         checkNotNull( operatorId );
         checkNotNull( tuplesList );
@@ -159,7 +159,7 @@ public class PipelineReplicaMeter
             this.tickMask = tickMask;
         }
 
-        boolean tick ()
+        boolean tryTick ()
         {
             return ( this.ticked = ( ( ++count & tickMask ) == 0 ) );
         }
