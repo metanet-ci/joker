@@ -32,6 +32,9 @@ import static cs.bilkent.joker.operator.InvocationCtx.InvocationReason.SUCCESS;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
+import static cs.bilkent.joker.operator.TupleAccessor.getIngestionTime;
+import static cs.bilkent.joker.operator.TupleAccessor.overwriteIngestionTime;
+import cs.bilkent.joker.operator.impl.DefaultInvocationCtx;
 import cs.bilkent.joker.operator.impl.InitCtxImpl;
 import cs.bilkent.joker.operator.impl.InternalInvocationCtx;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -72,7 +75,7 @@ public class OperatorReplica
 
     private final PipelineReplicaMeter meter;
 
-    private final InternalInvocationCtx invocationCtx;
+    private final DefaultInvocationCtx invocationCtx;
 
     private final InternalInvocationCtx[] fusedInvocationCtxes;
 
@@ -97,6 +100,8 @@ public class OperatorReplica
     private Operator[] fusedOperators;
 
     private SchedulingStrategy schedulingStrategy;
+
+    private int[] minTupleCounts;
 
 
     private OperatorReplicaListener listener = ( operatorId, status1 ) -> {
@@ -130,7 +135,7 @@ public class OperatorReplica
             arraycopy( operatorDefs, 1, this.fusedOperatorDefs, 0, fusedOperatorCount );
         }
         this.fusedOperators = new Operator[ fusedOperatorCount ];
-        this.invocationCtx = invocationCtxes[ 0 ];
+        this.invocationCtx = (DefaultInvocationCtx) invocationCtxes[ 0 ];
         this.fusedInvocationCtxes = new InternalInvocationCtx[ fusedOperatorCount ];
         if ( fusedOperatorCount > 0 )
         {
@@ -427,6 +432,7 @@ public class OperatorReplica
 
     private void invokeOperators ( final InvocationReason reason )
     {
+        overwriteIngestionTimes();
         invokeOperator( operatorDef, reason, invocationCtx, operator );
 
         for ( int i = 0; i < fusedOperators.length; i++ )
@@ -438,6 +444,27 @@ public class OperatorReplica
             }
 
             invokeOperator( fusedOperatorDefs[ i ], reason, invocationCtx, fusedOperators[ i ] );
+        }
+    }
+
+    private void overwriteIngestionTimes ()
+    {
+        for ( int i = 0; i < invocationCtx.getInputCount(); i++ )
+        {
+            final TuplesImpl input = invocationCtx.getInput( i );
+            for ( int j = 0; j < operatorDef.getInputPortCount(); j++ )
+            {
+                final List<Tuple> tuples = input.getTuplesModifiable( j );
+                if ( tuples.size() >= minTupleCounts[ j ] )
+                {
+                    final int reqIdx = minTupleCounts[ j ] - 1;
+                    final long ingestionTime = getIngestionTime( tuples.get( reqIdx ) );
+                    for ( int k = 0; k < reqIdx; k++ )
+                    {
+                        overwriteIngestionTime( tuples.get( k ), ingestionTime );
+                    }
+                }
+            }
         }
     }
 
@@ -463,6 +490,16 @@ public class OperatorReplica
         checkArgument( schedulingStrategy != null );
         LOGGER.info( "{} setting new scheduling strategy: {}", operatorName, schedulingStrategy );
         this.schedulingStrategy = schedulingStrategy;
+        if ( schedulingStrategy instanceof ScheduleWhenTuplesAvailable )
+        {
+            minTupleCounts = new int[ operatorDef.getInputPortCount() ];
+            final ScheduleWhenTuplesAvailable s = (ScheduleWhenTuplesAvailable) schedulingStrategy;
+            System.arraycopy( s.getTupleCounts(), 0, minTupleCounts, 0, operatorDef.getInputPortCount() );
+        }
+        else
+        {
+            minTupleCounts = new int[ operatorDef.getInputPortCount() ];
+        }
     }
 
     /**
@@ -568,7 +605,9 @@ public class OperatorReplica
 
     public OperatorReplica duplicate ( final PipelineReplicaId pipelineReplicaId,
                                        final PipelineReplicaMeter meter,
-                                       final OperatorQueue queue, final TupleQueueDrainerPool drainerPool, final UpstreamCtx downstreamCtx )
+                                       final OperatorQueue queue,
+                                       final TupleQueueDrainerPool drainerPool,
+                                       final UpstreamCtx downstreamCtx )
     {
         checkState( this.status == RUNNING,
                     "cannot duplicate %s to %s because status is %s",
@@ -580,9 +619,15 @@ public class OperatorReplica
                                     queue,
                                     drainerPool,
                                     meter,
-                                    this.drainerTuplesSupplier, getOperatorDefs(), getInvocationCtxes(),
+                                    this.drainerTuplesSupplier,
+                                    getOperatorDefs(),
+                                    getInvocationCtxes(),
                                     this.schedulingStrategy,
-                                    this.operator, this.fusedOperators, this.upstreamCtx, this.fusedUpstreamCtxes, downstreamCtx );
+                                    this.operator,
+                                    this.fusedOperators,
+                                    this.upstreamCtx,
+                                    this.fusedUpstreamCtxes,
+                                    downstreamCtx );
     }
 
     public static OperatorReplica newRunningInstance ( final PipelineReplicaId pipelineReplicaId,
@@ -607,9 +652,15 @@ public class OperatorReplica
                                     queue,
                                     drainerPool,
                                     meter,
-                                    drainerTuplesSupplier, operatorDefs, invocationCtxes,
+                                    drainerTuplesSupplier,
+                                    operatorDefs,
+                                    invocationCtxes,
                                     schedulingStrategy,
-                                    operators[ 0 ], fusedOperators, upstreamCtxes[ 0 ], fusedUpstreamCtxes, downstreamCtx );
+                                    operators[ 0 ],
+                                    fusedOperators,
+                                    upstreamCtxes[ 0 ],
+                                    fusedUpstreamCtxes,
+                                    downstreamCtx );
     }
 
     void setOperatorReplicaListener ( final OperatorReplicaListener listener )

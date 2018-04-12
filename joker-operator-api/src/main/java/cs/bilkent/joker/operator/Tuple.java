@@ -405,15 +405,9 @@ public final class Tuple implements Fields<String>
         this.ingestionTime = ingestionTime;
     }
 
-    boolean overwriteIngestionTime ( final long ingestionTime )
+    void overwriteIngestionTime ( final long ingestionTime )
     {
-        if ( ingestionTime == INGESTION_TIME_NA )
-        {
-            return false;
-        }
-
         this.ingestionTime = ingestionTime;
-        return true;
     }
 
     long getIngestionTime ()

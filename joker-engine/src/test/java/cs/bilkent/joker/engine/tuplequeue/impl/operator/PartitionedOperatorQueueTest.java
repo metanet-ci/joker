@@ -17,10 +17,8 @@ import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.T
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ANY_PORT;
 import cs.bilkent.joker.partition.impl.PartitionKey;
 import cs.bilkent.joker.test.AbstractJokerTest;
-import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class PartitionedOperatorQueueTest extends AbstractJokerTest
 {
@@ -86,14 +84,9 @@ public class PartitionedOperatorQueueTest extends AbstractJokerTest
         operatorQueue.drain( drainer, tuplesSupplier );
 
         assertEquals( 3, results.size() );
-
-        List<Tuple> tuples = new ArrayList<>( asList( tuple1, tuple2, tuple3 ) );
-        for ( TuplesImpl result : results )
-        {
-            tuples.remove( result.getTupleOrFail( 0, 0 ) );
-        }
-
-        assertTrue( tuples.isEmpty() );
+        assertEquals( tuple1, results.get( 0 ).getTupleOrFail( 0, 0 ) );
+        assertEquals( tuple2, results.get( 1 ).getTupleOrFail( 0, 0 ) );
+        assertEquals( tuple3, results.get( 2 ).getTupleOrFail( 0, 0 ) );
     }
 
     @Test
@@ -101,7 +94,7 @@ public class PartitionedOperatorQueueTest extends AbstractJokerTest
     {
         final Tuple tuple1 = Tuple.of( PARTITION_KEY_FIELD, "key1" );
         operatorQueue.offer( 0, singletonList( tuple1 ) );
-        final Tuple tuple2 = Tuple.of( PARTITION_KEY_FIELD, "key1" );
+        final Tuple tuple2 = Tuple.of( PARTITION_KEY_FIELD, "key2" );
         operatorQueue.offer( 0, singletonList( tuple2 ) );
         final Tuple tuple3 = Tuple.of( PARTITION_KEY_FIELD, "key1" );
         operatorQueue.offer( 0, singletonList( tuple3 ) );
@@ -116,18 +109,12 @@ public class PartitionedOperatorQueueTest extends AbstractJokerTest
             return tuples;
         };
 
-        operatorQueue.setTupleCounts( new int[] { 1, 1 }, ANY_PORT );
         operatorQueue.drain( drainer, tuplesSupplier );
 
         assertEquals( 3, results.size() );
-
-        List<Tuple> tuples = new ArrayList<>( asList( tuple1, tuple2, tuple3 ) );
-        for ( TuplesImpl result : results )
-        {
-            tuples.remove( result.getTupleOrFail( 0, 0 ) );
-        }
-
-        assertTrue( tuples.isEmpty() );
+        assertEquals( tuple1, results.get( 0 ).getTupleOrFail( 0, 0 ) );
+        assertEquals( tuple3, results.get( 1 ).getTupleOrFail( 0, 0 ) );
+        assertEquals( tuple2, results.get( 2 ).getTupleOrFail( 0, 0 ) );
     }
 
     @Test

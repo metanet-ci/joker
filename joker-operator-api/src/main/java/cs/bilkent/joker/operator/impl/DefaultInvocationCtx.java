@@ -192,4 +192,9 @@ public class DefaultInvocationCtx implements InternalInvocationCtx
 
     // InvocationContext methods end
 
+    public TuplesImpl getInput ( final int i )
+    {
+        return inputs.get( i );
+    }
+
 }

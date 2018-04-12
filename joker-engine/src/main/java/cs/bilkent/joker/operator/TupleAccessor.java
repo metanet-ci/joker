@@ -1,10 +1,11 @@
 package cs.bilkent.joker.operator;
 
 import cs.bilkent.joker.engine.metric.LatencyMeter;
-import static cs.bilkent.joker.operator.Tuple.INGESTION_TIME_NA;
 
 public final class TupleAccessor
 {
+
+    public static final long INGESTION_TIME_NA = Tuple.INGESTION_TIME_NA;
 
     private TupleAccessor ()
     {
@@ -38,6 +39,11 @@ public final class TupleAccessor
     public static long getIngestionTime ( final Tuple tuple )
     {
         return tuple.getIngestionTime();
+    }
+
+    public static void overwriteIngestionTime ( final Tuple tuple, final long ingestionTime )
+    {
+        tuple.overwriteIngestionTime( ingestionTime );
     }
 
 }

@@ -28,7 +28,7 @@ import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.T
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ANY_PORT;
 import cs.bilkent.joker.partition.impl.PartitionKey;
 import gnu.trove.map.hash.THashMap;
-import gnu.trove.set.hash.THashSet;
+import gnu.trove.set.hash.TLinkedHashSet;
 
 
 public class PartitionedOperatorQueue implements OperatorQueue
@@ -53,7 +53,7 @@ public class PartitionedOperatorQueue implements OperatorQueue
 
     private final Map<PartitionKey, TupleQueue[]> tupleQueuesByKeys;
 
-    private final Set<PartitionKey> drainableKeys = new THashSet<>();
+    private final Set<PartitionKey> drainableKeys = new TLinkedHashSet<>();
 
     private int[] tupleCounts;
 

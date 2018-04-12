@@ -9,8 +9,6 @@ import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.lang.System.nanoTime;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.junit.rules.ExpectedException.none;
 
 public class TupleIngestionTimeTest extends AbstractJokerTest
@@ -99,14 +97,14 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
     }
 
     @Test
-    public void when_naIngestionTimeIsProvided_then_ingestionTimeNotOverwritten ()
+    public void when_naIngestionTimeIsProvided_then_ingestionTimeOverwritten ()
     {
         final Tuple tuple = new Tuple();
-        final long t = System.nanoTime();
+        final long t = 1;
         tuple.setIngestionTime( t );
-        final boolean success = tuple.overwriteIngestionTime( INGESTION_TIME_NA );
-        assertFalse( success );
-        assertThat( tuple.getIngestionTime(), equalTo( t ) );
+        tuple.overwriteIngestionTime( INGESTION_TIME_NA );
+
+        assertThat( tuple.getIngestionTime(), equalTo( INGESTION_TIME_NA ) );
     }
 
     @Test
@@ -116,8 +114,8 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
         final long t1 = System.nanoTime();
         final long t2 = t1 + 100;
         tuple.setIngestionTime( t2 );
-        final boolean success = tuple.overwriteIngestionTime( t1 );
-        assertTrue( success );
+        tuple.overwriteIngestionTime( t1 );
+
         assertThat( tuple.getIngestionTime(), equalTo( t1 ) );
     }
 
