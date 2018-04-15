@@ -32,11 +32,11 @@ import static cs.bilkent.joker.operator.InvocationCtx.InvocationReason.SUCCESS;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
-import static cs.bilkent.joker.operator.TupleAccessor.getIngestionTime;
 import static cs.bilkent.joker.operator.TupleAccessor.overwriteIngestionTime;
 import cs.bilkent.joker.operator.impl.DefaultInvocationCtx;
 import cs.bilkent.joker.operator.impl.InitCtxImpl;
 import cs.bilkent.joker.operator.impl.InternalInvocationCtx;
+import cs.bilkent.joker.operator.impl.OutputCollector;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleNever;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
@@ -458,10 +458,10 @@ public class OperatorReplica
                 if ( tuples.size() >= minTupleCounts[ j ] )
                 {
                     final int reqIdx = minTupleCounts[ j ] - 1;
-                    final long ingestionTime = getIngestionTime( tuples.get( reqIdx ) );
+                    final Tuple source = tuples.get( reqIdx );
                     for ( int k = 0; k < reqIdx; k++ )
                     {
-                        overwriteIngestionTime( tuples.get( k ), ingestionTime );
+                        overwriteIngestionTime( tuples.get( k ), source );
                     }
                 }
             }
@@ -473,13 +473,17 @@ public class OperatorReplica
     {
         invocationCtx.setInvocationReason( reason );
         meter.onInvocationStart( operatorDef.getId() );
+        final long start = System.nanoTime();
         do
         {
             operator.invoke( invocationCtx );
         } while ( invocationCtx.nextInput() );
+        final long end = System.nanoTime();
         meter.onInvocationComplete( operatorDef.getId() );
 
         meter.count( operatorDef.getId(), invocationCtx.getInputs(), invocationCtx.getInputCount() );
+        final OutputCollector outputCollector = invocationCtx.getOutputCollector();
+        outputCollector.recordInvocationLatency( operatorDef.getId(), ( end - start ) );
     }
 
     /**

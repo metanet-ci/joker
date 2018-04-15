@@ -36,7 +36,7 @@ import cs.bilkent.joker.operator.spec.OperatorType;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
-import cs.bilkent.joker.utils.Pair;
+import cs.bilkent.joker.operator.utils.Pair;
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toList;
 

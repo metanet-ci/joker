@@ -10,9 +10,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerCommandType.PAUSE;
+import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerCommandType.REFRESH;
 import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerCommandType.RESUME;
 import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerCommandType.STOP;
-import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerCommandType.UPDATE_PIPELINE_UPSTREAM_CONTEXT;
 import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.COMPLETED;
 import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.PAUSED;
 import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineReplicaRunnerStatus.RUNNING;
@@ -110,14 +110,14 @@ public class PipelineReplicaRunner implements Runnable
                     this.command = null;
                     result = CompletableFuture.completedFuture( TRUE );
                 }
-                else if ( type == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
+                else if ( type == REFRESH )
                 {
                     checkState( status == PAUSED || status == RUNNING,
                                 "Pipeline %s cannot be paused since its status is %s and pending command is %s",
                                 id,
                                 status,
                                 type );
-                    LOGGER.debug( "{}: switching pending {} command to {}", id, UPDATE_PIPELINE_UPSTREAM_CONTEXT, PAUSE );
+                    LOGGER.debug( "{}: switching pending {} command to {}", id, REFRESH, PAUSE );
                     command = new PipelineReplicaRunnerCommand( PAUSE, command.future );
                     this.command = command;
                     result = command.future;
@@ -188,9 +188,9 @@ public class PipelineReplicaRunner implements Runnable
                     this.command = null;
                     result = CompletableFuture.completedFuture( TRUE );
                 }
-                else if ( type == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
+                else if ( type == REFRESH )
                 {
-                    LOGGER.debug( "{}: switching pending {} command to {}", id, UPDATE_PIPELINE_UPSTREAM_CONTEXT, RESUME );
+                    LOGGER.debug( "{}: switching pending {} command to {}", id, REFRESH, RESUME );
                     command = new PipelineReplicaRunnerCommand( RESUME, command.future );
                     this.command = command;
                     result = command.future;
@@ -263,7 +263,7 @@ public class PipelineReplicaRunner implements Runnable
                     this.command = command;
                     result = command.future;
                 }
-                else if ( type == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
+                else if ( type == REFRESH )
                 {
                     checkState( status == RUNNING || status == PAUSED,
                                 "Pipeline %s cannot be stopped since its status is %s and pending command is %s",
@@ -318,7 +318,7 @@ public class PipelineReplicaRunner implements Runnable
         return result;
     }
 
-    CompletableFuture<Boolean> updatePipelineUpstreamCtx ()
+    CompletableFuture<Boolean> refresh ()
     {
         final CompletableFuture<Boolean> result;
         synchronized ( monitor )
@@ -329,17 +329,17 @@ public class PipelineReplicaRunner implements Runnable
             {
                 if ( status != COMPLETED )
                 {
-                    LOGGER.debug( "{}: {} command is set", id, UPDATE_PIPELINE_UPSTREAM_CONTEXT );
-                    command = new PipelineReplicaRunnerCommand( UPDATE_PIPELINE_UPSTREAM_CONTEXT );
+                    LOGGER.debug( "{}: {} command is set", id, REFRESH );
+                    command = new PipelineReplicaRunnerCommand( REFRESH );
                     this.command = command;
                     result = command.future;
                 }
                 else
                 {
-                    LOGGER.error( "{}: {} failed since status is {}", id, UPDATE_PIPELINE_UPSTREAM_CONTEXT, COMPLETED );
+                    LOGGER.error( "{}: {} failed since status is {}", id, REFRESH, COMPLETED );
                     result = new CompletableFuture<>();
                     result.completeExceptionally( new IllegalStateException(
-                            id + ": " + UPDATE_PIPELINE_UPSTREAM_CONTEXT + " failed since status is " + COMPLETED ) );
+                            id + ": " + REFRESH + " failed since status is " + COMPLETED ) );
                 }
             }
             else
@@ -429,10 +429,10 @@ public class PipelineReplicaRunner implements Runnable
 
                 checkNotNull( pipelineUpstreamCtx, "Pipeline %s has null upstream context!", pipeline.id() );
                 final PipelineReplicaRunnerCommandType commandType = command.type;
-                if ( commandType == UPDATE_PIPELINE_UPSTREAM_CONTEXT )
+                if ( commandType == REFRESH )
                 {
                     update( pipelineUpstreamCtx, downstreamCollector );
-                    LOGGER.debug( "{}: update {} command is handled", id, pipeline.getUpstreamCtx() );
+                    LOGGER.debug( "{}: refresh {} command is handled", id, pipeline.getUpstreamCtx() );
                     this.command = null;
                     command.complete();
                 }
@@ -555,7 +555,7 @@ public class PipelineReplicaRunner implements Runnable
 
     enum PipelineReplicaRunnerCommandType
     {
-        PAUSE, RESUME, STOP, UPDATE_PIPELINE_UPSTREAM_CONTEXT
+        PAUSE, RESUME, STOP, REFRESH
     }
 
 

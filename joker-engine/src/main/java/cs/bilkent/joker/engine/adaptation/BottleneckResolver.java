@@ -5,7 +5,7 @@ import java.util.List;
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
-import cs.bilkent.joker.utils.Pair;
+import cs.bilkent.joker.operator.utils.Pair;
 
 @FunctionalInterface
 public interface BottleneckResolver

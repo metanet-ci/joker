@@ -33,9 +33,9 @@ import cs.bilkent.joker.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
+import cs.bilkent.joker.operator.utils.Pair;
+import cs.bilkent.joker.operator.utils.Triple;
 import cs.bilkent.joker.partition.impl.PartitionKey;
-import cs.bilkent.joker.utils.Pair;
-import cs.bilkent.joker.utils.Triple;
 import static java.lang.Math.max;
 import static java.util.Arrays.copyOf;
 

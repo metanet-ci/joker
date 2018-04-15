@@ -9,9 +9,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -49,7 +51,9 @@ import cs.bilkent.joker.engine.metric.PipelineMeter;
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import cs.bilkent.joker.engine.metric.PipelineMetrics.PipelineMetricsVisitor;
 import cs.bilkent.joker.engine.metric.PipelineMetricsHistory;
-import cs.bilkent.joker.utils.Pair;
+import cs.bilkent.joker.flow.FlowDef;
+import cs.bilkent.joker.operator.OperatorDef;
+import cs.bilkent.joker.operator.utils.Pair;
 import static java.lang.Math.abs;
 import static java.util.Collections.addAll;
 import static java.util.Comparator.comparing;
@@ -168,15 +172,25 @@ public class MetricManagerImpl implements MetricManager
     }
 
     @Override
-    public LatencyMeter createLatencyMeter ( final String operatorId, final int replicaIndex )
+    public LatencyMeter createLatencyMeter ( final FlowDef flow, final String sinkOperatorId, final int replicaIndex )
     {
         synchronized ( monitor )
         {
             checkState( !scheduler.isShutdown() );
 
-            final LatencyMeter latencyMeter = new LatencyMeter( operatorId,
-                                                                replicaIndex,
-                                                                new Histogram( new ExponentiallyDecayingReservoir() ) );
+            final Supplier<Histogram> histogramCtor = () -> new Histogram( new ExponentiallyDecayingReservoir() );
+
+            final Map<String, Histogram> invocations = new HashMap<>();
+            final Map<String, Histogram> queues = new HashMap<>();
+            final Set<OperatorDef> operators = new HashSet<>( flow.getOperators() );
+            operators.removeAll( flow.getSourceOperators() );
+            for ( OperatorDef operator : operators )
+            {
+                invocations.put( operator.getId(), histogramCtor.get() );
+                queues.put( operator.getId(), histogramCtor.get() );
+            }
+
+            final LatencyMeter latencyMeter = new LatencyMeter( sinkOperatorId, replicaIndex, invocations, queues, histogramCtor.get() );
             latencyMeters.put( latencyMeter.getKey(), latencyMeter );
             LOGGER.info( "Created {}", latencyMeter );
 
@@ -621,19 +635,40 @@ public class MetricManagerImpl implements MetricManager
 
             for ( LatencyMeter latencyMeter : latencyMeters.values() )
             {
-                final Histogram histogram = latencyMeter.getHistogram();
-                final Snapshot snapshot = histogram.getSnapshot();
-                LOGGER.info( "SCAN LATENCIES -> {} : min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .99: {} .999: {}",
+                final Histogram tupleLatency = latencyMeter.getTupleLatency();
+                final Snapshot tupleLatencySnapshot = tupleLatency.getSnapshot();
+                LOGGER.info( "SCAN TUPLE LATENCIES -> {} : min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .99: {} .999: "
+                             + "{}",
                              latencyMeter.getKey(),
-                             snapshot.getMin(),
-                             snapshot.getMax(),
-                             format( snapshot.getMean() ),
-                             format( snapshot.getStdDev() ),
-                             format( snapshot.getMedian() ),
-                             format( snapshot.get75thPercentile() ),
-                             format( snapshot.get95thPercentile() ),
-                             format( snapshot.get99thPercentile() ),
-                             format( snapshot.get999thPercentile() ) );
+                             tupleLatencySnapshot.getMin(),
+                             tupleLatencySnapshot.getMax(),
+                             format( tupleLatencySnapshot.getMean() ),
+                             format( tupleLatencySnapshot.getStdDev() ),
+                             format( tupleLatencySnapshot.getMedian() ),
+                             format( tupleLatencySnapshot.get75thPercentile() ),
+                             format( tupleLatencySnapshot.get95thPercentile() ),
+                             format( tupleLatencySnapshot.get99thPercentile() ),
+                             format( tupleLatencySnapshot.get999thPercentile() ) );
+
+                for ( Entry<String, Histogram> e : latencyMeter.getInvocationLatencies().entrySet() )
+                {
+                    final Histogram invocationLatency = e.getValue();
+                    final Snapshot snapshot = invocationLatency.getSnapshot();
+                    LOGGER.info(
+                            "SCAN INVOCATION LATENCIES -> {} : operator: {} min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: "
+                            + "{} .99: {} .999: {}",
+                            latencyMeter.getKey(),
+                            e.getKey(),
+                            snapshot.getMin(),
+                            snapshot.getMax(),
+                            format( snapshot.getMean() ),
+                            format( snapshot.getStdDev() ),
+                            format( snapshot.getMedian() ),
+                            format( snapshot.get75thPercentile() ),
+                            format( snapshot.get95thPercentile() ),
+                            format( snapshot.get99thPercentile() ),
+                            format( snapshot.get999thPercentile() ) );
+                }
             }
 
             final int period = metrics != null ? metrics.getPeriod() : -1;

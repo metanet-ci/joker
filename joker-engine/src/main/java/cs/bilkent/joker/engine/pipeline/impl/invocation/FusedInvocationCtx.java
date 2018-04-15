@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableList;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.operator.TupleAccessor;
 import cs.bilkent.joker.operator.impl.InternalInvocationCtx;
 import cs.bilkent.joker.operator.impl.OutputCollector;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -81,9 +82,9 @@ public class FusedInvocationCtx implements InternalInvocationCtx, OutputCollecto
     }
 
     @Override
-    public TuplesImpl getOutput ()
+    public OutputCollector getOutputCollector ()
     {
-        return outputCollector.getOutputTuples();
+        return outputCollector;
     }
 
     // InternalInvocationContext methods end
@@ -176,6 +177,19 @@ public class FusedInvocationCtx implements InternalInvocationCtx, OutputCollecto
     public void add ( final int portIndex, final Tuple tuple )
     {
         input.add( portIndex, tuple );
+    }
+
+    @Override
+    public void recordInvocationLatency ( final String operatorId, final long latency )
+    {
+        for ( int i = 0; i < input.getPortCount(); i++ )
+        {
+            final List<Tuple> tuples = input.getTuplesModifiable( i );
+            for ( int j = 0; j < tuples.size(); j++ )
+            {
+                TupleAccessor.recordInvocationLatency( tuples.get( j ), operatorId, latency );
+            }
+        }
     }
 
     @Override

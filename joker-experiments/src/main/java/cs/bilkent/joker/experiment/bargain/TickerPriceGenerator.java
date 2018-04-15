@@ -7,7 +7,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import cs.bilkent.joker.utils.Pair;
+import cs.bilkent.joker.operator.utils.Pair;
 import static java.lang.Thread.currentThread;
 import static java.util.Collections.shuffle;
 import static java.util.concurrent.locks.LockSupport.parkNanos;

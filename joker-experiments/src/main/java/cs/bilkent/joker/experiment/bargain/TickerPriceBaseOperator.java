@@ -11,7 +11,7 @@ import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
-import cs.bilkent.joker.utils.Pair;
+import cs.bilkent.joker.operator.utils.Pair;
 
 @OperatorSpec( type = STATEFUL, inputPortCount = 0, outputPortCount = 1 )
 public abstract class TickerPriceBaseOperator implements Operator

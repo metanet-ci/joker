@@ -35,12 +35,12 @@ public class UpstreamCtx
     }
 
 
-    public static UpstreamCtx createSourceOperatorInitialUpstreamCtx ()
+    public static UpstreamCtx creatInitialSourceUpstreamCtx ()
     {
         return new UpstreamCtx( INITIAL_VERSION, new ConnectionStatus[ 0 ] );
     }
 
-    public static UpstreamCtx createSourceOperatorShutdownUpstreamCtx ()
+    public static UpstreamCtx createShutdownSourceUpstreamCtx ()
     {
         return new UpstreamCtx( INITIAL_VERSION + 1, new ConnectionStatus[ 0 ] );
     }
@@ -309,7 +309,7 @@ public class UpstreamCtx
     @Override
     public String toString ()
     {
-        return "UpstreamContext{" + "version=" + version + ", statuses=" + Arrays.toString( statuses ) + '}';
+        return "UpstreamCtx{" + "version=" + version + ", statuses=" + Arrays.toString( statuses ) + '}';
     }
 
 }

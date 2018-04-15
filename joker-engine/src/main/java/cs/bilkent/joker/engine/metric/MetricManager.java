@@ -3,6 +3,7 @@ package cs.bilkent.joker.engine.metric;
 import java.util.List;
 
 import cs.bilkent.joker.engine.flow.PipelineId;
+import cs.bilkent.joker.flow.FlowDef;
 
 public interface MetricManager
 {
@@ -17,7 +18,7 @@ public interface MetricManager
 
     FlowMetrics getMetrics ();
 
-    LatencyMeter createLatencyMeter ( String operatorId, int replicaIndex );
+    LatencyMeter createLatencyMeter ( FlowDef flow, String sinkOperatorId, int replicaIndex );
 
     void shutdown ();
 

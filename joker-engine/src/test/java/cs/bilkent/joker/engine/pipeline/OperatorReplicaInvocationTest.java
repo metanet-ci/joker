@@ -18,9 +18,10 @@ import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETING;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.RUNNING;
 import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.ConnectionStatus.CLOSED;
 import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.ConnectionStatus.OPEN;
+import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.creatInitialSourceUpstreamCtx;
 import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createInitialClosedUpstreamCtx;
-import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createSourceOperatorInitialUpstreamCtx;
-import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createSourceOperatorShutdownUpstreamCtx;
+import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createShutdownSourceUpstreamCtx;
+import cs.bilkent.joker.engine.pipeline.impl.invocation.DefaultOutputCollector;
 import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedInvocationCtx;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
@@ -39,7 +40,6 @@ import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.DefaultInvocationCtx;
-import cs.bilkent.joker.operator.impl.DefaultOutputCollector;
 import cs.bilkent.joker.operator.impl.InternalInvocationCtx;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
@@ -194,7 +194,7 @@ public class OperatorReplicaInvocationTest extends AbstractJokerTest
     }
 
     @Test
-    public void when_singleInputPortOperatorUpstreamContextIsUpdated_then_operatorReplicaMovesToCompletingStatus ()
+    public void when_singleInputPortOperatorUpstreamCtxIsUpdated_then_operatorReplicaMovesToCompletingStatus ()
     {
         final SingleThreadedTupleQueue tupleQueue = new SingleThreadedTupleQueue( 10 );
         final OperatorQueue operatorQueue = new DefaultOperatorQueue( "st", 1, SINGLE_THREADED, new TupleQueue[] { tupleQueue }, 100 );
@@ -301,7 +301,7 @@ public class OperatorReplicaInvocationTest extends AbstractJokerTest
                                                operatorDefs,
                                                invocationCtxes );
 
-        final UpstreamCtx statefulUpstreamCtx = createSourceOperatorInitialUpstreamCtx();
+        final UpstreamCtx statefulUpstreamCtx = creatInitialSourceUpstreamCtx();
         final UpstreamCtx statefulDownstreamCtx = UpstreamCtx.createInitialUpstreamCtx( OPEN );
 
         final UpstreamCtx[] upstreamCtxes = new UpstreamCtx[] { statefulUpstreamCtx };
@@ -337,7 +337,7 @@ public class OperatorReplicaInvocationTest extends AbstractJokerTest
                                                operatorDefs,
                                                invocationCtxes );
 
-        final UpstreamCtx statefulUpstreamCtx = createSourceOperatorInitialUpstreamCtx();
+        final UpstreamCtx statefulUpstreamCtx = creatInitialSourceUpstreamCtx();
         final UpstreamCtx statefulDownstreamCtx = UpstreamCtx.createInitialUpstreamCtx( OPEN );
 
         final UpstreamCtx[] upstreamCtxes = new UpstreamCtx[] { statefulUpstreamCtx };
@@ -348,17 +348,17 @@ public class OperatorReplicaInvocationTest extends AbstractJokerTest
 
         final Tuple expected = Tuple.of( "f", 1 );
 
-        operatorReplica.invoke( true, null, createSourceOperatorShutdownUpstreamCtx() );
+        operatorReplica.invoke( true, null, createShutdownSourceUpstreamCtx() );
 
         operator.lastInvocationReason = null;
 
-        operatorReplica.invoke( true, null, createSourceOperatorShutdownUpstreamCtx() );
+        operatorReplica.invoke( true, null, createShutdownSourceUpstreamCtx() );
 
         assertNull( operator.getLastInvocationReason() );
     }
 
     @Test
-    public void when_inputPortIsClosedDuringSchedulingStrategyIsStillSatisfied_then_upstreamContextIsNotUpdated ()
+    public void when_inputPortIsClosedDuringSchedulingStrategyIsStillSatisfied_then_upstreamCtxIsNotUpdated ()
     {
         final OperatorQueue operatorQueue = new DefaultOperatorQueue( "st",
                                                                       2,
@@ -409,7 +409,7 @@ public class OperatorReplicaInvocationTest extends AbstractJokerTest
     }
 
     @Test
-    public void when_inputPortIsClosedDuringSchedulingStrategyIsNotSatisfied_then_upstreamContextIsUpdated ()
+    public void when_inputPortIsClosedDuringSchedulingStrategyIsNotSatisfied_then_upstreamCtxIsUpdated ()
     {
         final OperatorQueue operatorQueue = new DefaultOperatorQueue( "st",
                                                                       2,

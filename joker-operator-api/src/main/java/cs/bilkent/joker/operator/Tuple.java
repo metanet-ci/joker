@@ -15,7 +15,7 @@ import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkSt
 import cs.bilkent.joker.operator.schema.runtime.RuntimeSchemaField;
 import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import static cs.bilkent.joker.operator.schema.runtime.TupleSchema.FIELD_NOT_FOUND;
-import static java.lang.Math.max;
+import cs.bilkent.joker.operator.utils.Triple;
 
 
 /**
@@ -195,6 +195,8 @@ public final class Tuple implements Fields<String>
 
     private long ingestionTime = INGESTION_TIME_NA;
 
+    private List<Triple<String, Boolean, Long>> latencyRecs;
+
     public Tuple ()
     {
         this.schema = EMPTY_SCHEMA;
@@ -211,11 +213,18 @@ public final class Tuple implements Fields<String>
         }
     }
 
-    private Tuple ( final TupleSchema schema, final ArrayList<Object> values, final long ingestionTime )
+    private Tuple ( final TupleSchema schema,
+                    final ArrayList<Object> values,
+                    final long ingestionTime,
+                    final List<Triple<String, Boolean, Long>> latencyRecs )
     {
         this.schema = schema;
         this.values = values;
         this.ingestionTime = ingestionTime;
+        if ( latencyRecs != null )
+        {
+            this.latencyRecs = new ArrayList<>( latencyRecs );
+        }
     }
 
     @SuppressWarnings( "unchecked" )
@@ -388,16 +397,6 @@ public final class Tuple implements Fields<String>
         return schema;
     }
 
-    public void attach ( final Tuple source )
-    {
-        ingestionTime = max( ingestionTime, source.ingestionTime );
-    }
-
-    public Tuple copyForAttachment ()
-    {
-        return new Tuple( schema, values, ingestionTime );
-    }
-
     void setIngestionTime ( final long ingestionTime )
     {
         checkArgument( ingestionTime != INGESTION_TIME_NA );
@@ -405,14 +404,60 @@ public final class Tuple implements Fields<String>
         this.ingestionTime = ingestionTime;
     }
 
-    void overwriteIngestionTime ( final long ingestionTime )
-    {
-        this.ingestionTime = ingestionTime;
-    }
-
     long getIngestionTime ()
     {
         return ingestionTime;
+    }
+
+    public void attach ( final Tuple source )
+    {
+        if ( source.ingestionTime > ingestionTime )
+        {
+            overwriteIngestionTime( source );
+        }
+    }
+
+    void overwriteIngestionTime ( final Tuple source )
+    {
+        ingestionTime = source.ingestionTime;
+        if ( source.latencyRecs == null )
+        {
+            latencyRecs = null;
+        }
+        else if ( latencyRecs != null )
+        {
+            latencyRecs.clear();
+            latencyRecs.addAll( source.latencyRecs );
+        }
+        else
+        {
+            latencyRecs = new ArrayList<>( source.latencyRecs );
+        }
+    }
+
+    public Tuple copyForAttachment ()
+    {
+        return new Tuple( schema, values, ingestionTime, latencyRecs );
+    }
+
+    void recordInvocationLatency ( final String operatorId, final long latency )
+    {
+        if ( ingestionTime == INGESTION_TIME_NA )
+        {
+            return;
+        }
+
+        if ( latencyRecs == null )
+        {
+            latencyRecs = new ArrayList<>();
+        }
+
+        latencyRecs.add( new Triple<>( operatorId, true, latency ) );
+    }
+
+    List<Triple<String, Boolean, Long>> getLatencyRecs ()
+    {
+        return latencyRecs;
     }
 
     private Map<String, Object> asMap ()

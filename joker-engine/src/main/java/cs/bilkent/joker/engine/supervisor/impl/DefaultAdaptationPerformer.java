@@ -8,7 +8,7 @@ import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.pipeline.PipelineManager;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
-import cs.bilkent.joker.utils.Pair;
+import cs.bilkent.joker.operator.utils.Pair;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 

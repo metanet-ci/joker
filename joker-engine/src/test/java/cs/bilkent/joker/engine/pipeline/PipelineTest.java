@@ -266,7 +266,7 @@ public class PipelineTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldCompleteRunnerWhenUpstreamContextIsUpdated ()
+    public void shouldCompleteRunnerWhenUpstreamCtxUpdated ()
     {
         final PipelineReplica pipelineReplica0 = mock( PipelineReplica.class ), pipelineReplica1 = mock( PipelineReplica.class );
         final PipelineReplicaId pipelineReplicaId0 = new PipelineReplicaId( pipelineId, 0 );

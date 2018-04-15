@@ -25,7 +25,7 @@ import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
-import cs.bilkent.joker.utils.Pair;
+import cs.bilkent.joker.operator.utils.Pair;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.reverse;
 import static java.util.Collections.unmodifiableCollection;

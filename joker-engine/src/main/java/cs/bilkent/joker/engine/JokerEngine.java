@@ -15,7 +15,7 @@ import cs.bilkent.joker.engine.region.RegionDefFormer;
 import cs.bilkent.joker.engine.region.RegionExecPlanFactory;
 import cs.bilkent.joker.engine.supervisor.impl.SupervisorImpl;
 import cs.bilkent.joker.flow.FlowDef;
-import cs.bilkent.joker.utils.Pair;
+import cs.bilkent.joker.operator.utils.Pair;
 
 public class JokerEngine
 {

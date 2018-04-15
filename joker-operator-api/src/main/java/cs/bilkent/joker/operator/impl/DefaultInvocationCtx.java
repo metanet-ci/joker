@@ -34,7 +34,38 @@ public class DefaultInvocationCtx implements InternalInvocationCtx
 
     public DefaultInvocationCtx ( final int inputPortCount, final Function<PartitionKey, KVStore> kvStoreSupplier, final TuplesImpl output )
     {
-        this( inputPortCount, kvStoreSupplier, new DefaultOutputCollector( output ) );
+        this( inputPortCount, kvStoreSupplier, new OutputCollector()
+        {
+            @Override
+            public void add ( final Tuple tuple )
+            {
+                output.add( tuple );
+            }
+
+            @Override
+            public void add ( final int portIndex, final Tuple tuple )
+            {
+                output.add( portIndex, tuple );
+            }
+
+            @Override
+            public void recordInvocationLatency ( final String operatorId, final long latency )
+            {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public TuplesImpl getOutputTuples ()
+            {
+                return output;
+            }
+
+            @Override
+            public void clear ()
+            {
+                output.clear();
+            }
+        } );
     }
 
     public DefaultInvocationCtx ( final int inputPortCount,
@@ -82,9 +113,9 @@ public class DefaultInvocationCtx implements InternalInvocationCtx
     }
 
     @Override
-    public TuplesImpl getOutput ()
+    public OutputCollector getOutputCollector ()
     {
-        return outputCollector.getOutputTuples();
+        return outputCollector;
     }
 
     @Override

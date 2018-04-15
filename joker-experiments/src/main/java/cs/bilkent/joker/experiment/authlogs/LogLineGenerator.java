@@ -8,7 +8,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import cs.bilkent.joker.utils.Triple;
+import cs.bilkent.joker.operator.utils.Triple;
 import static java.lang.Math.ceil;
 import static java.lang.System.arraycopy;
 import static java.lang.Thread.currentThread;

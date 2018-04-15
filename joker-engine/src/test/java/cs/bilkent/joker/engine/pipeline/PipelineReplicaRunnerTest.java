@@ -247,7 +247,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldUpdateUpstreamContextWhenPaused () throws ExecutionException, InterruptedException
+    public void shouldRefreshWhenPaused () throws ExecutionException, InterruptedException
     {
         thread.start();
 
@@ -258,7 +258,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
         final UpstreamCtx upstreamCtx = createInitialClosedUpstreamCtx( 1 ).withConnectionClosed( 0 );
         when( supervisor.getUpstreamCtx( pipeline.id() ) ).thenReturn( upstreamCtx );
 
-        final CompletableFuture<Boolean> future = runner.updatePipelineUpstreamCtx();
+        final CompletableFuture<Boolean> future = runner.refresh();
         assertTrue( future.get() );
         assertEquals( PAUSED, runner.getStatus() );
 
@@ -269,7 +269,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldNotUpdateUpstreamContextWhenStopped () throws ExecutionException, InterruptedException
+    public void shouldNotRefreshWhenStopped () throws ExecutionException, InterruptedException
     {
         thread.start();
 
@@ -277,7 +277,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
 
         assertTrueEventually( () -> assertEquals( runner.getStatus(), COMPLETED ) );
 
-        final CompletableFuture<Boolean> future = runner.updatePipelineUpstreamCtx();
+        final CompletableFuture<Boolean> future = runner.refresh();
         try
         {
             future.get();
@@ -290,7 +290,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldNotUpdateUpstreamContextWhenCompleted () throws InterruptedException
+    public void shouldNotRefreshWhenCompleted () throws InterruptedException
     {
         thread.start();
 
@@ -298,7 +298,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
 
         assertTrueEventually( () -> assertEquals( runner.getStatus(), COMPLETED ) );
 
-        final CompletableFuture<Boolean> future = runner.updatePipelineUpstreamCtx();
+        final CompletableFuture<Boolean> future = runner.refresh();
         try
         {
             future.get();

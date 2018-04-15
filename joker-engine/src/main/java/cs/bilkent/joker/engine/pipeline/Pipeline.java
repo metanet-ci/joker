@@ -276,7 +276,7 @@ public class Pipeline
             setPipelineCompleting();
         }
 
-        notifyPipelineReplicaRunners( upstreamCtx );
+        notifyPipelineReplicaRunners();
     }
 
     private void setPipelineCompleting ()
@@ -301,13 +301,12 @@ public class Pipeline
         pipelineStatus = COMPLETING;
     }
 
-    private void notifyPipelineReplicaRunners ( final UpstreamCtx upstreamCtx )
+    public void notifyPipelineReplicaRunners ()
     {
-        LOGGER.info( "Notifying runners about new {} of Pipeline {}", upstreamCtx, id );
         for ( int i = 0; i < getReplicaCount(); i++ )
         {
             final PipelineReplicaRunner runner = runners[ i ];
-            runner.updatePipelineUpstreamCtx();
+            runner.refresh();
         }
     }
 

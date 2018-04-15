@@ -8,6 +8,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.operator.TupleAccessor;
 import cs.bilkent.joker.operator.impl.InternalInvocationCtx;
 import cs.bilkent.joker.operator.impl.OutputCollector;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -104,9 +105,9 @@ public class FusedPartitionedInvocationCtx implements InternalInvocationCtx, Out
     }
 
     @Override
-    public TuplesImpl getOutput ()
+    public OutputCollector getOutputCollector ()
     {
-        return outputCollector.getOutputTuples();
+        return outputCollector;
     }
 
     // InternalInvocationContext methods end
@@ -204,6 +205,23 @@ public class FusedPartitionedInvocationCtx implements InternalInvocationCtx, Out
     public void add ( final int portIndex, final Tuple tuple )
     {
         addOutputTuple( portIndex, tuple );
+    }
+
+    @Override
+    public void recordInvocationLatency ( final String operatorId, final long latency )
+    {
+        for ( int i = 0; i < inputCount; i++ )
+        {
+            final TuplesImpl input = inputs.get( i );
+            for ( int j = 0; j < input.getPortCount(); j++ )
+            {
+                final List<Tuple> tuples = input.getTuplesModifiable( j );
+                for ( int k = 0; k < tuples.size(); k++ )
+                {
+                    TupleAccessor.recordInvocationLatency( tuples.get( k ), operatorId, latency );
+                }
+            }
+        }
     }
 
     @Override

@@ -5,7 +5,6 @@ import org.junit.Test;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractor1;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.DefaultInvocationCtx;
-import cs.bilkent.joker.operator.impl.DefaultOutputCollector;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.util.Arrays.asList;

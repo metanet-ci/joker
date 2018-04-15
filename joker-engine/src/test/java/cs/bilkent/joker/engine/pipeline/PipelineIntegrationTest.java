@@ -25,9 +25,10 @@ import cs.bilkent.joker.engine.partition.PartitionDistribution;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
 import cs.bilkent.joker.engine.partition.impl.PartitionServiceImpl;
+import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.creatInitialSourceUpstreamCtx;
 import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createInitialClosedUpstreamCtx;
-import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createSourceOperatorInitialUpstreamCtx;
-import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createSourceOperatorShutdownUpstreamCtx;
+import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createShutdownSourceUpstreamCtx;
+import cs.bilkent.joker.engine.pipeline.impl.invocation.DefaultOutputCollector;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
@@ -47,7 +48,6 @@ import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.DefaultInvocationCtx;
-import cs.bilkent.joker.operator.impl.DefaultOutputCollector;
 import cs.bilkent.joker.operator.impl.InternalInvocationCtx;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.kvstore.KVStore;
@@ -65,12 +65,12 @@ import cs.bilkent.joker.operator.spec.OperatorSpec;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
+import cs.bilkent.joker.operator.utils.Pair;
 import cs.bilkent.joker.operators.FilterOperator;
 import static cs.bilkent.joker.operators.FilterOperator.PREDICATE_CONFIG_PARAMETER;
 import cs.bilkent.joker.operators.MapperOperator;
 import static cs.bilkent.joker.operators.MapperOperator.MAPPER_CONFIG_PARAMETER;
 import cs.bilkent.joker.test.AbstractJokerTest;
-import cs.bilkent.joker.utils.Pair;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -169,7 +169,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final UpstreamCtx updatedUpstreamCtx = createInitialClosedUpstreamCtx( 1 ).withConnectionClosed( 0 );
         when( supervisor.getUpstreamCtx( pipelineReplicaId1 ) ).thenReturn( updatedUpstreamCtx );
-        runner.updatePipelineUpstreamCtx();
+        runner.refresh();
         runnerThread.join();
     }
 
@@ -271,7 +271,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final UpstreamCtx updatedUpstreamCtx = createInitialClosedUpstreamCtx( 1 ).withConnectionClosed( 0 );
         when( supervisor.getUpstreamCtx( pipelineReplicaId1 ) ).thenReturn( updatedUpstreamCtx );
-        runner.updatePipelineUpstreamCtx();
+        runner.refresh();
         runnerThread.join();
     }
 
@@ -366,7 +366,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         pipeline.init( new SchedulingStrategy[][] { { ScheduleWhenAvailable.INSTANCE },
                                                     { scheduleWhenTuplesAvailableOnDefaultPort( EXACT, passerBatchCount ) },
                                                     { scheduleWhenTuplesAvailableOnDefaultPort( EXACT, 1 ) } },
-                       new UpstreamCtx[][] { { createSourceOperatorInitialUpstreamCtx() },
+                       new UpstreamCtx[][] { { creatInitialSourceUpstreamCtx() },
                                              { createInitialClosedUpstreamCtx( 1 ) },
                                              { createInitialClosedUpstreamCtx( 1 ) } } );
 
@@ -380,9 +380,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         assertTrueEventually( () -> assertTrue( generatorOp.count > 1000 ) );
 
-        final UpstreamCtx updatedUpstreamCtx = createSourceOperatorShutdownUpstreamCtx();
+        final UpstreamCtx updatedUpstreamCtx = createShutdownSourceUpstreamCtx();
         when( supervisor.getUpstreamCtx( pipelineReplicaId1 ) ).thenReturn( updatedUpstreamCtx );
-        runner.updatePipelineUpstreamCtx();
+        runner.refresh();
 
         assertTrueEventually( () -> verify( supervisor ).notifyPipelineReplicaCompleted( pipelineReplicaId1 ) );
 
@@ -517,7 +517,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         }
 
         supervisor.upstreamCtxes.put( pipelineReplicaId1, createInitialClosedUpstreamCtx( 1 ).withConnectionClosed( 0 ) );
-        runner1.updatePipelineUpstreamCtx();
+        runner1.refresh();
         runnerThread1.join();
         runnerThread2.join();
         assertTrue( supervisor.completedPipelines.contains( pipelineReplicaId1 ) );
@@ -528,8 +528,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     public void testMultiplePipelines_multipleInputPorts () throws InterruptedException
     {
         final SupervisorImpl supervisor = new SupervisorImpl();
-        supervisor.upstreamCtxes.put( pipelineReplicaId1, createSourceOperatorInitialUpstreamCtx() );
-        supervisor.upstreamCtxes.put( pipelineReplicaId2, createSourceOperatorInitialUpstreamCtx() );
+        supervisor.upstreamCtxes.put( pipelineReplicaId1, creatInitialSourceUpstreamCtx() );
+        supervisor.upstreamCtxes.put( pipelineReplicaId2, creatInitialSourceUpstreamCtx() );
         supervisor.upstreamCtxes.put( pipelineReplicaId3, createInitialClosedUpstreamCtx( 2 ) );
         supervisor.inputPortIndices.put( pipelineReplicaId1, 0 );
         supervisor.inputPortIndices.put( pipelineReplicaId2, 1 );
@@ -719,13 +719,13 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final ValueGeneratorOperator generatorOp2 = (ValueGeneratorOperator) generatorOperator2.getOperator( 0 );
 
         assertTrueEventually( () -> assertTrue( generatorOp1.count > 5000 ) );
-        supervisor.upstreamCtxes.put( pipelineReplicaId1, createSourceOperatorShutdownUpstreamCtx() );
-        runner1.updatePipelineUpstreamCtx();
+        supervisor.upstreamCtxes.put( pipelineReplicaId1, createShutdownSourceUpstreamCtx() );
+        runner1.refresh();
 
         generatorOp2.start = true;
         assertTrueEventually( () -> assertTrue( generatorOp2.count < -5000 ) );
-        supervisor.upstreamCtxes.put( pipelineReplicaId2, createSourceOperatorShutdownUpstreamCtx() );
-        runner2.updatePipelineUpstreamCtx();
+        supervisor.upstreamCtxes.put( pipelineReplicaId2, createShutdownSourceUpstreamCtx() );
+        runner2.refresh();
 
         assertTrueEventually( () -> assertTrue( supervisor.completedPipelines.contains( pipelineReplicaId1 ) ) );
         assertTrueEventually( () -> assertTrue( supervisor.completedPipelines.contains( pipelineReplicaId2 ) ) );
@@ -748,7 +748,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     public void testMultiplePipelines_partitionedStatefulDownstreamPipeline () throws InterruptedException
     {
         final SupervisorImpl supervisor = new SupervisorImpl();
-        supervisor.upstreamCtxes.put( pipelineReplicaId1, createSourceOperatorInitialUpstreamCtx() );
+        supervisor.upstreamCtxes.put( pipelineReplicaId1, creatInitialSourceUpstreamCtx() );
         supervisor.upstreamCtxes.put( pipelineReplicaId2, createInitialClosedUpstreamCtx( 1 ) );
         supervisor.inputPortIndices.put( pipelineReplicaId1, 0 );
         supervisor.inputPortIndices.put( pipelineReplicaId2, 0 );
@@ -879,8 +879,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         assertTrueEventually( () -> assertTrue( generatorOp.count > 1000 ) );
 
-        supervisor.upstreamCtxes.put( pipelineReplicaId1, createSourceOperatorShutdownUpstreamCtx() );
-        runner1.updatePipelineUpstreamCtx();
+        supervisor.upstreamCtxes.put( pipelineReplicaId1, createShutdownSourceUpstreamCtx() );
+        runner1.refresh();
 
         assertTrueEventually( () -> assertTrue( supervisor.completedPipelines.contains( pipelineReplicaId1 ) ) );
         assertTrueEventually( () -> assertTrue( supervisor.completedPipelines.contains( pipelineReplicaId2 ) ) );
@@ -1160,7 +1160,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                 final UpstreamCtx currentUpstreamCtx = upstreamCtxes.get( targetPipelineReplicaId );
                 final UpstreamCtx newUpstreamCtx = currentUpstreamCtx.withConnectionClosed( inputPortIndices.get( id ) );
                 upstreamCtxes.put( targetPipelineReplicaId, newUpstreamCtx );
-                runner.updatePipelineUpstreamCtx();
+                runner.refresh();
             }
         }
 

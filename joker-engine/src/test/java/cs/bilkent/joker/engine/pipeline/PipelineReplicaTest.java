@@ -189,7 +189,7 @@ public class PipelineReplicaTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldInvokeFirstOperatorWithUpdatedUpstreamContext ()
+    public void shouldInvokeFirstOperatorWithUpdatedUpstreamCtx ()
     {
         when( operator0.init( new UpstreamCtx[] { upstreamCtx0 }, upstreamCtx1 ) ).thenReturn( new SchedulingStrategy[] {
                 schedulingStrategy1 } );

@@ -53,7 +53,7 @@ import cs.bilkent.joker.engine.pipeline.UpstreamCtx;
 import cs.bilkent.joker.engine.pipeline.UpstreamCtx.ConnectionStatus;
 import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.ConnectionStatus.CLOSED;
 import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.ConnectionStatus.OPEN;
-import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createSourceOperatorShutdownUpstreamCtx;
+import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createShutdownSourceUpstreamCtx;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.CompositeDownstreamCollector;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.DownstreamCollector1;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.DownstreamCollectorN;
@@ -68,13 +68,13 @@ import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.Port;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
-import static cs.bilkent.joker.operator.TupleAccessor.record;
+import static cs.bilkent.joker.operator.TupleAccessor.recordLatency;
 import static cs.bilkent.joker.operator.TupleAccessor.setIngestionTime;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
-import cs.bilkent.joker.utils.Pair;
+import cs.bilkent.joker.operator.utils.Pair;
 import static java.lang.Math.min;
 import static java.util.Collections.reverse;
 import static java.util.Collections.singletonList;
@@ -453,7 +453,7 @@ public class PipelineManagerImpl implements PipelineManager
             final OperatorDef operatorDef = pipeline.getFirstOperatorDef();
             if ( flow.isSourceOperator( operatorDef.getId() ) )
             {
-                pipeline.handleUpstreamCtxUpdated( createSourceOperatorShutdownUpstreamCtx() );
+                pipeline.handleUpstreamCtxUpdated( createShutdownSourceUpstreamCtx() );
             }
         }
     }
@@ -488,6 +488,7 @@ public class PipelineManagerImpl implements PipelineManager
             pipeline.init();
             addPipeline( pipeline );
             createDownstreamCollectors( flow, pipeline );
+            recreateSinkDownstreamCollectors();
             pipeline.startPipelineReplicaRunners( jokerConfig, supervisor, jokerThreadGroup );
             incrementFlowVersion();
         }
@@ -545,6 +546,8 @@ public class PipelineManagerImpl implements PipelineManager
             {
                 createDownstreamCollectors( flow, pipeline );
             }
+
+            recreateSinkDownstreamCollectors();
 
             for ( Pipeline pipeline : newPipelines )
             {
@@ -636,6 +639,8 @@ public class PipelineManagerImpl implements PipelineManager
             {
                 createDownstreamCollectors( flow, pausedPipeline );
             }
+
+            recreateSinkDownstreamCollectors();
 
             incrementFlowVersion();
 
@@ -767,6 +772,18 @@ public class PipelineManagerImpl implements PipelineManager
         }
     }
 
+    private void recreateSinkDownstreamCollectors ()
+    {
+        for ( Pipeline pipeline : pipelines.values() )
+        {
+            if ( flow.getOutboundConnections( pipeline.getLastOperatorDef().getId() ).isEmpty() )
+            {
+                createDownstreamCollectors( flow, pipeline );
+                pipeline.notifyPipelineReplicaRunners();
+            }
+        }
+    }
+
     private void createDownstreamCollectors ( final FlowDef flow, final Pipeline pipeline )
     {
         final OperatorDef lastOperator = pipeline.getLastOperatorDef();
@@ -803,7 +820,8 @@ public class PipelineManagerImpl implements PipelineManager
                     final PartitionKeyExtractor partitionKeyExtractor = partitionKeyExtractorFactory.createPartitionKeyExtractor(
                             downstreamRegionDef.getPartitionFieldNames() );
                     collectorsToDownstreamOperators[ i ] = partitionedDownstreamCollectorCtors[ j ].apply( pairs,
-                                                                                                           partitionService.getPartitionCount(),
+                                                                                                           partitionService
+                                                                                                                   .getPartitionCount(),
                                                                                                            partitionDistribution,
                                                                                                            pipelineQueues,
                                                                                                            partitionKeyExtractor );
@@ -872,7 +890,9 @@ public class PipelineManagerImpl implements PipelineManager
             }
             else if ( i == 0 )
             {
-                final LatencyMeter latencyMeter = metricManager.createLatencyMeter( pipeline.getLastOperatorDef().getId(), replicaIndex );
+                final LatencyMeter latencyMeter = metricManager.createLatencyMeter( flow,
+                                                                                    pipeline.getLastOperatorDef().getId(),
+                                                                                    replicaIndex );
                 collector = new LatencyRecorder( latencyMeter );
             }
 
@@ -1159,7 +1179,7 @@ public class PipelineManagerImpl implements PipelineManager
                     final List<Tuple> l = tuples.getTuplesModifiable( i );
                     for ( int j = 0; j < l.size(); j++ )
                     {
-                        record( l.get( j ), latencyMeter, now );
+                        recordLatency( l.get( j ), latencyMeter, now );
                     }
                 }
             }

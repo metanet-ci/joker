@@ -17,7 +17,12 @@ public interface InternalInvocationCtx extends InvocationCtx
 
     List<TuplesImpl> getInputs ();
 
-    TuplesImpl getOutput ();
+    OutputCollector getOutputCollector ();
+
+    default TuplesImpl getOutput ()
+    {
+        return getOutputCollector().getOutputTuples();
+    }
 
     void setUpstreamConnectionStatuses ( boolean[] upstreamConnectionStatuses );
 

@@ -10,8 +10,9 @@ import static cs.bilkent.joker.engine.config.ThreadingPref.SINGLE_THREADED;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
 import cs.bilkent.joker.engine.pipeline.UpstreamCtx.ConnectionStatus;
+import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.creatInitialSourceUpstreamCtx;
 import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createInitialClosedUpstreamCtx;
-import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createSourceOperatorInitialUpstreamCtx;
+import cs.bilkent.joker.engine.pipeline.impl.invocation.DefaultOutputCollector;
 import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedInvocationCtx;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
@@ -29,7 +30,6 @@ import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.DefaultInvocationCtx;
-import cs.bilkent.joker.operator.impl.DefaultOutputCollector;
 import cs.bilkent.joker.operator.impl.InternalInvocationCtx;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
@@ -152,7 +152,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
     }
 
     @Test
-    public void shouldFailWhenUpstreamContextMismatchesOperatorSchedulingStrategy ()
+    public void shouldFailWhenUpstreamCtxMismatchesOperatorSchedulingStrategy ()
     {
         final OperatorQueue operatorQueue = new DefaultOperatorQueue( "st",
                                                                       1,
@@ -180,7 +180,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
                                                operatorDefs,
                                                invocationCtxes );
 
-        final UpstreamCtx statefulUpstreamCtx = createSourceOperatorInitialUpstreamCtx();
+        final UpstreamCtx statefulUpstreamCtx = creatInitialSourceUpstreamCtx();
         final UpstreamCtx filterUpstreamCtx = createInitialClosedUpstreamCtx( 1 );
         final UpstreamCtx mapperUpstreamCtx = createInitialClosedUpstreamCtx( 1 );
         final UpstreamCtx mapperDownstreamCtx = UpstreamCtx.createInitialUpstreamCtx( ConnectionStatus.OPEN );

@@ -1,6 +1,11 @@
-package cs.bilkent.joker.operator.impl;
+package cs.bilkent.joker.engine.pipeline.impl.invocation;
+
+import java.util.List;
 
 import cs.bilkent.joker.operator.Tuple;
+import cs.bilkent.joker.operator.TupleAccessor;
+import cs.bilkent.joker.operator.impl.OutputCollector;
+import cs.bilkent.joker.operator.impl.TuplesImpl;
 
 public class DefaultOutputCollector implements OutputCollector
 {
@@ -27,6 +32,19 @@ public class DefaultOutputCollector implements OutputCollector
     public void add ( final int portIndex, final Tuple tuple )
     {
         output.add( portIndex, tuple );
+    }
+
+    @Override
+    public void recordInvocationLatency ( final String operatorId, final long latency )
+    {
+        for ( int i = 0; i < output.getPortCount(); i++ )
+        {
+            final List<Tuple> tuples = output.getTuplesModifiable( i );
+            for ( int j = 0; j < tuples.size(); j++ )
+            {
+                TupleAccessor.recordInvocationLatency( tuples.get( j ), operatorId, latency );
+            }
+        }
     }
 
     @Override

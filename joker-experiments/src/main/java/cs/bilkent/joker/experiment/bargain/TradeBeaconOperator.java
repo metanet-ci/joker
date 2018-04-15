@@ -13,7 +13,7 @@ import cs.bilkent.joker.operator.schema.annotation.PortSchema;
 import static cs.bilkent.joker.operator.schema.annotation.PortSchemaScope.EXACT_FIELD_SET;
 import cs.bilkent.joker.operator.schema.annotation.SchemaField;
 import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
-import cs.bilkent.joker.utils.Pair;
+import cs.bilkent.joker.operator.utils.Pair;
 
 @OperatorSchema( outputs = { @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = { @SchemaField( name = TICKER_SYMBOL_FIELD,
         type = String.class ),

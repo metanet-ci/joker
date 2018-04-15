@@ -17,7 +17,7 @@ import cs.bilkent.joker.operator.schema.annotation.SchemaField;
 import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
-import cs.bilkent.joker.utils.Triple;
+import cs.bilkent.joker.operator.utils.Triple;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.concurrent.locks.LockSupport.parkNanos;
 

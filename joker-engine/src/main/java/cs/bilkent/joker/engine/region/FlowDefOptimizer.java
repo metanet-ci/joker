@@ -4,7 +4,7 @@ import java.util.List;
 
 import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.flow.FlowDef;
-import cs.bilkent.joker.utils.Pair;
+import cs.bilkent.joker.operator.utils.Pair;
 
 public interface FlowDefOptimizer
 {

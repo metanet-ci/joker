@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import cs.bilkent.joker.Joker;
 import cs.bilkent.joker.engine.migration.MigrationService;
-import cs.bilkent.joker.utils.Pair;
+import cs.bilkent.joker.operator.utils.Pair;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class PCJJokerWrapper extends Storage implements StartPoint, MigrationService

@@ -38,7 +38,7 @@ import cs.bilkent.joker.engine.pipeline.UpstreamCtx;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import static cs.bilkent.joker.engine.util.ExceptionUtils.checkInterruption;
 import cs.bilkent.joker.flow.FlowDef;
-import cs.bilkent.joker.utils.Pair;
+import cs.bilkent.joker.operator.utils.Pair;
 import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;

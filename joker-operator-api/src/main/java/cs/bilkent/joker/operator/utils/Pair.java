@@ -1,29 +1,27 @@
-package cs.bilkent.joker.utils;
+package cs.bilkent.joker.operator.utils;
 
 
-public class Triple<T1, T2, T3>
+public class Pair<T1, T2>
 {
+
     public final T1 _1;
 
     public final T2 _2;
 
-    public final T3 _3;
-
-    public static <T1, T2, T3> Triple<T1, T2, T3> of ( final T1 _1, final T2 _2, final T3 _3 )
+    public static <T1, T2> Pair<T1, T2> of ( final T1 _1, final T2 _2 )
     {
-        return new Triple<>( _1, _2, _3 );
+        return new Pair<>( _1, _2 );
     }
 
-    public Triple ( final T1 _1, final T2 _2, final T3 _3 )
+    public Pair ( final T1 _1, final T2 _2 )
     {
         this._1 = _1;
         this._2 = _2;
-        this._3 = _3;
     }
 
     public int productArity ()
     {
-        return 3;
+        return 2;
     }
 
     public Object productElement ( int n ) throws IndexOutOfBoundsException
@@ -35,10 +33,6 @@ public class Triple<T1, T2, T3>
         else if ( n == 1 )
         {
             return this._2;
-        }
-        else if ( n == 2 )
-        {
-            return this._3;
         }
         else
         {
@@ -56,11 +50,6 @@ public class Triple<T1, T2, T3>
         return _2;
     }
 
-    public T3 thirdElement ()
-    {
-        return _3;
-    }
-
     @Override
     public boolean equals ( final Object o )
     {
@@ -73,18 +62,14 @@ public class Triple<T1, T2, T3>
             return false;
         }
 
-        final Triple<?, ?, ?> triple = (Triple<?, ?, ?>) o;
+        final Pair<?, ?> pair = (Pair<?, ?>) o;
 
-        if ( _1 != null ? !_1.equals( triple._1 ) : triple._1 != null )
-        {
-            return false;
-        }
-        if ( _2 != null ? !_2.equals( triple._2 ) : triple._2 != null )
+        if ( _1 != null ? !_1.equals( pair._1 ) : pair._1 != null )
         {
             return false;
         }
 
-        return !( _3 != null ? !_3.equals( triple._3 ) : triple._3 != null );
+        return !( _2 != null ? !_2.equals( pair._2 ) : pair._2 != null );
     }
 
     @Override
@@ -92,13 +77,12 @@ public class Triple<T1, T2, T3>
     {
         int result = _1 != null ? _1.hashCode() : 0;
         result = 31 * result + ( _2 != null ? _2.hashCode() : 0 );
-        result = 31 * result + ( _3 != null ? _3.hashCode() : 0 );
         return result;
     }
 
     @Override
     public String toString ()
     {
-        return "Triple{" + _1 + ", " + _2 + ", " + _3 + '}';
+        return "Pair{" + "" + _1 + ", " + _2 + '}';
     }
 }
