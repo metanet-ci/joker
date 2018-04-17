@@ -30,10 +30,10 @@ import javax.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.codahale.metrics.CsvReporter;
-import com.codahale.metrics.ExponentiallyDecayingReservoir;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.SlidingTimeWindowReservoir;
 import com.codahale.metrics.Snapshot;
 import com.google.common.base.Joiner;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -178,7 +178,10 @@ public class MetricManagerImpl implements MetricManager
         {
             checkState( !scheduler.isShutdown() );
 
-            final Supplier<Histogram> histogramCtor = () -> new Histogram( new ExponentiallyDecayingReservoir() );
+            final Supplier<Histogram> histogramCtor = () -> {
+                final long period = metricManagerConfig.getPipelineMetricsScanningPeriodInMillis();
+                return new Histogram( new SlidingTimeWindowReservoir( period, MILLISECONDS ) );
+            };
 
             final Map<String, Histogram> invocations = new HashMap<>();
             final Map<String, Histogram> queues = new HashMap<>();
@@ -668,6 +671,25 @@ public class MetricManagerImpl implements MetricManager
                             format( snapshot.get95thPercentile() ),
                             format( snapshot.get99thPercentile() ),
                             format( snapshot.get999thPercentile() ) );
+                }
+
+                for ( Entry<String, Histogram> e : latencyMeter.getQueueLatencies().entrySet() )
+                {
+                    final Histogram queueLatency = e.getValue();
+                    final Snapshot snapshot = queueLatency.getSnapshot();
+                    LOGGER.info( "SCAN QUEUE LATENCIES -> {} : operator: {} min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: "
+                                 + "{} .99: {} .999: {}",
+                                 latencyMeter.getKey(),
+                                 e.getKey(),
+                                 snapshot.getMin(),
+                                 snapshot.getMax(),
+                                 format( snapshot.getMean() ),
+                                 format( snapshot.getStdDev() ),
+                                 format( snapshot.getMedian() ),
+                                 format( snapshot.get75thPercentile() ),
+                                 format( snapshot.get95thPercentile() ),
+                                 format( snapshot.get99thPercentile() ),
+                                 format( snapshot.get999thPercentile() ) );
                 }
             }
 

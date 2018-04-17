@@ -12,6 +12,7 @@ import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.util.concurrent.BackoffIdleStrategy;
 import cs.bilkent.joker.engine.util.concurrent.IdleStrategy;
 import cs.bilkent.joker.operator.Tuple;
+import static cs.bilkent.joker.operator.TupleAccessor.setQueueOfferTime;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 
 public class DownstreamCollector1 implements DownstreamCollector, Supplier<OperatorQueue>
@@ -48,6 +49,7 @@ public class DownstreamCollector1 implements DownstreamCollector, Supplier<Opera
         int fromIndex = 0;
         while ( true )
         {
+            setQueueOfferTime( tuples, fromIndex, System.nanoTime() );
             final int offered = operatorQueue.offer( destinationPortIndex, tuples, fromIndex );
             fromIndex += offered;
             if ( fromIndex == size )

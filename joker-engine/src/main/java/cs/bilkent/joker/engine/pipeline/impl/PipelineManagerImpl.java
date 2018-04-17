@@ -68,7 +68,7 @@ import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.Port;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
-import static cs.bilkent.joker.operator.TupleAccessor.recordLatency;
+import static cs.bilkent.joker.operator.TupleAccessor.recordLatencies;
 import static cs.bilkent.joker.operator.TupleAccessor.setIngestionTime;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
@@ -250,7 +250,8 @@ public class PipelineManagerImpl implements PipelineManager
     public FlowExecPlan getFlowExecPlan ()
     {
         final FlowStatus status = this.status;
-        checkState( status == FlowStatus.RUNNING || status == FlowStatus.SHUTTING_DOWN, "cannot get flow execution plan since status is %s",
+        checkState( status == FlowStatus.RUNNING || status == FlowStatus.SHUTTING_DOWN,
+                    "cannot get flow execution plan since status is %s",
                     status );
         return new FlowExecPlan( flowVersion, flow, regionExecPlans.values() );
     }
@@ -404,7 +405,8 @@ public class PipelineManagerImpl implements PipelineManager
             }
             else
             {
-                final List<Pair<OperatorDef, Pipeline>> upstream = upstreamPorts.stream().map( p -> flow.getOperator( p.getOperatorId() ) )
+                final List<Pair<OperatorDef, Pipeline>> upstream = upstreamPorts.stream()
+                                                                                .map( p -> flow.getOperator( p.getOperatorId() ) )
                                                                                 .map( o -> Pair.of( o, getPipelineOrFail( o ) ) )
                                                                                 .collect( toList() );
 
@@ -928,7 +930,9 @@ public class PipelineManagerImpl implements PipelineManager
             for ( Entry<Port, Set<Port>> e : connections.entrySet() )
             {
                 final Port upstreamPort = e.getKey();
-                e.getValue().stream().filter( downstreamPort -> downstreamPort.getOperatorId().equals( downstreamOperatorId ) )
+                e.getValue()
+                 .stream()
+                 .filter( downstreamPort -> downstreamPort.getOperatorId().equals( downstreamOperatorId ) )
                  .forEach( downstreamPort -> result.computeIfAbsent( downstreamOperatorId, s -> new ArrayList<>() )
                                                    .add( Pair.of( upstreamPort.getPortIndex(), downstreamPort.getPortIndex() ) ) );
             }
@@ -994,7 +998,8 @@ public class PipelineManagerImpl implements PipelineManager
                 return pipeline;
             }
 
-            checkArgument( operatorIndex == i, "Operator %s is expected to be at %s'th index of pipeline %s but it is at %s'th index",
+            checkArgument( operatorIndex == i,
+                           "Operator %s is expected to be at %s'th index of pipeline %s but it is at %s'th index",
                            operator.getId(),
                            pipeline.getId(),
                            i );
@@ -1170,19 +1175,7 @@ public class PipelineManagerImpl implements PipelineManager
         @Override
         public void accept ( final TuplesImpl tuples )
         {
-            if ( tuples.isNonEmpty() )
-            {
-                final long now = System.nanoTime();
-
-                for ( int i = 0; i < tuples.getPortCount(); i++ )
-                {
-                    final List<Tuple> l = tuples.getTuplesModifiable( i );
-                    for ( int j = 0; j < l.size(); j++ )
-                    {
-                        recordLatency( l.get( j ), latencyMeter, now );
-                    }
-                }
-            }
+            recordLatencies( tuples, latencyMeter, System.nanoTime() );
         }
     }
 

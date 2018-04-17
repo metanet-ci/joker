@@ -16,6 +16,7 @@ import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.util.concurrent.BackoffIdleStrategy;
 import cs.bilkent.joker.engine.util.concurrent.IdleStrategy;
 import cs.bilkent.joker.operator.Tuple;
+import static cs.bilkent.joker.operator.TupleAccessor.setQueueOfferTime;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 
 public abstract class AbstractPartitionedDownstreamCollector implements DownstreamCollector, Supplier<OperatorQueue[]>
@@ -83,6 +84,7 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
                 int fromIndex = indices[ i ];
                 if ( fromIndex < tuples.size() )
                 {
+                    setQueueOfferTime( tuples, fromIndex, System.nanoTime() );
                     final int offered = operatorQueues[ i ].offer( destinationPortIndex, tuples, fromIndex );
                     if ( offered == 0 )
                     {

@@ -35,7 +35,9 @@ public final class Tuple implements Fields<String>
 
     private static final int DEFAULT_EMPTY_SCHEMA_INITIAL_CAPACITY = 2;
 
-    static final long INGESTION_TIME_NA = Long.MIN_VALUE;
+    static final long INGESTION_TIME_NOT_ASSIGNED = Long.MIN_VALUE;
+
+    static final long INGESTION_TIME_UNASSIGNABLE = INGESTION_TIME_NOT_ASSIGNED + 1;
 
     static
     {
@@ -193,7 +195,9 @@ public final class Tuple implements Fields<String>
 
     private final ArrayList<Object> values;
 
-    private long ingestionTime = INGESTION_TIME_NA;
+    private long ingestionTime = INGESTION_TIME_NOT_ASSIGNED;
+
+    private long queueOfferTime = INGESTION_TIME_NOT_ASSIGNED;
 
     private List<Triple<String, Boolean, Long>> latencyRecs;
 
@@ -397,20 +401,37 @@ public final class Tuple implements Fields<String>
         return schema;
     }
 
-    void setIngestionTime ( final long ingestionTime )
-    {
-        checkArgument( ingestionTime != INGESTION_TIME_NA );
-        checkState( this.ingestionTime == INGESTION_TIME_NA );
-        this.ingestionTime = ingestionTime;
-    }
-
     long getIngestionTime ()
     {
         return ingestionTime;
     }
 
+    boolean isIngestionTimeNA ()
+    {
+        return ( ingestionTime == INGESTION_TIME_NOT_ASSIGNED || ingestionTime == INGESTION_TIME_UNASSIGNABLE );
+    }
+
+    void setIngestionTime ( final long ingestionTime )
+    {
+        checkArgument( !( ingestionTime == INGESTION_TIME_NOT_ASSIGNED || ingestionTime == INGESTION_TIME_UNASSIGNABLE ) );
+        checkState( this.ingestionTime == INGESTION_TIME_NOT_ASSIGNED );
+        this.ingestionTime = ingestionTime;
+    }
+
     public void attach ( final Tuple source )
     {
+        if ( ingestionTime == INGESTION_TIME_UNASSIGNABLE )
+        {
+            return;
+        }
+
+        if ( source.isIngestionTimeNA() )
+        {
+            ingestionTime = INGESTION_TIME_UNASSIGNABLE;
+            latencyRecs = null;
+            return;
+        }
+
         if ( source.ingestionTime > ingestionTime )
         {
             overwriteIngestionTime( source );
@@ -440,9 +461,35 @@ public final class Tuple implements Fields<String>
         return new Tuple( schema, values, ingestionTime, latencyRecs );
     }
 
+    void setQueueOfferTime ( final long queueOfferTime )
+    {
+        if ( isIngestionTimeNA() )
+        {
+            return;
+        }
+
+        this.queueOfferTime = queueOfferTime;
+    }
+
+    void recordQueueLatency ( final String operatorId, final long now )
+    {
+        if ( queueOfferTime == INGESTION_TIME_NOT_ASSIGNED )
+        {
+            return;
+        }
+
+        if ( latencyRecs == null )
+        {
+            latencyRecs = new ArrayList<>();
+        }
+
+        latencyRecs.add( new Triple<>( operatorId, false, ( now - queueOfferTime ) ) );
+        queueOfferTime = INGESTION_TIME_NOT_ASSIGNED;
+    }
+
     void recordInvocationLatency ( final String operatorId, final long latency )
     {
-        if ( ingestionTime == INGESTION_TIME_NA )
+        if ( isIngestionTimeNA() )
         {
             return;
         }

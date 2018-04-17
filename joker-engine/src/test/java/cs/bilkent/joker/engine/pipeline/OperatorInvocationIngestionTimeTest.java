@@ -5,6 +5,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
@@ -35,6 +36,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 public class OperatorInvocationIngestionTimeTest extends AbstractJokerTest
 {
 
+    @Ignore
     @Test
     public void testIngestionTimes () throws InterruptedException, ExecutionException, TimeoutException
     {

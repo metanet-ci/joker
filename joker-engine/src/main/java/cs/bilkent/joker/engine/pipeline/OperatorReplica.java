@@ -32,7 +32,7 @@ import static cs.bilkent.joker.operator.InvocationCtx.InvocationReason.SUCCESS;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
-import static cs.bilkent.joker.operator.TupleAccessor.overwriteIngestionTime;
+import static cs.bilkent.joker.operator.TupleAccessor.recordQueueLatency;
 import cs.bilkent.joker.operator.impl.DefaultInvocationCtx;
 import cs.bilkent.joker.operator.impl.InitCtxImpl;
 import cs.bilkent.joker.operator.impl.InternalInvocationCtx;
@@ -228,7 +228,9 @@ public class OperatorReplica
             }
 
             setStatus( RUNNING );
-            LOGGER.info( "{} initialized. Initial scheduling strategies: {} Drainer: {}", operatorName, schedulingStrategies,
+            LOGGER.info( "{} initialized. Initial scheduling strategies: {} Drainer: {}",
+                         operatorName,
+                         schedulingStrategies,
                          drainer.getClass().getSimpleName() );
 
             return schedulingStrategies;
@@ -319,7 +321,6 @@ public class OperatorReplica
         checkState( status == RUNNING || status == COMPLETING, operatorName );
 
         offer( upstreamInput );
-        resetInvocationCtxes();
         drainQueue( drainerMaySkipBlocking );
 
         if ( status == RUNNING )
@@ -395,7 +396,32 @@ public class OperatorReplica
 
     private void drainQueue ( final boolean drainerMaySkipBlocking )
     {
+        resetInvocationCtxes();
         queue.drain( drainerMaySkipBlocking, drainer, drainerTuplesSupplier );
+        recordQueueLatencies();
+    }
+
+    private void recordQueueLatencies ()
+    {
+        final long now = System.nanoTime();
+        for ( int i = 0; i < invocationCtx.getInputCount(); i++ )
+        {
+            final TuplesImpl input = invocationCtx.getInput( i );
+            for ( int j = 0; j < operatorDef.getInputPortCount(); j++ )
+            {
+                recordQueueLatency( input.getTuplesModifiable( j ), operatorDef.getId(), now );
+
+                //                if ( tuples.size() >= minTupleCounts[ j ] )
+                //                {
+                //                    final int reqIdx = minTupleCounts[ j ] - 1;
+                //                    final Tuple source = tuples.get( reqIdx );
+                //                    for ( int k = 0; k < reqIdx; k++ )
+                //                    {
+                //                        overwriteIngestionTime( tuples.get( k ), source );
+                //                    }
+                //                }
+            }
+        }
     }
 
     private void setGreedyDrainerForCompletion ()
@@ -432,7 +458,6 @@ public class OperatorReplica
 
     private void invokeOperators ( final InvocationReason reason )
     {
-        overwriteIngestionTimes();
         invokeOperator( operatorDef, reason, invocationCtx, operator );
 
         for ( int i = 0; i < fusedOperators.length; i++ )
@@ -447,28 +472,9 @@ public class OperatorReplica
         }
     }
 
-    private void overwriteIngestionTimes ()
-    {
-        for ( int i = 0; i < invocationCtx.getInputCount(); i++ )
-        {
-            final TuplesImpl input = invocationCtx.getInput( i );
-            for ( int j = 0; j < operatorDef.getInputPortCount(); j++ )
-            {
-                final List<Tuple> tuples = input.getTuplesModifiable( j );
-                if ( tuples.size() >= minTupleCounts[ j ] )
-                {
-                    final int reqIdx = minTupleCounts[ j ] - 1;
-                    final Tuple source = tuples.get( reqIdx );
-                    for ( int k = 0; k < reqIdx; k++ )
-                    {
-                        overwriteIngestionTime( tuples.get( k ), source );
-                    }
-                }
-            }
-        }
-    }
-
-    private void invokeOperator ( final OperatorDef operatorDef, final InvocationReason reason, final InternalInvocationCtx invocationCtx,
+    private void invokeOperator ( final OperatorDef operatorDef,
+                                  final InvocationReason reason,
+                                  final InternalInvocationCtx invocationCtx,
                                   final Operator operator )
     {
         invocationCtx.setInvocationReason( reason );
