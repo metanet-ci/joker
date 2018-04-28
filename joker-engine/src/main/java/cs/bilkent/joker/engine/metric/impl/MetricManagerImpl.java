@@ -114,7 +114,8 @@ public class MetricManagerImpl implements MetricManager
     private volatile boolean pause;
 
     @Inject
-    public MetricManagerImpl ( final JokerConfig jokerConfig, final MetricRegistry pipelineMetricRegistry,
+    public MetricManagerImpl ( final JokerConfig jokerConfig,
+                               final MetricRegistry pipelineMetricRegistry,
                                final ThreadMXBean threadMXBean,
                                final RuntimeMXBean runtimeMXBean,
                                final OperatingSystemMXBean osMXBean,
@@ -318,7 +319,8 @@ public class MetricManagerImpl implements MetricManager
 
             for ( int operatorIndex = 0; operatorIndex < pipelineMeter.getOperatorCount(); operatorIndex++ )
             {
-                final String operatorCostMetricName = getMetricName( pipelineId, context.getFlowVersion(),
+                final String operatorCostMetricName = getMetricName( pipelineId,
+                                                                     context.getFlowVersion(),
                                                                      replicaIndex,
                                                                      "cost",
                                                                      "op",
@@ -597,7 +599,12 @@ public class MetricManagerImpl implements MetricManager
 
                 final String log = String.format(
                         "%s -> flow version: %d thread utilization: %.3f cpu usage: %.3f throughput: %s pipeline cost: %s operator costs:"
-                        + " %s", pipelineReplicaId, flowVersion, threadUtilizationRatio, cpuUsage, Arrays.toString( inboundThroughput ),
+                        + " %s",
+                        pipelineReplicaId,
+                        flowVersion,
+                        threadUtilizationRatio,
+                        cpuUsage,
+                        Arrays.toString( inboundThroughput ),
                         pipelineCost,
                         Arrays.toString( operatorCosts ) );
                 LOGGER.info( log );

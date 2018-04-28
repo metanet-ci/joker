@@ -43,7 +43,7 @@ public class CounterOperator implements Operator
         final Tuple result = new Tuple( outputSchema );
         if ( inputTupleCount > 0 )
         {
-            result.attach( ctx.getInputTupleOrFail( 0, 0 ) );
+            result.attachTo( ctx.getInputTupleOrFail( 0, 0 ) );
         }
 
         final Tuple keyTuple = ctx.getInputTupleOrFail( 0, 0 );

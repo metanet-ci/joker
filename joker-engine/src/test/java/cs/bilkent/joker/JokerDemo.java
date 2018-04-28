@@ -300,7 +300,7 @@ public class JokerDemo extends AbstractJokerTest
             {
                 Object pKey = input.get( "key" );
                 Tuple summed = Tuple.of( outputSchema, "key", pKey );
-                summed.attach( input );
+                summed.attachTo( input );
                 double sum = input.getDouble( "val1" ) + input.getDouble( "val2" );
                 for ( int i = 0; i < PARTITIONER_COST; i++ )
                 {
@@ -486,7 +486,7 @@ public class JokerDemo extends AbstractJokerTest
             for ( Tuple input : tuples )
             {
                 final Tuple mapped = new Tuple( outputSchema );
-                mapped.attach( input );
+                mapped.attachTo( input );
                 mapper.accept( input, mapped );
                 ctx.output( mapped );
             }

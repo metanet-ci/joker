@@ -1138,17 +1138,15 @@ public class PipelineManagerImpl implements PipelineManager
         @Override
         public void accept ( final TuplesImpl tuples )
         {
-            if ( meter.isTicked() )
-            {
-                final long ingestionTime = System.nanoTime();
+            final long ingestionTime = System.nanoTime();
+            final boolean trackLatencyRecords = meter.isTicked();
 
-                for ( int i = 0, p = tuples.getPortCount(); i < p; i++ )
+            for ( int i = 0, p = tuples.getPortCount(); i < p; i++ )
+            {
+                final List<Tuple> l = tuples.getTuplesModifiable( i );
+                for ( int j = 0, t = l.size(); j < t; j++ )
                 {
-                    final List<Tuple> l = tuples.getTuplesModifiable( i );
-                    for ( int j = 0, t = l.size(); j < t; j++ )
-                    {
-                        setIngestionTime( l.get( j ), ingestionTime );
-                    }
+                    setIngestionTime( l.get( j ), ingestionTime, trackLatencyRecords );
                 }
             }
 

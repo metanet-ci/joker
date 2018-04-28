@@ -13,9 +13,9 @@ public final class TupleAccessor
     {
     }
 
-    public static void setIngestionTime ( final Tuple tuple, final long ingestionTime )
+    public static void setIngestionTime ( final Tuple tuple, final long ingestionTime, final boolean trackLatencyRecords )
     {
-        tuple.setIngestionTime( ingestionTime );
+        tuple.setIngestionTime( ingestionTime, trackLatencyRecords );
     }
 
     public static void recordLatencies ( final TuplesImpl tuples, final LatencyMeter meter, final long now )
@@ -41,26 +41,28 @@ public final class TupleAccessor
                 }
 
                 final List<Triple<String, Boolean, Long>> recs = tuple.getLatencyRecs();
-
-                for ( int k = 0; k < recs.size(); k++ )
+                if ( recs != null )
                 {
-                    final Triple<String, Boolean, Long> record = recs.get( k );
-                    final long lt = record._3;
-                    if ( lt <= 0 )
+                    for ( int k = 0; k < recs.size(); k++ )
                     {
-                        continue;
-                    }
+                        final Triple<String, Boolean, Long> record = recs.get( k );
+                        final long lt = record._3;
+                        if ( lt <= 0 )
+                        {
+                            continue;
+                        }
 
-                    final boolean isInvocation = record._2;
-                    final String operatorId = record._1;
+                        final boolean isInvocation = record._2;
+                        final String operatorId = record._1;
 
-                    if ( isInvocation )
-                    {
-                        meter.recordInvocation( operatorId, lt );
-                    }
-                    else
-                    {
-                        meter.recordQueue( operatorId, lt );
+                        if ( isInvocation )
+                        {
+                            meter.recordInvocation( operatorId, lt );
+                        }
+                        else
+                        {
+                            meter.recordQueue( operatorId, lt );
+                        }
                     }
                 }
             }
@@ -75,11 +77,6 @@ public final class TupleAccessor
     public static long getIngestionTime ( final Tuple tuple )
     {
         return tuple.getIngestionTime();
-    }
-
-    public static void overwriteIngestionTime ( final Tuple target, final Tuple source )
-    {
-        target.overwriteIngestionTime( source );
     }
 
     public static void setQueueOfferTime ( final List<Tuple> tuples, final int fromIndex, final long now )

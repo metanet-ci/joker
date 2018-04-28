@@ -50,7 +50,7 @@ public class FlatMapperOperator implements Operator
         for ( Tuple input : ctx.getInputTuplesByDefaultPort() )
         {
             flatMapper.accept( input, outputTupleSupplier, output -> {
-                output.attach( input );
+                output.attachTo( input );
                 ctx.output( output );
             } );
         }

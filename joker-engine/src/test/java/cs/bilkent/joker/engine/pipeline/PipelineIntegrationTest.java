@@ -956,11 +956,11 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
             for ( int i = 0; i < c; i++ )
             {
-                final Tuple t0 = tuples0.get( i ).copyForAttachment();
-                t0.attach( tuples1.get( i ) );
+                final Tuple t0 = tuples0.get( i ).shallowCopy();
+                t0.attachTo( tuples1.get( i ) );
                 ctx.output( t0 );
-                final Tuple t1 = tuples1.get( i ).copyForAttachment();
-                t1.attach( tuples0.get( i ) );
+                final Tuple t1 = tuples1.get( i ).shallowCopy();
+                t1.attachTo( tuples0.get( i ) );
                 ctx.output( t1 );
             }
 

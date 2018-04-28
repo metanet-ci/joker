@@ -141,7 +141,7 @@ public final class TuplesImpl implements Tuples
         }
     }
 
-    public TuplesImpl copyForAttachment ()
+    public TuplesImpl shallowCopy ()
     {
         final int portCount = getPortCount();
         final TuplesImpl copy = new TuplesImpl( portCount );
@@ -150,7 +150,7 @@ public final class TuplesImpl implements Tuples
             final List<Tuple> l = ports[ portIndex ];
             for ( int i = 0, j = l.size(); i < j; i++ )
             {
-                copy.add( portIndex, l.get( i ).copyForAttachment() );
+                copy.add( portIndex, l.get( i ).shallowCopy() );
             }
         }
 

@@ -26,7 +26,7 @@ public class CompositeDownstreamCollector implements DownstreamCollector
         collectors[ 0 ].accept( tuples );
         for ( int i = 1; i < size; i++ )
         {
-            collectors[ i ].accept( tuples.copyForAttachment() );
+            collectors[ i ].accept( tuples.shallowCopy() );
         }
     }
 

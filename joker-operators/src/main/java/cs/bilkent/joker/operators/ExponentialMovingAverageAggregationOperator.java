@@ -81,7 +81,7 @@ public class ExponentialMovingAverageAggregationOperator implements Operator
             final double tupleValue = input.getDoubleValueOrDefault( fieldName, 0d );
             value = ( tupleCount++ == 0 ) ? tupleValue : ( weight * tupleValue + ( 1 - weight ) * value );
             final Tuple avgTuple = Tuple.of( outputSchema, VALUE_FIELD, value );
-            avgTuple.attach( input );
+            avgTuple.attachTo( input );
 
             ctx.output( avgTuple );
         }

@@ -46,7 +46,7 @@ public class MapperOperator implements Operator
         for ( Tuple input : ctx.getInputTuplesByDefaultPort() )
         {
             final Tuple result = new Tuple( outputSchema );
-            result.attach( input );
+            result.attachTo( input );
             mapper.accept( input, result );
             ctx.output( result );
         }

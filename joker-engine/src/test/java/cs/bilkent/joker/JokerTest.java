@@ -484,7 +484,8 @@ public class JokerTest extends AbstractJokerTest
         @Override
         public void accept ( final Tuple tuple )
         {
-            //            sleepUninterruptibly( 1, MICROSECONDS );
+//            LockSupport.parkNanos( 1000 );
+
             invocationCount.incrementAndGet();
 
             final int key = RANDOM.nextInt( keyRange );
@@ -557,12 +558,14 @@ public class JokerTest extends AbstractJokerTest
 
             for ( int i = 0; i < c; i++ )
             {
-                final Tuple t0 = tuples0.get( i ).copyForAttachment();
-                t0.attach( tuples1.get( i ) );
-                ctx.output( t0 );
-                final Tuple t1 = tuples1.get( i ).copyForAttachment();
-                t1.attach( tuples0.get( i ) );
-                ctx.output( t1 );
+                final Tuple input0 = tuples0.get( i );
+                final Tuple input1 = tuples1.get( i );
+                final Tuple output0 = input0.shallowCopy();
+                output0.attachTo( input1 );
+                ctx.output( output0 );
+                final Tuple output1 = input1.shallowCopy();
+                output1.attachTo( input0 );
+                ctx.output( output1 );
             }
 
             for ( int i = c; i < tuples0.size(); i++ )
@@ -606,7 +609,7 @@ public class JokerTest extends AbstractJokerTest
                 kvStore.set( key, newSum );
 
                 final Tuple result = Tuple.of( outputSchema, "key", key, "sum", newSum );
-                result.attach( input );
+                result.attachTo( input );
                 ctx.output( result );
             }
         }

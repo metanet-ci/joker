@@ -410,16 +410,6 @@ public class OperatorReplica
             for ( int j = 0; j < operatorDef.getInputPortCount(); j++ )
             {
                 recordQueueLatency( input.getTuplesModifiable( j ), operatorDef.getId(), now );
-
-                //                if ( tuples.size() >= minTupleCounts[ j ] )
-                //                {
-                //                    final int reqIdx = minTupleCounts[ j ] - 1;
-                //                    final Tuple source = tuples.get( reqIdx );
-                //                    for ( int k = 0; k < reqIdx; k++ )
-                //                    {
-                //                        overwriteIngestionTime( tuples.get( k ), source );
-                //                    }
-                //                }
             }
         }
     }

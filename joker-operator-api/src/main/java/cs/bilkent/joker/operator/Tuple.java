@@ -411,14 +411,18 @@ public final class Tuple implements Fields<String>
         return ( ingestionTime == INGESTION_TIME_NOT_ASSIGNED || ingestionTime == INGESTION_TIME_UNASSIGNABLE );
     }
 
-    void setIngestionTime ( final long ingestionTime )
+    void setIngestionTime ( final long ingestionTime, final boolean trackLatencyRecords )
     {
         checkArgument( !( ingestionTime == INGESTION_TIME_NOT_ASSIGNED || ingestionTime == INGESTION_TIME_UNASSIGNABLE ) );
         checkState( this.ingestionTime == INGESTION_TIME_NOT_ASSIGNED );
         this.ingestionTime = ingestionTime;
+        if ( trackLatencyRecords )
+        {
+            latencyRecs = new ArrayList<>(4);
+        }
     }
 
-    public void attach ( final Tuple source )
+    public void attachTo ( final Tuple source )
     {
         if ( ingestionTime == INGESTION_TIME_UNASSIGNABLE )
         {
@@ -438,7 +442,7 @@ public final class Tuple implements Fields<String>
         }
     }
 
-    void overwriteIngestionTime ( final Tuple source )
+    private void overwriteIngestionTime ( final Tuple source )
     {
         ingestionTime = source.ingestionTime;
         if ( source.latencyRecs == null )
@@ -456,14 +460,14 @@ public final class Tuple implements Fields<String>
         }
     }
 
-    public Tuple copyForAttachment ()
+    public Tuple shallowCopy ()
     {
         return new Tuple( schema, values, ingestionTime, latencyRecs );
     }
 
     void setQueueOfferTime ( final long queueOfferTime )
     {
-        if ( isIngestionTimeNA() )
+        if ( isNotTrackingLatencyRecords() )
         {
             return;
         }
@@ -473,14 +477,9 @@ public final class Tuple implements Fields<String>
 
     void recordQueueLatency ( final String operatorId, final long now )
     {
-        if ( queueOfferTime == INGESTION_TIME_NOT_ASSIGNED )
+        if ( queueOfferTime == INGESTION_TIME_NOT_ASSIGNED || latencyRecs == null )
         {
             return;
-        }
-
-        if ( latencyRecs == null )
-        {
-            latencyRecs = new ArrayList<>();
         }
 
         latencyRecs.add( new Triple<>( operatorId, false, ( now - queueOfferTime ) ) );
@@ -489,17 +488,17 @@ public final class Tuple implements Fields<String>
 
     void recordInvocationLatency ( final String operatorId, final long latency )
     {
-        if ( isIngestionTimeNA() )
+        if ( isNotTrackingLatencyRecords() )
         {
             return;
         }
 
-        if ( latencyRecs == null )
-        {
-            latencyRecs = new ArrayList<>();
-        }
-
         latencyRecs.add( new Triple<>( operatorId, true, latency ) );
+    }
+
+    private boolean isNotTrackingLatencyRecords ()
+    {
+        return isIngestionTimeNA() || latencyRecs == null;
     }
 
     List<Triple<String, Boolean, Long>> getLatencyRecs ()

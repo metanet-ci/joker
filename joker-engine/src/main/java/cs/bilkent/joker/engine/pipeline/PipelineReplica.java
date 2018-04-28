@@ -60,7 +60,9 @@ public class PipelineReplica
 
     private boolean drainerMaySkipBlocking = true;
 
-    public PipelineReplica ( final PipelineReplicaId id, final OperatorReplica[] operators, final OperatorQueue queue,
+    public PipelineReplica ( final PipelineReplicaId id,
+                             final OperatorReplica[] operators,
+                             final OperatorQueue queue,
                              final PipelineReplicaMeter meter )
     {
         this.id = id;
@@ -78,7 +80,9 @@ public class PipelineReplica
 
     private PipelineReplica ( final PipelineReplicaId id,
                               final OperatorReplica[] operators,
-                              final OperatorQueue queue, final PipelineReplicaMeter meter, final UpstreamCtx upstreamCtx )
+                              final OperatorQueue queue,
+                              final PipelineReplicaMeter meter,
+                              final UpstreamCtx upstreamCtx )
     {
         this( id, operators, queue, meter );
         initUpstreamDrainer();
@@ -109,7 +113,9 @@ public class PipelineReplica
                        id,
                        schedulingStrategies );
         checkArgument( upstreamCtxes != null && upstreamCtxes.length == operators.length,
-                       "Cannot initialize PipelineReplica %s because of invalid upstream contexts", id, upstreamCtxes );
+                       "Cannot initialize PipelineReplica %s because of invalid upstream contexts",
+                       id,
+                       upstreamCtxes );
 
         initUpstreamDrainer();
 
@@ -231,7 +237,9 @@ public class PipelineReplica
         final PipelineReplica duplicate = new PipelineReplica( this.id,
                                                                operators,
                                                                this.queue,
-                                                               meter, this.status, this.upstreamCtx,
+                                                               meter,
+                                                               this.status,
+                                                               this.upstreamCtx,
                                                                this.drainer );
 
         final List<String> operatorNames = Arrays.stream( operators )
@@ -306,8 +314,9 @@ public class PipelineReplica
     public String toString ()
     {
         return "PipelineReplica{" + "id=" + id + ", status=" + status + ", queue=" + queue.getClass().getSimpleName() + ", drainer=" + (
-                drainer != null ? drainer.getClass().getSimpleName() : null ) + ", upstreamCtx=" + upstreamCtx + ", operators="
-               + Arrays.toString( operators ) + '}';
+                drainer != null
+                ? drainer.getClass().getSimpleName()
+                : null ) + ", upstreamCtx=" + upstreamCtx + ", operators=" + Arrays.toString( operators ) + '}';
     }
 
     private static class PipelineInputTuplesSupplier implements Function<PartitionKey, TuplesImpl>

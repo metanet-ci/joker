@@ -58,7 +58,7 @@ public abstract class BaseMultiplierOperator implements Operator
             final Object pKey1 = input.get( "key1" );
             final Object pKey2 = input.get( "key2" );
             final Tuple result = Tuple.of( outputSchema, "key1", pKey1, "key2", pKey2 );
-            result.attach( input );
+            result.attachTo( input );
             int sum = input.getInteger( "val1" ) + input.getInteger( "val2" );
             final int m = getMultiplicationCount();
             final double val1 = input.getDouble( "val1" );

@@ -106,7 +106,7 @@ public class VWAPAggregatorOperator implements Operator
                                                         input.getLong( TIMESTAMP_FIELD ),
                                                         vwapSum,
                                                         volumeSum );
-                result.attach( input );
+                result.attachTo( input );
                 ctx.output( result );
             }
         }
