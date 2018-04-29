@@ -46,6 +46,9 @@ import cs.bilkent.joker.engine.exception.JokerException;
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.metric.FlowMetrics;
 import cs.bilkent.joker.engine.metric.LatencyMeter;
+import cs.bilkent.joker.engine.metric.LatencyMetrics;
+import cs.bilkent.joker.engine.metric.LatencyMetrics.LatencyRecord;
+import cs.bilkent.joker.engine.metric.LatencyMetricsHistory;
 import cs.bilkent.joker.engine.metric.MetricManager;
 import cs.bilkent.joker.engine.metric.PipelineMeter;
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
@@ -131,11 +134,11 @@ public class MetricManagerImpl implements MetricManager
                                                                       .build();
         this.scheduler = newScheduledThreadPool( METRICS_SCHEDULER_CORE_POOL_SIZE, threadFactory );
         this.scheduler.scheduleWithFixedDelay( new CollectPipelineMetrics(),
-                                               0,
+                                               metricManagerConfig.getPipelineMetricsScanningPeriodInMillis(),
                                                metricManagerConfig.getPipelineMetricsScanningPeriodInMillis(),
                                                MILLISECONDS );
         this.scheduler.scheduleAtFixedRate( new SamplePipelines(),
-                                            0,
+                                            metricManagerConfig.getOperatorInvocationSamplingPeriodInMicros(),
                                             metricManagerConfig.getOperatorInvocationSamplingPeriodInMicros(),
                                             MICROSECONDS );
         this.scanOperatorsHistogram = pipelineMetricRegistry.histogram( "scanOperators" );
@@ -461,9 +464,7 @@ public class MetricManagerImpl implements MetricManager
                 {
                     updateLastSystemTime( false );
                     initializePipelineMetricsContexts();
-
                     LOGGER.info( "Initialized..." );
-
                     return;
                 }
 
@@ -475,14 +476,22 @@ public class MetricManagerImpl implements MetricManager
                 final Map<PipelineId, long[]> pipelineIdToThreadCpuTimes = collectThreadCpuTimes();
                 systemTimeDiff += ( System.nanoTime() - scanStartTimeInNanos ) / 2;
 
-                updatePipelineMetrics( pipelineIdToThreadCpuTimes, systemTimeDiff, publish );
+                final Map<PipelineId, PipelineMetricsHistory> pipelineMetricsHistories = updatePipelineMetrics( pipelineIdToThreadCpuTimes,
+                                                                                                                systemTimeDiff );
+
+                if ( publish )
+                {
+                    final int newPeriod = getNewPeriod();
+                    final Map<Pair<String, Integer>, LatencyMetricsHistory> latencyMetricsHistories = getLatencyMetrics( newPeriod );
+                    metrics = new FlowMetrics( newPeriod, pipelineMetricsHistories, latencyMetricsHistories );
+                }
 
                 final long timeSpent = System.nanoTime() - scanStartTimeInNanos;
                 scanMetricsHistogram.update( timeSpent );
 
                 if ( publish )
                 {
-                    logPipelineMetrics( timeSpent );
+                    logMetrics( timeSpent );
                 }
             }
             catch ( Exception e )
@@ -549,9 +558,8 @@ public class MetricManagerImpl implements MetricManager
             return threadCpuTimes;
         }
 
-        private void updatePipelineMetrics ( final Map<PipelineId, long[]> pipelineIdToThreadCpuTimes,
-                                             final long systemTimeDiff,
-                                             final boolean publish )
+        private Map<PipelineId, PipelineMetricsHistory> updatePipelineMetrics ( final Map<PipelineId, long[]> pipelineIdToThreadCpuTimes,
+                                                                                final long systemTimeDiff )
         {
             final Map<PipelineId, PipelineMetricsHistory> pipelineMetricsHistories = new HashMap<>();
 
@@ -580,10 +588,36 @@ public class MetricManagerImpl implements MetricManager
                 pipelineMetricsHistories.put( pipelineId, newHistory );
             }
 
-            if ( publish )
+            return pipelineMetricsHistories;
+        }
+
+        private Map<Pair<String, Integer>, LatencyMetricsHistory> getLatencyMetrics ( final int period )
+        {
+            final Map<Pair<String, Integer>, LatencyMetricsHistory> latencyMetricsHistories = new HashMap<>();
+
+            for ( Entry<Pair<String, Integer>, LatencyMeter> e : latencyMeters.entrySet() )
             {
-                metrics = new FlowMetrics( getNewPeriod(), pipelineMetricsHistories );
+                final Pair<String, Integer> key = e.getKey();
+                final LatencyMetrics latencyMetrics = e.getValue().toLatencyMetrics( period );
+                LatencyMetricsHistory newHistory = null;
+                if ( metrics != null )
+                {
+                    final LatencyMetricsHistory currentHistory = metrics.getLatencyMetricsHistory( key );
+                    if ( currentHistory != null )
+                    {
+                        newHistory = currentHistory.add( latencyMetrics );
+                    }
+                }
+
+                if ( newHistory == null )
+                {
+                    newHistory = new LatencyMetricsHistory( latencyMetrics, metricManagerConfig.getHistorySize() );
+                }
+
+                latencyMetricsHistories.put( key, newHistory );
             }
+
+            return latencyMetricsHistories;
         }
 
         private int getNewPeriod ()
@@ -591,7 +625,7 @@ public class MetricManagerImpl implements MetricManager
             return metrics != null ? metrics.getPeriod() + 1 : 0;
         }
 
-        private void logPipelineMetrics ( final long timeSpent )
+        private void logMetrics ( final long timeSpent )
         {
             final PipelineMetricsVisitor logVisitor = ( pipelineReplicaId, flowVersion, inboundThroughput, threadUtilizationRatio,
                                                         pipelineCost, operatorCosts ) -> {
@@ -619,6 +653,65 @@ public class MetricManagerImpl implements MetricManager
                 pipelineMetricsHistory.getLatest().visit( logVisitor );
             }
 
+            for ( LatencyMetricsHistory latencyMetricsHistory : metrics.getLatencyMetricsHistories() )
+            {
+                final LatencyMetrics latest = latencyMetricsHistory.getLatest();
+                final Pair<String, Integer> key = Pair.of( latest.getSinkOperatorId(), latest.getReplicaIndex() );
+                final LatencyRecord tupleLatency = latest.getTupleLatency();
+                LOGGER.info(
+                        "TUPLE LATENCIES FOR SINK: {} -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .98: {} .99: {} "
+                        + ".999: " + "{} HISTORICAL MEAN: {}",
+                        key,
+                        tupleLatency.getMin(),
+                        tupleLatency.getMax(),
+                        tupleLatency.getMean(),
+                        tupleLatency.getStdDev(),
+                        tupleLatency.getMedian(),
+                        tupleLatency.getPercentile75(),
+                        tupleLatency.getPercentile95(),
+                        tupleLatency.getPercentile98(),
+                        tupleLatency.getPercentile99(),
+                        tupleLatency.getPercentile999(),
+                        latencyMetricsHistory.getMeanTupleLatency() );
+
+                for ( String operatorId : latest.getOperatorIds() )
+                {
+                    final LatencyRecord queueLatency = latest.getQueueLatency( operatorId );
+                    final LatencyRecord invocationLatency = latest.getInvocationLatency( operatorId );
+
+                    LOGGER.info( "Queue Latency: {} -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .98: {} .99: {} "
+                                 + ".999: " + "{} HISTORICAL MEAN: {}",
+                                 operatorId,
+                                 queueLatency.getMin(),
+                                 queueLatency.getMax(),
+                                 queueLatency.getMean(),
+                                 queueLatency.getStdDev(),
+                                 queueLatency.getMedian(),
+                                 queueLatency.getPercentile75(),
+                                 queueLatency.getPercentile95(),
+                                 queueLatency.getPercentile98(),
+                                 queueLatency.getPercentile99(),
+                                 queueLatency.getPercentile999(),
+                                 latencyMetricsHistory.getMeanQueueLatency( operatorId ) );
+
+                    LOGGER.info(
+                            "Invocation Latency: {} -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .98: {} .99: {} "
+                            + ".999: " + "{} HISTORICAL MEAN: {}",
+                            operatorId,
+                            invocationLatency.getMin(),
+                            invocationLatency.getMax(),
+                            invocationLatency.getMean(),
+                            invocationLatency.getStdDev(),
+                            invocationLatency.getMedian(),
+                            invocationLatency.getPercentile75(),
+                            invocationLatency.getPercentile95(),
+                            invocationLatency.getPercentile98(),
+                            invocationLatency.getPercentile99(),
+                            invocationLatency.getPercentile999(),
+                            latencyMetricsHistory.getMeanInvocationLatency( operatorId ) );
+                }
+            }
+
             final Snapshot scanMetricsSnapshot = scanMetricsHistogram.getSnapshot();
             final Snapshot scanOperatorsSnapshot = scanOperatorsHistogram.getSnapshot();
             LOGGER.debug( "SCAN METRICS   -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .99: {} .999: {}",
@@ -642,63 +735,6 @@ public class MetricManagerImpl implements MetricManager
                           format( scanOperatorsSnapshot.get95thPercentile() ),
                           format( scanOperatorsSnapshot.get99thPercentile() ),
                           format( scanOperatorsSnapshot.get999thPercentile() ) );
-
-            for ( LatencyMeter latencyMeter : latencyMeters.values() )
-            {
-                final Histogram tupleLatency = latencyMeter.getTupleLatency();
-                final Snapshot tupleLatencySnapshot = tupleLatency.getSnapshot();
-                LOGGER.info( "SCAN TUPLE LATENCIES -> {} : min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .99: {} .999: "
-                             + "{}",
-                             latencyMeter.getKey(),
-                             tupleLatencySnapshot.getMin(),
-                             tupleLatencySnapshot.getMax(),
-                             format( tupleLatencySnapshot.getMean() ),
-                             format( tupleLatencySnapshot.getStdDev() ),
-                             format( tupleLatencySnapshot.getMedian() ),
-                             format( tupleLatencySnapshot.get75thPercentile() ),
-                             format( tupleLatencySnapshot.get95thPercentile() ),
-                             format( tupleLatencySnapshot.get99thPercentile() ),
-                             format( tupleLatencySnapshot.get999thPercentile() ) );
-
-                for ( Entry<String, Histogram> e : latencyMeter.getInvocationLatencies().entrySet() )
-                {
-                    final Histogram invocationLatency = e.getValue();
-                    final Snapshot snapshot = invocationLatency.getSnapshot();
-                    LOGGER.info(
-                            "SCAN INVOCATION LATENCIES -> {} : operator: {} min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: "
-                            + "{} .99: {} .999: {}",
-                            latencyMeter.getKey(),
-                            e.getKey(),
-                            snapshot.getMin(),
-                            snapshot.getMax(),
-                            format( snapshot.getMean() ),
-                            format( snapshot.getStdDev() ),
-                            format( snapshot.getMedian() ),
-                            format( snapshot.get75thPercentile() ),
-                            format( snapshot.get95thPercentile() ),
-                            format( snapshot.get99thPercentile() ),
-                            format( snapshot.get999thPercentile() ) );
-                }
-
-                for ( Entry<String, Histogram> e : latencyMeter.getQueueLatencies().entrySet() )
-                {
-                    final Histogram queueLatency = e.getValue();
-                    final Snapshot snapshot = queueLatency.getSnapshot();
-                    LOGGER.info( "SCAN QUEUE LATENCIES -> {} : operator: {} min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: "
-                                 + "{} .99: {} .999: {}",
-                                 latencyMeter.getKey(),
-                                 e.getKey(),
-                                 snapshot.getMin(),
-                                 snapshot.getMax(),
-                                 format( snapshot.getMean() ),
-                                 format( snapshot.getStdDev() ),
-                                 format( snapshot.getMedian() ),
-                                 format( snapshot.get75thPercentile() ),
-                                 format( snapshot.get95thPercentile() ),
-                                 format( snapshot.get99thPercentile() ),
-                                 format( snapshot.get999thPercentile() ) );
-                }
-            }
 
             final int period = metrics != null ? metrics.getPeriod() : -1;
             LOGGER.info( "Time spent (ns): {}. New flow period: {}", timeSpent, period );
@@ -855,6 +891,7 @@ public class MetricManagerImpl implements MetricManager
                 final PipelineId pipelineId = pipelineMeter.getPipelineId();
                 final PipelineMetricsContext context = new PipelineMetricsContext( flowVersion, pipelineMeter );
                 pipelineMetricsContextMap.put( pipelineId, context );
+                deregister( pipelineId );
                 register( context );
                 LOGGER.info( "Started tracking new Pipeline {} with {} replicas and flow version {}",
                              pipelineId,

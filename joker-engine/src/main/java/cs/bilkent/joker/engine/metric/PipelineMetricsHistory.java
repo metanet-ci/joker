@@ -48,11 +48,6 @@ public class PipelineMetricsHistory
         return count;
     }
 
-    public int getHistorySize ()
-    {
-        return history.length;
-    }
-
     public List<PipelineMetrics> getAll ()
     {
         return asList( history ).subList( 0, count );
