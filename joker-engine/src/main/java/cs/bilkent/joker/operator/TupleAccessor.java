@@ -27,10 +27,10 @@ public final class TupleAccessor
             {
                 final Tuple tuple = l.get( j );
 
-                if ( tuple.isIngestionTimeNA() )
-                {
-                    return;
-                }
+//                if ( tuple.isIngestionTimeNA() )
+//                {
+//                    return;
+//                }
 
                 final long ingestionTime = tuple.getIngestionTime();
 

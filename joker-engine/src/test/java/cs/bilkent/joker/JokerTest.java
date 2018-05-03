@@ -6,6 +6,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceArray;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -484,12 +485,13 @@ public class JokerTest extends AbstractJokerTest
         @Override
         public void accept ( final Tuple tuple )
         {
-//            LockSupport.parkNanos( 1000 );
+            LockSupport.parkNanos( 100 );
 
-            invocationCount.incrementAndGet();
+//            invocationCount.incrementAndGet();
 
-            final int key = RANDOM.nextInt( keyRange );
-            final int value = RANDOM.nextInt( valueRange ) + 1;
+            final int rnd = RANDOM.nextInt( keyRange );
+            final int key = rnd;
+            final int value = rnd + 1;
 
             final AtomicInteger valueHolder = generatedValues[ key ];
             final int existing = valueHolder.get();
