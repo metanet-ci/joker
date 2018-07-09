@@ -1,10 +1,8 @@
 package cs.bilkent.joker.engine.metric;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import static java.util.Collections.unmodifiableCollection;
 import static java.util.Collections.unmodifiableMap;
 
 public class LatencyMetrics
@@ -22,12 +20,12 @@ public class LatencyMetrics
 
     private final Map<String, LatencyRecord> queueLatencies;
 
-    LatencyMetrics ( final String sinkOperatorId,
-                     final int replicaIndex,
-                     final int flowVersion,
-                     final LatencyRecord tupleLatency,
-                     final Map<String, LatencyRecord> invocationLatencies,
-                     final Map<String, LatencyRecord> queueLatencies )
+    public LatencyMetrics ( final String sinkOperatorId,
+                            final int replicaIndex,
+                            final int flowVersion,
+                            final LatencyRecord tupleLatency,
+                            final Map<String, LatencyRecord> invocationLatencies,
+                            final Map<String, LatencyRecord> queueLatencies )
     {
         this.sinkOperatorId = sinkOperatorId;
         this.replicaIndex = replicaIndex;
@@ -67,11 +65,6 @@ public class LatencyMetrics
         return queueLatencies;
     }
 
-    public Collection<String> getOperatorIds ()
-    {
-        return unmodifiableCollection( invocationLatencies.keySet() );
-    }
-
     public LatencyRecord getInvocationLatency ( final String operatorId )
     {
         return invocationLatencies.get( operatorId );
@@ -80,6 +73,14 @@ public class LatencyMetrics
     public LatencyRecord getQueueLatency ( final String operatorId )
     {
         return queueLatencies.get( operatorId );
+    }
+
+    @Override
+    public String toString ()
+    {
+        return "LatencyMetrics{" + "sinkOperatorId='" + sinkOperatorId + '\'' + ", replicaIndex=" + replicaIndex + ", flowVersion="
+               + flowVersion + ", tupleLatency=" + tupleLatency + ", invocationLatencies=" + invocationLatencies + ", queueLatencies="
+               + queueLatencies + '}';
     }
 
     public static class LatencyRecord
@@ -105,16 +106,16 @@ public class LatencyMetrics
 
         private final long percentile999;
 
-        LatencyRecord ( final long mean,
-                        final long stdDev,
-                        final long median,
-                        final long min,
-                        final long max,
-                        final long percentile75,
-                        final long percentile95,
-                        final long percentile98,
-                        final long percentile99,
-                        final long percentile999 )
+        public LatencyRecord ( final long mean,
+                               final long stdDev,
+                               final long median,
+                               final long min,
+                               final long max,
+                               final long percentile75,
+                               final long percentile95,
+                               final long percentile98,
+                               final long percentile99,
+                               final long percentile999 )
         {
             this.mean = mean;
             this.stdDev = stdDev;
@@ -176,6 +177,14 @@ public class LatencyMetrics
         public long getPercentile999 ()
         {
             return percentile999;
+        }
+
+        @Override
+        public String toString ()
+        {
+            return "LatencyRecord{" + "mean=" + mean + ", stdDev=" + stdDev + ", median=" + median + ", min=" + min + ", max=" + max
+                   + ", percentile75=" + percentile75 + ", percentile95=" + percentile95 + ", percentile98=" + percentile98
+                   + ", percentile99=" + percentile99 + ", percentile999=" + percentile999 + '}';
         }
     }
 

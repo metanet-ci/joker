@@ -17,6 +17,8 @@ public abstract class MultiPortDrainer implements TupleQueueDrainer
 
     static final int NO_TUPLES_AVAILABLE = -1;
 
+    private final QueueLatencyRecorder latencyRecorder;
+
     protected final int[] tupleCounts;
 
     protected final int limit;
@@ -29,8 +31,9 @@ public abstract class MultiPortDrainer implements TupleQueueDrainer
 
     private boolean pollWithExactCount;
 
-    MultiPortDrainer ( final int inputPortCount, final int maxBatchSize )
+    MultiPortDrainer ( final String operatorId, final int inputPortCount, final int maxBatchSize )
     {
+        this.latencyRecorder = new QueueLatencyRecorder( operatorId );
         this.inputPortCount = inputPortCount;
         this.maxBatchSize = maxBatchSize;
         this.tupleCounts = new int[ inputPortCount * 2 ];
@@ -64,11 +67,12 @@ public abstract class MultiPortDrainer implements TupleQueueDrainer
         checkArgument( tuplesSupplier != null );
 
         final int[] tupleCounts = checkQueueSizes( maySkipBlocking, queues );
-
         if ( tupleCounts == null )
         {
             return false;
         }
+
+        final long now = System.nanoTime();
 
         final TuplesImpl tuples = tuplesSupplier.apply( key );
 
@@ -83,8 +87,8 @@ public abstract class MultiPortDrainer implements TupleQueueDrainer
             tupleCount = pollWithExactCount ? tupleCount : max( tupleCount, maxBatchSize );
 
             final int portIndex = tupleCounts[ i ];
-            final TupleQueue tupleQueue = queues[ portIndex ];
-            tupleQueue.poll( tupleCount, tuples.getTuplesModifiable( portIndex ) );
+            latencyRecorder.setParameters( now, tuples.getTuplesModifiable( portIndex ) );
+            queues[ portIndex ].drainTo( tupleCount, latencyRecorder );
         }
 
         return true;

@@ -1,6 +1,7 @@
 package cs.bilkent.joker.engine.tuplequeue;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 import cs.bilkent.joker.operator.Tuple;
 
@@ -60,14 +61,24 @@ public interface TupleQueue
     List<Tuple> poll ( int limit );
 
     /**
-     * Polls tuples from the queue with the number at most equal to the given limit value.
+     * Drains tuples from the queue into the given list with the number at most equal to the given limit value.
      *
      * @param limit
      *         maximum number of tuples to be polled from the queue
      * @param tuples
-     *         list to add the polled tuples
+     *         list to add the drained tuples
      */
-    int poll ( int limit, List<Tuple> tuples );
+    int drainTo ( int limit, List<Tuple> tuples );
+
+    /**
+     * Drains tuples from the queue into the given consumer with the number at most equal to the given limit value.
+     *
+     * @param limit
+     *         maximum number of tuples to be polled from the queue
+     * @param consumer
+     *         consumer to add the drained tuples
+     */
+    int drainTo ( int limit, Consumer<Tuple> consumer );
 
     int size ();
 

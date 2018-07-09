@@ -10,6 +10,7 @@ import com.typesafe.config.ConfigFactory;
 import static cs.bilkent.joker.engine.config.AdaptationConfig.ADAPTATION_ENABLED;
 import static cs.bilkent.joker.engine.config.AdaptationConfig.CPU_UTILIZATION_BOTTLENECK_THRESHOLD;
 import static cs.bilkent.joker.engine.config.AdaptationConfig.CPU_UTILIZATION_LOAD_CHANGE_THRESHOLD;
+import static cs.bilkent.joker.engine.config.AdaptationConfig.LATENCY_METRICS_HISTORY_SUMMARIZER_CLASS;
 import static cs.bilkent.joker.engine.config.AdaptationConfig.PIPELINE_METRICS_HISTORY_SUMMARIZER_CLASS;
 import static cs.bilkent.joker.engine.config.AdaptationConfig.PIPELINE_SPLIT_ENABLED;
 import static cs.bilkent.joker.engine.config.AdaptationConfig.REGION_REBALANCE_ENABLED;
@@ -235,6 +236,13 @@ public class JokerConfigBuilder
             return this;
         }
 
+        public AdaptationConfigBuilder setLatencyMetricsHistorySummarizerClass ( final String val )
+        {
+            adaptationConfigVals.put( LATENCY_METRICS_HISTORY_SUMMARIZER_CLASS, val );
+
+            return this;
+        }
+
         public AdaptationConfigBuilder setCpuUtilBottleneckThreshold ( final double val )
         {
             adaptationConfigVals.put( CPU_UTILIZATION_BOTTLENECK_THRESHOLD, val );
@@ -273,6 +281,13 @@ public class JokerConfigBuilder
         public AdaptationConfigBuilder setStablePeriodCountToStop ( final int stablePeriodCountToStop )
         {
             adaptationConfigVals.put( STABLE_PERIOD_COUNT_TO_STOP, stablePeriodCountToStop );
+
+            return this;
+        }
+
+        public AdaptationConfigBuilder setLatencyThresholdNanos ( final long latencyThresholdNanos )
+        {
+            adaptationConfigVals.put( AdaptationConfig.LATENCY_THRESHOLD_NANOS, latencyThresholdNanos );
 
             return this;
         }

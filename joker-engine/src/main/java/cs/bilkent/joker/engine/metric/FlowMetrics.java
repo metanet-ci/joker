@@ -1,7 +1,6 @@
 package cs.bilkent.joker.engine.metric;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,6 +8,7 @@ import java.util.TreeMap;
 
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.operator.utils.Pair;
+import static java.util.Collections.unmodifiableCollection;
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toList;
 
@@ -68,7 +68,7 @@ public class FlowMetrics
 
     public Collection<LatencyMetricsHistory> getLatencyMetricsHistories ()
     {
-        return Collections.unmodifiableCollection( latencyMetricsHistories.values() );
+        return unmodifiableCollection( latencyMetricsHistories.values() );
     }
 
     @Override

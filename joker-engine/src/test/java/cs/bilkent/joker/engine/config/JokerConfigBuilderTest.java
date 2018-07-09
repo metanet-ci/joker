@@ -2,6 +2,7 @@ package cs.bilkent.joker.engine.config;
 
 import org.junit.Test;
 
+import cs.bilkent.joker.engine.metric.impl.latencymetricshistorysummarizer.SimpleMovingAverage;
 import cs.bilkent.joker.engine.metric.impl.pipelinemetricshistorysummarizer.LatestPipelineMetrics;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static org.junit.Assert.assertEquals;
@@ -103,6 +104,14 @@ public class JokerConfigBuilderTest extends AbstractJokerTest
     }
 
     @Test
+    public void test_AdaptationConfig_latencyMetricsHistorySummarizerClass ()
+    {
+        builder.getAdaptationConfigBuilder().setLatencyMetricsHistorySummarizerClass( SimpleMovingAverage.class.getName() );
+
+        assertTrue( builder.build().getAdaptationConfig().getLatencyMetricsHistorySummarizer() instanceof SimpleMovingAverage );
+    }
+
+    @Test
     public void test_AdaptationConfig_cpuUtilBottleneckThreshold ()
     {
         final double val = 0.85;
@@ -154,6 +163,15 @@ public class JokerConfigBuilderTest extends AbstractJokerTest
         builder.getAdaptationConfigBuilder().setStablePeriodCountToStop( val );
 
         assertEquals( val, builder.build().getAdaptationConfig().getStablePeriodCountToStop() );
+    }
+
+    @Test
+    public void test_AdaptationConfig_latencyThresholdNanos ()
+    {
+        final long val = 20;
+        builder.getAdaptationConfigBuilder().setLatencyThresholdNanos( val );
+
+        assertEquals( val, builder.build().getAdaptationConfig().getLatencyThresholdNanos() );
     }
 
     @Test

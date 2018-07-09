@@ -11,23 +11,23 @@ public class CompositeDownstreamCollector implements DownstreamCollector
 
     private final DownstreamCollector[] collectors;
 
-    private final int size;
+    private final int until;
 
     public CompositeDownstreamCollector ( final DownstreamCollector[] collectors )
     {
         checkArgument( collectors != null && collectors.length > 0 );
         this.collectors = Arrays.copyOf( collectors, collectors.length );
-        this.size = collectors.length;
+        this.until = ( collectors.length - 1 );
     }
 
     @Override
     public void accept ( final TuplesImpl tuples )
     {
-        collectors[ 0 ].accept( tuples );
-        for ( int i = 1; i < size; i++ )
+        for ( int i = 0; i < until; i++ )
         {
             collectors[ i ].accept( tuples.shallowCopy() );
         }
+        collectors[ until ].accept( tuples );
     }
 
     public DownstreamCollector[] getDownstreamCollectors ()

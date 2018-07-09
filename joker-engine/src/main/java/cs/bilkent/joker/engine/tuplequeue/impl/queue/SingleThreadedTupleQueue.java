@@ -3,6 +3,7 @@ package cs.bilkent.joker.engine.tuplequeue.impl.queue;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -63,9 +64,30 @@ public class SingleThreadedTupleQueue implements TupleQueue
     }
 
     @Override
-    public int poll ( final int count, final List<Tuple> tuples )
+    public int drainTo ( final int count, final List<Tuple> tuples )
     {
         return doPollTuples( count, tuples );
+    }
+
+    @Override
+    public int drainTo ( final int limit, final Consumer<Tuple> consumer )
+    {
+        int polled = 0;
+        for ( int i = 0; i < limit; i++ )
+        {
+            final Tuple item = queue.poll();
+            if ( item != null )
+            {
+                consumer.accept( item );
+                polled++;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        return polled;
     }
 
     private int doPollTuples ( final int count, List<Tuple> tuples )

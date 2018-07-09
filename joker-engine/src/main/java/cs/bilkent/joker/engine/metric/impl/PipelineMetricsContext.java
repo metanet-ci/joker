@@ -4,6 +4,7 @@ import java.lang.management.ThreadMXBean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.codahale.metrics.Snapshot;
 
 import cs.bilkent.joker.engine.metric.PipelineMeter;
 import static cs.bilkent.joker.engine.metric.PipelineMeter.NO_OPERATOR_INDEX;
@@ -51,12 +52,15 @@ class PipelineMetricsContext
     {
         this.flowVersion = flowVersion;
         this.pipelineMeter = pipelineMeter;
-        this.operatorSampleCounts = new long[ pipelineMeter.getReplicaCount() ][ pipelineMeter.getOperatorCount() ];
-        this.operatorSampleCountsBuffer = new long[ pipelineMeter.getReplicaCount() ][ pipelineMeter.getOperatorCount() ];
-        this.pipelineSampleCounts = new long[ pipelineMeter.getReplicaCount() ];
-        this.pipelineSampleCountsBuffer = new long[ pipelineMeter.getReplicaCount() ];
-        this.threadCpuTimes = new long[ pipelineMeter.getReplicaCount() ];
-        this.inboundThroughputs = new long[ pipelineMeter.getReplicaCount() ][ pipelineMeter.getInputPortCount() ];
+        final int replicaCount = pipelineMeter.getReplicaCount();
+        final int operatorCount = pipelineMeter.getOperatorCount();
+        this.operatorSampleCounts = new long[ replicaCount ][ operatorCount ];
+        this.operatorSampleCountsBuffer = new long[ replicaCount ][ operatorCount ];
+        this.pipelineSampleCounts = new long[ replicaCount ];
+        this.pipelineSampleCountsBuffer = new long[ replicaCount ];
+        this.threadCpuTimes = new long[ replicaCount ];
+        final int inputPortCount = pipelineMeter.getInputPortCount();
+        this.inboundThroughputs = new long[ replicaCount ][ inputPortCount ];
     }
 
     private PipelineMetricsBuilder newPipelineMetricsBuilder ()
@@ -122,6 +126,7 @@ class PipelineMetricsContext
         updateThreadUtilizationRatios( newReplicaCpuTimes, systemTimeDiff, builder );
         updateCosts( builder );
         updateThroughputs( builder );
+        updateThroughputHistograms( builder );
 
         return builder.build();
     }
@@ -208,6 +213,15 @@ class PipelineMetricsContext
             }
 
             arraycopy( newInboundThroughputs, 0, currInboundThroughputs, 0, inputPortCount );
+        }
+    }
+
+    private void updateThroughputHistograms ( final PipelineMetricsBuilder builder )
+    {
+        for ( int replicaIndex = 0; replicaIndex < pipelineMeter.getReplicaCount(); replicaIndex++ )
+        {
+            final Snapshot[] histograms = pipelineMeter.getInboundThroughputHistograms( replicaIndex );
+            builder.setInboundThroughputHistogramSnapshots( replicaIndex, histograms );
         }
     }
 

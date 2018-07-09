@@ -627,20 +627,32 @@ public class MetricManagerImpl implements MetricManager
 
         private void logMetrics ( final long timeSpent )
         {
-            final PipelineMetricsVisitor logVisitor = ( pipelineReplicaId, flowVersion, inboundThroughput, threadUtilizationRatio,
-                                                        pipelineCost, operatorCosts ) -> {
+            final PipelineMetricsVisitor logVisitor = ( pipelineReplicaId, flowVersion, inboundThroughput, threadUtilizationRatio, pipelineCost, operatorCosts, inboundThroughputHistograms ) -> {
                 final double cpuUsage = threadUtilizationRatio / numberOfCores;
-
+                final long[] avgs = Arrays.stream( inboundThroughputHistograms ).mapToLong( s -> (long) s.getMean() ).toArray();
+                final long[] stdDevs = Arrays.stream( inboundThroughputHistograms ).mapToLong( s -> (long) s.getStdDev() ).toArray();
+                final long[] maxes = Arrays.stream( inboundThroughputHistograms ).mapToLong( Snapshot::getMax ).toArray();
+                final long[] percentile75s = Arrays.stream( inboundThroughputHistograms )
+                                                   .mapToLong( s -> (long) s.get75thPercentile() )
+                                                   .toArray();
+                final long[] percentile99s = Arrays.stream( inboundThroughputHistograms )
+                                                   .mapToLong( s -> (long) s.get99thPercentile() )
+                                                   .toArray();
                 final String log = String.format(
                         "%s -> flow version: %d thread utilization: %.3f cpu usage: %.3f throughput: %s pipeline cost: %s operator costs:"
-                        + " %s",
+                        + " %s avg: %s std dev: %s max: %s .75: %s .99: %s",
                         pipelineReplicaId,
                         flowVersion,
                         threadUtilizationRatio,
                         cpuUsage,
                         Arrays.toString( inboundThroughput ),
                         pipelineCost,
-                        Arrays.toString( operatorCosts ) );
+                        Arrays.toString( operatorCosts ),
+                        Arrays.toString( avgs ),
+                        Arrays.toString( stdDevs ),
+                        Arrays.toString( maxes ),
+                        Arrays.toString( percentile75s ),
+                        Arrays.toString( percentile99s ) );
                 LOGGER.info( log );
             };
 
@@ -674,29 +686,37 @@ public class MetricManagerImpl implements MetricManager
                         tupleLatency.getPercentile999(),
                         latencyMetricsHistory.getMeanTupleLatency() );
 
-                for ( String operatorId : latest.getOperatorIds() )
+                for ( String operatorId : latest.getInvocationLatencies().keySet() )
                 {
                     final LatencyRecord queueLatency = latest.getQueueLatency( operatorId );
                     final LatencyRecord invocationLatency = latest.getInvocationLatency( operatorId );
 
-                    LOGGER.info( "Queue Latency: {} -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .98: {} .99: {} "
-                                 + ".999: " + "{} HISTORICAL MEAN: {}",
-                                 operatorId,
-                                 queueLatency.getMin(),
-                                 queueLatency.getMax(),
-                                 queueLatency.getMean(),
-                                 queueLatency.getStdDev(),
-                                 queueLatency.getMedian(),
-                                 queueLatency.getPercentile75(),
-                                 queueLatency.getPercentile95(),
-                                 queueLatency.getPercentile98(),
-                                 queueLatency.getPercentile99(),
-                                 queueLatency.getPercentile999(),
-                                 latencyMetricsHistory.getMeanQueueLatency( operatorId ) );
+                    if ( queueLatency != null )
+                    {
+                        LOGGER.info(
+                                "SINK: {} Queue Latency: {} -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .98: {} "
+                                + ".99: {} "
+                                + ".999: " + "{} HISTORICAL MEAN: {}",
+                                key,
+                                operatorId,
+                                queueLatency.getMin(),
+                                queueLatency.getMax(),
+                                queueLatency.getMean(),
+                                queueLatency.getStdDev(),
+                                queueLatency.getMedian(),
+                                queueLatency.getPercentile75(),
+                                queueLatency.getPercentile95(),
+                                queueLatency.getPercentile98(),
+                                queueLatency.getPercentile99(),
+                                queueLatency.getPercentile999(),
+                                latencyMetricsHistory.getMeanQueueLatency( operatorId ) );
+                    }
 
                     LOGGER.info(
-                            "Invocation Latency: {} -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .98: {} .99: {} "
+                            "SINK: {} Invocation Latency: {} -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .98: {} "
+                            + ".99: {} "
                             + ".999: " + "{} HISTORICAL MEAN: {}",
+                            key,
                             operatorId,
                             invocationLatency.getMin(),
                             invocationLatency.getMax(),

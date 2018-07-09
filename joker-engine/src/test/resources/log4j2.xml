@@ -9,6 +9,9 @@
         <Logger name="cs.bilkent.joker.engine.region.impl.FlowDefOptimizerImpl" level="debug" additivity="false">
             <AppenderRef ref="Console"/>
         </Logger>
+        <Logger name="cs.bilkent.joker.engine.adaptation.impl.LatencyOptimizingAdaptationManager" level="debug" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
         <Root level="info">
             <AppenderRef ref="Console"/>
         </Root>

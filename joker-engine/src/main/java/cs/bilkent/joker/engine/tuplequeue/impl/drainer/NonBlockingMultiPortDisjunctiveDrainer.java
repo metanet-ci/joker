@@ -6,9 +6,9 @@ import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
 public class NonBlockingMultiPortDisjunctiveDrainer extends MultiPortDrainer
 {
 
-    public NonBlockingMultiPortDisjunctiveDrainer ( final int inputPortCount, final int maxBatchSize )
+    public NonBlockingMultiPortDisjunctiveDrainer ( final String operatorId, final int inputPortCount, final int maxBatchSize )
     {
-        super( inputPortCount, maxBatchSize );
+        super( operatorId, inputPortCount, maxBatchSize );
     }
 
     @Override

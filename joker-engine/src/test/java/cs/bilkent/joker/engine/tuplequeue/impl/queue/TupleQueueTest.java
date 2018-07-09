@@ -143,7 +143,7 @@ public class TupleQueueTest extends AbstractJokerTest
         queue.offer( tuple2 );
 
         final List<Tuple> tuples = new ArrayList<>();
-        final int polled = queue.poll( 2, tuples );
+        final int polled = queue.drainTo( 2, tuples );
 
         assertThat( polled, equalTo( 2 ) );
         assertThat( tuples, hasSize( 2 ) );
@@ -163,7 +163,7 @@ public class TupleQueueTest extends AbstractJokerTest
         queue.offer( tuple3 );
 
         final List<Tuple> tuples = new ArrayList<>();
-        final int polled = queue.poll( 2, tuples );
+        final int polled = queue.drainTo( 2, tuples );
 
         assertThat( polled, equalTo( 2 ) );
         assertThat( tuples, hasSize( 2 ) );
@@ -181,7 +181,7 @@ public class TupleQueueTest extends AbstractJokerTest
         queue.offer( tuple1 );
 
         final List<Tuple> tuples = new ArrayList<>();
-        final int polled = queue.poll( 3, tuples );
+        final int polled = queue.drainTo( 3, tuples );
 
         assertThat( polled, equalTo( 2 ) );
         assertThat( tuples, hasSize( 2 ) );

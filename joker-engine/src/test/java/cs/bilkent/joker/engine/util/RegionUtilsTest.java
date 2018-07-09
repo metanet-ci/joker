@@ -13,9 +13,9 @@ import cs.bilkent.joker.engine.region.RegionDefFormer;
 import cs.bilkent.joker.engine.region.impl.FlowDefOptimizerImpl;
 import cs.bilkent.joker.engine.region.impl.IdGenerator;
 import cs.bilkent.joker.engine.region.impl.RegionDefFormerImpl;
-import static cs.bilkent.joker.engine.util.RegionUtil.getLeftMostRegions;
-import static cs.bilkent.joker.engine.util.RegionUtil.getRegionByFirstOperator;
-import static cs.bilkent.joker.engine.util.RegionUtil.getWholeDownstream;
+import static cs.bilkent.joker.engine.util.RegionUtils.getLeftMostRegions;
+import static cs.bilkent.joker.engine.util.RegionUtils.getRegionByFirstOperator;
+import static cs.bilkent.joker.engine.util.RegionUtils.getWholeDownstream;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
 import cs.bilkent.joker.operator.InitCtx;
@@ -35,7 +35,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 
-public class RegionUtilTest extends AbstractJokerTest
+public class RegionUtilsTest extends AbstractJokerTest
 {
 
     /*
@@ -67,7 +67,6 @@ public class RegionUtilTest extends AbstractJokerTest
     @Before
     public void init ()
     {
-
         final FlowDefBuilder flowDefBuilder = new FlowDefBuilder();
 
         final OperatorDef stateful1 = OperatorDefBuilder.newInstance( "stateful1", StatefulOperatorInput0Output1.class ).build();

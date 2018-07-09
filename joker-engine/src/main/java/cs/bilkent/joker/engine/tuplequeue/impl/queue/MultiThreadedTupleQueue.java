@@ -2,6 +2,7 @@ package cs.bilkent.joker.engine.tuplequeue.impl.queue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import javax.annotation.concurrent.ThreadSafe;
 
 import org.agrona.concurrent.ManyToOneConcurrentArrayQueue;
@@ -76,9 +77,30 @@ public class MultiThreadedTupleQueue implements TupleQueue
     }
 
     @Override
-    public int poll ( final int count, final List<Tuple> tuples )
+    public int drainTo ( final int count, final List<Tuple> tuples )
     {
         return queue.drainTo( tuples, count );
+    }
+
+    @Override
+    public int drainTo ( final int limit, final Consumer<Tuple> consumer )
+    {
+        int polled = 0;
+        for ( int i = 0; i < limit; i++ )
+        {
+            final Tuple item = queue.poll();
+            if ( item != null )
+            {
+                consumer.accept( item );
+                polled++;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        return polled;
     }
 
     @Override

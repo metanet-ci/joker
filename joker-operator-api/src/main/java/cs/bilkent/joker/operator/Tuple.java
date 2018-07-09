@@ -12,10 +12,10 @@ import java.util.function.BiConsumer;
 
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
+import static cs.bilkent.joker.operator.Tuple.LatencyRecord.newQueueLatency;
 import cs.bilkent.joker.operator.schema.runtime.RuntimeSchemaField;
 import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import static cs.bilkent.joker.operator.schema.runtime.TupleSchema.FIELD_NOT_FOUND;
-import cs.bilkent.joker.operator.utils.Triple;
 
 
 /**
@@ -199,7 +199,7 @@ public final class Tuple implements Fields<String>
 
     private long queueOfferTime = INGESTION_TIME_NOT_ASSIGNED;
 
-    private List<Triple<String, Boolean, Long>> latencyRecs;
+    private List<LatencyRecord> latencyRecs;
 
     public Tuple ()
     {
@@ -219,8 +219,7 @@ public final class Tuple implements Fields<String>
 
     private Tuple ( final TupleSchema schema,
                     final ArrayList<Object> values,
-                    final long ingestionTime,
-                    final List<Triple<String, Boolean, Long>> latencyRecs )
+                    final long ingestionTime, final List<LatencyRecord> latencyRecs )
     {
         this.schema = schema;
         this.values = values;
@@ -401,24 +400,24 @@ public final class Tuple implements Fields<String>
         return schema;
     }
 
-    long getIngestionTime ()
+    public long getIngestionTime ()
     {
         return ingestionTime;
     }
 
-    boolean isIngestionTimeNA ()
+    public boolean isIngestionTimeNA ()
     {
         return ( ingestionTime == INGESTION_TIME_NOT_ASSIGNED || ingestionTime == INGESTION_TIME_UNASSIGNABLE );
     }
 
-    void setIngestionTime ( final long ingestionTime, final boolean trackLatencyRecords )
+    public void setIngestionTime ( final long ingestionTime, final boolean trackLatencyRecords )
     {
         checkArgument( !( ingestionTime == INGESTION_TIME_NOT_ASSIGNED || ingestionTime == INGESTION_TIME_UNASSIGNABLE ) );
         checkState( this.ingestionTime == INGESTION_TIME_NOT_ASSIGNED );
         this.ingestionTime = ingestionTime;
         if ( trackLatencyRecords )
         {
-            latencyRecs = new ArrayList<>(4);
+            latencyRecs = new ArrayList<>( 4 );
         }
     }
 
@@ -465,7 +464,7 @@ public final class Tuple implements Fields<String>
         return new Tuple( schema, values, ingestionTime, latencyRecs );
     }
 
-    void setQueueOfferTime ( final long queueOfferTime )
+    public void setQueueOfferTime ( final long queueOfferTime )
     {
         if ( isNotTrackingLatencyRecords() )
         {
@@ -475,25 +474,26 @@ public final class Tuple implements Fields<String>
         this.queueOfferTime = queueOfferTime;
     }
 
-    void recordQueueLatency ( final String operatorId, final long now )
+    public void recordQueueLatency ( final String operatorId, final long now )
     {
         if ( queueOfferTime == INGESTION_TIME_NOT_ASSIGNED || latencyRecs == null )
         {
             return;
         }
 
-        latencyRecs.add( new Triple<>( operatorId, false, ( now - queueOfferTime ) ) );
+        latencyRecs.add( newQueueLatency( operatorId, queueOfferTime, now ) );
         queueOfferTime = INGESTION_TIME_NOT_ASSIGNED;
     }
 
-    void recordInvocationLatency ( final String operatorId, final long latency )
+    public void addInvocationLatencyRecord ( final LatencyRecord latencyRec )
     {
+        checkArgument( latencyRec != null );
         if ( isNotTrackingLatencyRecords() )
         {
             return;
         }
 
-        latencyRecs.add( new Triple<>( operatorId, true, latency ) );
+        latencyRecs.add( latencyRec );
     }
 
     private boolean isNotTrackingLatencyRecords ()
@@ -501,7 +501,7 @@ public final class Tuple implements Fields<String>
         return isIngestionTimeNA() || latencyRecs == null;
     }
 
-    List<Triple<String, Boolean, Long>> getLatencyRecs ()
+    public List<LatencyRecord> getLatencyRecs ()
     {
         return latencyRecs;
     }
@@ -577,6 +577,109 @@ public final class Tuple implements Fields<String>
         }
 
         return sb.append( ")" ).toString();
+    }
+
+    public static class LatencyRecord
+    {
+
+        public static LatencyRecord newQueueLatency ( final String operatorId, final long start, final long end )
+        {
+            final LatencyRecord rec = new LatencyRecord( operatorId, false, start );
+            rec.setEnd( end );
+            return rec;
+        }
+
+        public static LatencyRecord newInvocationLatency ( final String operatorId, final long start )
+        {
+            return new LatencyRecord( operatorId, true, start );
+        }
+
+        private final String operatorId;
+        private final boolean isOperator;
+        private final long start;
+        private long end = INGESTION_TIME_NOT_ASSIGNED;
+
+        private LatencyRecord ( final String operatorId, final boolean isOperator, final long start )
+        {
+            checkArgument( operatorId != null );
+            checkArgument( start != INGESTION_TIME_NOT_ASSIGNED );
+            this.operatorId = operatorId;
+            this.isOperator = isOperator;
+            this.start = start;
+        }
+
+        public LatencyRecord setEnd ( final long end )
+        {
+            checkArgument( start != INGESTION_TIME_NOT_ASSIGNED );
+            this.end = end;
+            return this;
+        }
+
+        public boolean isOperator ()
+        {
+            return isOperator;
+        }
+
+        public String getOperatorId ()
+        {
+            return operatorId;
+        }
+
+        public long getLatency ()
+        {
+            if ( end == INGESTION_TIME_NOT_ASSIGNED )
+            {
+                System.out.println( "" );
+            }
+            checkState( end != INGESTION_TIME_NOT_ASSIGNED );
+            return end - start;
+        }
+
+        @Override
+        public boolean equals ( final Object o )
+        {
+            if ( this == o )
+            {
+                return true;
+            }
+            if ( o == null || getClass() != o.getClass() )
+            {
+                return false;
+            }
+
+            final LatencyRecord that = (LatencyRecord) o;
+
+            if ( isOperator != that.isOperator )
+            {
+                return false;
+            }
+            if ( start != that.start )
+            {
+                return false;
+            }
+            if ( end != that.end )
+            {
+                return false;
+            }
+            return operatorId.equals( that.operatorId );
+        }
+
+        @Override
+        public int hashCode ()
+        {
+            int result = operatorId.hashCode();
+            result = 31 * result + ( isOperator ? 1 : 0 );
+            result = 31 * result + (int) ( start ^ ( start >>> 32 ) );
+            result = 31 * result + (int) ( end ^ ( end >>> 32 ) );
+            return result;
+        }
+
+        @Override
+        public String toString ()
+        {
+            return "LatencyRecord{" + "operatorId='" + operatorId + '\'' + ", isOperator=" + isOperator + ", start=" + start + ", end="
+                   + end + '}';
+        }
     }
 
 }

@@ -1040,7 +1040,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         public void invoke ( final InvocationCtx ctx )
         {
             final List<Tuple> tuples = ctx.getInputTuples( 0 );
-            ctx.output( tuples );
+            tuples.forEach( ctx::output );
             count += tuples.size();
         }
 

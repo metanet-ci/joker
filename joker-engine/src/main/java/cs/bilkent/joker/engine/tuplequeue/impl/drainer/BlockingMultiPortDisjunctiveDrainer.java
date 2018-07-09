@@ -10,9 +10,9 @@ public class BlockingMultiPortDisjunctiveDrainer extends MultiPortDrainer
 
     private final IdleStrategy idleStrategy = BackoffIdleStrategy.newDefaultInstance();
 
-    public BlockingMultiPortDisjunctiveDrainer ( final int inputPortCount, final int maxBatchSize )
+    public BlockingMultiPortDisjunctiveDrainer ( final String operatorId, final int inputPortCount, final int maxBatchSize )
     {
-        super( inputPortCount, maxBatchSize );
+        super( operatorId, inputPortCount, maxBatchSize );
     }
 
     @Override

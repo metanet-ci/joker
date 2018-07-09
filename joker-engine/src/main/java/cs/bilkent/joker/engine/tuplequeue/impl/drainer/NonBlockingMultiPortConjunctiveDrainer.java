@@ -6,9 +6,9 @@ import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
 public class NonBlockingMultiPortConjunctiveDrainer extends MultiPortDrainer
 {
 
-    public NonBlockingMultiPortConjunctiveDrainer ( final int inputPortCount, final int maxBatchSize )
+    public NonBlockingMultiPortConjunctiveDrainer ( final String operatorId, final int inputPortCount, final int maxBatchSize )
     {
-        super( inputPortCount, maxBatchSize );
+        super( operatorId, inputPortCount, maxBatchSize );
     }
 
     protected int[] checkQueueSizes ( final boolean maySkipBlocking, final TupleQueue[] tupleQueues )

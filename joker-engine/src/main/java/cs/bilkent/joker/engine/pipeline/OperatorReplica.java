@@ -32,11 +32,11 @@ import static cs.bilkent.joker.operator.InvocationCtx.InvocationReason.SUCCESS;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
-import static cs.bilkent.joker.operator.TupleAccessor.recordQueueLatency;
+import cs.bilkent.joker.operator.Tuple.LatencyRecord;
+import static cs.bilkent.joker.operator.Tuple.LatencyRecord.newInvocationLatency;
 import cs.bilkent.joker.operator.impl.DefaultInvocationCtx;
 import cs.bilkent.joker.operator.impl.InitCtxImpl;
 import cs.bilkent.joker.operator.impl.InternalInvocationCtx;
-import cs.bilkent.joker.operator.impl.OutputCollector;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleNever;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
@@ -398,20 +398,6 @@ public class OperatorReplica
     {
         resetInvocationCtxes();
         queue.drain( drainerMaySkipBlocking, drainer, drainerTuplesSupplier );
-        recordQueueLatencies();
-    }
-
-    private void recordQueueLatencies ()
-    {
-        final long now = System.nanoTime();
-        for ( int i = 0; i < invocationCtx.getInputCount(); i++ )
-        {
-            final TuplesImpl input = invocationCtx.getInput( i );
-            for ( int j = 0; j < operatorDef.getInputPortCount(); j++ )
-            {
-                recordQueueLatency( input.getTuplesModifiable( j ), operatorDef.getId(), now );
-            }
-        }
     }
 
     private void setGreedyDrainerForCompletion ()
@@ -469,17 +455,19 @@ public class OperatorReplica
     {
         invocationCtx.setInvocationReason( reason );
         meter.onInvocationStart( operatorDef.getId() );
-        final long start = System.nanoTime();
+
+        final LatencyRecord latencyRec = newInvocationLatency( operatorDef.getId(), System.nanoTime() );
+        invocationCtx.setInvocationLatencyRecord( latencyRec );
+
         do
         {
             operator.invoke( invocationCtx );
         } while ( invocationCtx.nextInput() );
-        final long end = System.nanoTime();
-        meter.onInvocationComplete( operatorDef.getId() );
 
+        latencyRec.setEnd( System.nanoTime() );
+
+        meter.onInvocationComplete( operatorDef.getId() );
         meter.count( operatorDef.getId(), invocationCtx.getInputs(), invocationCtx.getInputCount() );
-        final OutputCollector outputCollector = invocationCtx.getOutputCollector();
-        outputCollector.recordInvocationLatency( operatorDef.getId(), ( end - start ) );
     }
 
     /**

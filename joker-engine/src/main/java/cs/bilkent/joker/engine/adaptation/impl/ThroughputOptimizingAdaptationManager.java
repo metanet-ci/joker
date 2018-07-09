@@ -2,7 +2,6 @@ package cs.bilkent.joker.engine.adaptation.impl;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -14,7 +13,7 @@ import cs.bilkent.joker.engine.adaptation.AdaptationAction;
 import cs.bilkent.joker.engine.adaptation.AdaptationManager;
 import cs.bilkent.joker.engine.adaptation.BottleneckResolver;
 import cs.bilkent.joker.engine.adaptation.impl.bottleneckresolver.PipelineSplitter;
-import cs.bilkent.joker.engine.adaptation.impl.bottleneckresolver.RegionExtender;
+import cs.bilkent.joker.engine.adaptation.impl.bottleneckresolver.RegionExpander;
 import cs.bilkent.joker.engine.config.AdaptationConfig;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.flow.RegionDef;
@@ -22,10 +21,11 @@ import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.metric.FlowMetrics;
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import cs.bilkent.joker.engine.metric.PipelineMetricsHistorySummarizer;
-import static cs.bilkent.joker.engine.util.RegionUtil.getLeftMostRegions;
+import static cs.bilkent.joker.engine.util.RegionUtils.getLeftMostRegions;
 import cs.bilkent.joker.flow.FlowDef;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
+import cs.bilkent.joker.operator.utils.Pair;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.reverse;
 import static java.util.Collections.unmodifiableList;
@@ -34,7 +34,7 @@ import static java.util.stream.Collectors.toList;
 
 @NotThreadSafe
 @Singleton
-public class OrganicAdaptationManager implements AdaptationManager
+public class ThroughputOptimizingAdaptationManager implements AdaptationManager
 {
 
     private final PipelineMetricsHistorySummarizer pipelineMetricsHistorySummarizer;
@@ -58,19 +58,18 @@ public class OrganicAdaptationManager implements AdaptationManager
     private List<RegionAdaptationContext> adaptingRegions = emptyList();
 
     @Inject
-    public OrganicAdaptationManager ( final JokerConfig config )
+    public ThroughputOptimizingAdaptationManager ( final JokerConfig config )
     {
         this( config, RegionAdaptationContext::new );
     }
 
-    OrganicAdaptationManager ( final JokerConfig config,
-                               final Function<RegionExecPlan, RegionAdaptationContext> regionAdaptationContextFactory )
+    ThroughputOptimizingAdaptationManager ( final JokerConfig config,
+                                            final Function<RegionExecPlan, RegionAdaptationContext> regionAdaptationContextFactory )
     {
         final AdaptationConfig adaptationConfig = config.getAdaptationConfig();
         this.pipelineMetricsHistorySummarizer = adaptationConfig.getPipelineMetricsHistorySummarizer();
-        final BiFunction<RegionExecPlan, PipelineMetrics, Integer> ext = adaptationConfig.getPipelineSplitIndexExtractor();
-        final BottleneckResolver pipelineSplitter = new PipelineSplitter( ext );
-        final BottleneckResolver regionExtender = new RegionExtender( config.getPartitionServiceConfig().getMaxReplicaCount() );
+        final BottleneckResolver pipelineSplitter = new PipelineSplitter( adaptationConfig.getPipelineSplitIndexExtractor() );
+        final BottleneckResolver regionExpander = new RegionExpander( config.getPartitionServiceConfig().getMaxReplicaCount() );
         final List<BottleneckResolver> bottleneckResolvers = new ArrayList<>();
         if ( adaptationConfig.isAdaptationEnabled() )
         {
@@ -78,9 +77,10 @@ public class OrganicAdaptationManager implements AdaptationManager
             {
                 bottleneckResolvers.add( pipelineSplitter );
             }
+
             if ( adaptationConfig.isRegionRebalanceEnabled() )
             {
-                bottleneckResolvers.add( regionExtender );
+                bottleneckResolvers.add( regionExpander );
             }
 
             checkState( !bottleneckResolvers.isEmpty(), "there should be at least one bottleneck resolver when adaptation is enabled!" );
@@ -140,24 +140,21 @@ public class OrganicAdaptationManager implements AdaptationManager
             return emptyList();
         }
 
-        for ( RegionAdaptationContext region : regions )
-        {
+        regions.forEach( region -> {
             final List<PipelineMetrics> regionMetrics = metrics.getRegionMetrics( region.getRegionId(), pipelineMetricsHistorySummarizer );
             region.updateRegionMetrics( regionMetrics, loadChangePredicate );
-        }
+        } );
 
         final List<RegionAdaptationContext> adaptingRegions = new ArrayList<>();
         final List<AdaptationAction> adaptationActions = new ArrayList<>();
 
-        for ( RegionAdaptationContext region : regions )
-        {
-            final List<AdaptationAction> regionActions = region.resolveIfBottleneck( bottleneckPredicate, bottleneckResolvers );
-            if ( !regionActions.isEmpty() )
-            {
-                adaptingRegions.add( region );
-                adaptationActions.addAll( regionActions );
-            }
-        }
+        regions.stream()
+               .map( region -> Pair.of( region, region.resolveIfBottleneck( bottleneckPredicate, bottleneckResolvers ) ) )
+               .filter( p -> p._2.size() > 0 )
+               .forEach( p -> {
+                   adaptingRegions.add( p._1 );
+                   adaptationActions.addAll( p._2 );
+               } );
 
         if ( adaptingRegions.isEmpty() )
         {

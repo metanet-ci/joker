@@ -22,7 +22,6 @@ public class ExponentialMovingAverage implements PipelineMetricsHistorySummarize
     @Override
     public PipelineMetrics summarize ( final PipelineMetricsHistory history )
     {
-
         final List<PipelineMetrics> p = new ArrayList<>( history.getAll() );
         reverse( p );
 

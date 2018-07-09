@@ -6,8 +6,10 @@ import java.util.function.Function;
 import com.google.common.collect.ImmutableList;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.TupleAccessor;
+import cs.bilkent.joker.operator.Tuple.LatencyRecord;
 import cs.bilkent.joker.operator.impl.InternalInvocationCtx;
 import cs.bilkent.joker.operator.impl.OutputCollector;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -29,6 +31,8 @@ public class FusedInvocationCtx implements InternalInvocationCtx, OutputCollecto
     private InvocationReason reason;
 
     private boolean[] upstreamConnectionStatuses;
+
+    private LatencyRecord latencyRec;
 
     public FusedInvocationCtx ( final int inputPortCount,
                                 final Function<PartitionKey, KVStore> kvStoreSupplier,
@@ -52,9 +56,10 @@ public class FusedInvocationCtx implements InternalInvocationCtx, OutputCollecto
     @Override
     public void reset ()
     {
-        this.reason = null;
+        reason = null;
         input.clear();
         outputCollector.clear();
+        latencyRec = null;
     }
 
     @Override
@@ -82,9 +87,17 @@ public class FusedInvocationCtx implements InternalInvocationCtx, OutputCollecto
     }
 
     @Override
-    public OutputCollector getOutputCollector ()
+    public TuplesImpl getOutput ()
     {
-        return outputCollector;
+        return outputCollector.getOutputTuples();
+    }
+
+    @Override
+    public void setInvocationLatencyRecord ( final LatencyRecord latencyRec )
+    {
+        checkArgument( latencyRec != null );
+        checkState( this.latencyRec == null );
+        this.latencyRec = latencyRec;
     }
 
     // InternalInvocationContext methods end
@@ -112,31 +125,23 @@ public class FusedInvocationCtx implements InternalInvocationCtx, OutputCollecto
     @Override
     public void output ( final Tuple tuple )
     {
-        outputCollector.add( tuple );
-    }
-
-    @Override
-    public void output ( final List<Tuple> tuples )
-    {
-        for ( int i = 0, j = tuples.size(); i < j; i++ )
+        if ( latencyRec != null )
         {
-            outputCollector.add( tuples.get( i ) );
+            tuple.addInvocationLatencyRecord( latencyRec );
         }
+
+        outputCollector.add( tuple );
     }
 
     @Override
     public void output ( final int portIndex, final Tuple tuple )
     {
-        outputCollector.add( portIndex, tuple );
-    }
-
-    @Override
-    public void output ( final int portIndex, final List<Tuple> tuples )
-    {
-        for ( int i = 0, j = tuples.size(); i < j; i++ )
+        if ( latencyRec != null )
         {
-            outputCollector.add( portIndex, tuples.get( i ) );
+            tuple.addInvocationLatencyRecord( latencyRec );
         }
+
+        outputCollector.add( portIndex, tuple );
     }
 
     @Override
@@ -177,19 +182,6 @@ public class FusedInvocationCtx implements InternalInvocationCtx, OutputCollecto
     public void add ( final int portIndex, final Tuple tuple )
     {
         input.add( portIndex, tuple );
-    }
-
-    @Override
-    public void recordInvocationLatency ( final String operatorId, final long latency )
-    {
-        for ( int i = 0; i < input.getPortCount(); i++ )
-        {
-            final List<Tuple> tuples = input.getTuplesModifiable( i );
-            for ( int j = 0; j < tuples.size(); j++ )
-            {
-                TupleAccessor.recordInvocationLatency( tuples.get( j ), operatorId, latency );
-            }
-        }
     }
 
     @Override

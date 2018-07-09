@@ -1,5 +1,6 @@
 package cs.bilkent.joker.engine.metric;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static java.lang.Math.max;
@@ -82,4 +83,9 @@ public class LatencyMetricsHistory
         return getLatest().getFlowVersion();
     }
 
+    @Override
+    public String toString ()
+    {
+        return "LatencyMetricsHistory{" + "history=" + Arrays.toString( history ) + ", count=" + count + '}';
+    }
 }

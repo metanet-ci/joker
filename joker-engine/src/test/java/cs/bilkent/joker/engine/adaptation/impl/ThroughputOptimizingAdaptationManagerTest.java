@@ -47,7 +47,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith( MockitoJUnitRunner.class )
-public class OrganicAdaptationManagerTest extends AbstractJokerTest
+public class ThroughputOptimizingAdaptationManagerTest extends AbstractJokerTest
 {
 
     private final OperatorDef operator1 = OperatorDefBuilder.newInstance( "op1", StatefulOperatorInput0Output1.class ).build();
@@ -130,7 +130,7 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
 
     private List<RegionExecPlan> regionExecPlans;
 
-    private OrganicAdaptationManager adaptationManager;
+    private ThroughputOptimizingAdaptationManager adaptationManager;
 
     @Before
     public void init ()
@@ -150,7 +150,7 @@ public class OrganicAdaptationManagerTest extends AbstractJokerTest
         when( partitionServiceConfig.getMaxReplicaCount() ).thenReturn( 2 );
         when( config.getPartitionServiceConfig() ).thenReturn( partitionServiceConfig );
 
-        adaptationManager = new OrganicAdaptationManager( config, regionAdaptationContextFactory );
+        adaptationManager = new ThroughputOptimizingAdaptationManager( config, regionAdaptationContextFactory );
 
         flow = new FlowDefBuilder().add( operator1 )
                                    .add( operator2 )

@@ -7,8 +7,10 @@ import java.util.function.Function;
 import static com.google.common.base.Preconditions.checkNotNull;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.TupleAccessor;
+import cs.bilkent.joker.operator.Tuple.LatencyRecord;
 import cs.bilkent.joker.operator.impl.InternalInvocationCtx;
 import cs.bilkent.joker.operator.impl.OutputCollector;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -45,6 +47,8 @@ public class FusedPartitionedInvocationCtx implements InternalInvocationCtx, Out
 
     private boolean[] upstreamConnectionStatuses;
 
+    private LatencyRecord latencyRec;
+
     public FusedPartitionedInvocationCtx ( final int inputPortCount,
                                            final Function<PartitionKey, KVStore> kvStoreSupplier,
                                            final PartitionKeyExtractor partitionKeyExtractor,
@@ -68,7 +72,7 @@ public class FusedPartitionedInvocationCtx implements InternalInvocationCtx, Out
     @Override
     public void reset ()
     {
-        this.reason = null;
+        reason = null;
         for ( TuplesImpl input : inputs )
         {
             input.clear();
@@ -78,6 +82,7 @@ public class FusedPartitionedInvocationCtx implements InternalInvocationCtx, Out
         partitionKeyInputIndices.clear();
         inputCount = 0;
         currentInput = 0;
+        latencyRec = null;
     }
 
     @Override
@@ -105,9 +110,17 @@ public class FusedPartitionedInvocationCtx implements InternalInvocationCtx, Out
     }
 
     @Override
-    public OutputCollector getOutputCollector ()
+    public TuplesImpl getOutput ()
     {
-        return outputCollector;
+        return outputCollector.getOutputTuples();
+    }
+
+    @Override
+    public void setInvocationLatencyRecord ( final LatencyRecord latencyRec )
+    {
+        checkArgument( latencyRec != null );
+        checkState( this.latencyRec == null );
+        this.latencyRec = latencyRec;
     }
 
     // InternalInvocationContext methods end
@@ -135,31 +148,23 @@ public class FusedPartitionedInvocationCtx implements InternalInvocationCtx, Out
     @Override
     public void output ( final Tuple tuple )
     {
-        outputCollector.add( tuple );
-    }
-
-    @Override
-    public void output ( final List<Tuple> tuples )
-    {
-        for ( int i = 0, j = tuples.size(); i < j; i++ )
+        if ( latencyRec != null )
         {
-            outputCollector.add( tuples.get( i ) );
+            tuple.addInvocationLatencyRecord( latencyRec );
         }
+
+        outputCollector.add( tuple );
     }
 
     @Override
     public void output ( final int portIndex, final Tuple tuple )
     {
-        outputCollector.add( portIndex, tuple );
-    }
-
-    @Override
-    public void output ( final int portIndex, final List<Tuple> tuples )
-    {
-        for ( int i = 0, j = tuples.size(); i < j; i++ )
+        if ( latencyRec != null )
         {
-            outputCollector.add( portIndex, tuples.get( i ) );
+            tuple.addInvocationLatencyRecord( latencyRec );
         }
+
+        outputCollector.add( portIndex, tuple );
     }
 
     @Override
@@ -205,23 +210,6 @@ public class FusedPartitionedInvocationCtx implements InternalInvocationCtx, Out
     public void add ( final int portIndex, final Tuple tuple )
     {
         addOutputTuple( portIndex, tuple );
-    }
-
-    @Override
-    public void recordInvocationLatency ( final String operatorId, final long latency )
-    {
-        for ( int i = 0; i < inputCount; i++ )
-        {
-            final TuplesImpl input = inputs.get( i );
-            for ( int j = 0; j < input.getPortCount(); j++ )
-            {
-                final List<Tuple> tuples = input.getTuplesModifiable( j );
-                for ( int k = 0; k < tuples.size(); k++ )
-                {
-                    TupleAccessor.recordInvocationLatency( tuples.get( k ), operatorId, latency );
-                }
-            }
-        }
     }
 
     @Override

@@ -9,11 +9,11 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.JokerModule.DOWNSTREAM_FAILURE_FLAG_NAME;
 import cs.bilkent.joker.engine.exception.JokerException;
 import cs.bilkent.joker.engine.pipeline.DownstreamCollector;
+import static cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.TupleLatencyUtils.setQueueOfferTime;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.util.concurrent.BackoffIdleStrategy;
 import cs.bilkent.joker.engine.util.concurrent.IdleStrategy;
 import cs.bilkent.joker.operator.Tuple;
-import static cs.bilkent.joker.operator.TupleAccessor.setQueueOfferTime;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import static java.util.Arrays.fill;
 

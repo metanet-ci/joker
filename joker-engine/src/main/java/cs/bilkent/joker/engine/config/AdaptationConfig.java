@@ -1,6 +1,5 @@
 package cs.bilkent.joker.engine.config;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
@@ -12,6 +11,7 @@ import com.typesafe.config.Config;
 
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionExecPlan;
+import cs.bilkent.joker.engine.metric.LatencyMetricsHistorySummarizer;
 import cs.bilkent.joker.engine.metric.PipelineMetrics;
 import cs.bilkent.joker.engine.metric.PipelineMetricsHistorySummarizer;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
@@ -38,6 +38,8 @@ public class AdaptationConfig
 
     static final String PIPELINE_METRICS_HISTORY_SUMMARIZER_CLASS = "pipelineMetricsHistorySummarizerClass";
 
+    static final String LATENCY_METRICS_HISTORY_SUMMARIZER_CLASS = "latencyMetricsHistorySummarizerClass";
+
     static final String CPU_UTILIZATION_BOTTLENECK_THRESHOLD = "cpuUtilBottleneckThreshold";
 
     static final String CPU_UTILIZATION_LOAD_CHANGE_THRESHOLD = "cpuUtilLoadChangeThreshold";
@@ -49,6 +51,8 @@ public class AdaptationConfig
     static final String SPLIT_UTILITY = "splitUtility";
 
     static final String STABLE_PERIOD_COUNT_TO_STOP = "stablePeriodCountToStop";
+
+    static final String LATENCY_THRESHOLD_NANOS = "latencyThresholdNanos";
 
 
     private final boolean adaptationEnabled;
@@ -63,6 +67,8 @@ public class AdaptationConfig
 
     private final Class<PipelineMetricsHistorySummarizer> pipelineMetricsHistorySummarizerClass;
 
+    private final Class<LatencyMetricsHistorySummarizer> latencyMetricsHistorySummarizerClass;
+
     private final double cpuUtilBottleneckThreshold;
 
     private final double cpuUtilLoadChangeThreshold;
@@ -75,6 +81,8 @@ public class AdaptationConfig
 
     private final int stablePeriodCountToStop;
 
+    private final long latencyThresholdNanos;
+
 
     AdaptationConfig ( final Config parentConfig )
     {
@@ -85,22 +93,27 @@ public class AdaptationConfig
         this.regionRebalanceEnabled = config.getBoolean( REGION_REBALANCE_ENABLED );
         this.pipelineSplitFirst = config.getBoolean( PIPELINE_SPLIT_FIRST );
         this.visualizationEnabled = config.getBoolean( VISUALIZATION_ENABLED );
-        final String className = config.getString( PIPELINE_METRICS_HISTORY_SUMMARIZER_CLASS );
-        try
-        {
-            this.pipelineMetricsHistorySummarizerClass = (Class<PipelineMetricsHistorySummarizer>) Class.forName( className );
-        }
-        catch ( ClassNotFoundException e )
-        {
-            throw new RuntimeException( className + " not found!", e );
-        }
-
+        this.pipelineMetricsHistorySummarizerClass = getClass( config.getString( PIPELINE_METRICS_HISTORY_SUMMARIZER_CLASS ) );
+        this.latencyMetricsHistorySummarizerClass = getClass( config.getString( LATENCY_METRICS_HISTORY_SUMMARIZER_CLASS ) );
         this.cpuUtilBottleneckThreshold = config.getDouble( CPU_UTILIZATION_BOTTLENECK_THRESHOLD );
         this.cpuUtilLoadChangeThreshold = config.getDouble( CPU_UTILIZATION_LOAD_CHANGE_THRESHOLD );
         this.throughputLoadChangeThreshold = config.getDouble( THROUGHPUT_LOAD_CHANGE_THRESHOLD );
         this.throughputIncreaseThreshold = config.getDouble( THROUGHPUT_INCREASE_THRESHOLD );
         this.splitUtility = config.getDouble( SPLIT_UTILITY );
         this.stablePeriodCountToStop = config.getInt( STABLE_PERIOD_COUNT_TO_STOP );
+        this.latencyThresholdNanos = config.getLong( LATENCY_THRESHOLD_NANOS );
+    }
+
+    private <T> Class<T> getClass ( final String className )
+    {
+        try
+        {
+            return (Class<T>) Class.forName( className );
+        }
+        catch ( ClassNotFoundException e )
+        {
+            throw new RuntimeException( className + " not found!", e );
+        }
     }
 
     public boolean isAdaptationEnabled ()
@@ -130,14 +143,33 @@ public class AdaptationConfig
 
     public PipelineMetricsHistorySummarizer getPipelineMetricsHistorySummarizer ()
     {
+        return createInstance( pipelineMetricsHistorySummarizerClass );
+    }
+
+    public LatencyMetricsHistorySummarizer getLatencyMetricsHistorySummarizer ()
+    {
+        return createInstance( latencyMetricsHistorySummarizerClass );
+    }
+
+    public Class<PipelineMetricsHistorySummarizer> getPipelineMetricsHistorySummarizerClass ()
+    {
+        return pipelineMetricsHistorySummarizerClass;
+    }
+
+    public Class<LatencyMetricsHistorySummarizer> getLatencyMetricsHistorySummarizerClass ()
+    {
+        return latencyMetricsHistorySummarizerClass;
+    }
+
+    private <T> T createInstance ( Class clazz )
+    {
         try
         {
-            final Constructor<PipelineMetricsHistorySummarizer> constructor = pipelineMetricsHistorySummarizerClass.getConstructor();
-            return constructor.newInstance();
+            return (T) clazz.getConstructor().newInstance();
         }
         catch ( NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e )
         {
-            throw new RuntimeException( "cannot create instance of " + pipelineMetricsHistorySummarizerClass.getName(), e );
+            throw new RuntimeException( "cannot create instance of " + clazz.getName(), e );
         }
     }
 
@@ -169,6 +201,11 @@ public class AdaptationConfig
     public int getStablePeriodCountToStop ()
     {
         return stablePeriodCountToStop;
+    }
+
+    public long getLatencyThresholdNanos ()
+    {
+        return latencyThresholdNanos;
     }
 
     public BiPredicate<PipelineMetrics, PipelineMetrics> getLoadChangePredicate ()
@@ -272,10 +309,14 @@ public class AdaptationConfig
     @Override
     public String toString ()
     {
-        return "AdaptationConfig{" + "pipelineMetricsHistorySummarizerClass=" + pipelineMetricsHistorySummarizerClass
+        return "AdaptationConfig{" + "adaptationEnabled=" + adaptationEnabled + ", pipelineSplitEnabled=" + pipelineSplitEnabled
+               + ", regionRebalanceEnabled=" + regionRebalanceEnabled + ", pipelineSplitFirst=" + pipelineSplitFirst
+               + ", visualizationEnabled=" + visualizationEnabled + ", pipelineMetricsHistorySummarizerClass="
+               + pipelineMetricsHistorySummarizerClass + ", latencyMetricsHistorySummarizerClass=" + latencyMetricsHistorySummarizerClass
                + ", cpuUtilBottleneckThreshold=" + cpuUtilBottleneckThreshold + ", cpuUtilLoadChangeThreshold=" + cpuUtilLoadChangeThreshold
                + ", throughputLoadChangeThreshold=" + throughputLoadChangeThreshold + ", throughputIncreaseThreshold="
-               + throughputIncreaseThreshold + ", splitUtility=" + splitUtility + '}';
+               + throughputIncreaseThreshold + ", splitUtility=" + splitUtility + ", stablePeriodCountToStop=" + stablePeriodCountToStop
+               + ", latencyThresholdNanos=" + latencyThresholdNanos + '}';
     }
 
 }

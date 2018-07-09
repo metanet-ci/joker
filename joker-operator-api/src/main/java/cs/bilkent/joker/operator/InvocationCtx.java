@@ -100,16 +100,6 @@ public interface InvocationCtx
     void output ( Tuple tuple );
 
     /**
-     * Adds the given tuples to the default output port.
-     *
-     * @param tuples
-     *         tuples to add to the default output port
-     *
-     * @see Port#DEFAULT_PORT_INDEX
-     */
-    void output ( List<Tuple> tuples );
-
-    /**
      * Adds the given tuple to the given output port.
      *
      * @param portIndex
@@ -118,16 +108,6 @@ public interface InvocationCtx
      *         tuple to add
      */
     void output ( int portIndex, Tuple tuple );
-
-    /**
-     * Adds the given tuples to the given output port.
-     *
-     * @param portIndex
-     *         target output port index
-     * @param tuples
-     *         tuples to add
-     */
-    void output ( int portIndex, List<Tuple> tuples );
 
     /**
      * Returns the reason of a particular {@link Operator#invoke(InvocationCtx)} method invocation.

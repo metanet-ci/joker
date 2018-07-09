@@ -25,6 +25,8 @@ import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 public class BlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
 {
 
+    private final String operatorId;
+
     private final int inputPortCount;
 
     private final int maxBatchSize;
@@ -32,6 +34,7 @@ public class BlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
 
     public BlockingTupleQueueDrainerPool ( final JokerConfig config, final OperatorDef operatorDef )
     {
+        this.operatorId = operatorDef.getId();
         this.inputPortCount = operatorDef.getInputPortCount();
         this.maxBatchSize = config.getTupleQueueDrainerConfig().getMaxBatchSize();
     }
@@ -49,7 +52,7 @@ public class BlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
             final ScheduleWhenTuplesAvailable strategy = (ScheduleWhenTuplesAvailable) input;
             if ( inputPortCount == 1 )
             {
-                final SinglePortDrainer singlePortDrainer = new BlockingSinglePortDrainer( maxBatchSize );
+                final SinglePortDrainer singlePortDrainer = new BlockingSinglePortDrainer( operatorId, maxBatchSize );
                 singlePortDrainer.setParameters( strategy.getTupleAvailabilityByCount(), strategy.getTupleCount( DEFAULT_PORT_INDEX ) );
                 return singlePortDrainer;
             }
@@ -66,11 +69,11 @@ public class BlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
 
             if ( strategy.getTupleAvailabilityByPort() == ALL_PORTS )
             {
-                multiPortDrainer = new BlockingMultiPortConjunctiveDrainer( inputPortCount, maxBatchSize );
+                multiPortDrainer = new BlockingMultiPortConjunctiveDrainer( operatorId, inputPortCount, maxBatchSize );
             }
             else
             {
-                multiPortDrainer = new BlockingMultiPortDisjunctiveDrainer( inputPortCount, maxBatchSize );
+                multiPortDrainer = new BlockingMultiPortDisjunctiveDrainer( operatorId, inputPortCount, maxBatchSize );
             }
 
             multiPortDrainer.setParameters( strategy.getTupleAvailabilityByCount(), inputPorts, strategy.getTupleCounts() );

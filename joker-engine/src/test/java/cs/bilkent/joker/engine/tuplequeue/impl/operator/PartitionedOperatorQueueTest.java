@@ -52,7 +52,7 @@ public class PartitionedOperatorQueueTest extends AbstractJokerTest
         final List<Tuple> input = singletonList( tuple );
         operatorQueue.offer( 0, input );
 
-        final NonBlockingMultiPortDisjunctiveDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( INPUT_PORT_COUNT, 100 );
+        final NonBlockingMultiPortDisjunctiveDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( "", INPUT_PORT_COUNT, 100 );
         drainer.setParameters( AT_LEAST, new int[] { 0, 1 }, new int[] { 1, 1 } );
 
         final TuplesImpl result = new TuplesImpl( INPUT_PORT_COUNT );
@@ -71,7 +71,7 @@ public class PartitionedOperatorQueueTest extends AbstractJokerTest
         final Tuple tuple3 = Tuple.of( PARTITION_KEY_FIELD, "key3" );
         operatorQueue.offer( 0, singletonList( tuple3 ) );
 
-        final NonBlockingMultiPortDisjunctiveDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( INPUT_PORT_COUNT, 100 );
+        final NonBlockingMultiPortDisjunctiveDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( "", INPUT_PORT_COUNT, 100 );
         drainer.setParameters( AT_LEAST, new int[] { 0, 1 }, new int[] { 1, 1 } );
 
         final List<TuplesImpl> results = new ArrayList<>();
@@ -99,7 +99,7 @@ public class PartitionedOperatorQueueTest extends AbstractJokerTest
         final Tuple tuple3 = Tuple.of( PARTITION_KEY_FIELD, "key1" );
         operatorQueue.offer( 0, singletonList( tuple3 ) );
 
-        final NonBlockingMultiPortDisjunctiveDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( INPUT_PORT_COUNT, 100 );
+        final NonBlockingMultiPortDisjunctiveDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( "", INPUT_PORT_COUNT, 100 );
         drainer.setParameters( EXACT, new int[] { 0, 1 }, new int[] { 1, 1 } );
 
         final List<TuplesImpl> results = new ArrayList<>();

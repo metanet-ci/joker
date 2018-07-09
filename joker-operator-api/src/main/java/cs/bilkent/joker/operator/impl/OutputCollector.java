@@ -9,8 +9,6 @@ public interface OutputCollector
 
     void add ( int portIndex, Tuple tuple );
 
-    void recordInvocationLatency ( String operatorId, long latency );
-
     TuplesImpl getOutputTuples ();
 
     void clear ();

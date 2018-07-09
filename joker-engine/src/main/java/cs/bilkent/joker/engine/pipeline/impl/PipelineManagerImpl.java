@@ -63,13 +63,12 @@ import cs.bilkent.joker.engine.region.Region;
 import cs.bilkent.joker.engine.region.RegionManager;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
-import static cs.bilkent.joker.engine.util.RegionUtil.getFirstOperator;
+import static cs.bilkent.joker.engine.util.RegionUtils.getFirstOperator;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.Port;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
-import static cs.bilkent.joker.operator.TupleAccessor.recordLatencies;
-import static cs.bilkent.joker.operator.TupleAccessor.setIngestionTime;
+import cs.bilkent.joker.operator.Tuple.LatencyRecord;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
@@ -198,8 +197,9 @@ public class PipelineManagerImpl implements PipelineManager
         final List<Pipeline> p = new ArrayList<>();
         for ( RegionExecPlan regionExecPlan : regionExecPlans )
         {
-            LOGGER.info( "Initializing regionId={} with {} pipelines ( {} ) and {} replicas",
+            LOGGER.info( "Initializing regionId={} with operators: {} and {} pipelines ( {} ) and {} replicas",
                          regionExecPlan.getRegionId(),
+                         regionExecPlan.getRegionDef().getOperators().stream().map( OperatorDef::getId ).collect( toList() ),
                          regionExecPlan.getPipelineCount(),
                          regionExecPlan.getPipelineStartIndices(),
                          regionExecPlan.getReplicaCount() );
@@ -892,10 +892,9 @@ public class PipelineManagerImpl implements PipelineManager
             }
             else if ( i == 0 )
             {
-                final LatencyMeter latencyMeter = metricManager.createLatencyMeter( flow,
-                                                                                    pipeline.getLastOperatorDef().getId(),
-                                                                                    replicaIndex );
-                collector = new LatencyRecorder( latencyMeter );
+                final String tailOperatorId = pipeline.getLastOperatorDef().getId();
+                final LatencyMeter latencyMeter = metricManager.createLatencyMeter( flow, tailOperatorId, replicaIndex );
+                collector = new LatencyRecorder( tailOperatorId, latencyMeter );
             }
 
             checkState( collector != null );
@@ -1146,7 +1145,7 @@ public class PipelineManagerImpl implements PipelineManager
                 final List<Tuple> l = tuples.getTuplesModifiable( i );
                 for ( int j = 0, t = l.size(); j < t; j++ )
                 {
-                    setIngestionTime( l.get( j ), ingestionTime, trackLatencyRecords );
+                    l.get( j ).setIngestionTime( ingestionTime, trackLatencyRecords );
                 }
             }
 
@@ -1163,17 +1162,66 @@ public class PipelineManagerImpl implements PipelineManager
     static class LatencyRecorder implements DownstreamCollector
     {
 
+        private final String operatorId;
+
         private final LatencyMeter latencyMeter;
 
-        LatencyRecorder ( final LatencyMeter latencyMeter )
+        LatencyRecorder ( final String operatorId, final LatencyMeter latencyMeter )
         {
+            this.operatorId = operatorId;
             this.latencyMeter = latencyMeter;
         }
 
         @Override
         public void accept ( final TuplesImpl tuples )
         {
-            recordLatencies( tuples, latencyMeter, System.nanoTime() );
+            final long now = System.nanoTime();
+            for ( int i = 0; i < tuples.getPortCount(); i++ )
+            {
+                final List<Tuple> l = tuples.getTuplesModifiable( i );
+                for ( int j = 0; j < l.size(); j++ )
+                {
+                    final Tuple tuple = l.get( j );
+
+                    if ( tuple.isIngestionTimeNA() )
+                    {
+                        return;
+                    }
+
+                    final long ingestionTime = tuple.getIngestionTime();
+
+                    final long tupleLatency = ( now - ingestionTime );
+                    if ( tupleLatency > 0 )
+                    {
+                        latencyMeter.recordTuple( tupleLatency );
+                    }
+
+                    final List<LatencyRecord> recs = tuple.getLatencyRecs();
+                    if ( recs != null )
+                    {
+                        for ( int k = 0; k < recs.size(); k++ )
+                        {
+                            final LatencyRecord record = recs.get( k );
+                            final long latency = record.getLatency();
+                            if ( latency <= 0 )
+                            {
+                                continue;
+                            }
+
+                            final String operatorId = record.getOperatorId();
+
+                            if ( record.isOperator() )
+                            {
+                                latencyMeter.recordInvocation( operatorId, latency );
+                            }
+                            else
+                            {
+                                latencyMeter.recordQueue( operatorId, latency );
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 

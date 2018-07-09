@@ -98,7 +98,7 @@ public class DefaultOperatorQueueTest extends AbstractJokerTest
             return tuples;
         };
 
-        final MultiPortDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( inputPortCount, 100 );
+        final MultiPortDrainer drainer = new NonBlockingMultiPortDisjunctiveDrainer( "", inputPortCount, 100 );
         final int requiredTupleCount = TUPLE_QUEUE_SIZE / 2;
         drainer.setParameters( TupleAvailabilityByCount.EXACT,
                                new int[] { 0, 1, 2 },

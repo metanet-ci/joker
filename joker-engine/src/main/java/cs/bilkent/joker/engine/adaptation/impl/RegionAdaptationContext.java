@@ -185,12 +185,12 @@ public class RegionAdaptationContext
         }
 
         // TODO not sure about this part
-        if ( !nonResolvablePipelineIds.isEmpty() )
-        {
-            LOGGER.warn( "Region {} has non resolvable bottleneck pipeline ids: {}", getRegionId(), nonResolvablePipelineIds );
-
-            return true;
-        }
+        //        if ( !nonResolvablePipelineIds.isEmpty() )
+        //        {
+        //            LOGGER.warn( "Region {} has non resolvable bottleneck pipeline ids: {}", getRegionId(), nonResolvablePipelineIds );
+        //
+        //            return true;
+        //        }
 
         return false;
     }

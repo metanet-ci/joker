@@ -19,7 +19,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class RegionExtenderTest extends AbstractJokerTest
+public class RegionExpanderTest extends AbstractJokerTest
 {
 
     private static final int MAX_REPLICA_COUNT = 3;
@@ -33,7 +33,7 @@ public class RegionExtenderTest extends AbstractJokerTest
 
     private final PipelineMetrics bottleneckPipelineMetrics = mock( PipelineMetrics.class );
 
-    private RegionExtender regionExtender = new RegionExtender( MAX_REPLICA_COUNT );
+    private RegionExpander regionExpander = new RegionExpander( MAX_REPLICA_COUNT );
 
 
     @Before
@@ -47,7 +47,7 @@ public class RegionExtenderTest extends AbstractJokerTest
     {
         when( regionExecPlan.getRegionType() ).thenReturn( STATEFUL );
 
-        final AdaptationAction action = regionExtender.resolve( regionExecPlan, bottleneckPipelineMetrics );
+        final AdaptationAction action = regionExpander.resolve( regionExecPlan, bottleneckPipelineMetrics );
 
         assertNull( action );
     }
@@ -57,7 +57,7 @@ public class RegionExtenderTest extends AbstractJokerTest
     {
         when( regionExecPlan.getRegionType() ).thenReturn( STATELESS );
 
-        final AdaptationAction action = regionExtender.resolve( regionExecPlan, bottleneckPipelineMetrics );
+        final AdaptationAction action = regionExpander.resolve( regionExecPlan, bottleneckPipelineMetrics );
 
         assertNull( action );
     }
@@ -68,7 +68,7 @@ public class RegionExtenderTest extends AbstractJokerTest
         when( regionExecPlan.getRegionType() ).thenReturn( PARTITIONED_STATEFUL );
         when( regionExecPlan.getReplicaCount() ).thenReturn( MAX_REPLICA_COUNT );
 
-        final AdaptationAction action = regionExtender.resolve( regionExecPlan, bottleneckPipelineMetrics );
+        final AdaptationAction action = regionExpander.resolve( regionExecPlan, bottleneckPipelineMetrics );
 
         assertNull( action );
     }
@@ -79,7 +79,7 @@ public class RegionExtenderTest extends AbstractJokerTest
         when( regionExecPlan.getRegionType() ).thenReturn( PARTITIONED_STATEFUL );
         when( regionExecPlan.getReplicaCount() ).thenReturn( MAX_REPLICA_COUNT - 1 );
 
-        final AdaptationAction action = regionExtender.resolve( regionExecPlan, bottleneckPipelineMetrics );
+        final AdaptationAction action = regionExpander.resolve( regionExecPlan, bottleneckPipelineMetrics );
 
         assertTrue( action instanceof RegionRebalanceAction );
         final RegionRebalanceAction regionRebalanceAction = (RegionRebalanceAction) action;

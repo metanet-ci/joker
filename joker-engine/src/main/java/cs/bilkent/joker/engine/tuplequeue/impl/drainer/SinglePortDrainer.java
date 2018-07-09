@@ -8,6 +8,7 @@ import static java.lang.Math.max;
 
 public abstract class SinglePortDrainer implements TupleQueueDrainer
 {
+    protected final String operatorId;
 
     protected final int maxBatchSize;
 
@@ -15,8 +16,9 @@ public abstract class SinglePortDrainer implements TupleQueueDrainer
 
     int tupleCountToPoll;
 
-    SinglePortDrainer ( final int maxBatchSize )
+    SinglePortDrainer ( final String operatorId, final int maxBatchSize )
     {
+        this.operatorId = operatorId;
         this.maxBatchSize = maxBatchSize;
     }
 

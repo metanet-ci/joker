@@ -12,11 +12,11 @@ import cs.bilkent.joker.engine.exception.JokerException;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import static cs.bilkent.joker.engine.partition.PartitionUtil.getPartitionId;
 import cs.bilkent.joker.engine.pipeline.DownstreamCollector;
+import static cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.TupleLatencyUtils.setQueueOfferTime;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.util.concurrent.BackoffIdleStrategy;
 import cs.bilkent.joker.engine.util.concurrent.IdleStrategy;
 import cs.bilkent.joker.operator.Tuple;
-import static cs.bilkent.joker.operator.TupleAccessor.setQueueOfferTime;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 
 public abstract class AbstractPartitionedDownstreamCollector implements DownstreamCollector, Supplier<OperatorQueue[]>

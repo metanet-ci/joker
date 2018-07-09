@@ -18,15 +18,15 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 
-public class RegionExtender implements BottleneckResolver
+public class RegionExpander implements BottleneckResolver
 {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger( RegionExtender.class );
+    private static final Logger LOGGER = LoggerFactory.getLogger( RegionExpander.class );
 
 
     private final int maxReplicaCount;
 
-    public RegionExtender ( final int maxReplicaCount )
+    public RegionExpander ( final int maxReplicaCount )
     {
         this.maxReplicaCount = maxReplicaCount;
     }

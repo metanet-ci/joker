@@ -20,7 +20,7 @@ import static java.util.Collections.unmodifiableList;
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toList;
 
-public class RegionUtil
+public class RegionUtils
 {
 
     public static List<RegionDef> sortTopologically ( final Map<String, OperatorDef> operators,

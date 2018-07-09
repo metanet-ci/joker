@@ -21,7 +21,6 @@ import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
-import static cs.bilkent.joker.operator.TupleAccessor.getIngestionTime;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
@@ -75,11 +74,11 @@ public class OperatorInvocationIngestionTimeTest extends AbstractJokerTest
 
             if ( ctx.isSuccessfulInvocation() )
             {
-                final long ingestionTime = getIngestionTime( input.get( 4 ) );
+                final long ingestionTime = input.get( 4 ).getIngestionTime();
                 for ( int i = 0; i < 4; i++ )
                 {
                     final Tuple tuple = input.get( i );
-                    checkArgument( ingestionTime == getIngestionTime( tuple ) );
+                    checkArgument( ingestionTime == tuple.getIngestionTime() );
                 }
             }
 

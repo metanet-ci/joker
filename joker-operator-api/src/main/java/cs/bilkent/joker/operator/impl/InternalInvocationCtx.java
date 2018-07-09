@@ -3,6 +3,7 @@ package cs.bilkent.joker.operator.impl;
 import java.util.List;
 
 import cs.bilkent.joker.operator.InvocationCtx;
+import cs.bilkent.joker.operator.Tuple.LatencyRecord;
 
 public interface InternalInvocationCtx extends InvocationCtx
 {
@@ -17,12 +18,9 @@ public interface InternalInvocationCtx extends InvocationCtx
 
     List<TuplesImpl> getInputs ();
 
-    OutputCollector getOutputCollector ();
+    void setInvocationLatencyRecord ( LatencyRecord latencyRec );
 
-    default TuplesImpl getOutput ()
-    {
-        return getOutputCollector().getOutputTuples();
-    }
+    TuplesImpl getOutput ();
 
     void setUpstreamConnectionStatuses ( boolean[] upstreamConnectionStatuses );
 

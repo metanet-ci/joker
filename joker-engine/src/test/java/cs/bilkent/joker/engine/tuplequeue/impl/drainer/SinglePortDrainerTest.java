@@ -33,8 +33,8 @@ public class SinglePortDrainerTest extends AbstractJokerTest
     @Parameters( name = "drainer={0}" )
     public static Collection<Object[]> data ()
     {
-        return asList( new Object[][] { { new NonBlockingSinglePortDrainer( Integer.MAX_VALUE ) },
-                                        { new BlockingSinglePortDrainer( Integer.MAX_VALUE ) } } );
+        return asList( new Object[][] { { new NonBlockingSinglePortDrainer( "", Integer.MAX_VALUE ) },
+                                        { new BlockingSinglePortDrainer( "", Integer.MAX_VALUE ) } } );
     }
 
 

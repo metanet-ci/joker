@@ -125,7 +125,7 @@ public class MemorizingBeaconOperator implements Operator
             inv = 0;
         }
 
-        ctx.output( currentOutputs.get( inv++ ) );
+        currentOutputs.get( inv++ ).forEach( ctx::output );
     }
 
     private List<Tuple> produceOutput ()

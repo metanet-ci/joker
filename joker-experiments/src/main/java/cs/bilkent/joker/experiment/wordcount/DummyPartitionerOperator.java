@@ -21,7 +21,7 @@ public class DummyPartitionerOperator implements Operator
     @Override
     public void invoke ( final InvocationCtx ctx )
     {
-        ctx.output( ctx.getInputTuplesByDefaultPort() );
+        ctx.getInputTuplesByDefaultPort().forEach( ctx::output );
     }
 
 }

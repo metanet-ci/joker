@@ -28,8 +28,8 @@ public class MultiPortDisjunctiveDrainerTest extends AbstractJokerTest
     @Parameters( name = "drainer={0}" )
     public static Collection<Object[]> data ()
     {
-        return asList( new Object[][] { { new NonBlockingMultiPortDisjunctiveDrainer( INPUT_PORT_COUNT, Integer.MAX_VALUE ) },
-                                        { new BlockingMultiPortDisjunctiveDrainer( INPUT_PORT_COUNT, Integer.MAX_VALUE ) } } );
+        return asList( new Object[][] { { new NonBlockingMultiPortDisjunctiveDrainer( "", INPUT_PORT_COUNT, Integer.MAX_VALUE ) },
+                                        { new BlockingMultiPortDisjunctiveDrainer( "", INPUT_PORT_COUNT, Integer.MAX_VALUE ) } } );
     }
 
     private final MultiPortDrainer drainer;
