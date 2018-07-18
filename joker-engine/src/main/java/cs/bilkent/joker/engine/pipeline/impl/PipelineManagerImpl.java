@@ -1188,7 +1188,7 @@ public class PipelineManagerImpl implements PipelineManager
         public void accept ( final TuplesImpl tuples )
         {
             final long now = System.nanoTime();
-            while ( !queue.offer( Pair.of( tuples, now ) ) )
+            while ( !queue.offer( Pair.of( tuples.shallowCopy(), now ) ) )
             {
                 producerIdleStrategy.idle();
             }
@@ -1210,7 +1210,7 @@ public class PipelineManagerImpl implements PipelineManager
                 if ( p == null )
                 {
                     consumerIdleStrategy.idle();
-                    return;
+                    continue;
                 }
 
                 consumerIdleStrategy.reset();

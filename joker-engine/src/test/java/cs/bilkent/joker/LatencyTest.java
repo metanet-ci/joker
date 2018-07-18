@@ -105,7 +105,7 @@ public class LatencyTest extends AbstractJokerTest
     {
         final ValueGenerator valueGenerator = new ValueGenerator( KEY_RANGE );
         final OperatorConfig beacon1Config = new OperatorConfig().set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator )
-                                                                 .set( TUPLE_COUNT_CONFIG_PARAMETER, 16 );
+                                                                 .set( TUPLE_COUNT_CONFIG_PARAMETER, 1 );
 
         final OperatorDef beacon = OperatorDefBuilder.newInstance( "beacon", BeaconOperator.class ).setConfig( beacon1Config ).build();
 
@@ -113,13 +113,13 @@ public class LatencyTest extends AbstractJokerTest
                                                                           (BiConsumer<Tuple, Tuple>) ( input, output ) -> {
                                                                               int val = input.getInteger( "value" );
                                                                               //
-                                                                              //                     for ( int i = 0; i < 1024; i++ )
-                                                                              //
-                                                                              //                     {
-                                                                              //
-                                                                              //                         val = val * MULTIPLIER_VALUE - val;
-                                                                              //
-                                                                              //                     }
+                                                                              for ( int i = 0; i < 64; i++ )
+
+                                                                              {
+
+                                                                                  val = val * MULTIPLIER_VALUE - val;
+
+                                                                              }
                                                                               val = val * MULTIPLIER_VALUE - val;
                                                                               output.set( "key", input.get( "key" ) ).set( "mult", val );
                                                                           } );
