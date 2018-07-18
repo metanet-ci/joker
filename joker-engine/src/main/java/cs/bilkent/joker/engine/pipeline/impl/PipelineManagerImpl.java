@@ -18,6 +18,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import org.agrona.concurrent.OneToOneConcurrentArrayQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.google.common.collect.HashMultimap;
@@ -64,6 +65,8 @@ import cs.bilkent.joker.engine.region.RegionManager;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import static cs.bilkent.joker.engine.util.RegionUtils.getFirstOperator;
+import cs.bilkent.joker.engine.util.concurrent.BackoffIdleStrategy;
+import static cs.bilkent.joker.engine.util.concurrent.BackoffIdleStrategy.newDefaultInstance;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.Port;
 import cs.bilkent.joker.operator.OperatorDef;
@@ -1166,57 +1169,96 @@ public class PipelineManagerImpl implements PipelineManager
 
         private final LatencyMeter latencyMeter;
 
+        private final OneToOneConcurrentArrayQueue<Pair<TuplesImpl, Long>> queue = new OneToOneConcurrentArrayQueue<>( 65536 );
+
+        private final BackoffIdleStrategy producerIdleStrategy = newDefaultInstance();
+
+        private final BackoffIdleStrategy consumerIdleStrategy = newDefaultInstance();
+
+        private volatile boolean active = true;
+
         LatencyRecorder ( final String operatorId, final LatencyMeter latencyMeter )
         {
             this.operatorId = operatorId;
             this.latencyMeter = latencyMeter;
+            new Thread( this::doRun ).start();
         }
 
         @Override
         public void accept ( final TuplesImpl tuples )
         {
             final long now = System.nanoTime();
-            for ( int i = 0; i < tuples.getPortCount(); i++ )
+            while ( !queue.offer( Pair.of( tuples, now ) ) )
             {
-                final List<Tuple> l = tuples.getTuplesModifiable( i );
-                for ( int j = 0; j < l.size(); j++ )
+                producerIdleStrategy.idle();
+            }
+
+            producerIdleStrategy.reset();
+        }
+
+        @Override
+        public void onShutdown ()
+        {
+            active = false;
+        }
+
+        private void doRun ()
+        {
+            while ( active )
+            {
+                final Pair<TuplesImpl, Long> p = queue.poll();
+                if ( p == null )
                 {
-                    final Tuple tuple = l.get( j );
+                    consumerIdleStrategy.idle();
+                    return;
+                }
 
-                    if ( tuple.isIngestionTimeNA() )
+                consumerIdleStrategy.reset();
+
+                final TuplesImpl tuples = p._1;
+                final Long now = p._2;
+                for ( int i = 0; i < tuples.getPortCount(); i++ )
+                {
+                    final List<Tuple> l = tuples.getTuplesModifiable( i );
+                    for ( int j = 0; j < l.size(); j++ )
                     {
-                        return;
-                    }
+                        final Tuple tuple = l.get( j );
 
-                    final long ingestionTime = tuple.getIngestionTime();
-
-                    final long tupleLatency = ( now - ingestionTime );
-                    if ( tupleLatency > 0 )
-                    {
-                        latencyMeter.recordTuple( tupleLatency );
-                    }
-
-                    final List<LatencyRecord> recs = tuple.getLatencyRecs();
-                    if ( recs != null )
-                    {
-                        for ( int k = 0; k < recs.size(); k++ )
+                        if ( tuple.isIngestionTimeNA() )
                         {
-                            final LatencyRecord record = recs.get( k );
-                            final long latency = record.getLatency();
-                            if ( latency <= 0 )
-                            {
-                                continue;
-                            }
+                            return;
+                        }
 
-                            final String operatorId = record.getOperatorId();
+                        final long ingestionTime = tuple.getIngestionTime();
 
-                            if ( record.isOperator() )
+                        final long tupleLatency = ( now - ingestionTime );
+                        if ( tupleLatency > 0 )
+                        {
+                            latencyMeter.recordTuple( tupleLatency );
+                        }
+
+                        final List<LatencyRecord> recs = tuple.getLatencyRecs();
+                        if ( recs != null )
+                        {
+                            for ( int k = 0; k < recs.size(); k++ )
                             {
-                                latencyMeter.recordInvocation( operatorId, latency );
-                            }
-                            else
-                            {
-                                latencyMeter.recordQueue( operatorId, latency );
+                                final LatencyRecord record = recs.get( k );
+                                final long latency = record.getLatency();
+                                if ( latency <= 0 )
+                                {
+                                    continue;
+                                }
+
+                                final String operatorId = record.getOperatorId();
+
+                                if ( record.isOperator() )
+                                {
+                                    latencyMeter.recordInvocation( operatorId, latency );
+                                }
+                                else
+                                {
+                                    latencyMeter.recordQueue( operatorId, latency );
+                                }
                             }
                         }
                     }

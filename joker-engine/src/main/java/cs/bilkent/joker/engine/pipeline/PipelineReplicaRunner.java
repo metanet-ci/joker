@@ -1,7 +1,6 @@
 package cs.bilkent.joker.engine.pipeline;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,8 +41,7 @@ public class PipelineReplicaRunner implements Runnable
 
     private final Supervisor supervisor;
 
-    private Consumer<TuplesImpl> downstream;
-
+    private DownstreamCollector downstream;
 
     private PipelineReplicaRunnerStatus status = RUNNING;
 
@@ -495,8 +493,8 @@ public class PipelineReplicaRunner implements Runnable
     private void completeRun ()
     {
         LOGGER.info( "{}: completing the run", id );
-
         LOGGER.info( "{}: all downstream tuples are sent", id );
+        shutdownDownstreamCollector();
 
         if ( pipeline.isCompleted() )
         {
@@ -536,6 +534,7 @@ public class PipelineReplicaRunner implements Runnable
     private void completeRunWithFailure ( final Exception e )
     {
         LOGGER.error( id + ": runner failed", e );
+        shutdownDownstreamCollector();
         supervisor.notifyPipelineReplicaFailed( id, e );
 
         synchronized ( monitor )
@@ -549,6 +548,18 @@ public class PipelineReplicaRunner implements Runnable
                 this.command = null;
             }
             this.status = COMPLETED;
+        }
+    }
+
+    private void shutdownDownstreamCollector ()
+    {
+        try
+        {
+            downstream.onShutdown();
+        }
+        catch ( Exception e )
+        {
+            LOGGER.error( "Downstream collector shutdown failed", e );
         }
     }
 
