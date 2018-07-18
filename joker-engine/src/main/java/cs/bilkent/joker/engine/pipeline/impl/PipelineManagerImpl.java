@@ -1187,13 +1187,13 @@ public class PipelineManagerImpl implements PipelineManager
         @Override
         public void accept ( final TuplesImpl tuples )
         {
-            final long now = System.nanoTime();
-            while ( !queue.offer( Pair.of( tuples.shallowCopy(), now ) ) )
+            producerIdleStrategy.reset();
+
+            final Pair<TuplesImpl, Long> p = Pair.of( tuples.shallowCopy(), System.nanoTime() );
+            while ( !queue.offer( p ) )
             {
                 producerIdleStrategy.idle();
             }
-
-            producerIdleStrategy.reset();
         }
 
         @Override
