@@ -1231,6 +1231,13 @@ public class PipelineManagerImpl implements PipelineManager
                 {
                     final Tuple tuple = l.get( j );
 
+                    if ( tuple.isIngestionTimeNA() )
+                    {
+                        continue;
+                    }
+
+                    latencyMeter.recordTuple( ( now - tuple.getIngestionTime() ) );
+
                     if ( tuple.getLatencyRecs() == null )
                     {
                         continue;
