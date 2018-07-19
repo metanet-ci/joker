@@ -112,9 +112,7 @@ public class LatencyTest extends AbstractJokerTest
         final OperatorConfig multiplierConfig = new OperatorConfig().set( MAPPER_CONFIG_PARAMETER,
                                                                           (BiConsumer<Tuple, Tuple>) ( input, output ) -> {
                                                                               int val = input.getInteger( "value" );
-                                                                              //
                                                                               for ( int i = 0; i < 64; i++ )
-
                                                                               {
 
                                                                                   val = val * MULTIPLIER_VALUE - val;
@@ -164,9 +162,15 @@ public class LatencyTest extends AbstractJokerTest
 
         final OperatorConfig multiplierConfig = new OperatorConfig().set( MAPPER_CONFIG_PARAMETER,
                                                                           (BiConsumer<Tuple, Tuple>) ( input, output ) -> {
-                                                                              output.set( "key", input.get( "key" ) )
-                                                                                    .set( "value",
-                                                                                          MULTIPLIER_VALUE * input.getInteger( "value" ) );
+                                                                              int val = input.getInteger( "value" );
+                                                                              for ( int i = 0; i < 64; i++ )
+                                                                              {
+
+                                                                                  val = val * MULTIPLIER_VALUE - val;
+
+                                                                              }
+                                                                              val = val * MULTIPLIER_VALUE - val;
+                                                                              output.set( "key", input.get( "key" ) ).set( "mult", val );
                                                                           } );
 
         final OperatorDef multiplier = OperatorDefBuilder.newInstance( "multiplier", MapperOperator.class )
