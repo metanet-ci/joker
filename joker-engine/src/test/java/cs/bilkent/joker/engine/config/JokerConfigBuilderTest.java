@@ -322,6 +322,15 @@ public class JokerConfigBuilderTest extends AbstractJokerTest
     }
 
     @Test
+    public void test_PipelineManagerConfig_latencyRecorderPoolSize ()
+    {
+        final int val = 8;
+        builder.getPipelineManagerConfigBuilder().setLatencyRecorderPoolSize( val );
+
+        assertEquals( val, builder.build().getPipelineManagerConfig().getLatencyRecorderPoolSize() );
+    }
+
+    @Test
     public void test_PipelineReplicaRunnerConfig_runnerWaitTimeoutInMillis ()
     {
         final long val = 234;

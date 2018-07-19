@@ -55,17 +55,26 @@ public class LatencyMeter
 
     public void recordTuple ( final long latency )
     {
-        tupleLatency.update( latency );
+        if ( latency > 0 )
+        {
+            tupleLatency.update( latency );
+        }
     }
 
     public void recordInvocation ( final String operatorId, final long latency )
     {
-        invocationLatencies.get( operatorId ).update( latency );
+        if ( latency > 0 )
+        {
+            invocationLatencies.get( operatorId ).update( latency );
+        }
     }
 
     public void recordQueue ( final String operatorId, final long latency )
     {
-        queueLatencies.get( operatorId ).update( latency );
+        if ( latency > 0 )
+        {
+            queueLatencies.get( operatorId ).update( latency );
+        }
     }
 
     public Histogram getTupleLatency ()

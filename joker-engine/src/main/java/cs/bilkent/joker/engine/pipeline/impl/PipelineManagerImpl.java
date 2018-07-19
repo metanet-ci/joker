@@ -10,9 +10,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -28,6 +31,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static cs.bilkent.joker.JokerModule.DOWNSTREAM_FAILURE_FLAG_NAME;
 import cs.bilkent.joker.engine.FlowStatus;
+import static cs.bilkent.joker.engine.FlowStatus.RUNNING;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_THREAD_GROUP_NAME;
 import cs.bilkent.joker.engine.exception.InitializationException;
@@ -67,6 +71,7 @@ import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import static cs.bilkent.joker.engine.util.RegionUtils.getFirstOperator;
 import cs.bilkent.joker.engine.util.concurrent.BackoffIdleStrategy;
 import static cs.bilkent.joker.engine.util.concurrent.BackoffIdleStrategy.newDefaultInstance;
+import cs.bilkent.joker.engine.util.concurrent.IdleStrategy;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.Port;
 import cs.bilkent.joker.operator.OperatorDef;
@@ -77,12 +82,14 @@ import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.joker.operator.utils.Pair;
+import cs.bilkent.joker.operator.utils.Triple;
 import static java.lang.Math.min;
 import static java.util.Collections.reverse;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.sort;
 import static java.util.Comparator.comparing;
 import static java.util.Comparator.comparingInt;
+import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
@@ -92,39 +99,28 @@ public class PipelineManagerImpl implements PipelineManager
 {
 
     private static final Logger LOGGER = LoggerFactory.getLogger( PipelineManagerImpl.class );
-
     private static final int DOWNSTREAM_TUPLE_SENDER_CONSTRUCTOR_COUNT = 2;
-
     private static final int INITIAL_FLOW_VERSION = -1;
 
 
     private final JokerConfig jokerConfig;
-
     private final RegionManager regionManager;
-
     private final PartitionService partitionService;
-
     private final PartitionKeyExtractorFactory partitionKeyExtractorFactory;
-
     private final MetricManager metricManager;
-
     private final AtomicBoolean downstreamCollectorFailureFlag;
-
     private final ThreadGroup jokerThreadGroup;
-
     private final BiFunction<List<Pair<Integer, Integer>>, OperatorQueue, DownstreamCollector>[] defaultDownstreamCollectorCtors = new BiFunction[ 6 ];
-
     private final Function6<List<Pair<Integer, Integer>>, Integer, int[], OperatorQueue[], PartitionKeyExtractor, DownstreamCollector>[]
             partitionedDownstreamCollectorCtors = new Function6[ 6 ];
+    private final int latencyRecorderPoolSize;
+    private final ExecutorService latencyRecorderPool;
+    private final OneToOneConcurrentArrayQueue[] latencyRecorderQueues;
 
     private Supervisor supervisor;
-
     private int flowVersion = INITIAL_FLOW_VERSION;
-
     private FlowDef flow;
-
     private final Map<Integer, RegionExecPlan> regionExecPlans = new HashMap<>();
-
     private final Map<PipelineId, Pipeline> pipelines = new ConcurrentHashMap<>();
 
     private volatile FlowStatus status = FlowStatus.INITIAL;
@@ -145,6 +141,10 @@ public class PipelineManagerImpl implements PipelineManager
         this.metricManager = metricManager;
         this.downstreamCollectorFailureFlag = downstreamCollectorFailureFlag;
         this.jokerThreadGroup = jokerThreadGroup;
+        this.latencyRecorderPoolSize = jokerConfig.getPipelineManagerConfig().getLatencyRecorderPoolSize();
+        this.latencyRecorderPool = newFixedThreadPool( latencyRecorderPoolSize );
+        this.latencyRecorderQueues = new OneToOneConcurrentArrayQueue[ latencyRecorderPoolSize ];
+        IntStream.range( 0, latencyRecorderPoolSize ).forEach( i -> latencyRecorderQueues[ i ] = new OneToOneConcurrentArrayQueue( 4096 ) );
         createDownstreamCollectorFactories();
     }
 
@@ -239,7 +239,10 @@ public class PipelineManagerImpl implements PipelineManager
             createPipelines( flow, regionExecPlans );
             initPipelines();
             startPipelineReplicaRunners( supervisor );
-            status = FlowStatus.RUNNING;
+            status = RUNNING;
+            IntStream.range( 0, latencyRecorderPoolSize ).forEach( i -> {
+                latencyRecorderPool.submit( () -> doRun( latencyRecorderQueues[ i ], newDefaultInstance() ) );
+            } );
             incrementFlowVersion();
         }
         catch ( Exception e )
@@ -253,9 +256,7 @@ public class PipelineManagerImpl implements PipelineManager
     public FlowExecPlan getFlowExecPlan ()
     {
         final FlowStatus status = this.status;
-        checkState( status == FlowStatus.RUNNING || status == FlowStatus.SHUTTING_DOWN,
-                    "cannot get flow execution plan since status is %s",
-                    status );
+        checkState( status == RUNNING || status == FlowStatus.SHUTTING_DOWN, "cannot get flow execution plan since status is %s", status );
         return new FlowExecPlan( flowVersion, flow, regionExecPlans.values() );
     }
 
@@ -448,7 +449,7 @@ public class PipelineManagerImpl implements PipelineManager
     @Override
     public void triggerShutdown ()
     {
-        checkState( status == FlowStatus.RUNNING, "cannot trigger shutdown since status is %s", status );
+        checkState( status == RUNNING, "cannot trigger shutdown since status is %s", status );
         LOGGER.info( "Shutdown request is being handled." );
 
         status = FlowStatus.SHUTTING_DOWN;
@@ -471,7 +472,7 @@ public class PipelineManagerImpl implements PipelineManager
                        pipelineIds,
                        flowVersion,
                        this.flowVersion );
-        checkState( status == FlowStatus.RUNNING,
+        checkState( status == RUNNING,
                     "cannot merge pipelines %s with flow version %s since status is %s",
                     pipelineIds,
                     flowVersion,
@@ -512,7 +513,7 @@ public class PipelineManagerImpl implements PipelineManager
                        pipelineOperatorIndices,
                        flowVersion,
                        this.flowVersion );
-        checkState( status == FlowStatus.RUNNING,
+        checkState( status == RUNNING,
                     "cannot split pipeline %s into %s with flow version %s since status is %s",
                     pipelineIdToSplit,
                     pipelineOperatorIndices,
@@ -585,7 +586,7 @@ public class PipelineManagerImpl implements PipelineManager
                        newReplicaCount,
                        flowVersion,
                        this.flowVersion );
-        checkState( status == FlowStatus.RUNNING,
+        checkState( status == RUNNING,
                     "cannot rebalance region %s to %s replicas with flow version %s since status is %s",
                     regionId,
                     newReplicaCount,
@@ -897,7 +898,7 @@ public class PipelineManagerImpl implements PipelineManager
             {
                 final String tailOperatorId = pipeline.getLastOperatorDef().getId();
                 final LatencyMeter latencyMeter = metricManager.createLatencyMeter( flow, tailOperatorId, replicaIndex );
-                collector = new LatencyRecorder( tailOperatorId, latencyMeter );
+                collector = new LatencyRecorder( latencyMeter );
             }
 
             checkState( collector != null );
@@ -1095,6 +1096,11 @@ public class PipelineManagerImpl implements PipelineManager
             }
 
             status = FlowStatus.SHUT_DOWN;
+            latencyRecorderPool.shutdown();
+            if ( !latencyRecorderPool.awaitTermination( 10, TimeUnit.SECONDS ) )
+            {
+                LOGGER.error( "Latency recorder pool could not be terminated..." );
+            }
 
             stopPipelineReplicaRunners();
             shutdownPipelines();
@@ -1103,6 +1109,52 @@ public class PipelineManagerImpl implements PipelineManager
         catch ( Exception e )
         {
             LOGGER.error( "Shutdown failed", e );
+        }
+    }
+
+    private void doRun ( final OneToOneConcurrentArrayQueue<Triple<Tuple, Long, LatencyMeter>> queue, final IdleStrategy idleStrategy )
+    {
+        while ( status == RUNNING )
+        {
+            final Triple<Tuple, Long, LatencyMeter> p = queue.poll();
+            if ( p == null )
+            {
+                idleStrategy.idle();
+                continue;
+            }
+
+            idleStrategy.reset();
+
+            final Tuple tuple = p._1;
+            final Long now = p._2;
+            final LatencyMeter latencyMeter = p._3;
+            if ( tuple.isIngestionTimeNA() )
+            {
+                continue;
+            }
+
+            latencyMeter.recordTuple( ( now - tuple.getIngestionTime() ) );
+
+            final List<LatencyRecord> recs = tuple.getLatencyRecs();
+            if ( recs == null )
+            {
+                continue;
+            }
+
+            for ( int i = 0; i < recs.size(); i++ )
+            {
+                final LatencyRecord record = recs.get( i );
+                final String operatorId = record.getOperatorId();
+                final long latency = record.getLatency();
+                if ( record.isOperator() )
+                {
+                    latencyMeter.recordInvocation( operatorId, latency );
+                }
+                else
+                {
+                    latencyMeter.recordQueue( operatorId, latency );
+                }
+            }
         }
     }
 
@@ -1115,20 +1167,16 @@ public class PipelineManagerImpl implements PipelineManager
 
     static class NopDownstreamCollector implements DownstreamCollector
     {
-
         @Override
         public void accept ( final TuplesImpl tuples )
         {
         }
-
     }
 
 
     static class IngestionTimeInjector implements DownstreamCollector
     {
-
         private final PipelineReplicaMeter meter;
-
         private final DownstreamCollector downstream;
 
         IngestionTimeInjector ( final PipelineReplicaMeter meter, final DownstreamCollector downstream )
@@ -1162,106 +1210,40 @@ public class PipelineManagerImpl implements PipelineManager
     }
 
 
-    static class LatencyRecorder implements DownstreamCollector
+    class LatencyRecorder implements DownstreamCollector
     {
-
-        private final String operatorId;
-
         private final LatencyMeter latencyMeter;
-
-        private final OneToOneConcurrentArrayQueue<Pair<TuplesImpl, Long>> queue = new OneToOneConcurrentArrayQueue<>( 65536 );
-
         private final BackoffIdleStrategy producerIdleStrategy = newDefaultInstance();
+        private int next;
 
-        private final BackoffIdleStrategy consumerIdleStrategy = newDefaultInstance();
-
-        private volatile boolean active = true;
-
-        LatencyRecorder ( final String operatorId, final LatencyMeter latencyMeter )
+        LatencyRecorder ( final LatencyMeter latencyMeter )
         {
-            this.operatorId = operatorId;
             this.latencyMeter = latencyMeter;
-            new Thread( this::doRun ).start();
         }
 
         @Override
         public void accept ( final TuplesImpl tuples )
         {
+            final long now = System.nanoTime();
             producerIdleStrategy.reset();
 
-            final Pair<TuplesImpl, Long> p = Pair.of( tuples.shallowCopy(), System.nanoTime() );
-            while ( !queue.offer( p ) )
+            for ( int i = 0; i < tuples.getPortCount(); i++ )
             {
-                producerIdleStrategy.idle();
-            }
-        }
-
-        @Override
-        public void onShutdown ()
-        {
-            active = false;
-        }
-
-        private void doRun ()
-        {
-            while ( active )
-            {
-                final Pair<TuplesImpl, Long> p = queue.poll();
-                if ( p == null )
+                final List<Tuple> l = tuples.getTuplesModifiable( i );
+                for ( int j = 0; j < l.size(); j++ )
                 {
-                    consumerIdleStrategy.idle();
-                    continue;
-                }
+                    final Tuple tuple = l.get( j );
 
-                consumerIdleStrategy.reset();
-
-                final TuplesImpl tuples = p._1;
-                final Long now = p._2;
-                for ( int i = 0; i < tuples.getPortCount(); i++ )
-                {
-                    final List<Tuple> l = tuples.getTuplesModifiable( i );
-                    for ( int j = 0; j < l.size(); j++ )
+                    while ( true )
                     {
-                        final Tuple tuple = l.get( j );
-
-                        if ( tuple.isIngestionTimeNA() )
+                        final OneToOneConcurrentArrayQueue<Triple<Tuple, Long, LatencyMeter>> queue = latencyRecorderQueues[ next ];
+                        next = ( next == ( latencyRecorderPoolSize - 1 ) ) ? 0 : next + 1;
+                        if ( queue.offer( Triple.of( tuple, now, latencyMeter ) ) )
                         {
-                            return;
-                        }
-
-                        final long ingestionTime = tuple.getIngestionTime();
-
-                        final long tupleLatency = ( now - ingestionTime );
-                        if ( tupleLatency > 0 )
-                        {
-                            latencyMeter.recordTuple( tupleLatency );
-                        }
-
-                        final List<LatencyRecord> recs = tuple.getLatencyRecs();
-                        if ( recs != null )
-                        {
-                            for ( int k = 0; k < recs.size(); k++ )
-                            {
-                                final LatencyRecord record = recs.get( k );
-                                final long latency = record.getLatency();
-                                if ( latency <= 0 )
-                                {
-                                    continue;
-                                }
-
-                                final String operatorId = record.getOperatorId();
-
-                                if ( record.isOperator() )
-                                {
-                                    latencyMeter.recordInvocation( operatorId, latency );
-                                }
-                                else
-                                {
-                                    latencyMeter.recordQueue( operatorId, latency );
-                                }
-                            }
+                            break;
                         }
                     }
+
                 }
             }
         }

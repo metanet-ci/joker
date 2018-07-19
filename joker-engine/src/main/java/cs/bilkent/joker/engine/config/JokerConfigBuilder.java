@@ -33,6 +33,7 @@ import static cs.bilkent.joker.engine.config.MetricManagerConfig.TICK_MASK;
 import static cs.bilkent.joker.engine.config.MetricManagerConfig.WARMUP_ITERATIONS;
 import static cs.bilkent.joker.engine.config.PartitionServiceConfig.MAX_REPLICA_COUNT;
 import static cs.bilkent.joker.engine.config.PartitionServiceConfig.PARTITION_COUNT;
+import static cs.bilkent.joker.engine.config.PipelineManagerConfig.LATENCY_RECORDER_POOL_SIZE;
 import static cs.bilkent.joker.engine.config.PipelineManagerConfig.RUNNER_COMMAND_TIMEOUT;
 import static cs.bilkent.joker.engine.config.PipelineReplicaRunnerConfig.RUNNER_WAIT_TIMEOUT;
 import static cs.bilkent.joker.engine.config.TupleQueueDrainerConfig.MAX_BATCH_SIZE;
@@ -447,6 +448,13 @@ public class JokerConfigBuilder
         public PipelineManagerConfigBuilder setRunnerCommandTimeoutInMillis ( final long val )
         {
             pipelineManagerConfigVals.put( RUNNER_COMMAND_TIMEOUT, val );
+
+            return this;
+        }
+
+        public PipelineManagerConfigBuilder setLatencyRecorderPoolSize ( final int val )
+        {
+            pipelineManagerConfigVals.put( LATENCY_RECORDER_POOL_SIZE, val );
 
             return this;
         }

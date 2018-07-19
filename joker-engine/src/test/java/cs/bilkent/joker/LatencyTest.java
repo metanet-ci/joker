@@ -2,7 +2,6 @@ package cs.bilkent.joker;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.locks.LockSupport;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -83,9 +82,7 @@ public class LatencyTest extends AbstractJokerTest
         @Override
         public void accept ( final Tuple tuple )
         {
-            LockSupport.parkNanos( 1 );
-            LockSupport.parkNanos( 1 );
-            LockSupport.parkNanos( 1 );
+            //            LockSupport.parkNanos( 1 );
 
             final int key = vals[ curr++ ];
             final int value = key + 1;
@@ -105,7 +102,7 @@ public class LatencyTest extends AbstractJokerTest
     {
         final ValueGenerator valueGenerator = new ValueGenerator( KEY_RANGE );
         final OperatorConfig beacon1Config = new OperatorConfig().set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator )
-                                                                 .set( TUPLE_COUNT_CONFIG_PARAMETER, 1 );
+                                                                 .set( TUPLE_COUNT_CONFIG_PARAMETER, 1024 );
 
         final OperatorDef beacon = OperatorDefBuilder.newInstance( "beacon", BeaconOperator.class ).setConfig( beacon1Config ).build();
 
@@ -114,9 +111,7 @@ public class LatencyTest extends AbstractJokerTest
                                                                               int val = input.getInteger( "value" );
                                                                               for ( int i = 0; i < 64; i++ )
                                                                               {
-
                                                                                   val = val * MULTIPLIER_VALUE - val;
-
                                                                               }
                                                                               val = val * MULTIPLIER_VALUE - val;
                                                                               output.set( "key", input.get( "key" ) ).set( "mult", val );
@@ -138,7 +133,7 @@ public class LatencyTest extends AbstractJokerTest
                                                  .build();
 
         final JokerConfigBuilder configBuilder = new JokerConfigBuilder();
-        configBuilder.getTupleQueueDrainerConfigBuilder().setMaxBatchSize( 4096 );
+        configBuilder.getTupleQueueDrainerConfigBuilder().setMaxBatchSize( 1 );
         configBuilder.getTupleQueueManagerConfigBuilder().setMultiThreadedQueueDrainLimit( 1 );
         configBuilder.getMetricManagerConfigBuilder().setTickMask( 3 );
         configBuilder.getMetricManagerConfigBuilder().setPipelineMetricsScanningPeriodInMillis( 1000 );

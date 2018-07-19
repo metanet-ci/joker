@@ -10,9 +10,4 @@ import cs.bilkent.joker.operator.impl.TuplesImpl;
 @FunctionalInterface
 public interface DownstreamCollector extends Consumer<TuplesImpl>
 {
-
-    default void onShutdown ()
-    {
-    }
-
 }

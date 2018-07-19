@@ -494,7 +494,6 @@ public class PipelineReplicaRunner implements Runnable
     {
         LOGGER.info( "{}: completing the run", id );
         LOGGER.info( "{}: all downstream tuples are sent", id );
-        shutdownDownstreamCollector();
 
         if ( pipeline.isCompleted() )
         {
@@ -534,7 +533,6 @@ public class PipelineReplicaRunner implements Runnable
     private void completeRunWithFailure ( final Exception e )
     {
         LOGGER.error( id + ": runner failed", e );
-        shutdownDownstreamCollector();
         supervisor.notifyPipelineReplicaFailed( id, e );
 
         synchronized ( monitor )
@@ -548,18 +546,6 @@ public class PipelineReplicaRunner implements Runnable
                 this.command = null;
             }
             this.status = COMPLETED;
-        }
-    }
-
-    private void shutdownDownstreamCollector ()
-    {
-        try
-        {
-            downstream.onShutdown();
-        }
-        catch ( Exception e )
-        {
-            LOGGER.error( "Downstream collector shutdown failed", e );
         }
     }
 
