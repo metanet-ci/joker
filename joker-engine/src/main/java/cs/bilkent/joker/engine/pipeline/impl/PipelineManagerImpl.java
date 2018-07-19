@@ -82,7 +82,6 @@ import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.joker.operator.utils.Pair;
-import cs.bilkent.joker.operator.utils.Triple;
 import static java.lang.Math.min;
 import static java.util.Collections.reverse;
 import static java.util.Collections.singletonList;
@@ -241,7 +240,7 @@ public class PipelineManagerImpl implements PipelineManager
             startPipelineReplicaRunners( supervisor );
             status = RUNNING;
             IntStream.range( 0, latencyRecorderPoolSize ).forEach( i -> {
-                latencyRecorderPool.submit( () -> doRun( latencyRecorderQueues[ i ], newDefaultInstance() ) );
+                latencyRecorderPool.submit( () -> recordLatencies( latencyRecorderQueues[ i ], newDefaultInstance() ) );
             } );
             incrementFlowVersion();
         }
@@ -1112,12 +1111,12 @@ public class PipelineManagerImpl implements PipelineManager
         }
     }
 
-    private void doRun ( final OneToOneConcurrentArrayQueue<Triple<Tuple, Long, LatencyMeter>> queue, final IdleStrategy idleStrategy )
+    private void recordLatencies ( final OneToOneConcurrentArrayQueue<Tuple> queue, final IdleStrategy idleStrategy )
     {
         while ( status == RUNNING )
         {
-            final Triple<Tuple, Long, LatencyMeter> p = queue.poll();
-            if ( p == null )
+            final Tuple tuple = queue.poll();
+            if ( tuple == null )
             {
                 idleStrategy.idle();
                 continue;
@@ -1125,15 +1124,13 @@ public class PipelineManagerImpl implements PipelineManager
 
             idleStrategy.reset();
 
-            final Tuple tuple = p._1;
-            final Long now = p._2;
-            final LatencyMeter latencyMeter = p._3;
+            final LatencyMeter latencyMeter = tuple.getLatencyRecorder();
             if ( tuple.isIngestionTimeNA() )
             {
                 continue;
             }
 
-            latencyMeter.recordTuple( ( now - tuple.getIngestionTime() ) );
+            latencyMeter.recordTuple( ( tuple.getIngestionTime() ) );
 
             final List<LatencyRecord> recs = tuple.getLatencyRecs();
             if ( recs == null )
@@ -1233,12 +1230,15 @@ public class PipelineManagerImpl implements PipelineManager
                 for ( int j = 0; j < l.size(); j++ )
                 {
                     final Tuple tuple = l.get( j );
+                    tuple.recordLatency( now, latencyMeter );
+
 
                     while ( true )
                     {
-                        final OneToOneConcurrentArrayQueue<Triple<Tuple, Long, LatencyMeter>> queue = latencyRecorderQueues[ next ];
+                        final OneToOneConcurrentArrayQueue<Tuple> queue = latencyRecorderQueues[ next ];
                         next = ( next == ( latencyRecorderPoolSize - 1 ) ) ? 0 : next + 1;
-                        if ( queue.offer( Triple.of( tuple, now, latencyMeter ) ) )
+
+                        if ( queue.offer( tuple ) )
                         {
                             break;
                         }
