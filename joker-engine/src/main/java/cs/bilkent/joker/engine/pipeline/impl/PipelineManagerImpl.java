@@ -1230,8 +1230,18 @@ public class PipelineManagerImpl implements PipelineManager
                 for ( int j = 0; j < l.size(); j++ )
                 {
                     final Tuple tuple = l.get( j );
-                    tuple.recordLatency( now, latencyMeter );
 
+                    if ( tuple.isIngestionTimeNA() )
+                    {
+                        continue;
+                    }
+
+                    latencyMeter.recordTuple( ( now - tuple.getIngestionTime() ) );
+
+                    if ( tuple.getLatencyRecs() == null )
+                    {
+                        continue;
+                    }
 
                     while ( true )
                     {
@@ -1242,6 +1252,8 @@ public class PipelineManagerImpl implements PipelineManager
                         {
                             break;
                         }
+
+                        producerIdleStrategy.idle();
                     }
 
                 }
