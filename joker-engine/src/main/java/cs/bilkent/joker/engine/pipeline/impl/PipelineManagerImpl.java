@@ -71,7 +71,6 @@ import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import static cs.bilkent.joker.engine.util.RegionUtils.getFirstOperator;
 import cs.bilkent.joker.engine.util.concurrent.BackoffIdleStrategy;
 import static cs.bilkent.joker.engine.util.concurrent.BackoffIdleStrategy.newDefaultInstance;
-import cs.bilkent.joker.engine.util.concurrent.IdleStrategy;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.Port;
 import cs.bilkent.joker.operator.OperatorDef;
@@ -240,7 +239,7 @@ public class PipelineManagerImpl implements PipelineManager
             startPipelineReplicaRunners( supervisor );
             status = RUNNING;
             IntStream.range( 0, latencyRecorderPoolSize ).forEach( i -> {
-                latencyRecorderPool.submit( () -> recordLatencies( latencyRecorderQueues[ i ], newDefaultInstance() ) );
+                latencyRecorderPool.submit( () -> recordLatencies( latencyRecorderQueues[ i ] ) );
             } );
             incrementFlowVersion();
         }
@@ -1111,47 +1110,50 @@ public class PipelineManagerImpl implements PipelineManager
         }
     }
 
-    private void recordLatencies ( final OneToOneConcurrentArrayQueue<Tuple> queue, final IdleStrategy idleStrategy )
+    private void recordLatencies ( final OneToOneConcurrentArrayQueue<Tuple> queue )
     {
-        while ( status == RUNNING )
+        try
         {
-            final Tuple tuple = queue.poll();
-            if ( tuple == null )
+            while ( status == RUNNING )
             {
-                idleStrategy.idle();
-                continue;
-            }
-
-            idleStrategy.reset();
-
-            final LatencyMeter latencyMeter = tuple.getLatencyRecorder();
-            if ( tuple.isIngestionTimeNA() )
-            {
-                continue;
-            }
-
-            latencyMeter.recordTuple( ( tuple.getIngestionTime() ) );
-
-            final List<LatencyRecord> recs = tuple.getLatencyRecs();
-            if ( recs == null )
-            {
-                continue;
-            }
-
-            for ( int i = 0; i < recs.size(); i++ )
-            {
-                final LatencyRecord record = recs.get( i );
-                final String operatorId = record.getOperatorId();
-                final long latency = record.getLatency();
-                if ( record.isOperator() )
+                final Tuple tuple = queue.poll();
+                if ( tuple == null )
                 {
-                    latencyMeter.recordInvocation( operatorId, latency );
+                    continue;
                 }
-                else
+
+                if ( tuple.isIngestionTimeNA() )
                 {
-                    latencyMeter.recordQueue( operatorId, latency );
+                    continue;
+                }
+
+                final LatencyMeter latencyMeter = tuple.getLatencyRecorder();
+
+                final List<LatencyRecord> recs = tuple.getLatencyRecs();
+                if ( recs == null )
+                {
+                    continue;
+                }
+
+                for ( int i = 0; i < recs.size(); i++ )
+                {
+                    final LatencyRecord record = recs.get( i );
+                    final String operatorId = record.getOperatorId();
+                    final long latency = record.getLatency();
+                    if ( record.isOperator() )
+                    {
+                        latencyMeter.recordInvocation( operatorId, latency );
+                    }
+                    else
+                    {
+                        latencyMeter.recordQueue( operatorId, latency );
+                    }
                 }
             }
+        }
+        catch ( Exception e )
+        {
+            LOGGER.info( "Latency recorder thread failed", e );
         }
     }
 
@@ -1236,12 +1238,7 @@ public class PipelineManagerImpl implements PipelineManager
                         continue;
                     }
 
-                    latencyMeter.recordTuple( ( now - tuple.getIngestionTime() ) );
-
-                    if ( tuple.getLatencyRecs() == null )
-                    {
-                        continue;
-                    }
+                    tuple.recordLatency( now, latencyMeter );
 
                     while ( true )
                     {
@@ -1250,6 +1247,7 @@ public class PipelineManagerImpl implements PipelineManager
 
                         if ( queue.offer( tuple ) )
                         {
+                            producerIdleStrategy.reset();
                             break;
                         }
 

@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
@@ -42,7 +41,7 @@ import static java.util.Collections.shuffle;
 import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-@Ignore
+//@Ignore
 public class LatencyTest extends AbstractJokerTest
 {
 
@@ -133,12 +132,11 @@ public class LatencyTest extends AbstractJokerTest
                                                  .build();
 
         final JokerConfigBuilder configBuilder = new JokerConfigBuilder();
-        configBuilder.getTupleQueueDrainerConfigBuilder().setMaxBatchSize( 1 );
+        configBuilder.getTupleQueueDrainerConfigBuilder().setMaxBatchSize( 16 );
         configBuilder.getTupleQueueManagerConfigBuilder().setMultiThreadedQueueDrainLimit( 1 );
         configBuilder.getMetricManagerConfigBuilder().setTickMask( 3 );
         configBuilder.getMetricManagerConfigBuilder().setPipelineMetricsScanningPeriodInMillis( 1000 );
         configBuilder.getFlowDefOptimizerConfigBuilder().disableMergeRegions();
-        configBuilder.getPipelineManagerConfigBuilder().setLatencyRecorderPoolSize( 8 );
 
         final Joker joker = new JokerBuilder().setJokerConfig( configBuilder.build() ).build();
 
