@@ -1252,6 +1252,8 @@ public class PipelineManagerImpl implements PipelineManager
                         {
                             break;
                         }
+
+                        producerIdleStrategy.idle();
                     }
 
                 }
