@@ -1128,6 +1128,7 @@ public class PipelineManagerImpl implements PipelineManager
                 }
 
                 final LatencyMeter latencyMeter = tuple.getLatencyRecorder();
+                latencyMeter.recordTuple( tuple.getIngestionTime() );
 
                 final List<LatencyRecord> recs = tuple.getLatencyRecs();
                 if ( recs == null )
