@@ -1118,103 +1118,108 @@ public class PipelineManagerImpl implements PipelineManager
         Map<String, IntCountsHistogram> queueHistograms = new HashMap<>();
         Map<String, IntCountsHistogram> invocationHistograms = new HashMap<>();
 
+        List<Tuple> zzz = new ArrayList<>();
+
         long last = System.nanoTime();
         long loop = 0;
         try
         {
             while ( status == RUNNING )
             {
-                final Tuple tuple = queue.poll();
-                if ( tuple == null )
+                queue.drainTo( zzz, 100 );
+                if ( zzz.isEmpty() )
                 {
                     continue;
                 }
 
-                if ( tuple.isIngestionTimeNA() )
+                for ( Tuple tuple : zzz )
                 {
-                    continue;
-                }
-
-                final LatencyMeter latencyMeter = tuple.getLatencyRecorder();
-                //                latencyMeter.recordTuple( tuple.getIngestionTime() );
-                histogram.recordValue( tuple.getIngestionTime() );
-
-                final List<Tuple.LatencyRecord> recs = tuple.getLatencyRecs();
-                if ( recs == null )
-                {
-                    continue;
-                }
-
-                for ( int i = 0; i < recs.size(); i++ )
-                {
-                    final Tuple.LatencyRecord record = recs.get( i );
-                    final String operatorId = record.getOperatorId();
-                    final long latency = record.getLatency();
-                    if ( record.isOperator() )
+                    if ( tuple.isIngestionTimeNA() )
                     {
-                        invocationHistograms.computeIfAbsent( operatorId, s -> new IntCountsHistogram( SECONDS.toNanos( 10 ), 3 ) )
-                                            .recordValue( latency );
-                        //                                        latencyMeter.recordInvocation( operatorId, latency );
+                        continue;
                     }
-                    else
+
+                    final LatencyMeter latencyMeter = tuple.getLatencyRecorder();
+                    //                latencyMeter.recordTuple( tuple.getIngestionTime() );
+                    histogram.recordValue( tuple.getIngestionTime() );
+
+                    final List<Tuple.LatencyRecord> recs = tuple.getLatencyRecs();
+                    if ( recs == null )
                     {
-                        queueHistograms.computeIfAbsent( operatorId, s -> new IntCountsHistogram( SECONDS.toNanos( 10 ), 3 ) )
-                                       .recordValue( latency );
-                        //                                        latencyMeter.recordQueue( operatorId, latency );
+                        continue;
                     }
-                }
 
-                if ( loop++ % 10000 == 0 )
-                {
-                    final long now = System.nanoTime();
-                    if ( now - last >= TimeUnit.SECONDS.toNanos( 1 ) )
+                    for ( int i = 0; i < recs.size(); i++ )
                     {
-                        last = now;
-                        final LatencyRecord rec = new LatencyRecord( (long) histogram.getMean(),
-                                                                     (long) histogram.getStdDeviation(),
-                                                                     histogram.getValueAtPercentile( 50 ),
-                                                                     histogram.getMinValue(),
-                                                                     histogram.getMaxValue(),
-                                                                     histogram.getValueAtPercentile( 75 ),
-                                                                     histogram.getValueAtPercentile( 95 ),
-                                                                     histogram.getValueAtPercentile( 98 ),
-                                                                     histogram.getValueAtPercentile( 99 ) );
-                        LOGGER.error( ">>>>>>>>> TUPLE: " + rec );
-                        histogram = new IntCountsHistogram( SECONDS.toNanos( 10 ), 3 );
-
-                        for ( Map.Entry<String, IntCountsHistogram> e : queueHistograms.entrySet() )
+                        final Tuple.LatencyRecord record = recs.get( i );
+                        final String operatorId = record.getOperatorId();
+                        final long latency = record.getLatency();
+                        if ( record.isOperator() )
                         {
-                            final IntCountsHistogram h = e.getValue();
-                            final LatencyRecord q = new LatencyRecord( (long) h.getMean(),
-                                                                       (long) h.getStdDeviation(),
-                                                                       h.getValueAtPercentile( 50 ),
-                                                                       h.getMinValue(),
-                                                                       h.getMaxValue(),
-                                                                       h.getValueAtPercentile( 75 ),
-                                                                       h.getValueAtPercentile( 95 ),
-                                                                       h.getValueAtPercentile( 98 ),
-                                                                       h.getValueAtPercentile( 99 ) );
-                            LOGGER.error( ">>>>>>>>> QUEUE: " + e.getKey() + " +> " + q );
+                            invocationHistograms.computeIfAbsent( operatorId, s -> new IntCountsHistogram( SECONDS.toNanos( 10 ), 3 ) )
+                                                .recordValue( latency );
+                            //                                        latencyMeter.recordInvocation( operatorId, latency );
                         }
-
-                        queueHistograms.clear();
-
-                        for ( Map.Entry<String, IntCountsHistogram> e : invocationHistograms.entrySet() )
+                        else
                         {
-                            final IntCountsHistogram h = e.getValue();
-                            final LatencyRecord inv = new LatencyRecord( (long) h.getMean(),
-                                                                         (long) h.getStdDeviation(),
-                                                                         h.getValueAtPercentile( 50 ),
-                                                                         h.getMinValue(),
-                                                                         h.getMaxValue(),
-                                                                         h.getValueAtPercentile( 75 ),
-                                                                         h.getValueAtPercentile( 95 ),
-                                                                         h.getValueAtPercentile( 98 ),
-                                                                         h.getValueAtPercentile( 99 ) );
-                            LOGGER.error( ">>>>>>>>> INV: " + e.getKey() + " +> " + inv );
+                            queueHistograms.computeIfAbsent( operatorId, s -> new IntCountsHistogram( SECONDS.toNanos( 10 ), 3 ) )
+                                           .recordValue( latency );
+                            //                                        latencyMeter.recordQueue( operatorId, latency );
                         }
+                    }
 
-                        invocationHistograms.clear();
+                    if ( loop++ % 10000 == 0 )
+                    {
+                        final long now = System.nanoTime();
+                        if ( now - last >= TimeUnit.SECONDS.toNanos( 1 ) )
+                        {
+                            last = now;
+                            final LatencyRecord rec = new LatencyRecord( (long) histogram.getMean(),
+                                                                         (long) histogram.getStdDeviation(),
+                                                                         histogram.getValueAtPercentile( 50 ),
+                                                                         histogram.getMinValue(),
+                                                                         histogram.getMaxValue(),
+                                                                         histogram.getValueAtPercentile( 75 ),
+                                                                         histogram.getValueAtPercentile( 95 ),
+                                                                         histogram.getValueAtPercentile( 98 ),
+                                                                         histogram.getValueAtPercentile( 99 ) );
+                            LOGGER.error( ">>>>>>>>> TUPLE: " + rec );
+                            histogram = new IntCountsHistogram( SECONDS.toNanos( 10 ), 3 );
+
+                            for ( Map.Entry<String, IntCountsHistogram> e : queueHistograms.entrySet() )
+                            {
+                                final IntCountsHistogram h = e.getValue();
+                                final LatencyRecord q = new LatencyRecord( (long) h.getMean(),
+                                                                           (long) h.getStdDeviation(),
+                                                                           h.getValueAtPercentile( 50 ),
+                                                                           h.getMinValue(),
+                                                                           h.getMaxValue(),
+                                                                           h.getValueAtPercentile( 75 ),
+                                                                           h.getValueAtPercentile( 95 ),
+                                                                           h.getValueAtPercentile( 98 ),
+                                                                           h.getValueAtPercentile( 99 ) );
+                                LOGGER.error( ">>>>>>>>> QUEUE: " + e.getKey() + " +> " + q );
+                            }
+
+                            queueHistograms.clear();
+
+                            for ( Map.Entry<String, IntCountsHistogram> e : invocationHistograms.entrySet() )
+                            {
+                                final IntCountsHistogram h = e.getValue();
+                                final LatencyRecord inv = new LatencyRecord( (long) h.getMean(),
+                                                                             (long) h.getStdDeviation(),
+                                                                             h.getValueAtPercentile( 50 ),
+                                                                             h.getMinValue(),
+                                                                             h.getMaxValue(),
+                                                                             h.getValueAtPercentile( 75 ),
+                                                                             h.getValueAtPercentile( 95 ),
+                                                                             h.getValueAtPercentile( 98 ),
+                                                                             h.getValueAtPercentile( 99 ) );
+                                LOGGER.error( ">>>>>>>>> INV: " + e.getKey() + " +> " + inv );
+                            }
+
+                            invocationHistograms.clear();
+                        }
                     }
                 }
             }
