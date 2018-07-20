@@ -54,9 +54,8 @@ public class SimpleMovingAverage implements LatencyMetricsHistorySummarizer
 
     private LatencyRecord avg ( final Stream<LatencyRecord> stream, final int count )
     {
-        final LatencyRecord sum = stream.reduce( new LatencyRecord( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ),
+        final LatencyRecord sum = stream.reduce( new LatencyRecord( 0, 0, 0, 0, 0, 0, 0, 0, 0 ),
                                                  ( r1, r2 ) -> new LatencyRecord( r1.getMean() + r2.getMean(),
-                                                                                  0,
                                                                                   0,
                                                                                   0,
                                                                                   0,
@@ -66,6 +65,6 @@ public class SimpleMovingAverage implements LatencyMetricsHistorySummarizer
                                                                                   0,
                                                                                   0 ) );
 
-        return new LatencyRecord( (long) ceil( ( (double) sum.getMean() ) / count ), 0, 0, 0, 0, 0, 0, 0, 0, 0 );
+        return new LatencyRecord( (long) ceil( ( (double) sum.getMean() ) / count ), 0, 0, 0, 0, 0, 0, 0, 0 );
     }
 }

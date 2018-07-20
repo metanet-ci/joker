@@ -104,7 +104,6 @@ public class LatencyMetrics
 
         private final long percentile99;
 
-        private final long percentile999;
 
         public LatencyRecord ( final long mean,
                                final long stdDev,
@@ -113,9 +112,7 @@ public class LatencyMetrics
                                final long max,
                                final long percentile75,
                                final long percentile95,
-                               final long percentile98,
-                               final long percentile99,
-                               final long percentile999 )
+                               final long percentile98, final long percentile99 )
         {
             this.mean = mean;
             this.stdDev = stdDev;
@@ -126,7 +123,6 @@ public class LatencyMetrics
             this.percentile95 = percentile95;
             this.percentile98 = percentile98;
             this.percentile99 = percentile99;
-            this.percentile999 = percentile999;
         }
 
         public long getMean ()
@@ -174,17 +170,12 @@ public class LatencyMetrics
             return percentile99;
         }
 
-        public long getPercentile999 ()
-        {
-            return percentile999;
-        }
-
         @Override
         public String toString ()
         {
             return "LatencyRecord{" + "mean=" + mean + ", stdDev=" + stdDev + ", median=" + median + ", min=" + min + ", max=" + max
                    + ", percentile75=" + percentile75 + ", percentile95=" + percentile95 + ", percentile98=" + percentile98
-                   + ", percentile99=" + percentile99 + ", percentile999=" + percentile999 + '}';
+                   + ", percentile99=" + percentile99 + '}';
         }
     }
 

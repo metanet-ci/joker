@@ -4,12 +4,13 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.HdrHistogram.IntCountsHistogram;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Snapshot;
 
 import cs.bilkent.joker.engine.metric.LatencyMetrics.LatencyRecord;
 import cs.bilkent.joker.operator.utils.Pair;
-import static java.util.Collections.unmodifiableMap;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toMap;
 
 public class LatencyMeter
@@ -23,7 +24,7 @@ public class LatencyMeter
 
     private final Map<String, Histogram> queueLatencies;
 
-    private final Histogram tupleLatency;
+    private final IntCountsHistogram tupleLatency;
 
     public LatencyMeter ( final String sinkOperatorId,
                           final int replicaIndex,
@@ -35,7 +36,7 @@ public class LatencyMeter
         this.replicaIndex = replicaIndex;
         this.invocationLatencies = invocationLatencies;
         this.queueLatencies = queueLatencies;
-        this.tupleLatency = tupleLatency;
+        this.tupleLatency = new IntCountsHistogram( SECONDS.toNanos( 10 ), 3 );
     }
 
     public String getSinkOperatorId ()
@@ -57,7 +58,7 @@ public class LatencyMeter
     {
         if ( latency > 0 )
         {
-            tupleLatency.update( latency );
+            tupleLatency.recordValue( latency );
         }
     }
 
@@ -77,24 +78,17 @@ public class LatencyMeter
         }
     }
 
-    public Histogram getTupleLatency ()
-    {
-        return tupleLatency;
-    }
-
-    public Map<String, Histogram> getInvocationLatencies ()
-    {
-        return unmodifiableMap( invocationLatencies );
-    }
-
-    public Map<String, Histogram> getQueueLatencies ()
-    {
-        return unmodifiableMap( queueLatencies );
-    }
-
     public LatencyMetrics toLatencyMetrics ( final int flowVersion )
     {
-        final LatencyRecord tupleLatency = toLatencyRecord( new SimpleEntry<>( null, this.tupleLatency ) ).getValue();
+        final LatencyRecord tupleLatency = new LatencyRecord( (long) this.tupleLatency.getMean(),
+                                                              (long) this.tupleLatency.getStdDeviation(),
+                                                              this.tupleLatency.getValueAtPercentile( 50 ),
+                                                              this.tupleLatency.getMinValue(),
+                                                              this.tupleLatency.getMaxValue(),
+                                                              this.tupleLatency.getValueAtPercentile( 75 ),
+                                                              this.tupleLatency.getValueAtPercentile( 95 ),
+                                                              this.tupleLatency.getValueAtPercentile( 98 ),
+                                                              this.tupleLatency.getValueAtPercentile( 99 ) );
         final Map<String, LatencyRecord> invocationLatencies = this.invocationLatencies.entrySet()
                                                                                        .stream()
                                                                                        .map( this::toLatencyRecord )
@@ -120,9 +114,7 @@ public class LatencyMeter
                                                      snapshot.getMax(),
                                                      (long) snapshot.get75thPercentile(),
                                                      (long) snapshot.get95thPercentile(),
-                                                     (long) snapshot.get98thPercentile(),
-                                                     (long) snapshot.get99thPercentile(),
-                                                     (long) snapshot.get999thPercentile() ) );
+                                                     (long) snapshot.get98thPercentile(), (long) snapshot.get99thPercentile() ) );
     }
 
 

@@ -672,7 +672,7 @@ public class MetricManagerImpl implements MetricManager
                 final LatencyRecord tupleLatency = latest.getTupleLatency();
                 LOGGER.info(
                         "TUPLE LATENCIES FOR SINK: {} -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .98: {} .99: {} "
-                        + ".999: " + "{} HISTORICAL MEAN: {}",
+                        + " HISTORICAL MEAN: {}",
                         key,
                         tupleLatency.getMin(),
                         tupleLatency.getMax(),
@@ -683,7 +683,6 @@ public class MetricManagerImpl implements MetricManager
                         tupleLatency.getPercentile95(),
                         tupleLatency.getPercentile98(),
                         tupleLatency.getPercentile99(),
-                        tupleLatency.getPercentile999(),
                         latencyMetricsHistory.getMeanTupleLatency() );
 
                 for ( String operatorId : latest.getInvocationLatencies().keySet() )
@@ -695,8 +694,7 @@ public class MetricManagerImpl implements MetricManager
                     {
                         LOGGER.info(
                                 "SINK: {} Queue Latency: {} -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .98: {} "
-                                + ".99: {} "
-                                + ".999: " + "{} HISTORICAL MEAN: {}",
+                                + ".99: {} HISTORICAL MEAN: {}",
                                 key,
                                 operatorId,
                                 queueLatency.getMin(),
@@ -708,14 +706,12 @@ public class MetricManagerImpl implements MetricManager
                                 queueLatency.getPercentile95(),
                                 queueLatency.getPercentile98(),
                                 queueLatency.getPercentile99(),
-                                queueLatency.getPercentile999(),
                                 latencyMetricsHistory.getMeanQueueLatency( operatorId ) );
                     }
 
                     LOGGER.info(
                             "SINK: {} Invocation Latency: {} -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .98: {} "
-                            + ".99: {} "
-                            + ".999: " + "{} HISTORICAL MEAN: {}",
+                            + ".99: {} HISTORICAL MEAN: {}",
                             key,
                             operatorId,
                             invocationLatency.getMin(),
@@ -727,7 +723,6 @@ public class MetricManagerImpl implements MetricManager
                             invocationLatency.getPercentile95(),
                             invocationLatency.getPercentile98(),
                             invocationLatency.getPercentile99(),
-                            invocationLatency.getPercentile999(),
                             latencyMetricsHistory.getMeanInvocationLatency( operatorId ) );
                 }
             }

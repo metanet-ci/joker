@@ -15,6 +15,7 @@
         <typesafe.config.version>1.3.3</typesafe.config.version>
         <guice.version>4.2.0</guice.version>
         <metrics.core.version>4.0.2</metrics.core.version>
+        <hdr.histogram.version>2.1.10</hdr.histogram.version>
     </properties>
 
     <artifactId>joker-engine</artifactId>
@@ -58,6 +59,12 @@
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-core</artifactId>
             <version>${metrics.core.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.hdrhistogram</groupId>
+            <artifactId>HdrHistogram</artifactId>
+            <version>${hdr.histogram.version}</version>
         </dependency>
 
     </dependencies>

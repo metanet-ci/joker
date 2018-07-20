@@ -21,6 +21,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import org.HdrHistogram.IntCountsHistogram;
 import org.agrona.concurrent.OneToOneConcurrentArrayQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +42,7 @@ import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.metric.LatencyMeter;
+import cs.bilkent.joker.engine.metric.LatencyMetrics.LatencyRecord;
 import cs.bilkent.joker.engine.metric.MetricManager;
 import cs.bilkent.joker.engine.metric.PipelineMeter;
 import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
@@ -75,7 +77,6 @@ import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.Port;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuple.LatencyRecord;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
@@ -88,6 +89,7 @@ import static java.util.Collections.sort;
 import static java.util.Comparator.comparing;
 import static java.util.Comparator.comparingInt;
 import static java.util.concurrent.Executors.newFixedThreadPool;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
@@ -1112,6 +1114,9 @@ public class PipelineManagerImpl implements PipelineManager
 
     private void recordLatencies ( final OneToOneConcurrentArrayQueue<Tuple> queue )
     {
+        IntCountsHistogram histogram = new IntCountsHistogram( SECONDS.toNanos( 10 ), 3 );
+        long last = System.nanoTime();
+        long i = 0;
         try
         {
             while ( status == RUNNING )
@@ -1128,28 +1133,48 @@ public class PipelineManagerImpl implements PipelineManager
                 }
 
                 final LatencyMeter latencyMeter = tuple.getLatencyRecorder();
-                latencyMeter.recordTuple( tuple.getIngestionTime() );
-
-                final List<LatencyRecord> recs = tuple.getLatencyRecs();
-                if ( recs == null )
+                //                latencyMeter.recordTuple( tuple.getIngestionTime() );
+                histogram.recordValue( tuple.getIngestionTime() );
+                if ( i++ % 10000 == 0 )
                 {
-                    continue;
+                    final long now = System.nanoTime();
+                    if ( now - last >= TimeUnit.SECONDS.toNanos( 1 ) )
+                    {
+                        last = now;
+                        final LatencyRecord tupleLatency = new LatencyRecord( (long) histogram.getMean(),
+                                                                              (long) histogram.getStdDeviation(),
+                                                                              histogram.getValueAtPercentile( 50 ),
+                                                                              histogram.getMinValue(),
+                                                                              histogram.getMaxValue(),
+                                                                              histogram.getValueAtPercentile( 75 ),
+                                                                              histogram.getValueAtPercentile( 95 ),
+                                                                              histogram.getValueAtPercentile( 98 ),
+                                                                              histogram.getValueAtPercentile( 99 ) );
+                        LOGGER.error( ">>>>>>>>> " + tupleLatency );
+                        histogram = new IntCountsHistogram( SECONDS.toNanos( 10 ), 3 );
+                    }
                 }
 
-                for ( int i = 0; i < recs.size(); i++ )
-                {
-                    final LatencyRecord record = recs.get( i );
-                    final String operatorId = record.getOperatorId();
-                    final long latency = record.getLatency();
-                    if ( record.isOperator() )
-                    {
-                        latencyMeter.recordInvocation( operatorId, latency );
-                    }
-                    else
-                    {
-                        latencyMeter.recordQueue( operatorId, latency );
-                    }
-                }
+                //                final List<LatencyRecord> recs = tuple.getLatencyRecs();
+                //                if ( recs == null )
+                //                {
+                //                    continue;
+                //                }
+                //
+                //                for ( int i = 0; i < recs.size(); i++ )
+                //                {
+                //                    final LatencyRecord record = recs.get( i );
+                //                    final String operatorId = record.getOperatorId();
+                //                    final long latency = record.getLatency();
+                //                    if ( record.isOperator() )
+                //                    {
+                //                        latencyMeter.recordInvocation( operatorId, latency );
+                //                    }
+                //                    else
+                //                    {
+                //                        latencyMeter.recordQueue( operatorId, latency );
+                //                    }
+                //                }
             }
         }
         catch ( Exception e )
@@ -1215,6 +1240,7 @@ public class PipelineManagerImpl implements PipelineManager
         private final LatencyMeter latencyMeter;
         private final BackoffIdleStrategy producerIdleStrategy = newDefaultInstance();
         private int next;
+        private long idleCount;
 
         LatencyRecorder ( final LatencyMeter latencyMeter )
         {
@@ -1253,6 +1279,10 @@ public class PipelineManagerImpl implements PipelineManager
                         }
 
                         producerIdleStrategy.idle();
+                        if ( idleCount++ % 1000 == 0 )
+                        {
+                            LOGGER.error( "XXXXX IDLE: " + idleCount );
+                        }
                     }
 
                 }
