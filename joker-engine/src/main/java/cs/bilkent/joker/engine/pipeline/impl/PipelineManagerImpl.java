@@ -1233,7 +1233,7 @@ public class PipelineManagerImpl implements PipelineManager
         private final BackoffIdleStrategy producerIdleStrategy = newDefaultInstance();
         private long idleCount;
 
-        public LatencyRecorder ( final OneToOneConcurrentArrayQueue<Tuple> queue )
+        LatencyRecorder ( final OneToOneConcurrentArrayQueue<Tuple> queue )
         {
             this.queue = queue;
         }
@@ -1258,15 +1258,12 @@ public class PipelineManagerImpl implements PipelineManager
 
                     tuple.recordLatency( now );
 
-                    if ( !queue.offer( tuple ) )
+                    while ( !queue.offer( tuple ) )
                     {
-                        while ( !queue.offer( tuple ) )
+                        producerIdleStrategy.idle();
+                        if ( idleCount++ % 1000 == 0 )
                         {
-                            producerIdleStrategy.idle();
-                            if ( idleCount++ % 1000 == 0 )
-                            {
-                                LOGGER.error( "Having idle rounds... " + ( idleCount - 1 ) );
-                            }
+                            LOGGER.error( "Having idle rounds... " + ( idleCount - 1 ) );
                         }
                     }
                 }
