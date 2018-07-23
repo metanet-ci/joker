@@ -91,6 +91,11 @@ public class PipelineReplicaMeter
         return ticker.isTicked();
     }
 
+    public boolean isTicked ( final long tickMask )
+    {
+        return ticker.isTicked( tickMask );
+    }
+
     public void onInvocationStart ( final String operatorId )
     {
         checkNotNull( operatorId );
@@ -189,6 +194,11 @@ public class PipelineReplicaMeter
         boolean isTicked ()
         {
             return ticked;
+        }
+
+        boolean isTicked ( final long tickMask )
+        {
+            return ( count & tickMask ) == 0;
         }
 
         long getCount ()
