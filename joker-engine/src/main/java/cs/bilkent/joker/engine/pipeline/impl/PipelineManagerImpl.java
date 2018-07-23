@@ -86,7 +86,7 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.sort;
 import static java.util.Comparator.comparing;
 import static java.util.Comparator.comparingInt;
-import static java.util.concurrent.Executors.newSingleThreadExecutor;
+import static java.util.concurrent.Executors.newCachedThreadPool;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
@@ -138,7 +138,7 @@ public class PipelineManagerImpl implements PipelineManager
         this.metricManager = metricManager;
         this.downstreamCollectorFailureFlag = downstreamCollectorFailureFlag;
         this.jokerThreadGroup = jokerThreadGroup;
-        this.latencyRecorderPool = newSingleThreadExecutor();
+        this.latencyRecorderPool = newCachedThreadPool( r -> new Thread( jokerThreadGroup, r ) );
         createDownstreamCollectorFactories();
     }
 
