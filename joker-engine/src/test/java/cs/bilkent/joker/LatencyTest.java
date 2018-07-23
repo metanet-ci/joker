@@ -108,7 +108,7 @@ public class LatencyTest extends AbstractJokerTest
         final OperatorConfig multiplierConfig = new OperatorConfig().set( MAPPER_CONFIG_PARAMETER,
                                                                           (BiConsumer<Tuple, Tuple>) ( input, output ) -> {
                                                                               int val = input.getInteger( "value" );
-                                                                              for ( int i = 0; i < 64; i++ )
+                                                                              for ( int i = 0; i < 1; i++ )
                                                                               {
                                                                                   val = val * MULTIPLIER_VALUE - val;
                                                                               }
@@ -123,16 +123,13 @@ public class LatencyTest extends AbstractJokerTest
         final OperatorConfig forEachConfig = new OperatorConfig();
         forEachConfig.set( ForEachOperator.CONSUMER_FUNCTION_CONFIG_PARAMETER, (Consumer<Tuple>) tuple -> {
         } );
-        final OperatorDef forEach = OperatorDefBuilder.newInstance( "forEach", ForEachOperator.class ).setConfig( forEachConfig ).build();
 
         final FlowDef flow = new FlowDefBuilder().add( beacon ).add( multiplier )
-                                                 //                                                 .add( forEach )
                                                  .connect( "beacon", "multiplier" )
-                                                 //                                                 .connect( "multiplier", "forEach" )
                                                  .build();
 
         final JokerConfigBuilder configBuilder = new JokerConfigBuilder();
-        configBuilder.getTupleQueueDrainerConfigBuilder().setMaxBatchSize( 16 );
+        configBuilder.getTupleQueueDrainerConfigBuilder().setMaxBatchSize( 64 );
         configBuilder.getTupleQueueManagerConfigBuilder().setMultiThreadedQueueDrainLimit( 1 );
         configBuilder.getMetricManagerConfigBuilder().setTickMask( 3 );
         configBuilder.getMetricManagerConfigBuilder().setPipelineMetricsScanningPeriodInMillis( 1000 );

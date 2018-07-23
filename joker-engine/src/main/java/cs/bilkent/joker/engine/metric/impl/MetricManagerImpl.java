@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -33,7 +32,6 @@ import com.codahale.metrics.CsvReporter;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.SlidingTimeWindowReservoir;
 import com.codahale.metrics.Snapshot;
 import com.google.common.base.Joiner;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -64,6 +62,7 @@ import static java.util.concurrent.Executors.newScheduledThreadPool;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Collectors.toSet;
 
 @Singleton
 public class MetricManagerImpl implements MetricManager
@@ -182,22 +181,13 @@ public class MetricManagerImpl implements MetricManager
         {
             checkState( !scheduler.isShutdown() );
 
-            final Supplier<Histogram> histogramCtor = () -> {
-                final long period = metricManagerConfig.getPipelineMetricsScanningPeriodInMillis();
-                return new Histogram( new SlidingTimeWindowReservoir( period, MILLISECONDS ) );
-            };
+            final Set<String> operatorIds = flow.getOperators()
+                                                .stream()
+                                                .filter( op -> !flow.getSourceOperators().contains( op ) )
+                                                .map( OperatorDef::getId )
+                                                .collect( toSet() );
 
-            final Map<String, Histogram> invocations = new HashMap<>();
-            final Map<String, Histogram> queues = new HashMap<>();
-            final Set<OperatorDef> operators = new HashSet<>( flow.getOperators() );
-            operators.removeAll( flow.getSourceOperators() );
-            for ( OperatorDef operator : operators )
-            {
-                invocations.put( operator.getId(), histogramCtor.get() );
-                queues.put( operator.getId(), histogramCtor.get() );
-            }
-
-            final LatencyMeter latencyMeter = new LatencyMeter( sinkOperatorId, replicaIndex, invocations, queues, histogramCtor.get() );
+            final LatencyMeter latencyMeter = new LatencyMeter( sinkOperatorId, replicaIndex, operatorIds );
             latencyMeters.put( latencyMeter.getKey(), latencyMeter );
             LOGGER.info( "Created {}", latencyMeter );
 
