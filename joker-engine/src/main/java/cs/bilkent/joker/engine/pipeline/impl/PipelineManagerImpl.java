@@ -1278,7 +1278,7 @@ public class PipelineManagerImpl implements PipelineManager
                         producerIdleStrategy.idle();
                         if ( idleCount++ % 1000 == 0 )
                         {
-                            LOGGER.error( "XXXXX IDLE: " + idleCount );
+                            LOGGER.error( "Having idle rounds... " + ( idleCount - 1 ) );
                         }
                     }
 
