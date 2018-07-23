@@ -201,8 +201,6 @@ public final class Tuple implements Fields<String>
 
     private List<LatencyRecord> latencyRecs;
 
-    private Object latencyRecorder;
-
     public Tuple ()
     {
         this.schema = EMPTY_SCHEMA;
@@ -423,16 +421,10 @@ public final class Tuple implements Fields<String>
         }
     }
 
-    public void recordLatency ( final long now, final Object latencyRecorder )
+    public void recordLatency ( final long now )
     {
         checkState( !( ingestionTime == INGESTION_TIME_NOT_ASSIGNED || ingestionTime == INGESTION_TIME_UNASSIGNABLE ) );
         ingestionTime = ( now - ingestionTime );
-        this.latencyRecorder = latencyRecorder;
-    }
-
-    public <T> T getLatencyRecorder ()
-    {
-        return (T) latencyRecorder;
     }
 
     public void attachTo ( final Tuple source )
@@ -641,10 +633,6 @@ public final class Tuple implements Fields<String>
 
         public long getLatency ()
         {
-            if ( end == INGESTION_TIME_NOT_ASSIGNED )
-            {
-                System.out.println( "" );
-            }
             checkState( end != INGESTION_TIME_NOT_ASSIGNED );
             return end - start;
         }
