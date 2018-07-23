@@ -1264,24 +1264,23 @@ public class PipelineManagerImpl implements PipelineManager
 
                     tuple.recordLatency( now, latencyMeter );
 
-                    while ( true )
+                    final OneToOneConcurrentArrayQueue<Tuple> queue = latencyRecorderQueues[ next++ ];
+                    if ( next == latencyRecorderPoolSize )
                     {
-                        final OneToOneConcurrentArrayQueue<Tuple> queue = latencyRecorderQueues[ next ];
-                        next = ( next == ( latencyRecorderPoolSize - 1 ) ) ? 0 : next + 1;
-
-                        if ( queue.offer( tuple ) )
-                        {
-                            producerIdleStrategy.reset();
-                            break;
-                        }
-
-                        producerIdleStrategy.idle();
-                        if ( idleCount++ % 1000 == 0 )
-                        {
-                            LOGGER.error( "Having idle rounds... " + ( idleCount - 1 ) );
-                        }
+                        next = 0;
                     }
 
+                    if ( !queue.offer( tuple ) )
+                    {
+                        while ( !queue.offer( tuple ) )
+                        {
+                            producerIdleStrategy.idle();
+                            if ( idleCount++ % 1000 == 0 )
+                            {
+                                LOGGER.error( "Having idle rounds... " + ( idleCount - 1 ) );
+                            }
+                        }
+                    }
                 }
             }
         }
