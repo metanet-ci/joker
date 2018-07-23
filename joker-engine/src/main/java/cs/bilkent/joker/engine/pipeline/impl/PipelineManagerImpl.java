@@ -890,8 +890,9 @@ public class PipelineManagerImpl implements PipelineManager
                 final String tailOperatorId = pipeline.getLastOperatorDef().getId();
                 final LatencyMeter latencyMeter = metricManager.createLatencyMeter( flow, tailOperatorId, replicaIndex );
                 final OneToOneConcurrentArrayQueue<Tuple> queue = new OneToOneConcurrentArrayQueue<>( LATENCY_QUEUE_SIZE );
-                collector = new LatencyRecorder( queue );
                 latencyRecorderPool.submit( () -> doRecordLatencies( queue, latencyMeter ) );
+                collector = new LatencyRecorder( queue );
+                //                collector = new NopDownstreamCollector();
             }
 
             checkState( collector != null );
