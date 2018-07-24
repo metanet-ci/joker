@@ -127,7 +127,7 @@ public class FusedInvocationCtx implements InternalInvocationCtx, OutputCollecto
     {
         if ( latencyRec != null )
         {
-            tuple.addInvocationLatencyRecord( latencyRec );
+            tuple.recordInvocationLatency( latencyRec );
         }
 
         outputCollector.add( tuple );
@@ -138,7 +138,7 @@ public class FusedInvocationCtx implements InternalInvocationCtx, OutputCollecto
     {
         if ( latencyRec != null )
         {
-            tuple.addInvocationLatencyRecord( latencyRec );
+            tuple.recordInvocationLatency( latencyRec );
         }
 
         outputCollector.add( portIndex, tuple );

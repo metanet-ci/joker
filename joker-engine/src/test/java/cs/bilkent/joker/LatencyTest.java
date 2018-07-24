@@ -2,7 +2,6 @@ package cs.bilkent.joker;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.locks.LockSupport;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -82,7 +81,7 @@ public class LatencyTest extends AbstractJokerTest
         @Override
         public void accept ( final Tuple tuple )
         {
-            LockSupport.parkNanos( 1 );
+            //            LockSupport.parkNanos( 1 );
 
             final int key = vals[ curr++ ];
             final int value = key + 1;
@@ -135,6 +134,8 @@ public class LatencyTest extends AbstractJokerTest
         configBuilder.getMetricManagerConfigBuilder().setTickMask( 3 );
         configBuilder.getMetricManagerConfigBuilder().setPipelineMetricsScanningPeriodInMillis( 1000 );
         configBuilder.getFlowDefOptimizerConfigBuilder().disableMergeRegions();
+        configBuilder.getPipelineManagerConfigBuilder().setLatencyTickMask( 0 );
+        configBuilder.getPipelineManagerConfigBuilder().setlatencyComponentTickMask( 2047 );
 
         final Joker joker = new JokerBuilder().setJokerConfig( configBuilder.build() ).build();
 

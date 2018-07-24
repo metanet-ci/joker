@@ -199,7 +199,7 @@ public final class Tuple implements Fields<String>
 
     private long queueOfferTime = INGESTION_TIME_NOT_ASSIGNED;
 
-    private List<LatencyRecord> latencyRecs;
+    private List<LatencyRecord> latencyComps;
 
     public Tuple ()
     {
@@ -218,15 +218,14 @@ public final class Tuple implements Fields<String>
     }
 
     private Tuple ( final TupleSchema schema,
-                    final ArrayList<Object> values,
-                    final long ingestionTime, final List<LatencyRecord> latencyRecs )
+                    final ArrayList<Object> values, final long ingestionTime, final List<LatencyRecord> latencyComps )
     {
         this.schema = schema;
         this.values = values;
         this.ingestionTime = ingestionTime;
-        if ( latencyRecs != null )
+        if ( latencyComps != null )
         {
-            this.latencyRecs = new ArrayList<>( latencyRecs );
+            this.latencyComps = new ArrayList<>( latencyComps );
         }
     }
 
@@ -410,14 +409,14 @@ public final class Tuple implements Fields<String>
         return ( ingestionTime == INGESTION_TIME_NOT_ASSIGNED || ingestionTime == INGESTION_TIME_UNASSIGNABLE );
     }
 
-    public void setIngestionTime ( final long ingestionTime, final boolean trackLatencyRecords )
+    public void setIngestionTime ( final long ingestionTime, final boolean trackLatencyComponents )
     {
         checkArgument( !( ingestionTime == INGESTION_TIME_NOT_ASSIGNED || ingestionTime == INGESTION_TIME_UNASSIGNABLE ) );
         checkState( this.ingestionTime == INGESTION_TIME_NOT_ASSIGNED );
         this.ingestionTime = ingestionTime;
-        if ( trackLatencyRecords )
+        if ( trackLatencyComponents )
         {
-            latencyRecs = new ArrayList<>( 4 );
+            latencyComps = new ArrayList<>( 4 );
         }
     }
 
@@ -437,7 +436,7 @@ public final class Tuple implements Fields<String>
         if ( source.isIngestionTimeNA() )
         {
             ingestionTime = INGESTION_TIME_UNASSIGNABLE;
-            latencyRecs = null;
+            latencyComps = null;
             return;
         }
 
@@ -450,29 +449,29 @@ public final class Tuple implements Fields<String>
     private void overwriteIngestionTime ( final Tuple source )
     {
         ingestionTime = source.ingestionTime;
-        if ( source.latencyRecs == null )
+        if ( source.latencyComps == null )
         {
-            latencyRecs = null;
+            latencyComps = null;
         }
-        else if ( latencyRecs != null )
+        else if ( latencyComps != null )
         {
-            latencyRecs.clear();
-            latencyRecs.addAll( source.latencyRecs );
+            latencyComps.clear();
+            latencyComps.addAll( source.latencyComps );
         }
         else
         {
-            latencyRecs = new ArrayList<>( source.latencyRecs );
+            latencyComps = new ArrayList<>( source.latencyComps );
         }
     }
 
     public Tuple shallowCopy ()
     {
-        return new Tuple( schema, values, ingestionTime, latencyRecs );
+        return new Tuple( schema, values, ingestionTime, latencyComps );
     }
 
     public void setQueueOfferTime ( final long queueOfferTime )
     {
-        if ( isNotTrackingLatencyRecords() )
+        if ( isNotTrackingLatencyComps() )
         {
             return;
         }
@@ -482,34 +481,34 @@ public final class Tuple implements Fields<String>
 
     public void recordQueueLatency ( final String operatorId, final long now )
     {
-        if ( queueOfferTime == INGESTION_TIME_NOT_ASSIGNED || latencyRecs == null )
+        if ( queueOfferTime == INGESTION_TIME_NOT_ASSIGNED || latencyComps == null )
         {
             return;
         }
 
-        latencyRecs.add( newQueueLatency( operatorId, queueOfferTime, now ) );
+        latencyComps.add( newQueueLatency( operatorId, queueOfferTime, now ) );
         queueOfferTime = INGESTION_TIME_NOT_ASSIGNED;
     }
 
-    public void addInvocationLatencyRecord ( final LatencyRecord latencyRec )
+    public void recordInvocationLatency ( final LatencyRecord latencyRec )
     {
         checkArgument( latencyRec != null );
-        if ( isNotTrackingLatencyRecords() )
+        if ( isNotTrackingLatencyComps() )
         {
             return;
         }
 
-        latencyRecs.add( latencyRec );
+        latencyComps.add( latencyRec );
     }
 
-    private boolean isNotTrackingLatencyRecords ()
+    private boolean isNotTrackingLatencyComps ()
     {
-        return isIngestionTimeNA() || latencyRecs == null;
+        return isIngestionTimeNA() || latencyComps == null;
     }
 
-    public List<LatencyRecord> getLatencyRecs ()
+    public List<LatencyRecord> getLatencyComps ()
     {
-        return latencyRecs;
+        return latencyComps;
     }
 
     private Map<String, Object> asMap ()

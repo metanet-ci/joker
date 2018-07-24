@@ -35,7 +35,7 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
         final long t = nanoTime();
         tuple.setIngestionTime( t, true );
         assertThat( tuple.getIngestionTime(), equalTo( t ) );
-        assertNotNull( tuple.getLatencyRecs() );
+        assertNotNull( tuple.getLatencyComps() );
     }
 
     @Test
@@ -45,7 +45,7 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
         final long t = nanoTime();
         tuple.setIngestionTime( t, false );
         assertThat( tuple.getIngestionTime(), equalTo( t ) );
-        assertNull( tuple.getLatencyRecs() );
+        assertNull( tuple.getLatencyComps() );
     }
 
     @Test
@@ -72,7 +72,7 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
         tuple.setQueueOfferTime( 1 );
         tuple.recordQueueLatency( "op", 2 );
 
-        assertNull( tuple.getLatencyRecs() );
+        assertNull( tuple.getLatencyComps() );
     }
 
     @Test
@@ -80,9 +80,9 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
     {
         final Tuple tuple = new Tuple();
 
-        tuple.addInvocationLatencyRecord( newInvocationLatency( "op1", 0 ).setEnd( 1 ) );
+        tuple.recordInvocationLatency( newInvocationLatency( "op1", 0 ).setEnd( 1 ) );
 
-        assertNull( tuple.getLatencyRecs() );
+        assertNull( tuple.getLatencyComps() );
     }
 
     @Test
@@ -94,12 +94,12 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
 
         final Tuple destination = new Tuple();
         destination.setIngestionTime( ingestionTime - 1, true );
-        destination.addInvocationLatencyRecord( newInvocationLatency( "op1", 0 ).setEnd( 100 ) );
+        destination.recordInvocationLatency( newInvocationLatency( "op1", 0 ).setEnd( 100 ) );
 
         destination.attachTo( source );
 
         assertThat( destination.getIngestionTime(), equalTo( ingestionTime ) );
-        assertNull( destination.getLatencyRecs() );
+        assertNull( destination.getLatencyComps() );
     }
 
     @Test
@@ -109,14 +109,14 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
         final long ingestionTime = System.nanoTime();
         source.setIngestionTime( ingestionTime, true );
         final long invLatency = 100;
-        source.addInvocationLatencyRecord( newInvocationLatency( "op1", 0 ).setEnd( invLatency ) );
+        source.recordInvocationLatency( newInvocationLatency( "op1", 0 ).setEnd( invLatency ) );
 
         final Tuple destination = new Tuple();
         destination.attachTo( source );
-        source.addInvocationLatencyRecord( newInvocationLatency( "op2", 0 ).setEnd( invLatency ) );
+        source.recordInvocationLatency( newInvocationLatency( "op2", 0 ).setEnd( invLatency ) );
 
         assertThat( destination.getIngestionTime(), equalTo( ingestionTime ) );
-        assertThat( destination.getLatencyRecs(), equalTo( singletonList( newInvocationLatency( "op1", 0 ).setEnd( invLatency ) ) ) );
+        assertThat( destination.getLatencyComps(), equalTo( singletonList( newInvocationLatency( "op1", 0 ).setEnd( invLatency ) ) ) );
     }
 
     @Test
@@ -126,20 +126,20 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
         final long ingestionTime1 = System.nanoTime();
         source1.setIngestionTime( ingestionTime1, true );
         final long invLatency1 = 100;
-        source1.addInvocationLatencyRecord( newInvocationLatency( "op1", 0 ).setEnd( invLatency1 ) );
+        source1.recordInvocationLatency( newInvocationLatency( "op1", 0 ).setEnd( invLatency1 ) );
 
         final Tuple source2 = new Tuple();
         final long ingestionTime2 = ingestionTime1 + 100;
         source2.setIngestionTime( ingestionTime2, true );
         final long invLatency2 = invLatency1 - 10;
-        source2.addInvocationLatencyRecord( newInvocationLatency( "op2", 0 ).setEnd( invLatency2 ) );
+        source2.recordInvocationLatency( newInvocationLatency( "op2", 0 ).setEnd( invLatency2 ) );
 
         final Tuple destination = new Tuple();
         destination.attachTo( source1 );
         destination.attachTo( source2 );
 
         assertThat( destination.getIngestionTime(), equalTo( ingestionTime2 ) );
-        assertThat( destination.getLatencyRecs(), equalTo( singletonList( newInvocationLatency( "op2", 0 ).setEnd( invLatency2 ) ) ) );
+        assertThat( destination.getLatencyComps(), equalTo( singletonList( newInvocationLatency( "op2", 0 ).setEnd( invLatency2 ) ) ) );
     }
 
     @Test
@@ -149,7 +149,7 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
         destination.attachTo( new Tuple() );
 
         assertThat( destination.getIngestionTime(), equalTo( INGESTION_TIME_UNASSIGNABLE ) );
-        assertNull( destination.getLatencyRecs() );
+        assertNull( destination.getLatencyComps() );
     }
 
     @Test
@@ -193,12 +193,12 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
         final long t2 = t1 + 100;
         destination.setIngestionTime( t2, true );
         final long invLatency = 100;
-        destination.addInvocationLatencyRecord( newInvocationLatency( "op", 0 ).setEnd( invLatency ) );
+        destination.recordInvocationLatency( newInvocationLatency( "op", 0 ).setEnd( invLatency ) );
 
         destination.attachTo( source );
 
         assertThat( destination.getIngestionTime(), equalTo( t2 ) );
-        assertThat( destination.getLatencyRecs(), equalTo( singletonList( newInvocationLatency( "op", 0 ).setEnd( invLatency ) ) ) );
+        assertThat( destination.getLatencyComps(), equalTo( singletonList( newInvocationLatency( "op", 0 ).setEnd( invLatency ) ) ) );
     }
 
     @Test

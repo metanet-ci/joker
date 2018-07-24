@@ -33,6 +33,7 @@ import cs.bilkent.joker.engine.FlowStatus;
 import static cs.bilkent.joker.engine.FlowStatus.RUNNING;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_THREAD_GROUP_NAME;
+import cs.bilkent.joker.engine.config.PipelineManagerConfig;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.exception.JokerException;
 import cs.bilkent.joker.engine.flow.FlowExecPlan;
@@ -876,7 +877,10 @@ public class PipelineManagerImpl implements PipelineManager
             {
                 if ( i > 0 )
                 {
-                    collector = new IngestionTimeInjector( collector );
+                    final PipelineManagerConfig pipelineManagerConfig = jokerConfig.getPipelineManagerConfig();
+                    collector = new IngestionTimeInjector( collector,
+                                                           pipelineManagerConfig.getLatencyTickMask(),
+                                                           pipelineManagerConfig.getLatencyComponentTickMask() );
                 }
                 else
                 {
@@ -1120,9 +1124,6 @@ public class PipelineManagerImpl implements PipelineManager
                     continue;
                 }
 
-                int c = 0;
-                long lat = 0;
-
                 for ( Tuple tuple : buffer )
                 {
                     if ( tuple.isIngestionTimeNA() )
@@ -1130,24 +1131,17 @@ public class PipelineManagerImpl implements PipelineManager
                         continue;
                     }
 
-                    //                    latencyMeter.recordTuple( tuple.getIngestionTime() );
-                    lat += tuple.getIngestionTime();
-                    if ( ++c == 4 )
-                    {
-                        latencyMeter.recordTuple( lat / c );
-                        c = 0;
-                        lat = 0;
-                    }
+                    latencyMeter.recordTuple( tuple.getIngestionTime() );
 
-                    final List<LatencyRecord> recs = tuple.getLatencyRecs();
-                    if ( recs == null )
+                    final List<LatencyRecord> comps = tuple.getLatencyComps();
+                    if ( comps == null )
                     {
                         continue;
                     }
 
-                    for ( int i = 0; i < recs.size(); i++ )
+                    for ( int i = 0; i < comps.size(); i++ )
                     {
-                        final LatencyRecord record = recs.get( i );
+                        final LatencyRecord record = comps.get( i );
                         final String operatorId = record.getOperatorId();
                         final long latency = record.getLatency();
                         if ( record.isOperator() )
@@ -1159,11 +1153,6 @@ public class PipelineManagerImpl implements PipelineManager
                             latencyMeter.recordQueue( operatorId, latency );
                         }
                     }
-                }
-
-                if ( c > 0 )
-                {
-                    latencyMeter.recordTuple( lat / c );
                 }
 
                 if ( loop++ % 100 == 0 )
@@ -1207,21 +1196,24 @@ public class PipelineManagerImpl implements PipelineManager
 
     static class IngestionTimeInjector implements DownstreamCollector
     {
-        private final Ticker ticker = new Ticker( 1 );
+        private final Ticker ticker;
+        private final long latencyComponentTickMask;
         private final DownstreamCollector downstream;
 
-        IngestionTimeInjector ( final DownstreamCollector downstream )
+        IngestionTimeInjector ( final DownstreamCollector downstream, final long latencyTickMask, final long latencyComponentTickMask )
         {
             this.downstream = downstream;
+            this.ticker = new Ticker( latencyTickMask );
+            this.latencyComponentTickMask = latencyComponentTickMask;
         }
 
         @Override
         public void accept ( final TuplesImpl tuples )
         {
-            //            if ( ticker.tryTick() )
-            //            {
+            if ( ticker.tryTick() )
+            {
                 final long ingestionTime = System.nanoTime();
-                final boolean trackLatencyRecords = ticker.isTicked( 2047 );
+                final boolean trackLatencyRecords = ticker.isTicked( latencyComponentTickMask );
 
                 for ( int i = 0, p = tuples.getPortCount(); i < p; i++ )
                 {
@@ -1231,7 +1223,7 @@ public class PipelineManagerImpl implements PipelineManager
                         l.get( j ).setIngestionTime( ingestionTime, trackLatencyRecords );
                     }
                 }
-            //            }
+            }
 
             downstream.accept( tuples );
         }

@@ -159,7 +159,7 @@ public class DefaultInvocationCtx implements InternalInvocationCtx
     {
         if ( latencyRec != null )
         {
-            tuple.addInvocationLatencyRecord( latencyRec );
+            tuple.recordInvocationLatency( latencyRec );
         }
 
         outputCollector.add( tuple );
@@ -170,7 +170,7 @@ public class DefaultInvocationCtx implements InternalInvocationCtx
     {
         if ( latencyRec != null )
         {
-            tuple.addInvocationLatencyRecord( latencyRec );
+            tuple.recordInvocationLatency( latencyRec );
         }
 
         outputCollector.add( portIndex, tuple );

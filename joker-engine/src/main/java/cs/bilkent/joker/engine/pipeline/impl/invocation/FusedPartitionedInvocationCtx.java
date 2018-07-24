@@ -150,7 +150,7 @@ public class FusedPartitionedInvocationCtx implements InternalInvocationCtx, Out
     {
         if ( latencyRec != null )
         {
-            tuple.addInvocationLatencyRecord( latencyRec );
+            tuple.recordInvocationLatency( latencyRec );
         }
 
         outputCollector.add( tuple );
@@ -161,7 +161,7 @@ public class FusedPartitionedInvocationCtx implements InternalInvocationCtx, Out
     {
         if ( latencyRec != null )
         {
-            tuple.addInvocationLatencyRecord( latencyRec );
+            tuple.recordInvocationLatency( latencyRec );
         }
 
         outputCollector.add( portIndex, tuple );
