@@ -1120,6 +1120,9 @@ public class PipelineManagerImpl implements PipelineManager
                     continue;
                 }
 
+                int c = 0;
+                long lat = 0;
+
                 for ( Tuple tuple : buffer )
                 {
                     if ( tuple.isIngestionTimeNA() )
@@ -1127,7 +1130,14 @@ public class PipelineManagerImpl implements PipelineManager
                         continue;
                     }
 
-                    latencyMeter.recordTuple( tuple.getIngestionTime() );
+                    //                    latencyMeter.recordTuple( tuple.getIngestionTime() );
+                    lat += tuple.getIngestionTime();
+                    if ( ++c == 4 )
+                    {
+                        latencyMeter.recordTuple( lat / c );
+                        c = 0;
+                        lat = 0;
+                    }
 
                     final List<LatencyRecord> recs = tuple.getLatencyRecs();
                     if ( recs == null )
@@ -1149,6 +1159,11 @@ public class PipelineManagerImpl implements PipelineManager
                             latencyMeter.recordQueue( operatorId, latency );
                         }
                     }
+                }
+
+                if ( c > 0 )
+                {
+                    latencyMeter.recordTuple( lat / c );
                 }
 
                 if ( loop++ % 100 == 0 )
@@ -1203,8 +1218,8 @@ public class PipelineManagerImpl implements PipelineManager
         @Override
         public void accept ( final TuplesImpl tuples )
         {
-            if ( ticker.tryTick() )
-            {
+            //            if ( ticker.tryTick() )
+            //            {
                 final long ingestionTime = System.nanoTime();
                 final boolean trackLatencyRecords = ticker.isTicked( 2047 );
 
@@ -1216,8 +1231,7 @@ public class PipelineManagerImpl implements PipelineManager
                         l.get( j ).setIngestionTime( ingestionTime, trackLatencyRecords );
                     }
                 }
-
-            }
+            //            }
 
             downstream.accept( tuples );
         }
