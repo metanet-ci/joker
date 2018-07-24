@@ -172,7 +172,7 @@ public class PipelineReplicaMeter
         checkState( success, "cannot set ref from %s to %s in pipeline replica meter of %s", currentVal, nextVal, pipelineReplicaId );
     }
 
-    static class Ticker
+    public static class Ticker
     {
 
         private final long tickMask;
@@ -181,32 +181,32 @@ public class PipelineReplicaMeter
 
         private boolean ticked;
 
-        Ticker ( final long tickMask )
+        public Ticker ( final long tickMask )
         {
             this.tickMask = tickMask;
         }
 
-        boolean tryTick ()
+        public boolean tryTick ()
         {
             return ( this.ticked = ( ( ++count & tickMask ) == 0 ) );
         }
 
-        boolean isTicked ()
+        public boolean isTicked ()
         {
             return ticked;
         }
 
-        boolean isTicked ( final long tickMask )
+        public boolean isTicked ( final long tickMask )
         {
             return ( count & tickMask ) == 0;
         }
 
-        long getCount ()
+        public long getCount ()
         {
             return count;
         }
 
-        void reset ()
+        public void reset ()
         {
             count = 0;
             ticked = false;

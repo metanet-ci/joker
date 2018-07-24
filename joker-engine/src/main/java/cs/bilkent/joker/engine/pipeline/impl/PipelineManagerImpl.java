@@ -42,7 +42,7 @@ import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.metric.LatencyMeter;
 import cs.bilkent.joker.engine.metric.MetricManager;
 import cs.bilkent.joker.engine.metric.PipelineMeter;
-import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
+import cs.bilkent.joker.engine.metric.PipelineReplicaMeter.Ticker;
 import cs.bilkent.joker.engine.partition.PartitionDistribution;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractorFactory;
@@ -876,9 +876,7 @@ public class PipelineManagerImpl implements PipelineManager
             {
                 if ( i > 0 )
                 {
-                    final PipelineReplica pipelineReplica = pipeline.getPipelineReplica( replicaIndex );
-                    final PipelineReplicaMeter meter = pipelineReplica.getMeter();
-                    collector = new IngestionTimeInjector( meter, collector );
+                    collector = new IngestionTimeInjector( collector );
                 }
                 else
                 {
@@ -1194,28 +1192,31 @@ public class PipelineManagerImpl implements PipelineManager
 
     static class IngestionTimeInjector implements DownstreamCollector
     {
-        private final PipelineReplicaMeter meter;
+        private final Ticker ticker = new Ticker( 1 );
         private final DownstreamCollector downstream;
 
-        IngestionTimeInjector ( final PipelineReplicaMeter meter, final DownstreamCollector downstream )
+        IngestionTimeInjector ( final DownstreamCollector downstream )
         {
-            this.meter = meter;
             this.downstream = downstream;
         }
 
         @Override
         public void accept ( final TuplesImpl tuples )
         {
-            final long ingestionTime = System.nanoTime();
-            final boolean trackLatencyRecords = meter.isTicked( 2047 );
-
-            for ( int i = 0, p = tuples.getPortCount(); i < p; i++ )
+            if ( ticker.tryTick() )
             {
-                final List<Tuple> l = tuples.getTuplesModifiable( i );
-                for ( int j = 0, t = l.size(); j < t; j++ )
+                final long ingestionTime = System.nanoTime();
+                final boolean trackLatencyRecords = ticker.isTicked( 2047 );
+
+                for ( int i = 0, p = tuples.getPortCount(); i < p; i++ )
                 {
-                    l.get( j ).setIngestionTime( ingestionTime, trackLatencyRecords );
+                    final List<Tuple> l = tuples.getTuplesModifiable( i );
+                    for ( int j = 0, t = l.size(); j < t; j++ )
+                    {
+                        l.get( j ).setIngestionTime( ingestionTime, trackLatencyRecords );
+                    }
                 }
+
             }
 
             downstream.accept( tuples );
