@@ -135,7 +135,7 @@ public class LatencyTest extends AbstractJokerTest
         configBuilder.getMetricManagerConfigBuilder().setPipelineMetricsScanningPeriodInMillis( 1000 );
         configBuilder.getFlowDefOptimizerConfigBuilder().disableMergeRegions();
         configBuilder.getPipelineManagerConfigBuilder().setLatencyTickMask( 0 );
-        configBuilder.getPipelineManagerConfigBuilder().setlatencyComponentTickMask( 2047 );
+        configBuilder.getPipelineManagerConfigBuilder().setLatencyComponentTickMask( 2047 );
 
         final Joker joker = new JokerBuilder().setJokerConfig( configBuilder.build() ).build();
 

@@ -334,7 +334,7 @@ public class JokerConfigBuilderTest extends AbstractJokerTest
     public void test_PipelineManagerConfig_latencyComponentTickMask ()
     {
         final long val = 234;
-        builder.getPipelineManagerConfigBuilder().setlatencyComponentTickMask( val );
+        builder.getPipelineManagerConfigBuilder().setLatencyComponentTickMask( val );
 
         assertEquals( val, builder.build().getPipelineManagerConfig().getLatencyComponentTickMask() );
     }

@@ -462,7 +462,7 @@ public class JokerConfigBuilder
         }
 
 
-        public PipelineManagerConfigBuilder setlatencyComponentTickMask ( final long val )
+        public PipelineManagerConfigBuilder setLatencyComponentTickMask ( final long val )
         {
             pipelineManagerConfigVals.put( LATENCY_COMPONENT_TISK_MASK, val );
 
