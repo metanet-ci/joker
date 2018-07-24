@@ -1207,7 +1207,7 @@ public class PipelineManagerImpl implements PipelineManager
         public void accept ( final TuplesImpl tuples )
         {
             final long ingestionTime = System.nanoTime();
-            final boolean trackLatencyRecords = meter.isTicked( 16383 );
+            final boolean trackLatencyRecords = meter.isTicked( 2047 );
 
             for ( int i = 0, p = tuples.getPortCount(); i < p; i++ )
             {

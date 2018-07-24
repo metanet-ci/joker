@@ -2,6 +2,7 @@ package cs.bilkent.joker;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -81,7 +82,7 @@ public class LatencyTest extends AbstractJokerTest
         @Override
         public void accept ( final Tuple tuple )
         {
-            //            LockSupport.parkNanos( 1 );
+            LockSupport.parkNanos( 1 );
 
             final int key = vals[ curr++ ];
             final int value = key + 1;
