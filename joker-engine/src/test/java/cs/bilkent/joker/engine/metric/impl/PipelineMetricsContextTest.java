@@ -7,7 +7,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-import com.codahale.metrics.Snapshot;
 
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.metric.PipelineMeter;
@@ -49,10 +48,6 @@ public class PipelineMetricsContextTest extends AbstractJokerTest
         when( meter.getReplicaCount() ).thenReturn( REPLICA_COUNT );
         when( meter.getOperatorCount() ).thenReturn( OPERATOR_COUNT );
         when( meter.getInputPortCount() ).thenReturn( INPUT_PORT_COUNT );
-        for ( int replicaIndex = 0; replicaIndex < REPLICA_COUNT; replicaIndex++ )
-        {
-            when( meter.getInboundThroughputHistograms( replicaIndex ) ).thenReturn( new Snapshot[ OPERATOR_COUNT ] );
-        }
 
         metrics = new PipelineMetricsContext( FLOW_VERSION, meter );
     }

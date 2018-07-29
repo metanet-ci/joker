@@ -3,14 +3,11 @@ package cs.bilkent.joker.engine.metric;
 import java.util.Arrays;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import com.codahale.metrics.Snapshot;
-
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import static java.lang.Double.NaN;
 import static java.lang.Math.min;
-import static java.lang.System.arraycopy;
 import static java.util.Arrays.stream;
 import static java.util.stream.IntStream.range;
 
@@ -35,8 +32,6 @@ public class PipelineMetrics
 
     private final double[] pipelineCosts;
 
-    private final Snapshot[][] inboundThroughputHistograms;
-
     public PipelineMetrics ( final PipelineId pipelineId,
                              final int flowVersion,
                              final int replicaCount,
@@ -52,7 +47,6 @@ public class PipelineMetrics
         this.inboundThroughputs = new long[ replicaCount ][ inputPortCount ];
         this.operatorCosts = new double[ replicaCount ][ operatorCount ];
         this.pipelineCosts = new double[ replicaCount ];
-        this.inboundThroughputHistograms = new Snapshot[ replicaCount ][ inputPortCount ];
     }
 
     public PipelineId getPipelineId ()
@@ -164,11 +158,6 @@ public class PipelineMetrics
         return sum;
     }
 
-    public Snapshot[] getInboundThroughputHistograms ( final int replicaIndex )
-    {
-        return inboundThroughputHistograms[ replicaIndex ];
-    }
-
     public void visit ( final PipelineMetricsVisitor visitor )
     {
         for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
@@ -178,15 +167,12 @@ public class PipelineMetrics
             final double threadUtilizationRatio = getCpuUtilizationRatio( replicaIndex );
             final double pipelineCost = getPipelineCost( replicaIndex );
             final double[] operatorCosts = getOperatorCosts( replicaIndex );
-            final Snapshot[] inboundThroughputHistograms = getInboundThroughputHistograms( replicaIndex );
 
             visitor.handle( pipelineReplicaId,
                             flowVersion,
                             inboundThroughputs,
                             threadUtilizationRatio,
-                            pipelineCost,
-                            operatorCosts,
-                            inboundThroughputHistograms );
+                            pipelineCost, operatorCosts );
         }
     }
 
@@ -196,8 +182,7 @@ public class PipelineMetrics
         return "PipelineMetrics{" + "pipelineId=" + pipelineId + ", flowVersion=" + flowVersion + ", replicaCount=" + replicaCount
                + ", operatorCount=" + operatorCount + ", inputPortCount=" + inputPortCount + ", cpuUtilizationRatios=" + Arrays.toString(
                 cpuUtilizationRatios ) + ", inboundThroughputs=" + Arrays.toString( inboundThroughputs ) + ", operatorCosts="
-               + Arrays.toString( operatorCosts ) + ", pipelineCosts=" + Arrays.toString( pipelineCosts ) + ", inboundThroughputHistograms="
-               + Arrays.toString( inboundThroughputHistograms ) + '}';
+               + Arrays.toString( operatorCosts ) + ", pipelineCosts=" + Arrays.toString( pipelineCosts ) + '}';
     }
 
     public interface PipelineMetricsVisitor
@@ -206,8 +191,7 @@ public class PipelineMetrics
         void handle ( PipelineReplicaId pipelineReplicaId,
                       int flowVersion,
                       long[] inboundThroughput,
-                      double threadUtilizationRatio,
-                      double pipelineCost, double[] operatorCosts, Snapshot[] inboundThroughputHistograms );
+                      double threadUtilizationRatio, double pipelineCost, double[] operatorCosts );
 
     }
 
@@ -257,13 +241,6 @@ public class PipelineMetrics
         {
             checkArgument( building );
             snapshot.inboundThroughputs[ replicaIndex ][ portIndex ] = throughput;
-
-            return this;
-        }
-
-        public PipelineMetricsBuilder setInboundThroughputHistogramSnapshots ( final int replicaIndex, final Snapshot[] histograms )
-        {
-            arraycopy( histograms, 0, snapshot.inboundThroughputHistograms[ replicaIndex ], 0, snapshot.inputPortCount );
 
             return this;
         }

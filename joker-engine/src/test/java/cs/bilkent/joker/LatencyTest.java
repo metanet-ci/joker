@@ -120,10 +120,6 @@ public class LatencyTest extends AbstractJokerTest
                                                          .setConfig( multiplierConfig )
                                                          .build();
 
-        final OperatorConfig forEachConfig = new OperatorConfig();
-        forEachConfig.set( ForEachOperator.CONSUMER_FUNCTION_CONFIG_PARAMETER, (Consumer<Tuple>) tuple -> {
-        } );
-
         final FlowDef flow = new FlowDefBuilder().add( beacon ).add( multiplier )
                                                  .connect( "beacon", "multiplier" )
                                                  .build();

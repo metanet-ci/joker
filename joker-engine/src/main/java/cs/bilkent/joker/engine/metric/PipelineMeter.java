@@ -6,8 +6,6 @@ import java.lang.management.ThreadMXBean;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.codahale.metrics.Snapshot;
-
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.flow.PipelineId;
@@ -128,11 +126,6 @@ public class PipelineMeter
         final PipelineReplicaMeter pipelineReplicaMeter = pipelineReplicaMeters[ replicaIndex ];
         pipelineReplicaMeter.getCurrentlyExecutingComponent();
         pipelineReplicaMeter.readInboundThroughput( inboundThroughput );
-    }
-
-    public Snapshot[] getInboundThroughputHistograms ( final int replicaIndex )
-    {
-        return pipelineReplicaMeters[ replicaIndex ].getInboundThroughputHistograms();
     }
 
 }

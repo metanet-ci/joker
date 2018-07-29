@@ -617,32 +617,19 @@ public class MetricManagerImpl implements MetricManager
 
         private void logMetrics ( final long timeSpent )
         {
-            final PipelineMetricsVisitor logVisitor = ( pipelineReplicaId, flowVersion, inboundThroughput, threadUtilizationRatio, pipelineCost, operatorCosts, inboundThroughputHistograms ) -> {
+            final PipelineMetricsVisitor logVisitor = ( pipelineReplicaId, flowVersion, inboundThroughput, threadUtilizationRatio,
+                                                        pipelineCost, operatorCosts ) -> {
                 final double cpuUsage = threadUtilizationRatio / numberOfCores;
-                final long[] avgs = Arrays.stream( inboundThroughputHistograms ).mapToLong( s -> (long) s.getMean() ).toArray();
-                final long[] stdDevs = Arrays.stream( inboundThroughputHistograms ).mapToLong( s -> (long) s.getStdDev() ).toArray();
-                final long[] maxes = Arrays.stream( inboundThroughputHistograms ).mapToLong( Snapshot::getMax ).toArray();
-                final long[] percentile75s = Arrays.stream( inboundThroughputHistograms )
-                                                   .mapToLong( s -> (long) s.get75thPercentile() )
-                                                   .toArray();
-                final long[] percentile99s = Arrays.stream( inboundThroughputHistograms )
-                                                   .mapToLong( s -> (long) s.get99thPercentile() )
-                                                   .toArray();
+
                 final String log = String.format(
-                        "%s -> flow version: %d thread utilization: %.3f cpu usage: %.3f throughput: %s pipeline cost: %s operator costs:"
-                        + " %s avg: %s std dev: %s max: %s .75: %s .99: %s",
+                        "%s -> flow version: %d thread utilization: %.3f cpu usage: %.3f throughput: %s pipeline cost: %s operator costs: %s",
                         pipelineReplicaId,
                         flowVersion,
                         threadUtilizationRatio,
                         cpuUsage,
                         Arrays.toString( inboundThroughput ),
                         pipelineCost,
-                        Arrays.toString( operatorCosts ),
-                        Arrays.toString( avgs ),
-                        Arrays.toString( stdDevs ),
-                        Arrays.toString( maxes ),
-                        Arrays.toString( percentile75s ),
-                        Arrays.toString( percentile99s ) );
+                        Arrays.toString( operatorCosts ) );
                 LOGGER.info( log );
             };
 
