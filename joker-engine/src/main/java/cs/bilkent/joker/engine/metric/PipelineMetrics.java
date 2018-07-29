@@ -200,7 +200,7 @@ public class PipelineMetrics
     public static class PipelineMetricsBuilder
     {
 
-        private final PipelineMetrics snapshot;
+        private final PipelineMetrics metrics;
 
         private boolean building = true;
 
@@ -210,13 +210,13 @@ public class PipelineMetrics
                                         final int operatorCount,
                                         final int inputPortCount )
         {
-            this.snapshot = new PipelineMetrics( pipelineId, flowVersion, replicaCount, operatorCount, inputPortCount );
+            this.metrics = new PipelineMetrics( pipelineId, flowVersion, replicaCount, operatorCount, inputPortCount );
         }
 
         public PipelineMetricsBuilder setPipelineCost ( final int replicaIndex, final double pipelineCost )
         {
             checkArgument( building );
-            snapshot.pipelineCosts[ replicaIndex ] = min( pipelineCost, 1d );
+            metrics.pipelineCosts[ replicaIndex ] = min( pipelineCost, 1d );
 
             return this;
         }
@@ -224,7 +224,7 @@ public class PipelineMetrics
         public PipelineMetricsBuilder setOperatorCost ( final int replicaIndex, final int operatorIndex, final double operatorCost )
         {
             checkArgument( building );
-            snapshot.operatorCosts[ replicaIndex ][ operatorIndex ] = min( operatorCost, 1d );
+            metrics.operatorCosts[ replicaIndex ][ operatorIndex ] = min( operatorCost, 1d );
 
             return this;
         }
@@ -232,7 +232,7 @@ public class PipelineMetrics
         public PipelineMetricsBuilder setCpuUtilizationRatio ( final int replicaIndex, final double cpuUtilizationRatio )
         {
             checkArgument( building );
-            snapshot.cpuUtilizationRatios[ replicaIndex ] = min( cpuUtilizationRatio, 1d );
+            metrics.cpuUtilizationRatios[ replicaIndex ] = min( cpuUtilizationRatio, 1d );
 
             return this;
         }
@@ -240,7 +240,7 @@ public class PipelineMetrics
         public PipelineMetricsBuilder setInboundThroughput ( final int replicaIndex, final int portIndex, final long throughput )
         {
             checkArgument( building );
-            snapshot.inboundThroughputs[ replicaIndex ][ portIndex ] = throughput;
+            metrics.inboundThroughputs[ replicaIndex ][ portIndex ] = throughput;
 
             return this;
         }
@@ -249,7 +249,7 @@ public class PipelineMetrics
         {
             checkArgument( building );
             building = false;
-            return snapshot;
+            return metrics;
         }
 
     }
