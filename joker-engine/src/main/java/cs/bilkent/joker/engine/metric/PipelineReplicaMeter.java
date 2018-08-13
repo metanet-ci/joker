@@ -136,7 +136,7 @@ public class PipelineReplicaMeter
     {
         if ( inputPortCount > 0 )
         {
-            invocationTupleCounts.computeIfAbsent( headOperatorId, op -> new IntCountsHistogram( 4096, 0 ) )
+            invocationTupleCounts.computeIfAbsent( headOperatorId, op -> new IntCountsHistogram( 4096, 4 ) )
                                  .recordValue( tuples.getTupleCount( 0 ) );
         }
     }
