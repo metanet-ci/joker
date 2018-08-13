@@ -29,7 +29,7 @@ public final class PortRuntimeSchema implements TupleSchema
      */
     public PortRuntimeSchema ( final List<RuntimeSchemaField> fields )
     {
-        final ArrayList<RuntimeSchemaField> f = new ArrayList<>( fields );
+        final List<RuntimeSchemaField> f = new ArrayList<>( fields );
         f.sort( Comparator.comparing( RuntimeSchemaField::getName ) );
         this.fields = unmodifiableList( f );
         for ( int i = 0; i < f.size(); i++ )

@@ -45,7 +45,7 @@ public class LatencyMeter
 
     private IntCountsHistogram newHistogram ()
     {
-        return new IntCountsHistogram( SECONDS.toNanos( 10 ), 3 );
+        return new IntCountsHistogram( SECONDS.toNanos( 10 ), 0 );
     }
 
     public String getSinkOperatorId ()
