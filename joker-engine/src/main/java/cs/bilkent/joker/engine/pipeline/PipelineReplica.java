@@ -7,6 +7,7 @@ import java.util.function.Function;
 import java.util.stream.IntStream;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.HdrHistogram.IntCountsHistogram;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -178,18 +179,30 @@ public class PipelineReplica
 
     private long time = System.nanoTime();
 
+    private IntCountsHistogram queueSizeHistogram = new IntCountsHistogram( 4096, 4 );
+
     public TuplesImpl invoke ()
     {
         if ( meter.tryTick() )
         {
-            final long now = System.nanoTime();
-            if ( ( now - time ) > TimeUnit.SECONDS.toNanos( 1 ) )
+            final OperatorQueue q = getEffectiveQueue();
+            if ( q instanceof DefaultOperatorQueue )
             {
-                time = now;
-                final OperatorQueue q = getEffectiveQueue();
-                if ( q instanceof DefaultOperatorQueue )
+                DefaultOperatorQueue q2 = (DefaultOperatorQueue) q;
+                final int queueSize = q2.getTupleQueue( 0 ).size();
+                queueSizeHistogram.recordValue( queueSize );
+                final long now = System.nanoTime();
+                if ( ( now - time ) > TimeUnit.SECONDS.toNanos( 1 ) )
                 {
-                    LOGGER.error( "{} => QUEUE SIZE: {}", id, ( (DefaultOperatorQueue) q ).getTupleQueue( 0 ).size() );
+                    time = now;
+                    LOGGER.error( "{} => CURRENT QUEUE SIZE: {} MEAN: {} STD DEV: {} MEDIAN: {} 95: {}",
+                                  id,
+                                  queueSize,
+                                  queueSizeHistogram.getMean(),
+                                  queueSizeHistogram.getStdDeviation(),
+                                  queueSizeHistogram.getPercentileAtOrBelowValue( 50 ),
+                                  queueSizeHistogram.getPercentileAtOrBelowValue( 95 ) );
+                    queueSizeHistogram = new IntCountsHistogram( 4096, 4 );
                 }
             }
         }
