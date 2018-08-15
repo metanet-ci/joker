@@ -52,7 +52,7 @@ public class PipelineReplicaMeter
         return pipelineReplicaId;
     }
 
-    public void tryTick ()
+    public boolean tryTick ()
     {
         if ( ticker.isTicked() )
         {
@@ -80,7 +80,11 @@ public class PipelineReplicaMeter
 
                 invocationTupleCounts.clear();
             }
+
+            return true;
         }
+
+        return false;
     }
 
     public String getHeadOperatorId ()

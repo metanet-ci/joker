@@ -40,11 +40,11 @@ import cs.bilkent.joker.operator.spec.OperatorType;
 import cs.bilkent.joker.operators.FilterOperator;
 import cs.bilkent.joker.operators.MapperOperator;
 import cs.bilkent.joker.test.AbstractJokerTest;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.fail;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 
 public class OperatorReplicaInitializationTest extends AbstractJokerTest
 {

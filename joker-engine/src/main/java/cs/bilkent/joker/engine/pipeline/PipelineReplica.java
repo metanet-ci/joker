@@ -2,6 +2,7 @@ package cs.bilkent.joker.engine.pipeline;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -21,6 +22,7 @@ import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.BlockingGreedyDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.NopDrainer;
+import cs.bilkent.joker.engine.tuplequeue.impl.operator.DefaultOperatorQueue;
 import cs.bilkent.joker.engine.tuplequeue.impl.operator.EmptyOperatorQueue;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -174,9 +176,23 @@ public class PipelineReplica
         return queue instanceof EmptyOperatorQueue ? operators[ 0 ].getQueue() : queue;
     }
 
+    private long time = System.nanoTime();
+
     public TuplesImpl invoke ()
     {
-        meter.tryTick();
+        if ( meter.tryTick() )
+        {
+            final long now = System.nanoTime();
+            if ( ( now - time ) > TimeUnit.SECONDS.toNanos( 1 ) )
+            {
+                time = now;
+                final OperatorQueue q = getEffectiveQueue();
+                if ( q instanceof DefaultOperatorQueue )
+                {
+                    LOGGER.error( "{} => QUEUE SIZE: " + ( (DefaultOperatorQueue) q ).getTupleQueue( 0 ).size() );
+                }
+            }
+        }
         inputTuplesSupplier.reset();
         queue.drain( drainerMaySkipBlocking, drainer, inputTuplesSupplier );
 
