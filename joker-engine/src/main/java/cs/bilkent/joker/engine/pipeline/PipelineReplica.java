@@ -189,7 +189,7 @@ public class PipelineReplica
                 final OperatorQueue q = getEffectiveQueue();
                 if ( q instanceof DefaultOperatorQueue )
                 {
-                    LOGGER.error( "{} => QUEUE SIZE: " + ( (DefaultOperatorQueue) q ).getTupleQueue( 0 ).size() );
+                    LOGGER.error( "{} => QUEUE SIZE: {}", id, ( (DefaultOperatorQueue) q ).getTupleQueue( 0 ).size() );
                 }
             }
         }
