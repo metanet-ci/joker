@@ -127,7 +127,7 @@ public class PipelineReplicaMeter
             return;
         }
 
-        recordInvocationInputTupleCount( tuples );
+        //recordInvocationInputTupleCount( tuples );
 
         for ( int i = 0; i < inputPortCount; i++ )
         {
@@ -158,7 +158,7 @@ public class PipelineReplicaMeter
         for ( int i = 0; i < count; i++ )
         {
             final TuplesImpl tuples = tuplesList.get( i );
-            recordInvocationInputTupleCount( tuples );
+            //recordInvocationInputTupleCount( tuples );
 
             for ( int j = 0; j < inputPortCount; j++ )
             {
