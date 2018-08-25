@@ -190,19 +190,26 @@ public class PipelineReplica
             {
                 DefaultOperatorQueue q2 = (DefaultOperatorQueue) q;
                 final int queueSize = q2.getTupleQueue( 0 ).size();
-                queueSizeHistogram.recordValue( queueSize );
-                final long now = System.nanoTime();
-                if ( ( now - time ) > TimeUnit.SECONDS.toNanos( 1 ) )
+                if ( queueSize > 0 )
                 {
-                    time = now;
-                    LOGGER.error( "{} => CURRENT QUEUE SIZE: {} MEAN: {} STD DEV: {} MEDIAN: {} 95: {}",
-                                  id,
-                                  queueSize,
-                                  queueSizeHistogram.getMean(),
-                                  queueSizeHistogram.getStdDeviation(),
-                                  queueSizeHistogram.getPercentileAtOrBelowValue( 50 ),
-                                  queueSizeHistogram.getPercentileAtOrBelowValue( 95 ) );
-                    queueSizeHistogram = new IntCountsHistogram( 4096, 4 );
+                    queueSizeHistogram.recordValue( queueSize );
+
+                    if ( meter.isTicked( 31 ) )
+                    {
+                        final long now = System.nanoTime();
+                        if ( ( now - time ) > TimeUnit.SECONDS.toNanos( 1 ) )
+                        {
+                            time = now;
+                            LOGGER.error( "{} => CURRENT QUEUE SIZE: {} MEAN: {} STD DEV: {} MEDIAN: {} 95: {}",
+                                          id,
+                                          queueSize,
+                                          queueSizeHistogram.getMean(),
+                                          queueSizeHistogram.getStdDeviation(),
+                                          queueSizeHistogram.getPercentileAtOrBelowValue( 50 ),
+                                          queueSizeHistogram.getPercentileAtOrBelowValue( 95 ) );
+                            queueSizeHistogram = new IntCountsHistogram( 4096, 4 );
+                        }
+                    }
                 }
             }
         }
