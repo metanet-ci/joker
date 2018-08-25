@@ -127,7 +127,7 @@ public class PipelineReplicaMeter
             return;
         }
 
-        //recordInvocationInputTupleCount( tuples );
+        recordInvocationInputTupleCount( tuples );
 
         for ( int i = 0; i < inputPortCount; i++ )
         {
@@ -138,9 +138,9 @@ public class PipelineReplicaMeter
 
     private void recordInvocationInputTupleCount ( final TuplesImpl tuples )
     {
-        if ( inputPortCount > 0 )
+        if ( ticker.isTicked() && inputPortCount > 0 )
         {
-            invocationTupleCounts.computeIfAbsent( headOperatorId, op -> new IntCountsHistogram( 4096, 4 ) )
+            invocationTupleCounts.computeIfAbsent( headOperatorId, op -> new IntCountsHistogram( 4096, 0 ) )
                                  .recordValue( tuples.getTupleCount( 0 ) );
         }
     }
@@ -158,7 +158,7 @@ public class PipelineReplicaMeter
         for ( int i = 0; i < count; i++ )
         {
             final TuplesImpl tuples = tuplesList.get( i );
-            //recordInvocationInputTupleCount( tuples );
+            recordInvocationInputTupleCount( tuples );
 
             for ( int j = 0; j < inputPortCount; j++ )
             {
