@@ -1118,6 +1118,21 @@ public class PipelineManagerImpl implements PipelineManager
         {
             while ( status == RUNNING )
             {
+
+                if ( loop++ % 100 == 0 )
+                {
+                    final long now = System.nanoTime();
+                    if ( now - last >= MILLISECONDS.toNanos( jokerConfig.getMetricManagerConfig()
+                                                                        .getPipelineMetricsScanningPeriodInMillis() ) )
+                    {
+                        last = now;
+                        if ( latencyMeter.publish() )
+                        {
+                            LOGGER.warn( "MetricManager missed a published set of latency records..." );
+                        }
+                    }
+                }
+
                 queue.drainTo( buffer, LATENCY_QUEUE_SIZE );
                 if ( buffer.isEmpty() )
                 {
@@ -1155,19 +1170,6 @@ public class PipelineManagerImpl implements PipelineManager
                     }
                 }
 
-                if ( loop++ % 100 == 0 )
-                {
-                    final long now = System.nanoTime();
-                    if ( now - last >= MILLISECONDS.toNanos( jokerConfig.getMetricManagerConfig()
-                                                                        .getPipelineMetricsScanningPeriodInMillis() ) )
-                    {
-                        last = now;
-                        if ( latencyMeter.publish() )
-                        {
-                            LOGGER.warn( "MetricManager missed a published set of latency records..." );
-                        }
-                    }
-                }
 
                 buffer.clear();
             }
