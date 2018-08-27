@@ -10,8 +10,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
@@ -20,7 +18,6 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import org.agrona.concurrent.OneToOneConcurrentArrayQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.google.common.collect.HashMultimap;
@@ -69,8 +66,6 @@ import cs.bilkent.joker.engine.region.RegionManager;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import static cs.bilkent.joker.engine.util.RegionUtils.getFirstOperator;
-import cs.bilkent.joker.engine.util.concurrent.BackoffIdleStrategy;
-import static cs.bilkent.joker.engine.util.concurrent.BackoffIdleStrategy.newDefaultInstance;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.Port;
 import cs.bilkent.joker.operator.OperatorDef;
@@ -87,7 +82,6 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.sort;
 import static java.util.Comparator.comparing;
 import static java.util.Comparator.comparingInt;
-import static java.util.concurrent.Executors.newCachedThreadPool;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
@@ -100,7 +94,6 @@ public class PipelineManagerImpl implements PipelineManager
     private static final Logger LOGGER = LoggerFactory.getLogger( PipelineManagerImpl.class );
     private static final int DOWNSTREAM_TUPLE_SENDER_CONSTRUCTOR_COUNT = 2;
     private static final int INITIAL_FLOW_VERSION = -1;
-    private static final int LATENCY_QUEUE_SIZE = 4096;
 
 
     private final JokerConfig jokerConfig;
@@ -113,7 +106,6 @@ public class PipelineManagerImpl implements PipelineManager
     private final BiFunction<List<Pair<Integer, Integer>>, OperatorQueue, DownstreamCollector>[] defaultDownstreamCollectorCtors = new BiFunction[ 6 ];
     private final Function6<List<Pair<Integer, Integer>>, Integer, int[], OperatorQueue[], PartitionKeyExtractor, DownstreamCollector>[]
             partitionedDownstreamCollectorCtors = new Function6[ 6 ];
-    private final ExecutorService latencyRecorderPool;
 
     private Supervisor supervisor;
     private int flowVersion = INITIAL_FLOW_VERSION;
@@ -139,7 +131,6 @@ public class PipelineManagerImpl implements PipelineManager
         this.metricManager = metricManager;
         this.downstreamCollectorFailureFlag = downstreamCollectorFailureFlag;
         this.jokerThreadGroup = jokerThreadGroup;
-        this.latencyRecorderPool = newCachedThreadPool( r -> new Thread( jokerThreadGroup, r ) );
         createDownstreamCollectorFactories();
     }
 
@@ -891,9 +882,7 @@ public class PipelineManagerImpl implements PipelineManager
             {
                 final String tailOperatorId = pipeline.getLastOperatorDef().getId();
                 final LatencyMeter latencyMeter = metricManager.createLatencyMeter( flow, tailOperatorId, replicaIndex );
-                final OneToOneConcurrentArrayQueue<Tuple> queue = new OneToOneConcurrentArrayQueue<>( LATENCY_QUEUE_SIZE );
-                latencyRecorderPool.submit( () -> doRecordLatencies( queue, latencyMeter ) );
-                collector = new LatencyRecorder( queue );
+                collector = new LatencyRecorder( latencyMeter );
                 //                collector = new NopDownstreamCollector();
             }
 
@@ -1092,11 +1081,6 @@ public class PipelineManagerImpl implements PipelineManager
             }
 
             status = FlowStatus.SHUT_DOWN;
-            latencyRecorderPool.shutdown();
-            if ( !latencyRecorderPool.awaitTermination( 10, TimeUnit.SECONDS ) )
-            {
-                LOGGER.error( "Latency recorder pool could not be terminated..." );
-            }
 
             stopPipelineReplicaRunners();
             shutdownPipelines();
@@ -1105,78 +1089,6 @@ public class PipelineManagerImpl implements PipelineManager
         catch ( Exception e )
         {
             LOGGER.error( "Shutdown failed", e );
-        }
-    }
-
-    private void doRecordLatencies ( final OneToOneConcurrentArrayQueue<Tuple> queue, final LatencyMeter latencyMeter )
-    {
-        final List<Tuple> buffer = new ArrayList<>();
-
-        long last = System.nanoTime();
-        int loop = 0;
-        try
-        {
-            while ( status == RUNNING )
-            {
-
-                if ( loop++ % 100 == 0 )
-                {
-                    final long now = System.nanoTime();
-                    if ( now - last >= MILLISECONDS.toNanos( jokerConfig.getMetricManagerConfig()
-                                                                        .getPipelineMetricsScanningPeriodInMillis() ) )
-                    {
-                        last = now;
-                        if ( latencyMeter.publish() )
-                        {
-                            LOGGER.warn( "MetricManager missed a published set of latency records..." );
-                        }
-                    }
-                }
-
-                queue.drainTo( buffer, LATENCY_QUEUE_SIZE );
-                if ( buffer.isEmpty() )
-                {
-                    continue;
-                }
-
-                for ( Tuple tuple : buffer )
-                {
-                    if ( tuple.isIngestionTimeNA() )
-                    {
-                        continue;
-                    }
-
-                    latencyMeter.recordTuple( tuple.getIngestionTime() );
-
-                    final List<LatencyRecord> comps = tuple.getLatencyComps();
-                    if ( comps == null )
-                    {
-                        continue;
-                    }
-
-                    for ( int i = 0; i < comps.size(); i++ )
-                    {
-                        final LatencyRecord record = comps.get( i );
-                        final String operatorId = record.getOperatorId();
-                        final long latency = record.getLatency();
-                        if ( record.isOperator() )
-                        {
-                            latencyMeter.recordInvocation( operatorId, latency );
-                        }
-                        else
-                        {
-                            latencyMeter.recordQueue( operatorId, latency );
-                        }
-                    }
-                }
-
-
-                buffer.clear();
-            }
-        }
-        catch ( Exception e )
-        {
-            LOGGER.info( "Latency recorder thread failed", e );
         }
     }
 
@@ -1239,20 +1151,31 @@ public class PipelineManagerImpl implements PipelineManager
 
     class LatencyRecorder implements DownstreamCollector
     {
-        private final OneToOneConcurrentArrayQueue<Tuple> queue;
-        private final BackoffIdleStrategy producerIdleStrategy = newDefaultInstance();
-        private long idleCount;
+        private final LatencyMeter latencyMeter;
 
-        LatencyRecorder ( final OneToOneConcurrentArrayQueue<Tuple> queue )
+        LatencyRecorder ( final LatencyMeter latencyMeter )
         {
-            this.queue = queue;
+            this.latencyMeter = latencyMeter;
         }
+
+        long last = System.nanoTime(), loop = 0;
 
         @Override
         public void accept ( final TuplesImpl tuples )
         {
             final long now = System.nanoTime();
-            producerIdleStrategy.reset();
+
+            if ( loop++ % 100 == 0 )
+            {
+                if ( now - last >= MILLISECONDS.toNanos( jokerConfig.getMetricManagerConfig().getPipelineMetricsScanningPeriodInMillis() ) )
+                {
+                    last = now;
+                    if ( latencyMeter.publish() )
+                    {
+                        LOGGER.warn( "MetricManager missed a published set of latency records..." );
+                    }
+                }
+            }
 
             for ( int i = 0; i < tuples.getPortCount(); i++ )
             {
@@ -1268,12 +1191,26 @@ public class PipelineManagerImpl implements PipelineManager
 
                     tuple.recordLatency( now );
 
-                    while ( !queue.offer( tuple ) )
+                    latencyMeter.recordTuple( tuple.getIngestionTime() );
+
+                    final List<LatencyRecord> comps = tuple.getLatencyComps();
+                    if ( comps == null )
                     {
-                        producerIdleStrategy.idle();
-                        if ( idleCount++ % 1000 == 0 )
+                        continue;
+                    }
+
+                    for ( int k = 0; k < comps.size(); k++ )
+                    {
+                        final LatencyRecord record = comps.get( k );
+                        final String operatorId = record.getOperatorId();
+                        final long latency = record.getLatency();
+                        if ( record.isOperator() )
                         {
-                            LOGGER.error( "Having idle rounds... " + ( idleCount - 1 ) );
+                            latencyMeter.recordInvocation( operatorId, latency );
+                        }
+                        else
+                        {
+                            latencyMeter.recordQueue( operatorId, latency );
                         }
                     }
                 }
