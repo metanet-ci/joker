@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import javax.annotation.concurrent.ThreadSafe;
 
-import org.agrona.concurrent.ManyToOneConcurrentArrayQueue;
+import org.jctools.queues.MpscArrayQueue;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
@@ -16,12 +16,12 @@ import static java.lang.Math.min;
 public class MultiThreadedTupleQueue implements TupleQueue
 {
 
-    private ManyToOneConcurrentArrayQueue<Tuple> queue;
+    private MpscArrayQueue<Tuple> queue;
 
     public MultiThreadedTupleQueue ( final int initialCapacity )
     {
         checkArgument( initialCapacity > 0 );
-        this.queue = new ManyToOneConcurrentArrayQueue<>( initialCapacity );
+        this.queue = new MpscArrayQueue<>( initialCapacity );
     }
 
     @Override
@@ -72,14 +72,14 @@ public class MultiThreadedTupleQueue implements TupleQueue
     public List<Tuple> poll ( final int count )
     {
         final List<Tuple> tuples = new ArrayList<>( min( count, size() ) );
-        queue.drainTo( tuples, count );
+        queue.drain( tuples::add, count );
         return tuples;
     }
 
     @Override
     public int drainTo ( final int count, final List<Tuple> tuples )
     {
-        return queue.drainTo( tuples, count );
+        return queue.drain( tuples::add, count );
     }
 
     @Override
@@ -121,7 +121,7 @@ public class MultiThreadedTupleQueue implements TupleQueue
     {
         if ( capacity > queue.capacity() )
         {
-            final ManyToOneConcurrentArrayQueue<Tuple> newQueue = new ManyToOneConcurrentArrayQueue<>( capacity );
+            final MpscArrayQueue<Tuple> newQueue = new MpscArrayQueue<>( capacity );
             queue.drain( newQueue::offer );
             this.queue = newQueue;
 
