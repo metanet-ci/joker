@@ -733,7 +733,7 @@ public class JokerTest extends AbstractJokerTest
         FlowExample1 ()
         {
             final OperatorConfig beacon1Config = new OperatorConfig().set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator1 )
-                                                                     .set( TUPLE_COUNT_CONFIG_PARAMETER, 20 );
+                                                                     .set( TUPLE_COUNT_CONFIG_PARAMETER, 512 );
 
             final OperatorRuntimeSchemaBuilder beacon1Schema = new OperatorRuntimeSchemaBuilder( 0, 1 );
             beacon1Schema.getOutputPortSchemaBuilder( 0 ).addField( "key", Integer.class ).addField( "value", Integer.class );
@@ -744,7 +744,7 @@ public class JokerTest extends AbstractJokerTest
                                                           .build();
 
             final OperatorConfig beacon2Config = new OperatorConfig().set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator2 )
-                                                                     .set( TUPLE_COUNT_CONFIG_PARAMETER, 10 );
+                                                                     .set( TUPLE_COUNT_CONFIG_PARAMETER, 512 );
 
             final OperatorRuntimeSchemaBuilder beacon2Schema = new OperatorRuntimeSchemaBuilder( 0, 1 );
             beacon2Schema.getOutputPortSchemaBuilder( 0 ).addField( "key", Integer.class ).addField( "value", Integer.class );
