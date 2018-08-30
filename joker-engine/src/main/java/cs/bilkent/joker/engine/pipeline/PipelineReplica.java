@@ -181,6 +181,8 @@ public class PipelineReplica
 
     private IntCountsHistogram queueSizeHistogram = new IntCountsHistogram( 4096, 4 );
 
+    private int emptyQueueCount;
+
     public TuplesImpl invoke ()
     {
         meter.tryTick();
@@ -198,16 +200,22 @@ public class PipelineReplica
                     final long now = System.nanoTime();
                     if ( ( now - time ) > TimeUnit.SECONDS.toNanos( 1 ) )
                     {
-                        time = now;
-                        LOGGER.error( "{} => CURRENT QUEUE SIZE: {} MEAN: {} STD DEV: {} MEDIAN: {} 95: {}",
+                        LOGGER.error( "{} => CURRENT QUEUE SIZE: {} MEAN: {} STD DEV: {} MEDIAN: {} 95: {} EMPTY: {}",
                                       id,
                                       queueSize,
                                       queueSizeHistogram.getMean(),
                                       queueSizeHistogram.getStdDeviation(),
                                       queueSizeHistogram.getPercentileAtOrBelowValue( 50 ),
-                                      queueSizeHistogram.getPercentileAtOrBelowValue( 95 ) );
+                                      queueSizeHistogram.getPercentileAtOrBelowValue( 95 ),
+                                      emptyQueueCount );
                         queueSizeHistogram = new IntCountsHistogram( 4096, 4 );
+                        time = now;
+                        emptyQueueCount = 0;
                     }
+                }
+                else
+                {
+                    emptyQueueCount++;
                 }
             }
         }
