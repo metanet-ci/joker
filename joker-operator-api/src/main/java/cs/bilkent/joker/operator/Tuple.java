@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.BiConsumer;
+import java.util.function.LongSupplier;
 
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
@@ -477,6 +478,16 @@ public final class Tuple implements Fields<String>
         }
 
         this.queueOfferTime = queueOfferTime;
+    }
+
+    public void setQueueOfferTime ( final LongSupplier timeSupplier )
+    {
+        if ( isNotTrackingLatencyComps() )
+        {
+            return;
+        }
+
+        this.queueOfferTime = timeSupplier.getAsLong();
     }
 
     public void recordQueueLatency ( final String operatorId, final long now )
