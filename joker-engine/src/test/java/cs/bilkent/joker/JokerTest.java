@@ -1,5 +1,6 @@
 package cs.bilkent.joker;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
@@ -50,6 +51,7 @@ import static cs.bilkent.joker.operators.MapperOperator.MAPPER_CONFIG_PARAMETER;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import cs.bilkent.joker.test.category.SlowTest;
 import static java.util.Arrays.asList;
+import static java.util.Collections.shuffle;
 import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
@@ -96,6 +98,23 @@ public class JokerTest extends AbstractJokerTest
             final int actual = ex.valueCollector.values.get( i );
             assertEquals( "i: " + i + " expected: " + expected + " actual: " + actual, expected, actual );
         }
+    }
+
+    @Test
+    public void testEndToEndSystem2 () throws InterruptedException, ExecutionException, TimeoutException
+    {
+        final FlowExample1 ex = new FlowExample1();
+
+        final JokerConfig jokerConfig = new JokerConfig();
+        final StaticRegionExecPlanFactory regionExecPlanFactory = new StaticRegionExecPlanFactory( jokerConfig,
+                                                                                                   PARTITIONED_STATEFUL_REGION_REPLICA_COUNT );
+        final Joker joker = new JokerBuilder().setRegionExecPlanFactory( regionExecPlanFactory ).setJokerConfig( jokerConfig ).build();
+
+        joker.run( ex.flow );
+
+        sleepUninterruptibly( 120, SECONDS );
+
+        joker.shutdown().get( 60, SECONDS );
     }
 
     @Category( SlowTest.class )
@@ -501,6 +520,68 @@ public class JokerTest extends AbstractJokerTest
     }
 
 
+    static class ValueGenerator2 implements Consumer<Tuple>
+    {
+
+        static final Random RANDOM = new Random();
+
+        private final int keyRange;
+
+        private final AtomicInteger[] generatedValues;
+
+        private final AtomicInteger invocationCount = new AtomicInteger();
+
+        private final int[] vals;
+
+        private int curr;
+
+        ValueGenerator2 ( final int keyRange, final int valueRange )
+        {
+            this.keyRange = keyRange;
+            this.generatedValues = new AtomicInteger[ keyRange ];
+            for ( int i = 0; i < keyRange; i++ )
+            {
+                this.generatedValues[ i ] = new AtomicInteger( 0 );
+            }
+
+            final List<Integer> v = new ArrayList<>();
+            for ( int i = 0; i < 100; i++ )
+            {
+                for ( int key = 0; key < keyRange; key++ )
+                {
+                    v.add( key );
+                }
+            }
+            for ( int i = 0; i < 10; i++ )
+            {
+                shuffle( v );
+            }
+            vals = new int[ v.size() ];
+            for ( int i = 0; i < v.size(); i++ )
+            {
+                vals[ i ] = v.get( i );
+            }
+        }
+
+        @Override
+        public void accept ( final Tuple tuple )
+        {
+            //            LockSupport.parkNanos( 1000 );
+
+            final int key = vals[ curr++ ];
+            final int value = key + 1;
+
+            tuple.set( "key", key ).set( "value", value );
+            if ( curr == vals.length )
+            {
+                curr = 0;
+            }
+        }
+
+    }
+
+
+
     static class ValueCollector implements Consumer<Tuple>
     {
 
@@ -639,9 +720,9 @@ public class JokerTest extends AbstractJokerTest
     private static class FlowExample1
     {
 
-        final ValueGenerator valueGenerator1 = new ValueGenerator( KEY_RANGE, VALUE_RANGE );
+        final ValueGenerator2 valueGenerator1 = new ValueGenerator2( KEY_RANGE, VALUE_RANGE );
 
-        final ValueGenerator valueGenerator2 = new ValueGenerator( KEY_RANGE, VALUE_RANGE );
+        final ValueGenerator2 valueGenerator2 = new ValueGenerator2( KEY_RANGE, VALUE_RANGE );
 
         final ValueCollector valueCollector = new ValueCollector( "valueCollector", KEY_RANGE );
 
