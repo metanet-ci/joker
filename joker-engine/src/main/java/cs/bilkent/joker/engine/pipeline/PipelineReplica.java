@@ -206,7 +206,7 @@ public class PipelineReplica
 
     private void measureEffectiveQueueSize ()
     {
-        if ( meter.isTicked( 15 ) )
+        if ( meter.isTicked( 3 ) )
         {
             final OperatorQueue effectiveQueue = getEffectiveQueue();
             if ( effectiveQueue instanceof DefaultOperatorQueue )
