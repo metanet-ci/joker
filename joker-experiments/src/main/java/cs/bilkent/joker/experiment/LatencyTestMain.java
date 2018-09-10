@@ -11,21 +11,10 @@ import cs.bilkent.joker.Joker.JokerBuilder;
 import cs.bilkent.joker.engine.config.JokerConfigBuilder;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
-import cs.bilkent.joker.operator.InitCtx;
-import cs.bilkent.joker.operator.InvocationCtx;
-import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
-import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
-import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
-import cs.bilkent.joker.operator.schema.annotation.OperatorSchema;
-import cs.bilkent.joker.operator.schema.annotation.PortSchema;
-import static cs.bilkent.joker.operator.schema.annotation.PortSchemaScope.EXACT_FIELD_SET;
-import cs.bilkent.joker.operator.schema.annotation.SchemaField;
-import cs.bilkent.joker.operator.spec.OperatorSpec;
-import cs.bilkent.joker.operator.spec.OperatorType;
 import cs.bilkent.joker.operators.BeaconOperator;
 import static cs.bilkent.joker.operators.BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER;
 import static cs.bilkent.joker.operators.BeaconOperator.TUPLE_POPULATOR_CONFIG_PARAMETER;
@@ -127,24 +116,6 @@ public class LatencyTestMain
         joker.run( flow );
 
         sleepUninterruptibly( 120, SECONDS );
-    }
-
-    @OperatorSpec( type = OperatorType.PARTITIONED_STATEFUL, inputPortCount = 1, outputPortCount = 1 )
-    @OperatorSchema( inputs = @PortSchema( portIndex = 0, scope = EXACT_FIELD_SET, fields = @SchemaField( name = "key", type = Integer.class ) ) )
-    public static class DummyOperator implements Operator
-    {
-
-        @Override
-        public SchedulingStrategy init ( final InitCtx ctx )
-        {
-            return scheduleWhenTuplesAvailableOnDefaultPort( 1 );
-        }
-
-        @Override
-        public void invoke ( final InvocationCtx ctx )
-        {
-            ctx.getInputTuplesByDefaultPort().forEach( ctx::output );
-        }
     }
 
 }
