@@ -5,13 +5,10 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import org.junit.Test;
-
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import cs.bilkent.joker.Joker;
 import cs.bilkent.joker.Joker.JokerBuilder;
 import cs.bilkent.joker.engine.config.JokerConfigBuilder;
-import cs.bilkent.joker.engine.flow.FlowExecPlan;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
 import cs.bilkent.joker.operator.InitCtx;
@@ -27,8 +24,6 @@ import cs.bilkent.joker.operator.schema.annotation.OperatorSchema;
 import cs.bilkent.joker.operator.schema.annotation.PortSchema;
 import static cs.bilkent.joker.operator.schema.annotation.PortSchemaScope.EXACT_FIELD_SET;
 import cs.bilkent.joker.operator.schema.annotation.SchemaField;
-import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
-import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
 import cs.bilkent.joker.operator.spec.OperatorType;
 import cs.bilkent.joker.operators.BeaconOperator;
@@ -37,7 +32,6 @@ import static cs.bilkent.joker.operators.BeaconOperator.TUPLE_POPULATOR_CONFIG_P
 import cs.bilkent.joker.operators.MapperOperator;
 import static cs.bilkent.joker.operators.MapperOperator.MAPPER_CONFIG_PARAMETER;
 import static java.util.Collections.shuffle;
-import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class LatencyTestMain
@@ -133,44 +127,6 @@ public class LatencyTestMain
         joker.run( flow );
 
         sleepUninterruptibly( 120, SECONDS );
-    }
-
-    @Test
-    public void test2 ()
-    {
-        final ValueGenerator valueGenerator = new ValueGenerator( KEY_RANGE );
-        final OperatorConfig beacon1Config = new OperatorConfig().set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator )
-                                                                 .set( TUPLE_COUNT_CONFIG_PARAMETER, 32 );
-
-        final OperatorRuntimeSchema beaconSchema = new OperatorRuntimeSchemaBuilder( 0, 1 ).addOutputField( 0, "key", Integer.class )
-                                                                                           .build();
-
-        final OperatorDef beacon = OperatorDefBuilder.newInstance( "beacon", BeaconOperator.class )
-                                                     .setConfig( beacon1Config )
-                                                     .setExtendingSchema( beaconSchema )
-                                                     .build();
-
-        final OperatorDef ptioned = OperatorDefBuilder.newInstance( "p", DummyOperator.class )
-                                                      .setPartitionFieldNames( singletonList( "key" ) )
-                                                      .build();
-
-        final FlowDef flow = new FlowDefBuilder().add( beacon ).add( ptioned ).connect( "beacon", "p" ).build();
-
-        final JokerConfigBuilder configBuilder = new JokerConfigBuilder();
-        configBuilder.getTupleQueueDrainerConfigBuilder().setMaxBatchSize( 16 );
-        configBuilder.getTupleQueueManagerConfigBuilder().setMultiThreadedQueueDrainLimit( 1 );
-        configBuilder.getMetricManagerConfigBuilder().setTickMask( 1 );
-
-        final Joker joker = new JokerBuilder().setJokerConfig( configBuilder.build() ).build();
-
-        final FlowExecPlan execPlan = joker.run( flow );
-
-        sleepUninterruptibly( 60, SECONDS );
-
-        joker.rebalanceRegion( execPlan.getVersion(), 1, 2 );
-
-        sleepUninterruptibly( 60, SECONDS );
-
     }
 
     @OperatorSpec( type = OperatorType.PARTITIONED_STATEFUL, inputPortCount = 1, outputPortCount = 1 )
