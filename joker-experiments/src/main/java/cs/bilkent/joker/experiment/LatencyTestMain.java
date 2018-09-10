@@ -2,6 +2,8 @@ package cs.bilkent.joker.experiment;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -86,12 +88,16 @@ public class LatencyTestMain
     }
 
 
-    public static void main ( String[] args )
+    public static void main ( String[] args ) throws ExecutionException, InterruptedException, TimeoutException
     {
         final Config config = systemProperties();
         final int producedTupleCountPerSourceInvocation = config.getInt( PRODUCED_TUPLE_COUNT_PER_SOURCE_INVOCATION );
         final int mapperOperatorBatchSize = config.getInt( MAPPER_OPERATOR_BATCH_SIZE );
         final int multiplicationCount = config.getInt( MULTIPLICATION_COUNT );
+
+        System.out.println( ">>>>> PRODUCED_TUPLE_COUNT_PER_SOURCE_INVOCATION: " + producedTupleCountPerSourceInvocation );
+        System.out.println( ">>>>> mapperOperatorBatchSize: " + mapperOperatorBatchSize );
+        System.out.println( ">>>>> MULTIPLICATION_COUNT: " + multiplicationCount );
 
         final ValueGenerator valueGenerator = new ValueGenerator( KEY_RANGE );
         final OperatorConfig beacon1Config = new OperatorConfig().set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator )
@@ -132,7 +138,7 @@ public class LatencyTestMain
 
         sleepUninterruptibly( 120, SECONDS );
 
-        joker.shutdown();
+        joker.shutdown().get( 60, SECONDS );
     }
 
 }
