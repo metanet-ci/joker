@@ -36,7 +36,7 @@ public class PipelineReplicaMeter
 
     private volatile Object currentlyInvokedOperator;
 
-    private long time = System.nanoTime();
+    private long lastOperatorInputTuplesReportTime = System.nanoTime();
 
     public PipelineReplicaMeter ( final long tickMask, final PipelineReplicaId pipelineReplicaId, final OperatorDef headOperatorDef )
     {
@@ -62,29 +62,35 @@ public class PipelineReplicaMeter
         if ( ticker.tryTick() )
         {
             currentlyInvokedOperator = pipelineReplicaId;
-            final long now = System.nanoTime();
-            if ( ( now - time ) >= TimeUnit.SECONDS.toNanos( 1 ) )
-            {
-                time = now;
-
-                for ( Entry<String, IntCountsHistogram> e : invocationTupleCounts.entrySet() )
-                {
-                    final IntCountsHistogram histogram = e.getValue();
-                    LOGGER.info( "Input Tuple Counts -> operator: {} -> max: {} mean: {} median: {} std dev: {}",
-                                 e.getKey(),
-                                 histogram.getMaxValue(),
-                                 histogram.getMean(),
-                                 histogram.getValueAtPercentile( 50 ),
-                                 histogram.getStdDeviation() );
-                }
-
-                invocationTupleCounts.clear();
-            }
+            reportOperatorInputTupleCounts();
 
             return true;
         }
 
         return false;
+    }
+
+    private void reportOperatorInputTupleCounts ()
+    {
+        final long now = System.nanoTime();
+        if ( ( now - lastOperatorInputTuplesReportTime ) >= TimeUnit.SECONDS.toNanos( 1 ) )
+        {
+            lastOperatorInputTuplesReportTime = now;
+
+            for ( Entry<String, IntCountsHistogram> e : invocationTupleCounts.entrySet() )
+            {
+                final IntCountsHistogram histogram = e.getValue();
+                LOGGER.info( "{} INPUT TUPLE COUNTS -> operator: {} -> max: {} mean: {} std dev: {} median: {}",
+                             pipelineReplicaId,
+                             e.getKey(),
+                             histogram.getMaxValue(),
+                             histogram.getMean(),
+                             histogram.getStdDeviation(),
+                             histogram.getValueAtPercentile( 50 ) );
+            }
+
+            invocationTupleCounts.clear();
+        }
     }
 
     public String getHeadOperatorId ()

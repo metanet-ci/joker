@@ -186,39 +186,7 @@ public class PipelineReplica
     public TuplesImpl invoke ()
     {
         meter.tryTick();
-        if ( meter.isTicked( 15 ) )
-        {
-            final OperatorQueue q = getEffectiveQueue();
-            if ( q instanceof DefaultOperatorQueue )
-            {
-                DefaultOperatorQueue q2 = (DefaultOperatorQueue) q;
-                final int queueSize = q2.getTupleQueue( 0 ).size();
-                if ( queueSize > 0 )
-                {
-                    queueSizeHistogram.recordValue( queueSize );
-
-                    final long now = System.nanoTime();
-                    if ( ( now - time ) > TimeUnit.SECONDS.toNanos( 1 ) )
-                    {
-                        LOGGER.error( "{} => CURRENT QUEUE SIZE: {} MEAN: {} STD DEV: {} MEDIAN: {} 95: {} EMPTY: {}",
-                                      id,
-                                      queueSize,
-                                      queueSizeHistogram.getMean(),
-                                      queueSizeHistogram.getStdDeviation(),
-                                      queueSizeHistogram.getPercentileAtOrBelowValue( 50 ),
-                                      queueSizeHistogram.getPercentileAtOrBelowValue( 95 ),
-                                      emptyQueueCount );
-                        queueSizeHistogram = new IntCountsHistogram( 4096, 4 );
-                        time = now;
-                        emptyQueueCount = 0;
-                    }
-                }
-                else
-                {
-                    emptyQueueCount++;
-                }
-            }
-        }
+        measureEffectiveQueueSize();
 
         inputTuplesSupplier.reset();
         queue.drain( drainerMaySkipBlocking, drainer, inputTuplesSupplier );
@@ -234,6 +202,40 @@ public class PipelineReplica
         drainerMaySkipBlocking = invoked;
 
         return tuples;
+    }
+
+    private void measureEffectiveQueueSize ()
+    {
+        if ( meter.isTicked( 15 ) )
+        {
+            final OperatorQueue effectiveQueue = getEffectiveQueue();
+            if ( effectiveQueue instanceof DefaultOperatorQueue )
+            {
+                final int queueSize = ( (DefaultOperatorQueue) effectiveQueue ).getTupleQueue( 0 ).size();
+                if ( queueSize > 0 )
+                {
+                    queueSizeHistogram.recordValue( queueSize );
+
+                    final long now = System.nanoTime();
+                    if ( ( now - time ) > TimeUnit.SECONDS.toNanos( 1 ) )
+                    {
+                        LOGGER.info( "{} => CURRENT EFFECTIVE QUEUE SIZE: {} MEAN: {} STD DEV: {} EMPTY: {}",
+                                     id,
+                                     queueSize,
+                                     queueSizeHistogram.getMean(),
+                                     queueSizeHistogram.getStdDeviation(),
+                                     emptyQueueCount );
+                        queueSizeHistogram = new IntCountsHistogram( 4096, 4 );
+                        time = now;
+                        emptyQueueCount = 0;
+                    }
+                }
+                else
+                {
+                    emptyQueueCount++;
+                }
+            }
+        }
     }
 
     public boolean isInvoked ()
