@@ -6,12 +6,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
-import org.HdrHistogram.IntCountsHistogram;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import cs.bilkent.joker.engine.metric.impl.AverageCalculator;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -32,7 +32,7 @@ public class PipelineReplicaMeter
 
     private final long[] inboundThroughput;
 
-    private final Map<String, IntCountsHistogram> invocationTupleCounts = new HashMap<>();
+    private final Map<String, AverageCalculator> invocationTupleCounts = new HashMap<>();
 
     private volatile Object currentlyInvokedOperator;
 
@@ -77,19 +77,15 @@ public class PipelineReplicaMeter
         {
             lastOperatorInputTuplesReportTime = now;
 
-            for ( Entry<String, IntCountsHistogram> e : invocationTupleCounts.entrySet() )
+            for ( Entry<String, AverageCalculator> e : invocationTupleCounts.entrySet() )
             {
-                final IntCountsHistogram histogram = e.getValue();
-                LOGGER.info( "{} INPUT TUPLE COUNTS -> operator: {} -> max: {} mean: {} std dev: {} median: {}",
+                final AverageCalculator averageCalculator = e.getValue();
+                LOGGER.info( "{} => INPUT TUPLE COUNTS operator: {} -> average: {}",
                              pipelineReplicaId,
-                             e.getKey(),
-                             histogram.getMaxValue(),
-                             histogram.getMean(),
-                             histogram.getStdDeviation(),
-                             histogram.getValueAtPercentile( 50 ) );
+                             e.getKey(), averageCalculator.getAverage() );
             }
 
-            invocationTupleCounts.clear();
+            invocationTupleCounts.values().forEach( AverageCalculator::reset );
         }
     }
 
@@ -144,10 +140,10 @@ public class PipelineReplicaMeter
 
     private void recordInvocationInputTupleCount ( final TuplesImpl tuples )
     {
+        // TODO works for only port = 0 ???
         if ( ticker.isTicked() && inputPortCount > 0 )
         {
-            invocationTupleCounts.computeIfAbsent( headOperatorId, op -> new IntCountsHistogram( 4096, 4 ) )
-                                 .recordValue( tuples.getTupleCount( 0 ) );
+            invocationTupleCounts.computeIfAbsent( headOperatorId, op -> new AverageCalculator() ).record( tuples.getTupleCount( 0 ) );
         }
     }
 
