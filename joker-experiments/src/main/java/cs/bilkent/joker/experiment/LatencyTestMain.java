@@ -16,6 +16,7 @@ import cs.bilkent.joker.Joker.JokerBuilder;
 import cs.bilkent.joker.engine.config.JokerConfigBuilder;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.FlowDefBuilder;
+import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.OperatorDefBuilder;
@@ -94,6 +95,28 @@ public class LatencyTestMain
         final int producedTupleCountPerSourceInvocation = config.getInt( PRODUCED_TUPLE_COUNT_PER_SOURCE_INVOCATION );
         final int mapperOperatorBatchSize = config.getInt( MAPPER_OPERATOR_BATCH_SIZE );
         final int multiplicationCount = config.getInt( MULTIPLICATION_COUNT );
+        checkArgument( producedTupleCountPerSourceInvocation > 0 );
+        checkArgument( mapperOperatorBatchSize > 0 );
+        checkArgument( multiplicationCount >= 0 );
+
+        final BiConsumer<Tuple, Tuple> mapperFunction;
+        if ( multiplicationCount == 0 )
+        {
+            mapperFunction = ( input, output ) -> {
+                output.set( "key", input.get( "key" ) ).set( "mult", input.getInteger( "value" ) );
+            };
+        }
+        else
+        {
+            mapperFunction = ( input, output ) -> {
+                int val = input.getInteger( "value" );
+                for ( int i = 0; i < multiplicationCount; i++ )
+                {
+                    val = val * MULTIPLIER_VALUE - val;
+                }
+                output.set( "key", input.get( "key" ) ).set( "mult", val );
+            };
+        }
 
         System.out.println( ">>>>> PRODUCED_TUPLE_COUNT_PER_SOURCE_INVOCATION: " + producedTupleCountPerSourceInvocation );
         System.out.println( ">>>>> mapperOperatorBatchSize: " + mapperOperatorBatchSize );
@@ -106,16 +129,7 @@ public class LatencyTestMain
 
         final OperatorDef beacon = OperatorDefBuilder.newInstance( "beacon", BeaconOperator.class ).setConfig( beacon1Config ).build();
 
-        final OperatorConfig multiplierConfig = new OperatorConfig().set( MAPPER_CONFIG_PARAMETER,
-                                                                          (BiConsumer<Tuple, Tuple>) ( input, output ) -> {
-                                                                              int val = input.getInteger( "value" );
-                                                                              for ( int i = 0; i < multiplicationCount; i++ )
-                                                                              {
-                                                                                  val = val * MULTIPLIER_VALUE - val;
-                                                                              }
-                                                                              val = val * MULTIPLIER_VALUE - val;
-                                                                              output.set( "key", input.get( "key" ) ).set( "mult", val );
-                                                                          } );
+        final OperatorConfig multiplierConfig = new OperatorConfig().set( MAPPER_CONFIG_PARAMETER, mapperFunction );
 
         final OperatorDef multiplier = OperatorDefBuilder.newInstance( "multiplier", MapperOperator.class )
                                                          .setConfig( multiplierConfig )
