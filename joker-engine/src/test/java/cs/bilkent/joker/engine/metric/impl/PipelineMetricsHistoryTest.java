@@ -14,59 +14,59 @@ public class PipelineMetricsHistoryTest extends AbstractJokerTest
 {
 
     @Test
-    public void shouldGetRecentSnapshotWith1EmptyHistorySlot ()
+    public void shouldGetRecentMetricsWith1EmptyHistorySlot ()
     {
-        final PipelineMetrics snapshot1 = mock( PipelineMetrics.class );
-        final PipelineMetrics snapshot2 = mock( PipelineMetrics.class );
+        final PipelineMetrics metrics1 = mock( PipelineMetrics.class );
+        final PipelineMetrics metrics2 = mock( PipelineMetrics.class );
         final int historySize = 1;
 
-        final PipelineMetricsHistory history1 = new PipelineMetricsHistory( snapshot1, historySize );
-        final PipelineMetricsHistory history2 = history1.add( snapshot2 );
+        final PipelineMetricsHistory history1 = new PipelineMetricsHistory( metrics1, historySize );
+        final PipelineMetricsHistory history2 = history1.add( metrics2 );
 
-        assertEquals( snapshot1, history1.getLatest() );
+        assertEquals( metrics1, history1.getLatest() );
         assertEquals( 1, history1.getCount() );
-        assertEquals( singletonList( snapshot1 ), history1.getAll() );
+        assertEquals( singletonList( metrics1 ), history1.getAll() );
 
-        assertEquals( snapshot2, history2.getLatest() );
+        assertEquals( metrics2, history2.getLatest() );
         assertEquals( 1, history2.getCount() );
-        assertEquals( singletonList( snapshot2 ), history2.getAll() );
+        assertEquals( singletonList( metrics2 ), history2.getAll() );
     }
 
     @Test
-    public void shouldGetRecentSnapshotWith2EmptyHistorySlots ()
+    public void shouldGetRecentMetricsWith2EmptyHistorySlots ()
     {
-        final PipelineMetrics snapshot1 = mock( PipelineMetrics.class );
+        final PipelineMetrics metrics1 = mock( PipelineMetrics.class );
         final int historySize = 2;
 
-        final PipelineMetricsHistory history = new PipelineMetricsHistory( snapshot1, historySize );
+        final PipelineMetricsHistory history = new PipelineMetricsHistory( metrics1, historySize );
 
-        assertEquals( snapshot1, history.getLatest() );
+        assertEquals( metrics1, history.getLatest() );
         assertEquals( 1, history.getCount() );
-        assertEquals( singletonList( snapshot1 ), history.getAll() );
+        assertEquals( singletonList( metrics1 ), history.getAll() );
     }
 
     @Test
-    public void shouldGetRecentSnapshotWithSlidedFullHistory1Slot ()
+    public void shouldGetRecentMetricsWithSlidedFullHistory1Slot ()
     {
-        final PipelineMetrics snapshot1 = mock( PipelineMetrics.class );
-        final PipelineMetrics snapshot2 = mock( PipelineMetrics.class );
-        final PipelineMetrics snapshot3 = mock( PipelineMetrics.class );
+        final PipelineMetrics metrics1 = mock( PipelineMetrics.class );
+        final PipelineMetrics metrics2 = mock( PipelineMetrics.class );
+        final PipelineMetrics metrics3 = mock( PipelineMetrics.class );
         final int historySize = 2;
-        final PipelineMetricsHistory history1 = new PipelineMetricsHistory( snapshot1, historySize );
-        final PipelineMetricsHistory history2 = history1.add( snapshot2 );
-        final PipelineMetricsHistory history3 = history2.add( snapshot3 );
+        final PipelineMetricsHistory history1 = new PipelineMetricsHistory( metrics1, historySize );
+        final PipelineMetricsHistory history2 = history1.add( metrics2 );
+        final PipelineMetricsHistory history3 = history2.add( metrics3 );
 
-        assertEquals( snapshot1, history1.getLatest() );
+        assertEquals( metrics1, history1.getLatest() );
         assertEquals( 1, history1.getCount() );
-        assertEquals( singletonList( snapshot1 ), history1.getAll() );
+        assertEquals( singletonList( metrics1 ), history1.getAll() );
 
-        assertEquals( snapshot2, history2.getLatest() );
+        assertEquals( metrics2, history2.getLatest() );
         assertEquals( 2, history2.getCount() );
-        assertEquals( asList( snapshot2, snapshot1 ), history2.getAll() );
+        assertEquals( asList( metrics2, metrics1 ), history2.getAll() );
 
-        assertEquals( snapshot3, history3.getLatest() );
+        assertEquals( metrics3, history3.getLatest() );
         assertEquals( 2, history3.getCount() );
-        assertEquals( asList( snapshot3, snapshot2 ), history3.getAll() );
+        assertEquals( asList( metrics3, metrics2 ), history3.getAll() );
     }
 
 }

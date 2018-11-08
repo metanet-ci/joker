@@ -1,15 +1,19 @@
 package cs.bilkent.joker.engine.metric;
 
 import java.util.AbstractMap.SimpleEntry;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.LockSupport;
 
-import com.codahale.metrics.Histogram;
-import com.codahale.metrics.Snapshot;
+import org.HdrHistogram.IntCountsHistogram;
 
 import cs.bilkent.joker.engine.metric.LatencyMetrics.LatencyRecord;
 import cs.bilkent.joker.operator.utils.Pair;
-import static java.util.Collections.unmodifiableMap;
+import cs.bilkent.joker.operator.utils.Triple;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toMap;
 
 public class LatencyMeter
@@ -19,23 +23,30 @@ public class LatencyMeter
 
     private final int replicaIndex;
 
-    private final Map<String, Histogram> invocationLatencies;
+    private IntCountsHistogram tupleLatency;
 
-    private final Map<String, Histogram> queueLatencies;
+    private final Map<String, IntCountsHistogram> invocationLatencies = new HashMap<>();
 
-    private final Histogram tupleLatency;
+    private final Map<String, IntCountsHistogram> queueLatencies = new HashMap<>();
 
-    public LatencyMeter ( final String sinkOperatorId,
-                          final int replicaIndex,
-                          final Map<String, Histogram> invocationLatencies,
-                          final Map<String, Histogram> queueLatencies,
-                          final Histogram tupleLatency )
+    private final AtomicReference<Triple<LatencyRecord, Map<String, LatencyRecord>, Map<String, LatencyRecord>>> ref =
+            new AtomicReference<>();
+
+    public LatencyMeter ( final String sinkOperatorId, final int replicaIndex, final Set<String> operatorIds )
     {
         this.sinkOperatorId = sinkOperatorId;
         this.replicaIndex = replicaIndex;
-        this.invocationLatencies = invocationLatencies;
-        this.queueLatencies = queueLatencies;
-        this.tupleLatency = tupleLatency;
+        this.tupleLatency = newHistogram();
+        for ( String operatorId : operatorIds )
+        {
+            invocationLatencies.put( operatorId, newHistogram() );
+            queueLatencies.put( operatorId, newHistogram() );
+        }
+    }
+
+    private IntCountsHistogram newHistogram ()
+    {
+        return new IntCountsHistogram( SECONDS.toNanos( 10 ), 4 );
     }
 
     public String getSinkOperatorId ()
@@ -55,35 +66,29 @@ public class LatencyMeter
 
     public void recordTuple ( final long latency )
     {
-        tupleLatency.update( latency );
+        if ( latency > 0 )
+        {
+            tupleLatency.recordValue( latency );
+        }
     }
 
     public void recordInvocation ( final String operatorId, final long latency )
     {
-        invocationLatencies.get( operatorId ).update( latency );
+        if ( latency > 0 )
+        {
+            invocationLatencies.get( operatorId ).recordValue( latency );
+        }
     }
 
     public void recordQueue ( final String operatorId, final long latency )
     {
-        queueLatencies.get( operatorId ).update( latency );
+        if ( latency > 0 )
+        {
+            queueLatencies.get( operatorId ).recordValue( latency );
+        }
     }
 
-    public Histogram getTupleLatency ()
-    {
-        return tupleLatency;
-    }
-
-    public Map<String, Histogram> getInvocationLatencies ()
-    {
-        return unmodifiableMap( invocationLatencies );
-    }
-
-    public Map<String, Histogram> getQueueLatencies ()
-    {
-        return unmodifiableMap( queueLatencies );
-    }
-
-    public LatencyMetrics toLatencyMetrics ( final int flowVersion )
+    public boolean publish ()
     {
         final LatencyRecord tupleLatency = toLatencyRecord( new SimpleEntry<>( null, this.tupleLatency ) ).getValue();
         final Map<String, LatencyRecord> invocationLatencies = this.invocationLatencies.entrySet()
@@ -96,24 +101,44 @@ public class LatencyMeter
                                                                              .map( this::toLatencyRecord )
                                                                              .collect( toMap( Entry::getKey, Entry::getValue ) );
 
-        return new LatencyMetrics( sinkOperatorId, replicaIndex, flowVersion, tupleLatency, invocationLatencies, queueLatencies );
+        final Triple<LatencyRecord, Map<String, LatencyRecord>, Map<String, LatencyRecord>> t = Triple.of( tupleLatency,
+                                                                                                           invocationLatencies,
+                                                                                                           queueLatencies );
+
+        final Set<String> operatorIds = invocationLatencies.keySet();
+        this.tupleLatency = newHistogram();
+        operatorIds.forEach( operatorId -> {
+            this.invocationLatencies.put( operatorId, newHistogram() );
+            this.queueLatencies.put( operatorId, newHistogram() );
+        } );
+
+        return ref.getAndSet( t ) != null;
     }
 
-    private Entry<String, LatencyRecord> toLatencyRecord ( Entry<String, Histogram> e )
+    public LatencyMetrics toLatencyMetrics ( final int flowVersion )
     {
-        final Histogram histogram = e.getValue();
-        final Snapshot snapshot = histogram.getSnapshot();
+        Triple<LatencyRecord, Map<String, LatencyRecord>, Map<String, LatencyRecord>> t;
+        while ( ( t = ref.getAndSet( null ) ) == null )
+        {
+            LockSupport.parkNanos( 1 );
+        }
+
+        return new LatencyMetrics( sinkOperatorId, replicaIndex, flowVersion, t._1, t._2, t._3 );
+    }
+
+    private Entry<String, LatencyRecord> toLatencyRecord ( Entry<String, IntCountsHistogram> e )
+    {
+        final IntCountsHistogram histogram = e.getValue();
         return new SimpleEntry<>( e.getKey(),
-                                  new LatencyRecord( (long) snapshot.getMean(),
-                                                     (long) snapshot.getStdDev(),
-                                                     (long) snapshot.getMedian(),
-                                                     snapshot.getMin(),
-                                                     snapshot.getMax(),
-                                                     (long) snapshot.get75thPercentile(),
-                                                     (long) snapshot.get95thPercentile(),
-                                                     (long) snapshot.get98thPercentile(),
-                                                     (long) snapshot.get99thPercentile(),
-                                                     (long) snapshot.get999thPercentile() ) );
+                                  new LatencyRecord( (long) histogram.getMean(),
+                                                     (long) histogram.getStdDeviation(),
+                                                     histogram.getValueAtPercentile( 50 ),
+                                                     histogram.getMinValue(),
+                                                     histogram.getMaxValue(),
+                                                     histogram.getValueAtPercentile( 75 ),
+                                                     histogram.getValueAtPercentile( 95 ),
+                                                     histogram.getValueAtPercentile( 98 ),
+                                                     histogram.getValueAtPercentile( 99 ) ) );
     }
 
 

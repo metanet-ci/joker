@@ -9,10 +9,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.BiConsumer;
+import java.util.function.LongSupplier;
 
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
-import static cs.bilkent.joker.operator.Tuple.LatencyRecord.newQueueLatency;
+import static cs.bilkent.joker.operator.Tuple.LatencyStage.newQueueLatency;
 import cs.bilkent.joker.operator.schema.runtime.RuntimeSchemaField;
 import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import static cs.bilkent.joker.operator.schema.runtime.TupleSchema.FIELD_NOT_FOUND;
@@ -199,7 +200,7 @@ public final class Tuple implements Fields<String>
 
     private long queueOfferTime = INGESTION_TIME_NOT_ASSIGNED;
 
-    private List<LatencyRecord> latencyRecs;
+    private List<LatencyStage> latencyStages;
 
     public Tuple ()
     {
@@ -218,15 +219,14 @@ public final class Tuple implements Fields<String>
     }
 
     private Tuple ( final TupleSchema schema,
-                    final ArrayList<Object> values,
-                    final long ingestionTime, final List<LatencyRecord> latencyRecs )
+                    final ArrayList<Object> values, final long ingestionTime, final List<LatencyStage> latencyStages )
     {
         this.schema = schema;
         this.values = values;
         this.ingestionTime = ingestionTime;
-        if ( latencyRecs != null )
+        if ( latencyStages != null )
         {
-            this.latencyRecs = new ArrayList<>( latencyRecs );
+            this.latencyStages = new ArrayList<>( latencyStages );
         }
     }
 
@@ -410,15 +410,21 @@ public final class Tuple implements Fields<String>
         return ( ingestionTime == INGESTION_TIME_NOT_ASSIGNED || ingestionTime == INGESTION_TIME_UNASSIGNABLE );
     }
 
-    public void setIngestionTime ( final long ingestionTime, final boolean trackLatencyRecords )
+    public void setIngestionTime ( final long ingestionTime, final boolean trackLatencyStages )
     {
         checkArgument( !( ingestionTime == INGESTION_TIME_NOT_ASSIGNED || ingestionTime == INGESTION_TIME_UNASSIGNABLE ) );
         checkState( this.ingestionTime == INGESTION_TIME_NOT_ASSIGNED );
         this.ingestionTime = ingestionTime;
-        if ( trackLatencyRecords )
+        if ( trackLatencyStages )
         {
-            latencyRecs = new ArrayList<>( 4 );
+            latencyStages = new ArrayList<>( 4 );
         }
+    }
+
+    public void recordLatency ( final long now )
+    {
+        checkState( !( ingestionTime == INGESTION_TIME_NOT_ASSIGNED || ingestionTime == INGESTION_TIME_UNASSIGNABLE ) );
+        ingestionTime = ( now - ingestionTime );
     }
 
     public void attachTo ( final Tuple source )
@@ -431,7 +437,7 @@ public final class Tuple implements Fields<String>
         if ( source.isIngestionTimeNA() )
         {
             ingestionTime = INGESTION_TIME_UNASSIGNABLE;
-            latencyRecs = null;
+            latencyStages = null;
             return;
         }
 
@@ -444,29 +450,29 @@ public final class Tuple implements Fields<String>
     private void overwriteIngestionTime ( final Tuple source )
     {
         ingestionTime = source.ingestionTime;
-        if ( source.latencyRecs == null )
+        if ( source.latencyStages == null )
         {
-            latencyRecs = null;
+            latencyStages = null;
         }
-        else if ( latencyRecs != null )
+        else if ( latencyStages != null )
         {
-            latencyRecs.clear();
-            latencyRecs.addAll( source.latencyRecs );
+            latencyStages.clear();
+            latencyStages.addAll( source.latencyStages );
         }
         else
         {
-            latencyRecs = new ArrayList<>( source.latencyRecs );
+            latencyStages = new ArrayList<>( source.latencyStages );
         }
     }
 
     public Tuple shallowCopy ()
     {
-        return new Tuple( schema, values, ingestionTime, latencyRecs );
+        return new Tuple( schema, values, ingestionTime, latencyStages );
     }
 
     public void setQueueOfferTime ( final long queueOfferTime )
     {
-        if ( isNotTrackingLatencyRecords() )
+        if ( isNotTrackingLatencyComps() )
         {
             return;
         }
@@ -474,36 +480,46 @@ public final class Tuple implements Fields<String>
         this.queueOfferTime = queueOfferTime;
     }
 
-    public void recordQueueLatency ( final String operatorId, final long now )
+    public void setQueueOfferTime ( final LongSupplier timeSupplier )
     {
-        if ( queueOfferTime == INGESTION_TIME_NOT_ASSIGNED || latencyRecs == null )
+        if ( isNotTrackingLatencyComps() )
         {
             return;
         }
 
-        latencyRecs.add( newQueueLatency( operatorId, queueOfferTime, now ) );
+        this.queueOfferTime = timeSupplier.getAsLong();
+    }
+
+    public void recordQueueLatency ( final String operatorId, final long now )
+    {
+        if ( queueOfferTime == INGESTION_TIME_NOT_ASSIGNED || latencyStages == null )
+        {
+            return;
+        }
+
+        latencyStages.add( newQueueLatency( operatorId, queueOfferTime, now ) );
         queueOfferTime = INGESTION_TIME_NOT_ASSIGNED;
     }
 
-    public void addInvocationLatencyRecord ( final LatencyRecord latencyRec )
+    public void recordInvocationLatency ( final LatencyStage latencyStage )
     {
-        checkArgument( latencyRec != null );
-        if ( isNotTrackingLatencyRecords() )
+        checkArgument( latencyStage != null );
+        if ( isNotTrackingLatencyComps() )
         {
             return;
         }
 
-        latencyRecs.add( latencyRec );
+        latencyStages.add( latencyStage );
     }
 
-    private boolean isNotTrackingLatencyRecords ()
+    private boolean isNotTrackingLatencyComps ()
     {
-        return isIngestionTimeNA() || latencyRecs == null;
+        return isIngestionTimeNA() || latencyStages == null;
     }
 
-    public List<LatencyRecord> getLatencyRecs ()
+    public List<LatencyStage> getLatencyStages ()
     {
-        return latencyRecs;
+        return latencyStages;
     }
 
     private Map<String, Object> asMap ()
@@ -579,19 +595,19 @@ public final class Tuple implements Fields<String>
         return sb.append( ")" ).toString();
     }
 
-    public static class LatencyRecord
+    public static class LatencyStage
     {
 
-        public static LatencyRecord newQueueLatency ( final String operatorId, final long start, final long end )
+        public static LatencyStage newQueueLatency ( final String operatorId, final long start, final long end )
         {
-            final LatencyRecord rec = new LatencyRecord( operatorId, false, start );
-            rec.setEnd( end );
-            return rec;
+            final LatencyStage stage = new LatencyStage( operatorId, false, start );
+            stage.setEnd( end );
+            return stage;
         }
 
-        public static LatencyRecord newInvocationLatency ( final String operatorId, final long start )
+        public static LatencyStage newInvocationLatency ( final String operatorId, final long start )
         {
-            return new LatencyRecord( operatorId, true, start );
+            return new LatencyStage( operatorId, true, start );
         }
 
         private final String operatorId;
@@ -599,7 +615,7 @@ public final class Tuple implements Fields<String>
         private final long start;
         private long end = INGESTION_TIME_NOT_ASSIGNED;
 
-        private LatencyRecord ( final String operatorId, final boolean isOperator, final long start )
+        private LatencyStage ( final String operatorId, final boolean isOperator, final long start )
         {
             checkArgument( operatorId != null );
             checkArgument( start != INGESTION_TIME_NOT_ASSIGNED );
@@ -608,7 +624,7 @@ public final class Tuple implements Fields<String>
             this.start = start;
         }
 
-        public LatencyRecord setEnd ( final long end )
+        public LatencyStage setEnd ( final long end )
         {
             checkArgument( start != INGESTION_TIME_NOT_ASSIGNED );
             this.end = end;
@@ -627,10 +643,6 @@ public final class Tuple implements Fields<String>
 
         public long getLatency ()
         {
-            if ( end == INGESTION_TIME_NOT_ASSIGNED )
-            {
-                System.out.println( "" );
-            }
             checkState( end != INGESTION_TIME_NOT_ASSIGNED );
             return end - start;
         }
@@ -647,7 +659,7 @@ public final class Tuple implements Fields<String>
                 return false;
             }
 
-            final LatencyRecord that = (LatencyRecord) o;
+            final LatencyStage that = (LatencyStage) o;
 
             if ( isOperator != that.isOperator )
             {

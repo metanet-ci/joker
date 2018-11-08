@@ -24,6 +24,8 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
 
     private final IdleStrategy idleStrategy = BackoffIdleStrategy.newDefaultInstance();
 
+    private final LazyNanoTimeSupplier nanoTimeSupplier = new LazyNanoTimeSupplier();
+
     private final AtomicBoolean failureFlag;
 
     private final int partitionCount;
@@ -84,7 +86,7 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
                 int fromIndex = indices[ i ];
                 if ( fromIndex < tuples.size() )
                 {
-                    setQueueOfferTime( tuples, fromIndex, System.nanoTime() );
+                    setQueueOfferTime( tuples, fromIndex, nanoTimeSupplier );
                     final int offered = operatorQueues[ i ].offer( destinationPortIndex, tuples, fromIndex );
                     if ( offered == 0 )
                     {
@@ -98,7 +100,6 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
                     }
                     else
                     {
-                        idleStrategy.reset();
                         fromIndex += offered;
                         indices[ i ] = fromIndex;
                     }
@@ -117,6 +118,7 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
         }
 
         idleStrategy.reset();
+        nanoTimeSupplier.reset();
         for ( int i = 0; i < replicaCount; i++ )
         {
             tupleLists[ i ].clear();

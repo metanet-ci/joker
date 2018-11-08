@@ -2,6 +2,7 @@ package cs.bilkent.joker.engine.pipeline;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -14,6 +15,7 @@ import static com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
+import cs.bilkent.joker.engine.metric.impl.SimpleHistogram;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIAL;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.RUNNING;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.SHUT_DOWN;
@@ -21,6 +23,7 @@ import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.BlockingGreedyDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.NopDrainer;
+import cs.bilkent.joker.engine.tuplequeue.impl.operator.DefaultOperatorQueue;
 import cs.bilkent.joker.engine.tuplequeue.impl.operator.EmptyOperatorQueue;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -59,6 +62,12 @@ public class PipelineReplica
     private UpstreamCtx upstreamCtx;
 
     private boolean drainerMaySkipBlocking = true;
+
+    private long lastQueueSizeReportTime = System.nanoTime();
+
+    private SimpleHistogram queueSizeTracker = new SimpleHistogram( 4096 );
+
+    private int emptyQueueCount;
 
     public PipelineReplica ( final PipelineReplicaId id,
                              final OperatorReplica[] operators,
@@ -177,20 +186,51 @@ public class PipelineReplica
     public TuplesImpl invoke ()
     {
         meter.tryTick();
+        measureEffectiveQueueSize();
+
         inputTuplesSupplier.reset();
         queue.drain( drainerMaySkipBlocking, drainer, inputTuplesSupplier );
 
         TuplesImpl tuples = operators[ 0 ].invoke( drainerMaySkipBlocking, inputTuplesSupplier.getTuples(), upstreamCtx );
         boolean invoked = ( tuples != null );
+        // TODO we can put if (invoked) check here. if the first operator is not invoked, the remaining must not be invoked as well...
         for ( int i = 1; i < operators.length; i++ )
         {
             tuples = operators[ i ].invoke( drainerMaySkipBlocking, tuples, operators[ i - 1 ].getDownstreamCtx() );
-            invoked |= ( tuples != null );
         }
 
         drainerMaySkipBlocking = invoked;
 
         return tuples;
+    }
+
+    private void measureEffectiveQueueSize ()
+    {
+        if ( meter.isTicked() )
+        {
+            final OperatorQueue effectiveQueue = getEffectiveQueue();
+            if ( effectiveQueue instanceof DefaultOperatorQueue )
+            {
+                final int queueSize = ( (DefaultOperatorQueue) effectiveQueue ).getTupleQueue( 0 ).size();
+                if ( queueSize > 0 )
+                {
+                    queueSizeTracker.record( queueSize );
+
+                    final long now = System.nanoTime();
+                    if ( ( now - lastQueueSizeReportTime ) > TimeUnit.SECONDS.toNanos( 1 ) )
+                    {
+                        LOGGER.info( "{} => CURRENT QUEUE SIZE: {} STATS: {}", id, queueSize, queueSizeTracker, emptyQueueCount );
+                        lastQueueSizeReportTime = now;
+                        emptyQueueCount = 0;
+                        queueSizeTracker.reset();
+                    }
+                }
+                else
+                {
+                    emptyQueueCount++;
+                }
+            }
+        }
     }
 
     public boolean isInvoked ()

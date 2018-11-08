@@ -6,7 +6,6 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
@@ -35,7 +34,6 @@ import cs.bilkent.joker.operator.spec.OperatorType;
 import cs.bilkent.joker.operators.BeaconOperator;
 import static cs.bilkent.joker.operators.BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER;
 import static cs.bilkent.joker.operators.BeaconOperator.TUPLE_POPULATOR_CONFIG_PARAMETER;
-import cs.bilkent.joker.operators.ForEachOperator;
 import cs.bilkent.joker.operators.MapperOperator;
 import static cs.bilkent.joker.operators.MapperOperator.MAPPER_CONFIG_PARAMETER;
 import cs.bilkent.joker.test.AbstractJokerTest;
@@ -43,7 +41,7 @@ import static java.util.Collections.shuffle;
 import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-@Ignore
+//@Ignore
 public class LatencyTest extends AbstractJokerTest
 {
 
@@ -84,8 +82,6 @@ public class LatencyTest extends AbstractJokerTest
         public void accept ( final Tuple tuple )
         {
             LockSupport.parkNanos( 1 );
-            LockSupport.parkNanos( 1 );
-            LockSupport.parkNanos( 1 );
 
             final int key = vals[ curr++ ];
             final int value = key + 1;
@@ -105,21 +101,17 @@ public class LatencyTest extends AbstractJokerTest
     {
         final ValueGenerator valueGenerator = new ValueGenerator( KEY_RANGE );
         final OperatorConfig beacon1Config = new OperatorConfig().set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator )
-                                                                 .set( TUPLE_COUNT_CONFIG_PARAMETER, 16 );
+                                                                 .set( TUPLE_COUNT_CONFIG_PARAMETER, 1 );
 
         final OperatorDef beacon = OperatorDefBuilder.newInstance( "beacon", BeaconOperator.class ).setConfig( beacon1Config ).build();
 
         final OperatorConfig multiplierConfig = new OperatorConfig().set( MAPPER_CONFIG_PARAMETER,
                                                                           (BiConsumer<Tuple, Tuple>) ( input, output ) -> {
                                                                               int val = input.getInteger( "value" );
-                                                                              //
-                                                                              //                     for ( int i = 0; i < 1024; i++ )
-                                                                              //
-                                                                              //                     {
-                                                                              //
-                                                                              //                         val = val * MULTIPLIER_VALUE - val;
-                                                                              //
-                                                                              //                     }
+                                                                              for ( int i = 0; i < 1024; i++ )
+                                                                              {
+                                                                                  val = val * MULTIPLIER_VALUE - val;
+                                                                              }
                                                                               val = val * MULTIPLIER_VALUE - val;
                                                                               output.set( "key", input.get( "key" ) ).set( "mult", val );
                                                                           } );
@@ -128,23 +120,19 @@ public class LatencyTest extends AbstractJokerTest
                                                          .setConfig( multiplierConfig )
                                                          .build();
 
-        final OperatorConfig forEachConfig = new OperatorConfig();
-        forEachConfig.set( ForEachOperator.CONSUMER_FUNCTION_CONFIG_PARAMETER, (Consumer<Tuple>) tuple -> {
-        } );
-        final OperatorDef forEach = OperatorDefBuilder.newInstance( "forEach", ForEachOperator.class ).setConfig( forEachConfig ).build();
-
         final FlowDef flow = new FlowDefBuilder().add( beacon ).add( multiplier )
-                                                 //                                                 .add( forEach )
                                                  .connect( "beacon", "multiplier" )
-                                                 //                                                 .connect( "multiplier", "forEach" )
                                                  .build();
 
         final JokerConfigBuilder configBuilder = new JokerConfigBuilder();
-        configBuilder.getTupleQueueDrainerConfigBuilder().setMaxBatchSize( 4096 );
+        configBuilder.getTupleQueueDrainerConfigBuilder().setMaxBatchSize( 64 );
         configBuilder.getTupleQueueManagerConfigBuilder().setMultiThreadedQueueDrainLimit( 1 );
         configBuilder.getMetricManagerConfigBuilder().setTickMask( 3 );
         configBuilder.getMetricManagerConfigBuilder().setPipelineMetricsScanningPeriodInMillis( 1000 );
         configBuilder.getFlowDefOptimizerConfigBuilder().disableMergeRegions();
+        configBuilder.getPipelineManagerConfigBuilder().setLatencyTickMask( 0 );
+        configBuilder.getPipelineManagerConfigBuilder().setLatencyStageTickMask( 2047 );
+        configBuilder.getPipelineReplicaRunnerConfigBuilder().enforceThreadAffinity( true );
 
         final Joker joker = new JokerBuilder().setJokerConfig( configBuilder.build() ).build();
 
@@ -155,52 +143,6 @@ public class LatencyTest extends AbstractJokerTest
 
     @Test
     public void test2 ()
-    {
-        final ValueGenerator valueGenerator = new ValueGenerator( KEY_RANGE );
-        final OperatorConfig beacon1Config = new OperatorConfig().set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator )
-                                                                 .set( TUPLE_COUNT_CONFIG_PARAMETER, 1 );
-
-        final OperatorDef beacon = OperatorDefBuilder.newInstance( "beacon", BeaconOperator.class ).setConfig( beacon1Config ).build();
-
-        final OperatorConfig multiplierConfig = new OperatorConfig().set( MAPPER_CONFIG_PARAMETER,
-                                                                          (BiConsumer<Tuple, Tuple>) ( input, output ) -> {
-                                                                              output.set( "key", input.get( "key" ) )
-                                                                                    .set( "value",
-                                                                                          MULTIPLIER_VALUE * input.getInteger( "value" ) );
-                                                                          } );
-
-        final OperatorDef multiplier = OperatorDefBuilder.newInstance( "multiplier", MapperOperator.class )
-                                                         .setConfig( multiplierConfig )
-                                                         .build();
-
-        final OperatorConfig forEachConfig = new OperatorConfig().set( ForEachOperator.CONSUMER_FUNCTION_CONFIG_PARAMETER,
-                                                                       (Consumer<Tuple>) tuple -> {
-                                                                       } );
-
-        final OperatorDef forEach = OperatorDefBuilder.newInstance( "foreach", ForEachOperator.class ).setConfig( forEachConfig ).build();
-
-        final FlowDef flow = new FlowDefBuilder().add( beacon )
-                                                 .add( multiplier )
-                                                 .add( forEach )
-                                                 .connect( "beacon", "multiplier" )
-                                                 .connect( "multiplier", "foreach" )
-                                                 .build();
-
-        final JokerConfigBuilder configBuilder = new JokerConfigBuilder();
-        configBuilder.getTupleQueueDrainerConfigBuilder().setMaxBatchSize( 16 );
-        configBuilder.getTupleQueueManagerConfigBuilder().setMultiThreadedQueueDrainLimit( 1 );
-        configBuilder.getMetricManagerConfigBuilder().setTickMask( 3 );
-        configBuilder.getFlowDefOptimizerConfigBuilder().disableMergeRegions();
-
-        final Joker joker = new JokerBuilder().setJokerConfig( configBuilder.build() ).build();
-
-        joker.run( flow );
-
-        sleepUninterruptibly( 300, SECONDS );
-    }
-
-    @Test
-    public void test3 ()
     {
         final ValueGenerator valueGenerator = new ValueGenerator( KEY_RANGE );
         final OperatorConfig beacon1Config = new OperatorConfig().set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator )

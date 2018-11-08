@@ -20,6 +20,8 @@ public class DownstreamCollector1 implements DownstreamCollector, Supplier<Opera
 
     private final IdleStrategy idleStrategy = BackoffIdleStrategy.newDefaultInstance();
 
+    private final LazyNanoTimeSupplier nanoTimeSupplier = new LazyNanoTimeSupplier();
+
     private final AtomicBoolean failureFlag;
 
     private final int sourcePortIndex;
@@ -43,13 +45,14 @@ public class DownstreamCollector1 implements DownstreamCollector, Supplier<Opera
     public void accept ( final TuplesImpl input )
     {
         idleStrategy.reset();
+        nanoTimeSupplier.reset();
 
         final List<Tuple> tuples = input.getTuplesModifiable( sourcePortIndex );
         final int size = tuples.size();
         int fromIndex = 0;
         while ( true )
         {
-            setQueueOfferTime( tuples, fromIndex, System.nanoTime() );
+            setQueueOfferTime( tuples, fromIndex, nanoTimeSupplier );
             final int offered = operatorQueue.offer( destinationPortIndex, tuples, fromIndex );
             fromIndex += offered;
             if ( fromIndex == size )

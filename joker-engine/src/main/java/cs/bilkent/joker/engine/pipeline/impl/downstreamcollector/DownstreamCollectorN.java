@@ -22,6 +22,8 @@ public class DownstreamCollectorN implements DownstreamCollector, Supplier<Opera
 
     private final IdleStrategy idleStrategy = BackoffIdleStrategy.newDefaultInstance();
 
+    private final LazyNanoTimeSupplier nanoTimeSupplier = new LazyNanoTimeSupplier();
+
     private final AtomicBoolean failureFlag;
 
     private final int portCount;
@@ -62,6 +64,7 @@ public class DownstreamCollectorN implements DownstreamCollector, Supplier<Opera
     {
         fill( fromIndices, 0 );
         idleStrategy.reset();
+        nanoTimeSupplier.reset();
         int done = 0;
 
         while ( true )
@@ -76,7 +79,7 @@ public class DownstreamCollectorN implements DownstreamCollector, Supplier<Opera
 
                 if ( fromIndex < tuples.size() )
                 {
-                    setQueueOfferTime( tuples, fromIndex, System.nanoTime() );
+                    setQueueOfferTime( tuples, fromIndex, nanoTimeSupplier );
                     final int offered = operatorQueue.offer( destinationPortIndex, tuples, fromIndex );
                     fromIndex += offered;
                     fromIndices[ sourcePortIndex ] = fromIndex;

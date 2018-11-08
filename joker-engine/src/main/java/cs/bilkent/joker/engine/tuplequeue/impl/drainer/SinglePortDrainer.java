@@ -1,5 +1,8 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.drainer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount;
@@ -8,6 +11,9 @@ import static java.lang.Math.max;
 
 public abstract class SinglePortDrainer implements TupleQueueDrainer
 {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger( SinglePortDrainer.class );
+
     protected final String operatorId;
 
     protected final int maxBatchSize;
@@ -26,8 +32,9 @@ public abstract class SinglePortDrainer implements TupleQueueDrainer
     {
         checkArgument( tupleAvailabilityByCount != null );
         checkArgument( tupleCount > 0, "invalid tuple count %s", tupleCount );
-        this.tupleCountToCheck = tupleCount;
-        this.tupleCountToPoll = tupleAvailabilityByCount == EXACT ? tupleCount : max( tupleCount, maxBatchSize );
+        tupleCountToCheck = tupleCount;
+        tupleCountToPoll = tupleAvailabilityByCount == EXACT ? tupleCount : max( tupleCount, maxBatchSize );
+        LOGGER.info( "Operator: {} -> tuple count to check: {} tuple count to poll: {}", operatorId, tupleCountToCheck, tupleCountToPoll );
     }
 
 }

@@ -9,7 +9,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuple.LatencyRecord;
+import cs.bilkent.joker.operator.Tuple.LatencyStage;
 import cs.bilkent.joker.operator.impl.InternalInvocationCtx;
 import cs.bilkent.joker.operator.impl.OutputCollector;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -32,7 +32,7 @@ public class FusedInvocationCtx implements InternalInvocationCtx, OutputCollecto
 
     private boolean[] upstreamConnectionStatuses;
 
-    private LatencyRecord latencyRec;
+    private LatencyStage latencyStage;
 
     public FusedInvocationCtx ( final int inputPortCount,
                                 final Function<PartitionKey, KVStore> kvStoreSupplier,
@@ -59,7 +59,7 @@ public class FusedInvocationCtx implements InternalInvocationCtx, OutputCollecto
         reason = null;
         input.clear();
         outputCollector.clear();
-        latencyRec = null;
+        latencyStage = null;
     }
 
     @Override
@@ -93,11 +93,11 @@ public class FusedInvocationCtx implements InternalInvocationCtx, OutputCollecto
     }
 
     @Override
-    public void setInvocationLatencyRecord ( final LatencyRecord latencyRec )
+    public void setInvocationLatencyStage ( final LatencyStage latencyStage )
     {
-        checkArgument( latencyRec != null );
-        checkState( this.latencyRec == null );
-        this.latencyRec = latencyRec;
+        checkArgument( latencyStage != null );
+        checkState( this.latencyStage == null );
+        this.latencyStage = latencyStage;
     }
 
     // InternalInvocationContext methods end
@@ -125,9 +125,9 @@ public class FusedInvocationCtx implements InternalInvocationCtx, OutputCollecto
     @Override
     public void output ( final Tuple tuple )
     {
-        if ( latencyRec != null )
+        if ( latencyStage != null )
         {
-            tuple.addInvocationLatencyRecord( latencyRec );
+            tuple.recordInvocationLatency( latencyStage );
         }
 
         outputCollector.add( tuple );
@@ -136,9 +136,9 @@ public class FusedInvocationCtx implements InternalInvocationCtx, OutputCollecto
     @Override
     public void output ( final int portIndex, final Tuple tuple )
     {
-        if ( latencyRec != null )
+        if ( latencyStage != null )
         {
-            tuple.addInvocationLatencyRecord( latencyRec );
+            tuple.recordInvocationLatency( latencyStage );
         }
 
         outputCollector.add( portIndex, tuple );

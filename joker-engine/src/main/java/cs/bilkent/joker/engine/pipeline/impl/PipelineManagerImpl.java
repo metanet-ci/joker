@@ -27,8 +27,10 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static cs.bilkent.joker.JokerModule.DOWNSTREAM_FAILURE_FLAG_NAME;
 import cs.bilkent.joker.engine.FlowStatus;
+import static cs.bilkent.joker.engine.FlowStatus.RUNNING;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_THREAD_GROUP_NAME;
+import cs.bilkent.joker.engine.config.PipelineManagerConfig;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.exception.JokerException;
 import cs.bilkent.joker.engine.flow.FlowExecPlan;
@@ -38,7 +40,7 @@ import cs.bilkent.joker.engine.flow.RegionExecPlan;
 import cs.bilkent.joker.engine.metric.LatencyMeter;
 import cs.bilkent.joker.engine.metric.MetricManager;
 import cs.bilkent.joker.engine.metric.PipelineMeter;
-import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
+import cs.bilkent.joker.engine.metric.PipelineReplicaMeter.Ticker;
 import cs.bilkent.joker.engine.partition.PartitionDistribution;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractorFactory;
@@ -68,7 +70,7 @@ import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.Port;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuple.LatencyRecord;
+import cs.bilkent.joker.operator.Tuple.LatencyStage;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
@@ -80,6 +82,7 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.sort;
 import static java.util.Comparator.comparing;
 import static java.util.Comparator.comparingInt;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
@@ -89,39 +92,25 @@ public class PipelineManagerImpl implements PipelineManager
 {
 
     private static final Logger LOGGER = LoggerFactory.getLogger( PipelineManagerImpl.class );
-
     private static final int DOWNSTREAM_TUPLE_SENDER_CONSTRUCTOR_COUNT = 2;
-
     private static final int INITIAL_FLOW_VERSION = -1;
 
 
     private final JokerConfig jokerConfig;
-
     private final RegionManager regionManager;
-
     private final PartitionService partitionService;
-
     private final PartitionKeyExtractorFactory partitionKeyExtractorFactory;
-
     private final MetricManager metricManager;
-
     private final AtomicBoolean downstreamCollectorFailureFlag;
-
     private final ThreadGroup jokerThreadGroup;
-
     private final BiFunction<List<Pair<Integer, Integer>>, OperatorQueue, DownstreamCollector>[] defaultDownstreamCollectorCtors = new BiFunction[ 6 ];
-
     private final Function6<List<Pair<Integer, Integer>>, Integer, int[], OperatorQueue[], PartitionKeyExtractor, DownstreamCollector>[]
             partitionedDownstreamCollectorCtors = new Function6[ 6 ];
 
     private Supervisor supervisor;
-
     private int flowVersion = INITIAL_FLOW_VERSION;
-
     private FlowDef flow;
-
     private final Map<Integer, RegionExecPlan> regionExecPlans = new HashMap<>();
-
     private final Map<PipelineId, Pipeline> pipelines = new ConcurrentHashMap<>();
 
     private volatile FlowStatus status = FlowStatus.INITIAL;
@@ -233,10 +222,10 @@ public class PipelineManagerImpl implements PipelineManager
         {
             checkState( status == FlowStatus.INITIAL, "cannot start pipeline replica runner threads since status is %s", status );
             this.flow = flow;
+            status = RUNNING;
             createPipelines( flow, regionExecPlans );
             initPipelines();
             startPipelineReplicaRunners( supervisor );
-            status = FlowStatus.RUNNING;
             incrementFlowVersion();
         }
         catch ( Exception e )
@@ -250,9 +239,7 @@ public class PipelineManagerImpl implements PipelineManager
     public FlowExecPlan getFlowExecPlan ()
     {
         final FlowStatus status = this.status;
-        checkState( status == FlowStatus.RUNNING || status == FlowStatus.SHUTTING_DOWN,
-                    "cannot get flow execution plan since status is %s",
-                    status );
+        checkState( status == RUNNING || status == FlowStatus.SHUTTING_DOWN, "cannot get flow execution plan since status is %s", status );
         return new FlowExecPlan( flowVersion, flow, regionExecPlans.values() );
     }
 
@@ -445,7 +432,7 @@ public class PipelineManagerImpl implements PipelineManager
     @Override
     public void triggerShutdown ()
     {
-        checkState( status == FlowStatus.RUNNING, "cannot trigger shutdown since status is %s", status );
+        checkState( status == RUNNING, "cannot trigger shutdown since status is %s", status );
         LOGGER.info( "Shutdown request is being handled." );
 
         status = FlowStatus.SHUTTING_DOWN;
@@ -468,7 +455,7 @@ public class PipelineManagerImpl implements PipelineManager
                        pipelineIds,
                        flowVersion,
                        this.flowVersion );
-        checkState( status == FlowStatus.RUNNING,
+        checkState( status == RUNNING,
                     "cannot merge pipelines %s with flow version %s since status is %s",
                     pipelineIds,
                     flowVersion,
@@ -509,7 +496,7 @@ public class PipelineManagerImpl implements PipelineManager
                        pipelineOperatorIndices,
                        flowVersion,
                        this.flowVersion );
-        checkState( status == FlowStatus.RUNNING,
+        checkState( status == RUNNING,
                     "cannot split pipeline %s into %s with flow version %s since status is %s",
                     pipelineIdToSplit,
                     pipelineOperatorIndices,
@@ -582,7 +569,7 @@ public class PipelineManagerImpl implements PipelineManager
                        newReplicaCount,
                        flowVersion,
                        this.flowVersion );
-        checkState( status == FlowStatus.RUNNING,
+        checkState( status == RUNNING,
                     "cannot rebalance region %s to %s replicas with flow version %s since status is %s",
                     regionId,
                     newReplicaCount,
@@ -881,9 +868,10 @@ public class PipelineManagerImpl implements PipelineManager
             {
                 if ( i > 0 )
                 {
-                    final PipelineReplica pipelineReplica = pipeline.getPipelineReplica( replicaIndex );
-                    final PipelineReplicaMeter meter = pipelineReplica.getMeter();
-                    collector = new IngestionTimeInjector( meter, collector );
+                    final PipelineManagerConfig pipelineManagerConfig = jokerConfig.getPipelineManagerConfig();
+                    collector = new IngestionTimeInjector( collector,
+                                                           pipelineManagerConfig.getLatencyTickMask(),
+                                                           pipelineManagerConfig.getLatencyStageTickMask() );
                 }
                 else
                 {
@@ -894,7 +882,8 @@ public class PipelineManagerImpl implements PipelineManager
             {
                 final String tailOperatorId = pipeline.getLastOperatorDef().getId();
                 final LatencyMeter latencyMeter = metricManager.createLatencyMeter( flow, tailOperatorId, replicaIndex );
-                collector = new LatencyRecorder( tailOperatorId, latencyMeter );
+                collector = new LatencyRecorder( latencyMeter );
+                //                collector = new NopDownstreamCollector();
             }
 
             checkState( collector != null );
@@ -1112,40 +1101,41 @@ public class PipelineManagerImpl implements PipelineManager
 
     static class NopDownstreamCollector implements DownstreamCollector
     {
-
         @Override
         public void accept ( final TuplesImpl tuples )
         {
         }
-
     }
 
 
     static class IngestionTimeInjector implements DownstreamCollector
     {
-
-        private final PipelineReplicaMeter meter;
-
+        private final Ticker ticker;
+        private final long latencyStageTickMask;
         private final DownstreamCollector downstream;
 
-        IngestionTimeInjector ( final PipelineReplicaMeter meter, final DownstreamCollector downstream )
+        IngestionTimeInjector ( final DownstreamCollector downstream, final long latencyTickMask, final long latencyStageTickMask )
         {
-            this.meter = meter;
             this.downstream = downstream;
+            this.ticker = new Ticker( latencyTickMask );
+            this.latencyStageTickMask = latencyStageTickMask;
         }
 
         @Override
         public void accept ( final TuplesImpl tuples )
         {
-            final long ingestionTime = System.nanoTime();
-            final boolean trackLatencyRecords = meter.isTicked();
-
-            for ( int i = 0, p = tuples.getPortCount(); i < p; i++ )
+            if ( ticker.tryTick() )
             {
-                final List<Tuple> l = tuples.getTuplesModifiable( i );
-                for ( int j = 0, t = l.size(); j < t; j++ )
+                final long ingestionTime = System.nanoTime();
+                final boolean trackLatencyStages = ticker.isTicked( latencyStageTickMask );
+
+                for ( int i = 0, p = tuples.getPortCount(); i < p; i++ )
                 {
-                    l.get( j ).setIngestionTime( ingestionTime, trackLatencyRecords );
+                    final List<Tuple> l = tuples.getTuplesModifiable( i );
+                    for ( int j = 0, t = l.size(); j < t; j++ )
+                    {
+                        l.get( j ).setIngestionTime( ingestionTime, trackLatencyStages );
+                    }
                 }
             }
 
@@ -1159,23 +1149,34 @@ public class PipelineManagerImpl implements PipelineManager
     }
 
 
-    static class LatencyRecorder implements DownstreamCollector
+    class LatencyRecorder implements DownstreamCollector
     {
-
-        private final String operatorId;
-
         private final LatencyMeter latencyMeter;
 
-        LatencyRecorder ( final String operatorId, final LatencyMeter latencyMeter )
+        LatencyRecorder ( final LatencyMeter latencyMeter )
         {
-            this.operatorId = operatorId;
             this.latencyMeter = latencyMeter;
         }
+
+        long last = System.nanoTime(), loop = 0;
 
         @Override
         public void accept ( final TuplesImpl tuples )
         {
             final long now = System.nanoTime();
+
+            if ( loop++ % 100 == 0 )
+            {
+                if ( now - last >= MILLISECONDS.toNanos( jokerConfig.getMetricManagerConfig().getPipelineMetricsScanningPeriodInMillis() ) )
+                {
+                    last = now;
+                    if ( latencyMeter.publish() )
+                    {
+                        LOGGER.warn( "MetricManager missed a published set of latency records..." );
+                    }
+                }
+            }
+
             for ( int i = 0; i < tuples.getPortCount(); i++ )
             {
                 final List<Tuple> l = tuples.getTuplesModifiable( i );
@@ -1185,39 +1186,31 @@ public class PipelineManagerImpl implements PipelineManager
 
                     if ( tuple.isIngestionTimeNA() )
                     {
-                        return;
+                        continue;
                     }
 
-                    final long ingestionTime = tuple.getIngestionTime();
+                    tuple.recordLatency( now );
 
-                    final long tupleLatency = ( now - ingestionTime );
-                    if ( tupleLatency > 0 )
+                    latencyMeter.recordTuple( tuple.getIngestionTime() );
+
+                    final List<LatencyStage> stages = tuple.getLatencyStages();
+                    if ( stages == null )
                     {
-                        latencyMeter.recordTuple( tupleLatency );
+                        continue;
                     }
 
-                    final List<LatencyRecord> recs = tuple.getLatencyRecs();
-                    if ( recs != null )
+                    for ( int k = 0; k < stages.size(); k++ )
                     {
-                        for ( int k = 0; k < recs.size(); k++ )
+                        final LatencyStage stage = stages.get( k );
+                        final String operatorId = stage.getOperatorId();
+                        final long latency = stage.getLatency();
+                        if ( stage.isOperator() )
                         {
-                            final LatencyRecord record = recs.get( k );
-                            final long latency = record.getLatency();
-                            if ( latency <= 0 )
-                            {
-                                continue;
-                            }
-
-                            final String operatorId = record.getOperatorId();
-
-                            if ( record.isOperator() )
-                            {
-                                latencyMeter.recordInvocation( operatorId, latency );
-                            }
-                            else
-                            {
-                                latencyMeter.recordQueue( operatorId, latency );
-                            }
+                            latencyMeter.recordInvocation( operatorId, latency );
+                        }
+                        else
+                        {
+                            latencyMeter.recordQueue( operatorId, latency );
                         }
                     }
                 }

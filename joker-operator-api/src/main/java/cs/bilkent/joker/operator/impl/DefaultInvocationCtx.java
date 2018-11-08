@@ -8,7 +8,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuple.LatencyRecord;
+import cs.bilkent.joker.operator.Tuple.LatencyStage;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.partition.impl.PartitionKey;
 import static java.util.Arrays.copyOf;
@@ -35,7 +35,7 @@ public class DefaultInvocationCtx implements InternalInvocationCtx
 
     private int currentInput = 0;
 
-    private LatencyRecord latencyRec;
+    private LatencyStage latencyStage;
 
     public DefaultInvocationCtx ( final int inputPortCount, final Function<PartitionKey, KVStore> kvStoreSupplier, final TuplesImpl output )
     {
@@ -97,7 +97,7 @@ public class DefaultInvocationCtx implements InternalInvocationCtx
         outputCollector.clear();
         inputCount = 0;
         currentInput = 0;
-        latencyRec = null;
+        latencyStage = null;
     }
 
     @Override
@@ -119,11 +119,11 @@ public class DefaultInvocationCtx implements InternalInvocationCtx
     }
 
     @Override
-    public void setInvocationLatencyRecord ( final LatencyRecord latencyRec )
+    public void setInvocationLatencyStage ( final LatencyStage latencyStage )
     {
-        checkArgument( latencyRec != null );
-        checkState( this.latencyRec == null );
-        this.latencyRec = latencyRec;
+        checkArgument( latencyStage != null );
+        checkState( this.latencyStage == null );
+        this.latencyStage = latencyStage;
     }
 
     @Override
@@ -157,9 +157,9 @@ public class DefaultInvocationCtx implements InternalInvocationCtx
     @Override
     public void output ( final Tuple tuple )
     {
-        if ( latencyRec != null )
+        if ( latencyStage != null )
         {
-            tuple.addInvocationLatencyRecord( latencyRec );
+            tuple.recordInvocationLatency( latencyStage );
         }
 
         outputCollector.add( tuple );
@@ -168,9 +168,9 @@ public class DefaultInvocationCtx implements InternalInvocationCtx
     @Override
     public void output ( final int portIndex, final Tuple tuple )
     {
-        if ( latencyRec != null )
+        if ( latencyStage != null )
         {
-            tuple.addInvocationLatencyRecord( latencyRec );
+            tuple.recordInvocationLatency( latencyStage );
         }
 
         outputCollector.add( portIndex, tuple );

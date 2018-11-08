@@ -322,12 +322,50 @@ public class JokerConfigBuilderTest extends AbstractJokerTest
     }
 
     @Test
+    public void test_PipelineManagerConfig_latencyTickMask ()
+    {
+        final long val = 234;
+        builder.getPipelineManagerConfigBuilder().setLatencyTickMask( val );
+
+        assertEquals( val, builder.build().getPipelineManagerConfig().getLatencyTickMask() );
+    }
+
+    @Test
+    public void test_PipelineManagerConfig_latencyStageTickMask ()
+    {
+        final long val = 234;
+        builder.getPipelineManagerConfigBuilder().setLatencyStageTickMask( val );
+
+        assertEquals( val, builder.build().getPipelineManagerConfig().getLatencyStageTickMask() );
+    }
+
+    @Test
     public void test_PipelineReplicaRunnerConfig_runnerWaitTimeoutInMillis ()
     {
         final long val = 234;
         builder.getPipelineReplicaRunnerConfigBuilder().setRunnerWaitTimeoutInMillis( val );
 
         assertEquals( val, builder.build().getPipelineReplicaRunnerConfig().getRunnerWaitTimeoutInMillis() );
+    }
+
+    @Test
+    public void test_PipelineReplicaRunnerConfig_enforceThreadAffinityEnabled ()
+    {
+        final boolean val = true;
+
+        builder.getPipelineReplicaRunnerConfigBuilder().enforceThreadAffinity( val );
+
+        assertTrue( builder.build().getPipelineReplicaRunnerConfig().shouldEnforceThreadAffinity() );
+    }
+
+    @Test
+    public void test_PipelineReplicaRunnerConfig_enforceThreadAffinityDisabled ()
+    {
+        final boolean val = false;
+
+        builder.getPipelineReplicaRunnerConfigBuilder().enforceThreadAffinity( val );
+
+        assertFalse( builder.build().getPipelineReplicaRunnerConfig().shouldEnforceThreadAffinity() );
     }
 
     @Test

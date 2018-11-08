@@ -340,7 +340,7 @@ public class LatencyOptimizingAdaptationManagerTest extends AbstractJokerTest
 
     private LatencyRecord newLatencyRecord ( long mean )
     {
-        return new LatencyRecord( mean, 0, 0, 0, 0, 0, 0, 0, 0, 0 );
+        return new LatencyRecord( mean, 0, 0, 0, 0, 0, 0, 0, 0 );
     }
 
     @OperatorSpec( type = STATEFUL, inputPortCount = 0, outputPortCount = 1 )

@@ -15,24 +15,20 @@ public class LatestPipelineMetrics implements PipelineMetricsHistorySummarizer
     @Override
     public PipelineMetrics summarize ( final PipelineMetricsHistory history )
     {
-        final PipelineMetrics latestSnapshot = history.getLatest();
-        final PipelineMetricsBuilder builder = new PipelineMetricsBuilder( latestSnapshot.getPipelineId(),
-                                                                           latestSnapshot.getFlowVersion(),
-                                                                           1,
-                                                                           latestSnapshot.getOperatorCount(),
-                                                                           latestSnapshot.getInputPortCount() );
+        final PipelineMetrics latest = history.getLatest();
+        final PipelineMetricsBuilder builder = new PipelineMetricsBuilder( latest.getPipelineId(), latest.getFlowVersion(),
+                                                                           1, latest.getOperatorCount(), latest.getInputPortCount() );
 
-        builder.setCpuUtilizationRatio( 0, latestSnapshot.getAvgCpuUtilizationRatio() )
-               .setPipelineCost( 0, latestSnapshot.getAvgPipelineCost() );
+        builder.setCpuUtilizationRatio( 0, latest.getAvgCpuUtilizationRatio() ).setPipelineCost( 0, latest.getAvgPipelineCost() );
 
-        for ( int operatorIndex = 0; operatorIndex < latestSnapshot.getOperatorCount(); operatorIndex++ )
+        for ( int operatorIndex = 0; operatorIndex < latest.getOperatorCount(); operatorIndex++ )
         {
-            builder.setOperatorCost( 0, operatorIndex, latestSnapshot.getAvgOperatorCost( operatorIndex ) );
+            builder.setOperatorCost( 0, operatorIndex, latest.getAvgOperatorCost( operatorIndex ) );
         }
 
-        for ( int portIndex = 0; portIndex < latestSnapshot.getInputPortCount(); portIndex++ )
+        for ( int portIndex = 0; portIndex < latest.getInputPortCount(); portIndex++ )
         {
-            builder.setInboundThroughput( 0, portIndex, latestSnapshot.getTotalInboundThroughput( portIndex ) );
+            builder.setInboundThroughput( 0, portIndex, latest.getTotalInboundThroughput( portIndex ) );
         }
 
         return builder.build();

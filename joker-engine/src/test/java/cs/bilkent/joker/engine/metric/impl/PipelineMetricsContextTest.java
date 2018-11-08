@@ -7,7 +7,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-import com.codahale.metrics.Snapshot;
 
 import cs.bilkent.joker.engine.flow.PipelineId;
 import cs.bilkent.joker.engine.metric.PipelineMeter;
@@ -40,7 +39,7 @@ public class PipelineMetricsContextTest extends AbstractJokerTest
     @Mock
     private PipelineMeter meter;
 
-    private PipelineMetricsContext metrics;
+    private PipelineMetricsContext metricsCtx;
 
     @Before
     public void init ()
@@ -49,12 +48,8 @@ public class PipelineMetricsContextTest extends AbstractJokerTest
         when( meter.getReplicaCount() ).thenReturn( REPLICA_COUNT );
         when( meter.getOperatorCount() ).thenReturn( OPERATOR_COUNT );
         when( meter.getInputPortCount() ).thenReturn( INPUT_PORT_COUNT );
-        for ( int replicaIndex = 0; replicaIndex < REPLICA_COUNT; replicaIndex++ )
-        {
-            when( meter.getInboundThroughputHistograms( replicaIndex ) ).thenReturn( new Snapshot[ OPERATOR_COUNT ] );
-        }
 
-        metrics = new PipelineMetricsContext( FLOW_VERSION, meter );
+        metricsCtx = new PipelineMetricsContext( FLOW_VERSION, meter );
     }
 
     @Test
@@ -69,15 +64,15 @@ public class PipelineMetricsContextTest extends AbstractJokerTest
             return null;
         } ).when( meter ).getThreadCpuTimes( anyObject(), anyObject() );
 
-        metrics.initialize( threadMXBean );
+        metricsCtx.initialize( threadMXBean );
 
-        final PipelineMetrics snapshot = metrics.update( newThreadCpuTimes, systemTimeDiff );
+        final PipelineMetrics metrics = metricsCtx.update( newThreadCpuTimes, systemTimeDiff );
 
         for ( int replicaIndex = 0; replicaIndex < REPLICA_COUNT; replicaIndex++ )
         {
             final double expected =
                     ( ( (double) newThreadCpuTimes[ replicaIndex ] ) - initialThreadCpuTimes[ replicaIndex ] ) / systemTimeDiff;
-            assertEquals( "replica index=" + replicaIndex, expected, snapshot.getCpuUtilizationRatio( replicaIndex ), 0.01 );
+            assertEquals( "replica index=" + replicaIndex, expected, metrics.getCpuUtilizationRatio( replicaIndex ), 0.01 );
         }
     }
 
@@ -94,16 +89,16 @@ public class PipelineMetricsContextTest extends AbstractJokerTest
             return null;
         } ).when( meter ).getThreadCpuTimes( anyObject(), anyObject() );
 
-        metrics.initialize( threadMXBean );
+        metricsCtx.initialize( threadMXBean );
 
-        metrics.update( newThreadCpuTimes, systemTimeDiff );
-        final PipelineMetrics snapshot = metrics.update( newThreadCpuTimes2, systemTimeDiff );
+        metricsCtx.update( newThreadCpuTimes, systemTimeDiff );
+        final PipelineMetrics metrics = metricsCtx.update( newThreadCpuTimes2, systemTimeDiff );
 
         for ( int replicaIndex = 0; replicaIndex < REPLICA_COUNT; replicaIndex++ )
         {
             final double expected =
                     ( ( (double) newThreadCpuTimes2[ replicaIndex ] ) - newThreadCpuTimes[ replicaIndex ] ) / systemTimeDiff;
-            assertEquals( "replica index=" + replicaIndex, expected, snapshot.getCpuUtilizationRatio( replicaIndex ), 0.01 );
+            assertEquals( "replica index=" + replicaIndex, expected, metrics.getCpuUtilizationRatio( replicaIndex ), 0.01 );
         }
     }
 
@@ -134,19 +129,19 @@ public class PipelineMetricsContextTest extends AbstractJokerTest
 
         for ( int i = 0; i < 10; i++ )
         {
-            metrics.sample( threadMXBean );
+            metricsCtx.sample( threadMXBean );
         }
 
-        final PipelineMetrics snapshot = metrics.update( new long[ REPLICA_COUNT ], 10 );
+        final PipelineMetrics metrics = metricsCtx.update( new long[ REPLICA_COUNT ], 10 );
 
-        assertEquals( 0.4, snapshot.getPipelineCost( 0 ), 0.01 );
-        assertEquals( 0.3, snapshot.getOperatorCost( 0, 0 ), 0.01 );
-        assertEquals( 0.2, snapshot.getOperatorCost( 0, 1 ), 0.01 );
-        assertEquals( 0.1, snapshot.getOperatorCost( 0, 2 ), 0.01 );
-        assertEquals( 0.1, snapshot.getPipelineCost( 1 ), 0.01 );
-        assertEquals( 0.2, snapshot.getOperatorCost( 1, 0 ), 0.01 );
-        assertEquals( 0.3, snapshot.getOperatorCost( 1, 1 ), 0.01 );
-        assertEquals( 0.4, snapshot.getOperatorCost( 1, 2 ), 0.01 );
+        assertEquals( 0.4, metrics.getPipelineCost( 0 ), 0.01 );
+        assertEquals( 0.3, metrics.getOperatorCost( 0, 0 ), 0.01 );
+        assertEquals( 0.2, metrics.getOperatorCost( 0, 1 ), 0.01 );
+        assertEquals( 0.1, metrics.getOperatorCost( 0, 2 ), 0.01 );
+        assertEquals( 0.1, metrics.getPipelineCost( 1 ), 0.01 );
+        assertEquals( 0.2, metrics.getOperatorCost( 1, 0 ), 0.01 );
+        assertEquals( 0.3, metrics.getOperatorCost( 1, 1 ), 0.01 );
+        assertEquals( 0.4, metrics.getOperatorCost( 1, 2 ), 0.01 );
     }
 
     @Test
@@ -196,26 +191,26 @@ public class PipelineMetricsContextTest extends AbstractJokerTest
 
         for ( int i = 0; i < 10; i++ )
         {
-            metrics.sample( threadMXBean );
+            metricsCtx.sample( threadMXBean );
         }
 
-        metrics.update( new long[ REPLICA_COUNT ], 10 );
+        metricsCtx.update( new long[ REPLICA_COUNT ], 10 );
 
         for ( int i = 0; i < 10; i++ )
         {
-            metrics.sample( threadMXBean );
+            metricsCtx.sample( threadMXBean );
         }
 
-        final PipelineMetrics snapshot = metrics.update( new long[ REPLICA_COUNT ], 10 );
+        final PipelineMetrics metrics = metricsCtx.update( new long[ REPLICA_COUNT ], 10 );
 
-        assertEquals( 0.1, snapshot.getPipelineCost( 0 ), 0.01 );
-        assertEquals( 0.2, snapshot.getOperatorCost( 0, 0 ), 0.01 );
-        assertEquals( 0.3, snapshot.getOperatorCost( 0, 1 ), 0.01 );
-        assertEquals( 0.4, snapshot.getOperatorCost( 0, 2 ), 0.01 );
-        assertEquals( 0.4, snapshot.getPipelineCost( 1 ), 0.01 );
-        assertEquals( 0.3, snapshot.getOperatorCost( 1, 0 ), 0.01 );
-        assertEquals( 0.2, snapshot.getOperatorCost( 1, 1 ), 0.01 );
-        assertEquals( 0.1, snapshot.getOperatorCost( 1, 2 ), 0.01 );
+        assertEquals( 0.1, metrics.getPipelineCost( 0 ), 0.01 );
+        assertEquals( 0.2, metrics.getOperatorCost( 0, 0 ), 0.01 );
+        assertEquals( 0.3, metrics.getOperatorCost( 0, 1 ), 0.01 );
+        assertEquals( 0.4, metrics.getOperatorCost( 0, 2 ), 0.01 );
+        assertEquals( 0.4, metrics.getPipelineCost( 1 ), 0.01 );
+        assertEquals( 0.3, metrics.getOperatorCost( 1, 0 ), 0.01 );
+        assertEquals( 0.2, metrics.getOperatorCost( 1, 1 ), 0.01 );
+        assertEquals( 0.1, metrics.getOperatorCost( 1, 2 ), 0.01 );
     }
 
 }

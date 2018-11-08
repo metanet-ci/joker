@@ -33,7 +33,10 @@ import static cs.bilkent.joker.engine.config.MetricManagerConfig.TICK_MASK;
 import static cs.bilkent.joker.engine.config.MetricManagerConfig.WARMUP_ITERATIONS;
 import static cs.bilkent.joker.engine.config.PartitionServiceConfig.MAX_REPLICA_COUNT;
 import static cs.bilkent.joker.engine.config.PartitionServiceConfig.PARTITION_COUNT;
+import static cs.bilkent.joker.engine.config.PipelineManagerConfig.LATENCY_STAGE_TICK_MASK;
+import static cs.bilkent.joker.engine.config.PipelineManagerConfig.LATENCY_TICK_MASK;
 import static cs.bilkent.joker.engine.config.PipelineManagerConfig.RUNNER_COMMAND_TIMEOUT;
+import static cs.bilkent.joker.engine.config.PipelineReplicaRunnerConfig.ENFORCE_THREAD_AFFINITY;
 import static cs.bilkent.joker.engine.config.PipelineReplicaRunnerConfig.RUNNER_WAIT_TIMEOUT;
 import static cs.bilkent.joker.engine.config.TupleQueueDrainerConfig.MAX_BATCH_SIZE;
 import static cs.bilkent.joker.engine.config.TupleQueueManagerConfig.TUPLE_QUEUE_CAPACITY;
@@ -451,6 +454,22 @@ public class JokerConfigBuilder
             return this;
         }
 
+
+        public PipelineManagerConfigBuilder setLatencyTickMask ( final long val )
+        {
+            pipelineManagerConfigVals.put( LATENCY_TICK_MASK, val );
+
+            return this;
+        }
+
+
+        public PipelineManagerConfigBuilder setLatencyStageTickMask ( final long val )
+        {
+            pipelineManagerConfigVals.put( LATENCY_STAGE_TICK_MASK, val );
+
+            return this;
+        }
+
     }
 
 
@@ -464,6 +483,13 @@ public class JokerConfigBuilder
         public PipelineReplicaRunnerConfigBuilder setRunnerWaitTimeoutInMillis ( final long val )
         {
             pipelineReplicaRunnerConfigVals.put( RUNNER_WAIT_TIMEOUT, val );
+
+            return this;
+        }
+
+        public PipelineReplicaRunnerConfigBuilder enforceThreadAffinity ( final boolean val )
+        {
+            pipelineReplicaRunnerConfigVals.put( ENFORCE_THREAD_AFFINITY, val );
 
             return this;
         }

@@ -4,7 +4,6 @@ import java.lang.management.ThreadMXBean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.codahale.metrics.Snapshot;
 
 import cs.bilkent.joker.engine.metric.PipelineMeter;
 import static cs.bilkent.joker.engine.metric.PipelineMeter.NO_OPERATOR_INDEX;
@@ -126,7 +125,6 @@ class PipelineMetricsContext
         updateThreadUtilizationRatios( newReplicaCpuTimes, systemTimeDiff, builder );
         updateCosts( builder );
         updateThroughputs( builder );
-        updateThroughputHistograms( builder );
 
         return builder.build();
     }
@@ -213,15 +211,6 @@ class PipelineMetricsContext
             }
 
             arraycopy( newInboundThroughputs, 0, currInboundThroughputs, 0, inputPortCount );
-        }
-    }
-
-    private void updateThroughputHistograms ( final PipelineMetricsBuilder builder )
-    {
-        for ( int replicaIndex = 0; replicaIndex < pipelineMeter.getReplicaCount(); replicaIndex++ )
-        {
-            final Snapshot[] histograms = pipelineMeter.getInboundThroughputHistograms( replicaIndex );
-            builder.setInboundThroughputHistogramSnapshots( replicaIndex, histograms );
         }
     }
 

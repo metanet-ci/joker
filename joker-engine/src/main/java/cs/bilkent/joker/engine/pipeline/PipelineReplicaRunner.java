@@ -1,7 +1,8 @@
 package cs.bilkent.joker.engine.pipeline;
 
+import java.io.Closeable;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +20,8 @@ import static cs.bilkent.joker.engine.pipeline.PipelineReplicaRunner.PipelineRep
 import cs.bilkent.joker.engine.supervisor.Supervisor;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import static java.lang.Boolean.TRUE;
+import net.openhft.affinity.AffinityLock;
+import static net.openhft.affinity.AffinityLock.acquireLock;
 
 public class PipelineReplicaRunner implements Runnable
 {
@@ -42,8 +45,9 @@ public class PipelineReplicaRunner implements Runnable
 
     private final Supervisor supervisor;
 
-    private Consumer<TuplesImpl> downstream;
+    private DownstreamCollector downstream;
 
+    private final Supplier<Closeable> affinityLockSupplier;
 
     private PipelineReplicaRunnerStatus status = RUNNING;
 
@@ -60,6 +64,15 @@ public class PipelineReplicaRunner implements Runnable
         this.waitTimeoutInMillis = config.getPipelineReplicaRunnerConfig().getRunnerWaitTimeoutInMillis();
         this.supervisor = supervisor;
         this.downstream = downstreamCollector;
+        this.affinityLockSupplier = config.getPipelineReplicaRunnerConfig().shouldEnforceThreadAffinity() ? () -> {
+            final AffinityLock lock = acquireLock();
+            LOGGER.warn( "{} is BIND to {}", id, lock );
+            return lock;
+        } : () -> {
+            LOGGER.warn( "{} is NOT BIND to any socket / core / cpu." );
+            return () -> {
+            };
+        };
     }
 
     public PipelineReplicaRunnerStatus getStatus ()
@@ -352,8 +365,11 @@ public class PipelineReplicaRunner implements Runnable
         return result;
     }
 
+    @Override
     public void run ()
     {
+        final Closeable closeable = affinityLockSupplier.get();
+
         try
         {
             while ( true )
@@ -395,6 +411,17 @@ public class PipelineReplicaRunner implements Runnable
         catch ( Exception e )
         {
             completeRunWithFailure( e );
+        }
+        finally
+        {
+            try
+            {
+                closeable.close();
+            }
+            catch ( Exception e )
+            {
+                LOGGER.warn( "could not close the affinity lock!", e );
+            }
         }
 
         if ( status == COMPLETED )
@@ -495,7 +522,6 @@ public class PipelineReplicaRunner implements Runnable
     private void completeRun ()
     {
         LOGGER.info( "{}: completing the run", id );
-
         LOGGER.info( "{}: all downstream tuples are sent", id );
 
         if ( pipeline.isCompleted() )

@@ -32,8 +32,8 @@ import static cs.bilkent.joker.operator.InvocationCtx.InvocationReason.SUCCESS;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuple.LatencyRecord;
-import static cs.bilkent.joker.operator.Tuple.LatencyRecord.newInvocationLatency;
+import cs.bilkent.joker.operator.Tuple.LatencyStage;
+import static cs.bilkent.joker.operator.Tuple.LatencyStage.newInvocationLatency;
 import cs.bilkent.joker.operator.impl.DefaultInvocationCtx;
 import cs.bilkent.joker.operator.impl.InitCtxImpl;
 import cs.bilkent.joker.operator.impl.InternalInvocationCtx;
@@ -456,15 +456,15 @@ public class OperatorReplica
         invocationCtx.setInvocationReason( reason );
         meter.onInvocationStart( operatorDef.getId() );
 
-        final LatencyRecord latencyRec = newInvocationLatency( operatorDef.getId(), System.nanoTime() );
-        invocationCtx.setInvocationLatencyRecord( latencyRec );
+        final LatencyStage latencyStage = newInvocationLatency( operatorDef.getId(), System.nanoTime() );
+        invocationCtx.setInvocationLatencyStage( latencyStage );
 
         do
         {
             operator.invoke( invocationCtx );
         } while ( invocationCtx.nextInput() );
 
-        latencyRec.setEnd( System.nanoTime() );
+        latencyStage.setEnd( System.nanoTime() );
 
         meter.onInvocationComplete( operatorDef.getId() );
         meter.count( operatorDef.getId(), invocationCtx.getInputs(), invocationCtx.getInputCount() );

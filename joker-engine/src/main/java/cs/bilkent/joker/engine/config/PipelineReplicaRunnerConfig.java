@@ -9,13 +9,18 @@ public class PipelineReplicaRunnerConfig
 
     static final String RUNNER_WAIT_TIMEOUT = "runnerWaitTimeoutInMillis";
 
+    static final String ENFORCE_THREAD_AFFINITY = "enforceThreadAffinity";
+
 
     private final long runnerWaitTimeoutInMillis;
+
+    private final boolean enforceThreadAffinity;
 
     PipelineReplicaRunnerConfig ( final Config parentConfig )
     {
         final Config config = parentConfig.getConfig( CONFIG_NAME );
         this.runnerWaitTimeoutInMillis = config.getLong( RUNNER_WAIT_TIMEOUT );
+        this.enforceThreadAffinity = config.getBoolean( ENFORCE_THREAD_AFFINITY );
     }
 
     public long getRunnerWaitTimeoutInMillis ()
@@ -23,10 +28,16 @@ public class PipelineReplicaRunnerConfig
         return runnerWaitTimeoutInMillis;
     }
 
+    public boolean shouldEnforceThreadAffinity ()
+    {
+        return enforceThreadAffinity;
+    }
+
     @Override
     public String toString ()
     {
-        return "PipelineReplicaRunnerConfig{" + "runnerWaitTimeoutInMillis=" + runnerWaitTimeoutInMillis + '}';
+        return "PipelineReplicaRunnerConfig{" + "runnerWaitTimeoutInMillis=" + runnerWaitTimeoutInMillis + ", enforceThreadAffinity="
+               + enforceThreadAffinity + '}';
     }
 
 }

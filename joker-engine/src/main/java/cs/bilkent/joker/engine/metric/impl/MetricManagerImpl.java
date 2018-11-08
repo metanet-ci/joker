@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -33,7 +32,6 @@ import com.codahale.metrics.CsvReporter;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.SlidingTimeWindowReservoir;
 import com.codahale.metrics.Snapshot;
 import com.google.common.base.Joiner;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -64,6 +62,7 @@ import static java.util.concurrent.Executors.newScheduledThreadPool;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Collectors.toSet;
 
 @Singleton
 public class MetricManagerImpl implements MetricManager
@@ -182,22 +181,13 @@ public class MetricManagerImpl implements MetricManager
         {
             checkState( !scheduler.isShutdown() );
 
-            final Supplier<Histogram> histogramCtor = () -> {
-                final long period = metricManagerConfig.getPipelineMetricsScanningPeriodInMillis();
-                return new Histogram( new SlidingTimeWindowReservoir( period, MILLISECONDS ) );
-            };
+            final Set<String> operatorIds = flow.getOperators()
+                                                .stream()
+                                                .filter( op -> !flow.getSourceOperators().contains( op ) )
+                                                .map( OperatorDef::getId )
+                                                .collect( toSet() );
 
-            final Map<String, Histogram> invocations = new HashMap<>();
-            final Map<String, Histogram> queues = new HashMap<>();
-            final Set<OperatorDef> operators = new HashSet<>( flow.getOperators() );
-            operators.removeAll( flow.getSourceOperators() );
-            for ( OperatorDef operator : operators )
-            {
-                invocations.put( operator.getId(), histogramCtor.get() );
-                queues.put( operator.getId(), histogramCtor.get() );
-            }
-
-            final LatencyMeter latencyMeter = new LatencyMeter( sinkOperatorId, replicaIndex, invocations, queues, histogramCtor.get() );
+            final LatencyMeter latencyMeter = new LatencyMeter( sinkOperatorId, replicaIndex, operatorIds );
             latencyMeters.put( latencyMeter.getKey(), latencyMeter );
             LOGGER.info( "Created {}", latencyMeter );
 
@@ -627,32 +617,20 @@ public class MetricManagerImpl implements MetricManager
 
         private void logMetrics ( final long timeSpent )
         {
-            final PipelineMetricsVisitor logVisitor = ( pipelineReplicaId, flowVersion, inboundThroughput, threadUtilizationRatio, pipelineCost, operatorCosts, inboundThroughputHistograms ) -> {
+            final PipelineMetricsVisitor logVisitor = ( pipelineReplicaId, flowVersion, inboundThroughput, threadUtilizationRatio,
+                                                        pipelineCost, operatorCosts ) -> {
                 final double cpuUsage = threadUtilizationRatio / numberOfCores;
-                final long[] avgs = Arrays.stream( inboundThroughputHistograms ).mapToLong( s -> (long) s.getMean() ).toArray();
-                final long[] stdDevs = Arrays.stream( inboundThroughputHistograms ).mapToLong( s -> (long) s.getStdDev() ).toArray();
-                final long[] maxes = Arrays.stream( inboundThroughputHistograms ).mapToLong( Snapshot::getMax ).toArray();
-                final long[] percentile75s = Arrays.stream( inboundThroughputHistograms )
-                                                   .mapToLong( s -> (long) s.get75thPercentile() )
-                                                   .toArray();
-                final long[] percentile99s = Arrays.stream( inboundThroughputHistograms )
-                                                   .mapToLong( s -> (long) s.get99thPercentile() )
-                                                   .toArray();
+
                 final String log = String.format(
                         "%s -> flow version: %d thread utilization: %.3f cpu usage: %.3f throughput: %s pipeline cost: %s operator costs:"
-                        + " %s avg: %s std dev: %s max: %s .75: %s .99: %s",
+                        + " %s",
                         pipelineReplicaId,
                         flowVersion,
                         threadUtilizationRatio,
                         cpuUsage,
                         Arrays.toString( inboundThroughput ),
                         pipelineCost,
-                        Arrays.toString( operatorCosts ),
-                        Arrays.toString( avgs ),
-                        Arrays.toString( stdDevs ),
-                        Arrays.toString( maxes ),
-                        Arrays.toString( percentile75s ),
-                        Arrays.toString( percentile99s ) );
+                        Arrays.toString( operatorCosts ) );
                 LOGGER.info( log );
             };
 
@@ -672,7 +650,7 @@ public class MetricManagerImpl implements MetricManager
                 final LatencyRecord tupleLatency = latest.getTupleLatency();
                 LOGGER.info(
                         "TUPLE LATENCIES FOR SINK: {} -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .98: {} .99: {} "
-                        + ".999: " + "{} HISTORICAL MEAN: {}",
+                        + " HISTORICAL MEAN: {}",
                         key,
                         tupleLatency.getMin(),
                         tupleLatency.getMax(),
@@ -683,7 +661,6 @@ public class MetricManagerImpl implements MetricManager
                         tupleLatency.getPercentile95(),
                         tupleLatency.getPercentile98(),
                         tupleLatency.getPercentile99(),
-                        tupleLatency.getPercentile999(),
                         latencyMetricsHistory.getMeanTupleLatency() );
 
                 for ( String operatorId : latest.getInvocationLatencies().keySet() )
@@ -695,8 +672,7 @@ public class MetricManagerImpl implements MetricManager
                     {
                         LOGGER.info(
                                 "SINK: {} Queue Latency: {} -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .98: {} "
-                                + ".99: {} "
-                                + ".999: " + "{} HISTORICAL MEAN: {}",
+                                + ".99: {} HISTORICAL MEAN: {}",
                                 key,
                                 operatorId,
                                 queueLatency.getMin(),
@@ -708,14 +684,12 @@ public class MetricManagerImpl implements MetricManager
                                 queueLatency.getPercentile95(),
                                 queueLatency.getPercentile98(),
                                 queueLatency.getPercentile99(),
-                                queueLatency.getPercentile999(),
                                 latencyMetricsHistory.getMeanQueueLatency( operatorId ) );
                     }
 
                     LOGGER.info(
                             "SINK: {} Invocation Latency: {} -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .98: {} "
-                            + ".99: {} "
-                            + ".999: " + "{} HISTORICAL MEAN: {}",
+                            + ".99: {} HISTORICAL MEAN: {}",
                             key,
                             operatorId,
                             invocationLatency.getMin(),
@@ -727,7 +701,6 @@ public class MetricManagerImpl implements MetricManager
                             invocationLatency.getPercentile95(),
                             invocationLatency.getPercentile98(),
                             invocationLatency.getPercentile99(),
-                            invocationLatency.getPercentile999(),
                             latencyMetricsHistory.getMeanInvocationLatency( operatorId ) );
                 }
             }
