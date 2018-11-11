@@ -61,8 +61,6 @@ public class PipelineReplica
 
     private UpstreamCtx upstreamCtx;
 
-    private boolean drainerMaySkipBlocking = true;
-
     private long lastQueueSizeReportTime = System.nanoTime();
 
     private SimpleHistogram queueSizeTracker = new SimpleHistogram( 4096 );
@@ -185,28 +183,26 @@ public class PipelineReplica
 
     public TuplesImpl invoke ()
     {
-        meter.tryTick();
-        measureEffectiveQueueSize();
+        tick();
 
         inputTuplesSupplier.reset();
-        queue.drain( drainerMaySkipBlocking, drainer, inputTuplesSupplier );
+        queue.drain( drainer, inputTuplesSupplier );
 
-        TuplesImpl tuples = operators[ 0 ].invoke( drainerMaySkipBlocking, inputTuplesSupplier.getTuples(), upstreamCtx );
-        boolean invoked = ( tuples != null );
-        // TODO we can put if (invoked) check here. if the first operator is not invoked, the remaining must not be invoked as well...
-        for ( int i = 1; i < operators.length; i++ )
+        TuplesImpl tuples = operators[ 0 ].invoke( inputTuplesSupplier.getTuples(), upstreamCtx );
+        if ( tuples != null || upstreamCtx.isNotInitial() )
         {
-            tuples = operators[ i ].invoke( drainerMaySkipBlocking, tuples, operators[ i - 1 ].getDownstreamCtx() );
+            for ( int i = 1; i < operators.length; i++ )
+            {
+                tuples = operators[ i ].invoke( tuples, operators[ i - 1 ].getDownstreamCtx() );
+            }
         }
-
-        drainerMaySkipBlocking = invoked;
 
         return tuples;
     }
 
-    private void measureEffectiveQueueSize ()
+    private void tick ()
     {
-        if ( meter.isTicked() )
+        if ( meter.tryTick() )
         {
             final OperatorQueue effectiveQueue = getEffectiveQueue();
             if ( effectiveQueue instanceof DefaultOperatorQueue )
@@ -231,11 +227,6 @@ public class PipelineReplica
                 }
             }
         }
-    }
-
-    public boolean isInvoked ()
-    {
-        return drainerMaySkipBlocking;
     }
 
     public void shutdown ()

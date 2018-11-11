@@ -59,14 +59,14 @@ public abstract class MultiPortDrainer implements TupleQueueDrainer
     }
 
     @Override
-    public boolean drain ( final boolean maySkipBlocking, final PartitionKey key, final TupleQueue[] queues,
+    public boolean drain ( final PartitionKey key, final TupleQueue[] queues,
                            final Function<PartitionKey, TuplesImpl> tuplesSupplier )
     {
         checkArgument( queues != null );
         checkArgument( queues.length == inputPortCount );
         checkArgument( tuplesSupplier != null );
 
-        final int[] tupleCounts = checkQueueSizes( maySkipBlocking, queues );
+        final int[] tupleCounts = checkQueueSizes( queues );
         if ( tupleCounts == null )
         {
             return false;
@@ -94,6 +94,6 @@ public abstract class MultiPortDrainer implements TupleQueueDrainer
         return true;
     }
 
-    protected abstract int[] checkQueueSizes ( boolean maySkipBlocking, TupleQueue[] tupleQueues );
+    protected abstract int[] checkQueueSizes ( TupleQueue[] tupleQueues );
 
 }

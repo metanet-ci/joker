@@ -395,8 +395,9 @@ public class PipelineReplicaRunner implements Runnable
                 }
                 else if ( status == COMPLETED )
                 {
-                    sendToDownstream( pipeline.invoke() );
-                    if ( !pipeline.isInvoked() )
+                    final TuplesImpl output = pipeline.invoke();
+                    sendToDownstream( output );
+                    if ( output == null )
                     {
                         completeRun();
                         break;

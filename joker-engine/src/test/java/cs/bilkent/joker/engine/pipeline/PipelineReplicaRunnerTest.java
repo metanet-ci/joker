@@ -31,7 +31,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
@@ -227,7 +226,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
         final TuplesImpl output = new TuplesImpl( 1 );
         output.add( new Tuple() );
 
-        when( operator.invoke( anyBoolean(), anyObject(), anyObject() ) ).thenAnswer( invocation -> {
+        when( operator.invoke( anyObject(), anyObject() ) ).thenAnswer( invocation -> {
             invocationStartLatch.countDown();
             invocationDoneLatch.await( 2, TimeUnit.MINUTES );
             return output;
@@ -327,7 +326,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
         final TuplesImpl output2 = new TuplesImpl( inputOutputPortCount );
         output2.add( Tuple.of( "k2", "v2" ) );
 
-        when( operator.invoke( anyBoolean(), anyObject(), anyObject() ) ).thenReturn( output1, output2 );
+        when( operator.invoke( anyObject(), anyObject() ) ).thenReturn( output1, output2 );
 
         thread.start();
 
@@ -344,7 +343,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
     public void shouldCompleteRunningWhenPipelineFailsDuringInvocations ()
     {
         final RuntimeException failure = new RuntimeException( "expected" );
-        when( operator.invoke( anyBoolean(), anyObject(), anyObject() ) ).thenThrow( failure );
+        when( operator.invoke( anyObject(), anyObject() ) ).thenThrow( failure );
 
         thread.start();
 

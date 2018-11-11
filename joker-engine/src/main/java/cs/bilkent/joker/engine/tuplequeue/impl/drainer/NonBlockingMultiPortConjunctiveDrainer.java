@@ -11,7 +11,7 @@ public class NonBlockingMultiPortConjunctiveDrainer extends MultiPortDrainer
         super( operatorId, inputPortCount, maxBatchSize );
     }
 
-    protected int[] checkQueueSizes ( final boolean maySkipBlocking, final TupleQueue[] tupleQueues )
+    protected int[] checkQueueSizes ( final TupleQueue[] tupleQueues )
     {
         int satisfied = 0;
         for ( int i = 0; i < limit; i += 2 )

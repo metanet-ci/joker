@@ -20,7 +20,7 @@ public class GreedyDrainer implements TupleQueueDrainer
 
 
     @Override
-    public boolean drain ( final boolean maySkipBlocking, final PartitionKey key, final TupleQueue[] queues,
+    public boolean drain ( final PartitionKey key, final TupleQueue[] queues,
                            final Function<PartitionKey, TuplesImpl> tuplesSupplier )
     {
         checkArgument( queues != null );

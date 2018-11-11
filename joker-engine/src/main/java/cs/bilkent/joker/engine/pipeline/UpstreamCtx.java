@@ -26,7 +26,7 @@ public class UpstreamCtx
 
     private static final Logger LOGGER = LoggerFactory.getLogger( UpstreamCtx.class );
 
-    public static final int INITIAL_VERSION = 0;
+    static final int INITIAL_VERSION = 0;
 
 
     public enum ConnectionStatus
@@ -35,7 +35,7 @@ public class UpstreamCtx
     }
 
 
-    public static UpstreamCtx creatInitialSourceUpstreamCtx ()
+    public static UpstreamCtx createInitialSourceUpstreamCtx ()
     {
         return new UpstreamCtx( INITIAL_VERSION, new ConnectionStatus[ 0 ] );
     }

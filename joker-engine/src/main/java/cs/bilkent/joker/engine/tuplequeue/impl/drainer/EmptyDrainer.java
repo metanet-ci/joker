@@ -12,7 +12,7 @@ public class EmptyDrainer implements TupleQueueDrainer
 {
 
     @Override
-    public boolean drain ( final boolean maySkipBlocking, @Nullable final PartitionKey key, final TupleQueue[] queues,
+    public boolean drain ( @Nullable final PartitionKey key, final TupleQueue[] queues,
                            final Function<PartitionKey, TuplesImpl> tuplesSupplier )
     {
         tuplesSupplier.apply( key );

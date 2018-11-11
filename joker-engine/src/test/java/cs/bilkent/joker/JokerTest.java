@@ -130,7 +130,7 @@ public class JokerTest extends AbstractJokerTest
 
         joker.run( ex.flow );
 
-        sleepUninterruptibly( 300, SECONDS );
+        sleepUninterruptibly( 60, SECONDS );
 
         System.out.println( "Value generator 1 is invoked " + ex.valueGenerator1.invocationCount.get() + " times." );
         System.out.println( "Value generator 2 is invoked " + ex.valueGenerator2.invocationCount.get() + " times." );
@@ -215,7 +215,7 @@ public class JokerTest extends AbstractJokerTest
         sleepUninterruptibly( 15, SECONDS );
 
         final RegionExecPlan regionExecPlan = flowExecPlan.getRegionExecPlan( ex.join.getId() );
-        joker.splitPipeline( flowExecPlan.getVersion(), regionExecPlan.getPipelineIds().get( 0 ), asList( 1, 2 ) ).get( 15, SECONDS );
+        joker.splitPipeline( flowExecPlan.getVersion(), regionExecPlan.getPipelineIds().get( 0 ), asList( 1, 2 ) ).get( 60, SECONDS );
 
         sleepUninterruptibly( 15, SECONDS );
 
@@ -720,9 +720,9 @@ public class JokerTest extends AbstractJokerTest
     private static class FlowExample1
     {
 
-        final ValueGenerator2 valueGenerator1 = new ValueGenerator2( KEY_RANGE, VALUE_RANGE );
+        final ValueGenerator valueGenerator1 = new ValueGenerator( KEY_RANGE, VALUE_RANGE );
 
-        final ValueGenerator2 valueGenerator2 = new ValueGenerator2( KEY_RANGE, VALUE_RANGE );
+        final ValueGenerator valueGenerator2 = new ValueGenerator( KEY_RANGE, VALUE_RANGE );
 
         final ValueCollector valueCollector = new ValueCollector( "valueCollector", KEY_RANGE );
 

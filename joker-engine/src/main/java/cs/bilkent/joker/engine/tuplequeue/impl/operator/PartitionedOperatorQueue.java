@@ -130,8 +130,7 @@ public class PartitionedOperatorQueue implements OperatorQueue
     }
 
     @Override
-    public void drain ( final boolean maySkipBlocking,
-                        final TupleQueueDrainer drainer,
+    public void drain ( final TupleQueueDrainer drainer,
                         final Function<PartitionKey, TuplesImpl> tuplesSupplier )
     {
         if ( drainer instanceof GreedyDrainer )
@@ -140,7 +139,7 @@ public class PartitionedOperatorQueue implements OperatorQueue
             while ( it.hasNext() )
             {
                 final PartitionKey key = it.next();
-                drainer.drain( maySkipBlocking, key, getTupleQueues( key ), tuplesSupplier );
+                drainer.drain( key, getTupleQueues( key ), tuplesSupplier );
                 it.remove();
                 drainableKeys.remove( key );
             }
@@ -161,7 +160,7 @@ public class PartitionedOperatorQueue implements OperatorQueue
                 final TupleQueue[] tupleQueues = getTupleQueues( key );
                 while ( true )
                 {
-                    if ( !drainer.drain( maySkipBlocking, key, tupleQueues, tuplesSupplier ) )
+                    if ( !drainer.drain( key, tupleQueues, tuplesSupplier ) )
                     {
                         break;
                     }

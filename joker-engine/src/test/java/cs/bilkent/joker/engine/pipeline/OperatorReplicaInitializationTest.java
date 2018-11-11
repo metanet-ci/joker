@@ -10,8 +10,8 @@ import static cs.bilkent.joker.engine.config.ThreadingPref.SINGLE_THREADED;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
 import cs.bilkent.joker.engine.pipeline.UpstreamCtx.ConnectionStatus;
-import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.creatInitialSourceUpstreamCtx;
 import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createInitialClosedUpstreamCtx;
+import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createInitialSourceUpstreamCtx;
 import cs.bilkent.joker.engine.pipeline.impl.invocation.DefaultOutputCollector;
 import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedInvocationCtx;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
@@ -180,7 +180,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
                                                operatorDefs,
                                                invocationCtxes );
 
-        final UpstreamCtx statefulUpstreamCtx = creatInitialSourceUpstreamCtx();
+        final UpstreamCtx statefulUpstreamCtx = createInitialSourceUpstreamCtx();
         final UpstreamCtx filterUpstreamCtx = createInitialClosedUpstreamCtx( 1 );
         final UpstreamCtx mapperUpstreamCtx = createInitialClosedUpstreamCtx( 1 );
         final UpstreamCtx mapperDownstreamCtx = UpstreamCtx.createInitialUpstreamCtx( ConnectionStatus.OPEN );

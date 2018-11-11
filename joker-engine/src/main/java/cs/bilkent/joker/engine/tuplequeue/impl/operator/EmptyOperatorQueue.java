@@ -64,11 +64,10 @@ public class EmptyOperatorQueue implements OperatorQueue
     }
 
     @Override
-    public void drain ( final boolean maySkipBlocking,
-                        final TupleQueueDrainer drainer,
+    public void drain ( final TupleQueueDrainer drainer,
                         final Function<PartitionKey, TuplesImpl> tuplesSupplier )
     {
-        drainer.drain( maySkipBlocking, null, tupleQueues, tuplesSupplier );
+        drainer.drain( null, tupleQueues, tuplesSupplier );
     }
 
     @Override

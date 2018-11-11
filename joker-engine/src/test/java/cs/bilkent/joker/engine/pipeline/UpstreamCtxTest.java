@@ -7,8 +7,8 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.ConnectionStatus.CLOSED;
 import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.ConnectionStatus.OPEN;
-import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.creatInitialSourceUpstreamCtx;
 import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createInitialClosedUpstreamCtx;
+import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createInitialSourceUpstreamCtx;
 import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createShutdownSourceUpstreamCtx;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
@@ -33,7 +33,7 @@ public class UpstreamCtxTest extends AbstractJokerTest
     @Test
     public void shouldVerifyInitializableWhenScheduleWhenAvailableWithZeroInputPortOperator ()
     {
-        upstreamCtx = creatInitialSourceUpstreamCtx();
+        upstreamCtx = createInitialSourceUpstreamCtx();
 
         upstreamCtx.verifyInitializable( operatorDef, ScheduleWhenAvailable.INSTANCE );
     }
@@ -49,7 +49,7 @@ public class UpstreamCtxTest extends AbstractJokerTest
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotVerifyInitializableWhenScheduleWhenAvailableWithNonZeroInputPortOperator ()
     {
-        upstreamCtx = creatInitialSourceUpstreamCtx();
+        upstreamCtx = createInitialSourceUpstreamCtx();
         when( operatorDef.getInputPortCount() ).thenReturn( 1 );
 
         upstreamCtx.verifyInitializable( operatorDef, ScheduleWhenAvailable.INSTANCE );
@@ -58,7 +58,7 @@ public class UpstreamCtxTest extends AbstractJokerTest
     @Test( expected = IllegalArgumentException.class )
     public void shouldNotVerifyInitializableWhenTuplesRequestedForZeroInputPortOperator ()
     {
-        upstreamCtx = creatInitialSourceUpstreamCtx();
+        upstreamCtx = createInitialSourceUpstreamCtx();
         final SchedulingStrategy strategy = scheduleWhenTuplesAvailableOnAll( AT_LEAST, 2, 1, 0, 1 );
 
         upstreamCtx.verifyInitializable( operatorDef, strategy );
@@ -176,7 +176,7 @@ public class UpstreamCtxTest extends AbstractJokerTest
     @Test
     public void shouldBeInvokableWhenVersionIsZeroForScheduleWhenAvailableForZeroInputPortOperator ()
     {
-        upstreamCtx = creatInitialSourceUpstreamCtx();
+        upstreamCtx = createInitialSourceUpstreamCtx();
 
         assertTrue( upstreamCtx.isInvokable( operatorDef, ScheduleWhenAvailable.INSTANCE ) );
     }

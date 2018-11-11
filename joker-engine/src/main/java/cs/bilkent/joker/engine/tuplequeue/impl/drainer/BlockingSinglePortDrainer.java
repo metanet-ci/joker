@@ -22,7 +22,7 @@ public class BlockingSinglePortDrainer extends SinglePortDrainer
     }
 
     @Override
-    public boolean drain ( final boolean maySkipBlocking, final PartitionKey key, final TupleQueue[] queues,
+    public boolean drain ( final PartitionKey key, final TupleQueue[] queues,
                            final Function<PartitionKey, TuplesImpl> tuplesSupplier )
     {
         checkArgument( queues != null );
@@ -31,7 +31,7 @@ public class BlockingSinglePortDrainer extends SinglePortDrainer
 
         idleStrategy.reset();
         final TupleQueue tupleQueue = queues[ 0 ];
-        boolean idle = maySkipBlocking;
+        boolean idle = false;
 
         while ( tupleQueue.size() < tupleCountToCheck )
         {

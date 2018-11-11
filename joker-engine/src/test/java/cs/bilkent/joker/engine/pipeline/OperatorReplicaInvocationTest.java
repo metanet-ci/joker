@@ -18,8 +18,8 @@ import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETING;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.RUNNING;
 import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.ConnectionStatus.CLOSED;
 import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.ConnectionStatus.OPEN;
-import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.creatInitialSourceUpstreamCtx;
 import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createInitialClosedUpstreamCtx;
+import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createInitialSourceUpstreamCtx;
 import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createShutdownSourceUpstreamCtx;
 import cs.bilkent.joker.engine.pipeline.impl.invocation.DefaultOutputCollector;
 import cs.bilkent.joker.engine.pipeline.impl.invocation.FusedInvocationCtx;
@@ -105,7 +105,7 @@ public class OperatorReplicaInvocationTest extends AbstractJokerTest
         final TuplesImpl input = new TuplesImpl( 1 );
         input.add( tuple1, tuple2 );
 
-        final TuplesImpl output = operatorReplica.invoke( true, input, statefulUpstreamCtx.withConnectionClosed( 0 ) );
+        final TuplesImpl output = operatorReplica.invoke( input, statefulUpstreamCtx.withConnectionClosed( 0 ) );
 
         assertThat( operator.getLastInvocationReason(), equalTo( SUCCESS ) );
         assertNotNull( output );
@@ -161,7 +161,7 @@ public class OperatorReplicaInvocationTest extends AbstractJokerTest
         final TuplesImpl input = new TuplesImpl( 1 );
         input.add( tuple1 );
 
-        TuplesImpl output = operatorReplica.invoke( true, input, statefulUpstreamCtx );
+        TuplesImpl output = operatorReplica.invoke( input, statefulUpstreamCtx );
 
         assertNull( output );
         assertNull( operator.getLastInvocationReason() );
@@ -171,7 +171,7 @@ public class OperatorReplicaInvocationTest extends AbstractJokerTest
         input.clear();
         input.add( tuple2 );
 
-        output = operatorReplica.invoke( true, input, statefulUpstreamCtx );
+        output = operatorReplica.invoke( input, statefulUpstreamCtx );
 
         assertThat( operator.getLastInvocationReason(), equalTo( SUCCESS ) );
         assertNotNull( output );
@@ -188,7 +188,7 @@ public class OperatorReplicaInvocationTest extends AbstractJokerTest
         input.clear();
         input.add( tuple3, tuple4 );
 
-        output = operatorReplica.invoke( true, input, statefulUpstreamCtx );
+        output = operatorReplica.invoke( input, statefulUpstreamCtx );
         assertNotNull( output );
         assertTrue( output.isEmpty() );
     }
@@ -230,7 +230,7 @@ public class OperatorReplicaInvocationTest extends AbstractJokerTest
         final TuplesImpl input = new TuplesImpl( 1 );
         input.add( tuple1 );
 
-        TuplesImpl output = operatorReplica.invoke( true, input, statefulUpstreamCtx.withConnectionClosed( 0 ) );
+        TuplesImpl output = operatorReplica.invoke( input, statefulUpstreamCtx.withConnectionClosed( 0 ) );
 
         assertThat( operator.getLastInvocationReason(), equalTo( INPUT_PORT_CLOSED ) );
         assertNotNull( output );
@@ -273,8 +273,8 @@ public class OperatorReplicaInvocationTest extends AbstractJokerTest
         input.add( tuple1 );
 
         final UpstreamCtx updatedUpstreamCtx = statefulUpstreamCtx.withConnectionClosed( 0 );
-        operatorReplica.invoke( true, input, updatedUpstreamCtx );
-        final TuplesImpl output = operatorReplica.invoke( true, null, updatedUpstreamCtx );
+        operatorReplica.invoke( input, updatedUpstreamCtx );
+        final TuplesImpl output = operatorReplica.invoke( null, updatedUpstreamCtx );
 
         assertNull( output );
         assertThat( operatorReplica.getStatus(), equalTo( COMPLETED ) );
@@ -301,7 +301,7 @@ public class OperatorReplicaInvocationTest extends AbstractJokerTest
                                                operatorDefs,
                                                invocationCtxes );
 
-        final UpstreamCtx statefulUpstreamCtx = creatInitialSourceUpstreamCtx();
+        final UpstreamCtx statefulUpstreamCtx = createInitialSourceUpstreamCtx();
         final UpstreamCtx statefulDownstreamCtx = UpstreamCtx.createInitialUpstreamCtx( OPEN );
 
         final UpstreamCtx[] upstreamCtxes = new UpstreamCtx[] { statefulUpstreamCtx };
@@ -310,7 +310,7 @@ public class OperatorReplicaInvocationTest extends AbstractJokerTest
 
         final Tuple expected = Tuple.of( "f", 1 );
 
-        final TuplesImpl output = operatorReplica.invoke( true, null, statefulUpstreamCtx );
+        final TuplesImpl output = operatorReplica.invoke( null, statefulUpstreamCtx );
 
         assertNotNull( output );
         assertThat( output.getTuples( 0 ), equalTo( singletonList( expected ) ) );
@@ -337,7 +337,7 @@ public class OperatorReplicaInvocationTest extends AbstractJokerTest
                                                operatorDefs,
                                                invocationCtxes );
 
-        final UpstreamCtx statefulUpstreamCtx = creatInitialSourceUpstreamCtx();
+        final UpstreamCtx statefulUpstreamCtx = createInitialSourceUpstreamCtx();
         final UpstreamCtx statefulDownstreamCtx = UpstreamCtx.createInitialUpstreamCtx( OPEN );
 
         final UpstreamCtx[] upstreamCtxes = new UpstreamCtx[] { statefulUpstreamCtx };
@@ -348,11 +348,11 @@ public class OperatorReplicaInvocationTest extends AbstractJokerTest
 
         final Tuple expected = Tuple.of( "f", 1 );
 
-        operatorReplica.invoke( true, null, createShutdownSourceUpstreamCtx() );
+        operatorReplica.invoke( null, createShutdownSourceUpstreamCtx() );
 
         operator.lastInvocationReason = null;
 
-        operatorReplica.invoke( true, null, createShutdownSourceUpstreamCtx() );
+        operatorReplica.invoke( null, createShutdownSourceUpstreamCtx() );
 
         assertNull( operator.getLastInvocationReason() );
     }
@@ -399,7 +399,7 @@ public class OperatorReplicaInvocationTest extends AbstractJokerTest
         input.add( 1, tuple1, tuple2 );
 
         final UpstreamCtx updatedUpstreamCtx = statefulUpstreamCtx.withConnectionClosed( 0 );
-        final TuplesImpl output = operatorReplica.invoke( true, input, updatedUpstreamCtx );
+        final TuplesImpl output = operatorReplica.invoke( input, updatedUpstreamCtx );
 
         assertNotNull( output );
         assertThat( output.getTuples( 0 ), equalTo( asList( tuple1, tuple2 ) ) );
@@ -444,7 +444,7 @@ public class OperatorReplicaInvocationTest extends AbstractJokerTest
         final StatefulOperator2 operator = (StatefulOperator2) operatorReplica.getOperator( 0 );
 
         final UpstreamCtx updatedUpstreamCtx = statefulUpstreamCtx.withConnectionClosed( 0 );
-        final TuplesImpl output = operatorReplica.invoke( true, null, updatedUpstreamCtx );
+        final TuplesImpl output = operatorReplica.invoke( null, updatedUpstreamCtx );
 
         assertNull( output );
         assertNull( operator.getLastInvocationReason() );

@@ -80,14 +80,12 @@ public class DefaultOperatorQueue implements OperatorQueue
     }
 
     @Override
-    public void drain ( final boolean maySkipBlocking,
-                        final TupleQueueDrainer drainer,
-                        final Function<PartitionKey, TuplesImpl> tuplesSupplier )
+    public void drain ( final TupleQueueDrainer drainer, final Function<PartitionKey, TuplesImpl> tuplesSupplier )
     {
-        if ( drainer.drain( maySkipBlocking, null, tupleQueues, tuplesSupplier ) )
+        if ( drainer.drain( null, tupleQueues, tuplesSupplier ) )
         {
             int count = 1;
-            while ( count++ < drainLimit && drainer.drain( true, null, tupleQueues, tuplesSupplier ) )
+            while ( count++ < drainLimit && drainer.drain( null, tupleQueues, tuplesSupplier ) )
             {
             }
         }

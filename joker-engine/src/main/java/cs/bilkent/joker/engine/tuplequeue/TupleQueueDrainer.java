@@ -13,22 +13,14 @@ import cs.bilkent.joker.partition.impl.PartitionKey;
 public interface TupleQueueDrainer
 {
 
-    default boolean drain ( @Nullable PartitionKey key, TupleQueue[] tupleQueues, Function<PartitionKey, TuplesImpl> tuplesSupplier )
-    {
-        return drain( false, key, tupleQueues, tuplesSupplier );
-    }
-
     /**
      * Drains tuple queues of which tuples have the given partition key
      *
-     * @param maySkipBlocking
-     *         a boolean flag to specify if the drainer may not block if it is a blocking drainer
      * @param key
      *         partition key of the tuples which reside in the given tuple queues. Allowed to be null if tuples do not have a partition key
      * @param queues
      *         tuple queues to be drained
      */
-    boolean drain ( boolean maySkipBlocking, @Nullable PartitionKey key, TupleQueue[] queues,
-                    Function<PartitionKey, TuplesImpl> tuplesSupplier );
+    boolean drain ( @Nullable PartitionKey key, TupleQueue[] queues, Function<PartitionKey, TuplesImpl> tuplesSupplier );
 
 }

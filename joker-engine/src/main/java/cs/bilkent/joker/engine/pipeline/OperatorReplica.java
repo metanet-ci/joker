@@ -301,9 +301,6 @@ public class OperatorReplica
      * - it performs the final invocation and moves the operator to {@link OperatorReplicaStatus#COMPLETED} status
      * if all input ports are closed.
      *
-     * @param drainerMaySkipBlocking
-     *         a boolean flag which is passed to drainer to specify if the drainer may not block for the current invocation if it is a
-     *         blocking drainer
      * @param upstreamInput
      *         input of the operator which is sent by the upstream operator
      * @param upstreamCtx
@@ -311,7 +308,7 @@ public class OperatorReplica
      *
      * @return output of the operator invocation
      */
-    public TuplesImpl invoke ( final boolean drainerMaySkipBlocking, final TuplesImpl upstreamInput, final UpstreamCtx upstreamCtx )
+    public TuplesImpl invoke ( final TuplesImpl upstreamInput, final UpstreamCtx upstreamCtx )
     {
         if ( status == COMPLETED )
         {
@@ -321,7 +318,7 @@ public class OperatorReplica
         checkState( status == RUNNING || status == COMPLETING, operatorName );
 
         offer( upstreamInput );
-        drainQueue( drainerMaySkipBlocking );
+        drainQueue();
 
         if ( status == RUNNING )
         {
@@ -349,7 +346,7 @@ public class OperatorReplica
                 setStatus( COMPLETING );
                 completionReason = INPUT_PORT_CLOSED;
                 setGreedyDrainerForCompletion();
-                drainQueue( drainerMaySkipBlocking );
+                drainQueue();
                 if ( invocationCtx.getInputCount() > 0 )
                 {
                     invokeOperators( INPUT_PORT_CLOSED );
@@ -394,10 +391,10 @@ public class OperatorReplica
         return lastInvocationCtx.getOutput();
     }
 
-    private void drainQueue ( final boolean drainerMaySkipBlocking )
+    private void drainQueue ()
     {
         resetInvocationCtxes();
-        queue.drain( drainerMaySkipBlocking, drainer, drainerTuplesSupplier );
+        queue.drain( drainer, drainerTuplesSupplier );
     }
 
     private void setGreedyDrainerForCompletion ()

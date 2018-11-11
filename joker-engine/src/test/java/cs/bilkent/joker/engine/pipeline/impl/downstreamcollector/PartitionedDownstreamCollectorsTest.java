@@ -142,8 +142,7 @@ public class PartitionedDownstreamCollectorsTest extends AbstractJokerTest
         }
 
         @Override
-        public void drain ( final boolean maySkipBlocking,
-                            final TupleQueueDrainer drainer,
+        public void drain ( final TupleQueueDrainer drainer,
                             final Function<PartitionKey, TuplesImpl> tuplesSupplier )
         {
 

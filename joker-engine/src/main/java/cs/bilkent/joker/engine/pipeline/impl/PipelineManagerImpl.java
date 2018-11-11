@@ -467,6 +467,8 @@ public class PipelineManagerImpl implements PipelineManager
 
         final PipelineId firstPipelineId = pipelineIds.get( 0 );
 
+        final Collection<Pipeline> upstreamPipelines = pauseUpstreamPipelines( getRegionDefOrFail( firstPipelineId.getRegionId() ) );
+
         stopAndReleasePipelines( pipelineIds );
 
         try
@@ -479,7 +481,10 @@ public class PipelineManagerImpl implements PipelineManager
             createDownstreamCollectors( flow, pipeline );
             recreateSinkDownstreamCollectors();
             pipeline.startPipelineReplicaRunners( jokerConfig, supervisor, jokerThreadGroup );
+
             incrementFlowVersion();
+
+            resumePipelines( upstreamPipelines );
         }
         catch ( Exception e )
         {
@@ -509,6 +514,8 @@ public class PipelineManagerImpl implements PipelineManager
                      flowVersion );
 
         regionManager.validatePipelineSplitParameters( pipelineIdToSplit, pipelineOperatorIndices );
+
+        final Collection<Pipeline> upstreamPipelines = pauseUpstreamPipelines( getRegionDefOrFail( pipelineIdToSplit.getRegionId() ) );
 
         stopAndReleasePipelines( singletonList( pipelineIdToSplit ) );
 
@@ -545,6 +552,8 @@ public class PipelineManagerImpl implements PipelineManager
             }
 
             incrementFlowVersion();
+
+            resumePipelines( upstreamPipelines );
         }
         catch ( Exception e )
         {

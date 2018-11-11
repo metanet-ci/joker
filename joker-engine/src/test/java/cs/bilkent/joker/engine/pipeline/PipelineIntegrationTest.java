@@ -25,8 +25,8 @@ import cs.bilkent.joker.engine.partition.PartitionDistribution;
 import cs.bilkent.joker.engine.partition.PartitionService;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
 import cs.bilkent.joker.engine.partition.impl.PartitionServiceImpl;
-import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.creatInitialSourceUpstreamCtx;
 import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createInitialClosedUpstreamCtx;
+import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createInitialSourceUpstreamCtx;
 import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createShutdownSourceUpstreamCtx;
 import cs.bilkent.joker.engine.pipeline.impl.invocation.DefaultOutputCollector;
 import cs.bilkent.joker.engine.supervisor.Supervisor;
@@ -366,7 +366,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         pipeline.init( new SchedulingStrategy[][] { { ScheduleWhenAvailable.INSTANCE },
                                                     { scheduleWhenTuplesAvailableOnDefaultPort( EXACT, passerBatchCount ) },
                                                     { scheduleWhenTuplesAvailableOnDefaultPort( EXACT, 1 ) } },
-                       new UpstreamCtx[][] { { creatInitialSourceUpstreamCtx() },
+                       new UpstreamCtx[][] { { createInitialSourceUpstreamCtx() },
                                              { createInitialClosedUpstreamCtx( 1 ) },
                                              { createInitialClosedUpstreamCtx( 1 ) } } );
 
@@ -528,8 +528,8 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     public void testMultiplePipelines_multipleInputPorts () throws InterruptedException
     {
         final SupervisorImpl supervisor = new SupervisorImpl();
-        supervisor.upstreamCtxes.put( pipelineReplicaId1, creatInitialSourceUpstreamCtx() );
-        supervisor.upstreamCtxes.put( pipelineReplicaId2, creatInitialSourceUpstreamCtx() );
+        supervisor.upstreamCtxes.put( pipelineReplicaId1, createInitialSourceUpstreamCtx() );
+        supervisor.upstreamCtxes.put( pipelineReplicaId2, createInitialSourceUpstreamCtx() );
         supervisor.upstreamCtxes.put( pipelineReplicaId3, createInitialClosedUpstreamCtx( 2 ) );
         supervisor.inputPortIndices.put( pipelineReplicaId1, 0 );
         supervisor.inputPortIndices.put( pipelineReplicaId2, 1 );
@@ -748,7 +748,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     public void testMultiplePipelines_partitionedStatefulDownstreamPipeline () throws InterruptedException
     {
         final SupervisorImpl supervisor = new SupervisorImpl();
-        supervisor.upstreamCtxes.put( pipelineReplicaId1, creatInitialSourceUpstreamCtx() );
+        supervisor.upstreamCtxes.put( pipelineReplicaId1, createInitialSourceUpstreamCtx() );
         supervisor.upstreamCtxes.put( pipelineReplicaId2, createInitialClosedUpstreamCtx( 1 ) );
         supervisor.inputPortIndices.put( pipelineReplicaId1, 0 );
         supervisor.inputPortIndices.put( pipelineReplicaId2, 0 );
