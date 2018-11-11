@@ -16,7 +16,10 @@ final class TupleLatencyUtils
     {
         for ( int i = fromIndex; i < tuples.size(); i++ )
         {
-            tuples.get( i ).setQueueOfferTime( timeSupplier );
+            if ( tuples.get( i ).setQueueOfferTime( timeSupplier ) )
+            {
+                return;
+            }
         }
     }
 

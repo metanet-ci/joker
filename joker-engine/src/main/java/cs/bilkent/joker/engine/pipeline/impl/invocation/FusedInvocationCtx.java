@@ -34,6 +34,8 @@ public class FusedInvocationCtx implements InternalInvocationCtx, OutputCollecto
 
     private LatencyStage latencyStage;
 
+    private boolean latencyStageRecorded;
+
     public FusedInvocationCtx ( final int inputPortCount,
                                 final Function<PartitionKey, KVStore> kvStoreSupplier,
                                 final OutputCollector outputCollector )
@@ -60,6 +62,7 @@ public class FusedInvocationCtx implements InternalInvocationCtx, OutputCollecto
         input.clear();
         outputCollector.clear();
         latencyStage = null;
+        latencyStageRecorded = false;
     }
 
     @Override
@@ -125,9 +128,9 @@ public class FusedInvocationCtx implements InternalInvocationCtx, OutputCollecto
     @Override
     public void output ( final Tuple tuple )
     {
-        if ( latencyStage != null )
+        if ( !latencyStageRecorded && latencyStage != null )
         {
-            tuple.recordInvocationLatency( latencyStage );
+            latencyStageRecorded = tuple.recordInvocationLatency( latencyStage );
         }
 
         outputCollector.add( tuple );
@@ -136,9 +139,9 @@ public class FusedInvocationCtx implements InternalInvocationCtx, OutputCollecto
     @Override
     public void output ( final int portIndex, final Tuple tuple )
     {
-        if ( latencyStage != null )
+        if ( !latencyStageRecorded && latencyStage != null )
         {
-            tuple.recordInvocationLatency( latencyStage );
+            latencyStageRecorded = tuple.recordInvocationLatency( latencyStage );
         }
 
         outputCollector.add( portIndex, tuple );

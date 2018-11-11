@@ -69,7 +69,7 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
     {
         final Tuple tuple = new Tuple();
 
-        tuple.setQueueOfferTime( 1 );
+        tuple.setQueueOfferTime( () -> 1 );
         tuple.recordQueueLatency( "op", 2 );
 
         assertNull( tuple.getLatencyStages() );

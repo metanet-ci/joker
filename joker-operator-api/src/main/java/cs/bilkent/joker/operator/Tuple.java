@@ -470,24 +470,16 @@ public final class Tuple implements Fields<String>
         return new Tuple( schema, values, ingestionTime, latencyStages );
     }
 
-    public void setQueueOfferTime ( final long queueOfferTime )
+    public boolean setQueueOfferTime ( final LongSupplier timeSupplier )
     {
         if ( isNotTrackingLatencyComps() )
         {
-            return;
-        }
-
-        this.queueOfferTime = queueOfferTime;
-    }
-
-    public void setQueueOfferTime ( final LongSupplier timeSupplier )
-    {
-        if ( isNotTrackingLatencyComps() )
-        {
-            return;
+            return false;
         }
 
         this.queueOfferTime = timeSupplier.getAsLong();
+
+        return true;
     }
 
     public void recordQueueLatency ( final String operatorId, final long now )
@@ -501,15 +493,16 @@ public final class Tuple implements Fields<String>
         queueOfferTime = INGESTION_TIME_NOT_ASSIGNED;
     }
 
-    public void recordInvocationLatency ( final LatencyStage latencyStage )
+    public boolean recordInvocationLatency ( final LatencyStage latencyStage )
     {
         checkArgument( latencyStage != null );
         if ( isNotTrackingLatencyComps() )
         {
-            return;
+            return false;
         }
 
         latencyStages.add( latencyStage );
+        return true;
     }
 
     private boolean isNotTrackingLatencyComps ()

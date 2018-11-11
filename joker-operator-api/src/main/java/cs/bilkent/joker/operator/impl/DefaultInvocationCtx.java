@@ -37,6 +37,8 @@ public class DefaultInvocationCtx implements InternalInvocationCtx
 
     private LatencyStage latencyStage;
 
+    private boolean latencyStageRecorded;
+
     public DefaultInvocationCtx ( final int inputPortCount, final Function<PartitionKey, KVStore> kvStoreSupplier, final TuplesImpl output )
     {
         this( inputPortCount, kvStoreSupplier, new OutputCollector()
@@ -98,6 +100,7 @@ public class DefaultInvocationCtx implements InternalInvocationCtx
         inputCount = 0;
         currentInput = 0;
         latencyStage = null;
+        latencyStageRecorded = false;
     }
 
     @Override
@@ -157,9 +160,9 @@ public class DefaultInvocationCtx implements InternalInvocationCtx
     @Override
     public void output ( final Tuple tuple )
     {
-        if ( latencyStage != null )
+        if ( !latencyStageRecorded && latencyStage != null )
         {
-            tuple.recordInvocationLatency( latencyStage );
+            latencyStageRecorded = tuple.recordInvocationLatency( latencyStage );
         }
 
         outputCollector.add( tuple );
@@ -168,9 +171,9 @@ public class DefaultInvocationCtx implements InternalInvocationCtx
     @Override
     public void output ( final int portIndex, final Tuple tuple )
     {
-        if ( latencyStage != null )
+        if ( !latencyStageRecorded && latencyStage != null )
         {
-            tuple.recordInvocationLatency( latencyStage );
+            latencyStageRecorded = tuple.recordInvocationLatency( latencyStage );
         }
 
         outputCollector.add( portIndex, tuple );
