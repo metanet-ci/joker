@@ -76,7 +76,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
         operatorReplica = new OperatorReplica( pipelineReplicaId,
                                                operatorQueue,
                                                drainerPool,
-                                               meter,
+                                               meter, 1,
                                                statefulInvocationCtx::createInputTuples,
                                                operatorDefs,
                                                invocationCtxes );
@@ -122,7 +122,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
         operatorReplica = new OperatorReplica( pipelineReplicaId,
                                                operatorQueue,
                                                drainerPool,
-                                               meter,
+                                               meter, 1,
                                                statefulInvocationCtx::createInputTuples,
                                                operatorDefs,
                                                invocationCtxes );
@@ -175,7 +175,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
         operatorReplica = new OperatorReplica( pipelineReplicaId,
                                                operatorQueue,
                                                drainerPool,
-                                               meter,
+                                               meter, 1,
                                                statefulInvocationCtx::createInputTuples,
                                                operatorDefs,
                                                invocationCtxes );

@@ -58,6 +58,11 @@ public class LatencyMetricsHistory
         return (long) getAll().stream().mapToLong( m -> m.getQueueLatency( operatorId ).getMean() ).average().orElse( 0 );
     }
 
+    public long getMeanInterArrivalTime ( final String operatorId )
+    {
+        return (long) getAll().stream().mapToLong( m -> m.getInterArrivalTime( operatorId ).getMean() ).average().orElse( 0 );
+    }
+
     public int getCount ()
     {
         return count;

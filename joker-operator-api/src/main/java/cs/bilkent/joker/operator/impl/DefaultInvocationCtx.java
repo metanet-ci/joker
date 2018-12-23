@@ -5,10 +5,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
-import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuple.LatencyStage;
 import cs.bilkent.joker.operator.kvstore.KVStore;
 import cs.bilkent.joker.partition.impl.PartitionKey;
 import static java.util.Arrays.copyOf;
@@ -35,9 +32,9 @@ public class DefaultInvocationCtx implements InternalInvocationCtx
 
     private int currentInput = 0;
 
-    private LatencyStage latencyStage;
+    private boolean trackOutputTuple;
 
-    private boolean latencyStageRecorded;
+    private Tuple trackedOutputTuple;
 
     public DefaultInvocationCtx ( final int inputPortCount, final Function<PartitionKey, KVStore> kvStoreSupplier, final TuplesImpl output )
     {
@@ -99,8 +96,8 @@ public class DefaultInvocationCtx implements InternalInvocationCtx
         outputCollector.clear();
         inputCount = 0;
         currentInput = 0;
-        latencyStage = null;
-        latencyStageRecorded = false;
+        trackOutputTuple = false;
+        trackedOutputTuple = null;
     }
 
     @Override
@@ -122,17 +119,23 @@ public class DefaultInvocationCtx implements InternalInvocationCtx
     }
 
     @Override
-    public void setInvocationLatencyStage ( final LatencyStage latencyStage )
-    {
-        checkArgument( latencyStage != null );
-        checkState( this.latencyStage == null );
-        this.latencyStage = latencyStage;
-    }
-
-    @Override
     public void setUpstreamConnectionStatuses ( final boolean[] upstreamConnectionStatuses )
     {
         this.upstreamConnectionStatuses = copyOf( upstreamConnectionStatuses, upstreamConnectionStatuses.length );
+    }
+
+    @Override
+    public void trackOutputTuple ()
+    {
+        trackOutputTuple = true;
+    }
+
+    @Override
+    public Tuple getTrackedOutputTuple ()
+    {
+        Tuple t = trackedOutputTuple;
+        trackedOutputTuple = null;
+        return t;
     }
 
     // InternalInvocationContext methods end
@@ -160,9 +163,10 @@ public class DefaultInvocationCtx implements InternalInvocationCtx
     @Override
     public void output ( final Tuple tuple )
     {
-        if ( !latencyStageRecorded && latencyStage != null )
+        if ( trackOutputTuple && trackedOutputTuple == null )
         {
-            latencyStageRecorded = tuple.recordInvocationLatency( latencyStage );
+            trackedOutputTuple = tuple;
+            trackOutputTuple = false;
         }
 
         outputCollector.add( tuple );
@@ -171,9 +175,10 @@ public class DefaultInvocationCtx implements InternalInvocationCtx
     @Override
     public void output ( final int portIndex, final Tuple tuple )
     {
-        if ( !latencyStageRecorded && latencyStage != null )
+        if ( trackOutputTuple && trackedOutputTuple == null )
         {
-            latencyStageRecorded = tuple.recordInvocationLatency( latencyStage );
+            trackedOutputTuple = tuple;
+            trackOutputTuple = false;
         }
 
         outputCollector.add( portIndex, tuple );
@@ -225,10 +230,5 @@ public class DefaultInvocationCtx implements InternalInvocationCtx
     }
 
     // InvocationContext methods end
-
-    public TuplesImpl getInput ( final int i )
-    {
-        return inputs.get( i );
-    }
 
 }

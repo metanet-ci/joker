@@ -8,8 +8,8 @@ import javax.inject.Named;
 import static com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.JokerModule.DOWNSTREAM_FAILURE_FLAG_NAME;
 import cs.bilkent.joker.engine.exception.JokerException;
+import cs.bilkent.joker.engine.metric.PipelineReplicaMeter.Ticker;
 import cs.bilkent.joker.engine.pipeline.DownstreamCollector;
-import static cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.TupleLatencyUtils.setQueueOfferTime;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.util.concurrent.BackoffIdleStrategy;
 import cs.bilkent.joker.engine.util.concurrent.IdleStrategy;
@@ -36,10 +36,11 @@ public class DownstreamCollectorN implements DownstreamCollector, Supplier<Opera
 
     private final OperatorQueue operatorQueue;
 
+    private final Ticker ticker;
+
     public DownstreamCollectorN ( @Named( DOWNSTREAM_FAILURE_FLAG_NAME ) final AtomicBoolean failureFlag,
                                   final int[] sourcePorts,
-                                  final int[] destinationPorts,
-                                  final OperatorQueue operatorQueue )
+                                  final int[] destinationPorts, final OperatorQueue operatorQueue, final Ticker ticker )
     {
         this.failureFlag = failureFlag;
         checkArgument( sourcePorts.length == destinationPorts.length,
@@ -57,6 +58,7 @@ public class DownstreamCollectorN implements DownstreamCollector, Supplier<Opera
             ports[ i * 2 + 1 ] = destinationPorts[ i ];
         }
         this.operatorQueue = operatorQueue;
+        this.ticker = ticker;
     }
 
     @Override
@@ -67,6 +69,7 @@ public class DownstreamCollectorN implements DownstreamCollector, Supplier<Opera
         nanoTimeSupplier.reset();
         int done = 0;
 
+        boolean recordQueueOfferTime = ticker.tryTick();
         while ( true )
         {
             boolean idle = true;
@@ -79,7 +82,12 @@ public class DownstreamCollectorN implements DownstreamCollector, Supplier<Opera
 
                 if ( fromIndex < tuples.size() )
                 {
-                    setQueueOfferTime( tuples, fromIndex, nanoTimeSupplier );
+                    if ( recordQueueOfferTime )
+                    {
+                        tuples.get( 0 ).setQueueOfferTime( System.nanoTime() );
+                        recordQueueOfferTime = false;
+                    }
+
                     final int offered = operatorQueue.offer( destinationPortIndex, tuples, fromIndex );
                     fromIndex += offered;
                     fromIndices[ sourcePortIndex ] = fromIndex;

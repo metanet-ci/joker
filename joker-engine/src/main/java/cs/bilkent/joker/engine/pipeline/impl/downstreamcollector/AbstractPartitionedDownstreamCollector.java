@@ -9,10 +9,10 @@ import javax.inject.Named;
 
 import static cs.bilkent.joker.JokerModule.DOWNSTREAM_FAILURE_FLAG_NAME;
 import cs.bilkent.joker.engine.exception.JokerException;
+import cs.bilkent.joker.engine.metric.PipelineReplicaMeter.Ticker;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import static cs.bilkent.joker.engine.partition.PartitionUtil.getPartitionId;
 import cs.bilkent.joker.engine.pipeline.DownstreamCollector;
-import static cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.TupleLatencyUtils.setQueueOfferTime;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.util.concurrent.BackoffIdleStrategy;
 import cs.bilkent.joker.engine.util.concurrent.IdleStrategy;
@@ -38,6 +38,8 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
 
     private final PartitionKeyExtractor partitionKeyExtractor;
 
+    private final Ticker ticker;
+
     private List<Tuple>[] tupleLists;
 
     private int[] indices;
@@ -46,7 +48,8 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
                                              final int partitionCount,
                                              final int[] partitionDistribution,
                                              final OperatorQueue[] operatorQueues,
-                                             final PartitionKeyExtractor partitionKeyExtractor )
+                                             final PartitionKeyExtractor partitionKeyExtractor,
+                                             final Ticker ticker )
     {
         this.failureFlag = failureFlag;
         this.partitionCount = partitionCount;
@@ -54,6 +57,7 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
         this.replicaCount = operatorQueues.length;
         this.operatorQueues = Arrays.copyOf( operatorQueues, operatorQueues.length );
         this.partitionKeyExtractor = partitionKeyExtractor;
+        this.ticker = ticker;
         this.tupleLists = new List[ operatorQueues.length ];
         this.indices = new int[ operatorQueues.length ];
         for ( int i = 0; i < operatorQueues.length; i++ )
@@ -67,7 +71,7 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
         return Arrays.copyOf( operatorQueues, operatorQueues.length );
     }
 
-    protected final void send ( final TuplesImpl input, final int sourcePortIndex, final int destinationPortIndex )
+    final void send ( final TuplesImpl input, final int sourcePortIndex, final int destinationPortIndex )
     {
         for ( Tuple tuple : input.getTuplesModifiable( sourcePortIndex ) )
         {
@@ -76,6 +80,7 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
             tupleLists[ replicaIndex ].add( tuple );
         }
 
+        boolean recordQueueOfferTime = ticker.tryTick();
         int completed;
         while ( true )
         {
@@ -86,7 +91,12 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
                 int fromIndex = indices[ i ];
                 if ( fromIndex < tuples.size() )
                 {
-                    setQueueOfferTime( tuples, fromIndex, nanoTimeSupplier );
+                    if ( recordQueueOfferTime )
+                    {
+                        tuples.get( 0 ).setQueueOfferTime( System.nanoTime() );
+                        recordQueueOfferTime = false;
+                    }
+
                     final int offered = operatorQueues[ i ].offer( destinationPortIndex, tuples, fromIndex );
                     if ( offered == 0 )
                     {

@@ -32,8 +32,6 @@ import static cs.bilkent.joker.operator.InvocationCtx.InvocationReason.SUCCESS;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuple.LatencyStage;
-import static cs.bilkent.joker.operator.Tuple.LatencyStage.newInvocationLatency;
 import cs.bilkent.joker.operator.impl.DefaultInvocationCtx;
 import cs.bilkent.joker.operator.impl.InitCtxImpl;
 import cs.bilkent.joker.operator.impl.InternalInvocationCtx;
@@ -75,6 +73,8 @@ public class OperatorReplica
 
     private final PipelineReplicaMeter meter;
 
+    private final long latencyStageTickMask;
+
     private final DefaultInvocationCtx invocationCtx;
 
     private final InternalInvocationCtx[] fusedInvocationCtxes;
@@ -110,7 +110,7 @@ public class OperatorReplica
     public OperatorReplica ( final PipelineReplicaId pipelineReplicaId,
                              final OperatorQueue queue,
                              final TupleQueueDrainerPool drainerPool,
-                             final PipelineReplicaMeter meter,
+                             final PipelineReplicaMeter meter, final long latencyStageTickMask,
                              final Function<PartitionKey, TuplesImpl> drainerTuplesSupplier,
                              final OperatorDef[] operatorDefs,
                              final InternalInvocationCtx[] invocationCtxes )
@@ -126,6 +126,7 @@ public class OperatorReplica
         this.queue = queue;
         this.drainerPool = drainerPool;
         this.meter = meter;
+        this.latencyStageTickMask = latencyStageTickMask;
         this.drainerTuplesSupplier = drainerTuplesSupplier;
         this.operatorDef = operatorDefs[ 0 ];
         final int fusedOperatorCount = operatorDefs.length - 1;
@@ -148,7 +149,7 @@ public class OperatorReplica
     private OperatorReplica ( final PipelineReplicaId pipelineReplicaId,
                               final OperatorQueue queue,
                               final TupleQueueDrainerPool drainerPool,
-                              final PipelineReplicaMeter meter,
+                              final PipelineReplicaMeter meter, final long latencyStageTickMask,
                               final Function<PartitionKey, TuplesImpl> drainerTuplesSupplier,
                               final OperatorDef[] operatorDefs,
                               final InternalInvocationCtx[] invocationCtxes,
@@ -159,7 +160,7 @@ public class OperatorReplica
                               final UpstreamCtx[] fusedUpstreamCtxes,
                               final UpstreamCtx downstreamCtx )
     {
-        this( pipelineReplicaId, queue, drainerPool, meter, drainerTuplesSupplier, operatorDefs, invocationCtxes );
+        this( pipelineReplicaId, queue, drainerPool, meter, latencyStageTickMask, drainerTuplesSupplier, operatorDefs, invocationCtxes );
 
         this.downstreamCtx = downstreamCtx;
 
@@ -453,15 +454,30 @@ public class OperatorReplica
         invocationCtx.setInvocationReason( reason );
         meter.onInvocationStart( operatorDef.getId() );
 
-        final LatencyStage latencyStage = newInvocationLatency( operatorDef.getId(), System.nanoTime() );
-        invocationCtx.setInvocationLatencyStage( latencyStage );
+        Long invocationTime;
+        if ( meter.isTicked( latencyStageTickMask ) )
+        {
+            invocationTime = System.nanoTime();
+            invocationCtx.trackOutputTuple();
+        }
+        else
+        {
+            invocationTime = null;
+        }
 
         do
         {
             operator.invoke( invocationCtx );
         } while ( invocationCtx.nextInput() );
 
-        latencyStage.setEnd( System.nanoTime() );
+        if ( invocationTime != null )
+        {
+            Tuple tracked = invocationCtx.getTrackedOutputTuple();
+            if ( tracked != null )
+            {
+                tracked.recordInvocationLatency( operatorDef.getId(), System.nanoTime() - invocationTime );
+            }
+        }
 
         meter.onInvocationComplete( operatorDef.getId() );
         meter.count( operatorDef.getId(), invocationCtx.getInputs(), invocationCtx.getInputCount() );
@@ -589,7 +605,7 @@ public class OperatorReplica
     }
 
     public OperatorReplica duplicate ( final PipelineReplicaId pipelineReplicaId,
-                                       final PipelineReplicaMeter meter,
+                                       final PipelineReplicaMeter meter, final long latencyStageTickMask,
                                        final OperatorQueue queue,
                                        final TupleQueueDrainerPool drainerPool,
                                        final UpstreamCtx downstreamCtx )
@@ -603,7 +619,7 @@ public class OperatorReplica
         return new OperatorReplica( pipelineReplicaId,
                                     queue,
                                     drainerPool,
-                                    meter,
+                                    meter, latencyStageTickMask,
                                     this.drainerTuplesSupplier,
                                     getOperatorDefs(),
                                     getInvocationCtxes(),
@@ -616,7 +632,7 @@ public class OperatorReplica
     }
 
     public static OperatorReplica newRunningInstance ( final PipelineReplicaId pipelineReplicaId,
-                                                       final PipelineReplicaMeter meter,
+                                                       final PipelineReplicaMeter meter, final long latencyStageTickMask,
                                                        final OperatorQueue queue,
                                                        final TupleQueueDrainerPool drainerPool,
                                                        final OperatorDef[] operatorDefs,
@@ -636,7 +652,7 @@ public class OperatorReplica
         return new OperatorReplica( pipelineReplicaId,
                                     queue,
                                     drainerPool,
-                                    meter,
+                                    meter, latencyStageTickMask,
                                     drainerTuplesSupplier,
                                     operatorDefs,
                                     invocationCtxes,

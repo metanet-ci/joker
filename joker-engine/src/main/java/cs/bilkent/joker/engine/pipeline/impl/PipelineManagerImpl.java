@@ -59,6 +59,7 @@ import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createShutdownSourceU
 import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.CompositeDownstreamCollector;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.DownstreamCollector1;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.DownstreamCollectorN;
+import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.InterArrivalTimeTracker;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.PartitionedDownstreamCollector1;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.PartitionedDownstreamCollectorN;
 import cs.bilkent.joker.engine.region.Region;
@@ -71,6 +72,10 @@ import cs.bilkent.joker.flow.Port;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.Tuple.LatencyStage;
+import cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType;
+import static cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType.INTER_ARRIVAL_TIME;
+import static cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType.INVOCATION_LATENCY;
+import static cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType.QUEUE_LATENCY;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
@@ -103,9 +108,9 @@ public class PipelineManagerImpl implements PipelineManager
     private final MetricManager metricManager;
     private final AtomicBoolean downstreamCollectorFailureFlag;
     private final ThreadGroup jokerThreadGroup;
-    private final BiFunction<List<Pair<Integer, Integer>>, OperatorQueue, DownstreamCollector>[] defaultDownstreamCollectorCtors = new BiFunction[ 6 ];
-    private final Function6<List<Pair<Integer, Integer>>, Integer, int[], OperatorQueue[], PartitionKeyExtractor, DownstreamCollector>[]
-            partitionedDownstreamCollectorCtors = new Function6[ 6 ];
+    private final BiFunction<List<Pair<Integer, Integer>>, OperatorQueue, DownstreamCollector>[] defaultDownstreamCollectorCtors =
+            new BiFunction[ 6 ];
+    private final Function6<List<Pair<Integer, Integer>>, Integer, int[], OperatorQueue[], PartitionKeyExtractor, DownstreamCollector>[] partitionedDownstreamCollectorCtors = new Function6[ 6 ];
 
     private Supervisor supervisor;
     private int flowVersion = INITIAL_FLOW_VERSION;
@@ -144,13 +149,21 @@ public class PipelineManagerImpl implements PipelineManager
     {
         defaultDownstreamCollectorCtors[ 1 ] = ( pairs, tupleQueue ) -> {
             final Pair<Integer, Integer> pair1 = pairs.get( 0 );
-            return new DownstreamCollector1( downstreamCollectorFailureFlag, pair1._1, pair1._2, tupleQueue );
+            return new DownstreamCollector1( downstreamCollectorFailureFlag,
+                                             pair1._1,
+                                             pair1._2,
+                                             tupleQueue,
+                                             new Ticker( jokerConfig.getPipelineManagerConfig().getLatencyStageTickMask() ) );
         };
         defaultDownstreamCollectorCtors[ 2 ] = ( pairs, tupleQueue ) -> {
             final int[] sourcePorts = new int[ pairs.size() ];
             final int[] destinationPorts = new int[ pairs.size() ];
             copyPorts( pairs, sourcePorts, destinationPorts );
-            return new DownstreamCollectorN( downstreamCollectorFailureFlag, sourcePorts, destinationPorts, tupleQueue );
+            return new DownstreamCollectorN( downstreamCollectorFailureFlag,
+                                             sourcePorts,
+                                             destinationPorts,
+                                             tupleQueue,
+                                             new Ticker( jokerConfig.getPipelineManagerConfig().getLatencyStageTickMask() ) );
         };
         partitionedDownstreamCollectorCtors[ 1 ] = ( pairs, partitionCount, partitionDistribution, tupleQueues, partitionKeyFunction ) -> {
             final Pair<Integer, Integer> pair1 = pairs.get( 0 );
@@ -160,7 +173,8 @@ public class PipelineManagerImpl implements PipelineManager
                                                         partitionCount,
                                                         partitionDistribution,
                                                         tupleQueues,
-                                                        partitionKeyFunction );
+                                                        partitionKeyFunction,
+                                                        new Ticker( jokerConfig.getPipelineManagerConfig().getLatencyStageTickMask() ) );
         };
         partitionedDownstreamCollectorCtors[ 2 ] = ( pairs, partitionCount, partitionDistribution, tupleQueues, partitionKeyFunction ) -> {
             final int[] sourcePorts = new int[ pairs.size() ];
@@ -172,7 +186,8 @@ public class PipelineManagerImpl implements PipelineManager
                                                         partitionCount,
                                                         partitionDistribution,
                                                         tupleQueues,
-                                                        partitionKeyFunction );
+                                                        partitionKeyFunction,
+                                                        new Ticker( jokerConfig.getPipelineManagerConfig().getLatencyStageTickMask() ) );
         };
     }
 
@@ -810,19 +825,32 @@ public class PipelineManagerImpl implements PipelineManager
                 if ( pipeline.getId().getRegionId() == downstreamPipeline.getId().getRegionId() )
                 {
                     final OperatorQueue pipelineQueue = pipelineQueues[ replicaIndex ];
-                    collectorsToDownstreamOperators[ i ] = defaultDownstreamCollectorCtors[ j ].apply( pairs, pipelineQueue );
+                    final DownstreamCollector downstream = defaultDownstreamCollectorCtors[ j ].apply( pairs, pipelineQueue );
+                    collectorsToDownstreamOperators[ i ] = new InterArrivalTimeTracker( downstreamOperatorId,
+                                                                                        jokerConfig.getPipelineManagerConfig()
+                                                                                                   .getInterArrivalTimeTrackingPeriod(),
+                                                                                        jokerConfig.getPipelineManagerConfig()
+                                                                                                   .getInterArrivalTimeTrackingCount(),
+                                                                                        System::nanoTime,
+                                                                                        downstream );
                 }
                 else if ( downstreamRegionDef.getRegionType() == PARTITIONED_STATEFUL )
                 {
                     final int[] partitionDistribution = getPartitionDistribution( downstreamOperator );
                     final PartitionKeyExtractor partitionKeyExtractor = partitionKeyExtractorFactory.createPartitionKeyExtractor(
                             downstreamRegionDef.getPartitionFieldNames() );
-                    collectorsToDownstreamOperators[ i ] = partitionedDownstreamCollectorCtors[ j ].apply( pairs,
-                                                                                                           partitionService
-                                                                                                                   .getPartitionCount(),
+                    final DownstreamCollector downstream = partitionedDownstreamCollectorCtors[ j ].apply( pairs,
+                                                                                                           partitionService.getPartitionCount(),
                                                                                                            partitionDistribution,
                                                                                                            pipelineQueues,
                                                                                                            partitionKeyExtractor );
+                    collectorsToDownstreamOperators[ i ] = new InterArrivalTimeTracker( downstreamOperatorId,
+                                                                                        jokerConfig.getPipelineManagerConfig()
+                                                                                                   .getInterArrivalTimeTrackingPeriod(),
+                                                                                        jokerConfig.getPipelineManagerConfig()
+                                                                                                   .getInterArrivalTimeTrackingCount(),
+                                                                                        System::nanoTime,
+                                                                                        downstream );
                 }
                 else if ( downstreamRegionDef.getRegionType() == STATELESS )
                 {
@@ -838,7 +866,14 @@ public class PipelineManagerImpl implements PipelineManager
 
                     if ( pipelineQueue != null )
                     {
-                        collectorsToDownstreamOperators[ i ] = defaultDownstreamCollectorCtors[ j ].apply( pairs, pipelineQueue );
+                        final DownstreamCollector downstream = defaultDownstreamCollectorCtors[ j ].apply( pairs, pipelineQueue );
+                        collectorsToDownstreamOperators[ i ] = new InterArrivalTimeTracker( downstreamOperatorId,
+                                                                                            jokerConfig.getPipelineManagerConfig()
+                                                                                                       .getInterArrivalTimeTrackingPeriod(),
+                                                                                            jokerConfig.getPipelineManagerConfig()
+                                                                                                       .getInterArrivalTimeTrackingCount(),
+                                                                                            System::nanoTime,
+                                                                                            downstream );
                     }
                     else
                     {
@@ -853,7 +888,14 @@ public class PipelineManagerImpl implements PipelineManager
                     final int l = pipelineQueues.length;
                     checkState( l == 1, "Operator %s can not have %s replicas", downstreamOperatorId, l );
                     final OperatorQueue pipelineQueue = pipelineQueues[ 0 ];
-                    collectorsToDownstreamOperators[ i ] = defaultDownstreamCollectorCtors[ j ].apply( pairs, pipelineQueue );
+                    final DownstreamCollector downstream = defaultDownstreamCollectorCtors[ j ].apply( pairs, pipelineQueue );
+                    collectorsToDownstreamOperators[ i ] = new InterArrivalTimeTracker( downstreamOperatorId,
+                                                                                        jokerConfig.getPipelineManagerConfig()
+                                                                                                   .getInterArrivalTimeTrackingPeriod(),
+                                                                                        jokerConfig.getPipelineManagerConfig()
+                                                                                                   .getInterArrivalTimeTrackingCount(),
+                                                                                        System::nanoTime,
+                                                                                        downstream );
                 }
                 else
                 {
@@ -878,9 +920,7 @@ public class PipelineManagerImpl implements PipelineManager
                 if ( i > 0 )
                 {
                     final PipelineManagerConfig pipelineManagerConfig = jokerConfig.getPipelineManagerConfig();
-                    collector = new IngestionTimeInjector( collector,
-                                                           pipelineManagerConfig.getLatencyTickMask(),
-                                                           pipelineManagerConfig.getLatencyStageTickMask() );
+                    collector = new IngestionTimeInjector( collector, new Ticker( pipelineManagerConfig.getLatencyTickMask() ) );
                 }
                 else
                 {
@@ -1120,14 +1160,12 @@ public class PipelineManagerImpl implements PipelineManager
     static class IngestionTimeInjector implements DownstreamCollector
     {
         private final Ticker ticker;
-        private final long latencyStageTickMask;
         private final DownstreamCollector downstream;
 
-        IngestionTimeInjector ( final DownstreamCollector downstream, final long latencyTickMask, final long latencyStageTickMask )
+        IngestionTimeInjector ( final DownstreamCollector downstream, final Ticker ticker )
         {
             this.downstream = downstream;
-            this.ticker = new Ticker( latencyTickMask );
-            this.latencyStageTickMask = latencyStageTickMask;
+            this.ticker = ticker;
         }
 
         @Override
@@ -1136,14 +1174,13 @@ public class PipelineManagerImpl implements PipelineManager
             if ( ticker.tryTick() )
             {
                 final long ingestionTime = System.nanoTime();
-                final boolean trackLatencyStages = ticker.isTicked( latencyStageTickMask );
 
                 for ( int i = 0, p = tuples.getPortCount(); i < p; i++ )
                 {
                     final List<Tuple> l = tuples.getTuplesModifiable( i );
                     for ( int j = 0, t = l.size(); j < t; j++ )
                     {
-                        l.get( j ).setIngestionTime( ingestionTime, trackLatencyStages );
+                        l.get( j ).setIngestionTime( ingestionTime );
                     }
                 }
             }
@@ -1193,14 +1230,7 @@ public class PipelineManagerImpl implements PipelineManager
                 {
                     final Tuple tuple = l.get( j );
 
-                    if ( tuple.isIngestionTimeNA() )
-                    {
-                        continue;
-                    }
-
-                    tuple.recordLatency( now );
-
-                    latencyMeter.recordTuple( tuple.getIngestionTime() );
+                    latencyMeter.recordTuple( tuple.getLatency( now ) );
 
                     final List<LatencyStage> stages = tuple.getLatencyStages();
                     if ( stages == null )
@@ -1212,14 +1242,23 @@ public class PipelineManagerImpl implements PipelineManager
                     {
                         final LatencyStage stage = stages.get( k );
                         final String operatorId = stage.getOperatorId();
-                        final long latency = stage.getLatency();
-                        if ( stage.isOperator() )
+                        final long duration = stage.getDuration();
+                        final LatencyStageType type = stage.getType();
+                        if ( type == INVOCATION_LATENCY )
                         {
-                            latencyMeter.recordInvocation( operatorId, latency );
+                            latencyMeter.recordInvocation( operatorId, duration );
+                        }
+                        else if ( type == QUEUE_LATENCY )
+                        {
+                            latencyMeter.recordQueue( operatorId, duration );
+                        }
+                        else if ( type == INTER_ARRIVAL_TIME )
+                        {
+                            latencyMeter.recordInterArrivalTime( operatorId, duration );
                         }
                         else
                         {
-                            latencyMeter.recordQueue( operatorId, latency );
+                            throw new IllegalArgumentException( "Invalid latency stage type: " + type + " for operator: " + operatorId );
                         }
                     }
                 }

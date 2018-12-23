@@ -20,19 +20,23 @@ public class LatencyMetrics
 
     private final Map<String, LatencyRecord> queueLatencies;
 
+    private final Map<String, LatencyRecord> interArrivalTimes;
+
     public LatencyMetrics ( final String sinkOperatorId,
                             final int replicaIndex,
                             final int flowVersion,
                             final LatencyRecord tupleLatency,
                             final Map<String, LatencyRecord> invocationLatencies,
-                            final Map<String, LatencyRecord> queueLatencies )
+                            final Map<String, LatencyRecord> queueLatencies,
+                            final Map<String, LatencyRecord> interArrivalTimes )
     {
         this.sinkOperatorId = sinkOperatorId;
         this.replicaIndex = replicaIndex;
         this.flowVersion = flowVersion;
+        this.tupleLatency = tupleLatency;
         this.invocationLatencies = unmodifiableMap( new HashMap<>( invocationLatencies ) );
         this.queueLatencies = unmodifiableMap( new HashMap<>( queueLatencies ) );
-        this.tupleLatency = tupleLatency;
+        this.interArrivalTimes = unmodifiableMap( new HashMap<>( interArrivalTimes ) );
     }
 
     public String getSinkOperatorId ()
@@ -65,6 +69,11 @@ public class LatencyMetrics
         return queueLatencies;
     }
 
+    public Map<String, LatencyRecord> getInterArrivalTimes ()
+    {
+        return interArrivalTimes;
+    }
+
     public LatencyRecord getInvocationLatency ( final String operatorId )
     {
         return invocationLatencies.get( operatorId );
@@ -75,12 +84,17 @@ public class LatencyMetrics
         return queueLatencies.get( operatorId );
     }
 
+    public LatencyRecord getInterArrivalTime ( final String operatorId )
+    {
+        return interArrivalTimes.get( operatorId );
+    }
+
     @Override
     public String toString ()
     {
         return "LatencyMetrics{" + "sinkOperatorId='" + sinkOperatorId + '\'' + ", replicaIndex=" + replicaIndex + ", flowVersion="
                + flowVersion + ", tupleLatency=" + tupleLatency + ", invocationLatencies=" + invocationLatencies + ", queueLatencies="
-               + queueLatencies + '}';
+               + queueLatencies + ", interArrivalTimes=" + interArrivalTimes + '}';
     }
 
     public static class LatencyRecord
@@ -100,8 +114,6 @@ public class LatencyMetrics
 
         private final long percentile95;
 
-        private final long percentile98;
-
         private final long percentile99;
 
         public LatencyRecord ( final long mean,
@@ -110,8 +122,7 @@ public class LatencyMetrics
                                final long min,
                                final long max,
                                final long percentile75,
-                               final long percentile95,
-                               final long percentile98, final long percentile99 )
+                               final long percentile95, final long percentile99 )
         {
             this.mean = mean;
             this.stdDev = stdDev;
@@ -120,7 +131,6 @@ public class LatencyMetrics
             this.max = max;
             this.percentile75 = percentile75;
             this.percentile95 = percentile95;
-            this.percentile98 = percentile98;
             this.percentile99 = percentile99;
         }
 
@@ -159,11 +169,6 @@ public class LatencyMetrics
             return percentile95;
         }
 
-        public long getPercentile98 ()
-        {
-            return percentile98;
-        }
-
         public long getPercentile99 ()
         {
             return percentile99;
@@ -173,8 +178,7 @@ public class LatencyMetrics
         public String toString ()
         {
             return "LatencyRecord{" + "mean=" + mean + ", stdDev=" + stdDev + ", median=" + median + ", min=" + min + ", max=" + max
-                   + ", percentile75=" + percentile75 + ", percentile95=" + percentile95 + ", percentile98=" + percentile98
-                   + ", percentile99=" + percentile99 + '}';
+                   + ", percentile75=" + percentile75 + ", percentile95=" + percentile95 + ", percentile99=" + percentile99 + '}';
         }
     }
 

@@ -6,10 +6,7 @@ import java.util.function.Function;
 import com.google.common.collect.ImmutableList;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
-import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuple.LatencyStage;
 import cs.bilkent.joker.operator.impl.InternalInvocationCtx;
 import cs.bilkent.joker.operator.impl.OutputCollector;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -32,9 +29,9 @@ public class FusedInvocationCtx implements InternalInvocationCtx, OutputCollecto
 
     private boolean[] upstreamConnectionStatuses;
 
-    private LatencyStage latencyStage;
+    private boolean trackOutputTuple;
 
-    private boolean latencyStageRecorded;
+    private Tuple trackedOutputTuple;
 
     public FusedInvocationCtx ( final int inputPortCount,
                                 final Function<PartitionKey, KVStore> kvStoreSupplier,
@@ -61,8 +58,8 @@ public class FusedInvocationCtx implements InternalInvocationCtx, OutputCollecto
         reason = null;
         input.clear();
         outputCollector.clear();
-        latencyStage = null;
-        latencyStageRecorded = false;
+        trackOutputTuple = false;
+        trackedOutputTuple = null;
     }
 
     @Override
@@ -78,15 +75,15 @@ public class FusedInvocationCtx implements InternalInvocationCtx, OutputCollecto
     }
 
     @Override
-    public void setUpstreamConnectionStatuses ( final boolean[] upstreamConnectionStatuses )
-    {
-        this.upstreamConnectionStatuses = copyOf( upstreamConnectionStatuses, upstreamConnectionStatuses.length );
-    }
-
-    @Override
     public List<TuplesImpl> getInputs ()
     {
         return inputs;
+    }
+
+    @Override
+    public void setUpstreamConnectionStatuses ( final boolean[] upstreamConnectionStatuses )
+    {
+        this.upstreamConnectionStatuses = copyOf( upstreamConnectionStatuses, upstreamConnectionStatuses.length );
     }
 
     @Override
@@ -96,11 +93,17 @@ public class FusedInvocationCtx implements InternalInvocationCtx, OutputCollecto
     }
 
     @Override
-    public void setInvocationLatencyStage ( final LatencyStage latencyStage )
+    public void trackOutputTuple ()
     {
-        checkArgument( latencyStage != null );
-        checkState( this.latencyStage == null );
-        this.latencyStage = latencyStage;
+        trackOutputTuple = true;
+    }
+
+    @Override
+    public Tuple getTrackedOutputTuple ()
+    {
+        Tuple t = trackedOutputTuple;
+        trackedOutputTuple = null;
+        return t;
     }
 
     // InternalInvocationContext methods end
@@ -128,9 +131,10 @@ public class FusedInvocationCtx implements InternalInvocationCtx, OutputCollecto
     @Override
     public void output ( final Tuple tuple )
     {
-        if ( !latencyStageRecorded && latencyStage != null )
+        if ( trackOutputTuple && trackedOutputTuple == null )
         {
-            latencyStageRecorded = tuple.recordInvocationLatency( latencyStage );
+            trackedOutputTuple = tuple;
+            trackOutputTuple = false;
         }
 
         outputCollector.add( tuple );
@@ -139,9 +143,10 @@ public class FusedInvocationCtx implements InternalInvocationCtx, OutputCollecto
     @Override
     public void output ( final int portIndex, final Tuple tuple )
     {
-        if ( !latencyStageRecorded && latencyStage != null )
+        if ( trackOutputTuple && trackedOutputTuple == null )
         {
-            latencyStageRecorded = tuple.recordInvocationLatency( latencyStage );
+            trackedOutputTuple = tuple;
+            trackOutputTuple = false;
         }
 
         outputCollector.add( portIndex, tuple );

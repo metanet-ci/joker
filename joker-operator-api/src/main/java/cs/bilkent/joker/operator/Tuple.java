@@ -9,11 +9,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.BiConsumer;
-import java.util.function.LongSupplier;
 
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
-import static cs.bilkent.joker.operator.Tuple.LatencyStage.newQueueLatency;
+import static cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType.INTER_ARRIVAL_TIME;
+import static cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType.INVOCATION_LATENCY;
+import static cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType.QUEUE_LATENCY;
 import cs.bilkent.joker.operator.schema.runtime.RuntimeSchemaField;
 import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import static cs.bilkent.joker.operator.schema.runtime.TupleSchema.FIELD_NOT_FOUND;
@@ -219,7 +220,9 @@ public final class Tuple implements Fields<String>
     }
 
     private Tuple ( final TupleSchema schema,
-                    final ArrayList<Object> values, final long ingestionTime, final List<LatencyStage> latencyStages )
+                    final ArrayList<Object> values,
+                    final long ingestionTime,
+                    final List<LatencyStage> latencyStages )
     {
         this.schema = schema;
         this.values = values;
@@ -410,21 +413,16 @@ public final class Tuple implements Fields<String>
         return ( ingestionTime == INGESTION_TIME_NOT_ASSIGNED || ingestionTime == INGESTION_TIME_UNASSIGNABLE );
     }
 
-    public void setIngestionTime ( final long ingestionTime, final boolean trackLatencyStages )
+    public void setIngestionTime ( final long ingestionTime )
     {
         checkArgument( !( ingestionTime == INGESTION_TIME_NOT_ASSIGNED || ingestionTime == INGESTION_TIME_UNASSIGNABLE ) );
         checkState( this.ingestionTime == INGESTION_TIME_NOT_ASSIGNED );
         this.ingestionTime = ingestionTime;
-        if ( trackLatencyStages )
-        {
-            latencyStages = new ArrayList<>( 4 );
-        }
     }
 
-    public void recordLatency ( final long now )
+    public long getLatency ( final long now )
     {
-        checkState( !( ingestionTime == INGESTION_TIME_NOT_ASSIGNED || ingestionTime == INGESTION_TIME_UNASSIGNABLE ) );
-        ingestionTime = ( now - ingestionTime );
+        return ( now - ingestionTime );
     }
 
     public void attachTo ( final Tuple source )
@@ -437,31 +435,20 @@ public final class Tuple implements Fields<String>
         if ( source.isIngestionTimeNA() )
         {
             ingestionTime = INGESTION_TIME_UNASSIGNABLE;
-            latencyStages = null;
-            return;
+        }
+        else if ( source.ingestionTime > ingestionTime )
+        {
+            ingestionTime = source.ingestionTime;
         }
 
-        if ( source.ingestionTime > ingestionTime )
+        if ( source.latencyStages != null )
         {
-            overwriteIngestionTime( source );
-        }
-    }
+            if ( latencyStages == null )
+            {
+                latencyStages = new ArrayList<>( source.latencyStages.size() );
+            }
 
-    private void overwriteIngestionTime ( final Tuple source )
-    {
-        ingestionTime = source.ingestionTime;
-        if ( source.latencyStages == null )
-        {
-            latencyStages = null;
-        }
-        else if ( latencyStages != null )
-        {
-            latencyStages.clear();
             latencyStages.addAll( source.latencyStages );
-        }
-        else
-        {
-            latencyStages = new ArrayList<>( source.latencyStages );
         }
     }
 
@@ -470,44 +457,61 @@ public final class Tuple implements Fields<String>
         return new Tuple( schema, values, ingestionTime, latencyStages );
     }
 
-    public boolean setQueueOfferTime ( final LongSupplier timeSupplier )
+    public void setQueueOfferTime ( final long queueOfferTime )
     {
-        if ( isNotTrackingLatencyComps() )
-        {
-            return false;
-        }
-
-        this.queueOfferTime = timeSupplier.getAsLong();
-
-        return true;
+        this.queueOfferTime = queueOfferTime;
     }
 
     public void recordQueueLatency ( final String operatorId, final long now )
     {
-        if ( queueOfferTime == INGESTION_TIME_NOT_ASSIGNED || latencyStages == null )
+        if ( queueOfferTime == INGESTION_TIME_NOT_ASSIGNED )
         {
             return;
         }
 
-        latencyStages.add( newQueueLatency( operatorId, queueOfferTime, now ) );
+        if ( latencyStages == null )
+        {
+            latencyStages = new ArrayList<>( 2 );
+        }
+
+        final long duration = ( now - queueOfferTime );
+        if ( duration <= 0 )
+        {
+            return;
+        }
+
+        latencyStages.add( new LatencyStage( operatorId, QUEUE_LATENCY, duration ) );
         queueOfferTime = INGESTION_TIME_NOT_ASSIGNED;
     }
 
-    public boolean recordInvocationLatency ( final LatencyStage latencyStage )
+    public void recordInvocationLatency ( final String operatorId, final long duration )
     {
-        checkArgument( latencyStage != null );
-        if ( isNotTrackingLatencyComps() )
+        if ( duration <= 0 )
         {
-            return false;
+            return;
         }
 
-        latencyStages.add( latencyStage );
-        return true;
+        if ( latencyStages == null )
+        {
+            latencyStages = new ArrayList<>( 2 );
+        }
+
+        latencyStages.add( new LatencyStage( operatorId, INVOCATION_LATENCY, duration ) );
     }
 
-    private boolean isNotTrackingLatencyComps ()
+    public void recordInterArrivalTime ( final String operatorId, final long duration )
     {
-        return isIngestionTimeNA() || latencyStages == null;
+        if ( duration <= 0 )
+        {
+            return;
+        }
+
+        if ( latencyStages == null )
+        {
+            latencyStages = new ArrayList<>( 2 );
+        }
+
+        latencyStages.add( new LatencyStage( operatorId, INTER_ARRIVAL_TIME, duration ) );
     }
 
     public List<LatencyStage> getLatencyStages ()
@@ -591,42 +595,23 @@ public final class Tuple implements Fields<String>
     public static class LatencyStage
     {
 
-        public static LatencyStage newQueueLatency ( final String operatorId, final long start, final long end )
+        public enum LatencyStageType
         {
-            final LatencyStage stage = new LatencyStage( operatorId, false, start );
-            stage.setEnd( end );
-            return stage;
+            QUEUE_LATENCY, INVOCATION_LATENCY, INTER_ARRIVAL_TIME
         }
 
-        public static LatencyStage newInvocationLatency ( final String operatorId, final long start )
-        {
-            return new LatencyStage( operatorId, true, start );
-        }
 
         private final String operatorId;
-        private final boolean isOperator;
-        private final long start;
-        private long end = INGESTION_TIME_NOT_ASSIGNED;
 
-        private LatencyStage ( final String operatorId, final boolean isOperator, final long start )
+        private final LatencyStageType type;
+
+        private final long duration;
+
+        private LatencyStage ( final String operatorId, final LatencyStageType type, final long duration )
         {
-            checkArgument( operatorId != null );
-            checkArgument( start != INGESTION_TIME_NOT_ASSIGNED );
             this.operatorId = operatorId;
-            this.isOperator = isOperator;
-            this.start = start;
-        }
-
-        public LatencyStage setEnd ( final long end )
-        {
-            checkArgument( start != INGESTION_TIME_NOT_ASSIGNED );
-            this.end = end;
-            return this;
-        }
-
-        public boolean isOperator ()
-        {
-            return isOperator;
+            this.type = type;
+            this.duration = duration;
         }
 
         public String getOperatorId ()
@@ -634,56 +619,20 @@ public final class Tuple implements Fields<String>
             return operatorId;
         }
 
-        public long getLatency ()
+        public LatencyStageType getType ()
         {
-            checkState( end != INGESTION_TIME_NOT_ASSIGNED );
-            return end - start;
+            return type;
         }
 
-        @Override
-        public boolean equals ( final Object o )
+        public long getDuration ()
         {
-            if ( this == o )
-            {
-                return true;
-            }
-            if ( o == null || getClass() != o.getClass() )
-            {
-                return false;
-            }
-
-            final LatencyStage that = (LatencyStage) o;
-
-            if ( isOperator != that.isOperator )
-            {
-                return false;
-            }
-            if ( start != that.start )
-            {
-                return false;
-            }
-            if ( end != that.end )
-            {
-                return false;
-            }
-            return operatorId.equals( that.operatorId );
-        }
-
-        @Override
-        public int hashCode ()
-        {
-            int result = operatorId.hashCode();
-            result = 31 * result + ( isOperator ? 1 : 0 );
-            result = 31 * result + (int) ( start ^ ( start >>> 32 ) );
-            result = 31 * result + (int) ( end ^ ( end >>> 32 ) );
-            return result;
+            return duration;
         }
 
         @Override
         public String toString ()
         {
-            return "LatencyRecord{" + "operatorId='" + operatorId + '\'' + ", isOperator=" + isOperator + ", start=" + start + ", end="
-                   + end + '}';
+            return "LatencyStage{" + "operatorId='" + operatorId + '\'' + ", type=" + type + ", duration=" + duration + '}';
         }
     }
 

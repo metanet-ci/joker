@@ -3,7 +3,7 @@ package cs.bilkent.joker.operator.impl;
 import java.util.List;
 
 import cs.bilkent.joker.operator.InvocationCtx;
-import cs.bilkent.joker.operator.Tuple.LatencyStage;
+import cs.bilkent.joker.operator.Tuple;
 
 public interface InternalInvocationCtx extends InvocationCtx
 {
@@ -18,7 +18,9 @@ public interface InternalInvocationCtx extends InvocationCtx
 
     List<TuplesImpl> getInputs ();
 
-    void setInvocationLatencyStage ( LatencyStage latencyStage );
+    void trackOutputTuple ();
+
+    Tuple getTrackedOutputTuple ();
 
     TuplesImpl getOutput ();
 

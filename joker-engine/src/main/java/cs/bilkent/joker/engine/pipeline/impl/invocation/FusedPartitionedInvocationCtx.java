@@ -7,10 +7,7 @@ import java.util.function.Function;
 import static com.google.common.base.Preconditions.checkNotNull;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
-import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
-import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
 import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuple.LatencyStage;
 import cs.bilkent.joker.operator.impl.InternalInvocationCtx;
 import cs.bilkent.joker.operator.impl.OutputCollector;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -47,9 +44,9 @@ public class FusedPartitionedInvocationCtx implements InternalInvocationCtx, Out
 
     private boolean[] upstreamConnectionStatuses;
 
-    private LatencyStage latencyStage;
+    private boolean trackOutputTuple;
 
-    private boolean latencyStageRecorded;
+    private Tuple trackedOutputTuple;
 
     public FusedPartitionedInvocationCtx ( final int inputPortCount,
                                            final Function<PartitionKey, KVStore> kvStoreSupplier,
@@ -84,8 +81,8 @@ public class FusedPartitionedInvocationCtx implements InternalInvocationCtx, Out
         partitionKeyInputIndices.clear();
         inputCount = 0;
         currentInput = 0;
-        latencyStage = null;
-        latencyStageRecorded = false;
+        trackOutputTuple = false;
+        trackedOutputTuple = null;
     }
 
     @Override
@@ -119,11 +116,17 @@ public class FusedPartitionedInvocationCtx implements InternalInvocationCtx, Out
     }
 
     @Override
-    public void setInvocationLatencyStage ( final LatencyStage latencyStage )
+    public void trackOutputTuple ()
     {
-        checkArgument( latencyStage != null );
-        checkState( this.latencyStage == null );
-        this.latencyStage = latencyStage;
+        trackOutputTuple = true;
+    }
+
+    @Override
+    public Tuple getTrackedOutputTuple ()
+    {
+        Tuple t = trackedOutputTuple;
+        trackedOutputTuple = null;
+        return t;
     }
 
     // InternalInvocationContext methods end
@@ -151,9 +154,10 @@ public class FusedPartitionedInvocationCtx implements InternalInvocationCtx, Out
     @Override
     public void output ( final Tuple tuple )
     {
-        if ( !latencyStageRecorded && latencyStage != null )
+        if ( trackOutputTuple && trackedOutputTuple == null )
         {
-            latencyStageRecorded = tuple.recordInvocationLatency( latencyStage );
+            trackedOutputTuple = tuple;
+            trackOutputTuple = false;
         }
 
         outputCollector.add( tuple );
@@ -162,9 +166,10 @@ public class FusedPartitionedInvocationCtx implements InternalInvocationCtx, Out
     @Override
     public void output ( final int portIndex, final Tuple tuple )
     {
-        if ( !latencyStageRecorded && latencyStage != null )
+        if ( trackOutputTuple && trackedOutputTuple == null )
         {
-            latencyStageRecorded = tuple.recordInvocationLatency( latencyStage );
+            trackedOutputTuple = tuple;
+            trackOutputTuple = false;
         }
 
         outputCollector.add( portIndex, tuple );

@@ -125,12 +125,11 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final DefaultInvocationCtx mapperInvocationCtx = new DefaultInvocationCtx( mapperOperatorDef.getInputPortCount(),
                                                                                    key -> null,
-                                                                                   new DefaultOutputCollector( mapperOperatorDef
-                                                                                                                       .getOutputPortCount() ) );
+                                                                                   new DefaultOutputCollector( mapperOperatorDef.getOutputPortCount() ) );
         final OperatorReplica mapperOperator = new OperatorReplica( pipelineReplicaId1,
                                                                     operatorQueue,
                                                                     drainerPool,
-                                                                    pipelineReplicaMeter,
+                                                                    pipelineReplicaMeter, 1,
                                                                     mapperInvocationCtx::createInputTuples,
                                                                     new OperatorDef[] { mapperOperatorDef },
                                                                     new InternalInvocationCtx[] { mapperInvocationCtx } );
@@ -200,12 +199,11 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final TupleQueueDrainerPool mapperDrainerPool = new BlockingTupleQueueDrainerPool( jokerConfig, mapperOperatorDef );
         final DefaultInvocationCtx mapperInvocationCtx = new DefaultInvocationCtx( mapperOperatorDef.getInputPortCount(),
                                                                                    key -> null,
-                                                                                   new DefaultOutputCollector( mapperOperatorDef
-                                                                                                                       .getOutputPortCount() ) );
+                                                                                   new DefaultOutputCollector( mapperOperatorDef.getOutputPortCount() ) );
         final OperatorReplica mapperOperator = new OperatorReplica( pipelineReplicaId1,
                                                                     mapperOperatorQueue,
                                                                     mapperDrainerPool,
-                                                                    pipelineReplicaMeter,
+                                                                    pipelineReplicaMeter, 1,
                                                                     mapperInvocationCtx::createInputTuples,
                                                                     new OperatorDef[] { mapperOperatorDef },
                                                                     new InternalInvocationCtx[] { mapperInvocationCtx } );
@@ -217,12 +215,11 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final TupleQueueDrainerPool filterDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, filterOperatorDef );
         final DefaultInvocationCtx filterInvocationCtx = new DefaultInvocationCtx( filterOperatorDef.getInputPortCount(),
                                                                                    key -> null,
-                                                                                   new DefaultOutputCollector( filterOperatorDef
-                                                                                                                       .getOutputPortCount() ) );
+                                                                                   new DefaultOutputCollector( filterOperatorDef.getOutputPortCount() ) );
         final OperatorReplica filterOperator = new OperatorReplica( pipelineReplicaId1,
                                                                     filterOperatorQueue,
                                                                     filterDrainerPool,
-                                                                    pipelineReplicaMeter,
+                                                                    pipelineReplicaMeter, 1,
                                                                     filterInvocationCtx::createInputTuples,
                                                                     new OperatorDef[] { filterOperatorDef },
                                                                     new InternalInvocationCtx[] { filterInvocationCtx } );
@@ -304,12 +301,11 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final TupleQueueDrainerPool generatorDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, generatorOperatorDef );
         final DefaultInvocationCtx generatorInvocationCtx = new DefaultInvocationCtx( generatorOperatorDef.getInputPortCount(),
                                                                                       k -> null,
-                                                                                      new DefaultOutputCollector( generatorOperatorDef
-                                                                                                                          .getOutputPortCount() ) );
+                                                                                      new DefaultOutputCollector( generatorOperatorDef.getOutputPortCount() ) );
         final OperatorReplica generatorOperator = new OperatorReplica( pipelineReplicaId1,
                                                                        generatorOperatorQueue,
                                                                        generatorDrainerPool,
-                                                                       pipelineReplicaMeter,
+                                                                       pipelineReplicaMeter, 1,
                                                                        generatorInvocationCtx::createInputTuples,
                                                                        new OperatorDef[] { generatorOperatorDef },
                                                                        new InternalInvocationCtx[] { generatorInvocationCtx } );
@@ -321,12 +317,11 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final TupleQueueDrainerPool passerDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, passerOperatorDef );
         final DefaultInvocationCtx passerInvocationCtx = new DefaultInvocationCtx( passerOperatorDef.getInputPortCount(),
                                                                                    k -> null,
-                                                                                   new DefaultOutputCollector( passerOperatorDef
-                                                                                                                       .getOutputPortCount() ) );
+                                                                                   new DefaultOutputCollector( passerOperatorDef.getOutputPortCount() ) );
         final OperatorReplica passerOperator = new OperatorReplica( pipelineReplicaId1,
                                                                     passerOperatorQueue,
                                                                     passerDrainerPool,
-                                                                    pipelineReplicaMeter,
+                                                                    pipelineReplicaMeter, 1,
                                                                     passerInvocationCtx::createInputTuples,
                                                                     new OperatorDef[] { passerOperatorDef },
                                                                     new InternalInvocationCtx[] { passerInvocationCtx } );
@@ -343,13 +338,11 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, stateOperatorDef );
         final DefaultInvocationCtx stateInvocationCtx = new DefaultInvocationCtx( stateOperatorDef.getInputPortCount(),
                                                                                   operatorKvStores[ 0 ]::getKVStore,
-                                                                                  new DefaultOutputCollector( stateOperatorDef
-                                                                                                                      .getOutputPortCount
-                                                                                                                               () ) );
+                                                                                  new DefaultOutputCollector( stateOperatorDef.getOutputPortCount() ) );
         final OperatorReplica stateOperator = new OperatorReplica( pipelineReplicaId1,
                                                                    stateOperatorQueue,
                                                                    stateDrainerPool,
-                                                                   pipelineReplicaMeter,
+                                                                   pipelineReplicaMeter, 1,
                                                                    stateInvocationCtx::createInputTuples,
                                                                    new OperatorDef[] { stateOperatorDef },
                                                                    new InternalInvocationCtx[] { stateInvocationCtx } );
@@ -419,15 +412,14 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final TupleQueueDrainerPool mapperDrainerPool = new BlockingTupleQueueDrainerPool( jokerConfig, mapperOperatorDef );
         final DefaultInvocationCtx mapperInvocationCtx = new DefaultInvocationCtx( mapperOperatorDef.getInputPortCount(),
                                                                                    key -> null,
-                                                                                   new DefaultOutputCollector( mapperOperatorDef
-                                                                                                                       .getOutputPortCount() ) );
+                                                                                   new DefaultOutputCollector( mapperOperatorDef.getOutputPortCount() ) );
         final PipelineReplicaMeter pipelineReplicaMeter1 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId1,
                                                                                      mapperOperatorDef );
         final OperatorReplica mapperOperator = new OperatorReplica( pipelineReplicaId1,
                                                                     mapperOperatorQueue,
                                                                     mapperDrainerPool,
-                                                                    pipelineReplicaMeter1,
+                                                                    pipelineReplicaMeter1, 1,
                                                                     mapperInvocationCtx::createInputTuples,
                                                                     new OperatorDef[] { mapperOperatorDef },
                                                                     new InternalInvocationCtx[] { mapperInvocationCtx } );
@@ -456,8 +448,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final TupleQueueDrainerPool filterDrainerPool = new BlockingTupleQueueDrainerPool( jokerConfig, filterOperatorDef );
         final DefaultInvocationCtx filterInvocationCtx = new DefaultInvocationCtx( filterOperatorDef.getInputPortCount(),
                                                                                    key -> null,
-                                                                                   new DefaultOutputCollector( filterOperatorDef
-                                                                                                                       .getOutputPortCount() ) );
+                                                                                   new DefaultOutputCollector( filterOperatorDef.getOutputPortCount() ) );
 
         final PipelineReplicaMeter pipelineReplicaMeter2 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId2,
@@ -465,7 +456,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final OperatorReplica filterOperator = new OperatorReplica( pipelineReplicaId2,
                                                                     filterOperatorQueue,
                                                                     filterDrainerPool,
-                                                                    pipelineReplicaMeter2,
+                                                                    pipelineReplicaMeter2, 1,
                                                                     filterInvocationCtx::createInputTuples,
                                                                     new OperatorDef[] { filterOperatorDef },
                                                                     new InternalInvocationCtx[] { filterInvocationCtx } );
@@ -551,13 +542,11 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                      generatorOperatorDef1 );
         final DefaultInvocationCtx generatorInvocationCtx1 = new DefaultInvocationCtx( generatorOperatorDef1.getInputPortCount(),
                                                                                        k -> null,
-                                                                                       new DefaultOutputCollector(
-                                                                                               generatorOperatorDef1.getOutputPortCount()
-                                                                                       ) );
+                                                                                       new DefaultOutputCollector( generatorOperatorDef1.getOutputPortCount() ) );
         final OperatorReplica generatorOperator1 = new OperatorReplica( pipelineReplicaId1,
                                                                         generatorOperatorQueue1,
                                                                         generatorDrainerPool1,
-                                                                        pipelineReplicaMeter1,
+                                                                        pipelineReplicaMeter1, 1,
                                                                         generatorInvocationCtx1::createInputTuples,
                                                                         new OperatorDef[] { generatorOperatorDef1 },
                                                                         new InternalInvocationCtx[] { generatorInvocationCtx1 } );
@@ -582,9 +571,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final TupleQueueDrainerPool generatorDrainerPool2 = new NonBlockingTupleQueueDrainerPool( jokerConfig, generatorOperatorDef2 );
         final DefaultInvocationCtx generatorInvocationCtx2 = new DefaultInvocationCtx( generatorOperatorDef2.getInputPortCount(),
                                                                                        k -> null,
-                                                                                       new DefaultOutputCollector(
-                                                                                               generatorOperatorDef2.getOutputPortCount()
-                                                                                       ) );
+                                                                                       new DefaultOutputCollector( generatorOperatorDef2.getOutputPortCount() ) );
 
         final PipelineReplicaMeter pipelineReplicaMeter2 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId2,
@@ -592,7 +579,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final OperatorReplica generatorOperator2 = new OperatorReplica( pipelineReplicaId2,
                                                                         generatorOperatorQueue2,
                                                                         generatorDrainerPool2,
-                                                                        pipelineReplicaMeter2,
+                                                                        pipelineReplicaMeter2, 1,
                                                                         generatorInvocationCtx2::createInputTuples,
                                                                         new OperatorDef[] { generatorOperatorDef2 },
                                                                         new InternalInvocationCtx[] { generatorInvocationCtx2 } );
@@ -633,13 +620,11 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final OperatorKVStore sinkOperatorKVStore = operatorKVStoreManager.createDefaultKVStore( REGION_ID, "sink" );
         final DefaultInvocationCtx sinkInvocationCtx = new DefaultInvocationCtx( sinkOperatorDef.getInputPortCount(),
                                                                                  sinkOperatorKVStore::getKVStore,
-                                                                                 new DefaultOutputCollector( sinkOperatorDef
-                                                                                                                     .getOutputPortCount
-                                                                                                                              () ) );
+                                                                                 new DefaultOutputCollector( sinkOperatorDef.getOutputPortCount() ) );
         final OperatorReplica sinkOperator = new OperatorReplica( pipelineReplicaId3,
                                                                   sinkOperatorQueue,
                                                                   sinkDrainerPool,
-                                                                  pipelineReplicaMeter3,
+                                                                  pipelineReplicaMeter3, 1,
                                                                   sinkInvocationCtx::createInputTuples,
                                                                   new OperatorDef[] { sinkOperatorDef },
                                                                   new InternalInvocationCtx[] { sinkInvocationCtx } );
@@ -651,12 +636,11 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final TupleQueueDrainerPool passerDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, passerOperatorDef );
         final DefaultInvocationCtx passerInvocationCtx = new DefaultInvocationCtx( passerOperatorDef.getInputPortCount(),
                                                                                    k -> null,
-                                                                                   new DefaultOutputCollector( passerOperatorDef
-                                                                                                                       .getOutputPortCount() ) );
+                                                                                   new DefaultOutputCollector( passerOperatorDef.getOutputPortCount() ) );
         final OperatorReplica passerOperator = new OperatorReplica( pipelineReplicaId3,
                                                                     passerOperatorQueue,
                                                                     passerDrainerPool,
-                                                                    pipelineReplicaMeter3,
+                                                                    pipelineReplicaMeter3, 1,
                                                                     passerInvocationCtx::createInputTuples,
                                                                     new OperatorDef[] { passerOperatorDef },
                                                                     new InternalInvocationCtx[] { passerInvocationCtx } );
@@ -671,13 +655,11 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, stateOperatorDef );
         final DefaultInvocationCtx stateInvocationCtx = new DefaultInvocationCtx( stateOperatorDef.getInputPortCount(),
                                                                                   operatorKvStores[ 0 ]::getKVStore,
-                                                                                  new DefaultOutputCollector( stateOperatorDef
-                                                                                                                      .getOutputPortCount
-                                                                                                                               () ) );
+                                                                                  new DefaultOutputCollector( stateOperatorDef.getOutputPortCount() ) );
         final OperatorReplica stateOperator = new OperatorReplica( pipelineReplicaId3,
                                                                    stateOperatorQueue,
                                                                    stateDrainerPool,
-                                                                   pipelineReplicaMeter3,
+                                                                   pipelineReplicaMeter3, 1,
                                                                    stateInvocationCtx::createInputTuples,
                                                                    new OperatorDef[] { stateOperatorDef },
                                                                    new InternalInvocationCtx[] { stateInvocationCtx } );
@@ -773,14 +755,13 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                              generatorOperatorDef.getInputPortCount() );
         final DefaultInvocationCtx generatorInvocationCtx = new DefaultInvocationCtx( generatorOperatorDef.getInputPortCount(),
                                                                                       k -> null,
-                                                                                      new DefaultOutputCollector( generatorOperatorDef
-                                                                                                                          .getOutputPortCount() ) );
+                                                                                      new DefaultOutputCollector( generatorOperatorDef.getOutputPortCount() ) );
         final TupleQueueDrainerPool generatorDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, generatorOperatorDef );
 
         final OperatorReplica generatorOperator = new OperatorReplica( pipelineReplicaId1,
                                                                        generatorOperatorQueue,
                                                                        generatorDrainerPool,
-                                                                       pipelineReplicaMeter1,
+                                                                       pipelineReplicaMeter1, 1,
                                                                        generatorInvocationCtx::createInputTuples,
                                                                        new OperatorDef[] { generatorOperatorDef },
                                                                        new InternalInvocationCtx[] { generatorInvocationCtx } );
@@ -793,13 +774,12 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final TupleQueueDrainerPool passerDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, passerOperatorDef );
         final DefaultInvocationCtx passerInvocationCtx = new DefaultInvocationCtx( passerOperatorDef.getInputPortCount(),
                                                                                    k -> null,
-                                                                                   new DefaultOutputCollector( passerOperatorDef
-                                                                                                                       .getOutputPortCount() ) );
+                                                                                   new DefaultOutputCollector( passerOperatorDef.getOutputPortCount() ) );
 
         final OperatorReplica passerOperator = new OperatorReplica( pipelineReplicaId1,
                                                                     passerOperatorQueue,
                                                                     passerDrainerPool,
-                                                                    pipelineReplicaMeter1,
+                                                                    pipelineReplicaMeter1, 1,
                                                                     passerInvocationCtx::createInputTuples,
                                                                     new OperatorDef[] { passerOperatorDef },
                                                                     new InternalInvocationCtx[] { passerInvocationCtx } );
@@ -826,13 +806,11 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final DefaultInvocationCtx stateInvocationCtx = new DefaultInvocationCtx( stateOperatorDef.getInputPortCount(),
                                                                                   operatorKvStores[ 0 ]::getKVStore,
-                                                                                  new DefaultOutputCollector( stateOperatorDef
-                                                                                                                      .getOutputPortCount
-                                                                                                                               () ) );
+                                                                                  new DefaultOutputCollector( stateOperatorDef.getOutputPortCount() ) );
         final OperatorReplica stateOperator = new OperatorReplica( pipelineReplicaId2,
                                                                    stateOperatorQueue,
                                                                    stateDrainerPool,
-                                                                   pipelineReplicaMeter2,
+                                                                   pipelineReplicaMeter2, 1,
                                                                    stateInvocationCtx::createInputTuples,
                                                                    new OperatorDef[] { stateOperatorDef },
                                                                    new InternalInvocationCtx[] { stateInvocationCtx } );

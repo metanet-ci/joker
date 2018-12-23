@@ -33,6 +33,8 @@ import static cs.bilkent.joker.engine.config.MetricManagerConfig.TICK_MASK;
 import static cs.bilkent.joker.engine.config.MetricManagerConfig.WARMUP_ITERATIONS;
 import static cs.bilkent.joker.engine.config.PartitionServiceConfig.MAX_REPLICA_COUNT;
 import static cs.bilkent.joker.engine.config.PartitionServiceConfig.PARTITION_COUNT;
+import static cs.bilkent.joker.engine.config.PipelineManagerConfig.INTER_ARRIVAL_TIME_TRACKING_COUNT;
+import static cs.bilkent.joker.engine.config.PipelineManagerConfig.INTER_ARRIVAL_TIME_TRACKING_PERIOD;
 import static cs.bilkent.joker.engine.config.PipelineManagerConfig.LATENCY_STAGE_TICK_MASK;
 import static cs.bilkent.joker.engine.config.PipelineManagerConfig.LATENCY_TICK_MASK;
 import static cs.bilkent.joker.engine.config.PipelineManagerConfig.RUNNER_COMMAND_TIMEOUT;
@@ -466,6 +468,20 @@ public class JokerConfigBuilder
         public PipelineManagerConfigBuilder setLatencyStageTickMask ( final long val )
         {
             pipelineManagerConfigVals.put( LATENCY_STAGE_TICK_MASK, val );
+
+            return this;
+        }
+
+        public PipelineManagerConfigBuilder setInterArrivalTimeTrackingPeriod ( final int val )
+        {
+            pipelineManagerConfigVals.put( INTER_ARRIVAL_TIME_TRACKING_PERIOD, val );
+
+            return this;
+        }
+
+        public PipelineManagerConfigBuilder setInterArrivalTimeTrackingCount ( final int val )
+        {
+            pipelineManagerConfigVals.put( INTER_ARRIVAL_TIME_TRACKING_COUNT, val );
 
             return this;
         }

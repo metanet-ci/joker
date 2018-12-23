@@ -41,7 +41,7 @@ public class OperatorLatencyTest extends AbstractJokerTest
         final DefaultInvocationCtx invCtx = new DefaultInvocationCtx( operatorDef.getInputPortCount(), key -> null, output );
         final Tuple input = new Tuple();
         final long ingestionTime = 10;
-        input.setIngestionTime( ingestionTime, false );
+        input.setIngestionTime( ingestionTime );
         invCtx.createInputTuples( null ).add( input );
         invCtx.setInvocationReason( InvocationReason.SUCCESS );
 
@@ -64,7 +64,7 @@ public class OperatorLatencyTest extends AbstractJokerTest
         final DefaultInvocationCtx invCtx = new DefaultInvocationCtx( operatorDef.getInputPortCount(), key -> null, output );
         final Tuple input = new Tuple();
         final long ingestionTime = 10;
-        input.setIngestionTime( ingestionTime, false );
+        input.setIngestionTime( ingestionTime );
         invCtx.createInputTuples( null ).add( input );
         invCtx.setInvocationReason( InvocationReason.SUCCESS );
 
@@ -90,7 +90,7 @@ public class OperatorLatencyTest extends AbstractJokerTest
         final DefaultInvocationCtx invCtx = new DefaultInvocationCtx( operatorDef.getInputPortCount(), key -> null, output );
         final Tuple input = new Tuple();
         final long ingestionTime = 10;
-        input.setIngestionTime( ingestionTime, false );
+        input.setIngestionTime( ingestionTime );
         invCtx.createInputTuples( null ).add( input );
         invCtx.setInvocationReason( InvocationReason.SUCCESS );
 
@@ -115,7 +115,7 @@ public class OperatorLatencyTest extends AbstractJokerTest
         final DefaultInvocationCtx invCtx = new DefaultInvocationCtx( operatorDef.getInputPortCount(), key -> null, output );
         final Tuple input = new Tuple();
         final long ingestionTime = 10;
-        input.setIngestionTime( ingestionTime, false );
+        input.setIngestionTime( ingestionTime );
         invCtx.createInputTuples( null ).add( input );
         invCtx.setInvocationReason( InvocationReason.SUCCESS );
 
@@ -136,7 +136,7 @@ public class OperatorLatencyTest extends AbstractJokerTest
         final DefaultInvocationCtx invCtx = new DefaultInvocationCtx( operatorDef.getInputPortCount(), key -> null, output );
         final Tuple input = new Tuple();
         final long ingestionTime = 10;
-        input.setIngestionTime( ingestionTime, false );
+        input.setIngestionTime( ingestionTime );
         invCtx.createInputTuples( null ).add( input );
         invCtx.setInvocationReason( InvocationReason.SUCCESS );
 
@@ -164,9 +164,9 @@ public class OperatorLatencyTest extends AbstractJokerTest
         final Tuple tuple2 = new Tuple();
         final Tuple tuple3 = new Tuple();
         final long ingestionTime = 10;
-        tuple1.setIngestionTime( ingestionTime, false );
-        tuple2.setIngestionTime( ingestionTime - 1, false );
-        tuple3.setIngestionTime( ingestionTime + 1, false );
+        tuple1.setIngestionTime( ingestionTime );
+        tuple2.setIngestionTime( ingestionTime - 1 );
+        tuple3.setIngestionTime( ingestionTime + 1 );
         final TuplesImpl input = invCtx.createInputTuples( null );
         input.add( 0, tuple1 );
         input.add( 1, tuple2 );
@@ -199,8 +199,8 @@ public class OperatorLatencyTest extends AbstractJokerTest
         final Tuple tuple1 = Tuple.of( "val", 1 );
         final Tuple tuple2 = Tuple.of( "val", 2 );
         final long ingestionTime = 10;
-        tuple1.setIngestionTime( ingestionTime, false );
-        tuple2.setIngestionTime( ingestionTime + 1, false );
+        tuple1.setIngestionTime( ingestionTime );
+        tuple2.setIngestionTime( ingestionTime + 1 );
         final TuplesImpl input = invCtx.createInputTuples( null );
         input.add( tuple1, tuple2 );
         invCtx.setInvocationReason( InvocationReason.SUCCESS );

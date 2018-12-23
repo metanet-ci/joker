@@ -12,7 +12,6 @@ import org.HdrHistogram.IntCountsHistogram;
 
 import cs.bilkent.joker.engine.metric.LatencyMetrics.LatencyRecord;
 import cs.bilkent.joker.operator.utils.Pair;
-import cs.bilkent.joker.operator.utils.Triple;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toMap;
 
@@ -29,8 +28,9 @@ public class LatencyMeter
 
     private final Map<String, IntCountsHistogram> queueLatencies = new HashMap<>();
 
-    private final AtomicReference<Triple<LatencyRecord, Map<String, LatencyRecord>, Map<String, LatencyRecord>>> ref =
-            new AtomicReference<>();
+    private final Map<String, IntCountsHistogram> interArrivalTimes = new HashMap<>();
+
+    private final AtomicReference<LatencyMetrics> ref = new AtomicReference<>();
 
     public LatencyMeter ( final String sinkOperatorId, final int replicaIndex, final Set<String> operatorIds )
     {
@@ -41,6 +41,7 @@ public class LatencyMeter
         {
             invocationLatencies.put( operatorId, newHistogram() );
             queueLatencies.put( operatorId, newHistogram() );
+            interArrivalTimes.put( operatorId, newHistogram() );
         }
     }
 
@@ -88,6 +89,14 @@ public class LatencyMeter
         }
     }
 
+    public void recordInterArrivalTime ( final String operatorId, final long duration )
+    {
+        if ( duration > 0 )
+        {
+            interArrivalTimes.get( operatorId ).recordValue( duration );
+        }
+    }
+
     public boolean publish ()
     {
         final LatencyRecord tupleLatency = toLatencyRecord( new SimpleEntry<>( null, this.tupleLatency ) ).getValue();
@@ -101,29 +110,45 @@ public class LatencyMeter
                                                                              .map( this::toLatencyRecord )
                                                                              .collect( toMap( Entry::getKey, Entry::getValue ) );
 
-        final Triple<LatencyRecord, Map<String, LatencyRecord>, Map<String, LatencyRecord>> t = Triple.of( tupleLatency,
-                                                                                                           invocationLatencies,
-                                                                                                           queueLatencies );
+        final Map<String, LatencyRecord> interArrivalTimes = this.interArrivalTimes.entrySet()
+                                                                                   .stream()
+                                                                                   .map( this::toLatencyRecord )
+                                                                                   .collect( toMap( Entry::getKey, Entry::getValue ) );
+
+        final LatencyMetrics m = new LatencyMetrics( sinkOperatorId,
+                                                     replicaIndex,
+                                                     0,
+                                                     tupleLatency,
+                                                     invocationLatencies,
+                                                     queueLatencies,
+                                                     interArrivalTimes );
 
         final Set<String> operatorIds = invocationLatencies.keySet();
         this.tupleLatency = newHistogram();
         operatorIds.forEach( operatorId -> {
             this.invocationLatencies.put( operatorId, newHistogram() );
             this.queueLatencies.put( operatorId, newHistogram() );
+            this.interArrivalTimes.put( operatorId, newHistogram() );
         } );
 
-        return ref.getAndSet( t ) != null;
+        return ref.getAndSet( m ) != null;
     }
 
     public LatencyMetrics toLatencyMetrics ( final int flowVersion )
     {
-        Triple<LatencyRecord, Map<String, LatencyRecord>, Map<String, LatencyRecord>> t;
-        while ( ( t = ref.getAndSet( null ) ) == null )
+        LatencyMetrics m;
+        while ( ( m = ref.getAndSet( null ) ) == null )
         {
             LockSupport.parkNanos( 1 );
         }
 
-        return new LatencyMetrics( sinkOperatorId, replicaIndex, flowVersion, t._1, t._2, t._3 );
+        return new LatencyMetrics( sinkOperatorId,
+                                   replicaIndex,
+                                   flowVersion,
+                                   m.getTupleLatency(),
+                                   m.getInvocationLatencies(),
+                                   m.getQueueLatencies(),
+                                   m.getInterArrivalTimes() );
     }
 
     private Entry<String, LatencyRecord> toLatencyRecord ( Entry<String, IntCountsHistogram> e )
@@ -137,7 +162,6 @@ public class LatencyMeter
                                                      histogram.getMaxValue(),
                                                      histogram.getValueAtPercentile( 75 ),
                                                      histogram.getValueAtPercentile( 95 ),
-                                                     histogram.getValueAtPercentile( 98 ),
                                                      histogram.getValueAtPercentile( 99 ) ) );
     }
 
@@ -145,8 +169,8 @@ public class LatencyMeter
     @Override
     public String toString ()
     {
-        return "LatencyMeter{" + "sinkOperatorId='" + sinkOperatorId + '\'' + ", replicaIndex=" + replicaIndex + ", invocationLatencies="
-               + invocationLatencies + ", queueLatencies=" + queueLatencies + ", tupleLatency=" + tupleLatency + '}';
+        return "LatencyMeter{" + "sinkOperatorId='" + sinkOperatorId + '\'' + ", replicaIndex=" + replicaIndex + ", tupleLatency="
+               + tupleLatency + ", invocationLatencies=" + invocationLatencies + ", queueLatencies=" + queueLatencies
+               + ", interArrivalTimes=" + interArrivalTimes + '}';
     }
-
 }

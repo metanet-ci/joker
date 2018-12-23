@@ -9,6 +9,7 @@ import java.util.function.Function;
 
 import org.junit.Test;
 
+import cs.bilkent.joker.engine.metric.PipelineReplicaMeter.Ticker;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
@@ -57,7 +58,8 @@ public class PartitionedDownstreamCollectorsTest extends AbstractJokerTest
                                                                                                partitionCount,
                                                                                                partitionDistribution,
                                                                                                operatorQueues,
-                                                                                               partitionKeyExtractor );
+                                                                                               partitionKeyExtractor,
+                                                                                               new Ticker( 1 ) );
 
         final Tuple tuple = Tuple.of( "key", "val" );
         tuples.add( sourcePortIndex1, tuple );
@@ -86,7 +88,8 @@ public class PartitionedDownstreamCollectorsTest extends AbstractJokerTest
                                                                                                partitionCount,
                                                                                                partitionDistribution,
                                                                                                operatorQueues,
-                                                                                               partitionKeyExtractor );
+                                                                                               partitionKeyExtractor,
+                                                                                               new Ticker( 1 ) );
 
         final Tuple tuple1 = Tuple.of( "key1", "val" );
         tuples.add( sourcePortIndex1, tuple1 );

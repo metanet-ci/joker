@@ -340,6 +340,24 @@ public class JokerConfigBuilderTest extends AbstractJokerTest
     }
 
     @Test
+    public void test_PipelineManagerConfig_interArrivalTimeTrackingPeriod ()
+    {
+        final int val = 234;
+        builder.getPipelineManagerConfigBuilder().setInterArrivalTimeTrackingPeriod( val );
+
+        assertEquals( val, builder.build().getPipelineManagerConfig().getInterArrivalTimeTrackingPeriod() );
+    }
+
+    @Test
+    public void test_PipelineManagerConfig_interArrivalTimeTrackingCount ()
+    {
+        final int val = 234;
+        builder.getPipelineManagerConfigBuilder().setInterArrivalTimeTrackingCount( val );
+
+        assertEquals( val, builder.build().getPipelineManagerConfig().getInterArrivalTimeTrackingCount() );
+    }
+
+    @Test
     public void test_PipelineReplicaRunnerConfig_runnerWaitTimeoutInMillis ()
     {
         final long val = 234;

@@ -181,11 +181,10 @@ public class MetricManagerImpl implements MetricManager
         {
             checkState( !scheduler.isShutdown() );
 
-            final Set<String> operatorIds = flow.getOperators()
-                                                .stream()
-                                                .filter( op -> !flow.getSourceOperators().contains( op ) )
-                                                .map( OperatorDef::getId )
-                                                .collect( toSet() );
+            final Set<String> operatorIds = flow.getOperators().stream()
+                                                //                                                .filter( op -> !flow.getSourceOperators
+                                                //                                                ().contains( op ) )
+                                                .map( OperatorDef::getId ).collect( toSet() );
 
             final LatencyMeter latencyMeter = new LatencyMeter( sinkOperatorId, replicaIndex, operatorIds );
             latencyMeters.put( latencyMeter.getKey(), latencyMeter );
@@ -648,31 +647,30 @@ public class MetricManagerImpl implements MetricManager
                 final LatencyMetrics latest = latencyMetricsHistory.getLatest();
                 final Pair<String, Integer> key = Pair.of( latest.getSinkOperatorId(), latest.getReplicaIndex() );
                 final LatencyRecord tupleLatency = latest.getTupleLatency();
-                LOGGER.info(
-                        "TUPLE LATENCIES FOR SINK: {} -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .98: {} .99: {} "
-                        + " HISTORICAL MEAN: {}",
-                        key,
-                        tupleLatency.getMin(),
-                        tupleLatency.getMax(),
-                        tupleLatency.getMean(),
-                        tupleLatency.getStdDev(),
-                        tupleLatency.getMedian(),
-                        tupleLatency.getPercentile75(),
-                        tupleLatency.getPercentile95(),
-                        tupleLatency.getPercentile98(),
-                        tupleLatency.getPercentile99(),
-                        latencyMetricsHistory.getMeanTupleLatency() );
+                LOGGER.info( "TUPLE LATENCIES FOR SINK: {} -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .99: {} "
+                             + "HISTORICAL MEAN: {}",
+                             key,
+                             tupleLatency.getMin(),
+                             tupleLatency.getMax(),
+                             tupleLatency.getMean(),
+                             tupleLatency.getStdDev(),
+                             tupleLatency.getMedian(),
+                             tupleLatency.getPercentile75(),
+                             tupleLatency.getPercentile95(),
+                             tupleLatency.getPercentile99(),
+                             latencyMetricsHistory.getMeanTupleLatency() );
 
                 for ( String operatorId : latest.getInvocationLatencies().keySet() )
                 {
                     final LatencyRecord queueLatency = latest.getQueueLatency( operatorId );
                     final LatencyRecord invocationLatency = latest.getInvocationLatency( operatorId );
+                    final LatencyRecord interArrivalTime = latest.getInterArrivalTime( operatorId );
 
                     if ( queueLatency != null )
                     {
                         LOGGER.info(
-                                "SINK: {} Queue Latency: {} -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .98: {} "
-                                + ".99: {} HISTORICAL MEAN: {}",
+                                "SINK: {} Queue Latency: {} -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .99: {} "
+                                + "HISTORICAL MEAN: {}",
                                 key,
                                 operatorId,
                                 queueLatency.getMin(),
@@ -682,52 +680,67 @@ public class MetricManagerImpl implements MetricManager
                                 queueLatency.getMedian(),
                                 queueLatency.getPercentile75(),
                                 queueLatency.getPercentile95(),
-                                queueLatency.getPercentile98(),
                                 queueLatency.getPercentile99(),
                                 latencyMetricsHistory.getMeanQueueLatency( operatorId ) );
                     }
 
-                    LOGGER.info(
-                            "SINK: {} Invocation Latency: {} -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .98: {} "
-                            + ".99: {} HISTORICAL MEAN: {}",
-                            key,
-                            operatorId,
-                            invocationLatency.getMin(),
-                            invocationLatency.getMax(),
-                            invocationLatency.getMean(),
-                            invocationLatency.getStdDev(),
-                            invocationLatency.getMedian(),
-                            invocationLatency.getPercentile75(),
-                            invocationLatency.getPercentile95(),
-                            invocationLatency.getPercentile98(),
-                            invocationLatency.getPercentile99(),
-                            latencyMetricsHistory.getMeanInvocationLatency( operatorId ) );
+                    if ( invocationLatency != null )
+                    {
+                        LOGGER.info(
+                                "SINK: {} Invocation Latency: {} -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .99: "
+                                + "{} HISTORICAL MEAN: {}",
+                                key,
+                                operatorId,
+                                invocationLatency.getMin(),
+                                invocationLatency.getMax(),
+                                invocationLatency.getMean(),
+                                invocationLatency.getStdDev(),
+                                invocationLatency.getMedian(),
+                                invocationLatency.getPercentile75(),
+                                invocationLatency.getPercentile95(),
+                                invocationLatency.getPercentile99(),
+                                latencyMetricsHistory.getMeanInvocationLatency( operatorId ) );
+                    }
+
+                    if ( interArrivalTime != null )
+                    {
+                        LOGGER.info(
+                                "SINK: {} Inter-arrival Time: {} -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .99: "
+                                + "{} HISTORICAL MEAN: {}",
+                                key,
+                                operatorId,
+                                interArrivalTime.getMin(),
+                                interArrivalTime.getMax(),
+                                interArrivalTime.getMean(),
+                                interArrivalTime.getStdDev(),
+                                interArrivalTime.getMedian(),
+                                interArrivalTime.getPercentile75(),
+                                interArrivalTime.getPercentile95(),
+                                interArrivalTime.getPercentile99(),
+                                latencyMetricsHistory.getMeanInterArrivalTime( operatorId ) );
+                    }
                 }
             }
 
             final Snapshot scanMetricsSnapshot = scanMetricsHistogram.getSnapshot();
             final Snapshot scanOperatorsSnapshot = scanOperatorsHistogram.getSnapshot();
-            LOGGER.debug( "SCAN METRICS   -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .99: {} .999: {}",
+            LOGGER.debug( "SCAN METRICS   -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .99: {}",
                           scanMetricsSnapshot.getMin(),
                           scanMetricsSnapshot.getMax(),
                           format( scanMetricsSnapshot.getMean() ),
                           format( scanMetricsSnapshot.getStdDev() ),
                           format( scanMetricsSnapshot.getMedian() ),
                           format( scanMetricsSnapshot.get75thPercentile() ),
-                          format( scanMetricsSnapshot.get95thPercentile() ),
-                          format( scanMetricsSnapshot.get99thPercentile() ),
-                          format( scanMetricsSnapshot.get999thPercentile() ) );
+                          format( scanMetricsSnapshot.get95thPercentile() ), format( scanMetricsSnapshot.get99thPercentile() ) );
 
-            LOGGER.debug( "SCAN OPERATORS -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .99: {} .999: {}",
+            LOGGER.debug( "SCAN OPERATORS -> min: {} max: {} mean: {} std dev: {} median: {} .75: {} .95: {} .99: {}",
                           scanOperatorsSnapshot.getMin(),
                           scanOperatorsSnapshot.getMax(),
                           format( scanOperatorsSnapshot.getMean() ),
                           format( scanOperatorsSnapshot.getStdDev() ),
                           format( scanOperatorsSnapshot.getMedian() ),
                           format( scanOperatorsSnapshot.get75thPercentile() ),
-                          format( scanOperatorsSnapshot.get95thPercentile() ),
-                          format( scanOperatorsSnapshot.get99thPercentile() ),
-                          format( scanOperatorsSnapshot.get999thPercentile() ) );
+                          format( scanOperatorsSnapshot.get95thPercentile() ), format( scanOperatorsSnapshot.get99thPercentile() ) );
 
             final int period = metrics != null ? metrics.getPeriod() : -1;
             LOGGER.info( "Time spent (ns): {}. New flow period: {}", timeSpent, period );

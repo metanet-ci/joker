@@ -5,6 +5,7 @@ import javax.inject.Named;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.JokerModule.DOWNSTREAM_FAILURE_FLAG_NAME;
+import cs.bilkent.joker.engine.metric.PipelineReplicaMeter.Ticker;
 import cs.bilkent.joker.engine.partition.PartitionKeyExtractor;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -22,9 +23,10 @@ public class PartitionedDownstreamCollectorN extends AbstractPartitionedDownstre
                                              final int partitionCount,
                                              final int[] partitionDistribution,
                                              final OperatorQueue[] operatorQueues,
-                                             final PartitionKeyExtractor partitionKeyExtractor )
+                                             final PartitionKeyExtractor partitionKeyExtractor,
+                                             final Ticker ticker )
     {
-        super( failureFlag, partitionCount, partitionDistribution, operatorQueues, partitionKeyExtractor );
+        super( failureFlag, partitionCount, partitionDistribution, operatorQueues, partitionKeyExtractor, ticker );
         checkArgument( sourcePorts.length == destinationPorts.length,
                        "source ports size = %s and destination ports = %s ! destination operatorId=%s",
                        sourcePorts.length,

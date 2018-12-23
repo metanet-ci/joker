@@ -8,6 +8,7 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import cs.bilkent.joker.engine.exception.JokerException;
+import cs.bilkent.joker.engine.metric.PipelineReplicaMeter.Ticker;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -50,8 +51,7 @@ public class DownstreamCollectorsTest extends AbstractJokerTest
 
         final DownstreamCollector1 tupleSender = new DownstreamCollector1( failureFlag,
                                                                            sourcePortIndex1,
-                                                                           destinationPortIndex1,
-                                                                           operatorQueue );
+                                                                           destinationPortIndex1, operatorQueue, new Ticker( 1 ) );
         addTuple( "key", "val", sourcePortIndex1 );
 
         setMock( sourcePortIndex1, destinationPortIndex1, offerResult );
@@ -86,7 +86,8 @@ public class DownstreamCollectorsTest extends AbstractJokerTest
                                                                                      destinationPortIndex2,
                                                                                      destinationPortIndex3,
                                                                                      destinationPortIndex4 },
-                                                                         operatorQueue );
+                                                                         operatorQueue,
+                                                                         new Ticker( 1 ) );
         addTuple( "key1", "val", sourcePortIndex1 );
         addTuple( "key2", "val", sourcePortIndex2 );
         addTuple( "key3", "val", sourcePortIndex3 );

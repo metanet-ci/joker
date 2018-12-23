@@ -245,6 +245,8 @@ public class RegionManagerImpl implements RegionManager
                                                                                  operatorQueues[ replicaIndex ],
                                                                                  drainerPools[ replicaIndex ],
                                                                                  replicaMeters[ replicaIndex ],
+                                                                                 config.getPipelineManagerConfig()
+                                                                                       .getLatencyStageTickMask(),
                                                                                  ctx::createInputTuples,
                                                                                  fusedOperatorDefs[ replicaIndex ],
                                                                                  fusedInvocationCtxes[ replicaIndex ] );
@@ -691,7 +693,7 @@ public class RegionManagerImpl implements RegionManager
                     operatorReplicas[ i ] = new OperatorReplica( pipelineReplicaId,
                                                                  operatorQueue,
                                                                  drainerPool,
-                                                                 meter,
+                                                                 meter, config.getPipelineManagerConfig().getLatencyStageTickMask(),
                                                                  ctx::createInputTuples, fusedOperatorDefs, fusedInvocationCtxes );
 
                 }

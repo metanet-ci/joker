@@ -1,7 +1,5 @@
 package cs.bilkent.joker.engine.adaptation.impl;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +44,7 @@ import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
 import cs.bilkent.joker.operator.utils.Pair;
 import cs.bilkent.joker.test.AbstractJokerTest;
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -99,9 +98,9 @@ public class LatencyOptimizingAdaptationManagerTest extends AbstractJokerTest
         final RegionDefFormer regionDefFormer = new RegionDefFormerImpl( new IdGenerator() );
         final List<RegionDef> regionDefs = regionDefFormer.createRegions( flow );
 
-        regionExecPlans = Arrays.asList( new RegionExecPlan( regionDefs.get( 0 ), Collections.singletonList( 0 ), 1 ),
-                                         new RegionExecPlan( regionDefs.get( 1 ), Collections.singletonList( 0 ), 1 ),
-                                         new RegionExecPlan( regionDefs.get( 2 ), Arrays.asList( 0, 1 ), 1 ) );
+        regionExecPlans = asList( new RegionExecPlan( regionDefs.get( 0 ), singletonList( 0 ), 1 ),
+                                  new RegionExecPlan( regionDefs.get( 1 ), singletonList( 0 ), 1 ),
+                                  new RegionExecPlan( regionDefs.get( 2 ), asList( 0, 1 ), 1 ) );
 
         adaptationManager.initialize( flow, regionExecPlans );
     }
@@ -324,11 +323,12 @@ public class LatencyOptimizingAdaptationManagerTest extends AbstractJokerTest
     {
         final Map<String, LatencyRecord> queueLatencies = createQueueLatencies( operator2Latency, operator4Latency );
 
+        // TODO fixit
         final LatencyMetrics latencyMetrics = new LatencyMetrics( operator5.getId(),
                                                                   0,
                                                                   1,
                                                                   newLatencyRecord( tupleLatency ),
-                                                                  createInvocationLatencies(),
+                                                                  createInvocationLatencies(), queueLatencies,
                                                                   queueLatencies );
 
         final LatencyMetricsHistory latencyMetricsHistory = new LatencyMetricsHistory( latencyMetrics, 1 );
@@ -340,7 +340,7 @@ public class LatencyOptimizingAdaptationManagerTest extends AbstractJokerTest
 
     private LatencyRecord newLatencyRecord ( long mean )
     {
-        return new LatencyRecord( mean, 0, 0, 0, 0, 0, 0, 0, 0 );
+        return new LatencyRecord( mean, 0, 0, 0, 0, 0, 0, 0 );
     }
 
     @OperatorSpec( type = STATEFUL, inputPortCount = 0, outputPortCount = 1 )
