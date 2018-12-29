@@ -13,11 +13,12 @@ import java.util.function.BiConsumer;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
 import static cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType.INTER_ARRIVAL_TIME;
-import static cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType.INVOCATION_LATENCY;
-import static cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType.QUEUE_LATENCY;
+import static cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType.QUEUE_WAITING_TIME;
+import static cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType.SERVICE_TIME;
 import cs.bilkent.joker.operator.schema.runtime.RuntimeSchemaField;
 import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import static cs.bilkent.joker.operator.schema.runtime.TupleSchema.FIELD_NOT_FOUND;
+import static java.lang.Math.max;
 
 
 /**
@@ -201,7 +202,7 @@ public final class Tuple implements Fields<String>
 
     private long queueOfferTime = INGESTION_TIME_NOT_ASSIGNED;
 
-    private List<LatencyStage> latencyStages;
+    private ArrayList<LatencyStage> latencyStages;
 
     public Tuple ()
     {
@@ -422,7 +423,7 @@ public final class Tuple implements Fields<String>
 
     public long getLatency ( final long now )
     {
-        return ( now - ingestionTime );
+        return ingestionTime != INGESTION_TIME_NOT_ASSIGNED ? ( now - ingestionTime ) : 0;
     }
 
     public void attachTo ( final Tuple source )
@@ -462,7 +463,7 @@ public final class Tuple implements Fields<String>
         this.queueOfferTime = queueOfferTime;
     }
 
-    public void recordQueueLatency ( final String operatorId, final long now )
+    public void recordQueueWaitingTime ( final String operatorId, final long now )
     {
         if ( queueOfferTime == INGESTION_TIME_NOT_ASSIGNED )
         {
@@ -475,16 +476,11 @@ public final class Tuple implements Fields<String>
         }
 
         final long duration = ( now - queueOfferTime );
-        if ( duration <= 0 )
-        {
-            return;
-        }
-
-        latencyStages.add( new LatencyStage( operatorId, QUEUE_LATENCY, duration ) );
+        latencyStages.add( new LatencyStage( operatorId, QUEUE_WAITING_TIME, max( 0, duration ) ) );
         queueOfferTime = INGESTION_TIME_NOT_ASSIGNED;
     }
 
-    public void recordInvocationLatency ( final String operatorId, final long duration )
+    public void recordServiceTime ( final String operatorId, final long duration )
     {
         if ( duration <= 0 )
         {
@@ -496,22 +492,21 @@ public final class Tuple implements Fields<String>
             latencyStages = new ArrayList<>( 2 );
         }
 
-        latencyStages.add( new LatencyStage( operatorId, INVOCATION_LATENCY, duration ) );
+        latencyStages.add( new LatencyStage( operatorId, SERVICE_TIME, duration ) );
     }
 
-    public void recordInterArrivalTime ( final String operatorId, final long duration )
+    public void recordInterArrivalTimes ( final String operatorId, final long duration, final int batchSize )
     {
-        if ( duration <= 0 )
-        {
-            return;
-        }
-
         if ( latencyStages == null )
         {
-            latencyStages = new ArrayList<>( 2 );
+            latencyStages = new ArrayList<>( batchSize );
         }
 
-        latencyStages.add( new LatencyStage( operatorId, INTER_ARRIVAL_TIME, duration ) );
+        latencyStages.add( new LatencyStage( operatorId, INTER_ARRIVAL_TIME, max( 0, duration ) ) );
+        if ( batchSize > 1 )
+        {
+            latencyStages.add( new LatencyStage( operatorId, INTER_ARRIVAL_TIME, 0, batchSize - 1 ) );
+        }
     }
 
     public List<LatencyStage> getLatencyStages ()
@@ -597,7 +592,7 @@ public final class Tuple implements Fields<String>
 
         public enum LatencyStageType
         {
-            QUEUE_LATENCY, INVOCATION_LATENCY, INTER_ARRIVAL_TIME
+            QUEUE_WAITING_TIME, SERVICE_TIME, INTER_ARRIVAL_TIME
         }
 
 
@@ -607,11 +602,19 @@ public final class Tuple implements Fields<String>
 
         private final long duration;
 
+        private final int times;
+
         private LatencyStage ( final String operatorId, final LatencyStageType type, final long duration )
+        {
+            this( operatorId, type, duration, 1 );
+        }
+
+        private LatencyStage ( final String operatorId, final LatencyStageType type, final long duration, final int times )
         {
             this.operatorId = operatorId;
             this.type = type;
             this.duration = duration;
+            this.times = times;
         }
 
         public String getOperatorId ()
@@ -629,10 +632,16 @@ public final class Tuple implements Fields<String>
             return duration;
         }
 
+        public int getTimes ()
+        {
+            return times;
+        }
+
         @Override
         public String toString ()
         {
-            return "LatencyStage{" + "operatorId='" + operatorId + '\'' + ", type=" + type + ", duration=" + duration + '}';
+            return "LatencyStage{" + "operatorId='" + operatorId + '\'' + ", type=" + type + ", duration=" + duration + ", times=" + times
+                   + '}';
         }
     }
 

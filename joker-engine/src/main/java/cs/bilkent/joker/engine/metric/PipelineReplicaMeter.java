@@ -1,16 +1,11 @@
 package cs.bilkent.joker.engine.metric;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import cs.bilkent.joker.engine.pipeline.PipelineReplicaId;
 import cs.bilkent.joker.operator.OperatorDef;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -31,7 +26,7 @@ public class PipelineReplicaMeter
 
     private final long[] inboundThroughput;
 
-    private final Map<String, AvgCalculator> invocationTupleCounts = new HashMap<>();
+    private final AvgCalculator invocationTupleCounts = new AvgCalculator();
 
     private volatile Object currentlyInvokedOperator;
 
@@ -76,16 +71,11 @@ public class PipelineReplicaMeter
         {
             lastOperatorInputTuplesReportTime = now;
 
-            for ( Entry<String, AvgCalculator> e : invocationTupleCounts.entrySet() )
-            {
-                final AvgCalculator avgCalculator = e.getValue();
-                LOGGER.info( "{} => INPUT TUPLE COUNTS operator: {} -> average: {}",
-                             pipelineReplicaId,
-                             e.getKey(),
-                             avgCalculator.getAvg() );
-            }
-
-            invocationTupleCounts.values().forEach( AvgCalculator::reset );
+            LOGGER.info( "{} => INPUT TUPLE COUNTS operator: {} -> average: {}",
+                         pipelineReplicaId,
+                         headOperatorId,
+                         invocationTupleCounts.getAvg() );
+            invocationTupleCounts.reset();
         }
     }
 
@@ -111,7 +101,7 @@ public class PipelineReplicaMeter
 
     public void onInvocationStart ( final String operatorId )
     {
-        checkNotNull( operatorId );
+        assert operatorId != null;
 
         if ( ticker.isTicked() )
         {
@@ -119,71 +109,63 @@ public class PipelineReplicaMeter
         }
     }
 
-    public void count ( final String operatorId, final TuplesImpl tuples )
+    public int onInvocationComplete ( final String operatorId,
+                                      final List<TuplesImpl> inputs,
+                                      final int inputCount,
+                                      final boolean countAnyway )
     {
-        checkNotNull( operatorId );
-        checkNotNull( tuples );
-
-        if ( !headOperatorId.equals( operatorId ) )
-        {
-            return;
-        }
-
-        recordInvocationInputTupleCount( tuples );
-
-        for ( int i = 0; i < inputPortCount; i++ )
-        {
-            final int tupleCount = tuples.getTupleCount( i );
-            inboundThroughput[ i ] += tupleCount;
-        }
-    }
-
-    private void recordInvocationInputTupleCount ( final TuplesImpl tuples )
-    {
-        // TODO works for only port = 0 ???
-        if ( ticker.isTicked() && inputPortCount > 0 )
-        {
-            final AvgCalculator avgCalculator = invocationTupleCounts.computeIfAbsent( headOperatorId, op -> new AvgCalculator() );
-            avgCalculator.record( tuples.getTupleCount( 0 ) );
-        }
-    }
-
-    public void count ( final String operatorId, final List<TuplesImpl> tuplesList, final int count )
-    {
-        checkNotNull( operatorId );
-        checkNotNull( tuplesList );
-
-        if ( !headOperatorId.equals( operatorId ) )
-        {
-            return;
-        }
-
-        for ( int i = 0; i < count; i++ )
-        {
-            final TuplesImpl tuples = tuplesList.get( i );
-            recordInvocationInputTupleCount( tuples );
-
-            for ( int j = 0; j < inputPortCount; j++ )
-            {
-                final int tupleCount = tuples.getTupleCount( j );
-                inboundThroughput[ j ] += tupleCount;
-            }
-        }
-    }
-
-    public void onInvocationComplete ( final String operatorId )
-    {
-        checkNotNull( operatorId );
+        assert operatorId != null;
 
         if ( ticker.isTicked() )
         {
             currentlyInvokedOperator = pipelineReplicaId;
         }
+
+        assert inputs != null;
+
+        if ( !headOperatorId.equals( operatorId ) )
+        {
+            int total = 0;
+            if ( countAnyway )
+            {
+                for ( int i = 0; i < inputCount; i++ )
+                {
+                    final TuplesImpl tuples = inputs.get( i );
+                    for ( int j = 0; j < tuples.getPortCount(); j++ )
+                    {
+                        total += tuples.getTupleCount( j );
+                    }
+                }
+            }
+
+            return total;
+        }
+
+        int total = 0;
+
+        for ( int i = 0; i < inputCount; i++ )
+        {
+            final TuplesImpl tuples = inputs.get( i );
+
+            for ( int j = 0; j < inputPortCount; j++ )
+            {
+                final int tupleCount = tuples.getTupleCount( j );
+                inboundThroughput[ j ] += tupleCount;
+                total += tupleCount;
+            }
+        }
+
+        if ( ticker.isTicked() && inputPortCount > 0 )
+        {
+            invocationTupleCounts.record( total );
+        }
+
+        return total;
     }
 
     void readInboundThroughput ( final long[] inboundThroughput )
     {
-        checkArgument( inboundThroughput.length == inputPortCount );
+        assert inboundThroughput.length == inputPortCount;
 
         for ( int i = 0; i < inputPortCount; i++ )
         {
@@ -263,4 +245,5 @@ public class PipelineReplicaMeter
         }
 
     }
+
 }

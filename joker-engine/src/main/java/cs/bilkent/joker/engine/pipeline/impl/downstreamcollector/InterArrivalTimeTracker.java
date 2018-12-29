@@ -7,6 +7,7 @@ import cs.bilkent.joker.engine.pipeline.DownstreamCollector;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 
+// TODO fixit: this class is problematic. it breaks if an upstream pipeline connects to a downstream pipeline via a subset of ports
 public class InterArrivalTimeTracker implements DownstreamCollector
 {
 
@@ -58,7 +59,7 @@ public class InterArrivalTimeTracker implements DownstreamCollector
             final List<Tuple> t = tuples.getTuplesModifiable( 0 );
             if ( t.size() > 0 )
             {
-                t.get( 0 ).recordInterArrivalTime( operatorId, interArrivalTime );
+                t.get( 0 ).recordInterArrivalTimes( operatorId, interArrivalTime, t.size() );
             }
 
             previousTime = time;

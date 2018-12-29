@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
-import static cs.bilkent.joker.JokerModule.JOINT_ADAPTATION_MANAGER_NAME;
+import static cs.bilkent.joker.JokerModule.THROUGHPUT_OPTIMIZING_ADAPTATION_MANAGER_NAME;
 import cs.bilkent.joker.engine.FlowStatus;
 import static cs.bilkent.joker.engine.FlowStatus.SHUT_DOWN;
 import cs.bilkent.joker.engine.adaptation.AdaptationAction;
@@ -77,7 +77,7 @@ public class SupervisorImpl implements Supervisor
     @Inject
     public SupervisorImpl ( final JokerConfig config,
                             final MetricManager metricManager,
-                            @Named( JOINT_ADAPTATION_MANAGER_NAME ) final AdaptationManager adaptationManager,
+                            @Named( THROUGHPUT_OPTIMIZING_ADAPTATION_MANAGER_NAME ) final AdaptationManager adaptationManager,
                             final AdaptationTracker adaptationTracker,
                             @Named( JOKER_THREAD_GROUP_NAME ) final ThreadGroup jokerThreadGroup )
     {

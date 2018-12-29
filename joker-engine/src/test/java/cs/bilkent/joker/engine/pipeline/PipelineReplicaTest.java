@@ -6,6 +6,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
+import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.INITIAL;
@@ -33,6 +34,8 @@ import static org.mockito.Mockito.when;
 @RunWith( MockitoJUnitRunner.class )
 public class PipelineReplicaTest extends AbstractJokerTest
 {
+
+    private final JokerConfig config = new JokerConfig();
 
     @Mock
     private OperatorQueue pipelineQueue;
@@ -98,7 +101,7 @@ public class PipelineReplicaTest extends AbstractJokerTest
         final PipelineReplicaId pipelineReplicaId = new PipelineReplicaId( 0, 0, 0 );
         final PipelineReplicaMeter pipelineReplicaMeter = new PipelineReplicaMeter( 1, pipelineReplicaId, operatorDef0 );
 
-        pipeline = new PipelineReplica( pipelineReplicaId, new OperatorReplica[] { operator0, operator1, operator2 }, pipelineQueue,
+        pipeline = new PipelineReplica( config, pipelineReplicaId, new OperatorReplica[] { operator0, operator1, operator2 }, pipelineQueue,
                                         pipelineReplicaMeter );
 
         final Tuple input1 = Tuple.of( "k1", "v1" );

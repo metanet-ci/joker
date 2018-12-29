@@ -263,7 +263,7 @@ public class RegionManagerImpl implements RegionManager
                 final OperatorReplica[] pipelineOperatorReplicas = operatorReplicas[ replicaIndex ];
                 final OperatorQueue pipelineQueue = createPipelineQueue( flow, regionId, replicaIndex, pipelineOperatorReplicas );
 
-                pipelineReplicas[ pipelineIndex ][ replicaIndex ] = new PipelineReplica( pipelineReplicaIds[ replicaIndex ],
+                pipelineReplicas[ pipelineIndex ][ replicaIndex ] = new PipelineReplica( config, pipelineReplicaIds[ replicaIndex ],
                                                                                          pipelineOperatorReplicas,
                                                                                          pipelineQueue,
                                                                                          replicaMeters[ replicaIndex ] );
@@ -700,7 +700,7 @@ public class RegionManagerImpl implements RegionManager
 
                 final OperatorQueue pipelineQueue = createPipelineQueue( flow, regionId, replicaIndex, operatorReplicas );
 
-                newPipelineReplicas[ pipelineIndex ][ replicaIndex ] = new PipelineReplica( pipelineReplicaId,
+                newPipelineReplicas[ pipelineIndex ][ replicaIndex ] = new PipelineReplica( config, pipelineReplicaId,
                                                                                             operatorReplicas,
                                                                                             pipelineQueue,
                                                                                             meter );

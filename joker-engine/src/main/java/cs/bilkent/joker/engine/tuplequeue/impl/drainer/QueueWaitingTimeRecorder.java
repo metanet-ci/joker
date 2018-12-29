@@ -5,14 +5,14 @@ import java.util.function.Consumer;
 
 import cs.bilkent.joker.operator.Tuple;
 
-class QueueLatencyRecorder implements Consumer<Tuple>
+class QueueWaitingTimeRecorder implements Consumer<Tuple>
 {
 
     private final String operatorId;
     private long now;
     private List<Tuple> tuples;
 
-    QueueLatencyRecorder ( final String operatorId )
+    QueueWaitingTimeRecorder ( final String operatorId )
     {
         this.operatorId = operatorId;
     }
@@ -26,7 +26,7 @@ class QueueLatencyRecorder implements Consumer<Tuple>
     @Override
     public void accept ( final Tuple tuple )
     {
-        tuple.recordQueueLatency( operatorId, now );
+        tuple.recordQueueWaitingTime( operatorId, now );
         tuples.add( tuple );
     }
 }

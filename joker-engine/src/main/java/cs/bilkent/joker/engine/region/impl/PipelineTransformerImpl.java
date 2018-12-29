@@ -562,7 +562,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                     pipelineQueue = new EmptyOperatorQueue( splitOperatorDef.getId(), splitOperatorDef.getInputPortCount() );
                 }
 
-                newPipelineReplicas[ pipelineIndex + 1 ][ replicaIndex ] = PipelineReplica.running( downPipelineReplicaId,
+                newPipelineReplicas[ pipelineIndex + 1 ][ replicaIndex ] = PipelineReplica.running( config, downPipelineReplicaId,
                                                                                                     downstreamOperators.toArray( new OperatorReplica[ 0 ] ),
                                                                                                     pipelineQueue,
                                                                                                     downMeter,
@@ -927,7 +927,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                                                                 headOperatorDrainerPool,
                                                                 headOperatorReplica.getDownstreamCtx() ) );
 
-        return PipelineReplica.running( newPipelineReplicaId,
+        return PipelineReplica.running( config, newPipelineReplicaId,
                                         newOperatorReplicas.toArray( new OperatorReplica[ 0 ] ),
                                         pipelineQueue,
                                         meter,

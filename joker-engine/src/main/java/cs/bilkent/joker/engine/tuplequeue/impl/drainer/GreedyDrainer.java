@@ -11,7 +11,7 @@ import cs.bilkent.joker.partition.impl.PartitionKey;
 public class GreedyDrainer implements TupleQueueDrainer
 {
 
-    final int inputPortCount;
+    private final int inputPortCount;
 
     public GreedyDrainer ( final int inputPortCount )
     {

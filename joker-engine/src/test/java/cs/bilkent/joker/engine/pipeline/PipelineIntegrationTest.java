@@ -87,11 +87,11 @@ public class PipelineIntegrationTest extends AbstractJokerTest
     private static final int REPLICA_INDEX = 1;
 
 
-    private final JokerConfig jokerConfig = new JokerConfig();
+    private final JokerConfig config = new JokerConfig();
 
-    private final PartitionService partitionService = new PartitionServiceImpl( jokerConfig );
+    private final PartitionService partitionService = new PartitionServiceImpl( config );
 
-    private final OperatorQueueManagerImpl operatorQueueManager = new OperatorQueueManagerImpl( jokerConfig,
+    private final OperatorQueueManagerImpl operatorQueueManager = new OperatorQueueManagerImpl( config,
                                                                                                 new PartitionKeyExtractorFactoryImpl() );
 
     private final OperatorKVStoreManagerImpl operatorKVStoreManager = new OperatorKVStoreManagerImpl();
@@ -113,7 +113,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                 .setConfig( mapperOperatorConfig )
                                                                 .build();
 
-        final PipelineReplicaMeter pipelineReplicaMeter = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
+        final PipelineReplicaMeter pipelineReplicaMeter = new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(),
                                                                                     pipelineReplicaId1,
                                                                                     mapperOperatorDef );
 
@@ -121,7 +121,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                      mapperOperatorDef,
                                                                                      REPLICA_INDEX,
                                                                                      MULTI_THREADED );
-        final TupleQueueDrainerPool drainerPool = new BlockingTupleQueueDrainerPool( jokerConfig, mapperOperatorDef );
+        final TupleQueueDrainerPool drainerPool = new BlockingTupleQueueDrainerPool( config, mapperOperatorDef );
 
         final DefaultInvocationCtx mapperInvocationCtx = new DefaultInvocationCtx( mapperOperatorDef.getInputPortCount(),
                                                                                    key -> null,
@@ -133,7 +133,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                     mapperInvocationCtx::createInputTuples,
                                                                     new OperatorDef[] { mapperOperatorDef },
                                                                     new InternalInvocationCtx[] { mapperInvocationCtx } );
-        final PipelineReplica pipeline = new PipelineReplica( pipelineReplicaId1,
+        final PipelineReplica pipeline = new PipelineReplica( config, pipelineReplicaId1,
                                                               new OperatorReplica[] { mapperOperator },
                                                               new EmptyOperatorQueue( "map", mapperOperatorDef.getInputPortCount() ),
                                                               pipelineReplicaMeter );
@@ -144,7 +144,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                        new UpstreamCtx[][] { { createInitialClosedUpstreamCtx( 1 ) } } );
 
         final TupleQueueDownstreamCollector tupleCollector = new TupleQueueDownstreamCollector( mapperOperatorDef.getOutputPortCount() );
-        final PipelineReplicaRunner runner = new PipelineReplicaRunner( jokerConfig, pipeline, supervisor, tupleCollector );
+        final PipelineReplicaRunner runner = new PipelineReplicaRunner( config, pipeline, supervisor, tupleCollector );
 
         final Thread runnerThread = spawnThread( runner );
 
@@ -187,7 +187,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                 .setConfig( filterOperatorConfig )
                                                                 .build();
 
-        final PipelineReplicaMeter pipelineReplicaMeter = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
+        final PipelineReplicaMeter pipelineReplicaMeter = new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(),
                                                                                     pipelineReplicaId1,
                                                                                     mapperOperatorDef );
 
@@ -196,7 +196,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                            REPLICA_INDEX,
                                                                                            MULTI_THREADED );
 
-        final TupleQueueDrainerPool mapperDrainerPool = new BlockingTupleQueueDrainerPool( jokerConfig, mapperOperatorDef );
+        final TupleQueueDrainerPool mapperDrainerPool = new BlockingTupleQueueDrainerPool( config, mapperOperatorDef );
         final DefaultInvocationCtx mapperInvocationCtx = new DefaultInvocationCtx( mapperOperatorDef.getInputPortCount(),
                                                                                    key -> null,
                                                                                    new DefaultOutputCollector( mapperOperatorDef.getOutputPortCount() ) );
@@ -212,7 +212,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                            filterOperatorDef,
                                                                                            REPLICA_INDEX,
                                                                                            SINGLE_THREADED );
-        final TupleQueueDrainerPool filterDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, filterOperatorDef );
+        final TupleQueueDrainerPool filterDrainerPool = new NonBlockingTupleQueueDrainerPool( config, filterOperatorDef );
         final DefaultInvocationCtx filterInvocationCtx = new DefaultInvocationCtx( filterOperatorDef.getInputPortCount(),
                                                                                    key -> null,
                                                                                    new DefaultOutputCollector( filterOperatorDef.getOutputPortCount() ) );
@@ -224,7 +224,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                     new OperatorDef[] { filterOperatorDef },
                                                                     new InternalInvocationCtx[] { filterInvocationCtx } );
 
-        final PipelineReplica pipeline = new PipelineReplica( pipelineReplicaId1,
+        final PipelineReplica pipeline = new PipelineReplica( config, pipelineReplicaId1,
                                                               new OperatorReplica[] { mapperOperator, filterOperator },
                                                               new EmptyOperatorQueue( "map", mapperOperatorDef.getInputPortCount() ),
                                                               pipelineReplicaMeter );
@@ -238,7 +238,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final TupleQueueDownstreamCollector tupleCollector = new TupleQueueDownstreamCollector( filterOperatorDef.getOutputPortCount() );
 
-        final PipelineReplicaRunner runner = new PipelineReplicaRunner( jokerConfig, pipeline, supervisor, tupleCollector );
+        final PipelineReplicaRunner runner = new PipelineReplicaRunner( config, pipeline, supervisor, tupleCollector );
 
         final Thread runnerThread = spawnThread( runner );
 
@@ -292,13 +292,13 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                .setPartitionFieldNames( singletonList( "val" ) )
                                                                .build();
 
-        final PipelineReplicaMeter pipelineReplicaMeter = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
+        final PipelineReplicaMeter pipelineReplicaMeter = new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(),
                                                                                     pipelineReplicaId1,
                                                                                     generatorOperatorDef );
 
         final OperatorQueue generatorOperatorQueue = new EmptyOperatorQueue( generatorOperatorDef.getId(),
                                                                              generatorOperatorDef.getInputPortCount() );
-        final TupleQueueDrainerPool generatorDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, generatorOperatorDef );
+        final TupleQueueDrainerPool generatorDrainerPool = new NonBlockingTupleQueueDrainerPool( config, generatorOperatorDef );
         final DefaultInvocationCtx generatorInvocationCtx = new DefaultInvocationCtx( generatorOperatorDef.getInputPortCount(),
                                                                                       k -> null,
                                                                                       new DefaultOutputCollector( generatorOperatorDef.getOutputPortCount() ) );
@@ -314,7 +314,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                            passerOperatorDef,
                                                                                            REPLICA_INDEX,
                                                                                            SINGLE_THREADED );
-        final TupleQueueDrainerPool passerDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, passerOperatorDef );
+        final TupleQueueDrainerPool passerDrainerPool = new NonBlockingTupleQueueDrainerPool( config, passerOperatorDef );
         final DefaultInvocationCtx passerInvocationCtx = new DefaultInvocationCtx( passerOperatorDef.getInputPortCount(),
                                                                                    k -> null,
                                                                                    new DefaultOutputCollector( passerOperatorDef.getOutputPortCount() ) );
@@ -335,7 +335,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                                   stateOperatorDef,
                                                                                                   partitionDistribution );
         final OperatorQueue stateOperatorQueue = stateOperatorQueues[ 0 ];
-        final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, stateOperatorDef );
+        final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( config, stateOperatorDef );
         final DefaultInvocationCtx stateInvocationCtx = new DefaultInvocationCtx( stateOperatorDef.getInputPortCount(),
                                                                                   operatorKvStores[ 0 ]::getKVStore,
                                                                                   new DefaultOutputCollector( stateOperatorDef.getOutputPortCount() ) );
@@ -347,7 +347,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                    new OperatorDef[] { stateOperatorDef },
                                                                    new InternalInvocationCtx[] { stateInvocationCtx } );
 
-        final PipelineReplica pipeline = new PipelineReplica( pipelineReplicaId1,
+        final PipelineReplica pipeline = new PipelineReplica( config, pipelineReplicaId1,
                                                               new OperatorReplica[] { generatorOperator, passerOperator, stateOperator },
                                                               new EmptyOperatorQueue( "generator",
                                                                                       generatorOperatorDef.getInputPortCount() ),
@@ -363,7 +363,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                              { createInitialClosedUpstreamCtx( 1 ) },
                                              { createInitialClosedUpstreamCtx( 1 ) } } );
 
-        final PipelineReplicaRunner runner = new PipelineReplicaRunner( jokerConfig, pipeline, supervisor,
+        final PipelineReplicaRunner runner = new PipelineReplicaRunner( config, pipeline, supervisor,
                                                                         mock( DownstreamCollector.class ) );
 
         final Thread runnerThread = spawnThread( runner );
@@ -409,11 +409,11 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                            REPLICA_INDEX,
                                                                                            MULTI_THREADED );
 
-        final TupleQueueDrainerPool mapperDrainerPool = new BlockingTupleQueueDrainerPool( jokerConfig, mapperOperatorDef );
+        final TupleQueueDrainerPool mapperDrainerPool = new BlockingTupleQueueDrainerPool( config, mapperOperatorDef );
         final DefaultInvocationCtx mapperInvocationCtx = new DefaultInvocationCtx( mapperOperatorDef.getInputPortCount(),
                                                                                    key -> null,
                                                                                    new DefaultOutputCollector( mapperOperatorDef.getOutputPortCount() ) );
-        final PipelineReplicaMeter pipelineReplicaMeter1 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
+        final PipelineReplicaMeter pipelineReplicaMeter1 = new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId1,
                                                                                      mapperOperatorDef );
         final OperatorReplica mapperOperator = new OperatorReplica( pipelineReplicaId1,
@@ -424,7 +424,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                     new OperatorDef[] { mapperOperatorDef },
                                                                     new InternalInvocationCtx[] { mapperInvocationCtx } );
 
-        final PipelineReplica pipeline1 = new PipelineReplica( pipelineReplicaId1,
+        final PipelineReplica pipeline1 = new PipelineReplica( config, pipelineReplicaId1,
                                                                new OperatorReplica[] { mapperOperator },
                                                                new EmptyOperatorQueue( "map", mapperOperatorDef.getInputPortCount() ),
                                                                pipelineReplicaMeter1 );
@@ -445,12 +445,12 @@ public class PipelineIntegrationTest extends AbstractJokerTest
 
         final DownstreamCollectorImpl tupleCollector1 = new DownstreamCollectorImpl( filterOperatorQueue, new Pair[] { Pair.of( 0, 0 ) } );
 
-        final TupleQueueDrainerPool filterDrainerPool = new BlockingTupleQueueDrainerPool( jokerConfig, filterOperatorDef );
+        final TupleQueueDrainerPool filterDrainerPool = new BlockingTupleQueueDrainerPool( config, filterOperatorDef );
         final DefaultInvocationCtx filterInvocationCtx = new DefaultInvocationCtx( filterOperatorDef.getInputPortCount(),
                                                                                    key -> null,
                                                                                    new DefaultOutputCollector( filterOperatorDef.getOutputPortCount() ) );
 
-        final PipelineReplicaMeter pipelineReplicaMeter2 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
+        final PipelineReplicaMeter pipelineReplicaMeter2 = new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId2,
                                                                                      filterOperatorDef );
         final OperatorReplica filterOperator = new OperatorReplica( pipelineReplicaId2,
@@ -461,7 +461,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                     new OperatorDef[] { filterOperatorDef },
                                                                     new InternalInvocationCtx[] { filterInvocationCtx } );
 
-        final PipelineReplica pipeline2 = new PipelineReplica( pipelineReplicaId2,
+        final PipelineReplica pipeline2 = new PipelineReplica( config, pipelineReplicaId2,
                                                                new OperatorReplica[] { filterOperator },
                                                                new EmptyOperatorQueue( "filter", filterOperatorDef.getInputPortCount() ),
                                                                pipelineReplicaMeter2 );
@@ -469,12 +469,12 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         pipeline2.init( new SchedulingStrategy[][] { { scheduleWhenTuplesAvailableOnDefaultPort( 1 ) } },
                         new UpstreamCtx[][] { { supervisor.upstreamCtxes.get( pipelineReplicaId2 ) } } );
 
-        final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig, pipeline1, supervisor, tupleCollector1 );
+        final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( config, pipeline1, supervisor, tupleCollector1 );
         supervisor.downstreamCollectors.put( pipeline1.id(), tupleCollector1 );
 
         final TupleQueueDownstreamCollector tupleCollector2 = new TupleQueueDownstreamCollector( filterOperatorDef.getOutputPortCount() );
 
-        final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( jokerConfig, pipeline2, supervisor, tupleCollector2 );
+        final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( config, pipeline2, supervisor, tupleCollector2 );
         supervisor.downstreamCollectors.put( pipeline2.id(), tupleCollector2 );
 
         supervisor.targetPipelineReplicaId = pipelineReplicaId2;
@@ -535,9 +535,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final OperatorQueue generatorOperatorQueue1 = new EmptyOperatorQueue( generatorOperatorDef1.getId(),
 
                                                                               generatorOperatorDef1.getInputPortCount() );
-        final TupleQueueDrainerPool generatorDrainerPool1 = new NonBlockingTupleQueueDrainerPool( jokerConfig, generatorOperatorDef1 );
+        final TupleQueueDrainerPool generatorDrainerPool1 = new NonBlockingTupleQueueDrainerPool( config, generatorOperatorDef1 );
 
-        final PipelineReplicaMeter pipelineReplicaMeter1 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
+        final PipelineReplicaMeter pipelineReplicaMeter1 = new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId1,
                                                                                      generatorOperatorDef1 );
         final DefaultInvocationCtx generatorInvocationCtx1 = new DefaultInvocationCtx( generatorOperatorDef1.getInputPortCount(),
@@ -551,7 +551,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                         new OperatorDef[] { generatorOperatorDef1 },
                                                                         new InternalInvocationCtx[] { generatorInvocationCtx1 } );
 
-        final PipelineReplica pipeline1 = new PipelineReplica( pipelineReplicaId1,
+        final PipelineReplica pipeline1 = new PipelineReplica( config, pipelineReplicaId1,
                                                                new OperatorReplica[] { generatorOperator1 },
                                                                new EmptyOperatorQueue( "generator1",
                                                                                        generatorOperatorDef1.getInputPortCount() ),
@@ -568,12 +568,12 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final OperatorQueue generatorOperatorQueue2 = new EmptyOperatorQueue( generatorOperatorDef2.getId(),
 
                                                                               generatorOperatorDef2.getInputPortCount() );
-        final TupleQueueDrainerPool generatorDrainerPool2 = new NonBlockingTupleQueueDrainerPool( jokerConfig, generatorOperatorDef2 );
+        final TupleQueueDrainerPool generatorDrainerPool2 = new NonBlockingTupleQueueDrainerPool( config, generatorOperatorDef2 );
         final DefaultInvocationCtx generatorInvocationCtx2 = new DefaultInvocationCtx( generatorOperatorDef2.getInputPortCount(),
                                                                                        k -> null,
                                                                                        new DefaultOutputCollector( generatorOperatorDef2.getOutputPortCount() ) );
 
-        final PipelineReplicaMeter pipelineReplicaMeter2 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
+        final PipelineReplicaMeter pipelineReplicaMeter2 = new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId2,
                                                                                      generatorOperatorDef2 );
         final OperatorReplica generatorOperator2 = new OperatorReplica( pipelineReplicaId2,
@@ -584,7 +584,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                         new OperatorDef[] { generatorOperatorDef2 },
                                                                         new InternalInvocationCtx[] { generatorInvocationCtx2 } );
 
-        final PipelineReplica pipeline2 = new PipelineReplica( pipelineReplicaId2,
+        final PipelineReplica pipeline2 = new PipelineReplica( config, pipelineReplicaId2,
                                                                new OperatorReplica[] { generatorOperator2 },
                                                                new EmptyOperatorQueue( "generator2",
                                                                                        generatorOperatorDef2.getInputPortCount() ),
@@ -608,7 +608,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                .setPartitionFieldNames( singletonList( "val" ) )
                                                                .build();
 
-        final PipelineReplicaMeter pipelineReplicaMeter3 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
+        final PipelineReplicaMeter pipelineReplicaMeter3 = new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId3,
                                                                                      sinkOperatorDef );
 
@@ -616,7 +616,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                          sinkOperatorDef,
                                                                                          REPLICA_INDEX,
                                                                                          MULTI_THREADED );
-        final TupleQueueDrainerPool sinkDrainerPool = new BlockingTupleQueueDrainerPool( jokerConfig, sinkOperatorDef );
+        final TupleQueueDrainerPool sinkDrainerPool = new BlockingTupleQueueDrainerPool( config, sinkOperatorDef );
         final OperatorKVStore sinkOperatorKVStore = operatorKVStoreManager.createDefaultKVStore( REGION_ID, "sink" );
         final DefaultInvocationCtx sinkInvocationCtx = new DefaultInvocationCtx( sinkOperatorDef.getInputPortCount(),
                                                                                  sinkOperatorKVStore::getKVStore,
@@ -633,7 +633,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                            passerOperatorDef,
                                                                                            REPLICA_INDEX,
                                                                                            SINGLE_THREADED );
-        final TupleQueueDrainerPool passerDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, passerOperatorDef );
+        final TupleQueueDrainerPool passerDrainerPool = new NonBlockingTupleQueueDrainerPool( config, passerOperatorDef );
         final DefaultInvocationCtx passerInvocationCtx = new DefaultInvocationCtx( passerOperatorDef.getInputPortCount(),
                                                                                    k -> null,
                                                                                    new DefaultOutputCollector( passerOperatorDef.getOutputPortCount() ) );
@@ -652,7 +652,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                                   stateOperatorDef,
                                                                                                   partitionDistribution );
         final OperatorQueue stateOperatorQueue = stateOperatorQueues[ 0 ];
-        final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, stateOperatorDef );
+        final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( config, stateOperatorDef );
         final DefaultInvocationCtx stateInvocationCtx = new DefaultInvocationCtx( stateOperatorDef.getInputPortCount(),
                                                                                   operatorKvStores[ 0 ]::getKVStore,
                                                                                   new DefaultOutputCollector( stateOperatorDef.getOutputPortCount() ) );
@@ -664,7 +664,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                    new OperatorDef[] { stateOperatorDef },
                                                                    new InternalInvocationCtx[] { stateInvocationCtx } );
 
-        final PipelineReplica pipeline3 = new PipelineReplica( pipelineReplicaId3,
+        final PipelineReplica pipeline3 = new PipelineReplica( config, pipelineReplicaId3,
                                                                new OperatorReplica[] { sinkOperator, passerOperator, stateOperator },
                                                                new EmptyOperatorQueue( "sink", sinkOperatorDef.getInputPortCount() ),
                                                                pipelineReplicaMeter3 );
@@ -677,15 +677,15 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                               { createInitialClosedUpstreamCtx( 1 ) } } );
 
         final DownstreamCollectorImpl collector1 = new DownstreamCollectorImpl( sinkOperatorQueue, new Pair[] { Pair.of( 0, 0 ) } );
-        final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig, pipeline1, supervisor, collector1 );
+        final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( config, pipeline1, supervisor, collector1 );
         supervisor.downstreamCollectors.put( pipeline1.id(), collector1 );
 
         final DownstreamCollectorImpl collector2 = new DownstreamCollectorImpl( sinkOperatorQueue, new Pair[] { Pair.of( 0, 1 ) } );
-        final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( jokerConfig, pipeline2, supervisor, collector2 );
+        final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( config, pipeline2, supervisor, collector2 );
         supervisor.downstreamCollectors.put( pipeline2.id(), collector2 );
 
         final DownstreamCollectorImpl collector3 = new DownstreamCollectorImpl( null, new Pair[] {} );
-        final PipelineReplicaRunner runner3 = new PipelineReplicaRunner( jokerConfig, pipeline3, supervisor, collector3 );
+        final PipelineReplicaRunner runner3 = new PipelineReplicaRunner( config, pipeline3, supervisor, collector3 );
         supervisor.downstreamCollectors.put( pipeline3.id(), collector3 );
 
         supervisor.targetPipelineReplicaId = pipelineReplicaId3;
@@ -747,7 +747,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                 .setConfig( passerOperatorConfig )
                                                                 .build();
 
-        final PipelineReplicaMeter pipelineReplicaMeter1 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
+        final PipelineReplicaMeter pipelineReplicaMeter1 = new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId1,
                                                                                      generatorOperatorDef );
 
@@ -756,7 +756,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final DefaultInvocationCtx generatorInvocationCtx = new DefaultInvocationCtx( generatorOperatorDef.getInputPortCount(),
                                                                                       k -> null,
                                                                                       new DefaultOutputCollector( generatorOperatorDef.getOutputPortCount() ) );
-        final TupleQueueDrainerPool generatorDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, generatorOperatorDef );
+        final TupleQueueDrainerPool generatorDrainerPool = new NonBlockingTupleQueueDrainerPool( config, generatorOperatorDef );
 
         final OperatorReplica generatorOperator = new OperatorReplica( pipelineReplicaId1,
                                                                        generatorOperatorQueue,
@@ -771,7 +771,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                            REPLICA_INDEX,
                                                                                            SINGLE_THREADED );
 
-        final TupleQueueDrainerPool passerDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, passerOperatorDef );
+        final TupleQueueDrainerPool passerDrainerPool = new NonBlockingTupleQueueDrainerPool( config, passerOperatorDef );
         final DefaultInvocationCtx passerInvocationCtx = new DefaultInvocationCtx( passerOperatorDef.getInputPortCount(),
                                                                                    k -> null,
                                                                                    new DefaultOutputCollector( passerOperatorDef.getOutputPortCount() ) );
@@ -798,9 +798,9 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                                                   partitionDistribution );
         final OperatorQueue stateOperatorQueue = stateOperatorQueues[ 0 ];
 
-        final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( jokerConfig, stateOperatorDef );
+        final TupleQueueDrainerPool stateDrainerPool = new NonBlockingTupleQueueDrainerPool( config, stateOperatorDef );
 
-        final PipelineReplicaMeter pipelineReplicaMeter2 = new PipelineReplicaMeter( jokerConfig.getMetricManagerConfig().getTickMask(),
+        final PipelineReplicaMeter pipelineReplicaMeter2 = new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(),
                                                                                      pipelineReplicaId2,
                                                                                      stateOperatorDef );
 
@@ -815,7 +815,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                                                                    new OperatorDef[] { stateOperatorDef },
                                                                    new InternalInvocationCtx[] { stateInvocationCtx } );
 
-        final PipelineReplica pipeline1 = new PipelineReplica( pipelineReplicaId1,
+        final PipelineReplica pipeline1 = new PipelineReplica( config, pipelineReplicaId1,
                                                                new OperatorReplica[] { generatorOperator, passerOperator },
                                                                new EmptyOperatorQueue( "generator",
                                                                                        generatorOperatorDef.getInputPortCount() ),
@@ -826,7 +826,7 @@ public class PipelineIntegrationTest extends AbstractJokerTest
                         new UpstreamCtx[][] { { supervisor.upstreamCtxes.get( pipelineReplicaId1 ) },
                                               { createInitialClosedUpstreamCtx( 1 ) } } );
 
-        final PipelineReplica pipeline2 = new PipelineReplica( pipelineReplicaId2,
+        final PipelineReplica pipeline2 = new PipelineReplica( config, pipelineReplicaId2,
                                                                new OperatorReplica[] { stateOperator },
                                                                operatorQueueManager.createDefaultQueue( REGION_ID,
                                                                                                         stateOperatorDef,
@@ -840,10 +840,10 @@ public class PipelineIntegrationTest extends AbstractJokerTest
         final DownstreamCollectorImpl collector1 = new DownstreamCollectorImpl( pipeline2.getEffectiveQueue(),
                                                                                 new Pair[] { Pair.of( 0, 0 ) } );
         supervisor.downstreamCollectors.put( pipeline1.id(), collector1 );
-        final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( jokerConfig, pipeline1, supervisor, collector1 );
+        final PipelineReplicaRunner runner1 = new PipelineReplicaRunner( config, pipeline1, supervisor, collector1 );
 
         final DownstreamCollector collector2 = mock( DownstreamCollector.class );
-        final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( jokerConfig, pipeline2, supervisor, collector2 );
+        final PipelineReplicaRunner runner2 = new PipelineReplicaRunner( config, pipeline2, supervisor, collector2 );
         supervisor.downstreamCollectors.put( pipeline2.id(), collector2 );
 
         supervisor.targetPipelineReplicaId = pipelineReplicaId2;

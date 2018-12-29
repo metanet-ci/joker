@@ -13,12 +13,12 @@ public class BlockingSinglePortDrainer extends SinglePortDrainer
 {
 
     private final IdleStrategy idleStrategy = BackoffIdleStrategy.newDefaultInstance();
-    private final QueueLatencyRecorder latencyRecorder;
+    private final QueueWaitingTimeRecorder queueWaitingTimeRecorder;
 
     public BlockingSinglePortDrainer ( final String operatorId, final int maxBatchSize )
     {
         super( operatorId, maxBatchSize );
-        this.latencyRecorder = new QueueLatencyRecorder( operatorId );
+        this.queueWaitingTimeRecorder = new QueueWaitingTimeRecorder( operatorId );
     }
 
     @Override
@@ -43,8 +43,8 @@ public class BlockingSinglePortDrainer extends SinglePortDrainer
             idle = idleStrategy.idle();
         }
 
-        latencyRecorder.setParameters( System.nanoTime(), tuplesSupplier.apply( key ).getTuplesModifiable( 0 ) );
-        tupleQueue.drainTo( tupleCountToPoll, latencyRecorder );
+        queueWaitingTimeRecorder.setParameters( System.nanoTime(), tuplesSupplier.apply( key ).getTuplesModifiable( 0 ) );
+        tupleQueue.drainTo( tupleCountToPoll, queueWaitingTimeRecorder );
 
         return true;
     }

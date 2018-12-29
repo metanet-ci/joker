@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.flow.RegionDef;
 import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
@@ -41,6 +42,8 @@ public class PipelineReplica
     private static final Logger LOGGER = LoggerFactory.getLogger( PipelineReplica.class );
 
 
+    private final JokerConfig config;
+
     private final PipelineReplicaId id;
 
     private final OperatorReplica[] operators;
@@ -67,11 +70,12 @@ public class PipelineReplica
 
     private int emptyQueueCount;
 
-    public PipelineReplica ( final PipelineReplicaId id,
+    public PipelineReplica ( final JokerConfig config, final PipelineReplicaId id,
                              final OperatorReplica[] operators,
                              final OperatorQueue queue,
                              final PipelineReplicaMeter meter )
     {
+        this.config = config;
         this.id = id;
         this.operators = Arrays.copyOf( operators, operators.length );
         this.queue = queue;
@@ -85,20 +89,20 @@ public class PipelineReplica
         }
     }
 
-    private PipelineReplica ( final PipelineReplicaId id,
+    private PipelineReplica ( final JokerConfig config, final PipelineReplicaId id,
                               final OperatorReplica[] operators,
                               final OperatorQueue queue,
                               final PipelineReplicaMeter meter,
                               final UpstreamCtx upstreamCtx )
     {
-        this( id, operators, queue, meter );
+        this( config, id, operators, queue, meter );
         initUpstreamDrainer();
         this.status = RUNNING;
         setUpstreamCtx( upstreamCtx );
     }
 
     // constructor for pipeline replica duplication
-    private PipelineReplica ( final PipelineReplicaId id,
+    private PipelineReplica ( final JokerConfig config, final PipelineReplicaId id,
                               final OperatorReplica[] operators,
                               final OperatorQueue queue,
                               final PipelineReplicaMeter meter,
@@ -106,7 +110,7 @@ public class PipelineReplica
                               final UpstreamCtx upstreamCtx,
                               final TupleQueueDrainer drainer )
     {
-        this( id, operators, queue, meter );
+        this( config, id, operators, queue, meter );
         this.status = status;
         this.upstreamCtx = upstreamCtx;
         this.drainer = drainer;
@@ -150,9 +154,12 @@ public class PipelineReplica
 
     private void initUpstreamDrainer ()
     {
-        checkState( this.drainer == null, "upstream drainer already initialized for %s", id );
+        checkState( drainer == null, "upstream drainer already initialized for %s", id );
         // TODO consider open / closed ports...
-        this.drainer = ( queue instanceof EmptyOperatorQueue ) ? new NopDrainer() : new BlockingGreedyDrainer( pipelineInputPortCount );
+        final int tupleQueueCapacity = config.getTupleQueueManagerConfig().getTupleQueueCapacity();
+        drainer = ( queue instanceof EmptyOperatorQueue )
+                  ? new NopDrainer()
+                  : new BlockingGreedyDrainer( pipelineInputPortCount, tupleQueueCapacity );
     }
 
     void setUpstreamCtx ( final UpstreamCtx upstreamCtx )
@@ -265,7 +272,7 @@ public class PipelineReplica
     {
         checkState( this.status == RUNNING, "Cannot duplicate pipeline replica %s because in %s status", this.id, this.status );
 
-        final PipelineReplica duplicate = new PipelineReplica( this.id,
+        final PipelineReplica duplicate = new PipelineReplica( this.config, this.id,
                                                                operators,
                                                                this.queue,
                                                                meter,
@@ -284,13 +291,13 @@ public class PipelineReplica
         return duplicate;
     }
 
-    public static PipelineReplica running ( final PipelineReplicaId id,
+    public static PipelineReplica running ( final JokerConfig config, final PipelineReplicaId id,
                                             final OperatorReplica[] operators,
                                             final OperatorQueue pipelineQueue,
                                             final PipelineReplicaMeter meter,
                                             final UpstreamCtx upstreamCtx )
     {
-        return new PipelineReplica( id, operators, pipelineQueue, meter, upstreamCtx );
+        return new PipelineReplica( config, id, operators, pipelineQueue, meter, upstreamCtx );
     }
 
     public PipelineReplicaId id ()

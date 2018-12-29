@@ -5,6 +5,7 @@ import java.util.List;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;
+import static java.lang.Math.sqrt;
 import static java.lang.System.arraycopy;
 import static java.util.Arrays.asList;
 
@@ -43,24 +44,48 @@ public class LatencyMetricsHistory
         return history[ 0 ];
     }
 
-    public long getMeanTupleLatency ()
+    public long getTupleLatencyMean ()
     {
-        return (long) getAll().stream().mapToLong( m -> m.getTupleLatency().getMean() ).average().orElse( 0 );
+        return (long) getAll().stream().mapToLong( LatencyMetrics::getTupleLatencyMean ).average().orElse( 0 );
     }
 
-    public long getMeanInvocationLatency ( final String operatorId )
+    public long getTupleLatencyStdDev ()
     {
-        return (long) getAll().stream().mapToLong( m -> m.getInvocationLatency( operatorId ).getMean() ).average().orElse( 0 );
+        final long variance = (long) getAll().stream().mapToLong( LatencyMetrics::getTupleLatencyVariance ).average().orElse( 0 );
+        return (long) sqrt( variance );
     }
 
-    public long getMeanQueueLatency ( final String operatorId )
+    public long getServiceTimeMean ( final String operatorId )
     {
-        return (long) getAll().stream().mapToLong( m -> m.getQueueLatency( operatorId ).getMean() ).average().orElse( 0 );
+        return (long) getAll().stream().mapToLong( m -> m.getServiceTimeMean( operatorId ) ).average().orElse( 0 );
     }
 
-    public long getMeanInterArrivalTime ( final String operatorId )
+    public long getServiceTimeStdDev ( final String operatorId )
     {
-        return (long) getAll().stream().mapToLong( m -> m.getInterArrivalTime( operatorId ).getMean() ).average().orElse( 0 );
+        final long variance = (long) getAll().stream().mapToLong( m -> m.getServiceTimeVar( operatorId ) ).average().orElse( 0 );
+        return (long) sqrt( variance );
+    }
+
+    public long getQueueWaitingTimeMean ( final String operatorId )
+    {
+        return (long) getAll().stream().mapToLong( m -> m.getQueueWaitingTimeMean( operatorId ) ).average().orElse( 0 );
+    }
+
+    public long getQueueWaitingTimeStdDev ( final String operatorId )
+    {
+        final long variance = (long) getAll().stream().mapToLong( m -> m.getQueueWaitingTimeVar( operatorId ) ).average().orElse( 0 );
+        return (long) sqrt( variance );
+    }
+
+    public long getInterArrivalTimeMean ( final String operatorId )
+    {
+        return (long) getAll().stream().mapToLong( m -> m.getInterArrivalTimeMean( operatorId ) ).average().orElse( 0 );
+    }
+
+    public long getInterArrivalTimeStdDev ( final String operatorId )
+    {
+        final long variance = (long) getAll().stream().mapToLong( m -> m.getInterArrivalTimeVar( operatorId ) ).average().orElse( 0 );
+        return (long) sqrt( variance );
     }
 
     public int getCount ()

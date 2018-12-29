@@ -13,8 +13,6 @@ import com.google.inject.AbstractModule;
 import static com.google.inject.name.Names.named;
 import cs.bilkent.joker.engine.adaptation.AdaptationManager;
 import cs.bilkent.joker.engine.adaptation.AdaptationTracker;
-import cs.bilkent.joker.engine.adaptation.impl.JointAdaptationManager;
-import cs.bilkent.joker.engine.adaptation.impl.LatencyOptimizingAdaptationManager;
 import cs.bilkent.joker.engine.adaptation.impl.ThroughputOptimizingAdaptationManager;
 import cs.bilkent.joker.engine.adaptation.impl.adaptationtracker.DefaultAdaptationTracker;
 import cs.bilkent.joker.engine.config.JokerConfig;
@@ -52,10 +50,6 @@ public class JokerModule extends AbstractModule
     public static final String DOWNSTREAM_FAILURE_FLAG_NAME = "downstreamFailureFlag";
 
     public static final String THROUGHPUT_OPTIMIZING_ADAPTATION_MANAGER_NAME = "throughputOptimizer";
-
-    public static final String LATENCY_OPTIMIZING_ADAPTATION_MANAGER_NAME = "latencyOptimizer";
-
-    public static final String JOINT_ADAPTATION_MANAGER_NAME = "jointOptimizer";
 
 
     private Object jokerId;
@@ -127,9 +121,6 @@ public class JokerModule extends AbstractModule
         bind( MetricRegistry.class ).toInstance( new MetricRegistry() );
         bind( AdaptationManager.class ).annotatedWith( named( THROUGHPUT_OPTIMIZING_ADAPTATION_MANAGER_NAME ) )
                                        .to( ThroughputOptimizingAdaptationManager.class );
-        bind( AdaptationManager.class ).annotatedWith( named( LATENCY_OPTIMIZING_ADAPTATION_MANAGER_NAME ) )
-                                       .to( LatencyOptimizingAdaptationManager.class );
-        bind( AdaptationManager.class ).annotatedWith( named( JOINT_ADAPTATION_MANAGER_NAME ) ).to( JointAdaptationManager.class );
     }
 
 }

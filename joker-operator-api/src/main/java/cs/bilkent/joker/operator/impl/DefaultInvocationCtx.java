@@ -14,6 +14,9 @@ import static java.util.Arrays.copyOf;
 public class DefaultInvocationCtx implements InternalInvocationCtx
 {
 
+    private static final Tuple TRACK_OUTPUT_TUPLE_MARKER = new Tuple();
+
+
     private final int inputPortCount;
 
     private final Function<PartitionKey, KVStore> kvStoreSupplier;
@@ -31,8 +34,6 @@ public class DefaultInvocationCtx implements InternalInvocationCtx
     private int inputCount;
 
     private int currentInput = 0;
-
-    private boolean trackOutputTuple;
 
     private Tuple trackedOutputTuple;
 
@@ -96,7 +97,6 @@ public class DefaultInvocationCtx implements InternalInvocationCtx
         outputCollector.clear();
         inputCount = 0;
         currentInput = 0;
-        trackOutputTuple = false;
         trackedOutputTuple = null;
     }
 
@@ -127,15 +127,13 @@ public class DefaultInvocationCtx implements InternalInvocationCtx
     @Override
     public void trackOutputTuple ()
     {
-        trackOutputTuple = true;
+        trackedOutputTuple = TRACK_OUTPUT_TUPLE_MARKER;
     }
 
     @Override
     public Tuple getTrackedOutputTuple ()
     {
-        Tuple t = trackedOutputTuple;
-        trackedOutputTuple = null;
-        return t;
+        return trackedOutputTuple != TRACK_OUTPUT_TUPLE_MARKER ? trackedOutputTuple : null;
     }
 
     // InternalInvocationContext methods end
@@ -163,10 +161,9 @@ public class DefaultInvocationCtx implements InternalInvocationCtx
     @Override
     public void output ( final Tuple tuple )
     {
-        if ( trackOutputTuple && trackedOutputTuple == null )
+        if ( trackedOutputTuple == TRACK_OUTPUT_TUPLE_MARKER )
         {
             trackedOutputTuple = tuple;
-            trackOutputTuple = false;
         }
 
         outputCollector.add( tuple );
@@ -175,10 +172,9 @@ public class DefaultInvocationCtx implements InternalInvocationCtx
     @Override
     public void output ( final int portIndex, final Tuple tuple )
     {
-        if ( trackOutputTuple && trackedOutputTuple == null )
+        if ( trackedOutputTuple == TRACK_OUTPUT_TUPLE_MARKER )
         {
             trackedOutputTuple = tuple;
-            trackOutputTuple = false;
         }
 
         outputCollector.add( portIndex, tuple );

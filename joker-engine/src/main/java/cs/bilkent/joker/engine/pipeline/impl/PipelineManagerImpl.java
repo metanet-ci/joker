@@ -74,8 +74,8 @@ import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.Tuple.LatencyStage;
 import cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType;
 import static cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType.INTER_ARRIVAL_TIME;
-import static cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType.INVOCATION_LATENCY;
-import static cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType.QUEUE_LATENCY;
+import static cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType.QUEUE_WAITING_TIME;
+import static cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType.SERVICE_TIME;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
@@ -1198,10 +1198,13 @@ public class PipelineManagerImpl implements PipelineManager
     class LatencyRecorder implements DownstreamCollector
     {
         private final LatencyMeter latencyMeter;
+        private final long pipelineMetricsScanningPeriodNs;
 
         LatencyRecorder ( final LatencyMeter latencyMeter )
         {
             this.latencyMeter = latencyMeter;
+            this.pipelineMetricsScanningPeriodNs = MILLISECONDS.toNanos( jokerConfig.getMetricManagerConfig()
+                                                                                    .getPipelineMetricsScanningPeriodInMillis() );
         }
 
         long last = System.nanoTime(), loop = 0;
@@ -1213,7 +1216,7 @@ public class PipelineManagerImpl implements PipelineManager
 
             if ( loop++ % 100 == 0 )
             {
-                if ( now - last >= MILLISECONDS.toNanos( jokerConfig.getMetricManagerConfig().getPipelineMetricsScanningPeriodInMillis() ) )
+                if ( now - last >= pipelineMetricsScanningPeriodNs )
                 {
                     last = now;
                     if ( latencyMeter.publish() )
@@ -1244,17 +1247,19 @@ public class PipelineManagerImpl implements PipelineManager
                         final String operatorId = stage.getOperatorId();
                         final long duration = stage.getDuration();
                         final LatencyStageType type = stage.getType();
-                        if ( type == INVOCATION_LATENCY )
+                        if ( type == SERVICE_TIME )
                         {
-                            latencyMeter.recordInvocation( operatorId, duration );
+                            assert stage.getTimes() == 1;
+                            latencyMeter.recordServiceTime( operatorId, duration );
                         }
-                        else if ( type == QUEUE_LATENCY )
+                        else if ( type == QUEUE_WAITING_TIME )
                         {
-                            latencyMeter.recordQueue( operatorId, duration );
+                            assert stage.getTimes() == 1;
+                            latencyMeter.recordQueueWaitingTime( operatorId, duration );
                         }
                         else if ( type == INTER_ARRIVAL_TIME )
                         {
-                            latencyMeter.recordInterArrivalTime( operatorId, duration );
+                            latencyMeter.recordInterArrivalTime( operatorId, duration, stage.getTimes() );
                         }
                         else
                         {

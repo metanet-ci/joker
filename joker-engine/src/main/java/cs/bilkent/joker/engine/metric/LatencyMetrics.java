@@ -14,28 +14,28 @@ public class LatencyMetrics
 
     private final int flowVersion;
 
-    private final LatencyRecord tupleLatency;
+    private final LatencyRec tupleLatency;
 
-    private final Map<String, LatencyRecord> invocationLatencies;
+    private final Map<String, LatencyRec> serviceTimes;
 
-    private final Map<String, LatencyRecord> queueLatencies;
+    private final Map<String, LatencyRec> queueWaitingTimes;
 
-    private final Map<String, LatencyRecord> interArrivalTimes;
+    private final Map<String, LatencyRec> interArrivalTimes;
 
     public LatencyMetrics ( final String sinkOperatorId,
                             final int replicaIndex,
                             final int flowVersion,
-                            final LatencyRecord tupleLatency,
-                            final Map<String, LatencyRecord> invocationLatencies,
-                            final Map<String, LatencyRecord> queueLatencies,
-                            final Map<String, LatencyRecord> interArrivalTimes )
+                            final LatencyRec tupleLatency,
+                            final Map<String, LatencyRec> serviceTimes,
+                            final Map<String, LatencyRec> queueWaitingTimes,
+                            final Map<String, LatencyRec> interArrivalTimes )
     {
         this.sinkOperatorId = sinkOperatorId;
         this.replicaIndex = replicaIndex;
         this.flowVersion = flowVersion;
         this.tupleLatency = tupleLatency;
-        this.invocationLatencies = unmodifiableMap( new HashMap<>( invocationLatencies ) );
-        this.queueLatencies = unmodifiableMap( new HashMap<>( queueLatencies ) );
+        this.serviceTimes = unmodifiableMap( new HashMap<>( serviceTimes ) );
+        this.queueWaitingTimes = unmodifiableMap( new HashMap<>( queueWaitingTimes ) );
         this.interArrivalTimes = unmodifiableMap( new HashMap<>( interArrivalTimes ) );
     }
 
@@ -54,50 +54,114 @@ public class LatencyMetrics
         return flowVersion;
     }
 
-    public LatencyRecord getTupleLatency ()
+    public LatencyRec getTupleLatency ()
     {
         return tupleLatency;
     }
 
-    public Map<String, LatencyRecord> getInvocationLatencies ()
+    public long getTupleLatencyMean ()
     {
-        return invocationLatencies;
+        return tupleLatency.mean;
     }
 
-    public Map<String, LatencyRecord> getQueueLatencies ()
+    public long getTupleLatencyStdDev ()
     {
-        return queueLatencies;
+        return tupleLatency.stdDev;
     }
 
-    public Map<String, LatencyRecord> getInterArrivalTimes ()
+    public long getTupleLatencyVariance ()
+    {
+        final long stdDev = getTupleLatencyStdDev();
+        return stdDev * stdDev;
+    }
+
+    public Map<String, LatencyRec> getServiceTimes ()
+    {
+        return serviceTimes;
+    }
+
+    public Map<String, LatencyRec> getQueueWaitingTimes ()
+    {
+        return queueWaitingTimes;
+    }
+
+    public Map<String, LatencyRec> getInterArrivalTimes ()
     {
         return interArrivalTimes;
     }
 
-    public LatencyRecord getInvocationLatency ( final String operatorId )
+    public LatencyRec getServiceTime ( final String operatorId )
     {
-        return invocationLatencies.get( operatorId );
+        return serviceTimes.get( operatorId );
     }
 
-    public LatencyRecord getQueueLatency ( final String operatorId )
+    public long getServiceTimeMean ( final String operatorId )
     {
-        return queueLatencies.get( operatorId );
+        return getServiceTime( operatorId ).mean;
     }
 
-    public LatencyRecord getInterArrivalTime ( final String operatorId )
+    public long getServiceTimeStdDev ( final String operatorId )
+    {
+        return getServiceTime( operatorId ).stdDev;
+    }
+
+    public long getServiceTimeVar ( final String operatorId )
+    {
+        final long stdDev = getServiceTimeStdDev( operatorId );
+        return stdDev * stdDev;
+    }
+
+    public LatencyRec getQueueWaitingTime ( final String operatorId )
+    {
+        return queueWaitingTimes.get( operatorId );
+    }
+
+    public long getQueueWaitingTimeMean ( final String operatorId )
+    {
+        return getQueueWaitingTime( operatorId ).mean;
+    }
+
+    public long getQueueWaitingTimeStdDev ( final String operatorId )
+    {
+        return getQueueWaitingTime( operatorId ).stdDev;
+    }
+
+    public long getQueueWaitingTimeVar ( final String operatorId )
+    {
+        final long stdDev = getQueueWaitingTimeStdDev( operatorId );
+        return stdDev * stdDev;
+    }
+
+    public LatencyRec getInterArrivalTime ( final String operatorId )
     {
         return interArrivalTimes.get( operatorId );
+    }
+
+    public long getInterArrivalTimeMean ( final String operatorId )
+    {
+        return getInterArrivalTime( operatorId ).mean;
+    }
+
+    public long getInterArrivalTimeStdDev ( final String operatorId )
+    {
+        return getInterArrivalTime( operatorId ).stdDev;
+    }
+
+    public long getInterArrivalTimeVar ( final String operatorId )
+    {
+        final long stdDev = getInterArrivalTimeStdDev( operatorId );
+        return stdDev * stdDev;
     }
 
     @Override
     public String toString ()
     {
         return "LatencyMetrics{" + "sinkOperatorId='" + sinkOperatorId + '\'' + ", replicaIndex=" + replicaIndex + ", flowVersion="
-               + flowVersion + ", tupleLatency=" + tupleLatency + ", invocationLatencies=" + invocationLatencies + ", queueLatencies="
-               + queueLatencies + ", interArrivalTimes=" + interArrivalTimes + '}';
+               + flowVersion + ", tupleLatency=" + tupleLatency + ", serviceTimes=" + serviceTimes + ", queueWaitingTimes="
+               + queueWaitingTimes + ", interArrivalTimes=" + interArrivalTimes + '}';
     }
 
-    public static class LatencyRecord
+    public static class LatencyRec
     {
 
         private final long mean;
@@ -116,13 +180,14 @@ public class LatencyMetrics
 
         private final long percentile99;
 
-        public LatencyRecord ( final long mean,
-                               final long stdDev,
-                               final long median,
-                               final long min,
-                               final long max,
-                               final long percentile75,
-                               final long percentile95, final long percentile99 )
+        public LatencyRec ( final long mean,
+                            final long stdDev,
+                            final long median,
+                            final long min,
+                            final long max,
+                            final long percentile75,
+                            final long percentile95,
+                            final long percentile99 )
         {
             this.mean = mean;
             this.stdDev = stdDev;
@@ -177,7 +242,7 @@ public class LatencyMetrics
         @Override
         public String toString ()
         {
-            return "LatencyRecord{" + "mean=" + mean + ", stdDev=" + stdDev + ", median=" + median + ", min=" + min + ", max=" + max
+            return "LatencyRec{" + "mean=" + mean + ", stdDev=" + stdDev + ", median=" + median + ", min=" + min + ", max=" + max
                    + ", percentile75=" + percentile75 + ", percentile95=" + percentile95 + ", percentile99=" + percentile99 + '}';
         }
     }

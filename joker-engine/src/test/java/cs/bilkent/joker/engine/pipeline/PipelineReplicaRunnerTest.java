@@ -84,7 +84,7 @@ public class PipelineReplicaRunnerTest extends AbstractJokerTest
         when( operator.init( new UpstreamCtx[] { upstreamCtx }, null ) ).thenReturn( new SchedulingStrategy[] { schedulingStrategy } );
 
         final JokerConfig config = new JokerConfig();
-        pipeline = new PipelineReplica( id, new OperatorReplica[] { operator }, mock( OperatorQueue.class ),
+        pipeline = new PipelineReplica( config, id, new OperatorReplica[] { operator }, mock( OperatorQueue.class ),
                                         new PipelineReplicaMeter( config.getMetricManagerConfig().getTickMask(), id, operatorDef ) );
 
         final SchedulingStrategy[][] schedulingStrategies = new SchedulingStrategy[ 1 ][ 1 ];

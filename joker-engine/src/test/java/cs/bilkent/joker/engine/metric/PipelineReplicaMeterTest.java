@@ -1,5 +1,7 @@
 package cs.bilkent.joker.engine.metric;
 
+import java.util.Collections;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -90,7 +92,7 @@ public class PipelineReplicaMeterTest extends AbstractJokerTest
 
         assertEquals( "id", pipelineReplicaMeter.getCurrentlyExecutingComponent() );
 
-        pipelineReplicaMeter.onInvocationComplete( "id" );
+        pipelineReplicaMeter.onInvocationComplete( "id", Collections.emptyList(), 0, false );
 
         assertEquals( PIPELINE_REPLICA_ID, pipelineReplicaMeter.getCurrentlyExecutingComponent() );
     }
@@ -102,7 +104,7 @@ public class PipelineReplicaMeterTest extends AbstractJokerTest
         tuples.add( 0, new Tuple(), new Tuple() );
         tuples.add( 1, new Tuple() );
 
-        pipelineReplicaMeter.count( headOperatorId, tuples );
+        pipelineReplicaMeter.onInvocationComplete( headOperatorId, Collections.singletonList( tuples ), 1, true );
 
         final long[] buffer = new long[] { 0, 0 };
         pipelineReplicaMeter.readInboundThroughput( buffer );
@@ -115,7 +117,7 @@ public class PipelineReplicaMeterTest extends AbstractJokerTest
         final TuplesImpl tuples = new TuplesImpl( 1 );
         tuples.add( 0, new Tuple(), new Tuple() );
 
-        pipelineReplicaMeter.count( tailOperatorId, tuples );
+        pipelineReplicaMeter.onInvocationComplete( tailOperatorId, Collections.singletonList( tuples ), 1, true );
 
         final long[] buffer = new long[] { 0, 0 };
         pipelineReplicaMeter.readInboundThroughput( buffer );

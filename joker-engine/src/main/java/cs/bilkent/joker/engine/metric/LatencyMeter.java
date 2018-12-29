@@ -10,7 +10,7 @@ import java.util.concurrent.locks.LockSupport;
 
 import org.HdrHistogram.IntCountsHistogram;
 
-import cs.bilkent.joker.engine.metric.LatencyMetrics.LatencyRecord;
+import cs.bilkent.joker.engine.metric.LatencyMetrics.LatencyRec;
 import cs.bilkent.joker.operator.utils.Pair;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toMap;
@@ -24,9 +24,9 @@ public class LatencyMeter
 
     private IntCountsHistogram tupleLatency;
 
-    private final Map<String, IntCountsHistogram> invocationLatencies = new HashMap<>();
+    private final Map<String, IntCountsHistogram> serviceTimes = new HashMap<>();
 
-    private final Map<String, IntCountsHistogram> queueLatencies = new HashMap<>();
+    private final Map<String, IntCountsHistogram> queueWaitingTimes = new HashMap<>();
 
     private final Map<String, IntCountsHistogram> interArrivalTimes = new HashMap<>();
 
@@ -39,8 +39,8 @@ public class LatencyMeter
         this.tupleLatency = newHistogram();
         for ( String operatorId : operatorIds )
         {
-            invocationLatencies.put( operatorId, newHistogram() );
-            queueLatencies.put( operatorId, newHistogram() );
+            serviceTimes.put( operatorId, newHistogram() );
+            queueWaitingTimes.put( operatorId, newHistogram() );
             interArrivalTimes.put( operatorId, newHistogram() );
         }
     }
@@ -73,25 +73,19 @@ public class LatencyMeter
         }
     }
 
-    public void recordInvocation ( final String operatorId, final long latency )
+    public void recordServiceTime ( final String operatorId, final long latency )
     {
-        if ( latency > 0 )
-        {
-            invocationLatencies.get( operatorId ).recordValue( latency );
-        }
+        serviceTimes.get( operatorId ).recordValue( latency );
     }
 
-    public void recordQueue ( final String operatorId, final long latency )
+    public void recordQueueWaitingTime ( final String operatorId, final long latency )
     {
-        if ( latency > 0 )
-        {
-            queueLatencies.get( operatorId ).recordValue( latency );
-        }
+        queueWaitingTimes.get( operatorId ).recordValue( latency );
     }
 
-    public void recordInterArrivalTime ( final String operatorId, final long duration )
+    public void recordInterArrivalTime ( final String operatorId, final long duration, final int times )
     {
-        if ( duration > 0 )
+        for ( int i = 0; i < times; i++ )
         {
             interArrivalTimes.get( operatorId ).recordValue( duration );
         }
@@ -99,35 +93,33 @@ public class LatencyMeter
 
     public boolean publish ()
     {
-        final LatencyRecord tupleLatency = toLatencyRecord( new SimpleEntry<>( null, this.tupleLatency ) ).getValue();
-        final Map<String, LatencyRecord> invocationLatencies = this.invocationLatencies.entrySet()
-                                                                                       .stream()
-                                                                                       .map( this::toLatencyRecord )
-                                                                                       .collect( toMap( Entry::getKey, Entry::getValue ) );
+        final LatencyRec tupleLatency = toLatencyRecord( new SimpleEntry<>( null, this.tupleLatency ) ).getValue();
+        final Map<String, LatencyRec> serviceTimes = this.serviceTimes.entrySet()
+                                                                      .stream()
+                                                                      .map( this::toLatencyRecord )
+                                                                      .collect( toMap( Entry::getKey, Entry::getValue ) );
 
-        final Map<String, LatencyRecord> queueLatencies = this.queueLatencies.entrySet()
-                                                                             .stream()
-                                                                             .map( this::toLatencyRecord )
-                                                                             .collect( toMap( Entry::getKey, Entry::getValue ) );
+        final Map<String, LatencyRec> queueWaitingTimes = this.queueWaitingTimes.entrySet()
+                                                                                .stream()
+                                                                                .map( this::toLatencyRecord )
+                                                                                .collect( toMap( Entry::getKey, Entry::getValue ) );
 
-        final Map<String, LatencyRecord> interArrivalTimes = this.interArrivalTimes.entrySet()
-                                                                                   .stream()
-                                                                                   .map( this::toLatencyRecord )
-                                                                                   .collect( toMap( Entry::getKey, Entry::getValue ) );
+        final Map<String, LatencyRec> interArrivalTimes = this.interArrivalTimes.entrySet()
+                                                                                .stream()
+                                                                                .map( this::toLatencyRecord )
+                                                                                .collect( toMap( Entry::getKey, Entry::getValue ) );
 
         final LatencyMetrics m = new LatencyMetrics( sinkOperatorId,
                                                      replicaIndex,
                                                      0,
-                                                     tupleLatency,
-                                                     invocationLatencies,
-                                                     queueLatencies,
+                                                     tupleLatency, serviceTimes, queueWaitingTimes,
                                                      interArrivalTimes );
 
-        final Set<String> operatorIds = invocationLatencies.keySet();
+        final Set<String> operatorIds = serviceTimes.keySet();
         this.tupleLatency = newHistogram();
         operatorIds.forEach( operatorId -> {
-            this.invocationLatencies.put( operatorId, newHistogram() );
-            this.queueLatencies.put( operatorId, newHistogram() );
+            this.serviceTimes.put( operatorId, newHistogram() );
+            this.queueWaitingTimes.put( operatorId, newHistogram() );
             this.interArrivalTimes.put( operatorId, newHistogram() );
         } );
 
@@ -145,24 +137,22 @@ public class LatencyMeter
         return new LatencyMetrics( sinkOperatorId,
                                    replicaIndex,
                                    flowVersion,
-                                   m.getTupleLatency(),
-                                   m.getInvocationLatencies(),
-                                   m.getQueueLatencies(),
+                                   m.getTupleLatency(), m.getServiceTimes(), m.getQueueWaitingTimes(),
                                    m.getInterArrivalTimes() );
     }
 
-    private Entry<String, LatencyRecord> toLatencyRecord ( Entry<String, IntCountsHistogram> e )
+    private Entry<String, LatencyRec> toLatencyRecord ( Entry<String, IntCountsHistogram> e )
     {
         final IntCountsHistogram histogram = e.getValue();
         return new SimpleEntry<>( e.getKey(),
-                                  new LatencyRecord( (long) histogram.getMean(),
-                                                     (long) histogram.getStdDeviation(),
-                                                     histogram.getValueAtPercentile( 50 ),
-                                                     histogram.getMinValue(),
-                                                     histogram.getMaxValue(),
-                                                     histogram.getValueAtPercentile( 75 ),
-                                                     histogram.getValueAtPercentile( 95 ),
-                                                     histogram.getValueAtPercentile( 99 ) ) );
+                                  new LatencyRec( (long) histogram.getMean(),
+                                                  (long) histogram.getStdDeviation(),
+                                                  histogram.getValueAtPercentile( 50 ),
+                                                  histogram.getMinValue(),
+                                                  histogram.getMaxValue(),
+                                                  histogram.getValueAtPercentile( 75 ),
+                                                  histogram.getValueAtPercentile( 95 ),
+                                                  histogram.getValueAtPercentile( 99 ) ) );
     }
 
 
@@ -170,7 +160,7 @@ public class LatencyMeter
     public String toString ()
     {
         return "LatencyMeter{" + "sinkOperatorId='" + sinkOperatorId + '\'' + ", replicaIndex=" + replicaIndex + ", tupleLatency="
-               + tupleLatency + ", invocationLatencies=" + invocationLatencies + ", queueLatencies=" + queueLatencies
-               + ", interArrivalTimes=" + interArrivalTimes + '}';
+               + tupleLatency + ", serviceTimes=" + serviceTimes + ", queueWaitingTimes=" + queueWaitingTimes + ", interArrivalTimes="
+               + interArrivalTimes + '}';
     }
 }

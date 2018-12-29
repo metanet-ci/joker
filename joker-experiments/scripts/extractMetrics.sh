@@ -43,13 +43,13 @@ while [ $producedTupleCountPerSourceInv -le $maxProducedTupleCountPerSourceInv ]
 
                 grep "TUPLE LATENCIES FOR SINK" $file | awk '{split($0,a," "); print a[34]}' > $subDir"/latency_sink_historical.txt"
 
-                grep "Queue Latency: multiplier" $file | awk '{split($0,a," "); print a[18]}' > $subDir"/latency_queue_current.txt"
+                grep "Queue Waiting Time: multiplier" $file | awk '{split($0,a," "); print a[18]}' > $subDir"/queue_waiting_time_current.txt"
 
-                grep "Queue Latency: multiplier" $file | awk '{split($0,a," "); print a[34]}' > $subDir"/latency_queue_historical.txt"
+                grep "Queue Waiting Time: multiplier" $file | awk '{split($0,a," "); print a[34]}' > $subDir"/queue_waiting_time_historical.txt"
 
-                grep "Invocation Latency: multiplier" $file | awk '{split($0,a," "); print a[18]}' > $subDir"/latency_invocation_current.txt"
+                grep "Service Time: multiplier" $file | awk '{split($0,a," "); print a[18]}' > $subDir"/service_time_current.txt"
 
-                grep "Invocation Latency: multiplier" $file | awk '{split($0,a," "); print a[34]}' > $subDir"/latency_invocation_historical.txt"
+                grep "Service Time: multiplier" $file | awk '{split($0,a," "); print a[34]}' > $subDir"/service_time_historical.txt"
 
                 grep -F 'MetricManagerImpl$CollectPipelineMetrics - P[1][0][0]' $file | awk '{split($0,a," "); print a[13]}' > $subDir"/thread_utilization.txt"
 

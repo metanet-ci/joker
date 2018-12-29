@@ -11,12 +11,12 @@ import cs.bilkent.joker.partition.impl.PartitionKey;
 public class NonBlockingSinglePortDrainer extends SinglePortDrainer
 {
 
-    private final QueueLatencyRecorder latencyRecorder;
+    private final QueueWaitingTimeRecorder queueWaitingTimeRecorder;
 
     public NonBlockingSinglePortDrainer ( final String operatorId, final int maxBatchSize )
     {
         super( operatorId, maxBatchSize );
-        this.latencyRecorder = new QueueLatencyRecorder( operatorId );
+        this.queueWaitingTimeRecorder = new QueueWaitingTimeRecorder( operatorId );
     }
 
     @Override
@@ -31,8 +31,8 @@ public class NonBlockingSinglePortDrainer extends SinglePortDrainer
 
         if ( tupleQueue.size() >= tupleCountToCheck )
         {
-            latencyRecorder.setParameters( System.nanoTime(), tuplesSupplier.apply( key ).getTuplesModifiable( 0 ) );
-            tupleQueue.drainTo( tupleCountToPoll, latencyRecorder );
+            queueWaitingTimeRecorder.setParameters( System.nanoTime(), tuplesSupplier.apply( key ).getTuplesModifiable( 0 ) );
+            tupleQueue.drainTo( tupleCountToPoll, queueWaitingTimeRecorder );
             return true;
         }
 

@@ -10,8 +10,8 @@ import static cs.bilkent.joker.operator.Tuple.INGESTION_TIME_NOT_ASSIGNED;
 import static cs.bilkent.joker.operator.Tuple.INGESTION_TIME_UNASSIGNABLE;
 import cs.bilkent.joker.operator.Tuple.LatencyStage;
 import static cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType.INTER_ARRIVAL_TIME;
-import static cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType.INVOCATION_LATENCY;
-import static cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType.QUEUE_LATENCY;
+import static cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType.QUEUE_WAITING_TIME;
+import static cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType.SERVICE_TIME;
 import cs.bilkent.joker.test.AbstractJokerTest;
 import static java.lang.System.nanoTime;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -60,14 +60,14 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
     }
 
     @Test
-    public void when_ingestionTimeSet_then_queueLatencyStageIsAdded ()
+    public void when_ingestionTimeSet_then_queueWaitingTimeStageIsAdded ()
     {
         final Tuple tuple = new Tuple();
 
         tuple.setIngestionTime( 1 );
 
         tuple.setQueueOfferTime( 1 );
-        tuple.recordQueueLatency( "op", 3 );
+        tuple.recordQueueWaitingTime( "op", 3 );
 
         assertThat( tuple.getIngestionTime(), equalTo( 1L ) );
         final List<LatencyStage> stages = tuple.getLatencyStages();
@@ -76,16 +76,16 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
         final LatencyStage stage = stages.get( 0 );
         assertThat( stage.getDuration(), equalTo( 2L ) );
         assertThat( stage.getOperatorId(), equalTo( "op" ) );
-        assertThat( stage.getType(), equalTo( QUEUE_LATENCY ) );
+        assertThat( stage.getType(), equalTo( QUEUE_WAITING_TIME ) );
     }
 
     @Test
-    public void when_ingestionTimeNotSet_then_queueLatencyStageIsAdded ()
+    public void when_ingestionTimeNotSet_then_queueWaitingTimeStageIsAdded ()
     {
         final Tuple tuple = new Tuple();
 
         tuple.setQueueOfferTime( 1 );
-        tuple.recordQueueLatency( "op", 3 );
+        tuple.recordQueueWaitingTime( "op", 3 );
 
         final List<LatencyStage> stages = tuple.getLatencyStages();
         assertNotNull( stages );
@@ -93,17 +93,17 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
         final LatencyStage stage = stages.get( 0 );
         assertThat( stage.getDuration(), equalTo( 2L ) );
         assertThat( stage.getOperatorId(), equalTo( "op" ) );
-        assertThat( stage.getType(), equalTo( QUEUE_LATENCY ) );
+        assertThat( stage.getType(), equalTo( QUEUE_WAITING_TIME ) );
     }
 
     @Test
-    public void when_ingestionTimeSet_then_invocationLatencyStageIsAdded ()
+    public void when_ingestionTimeSet_then_serviceTimeStageIsAdded ()
     {
         final Tuple tuple = new Tuple();
 
         tuple.setIngestionTime( 1 );
 
-        tuple.recordInvocationLatency( "op", 3 );
+        tuple.recordServiceTime( "op", 3 );
 
         assertThat( tuple.getIngestionTime(), equalTo( 1L ) );
         final List<LatencyStage> stages = tuple.getLatencyStages();
@@ -112,15 +112,15 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
         final LatencyStage stage = stages.get( 0 );
         assertThat( stage.getDuration(), equalTo( 3L ) );
         assertThat( stage.getOperatorId(), equalTo( "op" ) );
-        assertThat( stage.getType(), equalTo( INVOCATION_LATENCY ) );
+        assertThat( stage.getType(), equalTo( SERVICE_TIME ) );
     }
 
     @Test
-    public void when_ingestionTimeNotSet_then_invocationLatencyStageIsAdded ()
+    public void when_ingestionTimeNotSet_then_serviceTimeStageIsAdded ()
     {
         final Tuple tuple = new Tuple();
 
-        tuple.recordInvocationLatency( "op", 3 );
+        tuple.recordServiceTime( "op", 3 );
 
         final List<LatencyStage> stages = tuple.getLatencyStages();
         assertNotNull( stages );
@@ -128,7 +128,7 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
         final LatencyStage stage = stages.get( 0 );
         assertThat( stage.getDuration(), equalTo( 3L ) );
         assertThat( stage.getOperatorId(), equalTo( "op" ) );
-        assertThat( stage.getType(), equalTo( INVOCATION_LATENCY ) );
+        assertThat( stage.getType(), equalTo( SERVICE_TIME ) );
     }
 
     @Test
@@ -138,7 +138,7 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
 
         tuple.setIngestionTime( 1 );
 
-        tuple.recordInterArrivalTime( "op", 4 );
+        tuple.recordInterArrivalTimes( "op", 4, 1 );
 
         assertThat( tuple.getIngestionTime(), equalTo( 1L ) );
         final List<LatencyStage> stages = tuple.getLatencyStages();
@@ -155,7 +155,7 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
     {
         final Tuple tuple = new Tuple();
 
-        tuple.recordInterArrivalTime( "op", 4 );
+        tuple.recordInterArrivalTimes( "op", 4, 1 );
 
         final List<LatencyStage> stages = tuple.getLatencyStages();
         assertNotNull( stages );
@@ -173,11 +173,11 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
         final Tuple source = new Tuple();
         final long ingestionTime = System.nanoTime();
         source.setIngestionTime( ingestionTime );
-        source.recordInvocationLatency( "op1", 50 );
+        source.recordServiceTime( "op1", 50 );
 
         final Tuple destination = new Tuple();
         destination.setIngestionTime( ingestionTime - 1 );
-        destination.recordInvocationLatency( "op2", 100 );
+        destination.recordServiceTime( "op2", 100 );
 
         destination.attachTo( source );
 
@@ -188,23 +188,23 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
         final LatencyStage stage1 = stages.get( 0 );
         assertThat( stage1.getDuration(), equalTo( 100L ) );
         assertThat( stage1.getOperatorId(), equalTo( "op2" ) );
-        assertThat( stage1.getType(), equalTo( INVOCATION_LATENCY ) );
+        assertThat( stage1.getType(), equalTo( SERVICE_TIME ) );
         final LatencyStage stage2 = stages.get( 1 );
         assertThat( stage2.getDuration(), equalTo( 50L ) );
         assertThat( stage2.getOperatorId(), equalTo( "op1" ) );
-        assertThat( stage2.getType(), equalTo( INVOCATION_LATENCY ) );
+        assertThat( stage2.getType(), equalTo( SERVICE_TIME ) );
     }
 
     @Test
     public void when_attachedToIngestionTimeUnknownTuple_then_latencyStagesArePassed ()
     {
         final Tuple source = new Tuple();
-        source.recordInvocationLatency( "op1", 50 );
+        source.recordServiceTime( "op1", 50 );
 
         final Tuple destination = new Tuple();
         final long ingestionTime = System.nanoTime();
         destination.setIngestionTime( ingestionTime );
-        destination.recordInvocationLatency( "op2", 100 );
+        destination.recordServiceTime( "op2", 100 );
 
         destination.attachTo( source );
 
@@ -215,25 +215,25 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
         final LatencyStage stage1 = stages.get( 0 );
         assertThat( stage1.getDuration(), equalTo( 100L ) );
         assertThat( stage1.getOperatorId(), equalTo( "op2" ) );
-        assertThat( stage1.getType(), equalTo( INVOCATION_LATENCY ) );
+        assertThat( stage1.getType(), equalTo( SERVICE_TIME ) );
         final LatencyStage stage2 = stages.get( 1 );
         assertThat( stage2.getDuration(), equalTo( 50L ) );
         assertThat( stage2.getOperatorId(), equalTo( "op1" ) );
-        assertThat( stage2.getType(), equalTo( INVOCATION_LATENCY ) );
+        assertThat( stage2.getType(), equalTo( SERVICE_TIME ) );
     }
 
     @Test
     public void when_attachedToIngestionTimeUnassignableTuple_then_latencyStagesArePassed ()
     {
         final Tuple source = new Tuple();
-        source.recordInvocationLatency( "op1", 50 );
+        source.recordServiceTime( "op1", 50 );
 
         final Tuple destination1 = new Tuple();
         destination1.setIngestionTime( System.nanoTime() );
         destination1.attachTo( source );
 
         final Tuple destination2 = new Tuple();
-        destination2.recordInvocationLatency( "op2", 100 );
+        destination2.recordServiceTime( "op2", 100 );
 
         destination2.attachTo( destination1 );
 
@@ -244,11 +244,11 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
         final LatencyStage stage1 = stages.get( 0 );
         assertThat( stage1.getDuration(), equalTo( 100L ) );
         assertThat( stage1.getOperatorId(), equalTo( "op2" ) );
-        assertThat( stage1.getType(), equalTo( INVOCATION_LATENCY ) );
+        assertThat( stage1.getType(), equalTo( SERVICE_TIME ) );
         final LatencyStage stage2 = stages.get( 1 );
         assertThat( stage2.getDuration(), equalTo( 50L ) );
         assertThat( stage2.getOperatorId(), equalTo( "op1" ) );
-        assertThat( stage2.getType(), equalTo( INVOCATION_LATENCY ) );
+        assertThat( stage2.getType(), equalTo( SERVICE_TIME ) );
     }
 
     @Test
@@ -261,7 +261,7 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
         final Tuple destination = new Tuple();
         final long t2 = t1 + 100;
         destination.setIngestionTime( t2 );
-        destination.recordInvocationLatency( "op", 20 );
+        destination.recordServiceTime( "op", 20 );
 
         destination.attachTo( source );
 
@@ -276,7 +276,7 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
         tuple.set( "key", "val1" );
         final long ingestionTime = 10;
         tuple.setIngestionTime( ingestionTime );
-        tuple.recordInvocationLatency( "op", 20 );
+        tuple.recordServiceTime( "op", 20 );
 
         final Tuple copy = tuple.shallowCopy();
 
