@@ -18,6 +18,7 @@ import cs.bilkent.joker.engine.util.concurrent.BackoffIdleStrategy;
 import cs.bilkent.joker.engine.util.concurrent.IdleStrategy;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
+import static java.util.Arrays.fill;
 
 public abstract class AbstractPartitionedDownstreamCollector implements DownstreamCollector, Supplier<OperatorQueue[]>
 {
@@ -38,9 +39,11 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
 
     private final Ticker ticker;
 
-    private List<Tuple>[] tupleLists;
+    private final List<Tuple>[] tupleLists;
 
-    private int[] indices;
+    private final int[] indices;
+
+    private final boolean[] recordQueueOfferTimeFlags;
 
     AbstractPartitionedDownstreamCollector ( @Named( DOWNSTREAM_FAILURE_FLAG_NAME ) final AtomicBoolean failureFlag,
                                              final int partitionCount,
@@ -57,11 +60,12 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
         this.partitionKeyExtractor = partitionKeyExtractor;
         this.ticker = ticker;
         this.tupleLists = new List[ operatorQueues.length ];
-        this.indices = new int[ operatorQueues.length ];
         for ( int i = 0; i < operatorQueues.length; i++ )
         {
             tupleLists[ i ] = new ArrayList<>();
         }
+        this.indices = new int[ operatorQueues.length ];
+        this.recordQueueOfferTimeFlags = new boolean[ operatorQueues.length ];
     }
 
     public final OperatorQueue[] get ()
@@ -78,7 +82,11 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
             tupleLists[ replicaIndex ].add( tuple );
         }
 
-        boolean recordQueueOfferTime = ticker.tryTick();
+        final boolean recordQueueOfferTime = ticker.tryTick();
+        if ( recordQueueOfferTime )
+        {
+            fill( recordQueueOfferTimeFlags, true );
+        }
         int completed;
         while ( true )
         {
@@ -89,10 +97,10 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
                 int fromIndex = indices[ i ];
                 if ( fromIndex < tuples.size() )
                 {
-                    if ( recordQueueOfferTime )
+                    if ( recordQueueOfferTimeFlags[ i ] )
                     {
                         tuples.get( 0 ).setQueueOfferTime( System.nanoTime() );
-                        recordQueueOfferTime = false;
+                        recordQueueOfferTimeFlags[ i ] = false;
                     }
 
                     final int offered = operatorQueues[ i ].offer( destinationPortIndex, tuples, fromIndex );
@@ -130,6 +138,10 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
         {
             tupleLists[ i ].clear();
             indices[ i ] = 0;
+        }
+        if ( recordQueueOfferTime )
+        {
+            fill( recordQueueOfferTimeFlags, false );
         }
     }
 
