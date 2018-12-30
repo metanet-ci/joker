@@ -34,8 +34,9 @@ import static cs.bilkent.joker.engine.region.Region.isFusible;
 import static cs.bilkent.joker.engine.region.impl.RegionExecPlanUtil.checkPipelineStartIndicesToSplit;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueueManager;
+import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainerPool;
-import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
+import static cs.bilkent.joker.engine.tuplequeue.impl.drainer.NonBlockingMultiPortDisjunctiveDrainer.newGreedyDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool.BlockingTupleQueueDrainerPool;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool.NonBlockingTupleQueueDrainerPool;
 import cs.bilkent.joker.engine.tuplequeue.impl.operator.DefaultOperatorQueue;
@@ -427,8 +428,9 @@ public class PipelineTransformerImpl implements PipelineTransformer
 
     private void drainPipelineQueue ( final OperatorQueue pipelineQueue, final OperatorQueue operatorQueue, final OperatorDef operatorDef )
     {
-        final GreedyDrainer drainer = new GreedyDrainer( operatorDef.getInputPortCount(),
-                                                         config.getTupleQueueManagerConfig().getTupleQueueCapacity() );
+        final TupleQueueDrainer drainer = newGreedyDrainer( operatorDef.getId(),
+                                                            operatorDef.getInputPortCount(),
+                                                            config.getTupleQueueManagerConfig().getTupleQueueCapacity() );
         final TuplesImpl result = new TuplesImpl( operatorDef.getInputPortCount() );
         pipelineQueue.drain( drainer, key -> result );
         if ( result.isNonEmpty() )
@@ -906,11 +908,10 @@ public class PipelineTransformerImpl implements PipelineTransformer
                                                                                                     op.getDrainerPool(),
                                                                                                     op.getDownstreamCtx() ) )
                                                                           .collect( toList() );
-        newOperatorReplicas.add( 0,
-                                 headOperatorReplica.duplicate( newPipelineReplicaId, meter,
-                                                                headOperatorQueue,
-                                                                headOperatorDrainerPool,
-                                                                headOperatorReplica.getDownstreamCtx() ) );
+        newOperatorReplicas.add( 0, headOperatorReplica.duplicate( newPipelineReplicaId, meter,
+                                                                   headOperatorQueue,
+                                                                   headOperatorDrainerPool,
+                                                                   headOperatorReplica.getDownstreamCtx() ) );
 
         return PipelineReplica.running( config, newPipelineReplicaId,
                                         newOperatorReplicas.toArray( new OperatorReplica[ 0 ] ),

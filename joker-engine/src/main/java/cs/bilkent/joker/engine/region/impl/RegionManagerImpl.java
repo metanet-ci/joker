@@ -51,8 +51,9 @@ import static cs.bilkent.joker.engine.region.impl.RegionExecPlanUtil.getMergeabl
 import static cs.bilkent.joker.engine.region.impl.RegionExecPlanUtil.getPipelineStartIndicesToSplit;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueueManager;
+import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainerPool;
-import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
+import static cs.bilkent.joker.engine.tuplequeue.impl.drainer.NonBlockingMultiPortDisjunctiveDrainer.newGreedyDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool.BlockingTupleQueueDrainerPool;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool.NonBlockingTupleQueueDrainerPool;
 import cs.bilkent.joker.engine.tuplequeue.impl.operator.DefaultOperatorQueue;
@@ -378,8 +379,9 @@ public class RegionManagerImpl implements RegionManager
                 final OperatorReplica operator = pipelineReplica.getOperatorReplica( 0 );
                 final OperatorQueue operatorQueue = operator.getQueue();
                 final TuplesImpl result = new TuplesImpl( operatorQueue.getInputPortCount() );
-                final GreedyDrainer drainer = new GreedyDrainer( operatorQueue.getInputPortCount(),
-                                                                 config.getTupleQueueManagerConfig().getTupleQueueCapacity() );
+                final TupleQueueDrainer drainer = newGreedyDrainer( operatorQueue.getOperatorId(),
+                                                                    operatorQueue.getInputPortCount(),
+                                                                    config.getTupleQueueManagerConfig().getTupleQueueCapacity() );
                 pipelineQueue.drain( drainer, k -> result );
                 if ( result.isNonEmpty() )
                 {
@@ -480,7 +482,9 @@ public class RegionManagerImpl implements RegionManager
         for ( OperatorQueue queue : queues )
         {
             final TuplesImpl result = new TuplesImpl( 1 );
-            final GreedyDrainer drainer = new GreedyDrainer( 1, config.getTupleQueueManagerConfig().getTupleQueueCapacity() );
+            final TupleQueueDrainer drainer = newGreedyDrainer( queue.getOperatorId(),
+                                                                1,
+                                                                config.getTupleQueueManagerConfig().getTupleQueueCapacity() );
             queue.drain( drainer, key -> result );
 
             result.getTuplesByDefaultPort().forEach( tuple -> {

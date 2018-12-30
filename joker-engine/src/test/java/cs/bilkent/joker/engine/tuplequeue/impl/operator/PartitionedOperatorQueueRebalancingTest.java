@@ -13,7 +13,8 @@ import org.junit.Test;
 import static cs.bilkent.joker.engine.partition.PartitionUtil.getPartitionId;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractor1;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
-import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
+import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
+import static cs.bilkent.joker.engine.tuplequeue.impl.drainer.NonBlockingMultiPortDisjunctiveDrainer.newGreedyDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.Tuples;
@@ -90,7 +91,7 @@ public class PartitionedOperatorQueueRebalancingTest extends AbstractJokerTest
             results.add( tuples );
             return tuples;
         };
-        final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT, Integer.MAX_VALUE );
+        final TupleQueueDrainer drainer = newGreedyDrainer( operatorQueue.getOperatorId(), INPUT_PORT_COUNT, Integer.MAX_VALUE );
         operatorQueue.drain( drainer, tuplesSupplier );
 
         int tupleCount = 0;
@@ -132,7 +133,7 @@ public class PartitionedOperatorQueueRebalancingTest extends AbstractJokerTest
             results.add( tuples );
             return tuples;
         };
-        final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT, Integer.MAX_VALUE );
+        final TupleQueueDrainer drainer = newGreedyDrainer( operatorQueue.getOperatorId(), INPUT_PORT_COUNT, Integer.MAX_VALUE );
         operatorQueue.drain( drainer, tuplesSupplier );
 
         int tupleCount = 0;

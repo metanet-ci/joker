@@ -19,7 +19,6 @@ import static cs.bilkent.joker.engine.partition.PartitionUtil.getPartitionId;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
-import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
@@ -133,40 +132,24 @@ public class PartitionedOperatorQueue implements OperatorQueue
     public void drain ( final TupleQueueDrainer drainer,
                         final Function<PartitionKey, TuplesImpl> tuplesSupplier )
     {
-        if ( drainer instanceof GreedyDrainer )
+        if ( drainableKeys.isEmpty() )
         {
-            final Iterator<PartitionKey> it = tupleQueuesByKeys.keySet().iterator();
-            while ( it.hasNext() )
-            {
-                final PartitionKey key = it.next();
-                drainer.drain( key, getTupleQueues( key ), tuplesSupplier );
-                it.remove();
-                drainableKeys.remove( key );
-            }
+            return;
         }
-        else
+
+        final Iterator<PartitionKey> it = drainableKeys.iterator();
+        while ( it.hasNext() )
         {
-            // tuple count based draining
-
-            if ( drainableKeys.isEmpty() )
+            final PartitionKey key = it.next();
+            final TupleQueue[] tupleQueues = getTupleQueues( key );
+            while ( true )
             {
-                return;
-            }
-
-            final Iterator<PartitionKey> it = drainableKeys.iterator();
-            while ( it.hasNext() )
-            {
-                final PartitionKey key = it.next();
-                final TupleQueue[] tupleQueues = getTupleQueues( key );
-                while ( true )
+                if ( !drainer.drain( key, tupleQueues, tuplesSupplier ) )
                 {
-                    if ( !drainer.drain( key, tupleQueues, tuplesSupplier ) )
-                    {
-                        break;
-                    }
+                    break;
                 }
-                it.remove();
             }
+            it.remove();
         }
     }
 

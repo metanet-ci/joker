@@ -15,9 +15,10 @@ import static cs.bilkent.joker.engine.config.ThreadingPref.MULTI_THREADED;
 import static cs.bilkent.joker.engine.config.ThreadingPref.SINGLE_THREADED;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
-import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
+import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.MultiPortDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.NonBlockingMultiPortDisjunctiveDrainer;
+import static cs.bilkent.joker.engine.tuplequeue.impl.drainer.NonBlockingMultiPortDisjunctiveDrainer.newGreedyDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.queue.MultiThreadedTupleQueue;
 import cs.bilkent.joker.engine.tuplequeue.impl.queue.SingleThreadedTupleQueue;
 import cs.bilkent.joker.operator.Tuple;
@@ -73,7 +74,7 @@ public class DefaultOperatorQueueTest extends AbstractJokerTest
             assertThat( offered, equalTo( tuples.size() ) );
         }
 
-        final GreedyDrainer drainer = new GreedyDrainer( inputPortCount, Integer.MAX_VALUE );
+        final TupleQueueDrainer drainer = newGreedyDrainer( operatorQueue.getOperatorId(), inputPortCount, Integer.MAX_VALUE );
         final TuplesImpl result = new TuplesImpl( inputPortCount );
         operatorQueue.drain( drainer, key -> result );
 

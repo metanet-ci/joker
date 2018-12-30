@@ -8,8 +8,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractor1;
-import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
+import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.tuplequeue.impl.drainer.NonBlockingMultiPortDisjunctiveDrainer;
+import static cs.bilkent.joker.engine.tuplequeue.impl.drainer.NonBlockingMultiPortDisjunctiveDrainer.newGreedyDrainer;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
@@ -128,7 +129,7 @@ public class PartitionedOperatorQueueTest extends AbstractJokerTest
         operatorQueue.setTupleCounts( new int[] { 1, 1 }, ANY_PORT );
 
         final TuplesImpl result = new TuplesImpl( INPUT_PORT_COUNT );
-        final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT, Integer.MAX_VALUE );
+        final TupleQueueDrainer drainer = newGreedyDrainer( operatorQueue.getOperatorId(), INPUT_PORT_COUNT, Integer.MAX_VALUE );
         operatorQueue.drain( drainer, key -> result );
 
         assertEquals( tuples, result.getTuples( 0 ) );
@@ -143,7 +144,7 @@ public class PartitionedOperatorQueueTest extends AbstractJokerTest
         operatorQueue.offer( 0, tuples );
 
         final TuplesImpl result = new TuplesImpl( INPUT_PORT_COUNT );
-        final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT, Integer.MAX_VALUE );
+        final TupleQueueDrainer drainer = newGreedyDrainer( operatorQueue.getOperatorId(), INPUT_PORT_COUNT, Integer.MAX_VALUE );
         operatorQueue.drain( drainer, key -> result );
 
         assertEquals( tuples, result.getTuples( 0 ) );

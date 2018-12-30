@@ -16,7 +16,8 @@ import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractor1;
 import cs.bilkent.joker.engine.partition.impl.PartitionKeyExtractorFactoryImpl;
 import cs.bilkent.joker.engine.partition.impl.PartitionServiceImpl;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
-import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
+import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
+import static cs.bilkent.joker.engine.tuplequeue.impl.drainer.NonBlockingMultiPortDisjunctiveDrainer.newGreedyDrainer;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorConfig;
 import cs.bilkent.joker.operator.OperatorDef;
@@ -53,8 +54,7 @@ public class OperatorQueueManagerImplTest extends AbstractJokerTest
                                                                                       1,
                                                                                       1,
                                                                                       new OperatorRuntimeSchemaBuilder( 1,
-                                                                                                                        1 ).addInputField
-                                                                                                                                    ( 0,
+                                                                                                                        1 ).addInputField( 0,
                                                                                                                                            "field",
                                                                                                                                            Integer.class )
                                                                                                                            .build(),
@@ -123,7 +123,7 @@ public class OperatorQueueManagerImplTest extends AbstractJokerTest
         final OperatorQueue operatorQueue2 = operatorQueueManager.switchThreadingPref( 1, "op1", 1 );
 
         final TuplesImpl result = new TuplesImpl( 2 );
-        final GreedyDrainer drainer = new GreedyDrainer( 2, Integer.MAX_VALUE );
+        final TupleQueueDrainer drainer = newGreedyDrainer( STATELESS_OPERATOR.getId(), 2, Integer.MAX_VALUE );
         operatorQueue2.drain( drainer, key -> result );
         assertEquals( singletonList( tuple1 ), result.getTuples( 0 ) );
         assertEquals( singletonList( tuple2 ), result.getTuples( 1 ) );
@@ -141,7 +141,7 @@ public class OperatorQueueManagerImplTest extends AbstractJokerTest
         final OperatorQueue operatorQueue2 = operatorQueueManager.switchThreadingPref( REGION_ID, "op1", 1 );
 
         final TuplesImpl result = new TuplesImpl( 2 );
-        final GreedyDrainer drainer = new GreedyDrainer( 2, Integer.MAX_VALUE );
+        final TupleQueueDrainer drainer = newGreedyDrainer( STATELESS_OPERATOR.getId(), 2, Integer.MAX_VALUE );
         operatorQueue2.drain( drainer, key -> result );
         assertEquals( singletonList( tuple1 ), result.getTuples( 0 ) );
         assertEquals( singletonList( tuple2 ), result.getTuples( 1 ) );
@@ -183,7 +183,7 @@ public class OperatorQueueManagerImplTest extends AbstractJokerTest
         assertNotNull( operatorQueues );
         assertEquals( newReplicaCount, operatorQueues.length );
 
-        final GreedyDrainer drainer = new GreedyDrainer( 1, Integer.MAX_VALUE );
+        final TupleQueueDrainer drainer = newGreedyDrainer( PARTITIONED_STATEFUL_OPERATOR.getId(), 1, Integer.MAX_VALUE );
         for ( int partitionId = 0; partitionId < partitionDistribution.getPartitionCount(); partitionId++ )
         {
             final TuplesImpl result = new TuplesImpl( 1 );

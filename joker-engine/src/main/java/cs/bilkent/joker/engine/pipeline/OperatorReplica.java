@@ -3,6 +3,7 @@ package cs.bilkent.joker.engine.pipeline;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.IntStream;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.slf4j.Logger;
@@ -22,7 +23,6 @@ import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.SHUT_DOWN;
 import cs.bilkent.joker.engine.tuplequeue.OperatorQueue;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainer;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueueDrainerPool;
-import cs.bilkent.joker.engine.tuplequeue.impl.drainer.GreedyDrainer;
 import static cs.bilkent.joker.engine.util.ExceptionUtils.checkInterruption;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.operator.InitCtx;
@@ -40,13 +40,14 @@ import cs.bilkent.joker.operator.impl.TuplesImpl;
 import cs.bilkent.joker.operator.scheduling.ScheduleNever;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenAvailable;
 import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable;
+import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ANY_PORT;
+import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAny;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.partition.impl.PartitionKey;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 import static java.lang.System.arraycopy;
-import static java.util.Arrays.fill;
 import static java.util.stream.Collectors.joining;
 
 /**
@@ -111,8 +112,11 @@ public class OperatorReplica
     private OperatorReplicaListener listener = ( operatorId, status1 ) -> {
     };
 
-    public OperatorReplica ( final JokerConfig config, final PipelineReplicaId pipelineReplicaId,
-                             final OperatorQueue queue, final TupleQueueDrainerPool drainerPool, final PipelineReplicaMeter meter,
+    public OperatorReplica ( final JokerConfig config,
+                             final PipelineReplicaId pipelineReplicaId,
+                             final OperatorQueue queue,
+                             final TupleQueueDrainerPool drainerPool,
+                             final PipelineReplicaMeter meter,
                              final Function<PartitionKey, TuplesImpl> drainerTuplesSupplier,
                              final OperatorDef[] operatorDefs,
                              final InternalInvocationCtx[] invocationCtxes )
@@ -150,8 +154,11 @@ public class OperatorReplica
         this.fusedUpstreamCtxes = new UpstreamCtx[ fusedOperatorCount ];
     }
 
-    private OperatorReplica ( final JokerConfig config, final PipelineReplicaId pipelineReplicaId,
-                              final OperatorQueue queue, final TupleQueueDrainerPool drainerPool, final PipelineReplicaMeter meter,
+    private OperatorReplica ( final JokerConfig config,
+                              final PipelineReplicaId pipelineReplicaId,
+                              final OperatorQueue queue,
+                              final TupleQueueDrainerPool drainerPool,
+                              final PipelineReplicaMeter meter,
                               final Function<PartitionKey, TuplesImpl> drainerTuplesSupplier,
                               final OperatorDef[] operatorDefs,
                               final InternalInvocationCtx[] invocationCtxes,
@@ -348,7 +355,7 @@ public class OperatorReplica
                 closeFusedUpstreamCtxes();
                 setStatus( COMPLETING );
                 completionReason = INPUT_PORT_CLOSED;
-                setGreedyDrainerForCompletion();
+                setCompletionDrainer();
                 drainQueue();
                 if ( invocationCtx.getInputCount() > 0 )
                 {
@@ -400,13 +407,20 @@ public class OperatorReplica
         queue.drain( drainer, drainerTuplesSupplier );
     }
 
-    private void setGreedyDrainerForCompletion ()
+    private void setCompletionDrainer ()
     {
-        // TODO we need to choose between GreedyDrainer and BlockingGreedyDrainer
-        setDrainer( new GreedyDrainer( operatorDef.getInputPortCount(), config.getTupleQueueManagerConfig().getTupleQueueCapacity() ) );
-        final int[] tupleCounts = new int[ operatorDef.getInputPortCount() ];
-        fill( tupleCounts, 1 );
-        queue.setTupleCounts( tupleCounts, ANY_PORT );
+        final int inputPortCount = operatorDef.getInputPortCount();
+        final ScheduleWhenTuplesAvailable completionStrategy = scheduleWhenTuplesAvailableOnAny( AT_LEAST,
+                                                                                                 inputPortCount,
+                                                                                                 1,
+                                                                                                 IntStream.range( 0, inputPortCount )
+                                                                                                          .toArray() );
+        final TupleQueueDrainer completionDrainer = drainerPool.acquire( completionStrategy );
+
+        LOGGER.info( "{} acquired {} for completion", operatorName, completionDrainer.getClass().getSimpleName() );
+
+        setDrainer( completionDrainer );
+        queue.setTupleCounts( completionStrategy.getTupleCounts(), ANY_PORT );
     }
 
     private void offer ( final TuplesImpl input )
@@ -617,8 +631,7 @@ public class OperatorReplica
                     pipelineReplicaId,
                     this.status );
 
-        return new OperatorReplica( config, pipelineReplicaId,
-                                    queue, drainerPool, meter,
+        return new OperatorReplica( config, pipelineReplicaId, queue, drainerPool, meter,
                                     this.drainerTuplesSupplier,
                                     getOperatorDefs(),
                                     getInvocationCtxes(),
@@ -648,8 +661,7 @@ public class OperatorReplica
         final UpstreamCtx[] fusedUpstreamCtxes = new UpstreamCtx[ upstreamCtxes.length - 1 ];
         arraycopy( upstreamCtxes, 1, fusedUpstreamCtxes, 0, fusedUpstreamCtxes.length );
 
-        return new OperatorReplica( config, pipelineReplicaId,
-                                    queue, drainerPool, meter,
+        return new OperatorReplica( config, pipelineReplicaId, queue, drainerPool, meter,
                                     drainerTuplesSupplier,
                                     operatorDefs,
                                     invocationCtxes,

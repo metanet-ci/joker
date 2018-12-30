@@ -1,5 +1,6 @@
 package cs.bilkent.joker.engine.tuplequeue.impl.drainer.pool;
 
+import java.util.stream.IntStream;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -40,6 +41,7 @@ public class NonBlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
         this.operatorId = operatorDef.getId();
         this.inputPortCount = operatorDef.getInputPortCount();
         this.operatorType = operatorDef.getOperatorType();
+        // TODO should this be Integer.MAX_VALUE?
         this.maxBatchSize = config.getTupleQueueManagerConfig().getTupleQueueCapacity();
     }
 
@@ -63,11 +65,7 @@ public class NonBlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
             }
             checkArgument( !( strategy.getTupleAvailabilityByPort() == ANY_PORT
                               && strategy.getTupleAvailabilityByCount() == AT_LEAST_BUT_SAME_ON_ALL_PORTS ), "invalid %s", strategy );
-            final int[] inputPorts = new int[ inputPortCount ];
-            for ( int i = 0; i < inputPortCount; i++ )
-            {
-                inputPorts[ i ] = i;
-            }
+            final int[] inputPorts = IntStream.range( 0, inputPortCount ).toArray();
 
             final MultiPortDrainer multiPortDrainer;
 
