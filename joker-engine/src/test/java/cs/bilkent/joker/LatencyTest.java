@@ -224,7 +224,7 @@ public class LatencyTest extends AbstractJokerTest
                                                  .build();
 
         final JokerConfigBuilder configBuilder = new JokerConfigBuilder();
-        configBuilder.getTupleQueueDrainerConfigBuilder().setMaxBatchSize( 16 );
+        configBuilder.getTupleQueueDrainerConfigBuilder().setMaxBatchSize( 4096 );
         configBuilder.getMetricManagerConfigBuilder().setTickMask( 3 );
         configBuilder.getMetricManagerConfigBuilder().setPipelineMetricsScanningPeriodInMillis( 1000 );
         configBuilder.getFlowDefOptimizerConfigBuilder().disableMergeRegions();
@@ -241,14 +241,77 @@ public class LatencyTest extends AbstractJokerTest
 
         sleepUninterruptibly( 10, SECONDS );
 
-        joker.rebalanceRegion( execPlan.getVersion(), 1, 6 ).get( 30, SECONDS );
+        joker.rebalanceRegion( execPlan.getVersion(), 1, 2 ).get( 30, SECONDS );
 
-        sleepUninterruptibly( 600, SECONDS );
+        sleepUninterruptibly( 120, SECONDS );
+
+        joker.shutdown().get();
+    }
+
+    @Test
+    public void test4 () throws InterruptedException, ExecutionException, TimeoutException
+    {
+        final ValueGenerator valueGenerator = new ValueGenerator( KEY_RANGE );
+        final OperatorConfig beaconConfig = new OperatorConfig().set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator )
+                                                                .set( BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER, 1 );
+
+        final OperatorRuntimeSchema beaconSchema = new OperatorRuntimeSchemaBuilder( 0, 1 ).addOutputField( 0, "key", Integer.class )
+                                                                                           .addOutputField( 0, "value", Integer.class )
+                                                                                           .build();
+
+        final OperatorDef beacon = OperatorDefBuilder.newInstance( "beacon", BeaconOperator.class )
+                                                     .setConfig( beaconConfig )
+                                                     .setExtendingSchema( beaconSchema )
+                                                     .build();
+
+        final OperatorRuntimeSchema multiplierSchema = new OperatorRuntimeSchemaBuilder( 1, 1 ).addInputField( 0, "key", Integer.class )
+                                                                                               .addInputField( 0, "value", Integer.class )
+                                                                                               .addOutputField( 0, "key", Integer.class )
+                                                                                               .addOutputField( 0, "mult", Integer.class )
+                                                                                               .build();
+
+        final OperatorConfig multiplierConfig = new OperatorConfig().set( PartitionedMapperOperator.MAPPER_CONFIG_PARAMETER,
+                                                                          (BiConsumer<Tuple, Tuple>) ( input, output ) -> {
+                                                                              int val = input.getInteger( "value" );
+                                                                              for ( int i = 0; i < 1; i++ )
+                                                                              {
+                                                                                  val = val * MULTIPLIER_VALUE - val;
+                                                                              }
+                                                                              val = val * MULTIPLIER_VALUE - val;
+                                                                              output.set( "key", input.get( "key" ) ).set( "mult", val );
+                                                                          } );
+
+        final OperatorDef multiplier = OperatorDefBuilder.newInstance( "multiplier", PartitionedMapperOperator.class )
+                                                         .setExtendingSchema( multiplierSchema )
+                                                         .setConfig( multiplierConfig )
+                                                         .setPartitionFieldNames( singletonList( "key" ) )
+                                                         .build();
+
+        final FlowDef flow = new FlowDefBuilder().add( beacon ).add( multiplier ).connect( "beacon", "multiplier" ).build();
+
+        final JokerConfigBuilder configBuilder = new JokerConfigBuilder();
+        configBuilder.getTupleQueueDrainerConfigBuilder().setMaxBatchSize( 4096 );
+        configBuilder.getMetricManagerConfigBuilder().setTickMask( 3 );
+        configBuilder.getMetricManagerConfigBuilder().setPipelineMetricsScanningPeriodInMillis( 1000 );
+        configBuilder.getFlowDefOptimizerConfigBuilder().disableMergeRegions();
+        configBuilder.getPipelineManagerConfigBuilder().setLatencyTickMask( 3 );
+        configBuilder.getPipelineManagerConfigBuilder().setLatencyStageTickMask( 15 );
+        configBuilder.getPipelineManagerConfigBuilder().setInterArrivalTimeTrackingPeriod( 20 );
+        configBuilder.getPipelineManagerConfigBuilder().setInterArrivalTimeTrackingCount( 5 );
+        configBuilder.getPipelineManagerConfigBuilder().setLatencyStageTickMask( 15 );
+        configBuilder.getPipelineReplicaRunnerConfigBuilder().enforceThreadAffinity( true );
+
+        final Joker joker = new JokerBuilder().setJokerConfig( configBuilder.build() ).build();
+
+        final FlowExecPlan execPlan = joker.run( flow );
+
+        sleepUninterruptibly( 10, SECONDS );
 
         joker.rebalanceRegion( execPlan.getVersion(), 1, 2 ).get( 30, SECONDS );
 
-        sleepUninterruptibly( 600, SECONDS );
+        sleepUninterruptibly( 120, SECONDS );
 
+        joker.shutdown().get();
     }
 
 }
