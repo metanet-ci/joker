@@ -73,7 +73,7 @@ public class DefaultOperatorQueueTest extends AbstractJokerTest
             assertThat( offered, equalTo( tuples.size() ) );
         }
 
-        final GreedyDrainer drainer = new GreedyDrainer( inputPortCount );
+        final GreedyDrainer drainer = new GreedyDrainer( inputPortCount, Integer.MAX_VALUE );
         final TuplesImpl result = new TuplesImpl( inputPortCount );
         operatorQueue.drain( drainer, key -> result );
 
@@ -106,7 +106,11 @@ public class DefaultOperatorQueueTest extends AbstractJokerTest
 
         operatorQueue.drain( drainer, tuplesSupplier );
 
-        assertThat( results.size(), equalTo( 2 ) );
+        assertThat( results.size(), equalTo( 1 ) );
+        final TuplesImpl tuples = results.get( 0 );
+        assertThat( tuples.getTupleCount( 0 ), equalTo( 1 ) );
+        assertThat( tuples.getTupleCount( 1 ), equalTo( 1 ) );
+        assertThat( tuples.getTupleCount( 2 ), equalTo( 1 ) );
     }
 
     private OperatorQueue createOperatorQueue ( final int inputPortCount, final ThreadingPref threadingPref )
@@ -118,7 +122,7 @@ public class DefaultOperatorQueueTest extends AbstractJokerTest
                                        ? new SingleThreadedTupleQueue( TUPLE_QUEUE_SIZE )
                                        : new MultiThreadedTupleQueue( TUPLE_QUEUE_SIZE );
         }
-        return new DefaultOperatorQueue( "op1", inputPortCount, threadingPref, tupleQueues, Integer.MAX_VALUE );
+        return new DefaultOperatorQueue( "op1", inputPortCount, threadingPref, tupleQueues );
     }
 
     private TuplesImpl createTuples ( final int inputPortCount, final int tupleCount )

@@ -101,12 +101,7 @@ public class OperatorQueueManagerImpl implements OperatorQueueManager
         }
 
         final String operatorQueueId = toOperatorQueueId( operatorId, replicaIndex );
-        final int drainLimit = tupleQueueManagerConfig.getDrainLimit( threadingPref );
-        final DefaultOperatorQueue operatorQueue = new DefaultOperatorQueue( operatorQueueId,
-                                                                             inputPortCount,
-                                                                             threadingPref,
-                                                                             tupleQueues,
-                                                                             drainLimit );
+        final DefaultOperatorQueue operatorQueue = new DefaultOperatorQueue( operatorQueueId, inputPortCount, threadingPref, tupleQueues );
 
         defaultOperatorQueues.put( key, operatorQueue );
         LOGGER.debug( "created default operator queue for regionId={} replicaIndex={} operatorId={}", regionId, replicaIndex, operatorId );
@@ -374,12 +369,9 @@ public class OperatorQueueManagerImpl implements OperatorQueueManager
         final ThreadingPref newThreadingPref = threadingPref.reverse();
 
         final String operatorQueueId = toOperatorQueueId( operatorId, replicaIndex );
-        final int drainLimit = tupleQueueManagerConfig.getDrainLimit( newThreadingPref );
         final DefaultOperatorQueue newOperatorQueue = new DefaultOperatorQueue( operatorQueueId,
                                                                                 operatorQueue.getInputPortCount(),
-                                                                                newThreadingPref,
-                                                                                tupleQueues,
-                                                                                drainLimit );
+                                                                                newThreadingPref, tupleQueues );
 
         defaultOperatorQueues.put( key, newOperatorQueue );
         LOGGER.debug( "{} default operator queue is switched to {} for regionId={} replicaIndex={} operatorId={}",

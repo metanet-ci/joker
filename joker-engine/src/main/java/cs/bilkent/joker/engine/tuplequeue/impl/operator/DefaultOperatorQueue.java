@@ -29,23 +29,17 @@ public class DefaultOperatorQueue implements OperatorQueue
 
     private final ThreadingPref threadingPref;
 
-    private final int drainLimit;
-
     public DefaultOperatorQueue ( final String operatorId,
                                   final int inputPortCount,
-                                  final ThreadingPref threadingPref,
-                                  final TupleQueue[] tupleQueues,
-                                  final int drainLimit )
+                                  final ThreadingPref threadingPref, final TupleQueue[] tupleQueues )
     {
         checkArgument( inputPortCount >= 0 );
         checkArgument( threadingPref != null );
         checkArgument( tupleQueues != null );
         checkArgument( inputPortCount == tupleQueues.length );
-        checkArgument( drainLimit > 0 );
         this.operatorId = operatorId;
         this.threadingPref = threadingPref;
         this.tupleQueues = Arrays.copyOf( tupleQueues, inputPortCount );
-        this.drainLimit = drainLimit;
     }
 
     @Override
@@ -82,13 +76,7 @@ public class DefaultOperatorQueue implements OperatorQueue
     @Override
     public void drain ( final TupleQueueDrainer drainer, final Function<PartitionKey, TuplesImpl> tuplesSupplier )
     {
-        if ( drainer.drain( null, tupleQueues, tuplesSupplier ) )
-        {
-            int count = 1;
-            while ( count++ < drainLimit && drainer.drain( null, tupleQueues, tuplesSupplier ) )
-            {
-            }
-        }
+        drainer.drain( null, tupleQueues, tuplesSupplier );
     }
 
     @Override

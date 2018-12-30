@@ -2,7 +2,7 @@ package cs.bilkent.joker.engine.pipeline.impl.downstreamcollector;
 
 import java.util.function.LongSupplier;
 
-class LazyNanoTimeSupplier implements LongSupplier
+public class LazyNanoTimeSupplier implements LongSupplier
 {
 
     private boolean loaded;
@@ -19,7 +19,7 @@ class LazyNanoTimeSupplier implements LongSupplier
         return time;
     }
 
-    void reset ()
+    public void reset ()
     {
         loaded = false;
     }

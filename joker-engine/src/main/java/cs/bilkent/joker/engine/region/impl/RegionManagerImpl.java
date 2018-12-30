@@ -241,12 +241,10 @@ public class RegionManagerImpl implements RegionManager
                 for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
                 {
                     final DefaultInvocationCtx ctx = (DefaultInvocationCtx) fusedInvocationCtxes[ replicaIndex ][ 0 ];
-                    operatorReplicas[ replicaIndex ][ i ] = new OperatorReplica( pipelineReplicaIds[ replicaIndex ],
+                    operatorReplicas[ replicaIndex ][ i ] = new OperatorReplica( config, pipelineReplicaIds[ replicaIndex ],
                                                                                  operatorQueues[ replicaIndex ],
                                                                                  drainerPools[ replicaIndex ],
                                                                                  replicaMeters[ replicaIndex ],
-                                                                                 config.getPipelineManagerConfig()
-                                                                                       .getLatencyStageTickMask(),
                                                                                  ctx::createInputTuples,
                                                                                  fusedOperatorDefs[ replicaIndex ],
                                                                                  fusedInvocationCtxes[ replicaIndex ] );
@@ -380,7 +378,8 @@ public class RegionManagerImpl implements RegionManager
                 final OperatorReplica operator = pipelineReplica.getOperatorReplica( 0 );
                 final OperatorQueue operatorQueue = operator.getQueue();
                 final TuplesImpl result = new TuplesImpl( operatorQueue.getInputPortCount() );
-                final GreedyDrainer drainer = new GreedyDrainer( operatorQueue.getInputPortCount() );
+                final GreedyDrainer drainer = new GreedyDrainer( operatorQueue.getInputPortCount(),
+                                                                 config.getTupleQueueManagerConfig().getTupleQueueCapacity() );
                 pipelineQueue.drain( drainer, k -> result );
                 if ( result.isNonEmpty() )
                 {
@@ -481,7 +480,7 @@ public class RegionManagerImpl implements RegionManager
         for ( OperatorQueue queue : queues )
         {
             final TuplesImpl result = new TuplesImpl( 1 );
-            final GreedyDrainer drainer = new GreedyDrainer( 1 );
+            final GreedyDrainer drainer = new GreedyDrainer( 1, config.getTupleQueueManagerConfig().getTupleQueueCapacity() );
             queue.drain( drainer, key -> result );
 
             result.getTuplesByDefaultPort().forEach( tuple -> {
@@ -521,8 +520,7 @@ public class RegionManagerImpl implements RegionManager
 
         final OperatorQueue[] newQueues = IntStream.range( 0, newReplicaCount )
                                                    .mapToObj( replicaIndex -> operatorQueueManager.getDefaultQueueOrFail( regionId,
-                                                                                                                          operatorDef
-                                                                                                                                  .getId(),
+                                                                                                                          operatorDef.getId(),
                                                                                                                           replicaIndex ) )
                                                    .toArray( OperatorQueue[]::new );
 
@@ -615,7 +613,10 @@ public class RegionManagerImpl implements RegionManager
 
                     final TupleQueueDrainerPool drainerPool = createTupleQueueDrainerPool( firstOperatorDef, ( i == 0 ) );
                     LOGGER.debug( "Creating {} for regionId={} replicaIndex={} operatorId={}",
-                                  drainerPool.getClass().getSimpleName(), regionId, replicaIndex, firstOperatorId );
+                                  drainerPool.getClass().getSimpleName(),
+                                  regionId,
+                                  replicaIndex,
+                                  firstOperatorId );
 
                     final int toOperatorIndex = ( i < fusionStartIndices.length - 1 ) ? fusionStartIndices[ i + 1 ] : pipelineOperatorCount;
                     final int fusedOperatorCount = toOperatorIndex - fromOperatorIndex;
@@ -690,11 +691,14 @@ public class RegionManagerImpl implements RegionManager
                     }
 
                     final DefaultInvocationCtx ctx = (DefaultInvocationCtx) fusedInvocationCtxes[ 0 ];
-                    operatorReplicas[ i ] = new OperatorReplica( pipelineReplicaId,
+                    operatorReplicas[ i ] = new OperatorReplica( config,
+                                                                 pipelineReplicaId,
                                                                  operatorQueue,
                                                                  drainerPool,
-                                                                 meter, config.getPipelineManagerConfig().getLatencyStageTickMask(),
-                                                                 ctx::createInputTuples, fusedOperatorDefs, fusedInvocationCtxes );
+                                                                 meter,
+                                                                 ctx::createInputTuples,
+                                                                 fusedOperatorDefs,
+                                                                 fusedInvocationCtxes );
 
                 }
 

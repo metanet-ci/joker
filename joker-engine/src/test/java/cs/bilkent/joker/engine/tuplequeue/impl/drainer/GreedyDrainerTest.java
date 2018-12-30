@@ -19,21 +19,21 @@ public class GreedyDrainerTest extends AbstractJokerTest
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithNullTupleQueues ()
     {
-        final GreedyDrainer greedyDrainer = new GreedyDrainer( 1 );
+        final GreedyDrainer greedyDrainer = new GreedyDrainer( 1, Integer.MAX_VALUE );
         greedyDrainer.drain( null, null, k -> null );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithEmptyTupleQueues ()
     {
-        final GreedyDrainer greedyDrainer = new GreedyDrainer( 1 );
+        final GreedyDrainer greedyDrainer = new GreedyDrainer( 1, Integer.MAX_VALUE );
         greedyDrainer.drain( null, new TupleQueue[] {}, k -> null );
     }
 
     @Test( expected = IllegalArgumentException.class )
     public void shouldFailWithNullTupleSupplier ()
     {
-        final GreedyDrainer greedyDrainer = new GreedyDrainer( 1 );
+        final GreedyDrainer greedyDrainer = new GreedyDrainer( 1, Integer.MAX_VALUE );
         greedyDrainer.drain( null, new TupleQueue[] { new SingleThreadedTupleQueue( 1 ) }, null );
     }
 
@@ -44,7 +44,7 @@ public class GreedyDrainerTest extends AbstractJokerTest
         final Tuple tuple = new Tuple();
         tupleQueue.offer( tuple );
 
-        final GreedyDrainer greedyDrainer = new GreedyDrainer( 1 );
+        final GreedyDrainer greedyDrainer = new GreedyDrainer( 1, Integer.MAX_VALUE );
         final TuplesImpl tuples = new TuplesImpl( 1 );
 
         final boolean success = greedyDrainer.drain( null, new TupleQueue[] { tupleQueue }, key -> tuples );
@@ -66,7 +66,7 @@ public class GreedyDrainerTest extends AbstractJokerTest
         final Tuple tuple2 = new Tuple();
         tupleQueue2.offer( tuple2 );
 
-        final GreedyDrainer greedyDrainer = new GreedyDrainer( 2 );
+        final GreedyDrainer greedyDrainer = new GreedyDrainer( 2, Integer.MAX_VALUE );
         final TuplesImpl tuples = new TuplesImpl( 2 );
 
         final boolean success = greedyDrainer.drain( null, new TupleQueue[] { tupleQueue1, tupleQueue2 }, key -> tuples );

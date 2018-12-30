@@ -63,8 +63,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
         final OperatorQueue operatorQueue = new DefaultOperatorQueue( "st",
                                                                       1,
                                                                       SINGLE_THREADED,
-                                                                      new TupleQueue[] { new SingleThreadedTupleQueue( 10 ) },
-                                                                      100 );
+                                                                      new TupleQueue[] { new SingleThreadedTupleQueue( 10 ) } );
         final OperatorDef[] operatorDefs = new OperatorDef[] { createStatefulOperator() };
         final TupleQueueDrainerPool drainerPool = new NonBlockingTupleQueueDrainerPool( new JokerConfig(), operatorDefs[ 0 ] );
         final PipelineReplicaMeter meter = new PipelineReplicaMeter( 1, pipelineReplicaId, operatorDefs[ 0 ] );
@@ -73,10 +72,9 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
 
         final InternalInvocationCtx[] invocationCtxes = new InternalInvocationCtx[] { statefulInvocationCtx };
 
-        operatorReplica = new OperatorReplica( pipelineReplicaId,
+        operatorReplica = new OperatorReplica( new JokerConfig(), pipelineReplicaId,
                                                operatorQueue,
-                                               drainerPool,
-                                               meter, 1,
+                                               drainerPool, meter,
                                                statefulInvocationCtx::createInputTuples,
                                                operatorDefs,
                                                invocationCtxes );
@@ -104,8 +102,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
         final OperatorQueue operatorQueue = new DefaultOperatorQueue( "st",
                                                                       1,
                                                                       SINGLE_THREADED,
-                                                                      new TupleQueue[] { new SingleThreadedTupleQueue( 10 ) },
-                                                                      100 );
+                                                                      new TupleQueue[] { new SingleThreadedTupleQueue( 10 ) } );
         final OperatorDef[] operatorDefs = new OperatorDef[] { createStatefulOperator(), createFilterOperator(), createMapperOperator() };
         final TupleQueueDrainerPool drainerPool = new NonBlockingTupleQueueDrainerPool( new JokerConfig(), operatorDefs[ 0 ] );
         final PipelineReplicaMeter meter = new PipelineReplicaMeter( 1, pipelineReplicaId, operatorDefs[ 0 ] );
@@ -119,10 +116,9 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
                                                                                       filterInvocationCtx,
                                                                                       mapperInvocationCtx };
 
-        operatorReplica = new OperatorReplica( pipelineReplicaId,
+        operatorReplica = new OperatorReplica( new JokerConfig(), pipelineReplicaId,
                                                operatorQueue,
-                                               drainerPool,
-                                               meter, 1,
+                                               drainerPool, meter,
                                                statefulInvocationCtx::createInputTuples,
                                                operatorDefs,
                                                invocationCtxes );
@@ -157,8 +153,7 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
         final OperatorQueue operatorQueue = new DefaultOperatorQueue( "st",
                                                                       1,
                                                                       SINGLE_THREADED,
-                                                                      new TupleQueue[] { new SingleThreadedTupleQueue( 10 ) },
-                                                                      100 );
+                                                                      new TupleQueue[] { new SingleThreadedTupleQueue( 10 ) } );
         final OperatorDef[] operatorDefs = new OperatorDef[] { createStatefulOperator(), createFilterOperator(), createMapperOperator() };
         final TupleQueueDrainerPool drainerPool = new NonBlockingTupleQueueDrainerPool( new JokerConfig(), operatorDefs[ 0 ] );
         final PipelineReplicaMeter meter = new PipelineReplicaMeter( 1, pipelineReplicaId, operatorDefs[ 0 ] );
@@ -172,10 +167,9 @@ public class OperatorReplicaInitializationTest extends AbstractJokerTest
                                                                                       filterInvocationCtx,
                                                                                       mapperInvocationCtx };
 
-        operatorReplica = new OperatorReplica( pipelineReplicaId,
+        operatorReplica = new OperatorReplica( new JokerConfig(), pipelineReplicaId,
                                                operatorQueue,
-                                               drainerPool,
-                                               meter, 1,
+                                               drainerPool, meter,
                                                statefulInvocationCtx::createInputTuples,
                                                operatorDefs,
                                                invocationCtxes );

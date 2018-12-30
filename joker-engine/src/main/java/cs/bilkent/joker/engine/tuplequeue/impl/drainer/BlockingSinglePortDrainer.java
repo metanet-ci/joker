@@ -22,8 +22,7 @@ public class BlockingSinglePortDrainer extends SinglePortDrainer
     }
 
     @Override
-    public boolean drain ( final PartitionKey key, final TupleQueue[] queues,
-                           final Function<PartitionKey, TuplesImpl> tuplesSupplier )
+    public boolean drain ( final PartitionKey key, final TupleQueue[] queues, final Function<PartitionKey, TuplesImpl> tuplesSupplier )
     {
         checkArgument( queues != null );
         checkArgument( queues.length == 1 );
@@ -43,8 +42,9 @@ public class BlockingSinglePortDrainer extends SinglePortDrainer
             idle = idleStrategy.idle();
         }
 
-        queueWaitingTimeRecorder.setParameters( System.nanoTime(), tuplesSupplier.apply( key ).getTuplesModifiable( 0 ) );
-        tupleQueue.drainTo( tupleCountToPoll, queueWaitingTimeRecorder );
+        queueWaitingTimeRecorder.reset();
+        queueWaitingTimeRecorder.setParameters( tuplesSupplier.apply( key ).getTuplesModifiable( 0 ) );
+        tupleQueue.drainTo( tupleCountToDrain, queueWaitingTimeRecorder );
 
         return true;
     }

@@ -3,13 +3,14 @@ package cs.bilkent.joker.engine.tuplequeue.impl.drainer;
 import java.util.List;
 import java.util.function.Consumer;
 
+import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.LazyNanoTimeSupplier;
 import cs.bilkent.joker.operator.Tuple;
 
 class QueueWaitingTimeRecorder implements Consumer<Tuple>
 {
 
     private final String operatorId;
-    private long now;
+    private final LazyNanoTimeSupplier nanoTimeSupplier = new LazyNanoTimeSupplier();
     private List<Tuple> tuples;
 
     QueueWaitingTimeRecorder ( final String operatorId )
@@ -17,16 +18,20 @@ class QueueWaitingTimeRecorder implements Consumer<Tuple>
         this.operatorId = operatorId;
     }
 
-    void setParameters ( final long now, final List<Tuple> tuples )
+    void reset ()
     {
-        this.now = now;
+        nanoTimeSupplier.reset();
+    }
+
+    void setParameters ( final List<Tuple> tuples )
+    {
         this.tuples = tuples;
     }
 
     @Override
     public void accept ( final Tuple tuple )
     {
-        tuple.recordQueueWaitingTime( operatorId, now );
+        tuple.recordQueueWaitingTime( operatorId, nanoTimeSupplier );
         tuples.add( tuple );
     }
 }

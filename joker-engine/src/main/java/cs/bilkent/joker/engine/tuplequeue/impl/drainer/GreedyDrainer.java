@@ -13,9 +13,12 @@ public class GreedyDrainer implements TupleQueueDrainer
 
     private final int inputPortCount;
 
-    public GreedyDrainer ( final int inputPortCount )
+    private final int maxBatchSize;
+
+    public GreedyDrainer ( final int inputPortCount, final int maxBatchSize )
     {
         this.inputPortCount = inputPortCount;
+        this.maxBatchSize = maxBatchSize;
     }
 
 
@@ -47,7 +50,7 @@ public class GreedyDrainer implements TupleQueueDrainer
 
         for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
         {
-            queues[ portIndex ].drainTo( Integer.MAX_VALUE, tuples.getTuplesModifiable( portIndex ) );
+            queues[ portIndex ].drainTo( maxBatchSize, tuples.getTuplesModifiable( portIndex ) );
         }
 
         return false;

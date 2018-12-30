@@ -20,8 +20,6 @@ public class DownstreamCollector1 implements DownstreamCollector, Supplier<Opera
 
     private final IdleStrategy idleStrategy = BackoffIdleStrategy.newDefaultInstance();
 
-    private final LazyNanoTimeSupplier nanoTimeSupplier = new LazyNanoTimeSupplier();
-
     private final AtomicBoolean failureFlag;
 
     private final int sourcePortIndex;
@@ -54,7 +52,6 @@ public class DownstreamCollector1 implements DownstreamCollector, Supplier<Opera
         }
 
         idleStrategy.reset();
-        nanoTimeSupplier.reset();
         int fromIndex = 0;
         boolean recordQueueOfferTime = ticker.tryTick();
 

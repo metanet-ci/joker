@@ -544,13 +544,6 @@ public class JokerConfigBuilder
             return this;
         }
 
-        public TupleQueueManagerConfigBuilder setMultiThreadedQueueDrainLimit ( final int val )
-        {
-            tupleQueueManagerConfigVals.put( TupleQueueManagerConfig.MULTI_THREADED_QUEUE_DRAIN_LIMIT, val );
-
-            return this;
-        }
-
     }
 
 }

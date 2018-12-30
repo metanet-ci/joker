@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.BiConsumer;
+import java.util.function.LongSupplier;
 
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkArgument;
 import static cs.bilkent.joker.impl.com.google.common.base.Preconditions.checkState;
@@ -463,7 +464,7 @@ public final class Tuple implements Fields<String>
         this.queueOfferTime = queueOfferTime;
     }
 
-    public void recordQueueWaitingTime ( final String operatorId, final long now )
+    public void recordQueueWaitingTime ( final String operatorId, final LongSupplier timeSupplier )
     {
         if ( queueOfferTime == INGESTION_TIME_NOT_ASSIGNED )
         {
@@ -475,7 +476,7 @@ public final class Tuple implements Fields<String>
             latencyStages = new ArrayList<>( 2 );
         }
 
-        final long duration = ( now - queueOfferTime );
+        final long duration = ( timeSupplier.getAsLong() - queueOfferTime );
         latencyStages.add( new LatencyStage( operatorId, QUEUE_WAITING_TIME, max( 0, duration ) ) );
         queueOfferTime = INGESTION_TIME_NOT_ASSIGNED;
     }

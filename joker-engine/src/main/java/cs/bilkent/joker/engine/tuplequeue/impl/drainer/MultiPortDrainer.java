@@ -10,7 +10,6 @@ import cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAva
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.AT_LEAST_BUT_SAME_ON_ALL_PORTS;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByCount.EXACT;
 import cs.bilkent.joker.partition.impl.PartitionKey;
-import static java.lang.Math.max;
 
 public abstract class MultiPortDrainer implements TupleQueueDrainer
 {
@@ -19,7 +18,11 @@ public abstract class MultiPortDrainer implements TupleQueueDrainer
 
     private final QueueWaitingTimeRecorder queueWaitingTimeRecorder;
 
-    protected final int[] tupleCounts;
+    private final int maxBatchSize;
+
+    protected final int[] tupleCountsToDrain;
+
+    protected final int[] tupleCountsToCheck;
 
     protected final int limit;
 
@@ -27,40 +30,43 @@ public abstract class MultiPortDrainer implements TupleQueueDrainer
 
     protected final int[] tupleCountsBuffer;
 
-    private final int maxBatchSize;
-
-    private boolean pollWithExactCount;
 
     MultiPortDrainer ( final String operatorId, final int inputPortCount, final int maxBatchSize )
     {
         this.queueWaitingTimeRecorder = new QueueWaitingTimeRecorder( operatorId );
         this.inputPortCount = inputPortCount;
         this.maxBatchSize = maxBatchSize;
-        this.tupleCounts = new int[ inputPortCount * 2 ];
+        this.tupleCountsToDrain = new int[ inputPortCount * 2 ];
+        this.tupleCountsToCheck = new int[ inputPortCount * 2 ];
         this.tupleCountsBuffer = new int[ inputPortCount * 2 ];
-        this.limit = this.tupleCounts.length - 1;
+        this.limit = this.tupleCountsToCheck.length - 1;
     }
 
     public final void setParameters ( final TupleAvailabilityByCount tupleAvailabilityByCount,
                                       final int[] inputPorts,
                                       final int[] tupleCounts )
     {
-        this.pollWithExactCount = tupleAvailabilityByCount == EXACT || tupleAvailabilityByCount == AT_LEAST_BUT_SAME_ON_ALL_PORTS;
+        final boolean pollWithExactCount = tupleAvailabilityByCount == EXACT || tupleAvailabilityByCount == AT_LEAST_BUT_SAME_ON_ALL_PORTS;
         for ( int i = 0; i < inputPortCount; i++ )
         {
             final int portIndex = i * 2;
-            this.tupleCounts[ portIndex ] = inputPorts[ i ];
+            this.tupleCountsToDrain[ portIndex ] = inputPorts[ i ];
+            this.tupleCountsToCheck[ portIndex ] = inputPorts[ i ];
             this.tupleCountsBuffer[ portIndex ] = inputPorts[ i ];
             int tupleCount = tupleCounts[ i ];
             tupleCount = tupleCount > 0 ? tupleCount : NO_TUPLES_AVAILABLE;
-            this.tupleCounts[ portIndex + 1 ] = tupleCount;
+            checkArgument( tupleCount <= maxBatchSize,
+                           "tuple count: %s cannot be bigger than max batch size: %s",
+                           tupleCount,
+                           maxBatchSize );
+            this.tupleCountsToDrain[ portIndex + 1 ] = pollWithExactCount ? tupleCount : maxBatchSize;
+            this.tupleCountsToCheck[ portIndex + 1 ] = tupleCount;
             this.tupleCountsBuffer[ portIndex + 1 ] = tupleCount;
         }
     }
 
     @Override
-    public boolean drain ( final PartitionKey key, final TupleQueue[] queues,
-                           final Function<PartitionKey, TuplesImpl> tuplesSupplier )
+    public boolean drain ( final PartitionKey key, final TupleQueue[] queues, final Function<PartitionKey, TuplesImpl> tuplesSupplier )
     {
         checkArgument( queues != null );
         checkArgument( queues.length == inputPortCount );
@@ -72,7 +78,7 @@ public abstract class MultiPortDrainer implements TupleQueueDrainer
             return false;
         }
 
-        final long now = System.nanoTime();
+        queueWaitingTimeRecorder.reset();
 
         final TuplesImpl tuples = tuplesSupplier.apply( key );
 
@@ -84,10 +90,8 @@ public abstract class MultiPortDrainer implements TupleQueueDrainer
                 continue;
             }
 
-            tupleCount = pollWithExactCount ? tupleCount : max( tupleCount, maxBatchSize );
-
             final int portIndex = tupleCounts[ i ];
-            queueWaitingTimeRecorder.setParameters( now, tuples.getTuplesModifiable( portIndex ) );
+            queueWaitingTimeRecorder.setParameters( tuples.getTuplesModifiable( portIndex ) );
             queues[ portIndex ].drainTo( tupleCount, queueWaitingTimeRecorder );
         }
 

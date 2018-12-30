@@ -24,8 +24,6 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
 
     private final IdleStrategy idleStrategy = BackoffIdleStrategy.newDefaultInstance();
 
-    private final LazyNanoTimeSupplier nanoTimeSupplier = new LazyNanoTimeSupplier();
-
     private final AtomicBoolean failureFlag;
 
     private final int partitionCount;
@@ -128,7 +126,6 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
         }
 
         idleStrategy.reset();
-        nanoTimeSupplier.reset();
         for ( int i = 0; i < replicaCount; i++ )
         {
             tupleLists[ i ].clear();

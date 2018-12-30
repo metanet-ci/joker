@@ -36,18 +36,23 @@ public class LatencyMeter
     {
         this.sinkOperatorId = sinkOperatorId;
         this.replicaIndex = replicaIndex;
-        this.tupleLatency = newHistogram();
+        this.tupleLatency = newWideHistogram();
         for ( String operatorId : operatorIds )
         {
-            serviceTimes.put( operatorId, newHistogram() );
-            queueWaitingTimes.put( operatorId, newHistogram() );
-            interArrivalTimes.put( operatorId, newHistogram() );
+            serviceTimes.put( operatorId, newNarrowHistogram() );
+            queueWaitingTimes.put( operatorId, newWideHistogram() );
+            interArrivalTimes.put( operatorId, newNarrowHistogram() );
         }
     }
 
-    private IntCountsHistogram newHistogram ()
+    private IntCountsHistogram newWideHistogram ()
     {
-        return new IntCountsHistogram( SECONDS.toNanos( 10 ), 4 );
+        return new IntCountsHistogram( SECONDS.toNanos( 30 ), 1 );
+    }
+
+    private IntCountsHistogram newNarrowHistogram ()
+    {
+        return new IntCountsHistogram( SECONDS.toNanos( 5 ), 1 );
     }
 
     public String getSinkOperatorId ()
@@ -116,11 +121,11 @@ public class LatencyMeter
                                                      interArrivalTimes );
 
         final Set<String> operatorIds = serviceTimes.keySet();
-        this.tupleLatency = newHistogram();
+        this.tupleLatency = newWideHistogram();
         operatorIds.forEach( operatorId -> {
-            this.serviceTimes.put( operatorId, newHistogram() );
-            this.queueWaitingTimes.put( operatorId, newHistogram() );
-            this.interArrivalTimes.put( operatorId, newHistogram() );
+            this.serviceTimes.put( operatorId, newNarrowHistogram() );
+            this.queueWaitingTimes.put( operatorId, newWideHistogram() );
+            this.interArrivalTimes.put( operatorId, newNarrowHistogram() );
         } );
 
         return ref.getAndSet( m ) != null;

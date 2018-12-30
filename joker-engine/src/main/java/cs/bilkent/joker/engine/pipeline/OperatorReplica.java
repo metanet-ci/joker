@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.metric.PipelineReplicaMeter;
 import static cs.bilkent.joker.engine.pipeline.OperatorReplicaStatus.COMPLETED;
@@ -62,6 +63,8 @@ public class OperatorReplica
     private static final Logger LOGGER = LoggerFactory.getLogger( OperatorReplica.class );
 
 
+    private final JokerConfig config;
+
     private final String operatorName;
 
     private final OperatorDef operatorDef;
@@ -108,13 +111,13 @@ public class OperatorReplica
     private OperatorReplicaListener listener = ( operatorId, status1 ) -> {
     };
 
-    public OperatorReplica ( final PipelineReplicaId pipelineReplicaId,
-                             final OperatorQueue queue,
-                             final TupleQueueDrainerPool drainerPool, final PipelineReplicaMeter meter, final long latencyStageTickMask,
+    public OperatorReplica ( final JokerConfig config, final PipelineReplicaId pipelineReplicaId,
+                             final OperatorQueue queue, final TupleQueueDrainerPool drainerPool, final PipelineReplicaMeter meter,
                              final Function<PartitionKey, TuplesImpl> drainerTuplesSupplier,
                              final OperatorDef[] operatorDefs,
                              final InternalInvocationCtx[] invocationCtxes )
     {
+        checkArgument( config != null );
         checkArgument( pipelineReplicaId != null );
         checkArgument( queue != null );
         checkArgument( drainerPool != null );
@@ -122,11 +125,12 @@ public class OperatorReplica
         checkArgument( drainerTuplesSupplier != null );
         checkArgument( operatorDefs != null && operatorDefs.length > 0 );
         checkArgument( invocationCtxes != null && invocationCtxes.length == operatorDefs.length );
+        this.config = config;
         this.operatorName = generateOperatorName( pipelineReplicaId, operatorDefs );
         this.queue = queue;
         this.drainerPool = drainerPool;
         this.meter = meter;
-        this.latencyStageTickMask = latencyStageTickMask;
+        this.latencyStageTickMask = config.getPipelineManagerConfig().getLatencyStageTickMask();
         this.drainerTuplesSupplier = drainerTuplesSupplier;
         this.operatorDef = operatorDefs[ 0 ];
         final int fusedOperatorCount = operatorDefs.length - 1;
@@ -146,9 +150,8 @@ public class OperatorReplica
         this.fusedUpstreamCtxes = new UpstreamCtx[ fusedOperatorCount ];
     }
 
-    private OperatorReplica ( final PipelineReplicaId pipelineReplicaId,
-                              final OperatorQueue queue,
-                              final TupleQueueDrainerPool drainerPool, final PipelineReplicaMeter meter, final long latencyStageTickMask,
+    private OperatorReplica ( final JokerConfig config, final PipelineReplicaId pipelineReplicaId,
+                              final OperatorQueue queue, final TupleQueueDrainerPool drainerPool, final PipelineReplicaMeter meter,
                               final Function<PartitionKey, TuplesImpl> drainerTuplesSupplier,
                               final OperatorDef[] operatorDefs,
                               final InternalInvocationCtx[] invocationCtxes,
@@ -159,7 +162,7 @@ public class OperatorReplica
                               final UpstreamCtx[] fusedUpstreamCtxes,
                               final UpstreamCtx downstreamCtx )
     {
-        this( pipelineReplicaId, queue, drainerPool, meter, latencyStageTickMask, drainerTuplesSupplier, operatorDefs, invocationCtxes );
+        this( config, pipelineReplicaId, queue, drainerPool, meter, drainerTuplesSupplier, operatorDefs, invocationCtxes );
 
         this.downstreamCtx = downstreamCtx;
 
@@ -400,7 +403,7 @@ public class OperatorReplica
     private void setGreedyDrainerForCompletion ()
     {
         // TODO we need to choose between GreedyDrainer and BlockingGreedyDrainer
-        setDrainer( new GreedyDrainer( operatorDef.getInputPortCount() ) );
+        setDrainer( new GreedyDrainer( operatorDef.getInputPortCount(), config.getTupleQueueManagerConfig().getTupleQueueCapacity() ) );
         final int[] tupleCounts = new int[ operatorDef.getInputPortCount() ];
         fill( tupleCounts, 1 );
         queue.setTupleCounts( tupleCounts, ANY_PORT );
@@ -604,7 +607,6 @@ public class OperatorReplica
 
     public OperatorReplica duplicate ( final PipelineReplicaId pipelineReplicaId,
                                        final PipelineReplicaMeter meter,
-                                       final long latencyStageTickMask,
                                        final OperatorQueue queue,
                                        final TupleQueueDrainerPool drainerPool,
                                        final UpstreamCtx downstreamCtx )
@@ -615,9 +617,8 @@ public class OperatorReplica
                     pipelineReplicaId,
                     this.status );
 
-        return new OperatorReplica( pipelineReplicaId,
-                                    queue,
-                                    drainerPool, meter, latencyStageTickMask,
+        return new OperatorReplica( config, pipelineReplicaId,
+                                    queue, drainerPool, meter,
                                     this.drainerTuplesSupplier,
                                     getOperatorDefs(),
                                     getInvocationCtxes(),
@@ -629,9 +630,8 @@ public class OperatorReplica
                                     downstreamCtx );
     }
 
-    public static OperatorReplica newRunningInstance ( final PipelineReplicaId pipelineReplicaId,
+    public static OperatorReplica newRunningInstance ( final JokerConfig config, final PipelineReplicaId pipelineReplicaId,
                                                        final PipelineReplicaMeter meter,
-                                                       final long latencyStageTickMask,
                                                        final OperatorQueue queue,
                                                        final TupleQueueDrainerPool drainerPool,
                                                        final OperatorDef[] operatorDefs,
@@ -648,9 +648,8 @@ public class OperatorReplica
         final UpstreamCtx[] fusedUpstreamCtxes = new UpstreamCtx[ upstreamCtxes.length - 1 ];
         arraycopy( upstreamCtxes, 1, fusedUpstreamCtxes, 0, fusedUpstreamCtxes.length );
 
-        return new OperatorReplica( pipelineReplicaId,
-                                    queue,
-                                    drainerPool, meter, latencyStageTickMask,
+        return new OperatorReplica( config, pipelineReplicaId,
+                                    queue, drainerPool, meter,
                                     drainerTuplesSupplier,
                                     operatorDefs,
                                     invocationCtxes,

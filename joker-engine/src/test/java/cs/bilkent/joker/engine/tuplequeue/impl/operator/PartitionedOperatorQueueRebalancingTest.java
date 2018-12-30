@@ -90,7 +90,7 @@ public class PartitionedOperatorQueueRebalancingTest extends AbstractJokerTest
             results.add( tuples );
             return tuples;
         };
-        final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT );
+        final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT, Integer.MAX_VALUE );
         operatorQueue.drain( drainer, tuplesSupplier );
 
         int tupleCount = 0;
@@ -132,7 +132,7 @@ public class PartitionedOperatorQueueRebalancingTest extends AbstractJokerTest
             results.add( tuples );
             return tuples;
         };
-        final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT );
+        final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT, Integer.MAX_VALUE );
         operatorQueue.drain( drainer, tuplesSupplier );
 
         int tupleCount = 0;

@@ -113,7 +113,6 @@ public class LatencyTest extends AbstractJokerTest
 
         final JokerConfigBuilder configBuilder = new JokerConfigBuilder();
         configBuilder.getTupleQueueDrainerConfigBuilder().setMaxBatchSize( 2 );
-        configBuilder.getTupleQueueManagerConfigBuilder().setMultiThreadedQueueDrainLimit( 1 );
         configBuilder.getMetricManagerConfigBuilder().setTickMask( 3 );
         configBuilder.getMetricManagerConfigBuilder().setPipelineMetricsScanningPeriodInMillis( 1000 );
         configBuilder.getFlowDefOptimizerConfigBuilder().disableMergeRegions();
@@ -163,7 +162,6 @@ public class LatencyTest extends AbstractJokerTest
 
         final JokerConfigBuilder configBuilder = new JokerConfigBuilder();
         configBuilder.getTupleQueueDrainerConfigBuilder().setMaxBatchSize( 64 );
-        configBuilder.getTupleQueueManagerConfigBuilder().setMultiThreadedQueueDrainLimit( 1 );
         configBuilder.getMetricManagerConfigBuilder().setTickMask( 3 );
         configBuilder.getMetricManagerConfigBuilder().setPipelineMetricsScanningPeriodInMillis( 1000 );
         configBuilder.getFlowDefOptimizerConfigBuilder().disableMergeRegions();
@@ -227,7 +225,6 @@ public class LatencyTest extends AbstractJokerTest
 
         final JokerConfigBuilder configBuilder = new JokerConfigBuilder();
         configBuilder.getTupleQueueDrainerConfigBuilder().setMaxBatchSize( 16 );
-        configBuilder.getTupleQueueManagerConfigBuilder().setMultiThreadedQueueDrainLimit( 1 );
         configBuilder.getMetricManagerConfigBuilder().setTickMask( 3 );
         configBuilder.getMetricManagerConfigBuilder().setPipelineMetricsScanningPeriodInMillis( 1000 );
         configBuilder.getFlowDefOptimizerConfigBuilder().disableMergeRegions();

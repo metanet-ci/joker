@@ -143,7 +143,6 @@ public class PipelineTransformerImpl implements PipelineTransformer
                 final OperatorReplica operator = upPipelineReplica.getOperatorReplica( i );
                 operatorReplicas.add( operator.duplicate( upPipelineReplicaId,
                                                           meter,
-                                                          config.getPipelineManagerConfig().getLatencyStageTickMask(),
                                                           operator.getQueue(),
                                                           operator.getDrainerPool(),
                                                           operator.getDownstreamCtx() ) );
@@ -164,8 +163,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                 final OperatorReplica upOperator = upPipelineReplica.getOperatorReplica( upPipelineReplica.getOperatorReplicaCount() - 1 );
                 final OperatorReplica tailOperator = downPipelineReplica.getOperatorReplica( 0 );
                 // last operator of the upstream pipeline gets a new downstream context
-                operatorReplicas.add( upOperator.duplicate( upPipelineReplicaId,
-                                                            meter, config.getPipelineManagerConfig().getLatencyStageTickMask(),
+                operatorReplicas.add( upOperator.duplicate( upPipelineReplicaId, meter,
                                                             upOperator.getQueue(),
                                                             upOperator.getDrainerPool(),
                                                             tailOperator.getUpstreamCtx( 0 ) ) );
@@ -183,7 +181,6 @@ public class PipelineTransformerImpl implements PipelineTransformer
                 final TupleQueueDrainerPool drainerPool = new NonBlockingTupleQueueDrainerPool( config, downOperatorDef );
                 operatorReplicas.add( tailOperator.duplicate( upPipelineReplicaId,
                                                               meter,
-                                                              config.getPipelineManagerConfig().getLatencyStageTickMask(),
                                                               downOperatorQueue,
                                                               drainerPool,
                                                               tailOperator.getDownstreamCtx() ) );
@@ -195,7 +192,6 @@ public class PipelineTransformerImpl implements PipelineTransformer
                 final OperatorReplica operator = downPipelineReplica.getOperatorReplica( i );
                 operatorReplicas.add( operator.duplicate( upPipelineReplicaId,
                                                           meter,
-                                                          config.getPipelineManagerConfig().getLatencyStageTickMask(),
                                                           operator.getQueue(),
                                                           operator.getDrainerPool(),
                                                           operator.getDownstreamCtx() ) );
@@ -417,8 +413,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                                                          (OutputCollector) invocationCtxes[ 1 ] );
 
         final Function<PartitionKey, TuplesImpl> drainerTuplesSupplier = ( (DefaultInvocationCtx) invocationCtxes[ 0 ] )::createInputTuples;
-        return OperatorReplica.newRunningInstance( pipelineReplicaId,
-                                                   meter, config.getPipelineManagerConfig().getLatencyStageTickMask(),
+        return OperatorReplica.newRunningInstance( config, pipelineReplicaId, meter,
                                                    upOperatorReplica.getQueue(),
                                                    upOperatorReplica.getDrainerPool(),
                                                    operatorDefs,
@@ -432,7 +427,8 @@ public class PipelineTransformerImpl implements PipelineTransformer
 
     private void drainPipelineQueue ( final OperatorQueue pipelineQueue, final OperatorQueue operatorQueue, final OperatorDef operatorDef )
     {
-        final GreedyDrainer drainer = new GreedyDrainer( operatorDef.getInputPortCount() );
+        final GreedyDrainer drainer = new GreedyDrainer( operatorDef.getInputPortCount(),
+                                                         config.getTupleQueueManagerConfig().getTupleQueueCapacity() );
         final TuplesImpl result = new TuplesImpl( operatorDef.getInputPortCount() );
         pipelineQueue.drain( drainer, key -> result );
         if ( result.isNonEmpty() )
@@ -626,8 +622,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
             {
                 if ( operatorReplica.getIndex( operatorDef ) == -1 )
                 {
-                    upstreamOperators.add( operatorReplica.duplicate( upPipelineReplicaId,
-                                                                      upMeter, config.getPipelineManagerConfig().getLatencyStageTickMask(),
+                    upstreamOperators.add( operatorReplica.duplicate( upPipelineReplicaId, upMeter,
                                                                       operatorReplica.getQueue(),
                                                                       operatorReplica.getDrainerPool(),
                                                                       operatorReplica.getDownstreamCtx() ) );
@@ -639,8 +634,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
             }
             else
             {
-                downstreamOperators.add( operatorReplica.duplicate( downPipelineReplicaId,
-                                                                    downMeter, config.getPipelineManagerConfig().getLatencyStageTickMask(),
+                downstreamOperators.add( operatorReplica.duplicate( downPipelineReplicaId, downMeter,
                                                                     operatorReplica.getQueue(),
                                                                     operatorReplica.getDrainerPool(),
                                                                     operatorReplica.getDownstreamCtx() ) );
@@ -650,8 +644,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
         if ( upstreamOperators.size() > 0 )
         {
             final OperatorReplica upPipelineTailOperator = upstreamOperators.remove( upstreamOperators.size() - 1 );
-            upstreamOperators.add( upPipelineTailOperator.duplicate( upPipelineReplicaId,
-                                                                     upMeter, config.getPipelineManagerConfig().getLatencyStageTickMask(),
+            upstreamOperators.add( upPipelineTailOperator.duplicate( upPipelineReplicaId, upMeter,
                                                                      upPipelineTailOperator.getQueue(),
                                                                      upPipelineTailOperator.getDrainerPool(),
                                                                      null ) );
@@ -685,8 +678,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
                                                upstreamCtxes,
                                                invocationCtxes );
 
-        return OperatorReplica.newRunningInstance( pipelineReplicaId,
-                                                   meter, config.getPipelineManagerConfig().getLatencyStageTickMask(),
+        return OperatorReplica.newRunningInstance( config, pipelineReplicaId, meter,
                                                    operatorReplica.getQueue(),
                                                    operatorReplica.getDrainerPool(),
                                                    operatorDefs,
@@ -738,8 +730,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
             headTupleQueueDrainerPool = new BlockingTupleQueueDrainerPool( config, operatorDef );
         }
 
-        return OperatorReplica.newRunningInstance( pipelineReplicaId,
-                                                   meter, config.getPipelineManagerConfig().getLatencyStageTickMask(),
+        return OperatorReplica.newRunningInstance( config, pipelineReplicaId, meter,
                                                    headOperatorQueue,
                                                    headTupleQueueDrainerPool,
                                                    operatorDefs,
@@ -856,14 +847,11 @@ public class PipelineTransformerImpl implements PipelineTransformer
         final List<OperatorReplica> duplicates = operatorReplicas.stream()
                                                                  .map( op -> op.duplicate( pipelineReplica.id(),
                                                                                            meter,
-                                                                                           config.getPipelineManagerConfig()
-                                                                                                 .getLatencyStageTickMask(),
                                                                                            op.getQueue(),
                                                                                            op.getDrainerPool(),
                                                                                            op.getDownstreamCtx() ) )
                                                                  .collect( toList() );
-        duplicates.add( tailOperatorReplica.duplicate( pipelineReplica.id(),
-                                                       meter, config.getPipelineManagerConfig().getLatencyStageTickMask(),
+        duplicates.add( tailOperatorReplica.duplicate( pipelineReplica.id(), meter,
                                                        tailOperatorReplica.getQueue(),
                                                        tailOperatorReplica.getDrainerPool(),
                                                        null ) );
@@ -914,15 +902,12 @@ public class PipelineTransformerImpl implements PipelineTransformer
                                                                           .skip( 1 )
                                                                           .map( op -> op.duplicate( newPipelineReplicaId,
                                                                                                     meter,
-                                                                                                    config.getPipelineManagerConfig()
-                                                                                                          .getLatencyStageTickMask(),
                                                                                                     op.getQueue(),
                                                                                                     op.getDrainerPool(),
                                                                                                     op.getDownstreamCtx() ) )
                                                                           .collect( toList() );
         newOperatorReplicas.add( 0,
-                                 headOperatorReplica.duplicate( newPipelineReplicaId,
-                                                                meter, config.getPipelineManagerConfig().getLatencyStageTickMask(),
+                                 headOperatorReplica.duplicate( newPipelineReplicaId, meter,
                                                                 headOperatorQueue,
                                                                 headOperatorDrainerPool,
                                                                 headOperatorReplica.getDownstreamCtx() ) );

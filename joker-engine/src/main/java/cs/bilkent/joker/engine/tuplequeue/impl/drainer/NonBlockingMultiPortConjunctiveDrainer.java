@@ -16,9 +16,9 @@ public class NonBlockingMultiPortConjunctiveDrainer extends MultiPortDrainer
         int satisfied = 0;
         for ( int i = 0; i < limit; i += 2 )
         {
-            final int portIndex = tupleCounts[ i ];
+            final int portIndex = tupleCountsToCheck[ i ];
             final int tupleCountIndex = i + 1;
-            final int tupleCount = tupleCounts[ tupleCountIndex ];
+            final int tupleCount = tupleCountsToCheck[ tupleCountIndex ];
 
             if ( tupleCount == NO_TUPLES_AVAILABLE || tupleQueues[ portIndex ].size() >= tupleCount )
             {
@@ -26,7 +26,7 @@ public class NonBlockingMultiPortConjunctiveDrainer extends MultiPortDrainer
             }
         }
 
-        return ( satisfied == inputPortCount ) ? tupleCounts : null;
+        return ( satisfied == inputPortCount ) ? tupleCountsToDrain : null;
     }
 
 }

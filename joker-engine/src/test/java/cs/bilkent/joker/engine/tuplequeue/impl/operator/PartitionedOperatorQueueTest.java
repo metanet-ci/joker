@@ -128,7 +128,7 @@ public class PartitionedOperatorQueueTest extends AbstractJokerTest
         operatorQueue.setTupleCounts( new int[] { 1, 1 }, ANY_PORT );
 
         final TuplesImpl result = new TuplesImpl( INPUT_PORT_COUNT );
-        final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT );
+        final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT, Integer.MAX_VALUE );
         operatorQueue.drain( drainer, key -> result );
 
         assertEquals( tuples, result.getTuples( 0 ) );
@@ -143,7 +143,7 @@ public class PartitionedOperatorQueueTest extends AbstractJokerTest
         operatorQueue.offer( 0, tuples );
 
         final TuplesImpl result = new TuplesImpl( INPUT_PORT_COUNT );
-        final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT );
+        final GreedyDrainer drainer = new GreedyDrainer( INPUT_PORT_COUNT, Integer.MAX_VALUE );
         operatorQueue.drain( drainer, key -> result );
 
         assertEquals( tuples, result.getTuples( 0 ) );

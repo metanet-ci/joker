@@ -193,7 +193,7 @@ public class RegionRebalancingTest extends AbstractJokerTest
             final OperatorReplica operator = pipelineReplica.getOperatorReplica( 0 );
             final int inputPortCount = operator.getOperatorDef( 0 ).getInputPortCount();
             final TuplesImpl result = new TuplesImpl( inputPortCount );
-            final GreedyDrainer drainer = new GreedyDrainer( inputPortCount );
+            final GreedyDrainer drainer = new GreedyDrainer( inputPortCount, Integer.MAX_VALUE );
             pipelineReplica.getQueue().drain( drainer, key -> result );
             assertTrue( result.isEmpty() );
         }
@@ -301,7 +301,7 @@ public class RegionRebalancingTest extends AbstractJokerTest
             final OperatorReplica operator = pipelineReplica.getOperatorReplica( 0 );
             final int inputPortCount = operator.getOperatorDef( 0 ).getInputPortCount();
             final TuplesImpl result = new TuplesImpl( inputPortCount );
-            final GreedyDrainer drainer = new GreedyDrainer( inputPortCount );
+            final GreedyDrainer drainer = new GreedyDrainer( inputPortCount, Integer.MAX_VALUE );
             pipelineReplica.getQueue().drain( drainer, key -> result );
             assertTrue( result.isEmpty() );
         }
@@ -326,7 +326,7 @@ public class RegionRebalancingTest extends AbstractJokerTest
         final OperatorQueue operatorQueue = operator.getQueue();
         final int inputPortCount = operator.getOperatorDef( 0 ).getInputPortCount();
         final TuplesImpl result = new TuplesImpl( inputPortCount );
-        final GreedyDrainer drainer = new GreedyDrainer( inputPortCount );
+        final GreedyDrainer drainer = new GreedyDrainer( inputPortCount, Integer.MAX_VALUE );
         operatorQueue.drain( drainer, key -> result );
         if ( result.isNonEmpty() )
         {

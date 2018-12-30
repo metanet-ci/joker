@@ -67,7 +67,7 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
         tuple.setIngestionTime( 1 );
 
         tuple.setQueueOfferTime( 1 );
-        tuple.recordQueueWaitingTime( "op", 3 );
+        tuple.recordQueueWaitingTime( "op", () -> 3 );
 
         assertThat( tuple.getIngestionTime(), equalTo( 1L ) );
         final List<LatencyStage> stages = tuple.getLatencyStages();
@@ -85,7 +85,7 @@ public class TupleIngestionTimeTest extends AbstractJokerTest
         final Tuple tuple = new Tuple();
 
         tuple.setQueueOfferTime( 1 );
-        tuple.recordQueueWaitingTime( "op", 3 );
+        tuple.recordQueueWaitingTime( "op", () -> 3 );
 
         final List<LatencyStage> stages = tuple.getLatencyStages();
         assertNotNull( stages );

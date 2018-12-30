@@ -40,7 +40,7 @@ public class NonBlockingTupleQueueDrainerPool implements TupleQueueDrainerPool
         this.operatorId = operatorDef.getId();
         this.inputPortCount = operatorDef.getInputPortCount();
         this.operatorType = operatorDef.getOperatorType();
-        this.maxBatchSize = config.getTupleQueueDrainerConfig().getMaxBatchSize();
+        this.maxBatchSize = config.getTupleQueueManagerConfig().getTupleQueueCapacity();
     }
 
     @Override

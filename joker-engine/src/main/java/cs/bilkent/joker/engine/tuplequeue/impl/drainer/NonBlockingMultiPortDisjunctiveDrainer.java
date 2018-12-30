@@ -17,15 +17,15 @@ public class NonBlockingMultiPortDisjunctiveDrainer extends MultiPortDrainer
         boolean satisfied = false;
         for ( int i = 0; i < limit; i += 2 )
         {
-            final int portIndex = tupleCounts[ i ];
+            final int portIndex = tupleCountsToCheck[ i ];
             final int tupleCountIndex = i + 1;
-            final int tupleCount = tupleCounts[ tupleCountIndex ];
+            final int tupleCount = tupleCountsToCheck[ tupleCountIndex ];
 
             if ( tupleCount != NO_TUPLES_AVAILABLE )
             {
                 if ( tupleQueues[ portIndex ].size() >= tupleCount )
                 {
-                    tupleCountsBuffer[ tupleCountIndex ] = tupleCount;
+                    tupleCountsBuffer[ tupleCountIndex ] = tupleCountsToDrain[ tupleCountIndex ];
                     satisfied = true;
                 }
                 else
