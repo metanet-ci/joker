@@ -82,16 +82,15 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
             tupleLists[ replicaIndex ].add( tuple );
         }
 
-        if ( ticker.tryTick() )
+        final boolean recordQueueOfferTime = ticker.tryTick();
+        if ( recordQueueOfferTime )
         {
             fill( recordQueueOfferTimeFlags, true );
         }
-
-        int completed = 0;
-
-        flush:
+        int completed;
         while ( true )
         {
+            completed = 0;
             for ( int i = 0; i < replicaCount; i++ )
             {
                 final List<Tuple> tuples = tupleLists[ i ];
@@ -116,12 +115,18 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
                     {
                         fromIndex += offered;
                         indices[ i ] = fromIndex;
-                        if ( fromIndex == tuples.size() && ++completed == replicaCount )
-                        {
-                            break flush;
-                        }
                     }
                 }
+
+                if ( fromIndex == tuples.size() )
+                {
+                    completed++;
+                }
+            }
+
+            if ( completed == replicaCount )
+            {
+                break;
             }
         }
 
@@ -131,7 +136,7 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
             tupleLists[ i ].clear();
             indices[ i ] = 0;
         }
-        if ( ticker.isTicked() )
+        if ( recordQueueOfferTime )
         {
             fill( recordQueueOfferTimeFlags, false );
         }
