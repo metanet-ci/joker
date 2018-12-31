@@ -271,15 +271,7 @@ public class LatencyTest extends AbstractJokerTest
                                                                                                .build();
 
         final OperatorConfig multiplierConfig = new OperatorConfig().set( PartitionedMapperOperator.MAPPER_CONFIG_PARAMETER,
-                                                                          (BiConsumer<Tuple, Tuple>) ( input, output ) -> {
-                                                                              int val = input.getInteger( "value" );
-                                                                              for ( int i = 0; i < 1; i++ )
-                                                                              {
-                                                                                  val = val * MULTIPLIER_VALUE - val;
-                                                                              }
-                                                                              val = val * MULTIPLIER_VALUE - val;
-                                                                              output.set( "key", input.get( "key" ) ).set( "mult", val );
-                                                                          } );
+                                                                          new MultiplierFunction() );
 
         final OperatorDef multiplier = OperatorDefBuilder.newInstance( "multiplier", PartitionedMapperOperator.class )
                                                          .setExtendingSchema( multiplierSchema )
@@ -313,6 +305,22 @@ public class LatencyTest extends AbstractJokerTest
         sleepUninterruptibly( 120, SECONDS );
 
         joker.shutdown().get();
+    }
+
+    private static class MultiplierFunction implements BiConsumer<Tuple, Tuple>
+    {
+
+        @Override
+        public void accept ( final Tuple input, final Tuple output )
+        {
+            int val = input.getInteger( "value" );
+            for ( int i = 0; i < 1; i++ )
+            {
+                val = val * MULTIPLIER_VALUE - val;
+            }
+            val = val * MULTIPLIER_VALUE - val;
+            output.set( "key", input.get( "key" ) ).set( "mult", val );
+        }
     }
 
 }
