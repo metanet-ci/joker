@@ -248,8 +248,10 @@ public class OperatorQueueManagerImpl implements OperatorQueueManager
                 for ( int partitionId : migratedPartitionIds )
                 {
                     final Map<PartitionKey, TupleQueue[]> keys = movingPartitions.remove( partitionId );
-                    checkState( keys != null );
-                    newQueues[ replicaIndex ].acquireKeys( partitionId, keys );
+                    if ( keys != null )
+                    {
+                        newQueues[ replicaIndex ].acquireKeys( partitionId, keys );
+                    }
                 }
             }
         }
@@ -274,8 +276,10 @@ public class OperatorQueueManagerImpl implements OperatorQueueManager
                 for ( int partitionId : migratedPartitionIds )
                 {
                     final Map<PartitionKey, TupleQueue[]> keys = movingPartitions.remove( partitionId );
-                    checkState( keys != null );
-                    newQueues[ replicaIndex ].acquireKeys( partitionId, keys );
+                    if ( keys != null )
+                    {
+                        newQueues[ replicaIndex ].acquireKeys( partitionId, keys );
+                    }
                 }
             }
         }
@@ -371,7 +375,8 @@ public class OperatorQueueManagerImpl implements OperatorQueueManager
         final String operatorQueueId = toOperatorQueueId( operatorId, replicaIndex );
         final DefaultOperatorQueue newOperatorQueue = new DefaultOperatorQueue( operatorQueueId,
                                                                                 operatorQueue.getInputPortCount(),
-                                                                                newThreadingPref, tupleQueues );
+                                                                                newThreadingPref,
+                                                                                tupleQueues );
 
         defaultOperatorQueues.put( key, newOperatorQueue );
         LOGGER.debug( "{} default operator queue is switched to {} for regionId={} replicaIndex={} operatorId={}",

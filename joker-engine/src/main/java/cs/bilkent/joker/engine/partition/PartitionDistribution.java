@@ -128,7 +128,22 @@ public class PartitionDistribution
     @Override
     public String toString ()
     {
-        return "PartitionDistribution{" + Arrays.toString( distribution ) + '}';
+        final StringBuilder sb = new StringBuilder();
+        sb.append( getClass().getSimpleName() ).append( "{" );
+
+        for ( int i = 0; i < getReplicaCount(); i++ )
+        {
+            sb.append( "replica=" )
+              .append( i )
+              .append( " -> " )
+              .append( partitionIdsByReplicaIndex.get( i ).size() )
+              .append( " partitions, " );
+        }
+
+        sb.delete( sb.length() - 2, sb.length() );
+        sb.append( "}" );
+
+        return sb.toString();
     }
 
 }

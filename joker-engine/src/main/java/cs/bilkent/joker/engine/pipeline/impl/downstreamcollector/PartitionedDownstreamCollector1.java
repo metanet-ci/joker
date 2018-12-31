@@ -28,7 +28,6 @@ public class PartitionedDownstreamCollector1 extends AbstractPartitionedDownstre
         super( failureFlag, partitionCount, partitionDistribution, operatorQueues, partitionKeyExtractor, ticker );
         this.sourcePortIndex = sourcePortIndex;
         this.destinationPortIndex = destinationPortIndex;
-
     }
 
     @Override

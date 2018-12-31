@@ -82,10 +82,9 @@ public class PartitionServiceImpl implements PartitionService
         final PartitionDistribution partitionDistribution = new PartitionDistribution( distribution );
         distributions.put( regionId, partitionDistribution );
 
-        LOGGER.debug( "partition distribution is created for regionId={} replicaCount={} distribution={}",
-                      regionId,
-                      replicaCount,
-                      distribution );
+        LOGGER.info( "partition distribution is created for regionId={} replicaCount={} distribution={}",
+                     regionId,
+                     replicaCount, partitionDistribution );
 
         return partitionDistribution;
     }

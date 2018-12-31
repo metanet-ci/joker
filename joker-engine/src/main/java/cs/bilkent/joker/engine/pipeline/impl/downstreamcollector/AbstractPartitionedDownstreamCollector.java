@@ -82,15 +82,16 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
             tupleLists[ replicaIndex ].add( tuple );
         }
 
-        final boolean recordQueueOfferTime = ticker.tryTick();
-        if ( recordQueueOfferTime )
+        if ( ticker.tryTick() )
         {
             fill( recordQueueOfferTimeFlags, true );
         }
-        int completed;
+
+        int completed = 0;
+
+        flush:
         while ( true )
         {
-            completed = 0;
             for ( int i = 0; i < replicaCount; i++ )
             {
                 final List<Tuple> tuples = tupleLists[ i ];
@@ -106,30 +107,21 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
                     final int offered = operatorQueues[ i ].offer( destinationPortIndex, tuples, fromIndex );
                     if ( offered == 0 )
                     {
-                        if ( idleStrategy.idle() )
+                        if ( idleStrategy.idle() && failureFlag.get() )
                         {
-                            if ( failureFlag.get() )
-                            {
-                                throw new JokerException( "Not sending tuples to downstream since failure flag is set" );
-                            }
+                            throw new JokerException( "Not sending tuples to downstream since failure flag is set" );
                         }
                     }
                     else
                     {
                         fromIndex += offered;
                         indices[ i ] = fromIndex;
+                        if ( fromIndex == tuples.size() && ++completed == replicaCount )
+                        {
+                            break flush;
+                        }
                     }
                 }
-
-                if ( fromIndex == tuples.size() )
-                {
-                    completed++;
-                }
-            }
-
-            if ( completed == replicaCount )
-            {
-                break;
             }
         }
 
@@ -139,7 +131,7 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
             tupleLists[ i ].clear();
             indices[ i ] = 0;
         }
-        if ( recordQueueOfferTime )
+        if ( ticker.isTicked() )
         {
             fill( recordQueueOfferTimeFlags, false );
         }

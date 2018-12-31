@@ -188,7 +188,7 @@ public class MetricManagerImpl implements MetricManager
 
             final LatencyMeter latencyMeter = new LatencyMeter( sinkOperatorId, replicaIndex, operatorIds );
             latencyMeters.put( latencyMeter.getKey(), latencyMeter );
-            LOGGER.info( "Created {}", latencyMeter );
+            LOGGER.info( "Created LatencyMeter for {}", latencyMeter.getKey() );
 
             return latencyMeter;
         }

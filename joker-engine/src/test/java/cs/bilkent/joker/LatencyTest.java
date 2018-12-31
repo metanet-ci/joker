@@ -300,6 +300,7 @@ public class LatencyTest extends AbstractJokerTest
         configBuilder.getPipelineManagerConfigBuilder().setInterArrivalTimeTrackingCount( 5 );
         configBuilder.getPipelineManagerConfigBuilder().setLatencyStageTickMask( 15 );
         configBuilder.getPipelineReplicaRunnerConfigBuilder().enforceThreadAffinity( true );
+        configBuilder.getPartitionServiceConfigBuilder().setPartitionCount( 96 );
 
         final Joker joker = new JokerBuilder().setJokerConfig( configBuilder.build() ).build();
 
