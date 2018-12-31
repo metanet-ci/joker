@@ -87,6 +87,11 @@ public interface TupleQueue
         return size() == 0;
     }
 
+    default boolean isNonEmpty ()
+    {
+        return !isEmpty();
+    }
+
     void clear ();
 
     boolean ensureCapacity ( int capacity );

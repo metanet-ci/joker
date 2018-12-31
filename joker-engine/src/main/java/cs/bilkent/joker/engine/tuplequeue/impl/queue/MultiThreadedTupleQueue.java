@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import javax.annotation.concurrent.ThreadSafe;
 
-import org.jctools.queues.MpscArrayQueue;
+import org.agrona.concurrent.ManyToOneConcurrentArrayQueue;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import cs.bilkent.joker.engine.tuplequeue.TupleQueue;
@@ -16,12 +16,12 @@ import static java.lang.Math.min;
 public class MultiThreadedTupleQueue implements TupleQueue
 {
 
-    private MpscArrayQueue<Tuple> queue;
+    private ManyToOneConcurrentArrayQueue<Tuple> queue;
 
     public MultiThreadedTupleQueue ( final int initialCapacity )
     {
         checkArgument( initialCapacity > 0 );
-        this.queue = new MpscArrayQueue<>( initialCapacity );
+        this.queue = new ManyToOneConcurrentArrayQueue<>( initialCapacity );
     }
 
     @Override
@@ -72,14 +72,14 @@ public class MultiThreadedTupleQueue implements TupleQueue
     public List<Tuple> poll ( final int count )
     {
         final List<Tuple> tuples = new ArrayList<>( min( count, size() ) );
-        queue.drain( tuples::add, count );
+        queue.drainTo( tuples, count );
         return tuples;
     }
 
     @Override
     public int drainTo ( final int count, final List<Tuple> tuples )
     {
-        return queue.drain( tuples::add, count );
+        return queue.drainTo( tuples, count );
     }
 
     @Override
@@ -110,6 +110,18 @@ public class MultiThreadedTupleQueue implements TupleQueue
     }
 
     @Override
+    public boolean isEmpty ()
+    {
+        return queue.peek() == null;
+    }
+
+    @Override
+    public boolean isNonEmpty ()
+    {
+        return queue.peek() != null;
+    }
+
+    @Override
     public void clear ()
     {
         queue.clear();
@@ -121,7 +133,7 @@ public class MultiThreadedTupleQueue implements TupleQueue
     {
         if ( capacity > queue.capacity() )
         {
-            final MpscArrayQueue<Tuple> newQueue = new MpscArrayQueue<>( capacity );
+            final ManyToOneConcurrentArrayQueue<Tuple> newQueue = new ManyToOneConcurrentArrayQueue<>( capacity );
             queue.drain( newQueue::offer );
             this.queue = newQueue;
 

@@ -30,7 +30,12 @@ public class BlockingMultiPortDisjunctiveDrainer extends MultiPortDrainer
                 final int tupleCountIndex = i + 1;
                 final int tupleCount = tupleCountsToCheck[ tupleCountIndex ];
                 final TupleQueue tupleQueue = tupleQueues[ portIndex ];
-                if ( tupleCount != NO_TUPLES_AVAILABLE )
+                if ( tupleCount == 1 && tupleQueue.isNonEmpty() )
+                {
+                    tupleCountsBuffer[ tupleCountIndex ] = tupleCountsToDrain[ tupleCountIndex ];
+                    satisfied = true;
+                }
+                else if ( tupleCount != NO_TUPLES_AVAILABLE )
                 {
                     if ( tupleQueue.size() >= tupleCount )
                     {
