@@ -26,6 +26,8 @@ public class PipelineReplicaMeter
 
     private final long[] inboundThroughput;
 
+    private final boolean samplingEnabled;
+
     private final AvgCalculator invocationTupleCounts = new AvgCalculator();
 
     private volatile Object currentlyInvokedOperator;
@@ -39,6 +41,7 @@ public class PipelineReplicaMeter
         this.headOperatorId = headOperatorDef.getId();
         this.inputPortCount = headOperatorDef.getInputPortCount();
         this.inboundThroughput = new long[ inputPortCount ];
+        this.samplingEnabled = ( inputPortCount > 0 );
     }
 
     public PipelineReplicaId getPipelineReplicaId ()
@@ -155,7 +158,7 @@ public class PipelineReplicaMeter
             }
         }
 
-        if ( ticker.isTicked() && inputPortCount > 0 )
+        if ( samplingEnabled && ticker.isTicked() )
         {
             invocationTupleCounts.record( total );
         }

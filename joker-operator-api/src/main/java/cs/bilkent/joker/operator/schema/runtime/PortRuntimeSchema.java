@@ -3,11 +3,11 @@ package cs.bilkent.joker.operator.schema.runtime;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import cs.bilkent.joker.operator.schema.annotation.PortSchema;
+import gnu.trove.map.TObjectIntMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
 import static java.util.Collections.unmodifiableList;
 
 
@@ -19,7 +19,7 @@ public final class PortRuntimeSchema implements TupleSchema
 
     private final List<RuntimeSchemaField> fields;
 
-    private final Map<String, Integer> fieldIndices = new HashMap<>();
+    private final TObjectIntMap<String> fieldIndices = new TObjectIntHashMap<>( 4, 0.75f, FIELD_NOT_FOUND );
 
     /**
      * Creates the {@code PortRuntimeSchema} using the given field definitions. Sorts the fields by field name.
@@ -71,8 +71,7 @@ public final class PortRuntimeSchema implements TupleSchema
     @Override
     public int getFieldIndex ( final String fieldName )
     {
-        final Integer index = fieldIndices.get( fieldName );
-        return index != null ? index : FIELD_NOT_FOUND;
+        return fieldIndices.get( fieldName );
     }
 
     /**
