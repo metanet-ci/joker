@@ -352,7 +352,7 @@ public class RegionRebalancingTest extends AbstractJokerTest
             }
 
             tuple.set( PARTITION_KEY_FIELD, i );
-            final int partitionHash = EXTRACTOR.getPartitionHash( tuple );
+            final int partitionHash = EXTRACTOR.getHash( tuple );
 
             if ( getPartitionId( partitionHash, config.getPartitionServiceConfig().getPartitionCount() ) == partitionId )
             {

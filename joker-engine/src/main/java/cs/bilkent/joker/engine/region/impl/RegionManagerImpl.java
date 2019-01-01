@@ -488,7 +488,7 @@ public class RegionManagerImpl implements RegionManager
             queue.drain( drainer, key -> result );
 
             result.getTuplesByDefaultPort().forEach( tuple -> {
-                final int partitionId = getPartitionId( partitionKeyExtractor.getPartitionHash( tuple ),
+                final int partitionId = getPartitionId( partitionKeyExtractor.getHash( tuple ),
                                                         config.getPartitionServiceConfig().getPartitionCount() );
                 final int replicaIndex = newPartitionDistribution.getReplicaIndex( partitionId );
                 buffer.get( replicaIndex ).add( tuple );

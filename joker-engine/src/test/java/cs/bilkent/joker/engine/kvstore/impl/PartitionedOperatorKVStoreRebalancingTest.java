@@ -60,11 +60,11 @@ public class PartitionedOperatorKVStoreRebalancingTest extends AbstractJokerTest
         final int nonAcquiredPartitionId = NON_ACQUIRED_PARTITIONS.get( 0 );
         final Tuple tuple = generateTuple( nonAcquiredPartitionId, keys );
         final KVStoreContainer partitionToAcquire = kvStoreContainers[ nonAcquiredPartitionId ];
-        partitionToAcquire.getOrCreateKVStore( EXTRACTOR.getPartitionKey( tuple ) ).set( "key", "val" );
+        partitionToAcquire.getOrCreateKVStore( EXTRACTOR.getKey( tuple ) ).set( "key", "val" );
 
         operatorKVStore.acquirePartitions( singletonList( partitionToAcquire ) );
 
-        assertEquals( "val", operatorKVStore.getKVStore( EXTRACTOR.getPartitionKey( tuple ) ).get( "key" ) );
+        assertEquals( "val", operatorKVStore.getKVStore( EXTRACTOR.getKey( tuple ) ).get( "key" ) );
     }
 
     @Test( expected = IllegalArgumentException.class )
@@ -97,7 +97,7 @@ public class PartitionedOperatorKVStoreRebalancingTest extends AbstractJokerTest
         {
             try
             {
-                operatorKVStore.getKVStore( EXTRACTOR.getPartitionKey( generateTuple( partitionId, keys ) ) );
+                operatorKVStore.getKVStore( EXTRACTOR.getKey( generateTuple( partitionId, keys ) ) );
                 fail();
             }
             catch ( NullPointerException ignored )
@@ -120,7 +120,7 @@ public class PartitionedOperatorKVStoreRebalancingTest extends AbstractJokerTest
             }
 
             tuple.set( PARTITION_KEY_FIELD, i );
-            final int partitionHash = EXTRACTOR.getPartitionHash( tuple );
+            final int partitionHash = EXTRACTOR.getHash( tuple );
 
             if ( getPartitionId( partitionHash, PARTITION_COUNT ) == partitionId )
             {

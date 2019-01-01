@@ -19,13 +19,13 @@ public class PartitionKeyExtractorN implements PartitionKeyExtractor
     }
 
     @Override
-    public PartitionKey getPartitionKey ( final Tuple tuple )
+    public PartitionKey getKey ( final Tuple tuple )
     {
         return new PartitionKeyN( tuple, partitionFieldNames );
     }
 
     @Override
-    public int getPartitionHash ( final Tuple tuple )
+    public int getHash ( final Tuple tuple )
     {
         return computeHashCode( tuple, partitionFieldNames );
     }

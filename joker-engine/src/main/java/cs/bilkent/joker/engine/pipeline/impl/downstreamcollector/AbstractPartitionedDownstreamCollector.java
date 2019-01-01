@@ -18,7 +18,6 @@ import cs.bilkent.joker.engine.util.concurrent.BackoffIdleStrategy;
 import cs.bilkent.joker.engine.util.concurrent.IdleStrategy;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
-import static java.util.Arrays.fill;
 
 public abstract class AbstractPartitionedDownstreamCollector implements DownstreamCollector, Supplier<OperatorQueue[]>
 {
@@ -43,8 +42,6 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
 
     private final int[] indices;
 
-    private final boolean[] recordQueueOfferTimeFlags;
-
     AbstractPartitionedDownstreamCollector ( @Named( DOWNSTREAM_FAILURE_FLAG_NAME ) final AtomicBoolean failureFlag,
                                              final int partitionCount,
                                              final int[] partitionDistribution,
@@ -65,7 +62,6 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
             tupleLists[ i ] = new ArrayList<>();
         }
         this.indices = new int[ operatorQueues.length ];
-        this.recordQueueOfferTimeFlags = new boolean[ operatorQueues.length ];
     }
 
     public final OperatorQueue[] get ()
@@ -77,18 +73,13 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
     {
         for ( Tuple tuple : input.getTuplesModifiable( sourcePortIndex ) )
         {
-            final int partitionId = getPartitionId( partitionKeyExtractor.getPartitionHash( tuple ), partitionCount );
-            final int replicaIndex = partitionDistribution[ partitionId ];
+            final int replicaIndex = partitionDistribution[ getPartitionId( partitionKeyExtractor.getHash( tuple ), partitionCount ) ];
             tupleLists[ replicaIndex ].add( tuple );
         }
 
         final boolean recordQueueOfferTime = ticker.tryTick();
-        if ( recordQueueOfferTime )
-        {
-            fill( recordQueueOfferTimeFlags, true );
-        }
-        int completed;
-        while ( true )
+        int completed = 0;
+        while ( completed < replicaCount )
         {
             completed = 0;
             for ( int i = 0; i < replicaCount; i++ )
@@ -97,24 +88,20 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
                 int fromIndex = indices[ i ];
                 if ( fromIndex < tuples.size() )
                 {
-                    if ( recordQueueOfferTimeFlags[ i ] )
+                    if ( recordQueueOfferTime && fromIndex == 0 )
                     {
                         tuples.get( 0 ).setQueueOfferTime( System.nanoTime() );
-                        recordQueueOfferTimeFlags[ i ] = false;
                     }
 
                     final int offered = operatorQueues[ i ].offer( destinationPortIndex, tuples, fromIndex );
-                    if ( offered == 0 )
-                    {
-                        if ( idleStrategy.idle() && failureFlag.get() )
-                        {
-                            throw new JokerException( "Not sending tuples to downstream since failure flag is set" );
-                        }
-                    }
-                    else
+                    if ( offered > 0 )
                     {
                         fromIndex += offered;
                         indices[ i ] = fromIndex;
+                    }
+                    else if ( idleStrategy.idle() && failureFlag.get() )
+                    {
+                        throw new JokerException( "Not sending tuples to downstream since failure flag is set" );
                     }
                 }
 
@@ -123,11 +110,6 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
                     completed++;
                 }
             }
-
-            if ( completed == replicaCount )
-            {
-                break;
-            }
         }
 
         idleStrategy.reset();
@@ -135,10 +117,6 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
         {
             tupleLists[ i ].clear();
             indices[ i ] = 0;
-        }
-        if ( recordQueueOfferTime )
-        {
-            fill( recordQueueOfferTimeFlags, false );
         }
     }
 

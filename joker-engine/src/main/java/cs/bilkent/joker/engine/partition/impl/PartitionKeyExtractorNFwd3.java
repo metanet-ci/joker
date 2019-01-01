@@ -27,13 +27,13 @@ public class PartitionKeyExtractorNFwd3 implements PartitionKeyExtractor
     }
 
     @Override
-    public PartitionKey getPartitionKey ( final Tuple tuple )
+    public PartitionKey getKey ( final Tuple tuple )
     {
         return new PartitionKeyNFwd3( tuple, partitionFieldNames );
     }
 
     @Override
-    public int getPartitionHash ( final Tuple tuple )
+    public int getHash ( final Tuple tuple )
     {
         return computePartitionHash( tuple.get( field0 ), tuple.get( field1 ), tuple.get( field2 ) );
     }

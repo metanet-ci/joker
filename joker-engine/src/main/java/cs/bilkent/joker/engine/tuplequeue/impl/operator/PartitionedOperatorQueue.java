@@ -119,7 +119,7 @@ public class PartitionedOperatorQueue implements OperatorQueue
         for ( int i = startIndex; i < size; i++ )
         {
             final Tuple tuple = tuples.get( i );
-            final PartitionKey partitionKey = partitionKeyExtractor.getPartitionKey( tuple );
+            final PartitionKey partitionKey = partitionKeyExtractor.getKey( tuple );
             final TupleQueue[] tupleQueues = getTupleQueues( partitionKey );
             tupleQueues[ portIndex ].offer( tuple );
             addToDrainableKeys( partitionKey, tupleQueues );

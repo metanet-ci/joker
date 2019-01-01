@@ -56,7 +56,7 @@ public class FusedPartitionedInvocationCtxTest extends AbstractJokerTest
     {
         final Tuple tuple = new Tuple();
         final PartitionKey key = new PartitionKey1( "val" );
-        when( partitionKeyExtractor.getPartitionKey( tuple ) ).thenReturn( key );
+        when( partitionKeyExtractor.getKey( tuple ) ).thenReturn( key );
 
         invocationCtx.add( tuple );
 
@@ -69,8 +69,8 @@ public class FusedPartitionedInvocationCtxTest extends AbstractJokerTest
         final Tuple tuple1 = new Tuple();
         final Tuple tuple2 = new Tuple();
         final PartitionKey key = new PartitionKey1( "val" );
-        when( partitionKeyExtractor.getPartitionKey( tuple1 ) ).thenReturn( key );
-        when( partitionKeyExtractor.getPartitionKey( tuple2 ) ).thenReturn( key );
+        when( partitionKeyExtractor.getKey( tuple1 ) ).thenReturn( key );
+        when( partitionKeyExtractor.getKey( tuple2 ) ).thenReturn( key );
 
         invocationCtx.add( tuple1 );
         invocationCtx.add( tuple2 );
@@ -85,8 +85,8 @@ public class FusedPartitionedInvocationCtxTest extends AbstractJokerTest
         final Tuple tuple2 = Tuple.of( "field", "val2" );
         final PartitionKey key1 = new PartitionKey1( "val1" );
         final PartitionKey key2 = new PartitionKey1( "val2" );
-        when( partitionKeyExtractor.getPartitionKey( tuple1 ) ).thenReturn( key1 );
-        when( partitionKeyExtractor.getPartitionKey( tuple2 ) ).thenReturn( key2 );
+        when( partitionKeyExtractor.getKey( tuple1 ) ).thenReturn( key1 );
+        when( partitionKeyExtractor.getKey( tuple2 ) ).thenReturn( key2 );
 
         invocationCtx.add( tuple1 );
         invocationCtx.add( tuple2 );
@@ -101,8 +101,8 @@ public class FusedPartitionedInvocationCtxTest extends AbstractJokerTest
         final Tuple tuple1 = new Tuple();
         final Tuple tuple2 = new Tuple();
         final PartitionKey key = new PartitionKey1( "val" );
-        when( partitionKeyExtractor.getPartitionKey( tuple1 ) ).thenReturn( key );
-        when( partitionKeyExtractor.getPartitionKey( tuple2 ) ).thenReturn( key );
+        when( partitionKeyExtractor.getKey( tuple1 ) ).thenReturn( key );
+        when( partitionKeyExtractor.getKey( tuple2 ) ).thenReturn( key );
 
         invocationCtx.add( tuple1 );
         invocationCtx.add( tuple2 );
@@ -119,8 +119,8 @@ public class FusedPartitionedInvocationCtxTest extends AbstractJokerTest
         final Tuple tuple2 = Tuple.of( "field", "val2" );
         final PartitionKey key1 = new PartitionKey1( "val1" );
         final PartitionKey key2 = new PartitionKey1( "val2" );
-        when( partitionKeyExtractor.getPartitionKey( tuple1 ) ).thenReturn( key1 );
-        when( partitionKeyExtractor.getPartitionKey( tuple2 ) ).thenReturn( key2 );
+        when( partitionKeyExtractor.getKey( tuple1 ) ).thenReturn( key1 );
+        when( partitionKeyExtractor.getKey( tuple2 ) ).thenReturn( key2 );
         final KVStore kvStore1 = mock( KVStore.class );
         final KVStore kvStore2 = mock( KVStore.class );
         when( kvStoreSupplier.apply( key1 ) ).thenReturn( kvStore1 );
@@ -148,8 +148,8 @@ public class FusedPartitionedInvocationCtxTest extends AbstractJokerTest
         final Tuple tuple2 = Tuple.of( "field", "val2" );
         final PartitionKey key1 = new PartitionKey1( "val1" );
         final PartitionKey key2 = new PartitionKey1( "val2" );
-        when( partitionKeyExtractor.getPartitionKey( tuple1 ) ).thenReturn( key1 );
-        when( partitionKeyExtractor.getPartitionKey( tuple2 ) ).thenReturn( key2 );
+        when( partitionKeyExtractor.getKey( tuple1 ) ).thenReturn( key1 );
+        when( partitionKeyExtractor.getKey( tuple2 ) ).thenReturn( key2 );
         final KVStore kvStore1 = mock( KVStore.class );
         final KVStore kvStore2 = mock( KVStore.class );
         when( kvStoreSupplier.apply( key1 ) ).thenReturn( kvStore1 );

@@ -229,7 +229,7 @@ public class FusedPartitionedInvocationCtx implements InternalInvocationCtx, Out
 
     private void addOutputTuple ( final int portIndex, final Tuple tuple )
     {
-        final PartitionKey partitionKey = partitionKeyExtractor.getPartitionKey( tuple );
+        final PartitionKey partitionKey = partitionKeyExtractor.getKey( tuple );
         final int idx = partitionKeyInputIndices.get( partitionKey );
         if ( idx == NA )
         {

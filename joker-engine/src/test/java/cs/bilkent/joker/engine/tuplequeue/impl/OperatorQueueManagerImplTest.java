@@ -208,7 +208,7 @@ public class OperatorQueueManagerImplTest extends AbstractJokerTest
             }
 
             tuple.set( PARTITION_KEY_FIELD, i );
-            final int partitionHash = EXTRACTOR.getPartitionHash( tuple );
+            final int partitionHash = EXTRACTOR.getHash( tuple );
 
             if ( getPartitionId( partitionHash, partitionService.getPartitionCount() ) == partitionId )
             {

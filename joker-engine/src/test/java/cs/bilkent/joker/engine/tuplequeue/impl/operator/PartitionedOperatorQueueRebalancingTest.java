@@ -69,7 +69,7 @@ public class PartitionedOperatorQueueRebalancingTest extends AbstractJokerTest
         for ( int partitionId : NON_ACQUIRED_PARTITIONS )
         {
             final Tuple tuple = generateTuple( partitionId );
-            final PartitionKey partitionKey = EXTRACTOR.getPartitionKey( tuple );
+            final PartitionKey partitionKey = EXTRACTOR.getKey( tuple );
             final TupleQueue[] tupleQueues = new TupleQueue[] { new SingleThreadedTupleQueue( 100 ) };
             tupleQueues[ 0 ].offer( tuple );
             operatorQueue.acquireKeys( partitionId, singletonMap( partitionKey, tupleQueues ) );
@@ -181,7 +181,7 @@ public class PartitionedOperatorQueueRebalancingTest extends AbstractJokerTest
             }
 
             tuple.set( PARTITION_KEY_FIELD, i );
-            final int partitionHash = EXTRACTOR.getPartitionHash( tuple );
+            final int partitionHash = EXTRACTOR.getHash( tuple );
 
             if ( getPartitionId( partitionHash, PARTITION_COUNT ) == partitionId )
             {

@@ -21,13 +21,13 @@ public class PartitionKeyExtractorNFwdM implements PartitionKeyExtractor
     }
 
     @Override
-    public PartitionKey getPartitionKey ( final Tuple tuple )
+    public PartitionKey getKey ( final Tuple tuple )
     {
         return new PartitionKeyNFwdM( tuple, partitionFieldNames, forwardedKeySize );
     }
 
     @Override
-    public int getPartitionHash ( final Tuple tuple )
+    public int getHash ( final Tuple tuple )
     {
         return computePartitionHash( tuple, partitionFieldNames, forwardedKeySize );
     }

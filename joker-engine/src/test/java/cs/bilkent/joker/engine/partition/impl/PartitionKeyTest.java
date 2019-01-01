@@ -38,11 +38,11 @@ public class PartitionKeyTest extends AbstractJokerTest
         final PartitionKeyExtractor extractor = new PartitionKeyExtractor1( singletonList( "val0" ) );
 
         assertEquals( key, new PartitionKey1( val0 ) );
-        assertEquals( key, extractor.getPartitionKey( tuple ) );
+        assertEquals( key, extractor.getKey( tuple ) );
         assertEquals( key, singletonList( val0 ) );
 
         final int expectedHash = singletonList( val0 ).hashCode();
-        assertEquals( extractor.getPartitionHash( tuple ), expectedHash );
+        assertEquals( extractor.getHash( tuple ), expectedHash );
         assertEquals( key.partitionHashCode(), expectedHash );
         assertEquals( key.partitionHashCode(), new PartitionKey2Fwd1( val0, "val1" ).partitionHashCode() );
         assertEquals( key.partitionHashCode(), new PartitionKey3Fwd1( val0, "val1", "val2" ).partitionHashCode() );
@@ -57,12 +57,12 @@ public class PartitionKeyTest extends AbstractJokerTest
         final PartitionKey key = new PartitionKey2( val0, val1 );
         final PartitionKeyExtractor extractor = new PartitionKeyExtractor2( asList( "val0", "val1" ) );
 
-        assertEquals( key, extractor.getPartitionKey( tuple ) );
+        assertEquals( key, extractor.getKey( tuple ) );
         assertEquals( key, asList( val0, val1 ) );
 
         final int expectedHash = asList( val0, val1 ).hashCode();
         assertEquals( key.hashCode(), expectedHash );
-        assertEquals( extractor.getPartitionHash( tuple ), expectedHash );
+        assertEquals( extractor.getHash( tuple ), expectedHash );
         assertEquals( key.partitionHashCode(), expectedHash );
         assertEquals( key.partitionHashCode(), new PartitionKey3Fwd2( val0, val1, "val2" ).partitionHashCode() );
         assertEquals( key.partitionHashCode(), new PartitionKeyNFwd2( tuple, asList( "val0", "val1" ) ).partitionHashCode() );
@@ -77,12 +77,12 @@ public class PartitionKeyTest extends AbstractJokerTest
         final PartitionKeyExtractor extractor = new PartitionKeyExtractor2Fwd1( asList( "val0", "val1" ) );
 
         assertEquals( key, new PartitionKey2Fwd1( val0, val1 ) );
-        assertEquals( key, extractor.getPartitionKey( tuple ) );
+        assertEquals( key, extractor.getKey( tuple ) );
         assertEquals( key, asList( val0, val1 ) );
 
         assertEquals( key.hashCode(), asList( val0, val1 ).hashCode() );
         final int expectedPartitionHash = singletonList( val0 ).hashCode();
-        assertEquals( extractor.getPartitionHash( tuple ), expectedPartitionHash );
+        assertEquals( extractor.getHash( tuple ), expectedPartitionHash );
         assertEquals( key.partitionHashCode(), expectedPartitionHash );
         assertEquals( key.partitionHashCode(), new PartitionKey1( val0 ).partitionHashCode() );
         assertEquals( key.partitionHashCode(), new PartitionKey3Fwd1( val0, "val1", "val2" ).partitionHashCode() );
@@ -98,12 +98,12 @@ public class PartitionKeyTest extends AbstractJokerTest
         final PartitionKeyExtractor extractor = new PartitionKeyExtractor3( asList( "val0", "val1", "val2" ) );
 
         assertEquals( key, new PartitionKey3( val0, val1, val2 ) );
-        assertEquals( key, extractor.getPartitionKey( tuple ) );
+        assertEquals( key, extractor.getKey( tuple ) );
         assertEquals( key, asList( val0, val1, val2 ) );
 
         final int expectedHash = asList( val0, val1, val2 ).hashCode();
         assertEquals( key.hashCode(), expectedHash );
-        assertEquals( extractor.getPartitionHash( tuple ), expectedHash );
+        assertEquals( extractor.getHash( tuple ), expectedHash );
         assertEquals( key.partitionHashCode(), expectedHash );
     }
 
@@ -116,12 +116,12 @@ public class PartitionKeyTest extends AbstractJokerTest
         final PartitionKeyExtractor extractor = new PartitionKeyExtractor3Fwd1( asList( "val0", "val1", "val2" ) );
 
         assertEquals( key, new PartitionKey3Fwd1( val0, val1, val2 ) );
-        assertEquals( key, extractor.getPartitionKey( tuple ) );
+        assertEquals( key, extractor.getKey( tuple ) );
         assertEquals( key, asList( val0, val1, val2 ) );
 
         assertEquals( key.hashCode(), asList( val0, val1, val2 ).hashCode() );
         final int expectedPartitionHash = singletonList( val0 ).hashCode();
-        assertEquals( extractor.getPartitionHash( tuple ), expectedPartitionHash );
+        assertEquals( extractor.getHash( tuple ), expectedPartitionHash );
         assertEquals( key.partitionHashCode(), expectedPartitionHash );
         assertEquals( key.partitionHashCode(), new PartitionKey1( val0 ).partitionHashCode() );
         assertEquals( key.partitionHashCode(), new PartitionKey2Fwd1( val0, "val1" ).partitionHashCode() );
@@ -137,12 +137,12 @@ public class PartitionKeyTest extends AbstractJokerTest
         final PartitionKeyExtractor extractor = new PartitionKeyExtractor3Fwd2( asList( "val0", "val1", "val2" ) );
 
         assertEquals( key, new PartitionKey3Fwd2( val0, val1, val2 ) );
-        assertEquals( key, extractor.getPartitionKey( tuple ) );
+        assertEquals( key, extractor.getKey( tuple ) );
         assertEquals( key, asList( val0, val1, val2 ) );
 
         assertEquals( key.hashCode(), asList( val0, val1, val2 ).hashCode() );
         final int expectedPartitionHash = asList( val0, val1 ).hashCode();
-        assertEquals( extractor.getPartitionHash( tuple ), expectedPartitionHash );
+        assertEquals( extractor.getHash( tuple ), expectedPartitionHash );
         assertEquals( key.partitionHashCode(), expectedPartitionHash );
         assertEquals( key.partitionHashCode(), new PartitionKey2( val0, val1 ).partitionHashCode() );
         assertEquals( key.partitionHashCode(), new PartitionKeyNFwd2( tuple, asList( "val0", "val1" ) ).partitionHashCode() );
@@ -157,13 +157,13 @@ public class PartitionKeyTest extends AbstractJokerTest
         final PartitionKeyExtractor extractor = new PartitionKeyExtractorN( singletonList( "val0" ) );
 
         assertEquals( key, new PartitionKeyN( tuple, singletonList( "val0" ) ) );
-        assertEquals( key, extractor.getPartitionKey( tuple ) );
+        assertEquals( key, extractor.getKey( tuple ) );
 
         assertEquals( key, singletonList( val0 ) );
         final int expectedPartitionHash = singletonList( val0 ).hashCode();
         assertEquals( key.hashCode(), expectedPartitionHash );
         assertEquals( key.partitionHashCode(), expectedPartitionHash );
-        assertEquals( extractor.getPartitionHash( tuple ), expectedPartitionHash );
+        assertEquals( extractor.getHash( tuple ), expectedPartitionHash );
         assertEquals( key.partitionHashCode(), new PartitionKey1( val0 ).partitionHashCode() );
         assertEquals( key.partitionHashCode(), new PartitionKey2Fwd1( val0, "val1" ).partitionHashCode() );
         assertEquals( key.partitionHashCode(), new PartitionKey3Fwd1( val0, "val1", "val2" ).partitionHashCode() );
@@ -179,13 +179,13 @@ public class PartitionKeyTest extends AbstractJokerTest
         final PartitionKeyExtractor extractor = new PartitionKeyExtractorN( asList( "val0", "val1", "val2", "val3", "val4" ) );
 
         assertEquals( key, new PartitionKeyN( tuple, asList( "val0", "val1", "val2", "val3", "val4" ) ) );
-        assertEquals( key, extractor.getPartitionKey( tuple ) );
+        assertEquals( key, extractor.getKey( tuple ) );
         assertEquals( key, asList( val0, val1, val2, val3, val4 ) );
 
         final int expectedHash = asList( val0, val1, val2, val3, val4 ).hashCode();
         assertEquals( key.hashCode(), expectedHash );
         assertEquals( key.partitionHashCode(), expectedHash );
-        assertEquals( extractor.getPartitionHash( tuple ), expectedHash );
+        assertEquals( extractor.getHash( tuple ), expectedHash );
     }
 
     @Test
@@ -197,13 +197,13 @@ public class PartitionKeyTest extends AbstractJokerTest
         final PartitionKeyExtractor extractor = new PartitionKeyExtractorNFwd1( asList( "val0", "val1", "val2", "val3", "val4" ) );
 
         assertEquals( key, new PartitionKeyNFwdM( tuple, asList( "val0", "val1", "val2", "val3", "val4" ), 1 ) );
-        assertEquals( key, extractor.getPartitionKey( tuple ) );
+        assertEquals( key, extractor.getKey( tuple ) );
         assertEquals( key, asList( val0, val1, val2, val3, val4 ) );
 
         assertEquals( key.hashCode(), asList( val0, val1, val2, val3, val4 ).hashCode() );
         final int expectedPartitionHash = singletonList( val0 ).hashCode();
         assertEquals( key.partitionHashCode(), expectedPartitionHash );
-        assertEquals( extractor.getPartitionHash( tuple ), expectedPartitionHash );
+        assertEquals( extractor.getHash( tuple ), expectedPartitionHash );
         assertEquals( key.partitionHashCode(), new PartitionKey1( val0 ).partitionHashCode() );
         assertEquals( key.partitionHashCode(), new PartitionKey2Fwd1( val0, "val1" ).partitionHashCode() );
         assertEquals( key.partitionHashCode(), new PartitionKey3Fwd1( val0, "val1", "val2" ).partitionHashCode() );
@@ -219,13 +219,13 @@ public class PartitionKeyTest extends AbstractJokerTest
         final PartitionKeyExtractor extractor = new PartitionKeyExtractorNFwd2( asList( "val0", "val1", "val2", "val3", "val4" ) );
 
         assertEquals( key, new PartitionKeyNFwd2( tuple, asList( "val0", "val1", "val2", "val3", "val4" ) ) );
-        assertEquals( key, extractor.getPartitionKey( tuple ) );
+        assertEquals( key, extractor.getKey( tuple ) );
         assertEquals( key, asList( val0, val1, val2, val3, val4 ) );
 
         assertEquals( key.hashCode(), asList( val0, val1, val2, val3, val4 ).hashCode() );
         final int expectedPartitionHash = asList( val0, val1 ).hashCode();
         assertEquals( key.partitionHashCode(), expectedPartitionHash );
-        assertEquals( extractor.getPartitionHash( tuple ), expectedPartitionHash );
+        assertEquals( extractor.getHash( tuple ), expectedPartitionHash );
         assertEquals( key.partitionHashCode(), new PartitionKey2( val0, val1 ).partitionHashCode() );
         assertEquals( key.partitionHashCode(), new PartitionKey3Fwd2( val0, val1, val2 ).partitionHashCode() );
         assertEquals( key.partitionHashCode(), new PartitionKeyNFwd2( tuple, asList( "val0", "val1" ) ).partitionHashCode() );
@@ -240,12 +240,12 @@ public class PartitionKeyTest extends AbstractJokerTest
         final PartitionKeyExtractor extractor = new PartitionKeyExtractorNFwd3( asList( "val0", "val1", "val2", "val3", "val4" ) );
 
         assertEquals( key, new PartitionKeyNFwdM( tuple, asList( "val0", "val1", "val2", "val3", "val4" ), 2 ) );
-        assertEquals( key, extractor.getPartitionKey( tuple ) );
+        assertEquals( key, extractor.getKey( tuple ) );
         assertEquals( key, asList( val0, val1, val2, val3, val4 ) );
 
         assertEquals( key.hashCode(), asList( val0, val1, val2, val3, val4 ).hashCode() );
         final int expectedPartitionHash = asList( val0, val1, val2 ).hashCode();
-        assertEquals( extractor.getPartitionHash( tuple ), expectedPartitionHash );
+        assertEquals( extractor.getHash( tuple ), expectedPartitionHash );
         assertEquals( key.partitionHashCode(), expectedPartitionHash );
         assertEquals( key.partitionHashCode(), new PartitionKey3( val0, val1, val2 ).partitionHashCode() );
     }
@@ -259,13 +259,13 @@ public class PartitionKeyTest extends AbstractJokerTest
         final PartitionKeyExtractor extractor = new PartitionKeyExtractorNFwdM( asList( "val0", "val1", "val2", "val3", "val4" ), 4 );
 
         assertEquals( key, new PartitionKeyNFwdM( tuple, asList( "val0", "val1", "val2", "val3", "val4" ), 4 ) );
-        assertEquals( key, extractor.getPartitionKey( tuple ) );
+        assertEquals( key, extractor.getKey( tuple ) );
         assertEquals( key, asList( val0, val1, val2, val3, val4 ) );
 
         assertEquals( key.hashCode(), asList( val0, val1, val2, val3, val4 ).hashCode() );
         final int expectedPartitionHash = asList( val0, val1, val2, val3 ).hashCode();
         assertEquals( key.partitionHashCode(), expectedPartitionHash );
-        assertEquals( extractor.getPartitionHash( tuple ), expectedPartitionHash );
+        assertEquals( extractor.getHash( tuple ), expectedPartitionHash );
     }
 
 }
