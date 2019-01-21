@@ -14,7 +14,7 @@
         <module>joker-operator-api</module>
         <module>joker-operators</module>
         <module>joker-engine</module>
-        <module>joker-pcj</module>
+        <!--<module>joker-pcj</module>-->
         <module>joker-examples</module>
         <module>joker-experiments</module>
         <module>joker-test-utils</module>
