@@ -7,6 +7,7 @@ import java.lang.management.ThreadMXBean;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -642,7 +643,8 @@ public class MetricManagerImpl implements MetricManager
                 pipelineMetricsHistory.getLatest().visit( logVisitor );
             }
 
-            for ( LatencyMetricsHistory latencyMetricsHistory : metrics.getLatencyMetricsHistories() )
+            //            for ( LatencyMetricsHistory latencyMetricsHistory : metrics.getLatencyMetricsHistories() )
+            for ( LatencyMetricsHistory latencyMetricsHistory : Collections.<LatencyMetricsHistory>emptyList() )
             {
                 final LatencyMetrics latest = latencyMetricsHistory.getLatest();
                 final Pair<String, Integer> key = Pair.of( latest.getSinkOperatorId(), latest.getReplicaIndex() );
