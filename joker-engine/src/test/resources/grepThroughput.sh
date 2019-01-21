@@ -9,5 +9,5 @@ inputFile=$1
 pipelineId=$2
 outputFile=$3
 
-grep -F 'MetricManagerImpl$CollectPipelineMetrics - '${pipelineId} ${inputFile} | awk '{split($0,a," "); print a[18]}' | cut -d "[" -f 2 | cut --d "]" -f 1 > ${outputFile}
+grep -F 'MetricManagerImpl$CollectPipelineMetrics - '${pipelineId} ${inputFile} | awk '{split($0,a," "); print a[18]}' | cut -d "[" -f 2 | cut -d "]" -f 1 > ${outputFile}
 
