@@ -496,6 +496,7 @@ public class PipelineManagerImpl implements PipelineManager
             createDownstreamCollectors( flow, pipeline );
             recreateSinkDownstreamCollectors();
             pipeline.startPipelineReplicaRunners( jokerConfig, supervisor, jokerThreadGroup );
+            notifySinkPipelines();
 
             incrementFlowVersion();
 
@@ -565,6 +566,8 @@ public class PipelineManagerImpl implements PipelineManager
                 LOGGER.info( "Starting new pipeline {}", pipeline.getId() );
                 pipeline.startPipelineReplicaRunners( jokerConfig, supervisor, jokerThreadGroup );
             }
+
+            notifySinkPipelines();
 
             incrementFlowVersion();
 
@@ -654,6 +657,7 @@ public class PipelineManagerImpl implements PipelineManager
             }
 
             recreateSinkDownstreamCollectors();
+            notifySinkPipelines();
 
             incrementFlowVersion();
 
@@ -792,6 +796,17 @@ public class PipelineManagerImpl implements PipelineManager
             if ( flow.getOutboundConnections( pipeline.getLastOperatorDef().getId() ).isEmpty() )
             {
                 createDownstreamCollectors( flow, pipeline );
+            }
+        }
+    }
+
+    private void notifySinkPipelines ()
+    {
+        for ( Pipeline pipeline : pipelines.values() )
+        {
+            if ( flow.getOutboundConnections( pipeline.getLastOperatorDef().getId() ).isEmpty() )
+            {
+
                 pipeline.notifyPipelineReplicaRunners();
             }
         }

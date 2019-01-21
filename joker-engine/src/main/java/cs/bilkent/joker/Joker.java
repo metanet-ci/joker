@@ -2,7 +2,7 @@ package cs.bilkent.joker;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.Future;
+import java.util.concurrent.CompletableFuture;
 import javax.annotation.concurrent.ThreadSafe;
 
 import com.google.inject.Guice;
@@ -85,7 +85,7 @@ public class Joker
      *
      * @return future to be notified once the merge is completed, along with the new {@link FlowExecPlan} after merge
      */
-    public Future<FlowExecPlan> mergePipelines ( final int flowVersion, final List<PipelineId> pipelineIds )
+    public CompletableFuture<FlowExecPlan> mergePipelines ( final int flowVersion, final List<PipelineId> pipelineIds )
     {
         return engine.mergePipelines( flowVersion, pipelineIds );
     }
@@ -103,9 +103,9 @@ public class Joker
      *
      * @return future to be notified once the split is completed, along with the new {@link FlowExecPlan} after split
      */
-    public Future<FlowExecPlan> splitPipeline ( final int flowVersion,
-                                                final PipelineId pipelineId,
-                                                final List<Integer> pipelineOperatorIndices )
+    public CompletableFuture<FlowExecPlan> splitPipeline ( final int flowVersion,
+                                                           final PipelineId pipelineId,
+                                                           final List<Integer> pipelineOperatorIndices )
     {
         return engine.splitPipeline( flowVersion, pipelineId, pipelineOperatorIndices );
     }
@@ -123,7 +123,7 @@ public class Joker
      *
      * @return future to be notified once the rebalance is completed, along with the new {@link FlowExecPlan} after rebalance
      */
-    public Future<FlowExecPlan> rebalanceRegion ( final int flowVersion, final int regionId, final int newReplicaCount )
+    public CompletableFuture<FlowExecPlan> rebalanceRegion ( final int flowVersion, final int regionId, final int newReplicaCount )
     {
         return engine.rebalanceRegion( flowVersion, regionId, newReplicaCount );
     }
@@ -133,12 +133,12 @@ public class Joker
      *
      * @return future to be notified once the shutdown is completed.
      */
-    public Future<Void> shutdown ()
+    public CompletableFuture<Void> shutdown ()
     {
         return engine.shutdown();
     }
 
-    public Future<Void> disableAdaptation ()
+    public CompletableFuture<Void> disableAdaptation ()
     {
         return engine.disableAdaptation();
     }

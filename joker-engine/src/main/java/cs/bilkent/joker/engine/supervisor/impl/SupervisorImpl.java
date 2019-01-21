@@ -3,7 +3,6 @@ package cs.bilkent.joker.engine.supervisor.impl;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import javax.annotation.concurrent.ThreadSafe;
 import javax.inject.Inject;
@@ -131,7 +130,7 @@ public class SupervisorImpl implements Supervisor
         }
     }
 
-    public Future<Void> shutdown ()
+    public CompletableFuture<Void> shutdown ()
     {
         synchronized ( monitor )
         {
@@ -149,7 +148,7 @@ public class SupervisorImpl implements Supervisor
         }
     }
 
-    public Future<Void> disableAdaptation ()
+    public CompletableFuture<Void> disableAdaptation ()
     {
         final CompletableFuture<Void> future = new CompletableFuture<>();
         if ( !isAdaptationEnabled() )
@@ -180,7 +179,7 @@ public class SupervisorImpl implements Supervisor
         pipelineManager.triggerShutdown();
     }
 
-    public Future<FlowExecPlan> mergePipelines ( final int flowVersion, final List<PipelineId> pipelineIdsToMerge )
+    public CompletableFuture<FlowExecPlan> mergePipelines ( final int flowVersion, final List<PipelineId> pipelineIdsToMerge )
     {
         final CompletableFuture<FlowExecPlan> future = new CompletableFuture<>();
         synchronized ( monitor )
@@ -201,9 +200,9 @@ public class SupervisorImpl implements Supervisor
         return future;
     }
 
-    public Future<FlowExecPlan> splitPipeline ( final int flowVersion,
-                                                final PipelineId pipelineId,
-                                                final List<Integer> pipelineOperatorIndices )
+    public CompletableFuture<FlowExecPlan> splitPipeline ( final int flowVersion,
+                                                           final PipelineId pipelineId,
+                                                           final List<Integer> pipelineOperatorIndices )
     {
         final CompletableFuture<FlowExecPlan> future = new CompletableFuture<>();
         synchronized ( monitor )
@@ -226,7 +225,7 @@ public class SupervisorImpl implements Supervisor
         return future;
     }
 
-    public Future<FlowExecPlan> rebalanceRegion ( final int flowVersion, final int regionId, final int newReplicaCount )
+    public CompletableFuture<FlowExecPlan> rebalanceRegion ( final int flowVersion, final int regionId, final int newReplicaCount )
     {
         final CompletableFuture<FlowExecPlan> future = new CompletableFuture<>();
         synchronized ( monitor )

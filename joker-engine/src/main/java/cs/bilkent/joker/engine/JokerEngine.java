@@ -2,7 +2,7 @@ package cs.bilkent.joker.engine;
 
 
 import java.util.List;
-import java.util.concurrent.Future;
+import java.util.concurrent.CompletableFuture;
 import javax.inject.Inject;
 
 import cs.bilkent.joker.engine.exception.InitializationException;
@@ -55,29 +55,29 @@ public class JokerEngine
         return supervisor.getFlowStatus();
     }
 
-    public Future<Void> shutdown ()
+    public CompletableFuture<Void> shutdown ()
     {
         return supervisor.shutdown();
     }
 
-    public Future<Void> disableAdaptation ()
+    public CompletableFuture<Void> disableAdaptation ()
     {
         return supervisor.disableAdaptation();
     }
 
-    public Future<FlowExecPlan> mergePipelines ( final int flowVersion, final List<PipelineId> pipelineIds )
+    public CompletableFuture<FlowExecPlan> mergePipelines ( final int flowVersion, final List<PipelineId> pipelineIds )
     {
         return supervisor.mergePipelines( flowVersion, pipelineIds );
     }
 
-    public Future<FlowExecPlan> splitPipeline ( final int flowVersion,
-                                                final PipelineId pipelineId,
-                                                final List<Integer> pipelineOperatorIndices )
+    public CompletableFuture<FlowExecPlan> splitPipeline ( final int flowVersion,
+                                                           final PipelineId pipelineId,
+                                                           final List<Integer> pipelineOperatorIndices )
     {
         return supervisor.splitPipeline( flowVersion, pipelineId, pipelineOperatorIndices );
     }
 
-    public Future<FlowExecPlan> rebalanceRegion ( final int flowVersion, final int regionId, final int newReplicaCount )
+    public CompletableFuture<FlowExecPlan> rebalanceRegion ( final int flowVersion, final int regionId, final int newReplicaCount )
     {
         return supervisor.rebalanceRegion( flowVersion, regionId, newReplicaCount );
     }
