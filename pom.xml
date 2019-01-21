@@ -41,7 +41,7 @@
     <dependencies>
         <dependency>
             <groupId>org.agrona</groupId>
-            <artifactId>agrona</artifactId>
+            <artifactId>Agrona</artifactId>
             <version>${agrona.version}</version>
         </dependency>
 
