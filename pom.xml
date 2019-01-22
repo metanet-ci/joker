@@ -138,6 +138,7 @@
                         <reuseForks>true</reuseForks>
                         <argLine>-Xms1G -Xmx4G -ea</argLine>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                    	<trimStackTrace>false</trimStackTrace>
                     </configuration>
                 </plugin>
 
