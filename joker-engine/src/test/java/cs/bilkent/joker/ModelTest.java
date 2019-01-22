@@ -305,5 +305,4 @@ public class ModelTest extends AbstractJokerTest {
                 .findFirst()
                 .orElseThrow(IllegalStateException::new);
     }
-
 }
