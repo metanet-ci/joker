@@ -201,7 +201,6 @@ public class ModelTest extends AbstractJokerTest {
             try {
                 process = new ProcessBuilder().command(THROUGHPUT_RETRIEVER_FILE_PATH, TEST_OUTPUT_FILE_PATH, PIPELINE_SPECIFICATION, throughputFile.toString()).redirectErrorStream(true).redirectOutput(outputFile).start();
             } catch (final IOException e) {
-                e.printStackTrace();
                 throw new RuntimeException("failed to launch the throughput retriever process", e);
             }
             final int exitValue;
