@@ -277,7 +277,7 @@ public class ModelTest extends AbstractJokerTest {
         // Computed based on Eq 17 from the earlier JPDC paper
         final double threadSwitchingOverhead = 1.0 / parallelThroughput - 0.5 / sequentialThroughput;
         System.out.println(String.format("Thread switching overhead is %.4f", threadSwitchingOverhead));
-        // Value found in Bugra's machine: TODO
+        // Value found in Bugra's machine: 0 :)
     }
 
     @Test
