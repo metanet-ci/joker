@@ -681,8 +681,10 @@ public class JokerTest extends AbstractJokerTest
         {
             final KVStore kvStore = ctx.getKVStore();
 
-            for ( Tuple input : ctx.getInputTuples( 0 ) )
+            final List<Tuple> tuples = ctx.getInputTuplesByDefaultPort();
+            for ( int i = 0, j = tuples.size(); i < j; i++ )
             {
+                Tuple input = tuples.get( i );
                 final Object key = input.get( "key" );
                 final int currSum = kvStore.getIntegerValueOrDefault( key, 0 );
                 final int newSum = currSum + input.getInteger( "value" );

@@ -31,7 +31,7 @@ public class NonBlockingSinglePortDrainer extends SinglePortDrainer
         if ( tupleQueue.size() >= tupleCountToCheck )
         {
             queueWaitingTimeRecorder.reset();
-            queueWaitingTimeRecorder.setParameters( tuplesSupplier.apply( key ).getTuplesModifiable( 0 ) );
+            queueWaitingTimeRecorder.setParameters( tuplesSupplier.apply( key ).getTuples( 0 ) );
             tupleQueue.drainTo( tupleCountToDrain, queueWaitingTimeRecorder );
             return true;
         }

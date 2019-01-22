@@ -388,7 +388,7 @@ public class RegionManagerImpl implements RegionManager
                     LOGGER.debug( "Draining pipeline queue of {}", pipelineReplica.id() );
                     for ( int portIndex = 0; portIndex < result.getPortCount(); portIndex++ )
                     {
-                        final List<Tuple> tuples = result.getTuplesModifiable( portIndex );
+                        final List<Tuple> tuples = result.getTuples( portIndex );
                         if ( tuples.size() > 0 )
                         {
                             final int offered = operatorQueue.offer( portIndex, tuples );

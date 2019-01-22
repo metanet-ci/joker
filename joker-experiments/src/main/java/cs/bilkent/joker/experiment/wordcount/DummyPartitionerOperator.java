@@ -1,8 +1,11 @@
 package cs.bilkent.joker.experiment.wordcount;
 
+import java.util.List;
+
 import cs.bilkent.joker.operator.InitCtx;
 import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
+import cs.bilkent.joker.operator.Tuple;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
@@ -21,7 +24,11 @@ public class DummyPartitionerOperator implements Operator
     @Override
     public void invoke ( final InvocationCtx ctx )
     {
-        ctx.getInputTuplesByDefaultPort().forEach( ctx::output );
+        final List<Tuple> tuples = ctx.getInputTuplesByDefaultPort();
+        for ( int i = 0, j = tuples.size(); i < j; i++ )
+        {
+            ctx.output( tuples.get( i ) );
+        }
     }
 
 }

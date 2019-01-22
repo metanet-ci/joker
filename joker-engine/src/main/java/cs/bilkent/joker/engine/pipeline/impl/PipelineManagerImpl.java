@@ -1192,7 +1192,7 @@ public class PipelineManagerImpl implements PipelineManager
 
                 for ( int i = 0, p = tuples.getPortCount(); i < p; i++ )
                 {
-                    final List<Tuple> l = tuples.getTuplesModifiable( i );
+                    final List<Tuple> l = tuples.getTuples( i );
                     for ( int j = 0, t = l.size(); j < t; j++ )
                     {
                         l.get( j ).setIngestionTime( ingestionTime );
@@ -1243,7 +1243,7 @@ public class PipelineManagerImpl implements PipelineManager
 
             for ( int i = 0; i < tuples.getPortCount(); i++ )
             {
-                final List<Tuple> l = tuples.getTuplesModifiable( i );
+                final List<Tuple> l = tuples.getTuples( i );
                 for ( int j = 0; j < l.size(); j++ )
                 {
                     final Tuple tuple = l.get( j );

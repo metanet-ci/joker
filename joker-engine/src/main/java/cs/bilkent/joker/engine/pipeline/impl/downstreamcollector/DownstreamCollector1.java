@@ -44,7 +44,7 @@ public class DownstreamCollector1 implements DownstreamCollector, Supplier<Opera
     @Override
     public void accept ( final TuplesImpl input )
     {
-        final List<Tuple> tuples = input.getTuplesModifiable( sourcePortIndex );
+        final List<Tuple> tuples = input.getTuples( sourcePortIndex );
         final int size = tuples.size();
         if ( size == 0 )
         {

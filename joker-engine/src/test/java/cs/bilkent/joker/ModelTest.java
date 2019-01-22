@@ -247,11 +247,11 @@ public class ModelTest extends AbstractJokerTest
     {
         final boolean splitPipeline = true;
 
-        TestExecutionHelper testExecutionHelper = new TestExecutionHelper( buildStatelessTopology() );
+        TestExecutionHelper testExecutionHelper = new TestExecutionHelper( buildPartitionedStatefulTopology() );
         final double sequentialThroughput = testExecutionHelper.runThreadSwitchingOverheadTestAndGetThroughput( !splitPipeline );
         System.out.println( String.format( "Sequential throughput is %.2f", sequentialThroughput ) );
 
-        testExecutionHelper = new TestExecutionHelper( buildStatelessTopology() );
+        testExecutionHelper = new TestExecutionHelper( buildPartitionedStatefulTopology() );
         final double parallelThroughput = testExecutionHelper.runThreadSwitchingOverheadTestAndGetThroughput( splitPipeline );
         System.out.println( String.format( "Parallel throughput is %.2f", parallelThroughput ) );
 

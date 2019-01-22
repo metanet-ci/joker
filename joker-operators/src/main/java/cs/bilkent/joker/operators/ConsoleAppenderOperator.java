@@ -1,5 +1,6 @@
 package cs.bilkent.joker.operators;
 
+import java.util.List;
 import java.util.function.Function;
 
 import cs.bilkent.joker.operator.InitCtx;
@@ -52,8 +53,10 @@ public class ConsoleAppenderOperator implements Operator
     @Override
     public void invoke ( final InvocationCtx ctx )
     {
-        for ( Tuple tuple : ctx.getInputTuplesByDefaultPort() )
+        final List<Tuple> tuples = ctx.getInputTuplesByDefaultPort();
+        for ( int i = 0, j = tuples.size(); i < j; i++ )
         {
+            final Tuple tuple = tuples.get( i );
             System.out.println( toStringFunction.apply( tuple ) );
             ctx.output( tuple );
         }

@@ -1,5 +1,6 @@
 package cs.bilkent.joker.operators;
 
+import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -89,8 +90,10 @@ public class TupleCountBasedWindowReducerOperator implements Operator
         int windowCount = window.getIntegerOrDefault( WINDOW_FIELD, 0 );
         Tuple accumulator = kvStore.getOrDefault( ACCUMULATOR_TUPLE_KEY, accumulatorSupplier );
 
-        for ( Tuple input : ctx.getInputTuplesByDefaultPort() )
+        final List<Tuple> tuples = ctx.getInputTuplesByDefaultPort();
+        for ( int i = 0, j = tuples.size(); i < j; i++ )
         {
+            final Tuple input = tuples.get( i );
             reducer.accept( accumulator, input );
 
             if ( ++currentTupleCount == tupleCount )

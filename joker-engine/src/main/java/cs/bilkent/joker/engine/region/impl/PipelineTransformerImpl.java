@@ -437,7 +437,7 @@ public class PipelineTransformerImpl implements PipelineTransformer
         {
             for ( int portIndex = 0; portIndex < result.getPortCount(); portIndex++ )
             {
-                final List<Tuple> tuples = result.getTuplesModifiable( portIndex );
+                final List<Tuple> tuples = result.getTuples( portIndex );
                 final int offered = operatorQueue.offer( portIndex, tuples );
                 checkState( offered == tuples.size() );
             }

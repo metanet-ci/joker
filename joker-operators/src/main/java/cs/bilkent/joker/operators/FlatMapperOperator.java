@@ -1,5 +1,6 @@
 package cs.bilkent.joker.operators;
 
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -47,8 +48,10 @@ public class FlatMapperOperator implements Operator
     @Override
     public void invoke ( final InvocationCtx ctx )
     {
-        for ( Tuple input : ctx.getInputTuplesByDefaultPort() )
+        final List<Tuple> tuples = ctx.getInputTuplesByDefaultPort();
+        for ( int i = 0, j = tuples.size(); i < j; i++ )
         {
+            final Tuple input = tuples.get( i );
             flatMapper.accept( input, outputTupleSupplier, output -> {
                 output.attachTo( input );
                 ctx.output( output );

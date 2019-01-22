@@ -75,7 +75,7 @@ public class DownstreamCollectorN implements DownstreamCollector, Supplier<Opera
                 final int sourcePortIndex = ports[ i ];
                 final int destinationPortIndex = ports[ i + 1 ];
                 int fromIndex = fromIndices[ sourcePortIndex ];
-                final List<Tuple> tuples = input.getTuplesModifiable( sourcePortIndex );
+                final List<Tuple> tuples = input.getTuples( sourcePortIndex );
 
                 if ( fromIndex < tuples.size() )
                 {

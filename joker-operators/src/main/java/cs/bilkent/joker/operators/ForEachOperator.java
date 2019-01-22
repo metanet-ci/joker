@@ -1,5 +1,6 @@
 package cs.bilkent.joker.operators;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 import cs.bilkent.joker.operator.InitCtx;
@@ -48,8 +49,10 @@ public class ForEachOperator implements Operator
     @Override
     public void invoke ( final InvocationCtx ctx )
     {
-        for ( Tuple tuple : ctx.getInputTuplesByDefaultPort() )
+        final List<Tuple> tuples = ctx.getInputTuplesByDefaultPort();
+        for ( int i = 0, j = tuples.size(); i < j; i++ )
         {
+            final Tuple tuple = tuples.get( i );
             consumerFunc.accept( tuple );
             ctx.output( tuple );
         }
