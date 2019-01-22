@@ -67,7 +67,7 @@ public final class PortRuntimeSchema implements TupleSchema
     @Override
     public int getFieldCount ()
     {
-        return fields.size();
+        return fieldIndices.size();
     }
 
     /**
