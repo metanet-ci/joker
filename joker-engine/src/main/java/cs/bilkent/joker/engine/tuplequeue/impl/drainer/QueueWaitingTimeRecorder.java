@@ -31,7 +31,8 @@ class QueueWaitingTimeRecorder implements Consumer<Tuple>
     @Override
     public void accept ( final Tuple tuple )
     {
-        tuple.recordQueueWaitingTime( operatorId, nanoTimeSupplier );
+        // TODO FIX_LATENCY
+        //        tuple.recordQueueWaitingTime( operatorId, nanoTimeSupplier );
         tuples.add( tuple );
     }
 }

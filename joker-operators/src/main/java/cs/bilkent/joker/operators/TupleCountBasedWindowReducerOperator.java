@@ -68,7 +68,8 @@ public class TupleCountBasedWindowReducerOperator implements Operator
         this.tupleCount = config.getOrFail( TUPLE_COUNT_CONFIG_PARAMETER );
         this.accumulatorInitializer = config.getOrFail( ACCUMULATOR_INITIALIZER_CONFIG_PARAMETER );
         this.accumulatorSupplier = () -> {
-            final Tuple accumulator = new Tuple( outputSchema );
+            // TODO provide output schema to the Tuple c'tor
+            final Tuple accumulator = new Tuple();
             accumulatorInitializer.accept( accumulator );
             return accumulator;
         };

@@ -31,7 +31,6 @@ import static cs.bilkent.joker.operator.InvocationCtx.InvocationReason.SHUTDOWN;
 import static cs.bilkent.joker.operator.InvocationCtx.InvocationReason.SUCCESS;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.OperatorDef;
-import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.impl.DefaultInvocationCtx;
 import cs.bilkent.joker.operator.impl.InitCtxImpl;
 import cs.bilkent.joker.operator.impl.InternalInvocationCtx;
@@ -44,7 +43,6 @@ import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.T
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnAny;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.partition.impl.PartitionKey;
-import static java.lang.Math.max;
 import static java.lang.Math.min;
 import static java.lang.System.arraycopy;
 import static java.util.stream.Collectors.joining;
@@ -468,32 +466,35 @@ public class OperatorReplica
         invocationCtx.setInvocationReason( reason );
         meter.onInvocationStart( operatorDef.getId() );
 
-        long invocationStartNs = 0;
-        if ( meter.isTicked( latencyStageTickMask ) )
-        {
-            invocationCtx.trackOutputTuple();
-            invocationStartNs = System.nanoTime();
-        }
+        // TODO FIX_LATENCY
+        //        long invocationStartNs = 0;
+        //        if ( meter.isTicked( latencyStageTickMask ) )
+        //        {
+        //            invocationCtx.trackOutputTuple();
+        //            invocationStartNs = System.nanoTime();
+        //        }
 
         do
         {
             operator.invoke( invocationCtx );
         } while ( invocationCtx.nextInput() );
 
-        final Tuple trackedTuple = invocationCtx.getTrackedOutputTuple();
-        if ( trackedTuple != null )
-        {
-            final int inputTupleCount = meter.onInvocationComplete( operatorDef.getId(),
-                                                                    invocationCtx.getInputs(),
-                                                                    invocationCtx.getInputCount(),
-                                                                    true );
-            final long duration = ( System.nanoTime() - invocationStartNs ) / max( 1, inputTupleCount );
-            trackedTuple.recordServiceTime( operatorDef.getId(), duration );
-        }
-        else
-        {
-            meter.onInvocationComplete( operatorDef.getId(), invocationCtx.getInputs(), invocationCtx.getInputCount(), false );
-        }
+        //        final Tuple trackedTuple = invocationCtx.getTrackedOutputTuple();
+        //        if ( trackedTuple != null )
+        //        {
+        //            final int inputTupleCount = meter.onInvocationComplete( operatorDef.getId(),
+        //                                                                    invocationCtx.getInputs(),
+        //                                                                    invocationCtx.getInputCount(),
+        //                                                                    true );
+        //            final long duration = ( System.nanoTime() - invocationStartNs ) / max( 1, inputTupleCount );
+        //            trackedTuple.recordServiceTime( operatorDef.getId(), duration );
+        //        }
+        //        else
+        //        {
+        //            meter.onInvocationComplete( operatorDef.getId(), invocationCtx.getInputs(), invocationCtx.getInputCount(), false );
+        //        }
+
+        meter.onInvocationComplete( operatorDef.getId(), invocationCtx.getInputs(), invocationCtx.getInputCount(), false );
     }
 
     /**

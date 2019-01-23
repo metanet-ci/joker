@@ -49,7 +49,8 @@ public class BeaconOperator implements Operator
     {
         for ( int i = 0; i < tupleCount; i++ )
         {
-            final Tuple tuple = new Tuple( outputSchema );
+            // TODO provide output schema to the Tuple c'tor
+            final Tuple tuple = new Tuple();
             tuplePopulatorFunc.accept( tuple );
             ctx.output( tuple );
         }

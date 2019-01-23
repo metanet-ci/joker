@@ -78,7 +78,8 @@ public abstract class MultiPortDrainer implements TupleQueueDrainer
             return false;
         }
 
-        queueWaitingTimeRecorder.reset();
+        // TODO FIX_LATENCY
+        //        queueWaitingTimeRecorder.reset();
 
         final TuplesImpl tuples = tuplesSupplier.apply( key );
 
@@ -91,8 +92,10 @@ public abstract class MultiPortDrainer implements TupleQueueDrainer
             }
 
             final int portIndex = tupleCounts[ i ];
-            queueWaitingTimeRecorder.setParameters( tuples.getTuples( portIndex ) );
-            queues[ portIndex ].drainTo( tupleCount, queueWaitingTimeRecorder );
+            // TODO FIX_LATENCY
+            //            queueWaitingTimeRecorder.setParameters( tuples.getTuples( portIndex ) );
+            //            queues[ portIndex ].drainTo( tupleCount, queueWaitingTimeRecorder );
+            queues[ portIndex ].drainTo( tupleCount, tuples.getTuples( portIndex ) );
         }
 
         return true;

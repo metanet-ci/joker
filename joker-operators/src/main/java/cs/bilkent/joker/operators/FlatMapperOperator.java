@@ -40,7 +40,8 @@ public class FlatMapperOperator implements Operator
 
         this.flatMapper = config.getOrFail( FLAT_MAPPER_CONFIG_PARAMETER );
         this.outputSchema = ctx.getOutputPortSchema( 0 );
-        this.outputTupleSupplier = () -> new Tuple( outputSchema );
+        // TODO provide output schema to the Tuple c'tor
+        this.outputTupleSupplier = Tuple::new;
 
         return scheduleWhenTuplesAvailableOnDefaultPort( DEFAULT_TUPLE_COUNT_CONFIG_VALUE );
     }

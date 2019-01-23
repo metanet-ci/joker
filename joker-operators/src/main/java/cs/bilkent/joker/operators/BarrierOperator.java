@@ -59,7 +59,8 @@ public class BarrierOperator implements Operator
     {
         for ( int i = 0, tupleCount = getTupleCountIfSameOnAllPorts( ctx ); i < tupleCount; i++ )
         {
-            final Tuple result = new Tuple( outputSchema );
+            // TODO provide output schema to the Tuple c'tor
+            final Tuple result = new Tuple();
             entryMerger.target = result;
             for ( int j = 0; j < inputPortCount; j++ )
             {

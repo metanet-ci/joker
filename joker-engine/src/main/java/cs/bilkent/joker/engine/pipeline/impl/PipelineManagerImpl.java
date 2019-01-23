@@ -1186,19 +1186,20 @@ public class PipelineManagerImpl implements PipelineManager
         @Override
         public void accept ( final TuplesImpl tuples )
         {
-            if ( ticker.tryTick() )
-            {
-                final long ingestionTime = System.nanoTime();
-
-                for ( int i = 0, p = tuples.getPortCount(); i < p; i++ )
-                {
-                    final List<Tuple> l = tuples.getTuples( i );
-                    for ( int j = 0, t = l.size(); j < t; j++ )
-                    {
-                        l.get( j ).setIngestionTime( ingestionTime );
-                    }
-                }
-            }
+            // TODO FIX_LATENCY
+            //            if ( ticker.tryTick() )
+            //            {
+            //                final long ingestionTime = System.nanoTime();
+            //
+            //                for ( int i = 0, p = tuples.getPortCount(); i < p; i++ )
+            //                {
+            //                    final List<Tuple> l = tuples.getTuples( i );
+            //                    for ( int j = 0, t = l.size(); j < t; j++ )
+            //                    {
+            //                        l.get( j ).setIngestionTime( ingestionTime );
+            //                    }
+            //                }
+            //            }
 
             downstream.accept( tuples );
         }
