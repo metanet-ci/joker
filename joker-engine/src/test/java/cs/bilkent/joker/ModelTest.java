@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -39,7 +40,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class ModelTest extends AbstractJokerTest
 {
-    private static final int JOKER_APPLICATION_RUNNING_TIME_IN_SECONDS = 120;
+    private static final int JOKER_APPLICATION_RUNNING_TIME_IN_SECONDS = 50;
     private static final int JOKER_APPLICATION_WARM_UP_TIME_IN_SECONDS = 10;
     private static final String TEST_OUTPUT_FILE_PATH = String.format(
             "target/surefire-reports/%s-output.txt", ModelTest.class.getCanonicalName());
@@ -90,10 +91,11 @@ public class ModelTest extends AbstractJokerTest
         }
     }
 
-    private class TestExecutionHelper
+    private static class TestExecutionHelper
     {
-        private static final int NUM_THROUGHPUT_VALUES_TO_AVERAGE = 5;
         private static final String PIPELINE_SPECIFICATION = "P[1][0][0]";
+
+        private static int lastThroughputCount = 0;
 
         private final JokerConfig config;
         private final FlowDef flow;
@@ -193,21 +195,15 @@ public class ModelTest extends AbstractJokerTest
             {
                 throw new RuntimeException( "failed to read the throughput file", e );
             }
-            final String[] throughputStrings = throughputOutputString.split( System.lineSeparator() );
-            if ( throughputStrings.length < NUM_THROUGHPUT_VALUES_TO_AVERAGE )
+            String[] throughputStrings = throughputOutputString.split( System.lineSeparator() );
+            final int currentThroughputCount = throughputStrings.length;
+            if (currentThroughputCount == lastThroughputCount)
             {
-                throw new RuntimeException( String.format(
-                        "the number of throughput strings (%d) is smaller than the expected minimum count (%d)",
-                        throughputStrings.length,
-                        NUM_THROUGHPUT_VALUES_TO_AVERAGE ) );
+                throw new RuntimeException("failed to find new throughput values");
             }
-            double throughputSum = 0.0;
-            for ( int throughputIndex = throughputStrings.length - NUM_THROUGHPUT_VALUES_TO_AVERAGE;
-                  throughputIndex < throughputStrings.length; ++throughputIndex )
-            {
-                throughputSum += Double.parseDouble( throughputStrings[ throughputIndex ] );
-            }
-            return throughputSum / NUM_THROUGHPUT_VALUES_TO_AVERAGE;
+            throughputStrings = Arrays.copyOfRange(throughputStrings, lastThroughputCount, currentThroughputCount);
+            lastThroughputCount = currentThroughputCount;
+            return Arrays.stream(throughputStrings).mapToDouble(Double::parseDouble).average().getAsDouble();
         }
 
         private String readFileContents ( final File file ) throws IOException
