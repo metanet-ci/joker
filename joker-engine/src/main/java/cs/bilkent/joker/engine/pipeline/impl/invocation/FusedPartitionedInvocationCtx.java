@@ -72,9 +72,9 @@ public class FusedPartitionedInvocationCtx implements InternalInvocationCtx, Out
     public void reset ()
     {
         reason = null;
-        for ( TuplesImpl input : inputs )
+        for ( int i = 0, j = inputs.size(); i < j; i++ )
         {
-            input.clear();
+            inputs.get( i ).clear();
         }
         partitionKeys.clear();
         outputCollector.clear();

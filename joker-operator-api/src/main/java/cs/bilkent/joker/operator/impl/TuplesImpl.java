@@ -11,7 +11,6 @@ import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.Tuples;
-import static java.util.Collections.unmodifiableList;
 
 
 /**
@@ -100,11 +99,6 @@ public final class TuplesImpl implements Tuples
     @Override
     public List<Tuple> getTuples ( final int portIndex )
     {
-        return unmodifiableList( ports[ portIndex ] );
-    }
-
-    public List<Tuple> getTuplesModifiable ( final int portIndex )
-    {
         return ports[ portIndex ];
     }
 
@@ -135,9 +129,9 @@ public final class TuplesImpl implements Tuples
     @Override
     public void clear ()
     {
-        for ( List<Tuple> tuples : ports )
+        for ( int i = 0, j = ports.length; i < j; i++ )
         {
-            tuples.clear();
+            ports[ i ].clear();
         }
     }
 

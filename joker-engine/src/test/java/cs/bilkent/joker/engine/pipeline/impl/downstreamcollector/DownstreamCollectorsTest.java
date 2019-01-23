@@ -113,7 +113,7 @@ public class DownstreamCollectorsTest extends AbstractJokerTest
 
     private void setMock ( final int sourcePortIndex, final int destinationPortIndex, final int offerResult )
     {
-        when( operatorQueue.offer( destinationPortIndex, tuples.getTuplesModifiable( sourcePortIndex ), 0 ) ).thenReturn( offerResult );
+        when( operatorQueue.offer( destinationPortIndex, tuples.getTuples( sourcePortIndex ), 0 ) ).thenReturn( offerResult );
     }
 
     private void verifyMock ( final String key, final Object val, final int destinationPortIndex )

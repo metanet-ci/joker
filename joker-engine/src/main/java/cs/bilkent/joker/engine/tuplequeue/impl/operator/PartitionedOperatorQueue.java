@@ -27,7 +27,6 @@ import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.T
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.TupleAvailabilityByPort.ANY_PORT;
 import cs.bilkent.joker.partition.impl.PartitionKey;
 import gnu.trove.map.hash.THashMap;
-import gnu.trove.set.hash.TLinkedHashSet;
 
 
 public class PartitionedOperatorQueue implements OperatorQueue
@@ -50,9 +49,9 @@ public class PartitionedOperatorQueue implements OperatorQueue
 
     private final Function<Object, TupleQueue[]> tupleQueuesConstructor;
 
-    private final Map<PartitionKey, TupleQueue[]> tupleQueuesByKeys;
+    private final Map<PartitionKey, TupleQueue[]> tupleQueuesByKeys = new THashMap<>();
 
-    private final Set<PartitionKey> drainableKeys = new TLinkedHashSet<>();
+    private final Map<PartitionKey, TupleQueue[]> drainableKeys = new THashMap<>();
 
     private int[] tupleCounts;
 
@@ -75,7 +74,6 @@ public class PartitionedOperatorQueue implements OperatorQueue
         this.inputPortCount = inputPortCount;
         this.partitionCount = partitionCount;
         this.partitionKeyExtractor = partitionKeyExtractor;
-        this.tupleQueuesByKeys = new THashMap<>();
         this.tupleQueuesConstructor = ( partitionKey ) -> {
             final TupleQueue[] tupleQueues = new TupleQueue[ inputPortCount ];
             for ( int i = 0; i < inputPortCount; i++ )
@@ -120,28 +118,37 @@ public class PartitionedOperatorQueue implements OperatorQueue
         {
             final Tuple tuple = tuples.get( i );
             final PartitionKey partitionKey = partitionKeyExtractor.getKey( tuple );
-            final TupleQueue[] tupleQueues = getTupleQueues( partitionKey );
-            tupleQueues[ portIndex ].offer( tuple );
-            addToDrainableKeys( partitionKey, tupleQueues );
+            TupleQueue[] tupleQueues = drainableKeys.get( partitionKey );
+            if ( tupleQueues != null )
+            {
+                tupleQueues[ portIndex ].offer( tuple );
+            }
+            else
+            {
+                tupleQueues = getTupleQueues( partitionKey );
+                tupleQueues[ portIndex ].offer( tuple );
+                if ( checkIfDrainable( tupleQueues ) )
+                {
+                    drainableKeys.put( partitionKey, tupleQueues );
+                }
+            }
         }
 
         return ( size - startIndex );
     }
 
     @Override
-    public void drain ( final TupleQueueDrainer drainer,
-                        final Function<PartitionKey, TuplesImpl> tuplesSupplier )
+    public void drain ( final TupleQueueDrainer drainer, final Function<PartitionKey, TuplesImpl> tuplesSupplier )
     {
         if ( drainableKeys.isEmpty() )
         {
             return;
         }
 
-        final Iterator<PartitionKey> it = drainableKeys.iterator();
-        while ( it.hasNext() )
+        for ( final Map.Entry<PartitionKey, TupleQueue[]> e : drainableKeys.entrySet() )
         {
-            final PartitionKey key = it.next();
-            final TupleQueue[] tupleQueues = getTupleQueues( key );
+            final PartitionKey key = e.getKey();
+            final TupleQueue[] tupleQueues = e.getValue();
             while ( true )
             {
                 if ( !drainer.drain( key, tupleQueues, tuplesSupplier ) )
@@ -149,8 +156,9 @@ public class PartitionedOperatorQueue implements OperatorQueue
                     break;
                 }
             }
-            it.remove();
         }
+
+        drainableKeys.clear();
     }
 
     @Override
@@ -299,9 +307,9 @@ public class PartitionedOperatorQueue implements OperatorQueue
 
     private void addToDrainableKeys ( final PartitionKey key, final TupleQueue[] tupleQueues )
     {
-        if ( !drainableKeys.contains( key ) && checkIfDrainable( tupleQueues ) )
+        if ( !drainableKeys.containsKey( key ) && checkIfDrainable( tupleQueues ) )
         {
-            drainableKeys.add( key );
+            drainableKeys.put( key, tupleQueues );
         }
     }
 

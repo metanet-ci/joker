@@ -1,7 +1,6 @@
 package cs.bilkent.joker.engine.pipeline;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -431,8 +430,7 @@ public class OperatorReplica
             final int portCount = min( operatorDef.getInputPortCount(), input.getPortCount() );
             for ( int portIndex = 0; portIndex < portCount; portIndex++ )
             {
-                final List<Tuple> tuples = input.getTuplesModifiable( portIndex );
-                queue.offer( portIndex, tuples );
+                queue.offer( portIndex, input.getTuples( portIndex ) );
             }
         }
     }

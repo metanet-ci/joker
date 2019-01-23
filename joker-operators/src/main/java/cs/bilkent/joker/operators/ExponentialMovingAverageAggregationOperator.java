@@ -1,5 +1,7 @@
 package cs.bilkent.joker.operators;
 
+import java.util.List;
+
 import static cs.bilkent.joker.flow.Port.DEFAULT_PORT_INDEX;
 import cs.bilkent.joker.operator.InitCtx;
 import cs.bilkent.joker.operator.InvocationCtx;
@@ -76,8 +78,10 @@ public class ExponentialMovingAverageAggregationOperator implements Operator
         double value = currentWindow.getDoubleValueOrDefault( VALUE_FIELD, 0d );
         int tupleCount = currentWindow.getIntegerValueOrDefault( TUPLE_COUNT_FIELD, 0 );
 
-        for ( Tuple input : ctx.getInputTuplesByDefaultPort() )
+        final List<Tuple> tuples = ctx.getInputTuplesByDefaultPort();
+        for ( int i = 0, j = tuples.size(); i < j; i++ )
         {
+            final Tuple input = tuples.get( i );
             final double tupleValue = input.getDoubleValueOrDefault( fieldName, 0d );
             value = ( tupleCount++ == 0 ) ? tupleValue : ( weight * tupleValue + ( 1 - weight ) * value );
             final Tuple avgTuple = Tuple.of( outputSchema, VALUE_FIELD, value );

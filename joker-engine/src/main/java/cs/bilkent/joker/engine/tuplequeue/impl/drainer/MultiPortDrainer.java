@@ -91,7 +91,7 @@ public abstract class MultiPortDrainer implements TupleQueueDrainer
             }
 
             final int portIndex = tupleCounts[ i ];
-            queueWaitingTimeRecorder.setParameters( tuples.getTuplesModifiable( portIndex ) );
+            queueWaitingTimeRecorder.setParameters( tuples.getTuples( portIndex ) );
             queues[ portIndex ].drainTo( tupleCount, queueWaitingTimeRecorder );
         }
 

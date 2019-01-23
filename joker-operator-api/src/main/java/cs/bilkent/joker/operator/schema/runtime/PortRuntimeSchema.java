@@ -19,7 +19,7 @@ public final class PortRuntimeSchema implements TupleSchema
 
     private final List<RuntimeSchemaField> fields;
 
-    private final TObjectIntMap<String> fieldIndices = new TObjectIntHashMap<>( 4, 0.75f, FIELD_NOT_FOUND );
+    private final TObjectIntMap<String> fieldIndices;
 
     /**
      * Creates the {@code PortRuntimeSchema} using the given field definitions. Sorts the fields by field name.
@@ -32,9 +32,30 @@ public final class PortRuntimeSchema implements TupleSchema
         final List<RuntimeSchemaField> f = new ArrayList<>( fields );
         f.sort( Comparator.comparing( RuntimeSchemaField::getName ) );
         this.fields = unmodifiableList( f );
-        for ( int i = 0; i < f.size(); i++ )
+
+        switch ( f.size() )
         {
-            fieldIndices.put( f.get( i ).getName(), i );
+            case 1:
+                this.fieldIndices = new TObjectIntMap1( f );
+                break;
+            case 2:
+                this.fieldIndices = new TObjectIntMap2( f );
+                break;
+            case 3:
+                this.fieldIndices = new TObjectIntMap3( f );
+                break;
+            case 4:
+                this.fieldIndices = new TObjectIntMap4( f );
+                break;
+            case 5:
+                this.fieldIndices = new TObjectIntMap5( f );
+                break;
+            default:
+                this.fieldIndices = new TObjectIntHashMap<>( f.size(), 1f, FIELD_NOT_FOUND );
+                for ( int i = 0; i < f.size(); i++ )
+                {
+                    fieldIndices.put( f.get( i ).getName(), i );
+                }
         }
     }
 
@@ -46,7 +67,7 @@ public final class PortRuntimeSchema implements TupleSchema
     @Override
     public int getFieldCount ()
     {
-        return fields.size();
+        return fieldIndices.size();
     }
 
     /**

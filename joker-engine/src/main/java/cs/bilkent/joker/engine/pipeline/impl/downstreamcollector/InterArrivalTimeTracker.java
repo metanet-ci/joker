@@ -56,7 +56,7 @@ public class InterArrivalTimeTracker implements DownstreamCollector
         {
             final long time = timeGenerator.getAsLong();
             final long interArrivalTime = ( time - previousTime );
-            final List<Tuple> t = tuples.getTuplesModifiable( 0 );
+            final List<Tuple> t = tuples.getTuples( 0 );
             if ( t.size() > 0 )
             {
                 t.get( 0 ).recordInterArrivalTimes( operatorId, interArrivalTime, t.size() );

@@ -58,7 +58,7 @@ public class BlockingGreedyDrainer implements TupleQueueDrainer
 
         for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
         {
-            queues[ portIndex ].drainTo( maxTupleCount, tuples.getTuplesModifiable( portIndex ) );
+            queues[ portIndex ].drainTo( maxTupleCount, tuples.getTuples( portIndex ) );
         }
 
         return false;

@@ -1,5 +1,6 @@
 package cs.bilkent.joker.experiment;
 
+import java.util.List;
 import java.util.Random;
 
 import cs.bilkent.joker.operator.InitCtx;
@@ -53,8 +54,10 @@ public abstract class BaseMultiplierOperator implements Operator
     @Override
     public void invoke ( final InvocationCtx ctx )
     {
-        for ( Tuple input : ctx.getInputTuplesByDefaultPort() )
+        final List<Tuple> tuples = ctx.getInputTuplesByDefaultPort();
+        for ( int i = 0, j = tuples.size(); i < j; i++ )
         {
+            final Tuple input = tuples.get( i );
             final Object pKey1 = input.get( "key1" );
             final Object pKey2 = input.get( "key2" );
             final Tuple result = Tuple.of( outputSchema, "key1", pKey1, "key2", pKey2 );
@@ -62,7 +65,7 @@ public abstract class BaseMultiplierOperator implements Operator
             int sum = input.getInteger( "val1" ) + input.getInteger( "val2" );
             final int m = getMultiplicationCount();
             final double val1 = input.getDouble( "val1" );
-            for ( int i = 0; i < m; i++ )
+            for ( int k = 0; k < m; k++ )
             {
                 sum *= val1;
             }

@@ -71,7 +71,7 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
 
     final void send ( final TuplesImpl input, final int sourcePortIndex, final int destinationPortIndex )
     {
-        for ( Tuple tuple : input.getTuplesModifiable( sourcePortIndex ) )
+        for ( Tuple tuple : input.getTuples( sourcePortIndex ) )
         {
             final int replicaIndex = partitionDistribution[ getPartitionId( partitionKeyExtractor.getHash( tuple ), partitionCount ) ];
             tupleLists[ replicaIndex ].add( tuple );

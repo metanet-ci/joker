@@ -1,5 +1,7 @@
 package cs.bilkent.joker.experiment;
 
+import java.util.List;
+
 import cs.bilkent.joker.operator.InitCtx;
 import cs.bilkent.joker.operator.InvocationCtx;
 import cs.bilkent.joker.operator.Operator;
@@ -27,9 +29,11 @@ public class DuplicatorOperator implements Operator
     @Override
     public void invoke ( final InvocationCtx ctx )
     {
-        for ( Tuple tuple : ctx.getInputTuplesByDefaultPort() )
+        final List<Tuple> tuples = ctx.getInputTuplesByDefaultPort();
+        for ( int i = 0, j = tuples.size(); i < j; i++ )
         {
-            for ( int i = 0; i < duplicateCount; i++ )
+            final Tuple tuple = tuples.get( i );
+            for ( int k = 0; k < duplicateCount; k++ )
             {
                 ctx.output( tuple );
             }

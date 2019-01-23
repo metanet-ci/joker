@@ -39,7 +39,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class ModelTest extends AbstractJokerTest
 {
-    private static final int JOKER_APPLICATION_RUNNING_TIME_IN_SECONDS = 120;
+    private static final int JOKER_APPLICATION_RUNNING_TIME_IN_SECONDS = 45;
     private static final int JOKER_APPLICATION_WARM_UP_TIME_IN_SECONDS = 10;
     private static final String TEST_OUTPUT_FILE_PATH = String.format(
             "target/surefire-reports/%s-output.txt", ModelTest.class.getCanonicalName());
@@ -228,14 +228,13 @@ public class ModelTest extends AbstractJokerTest
             testCustomizer.accept( joker, execPlan );
             sleepUninterruptibly( JOKER_APPLICATION_RUNNING_TIME_IN_SECONDS, SECONDS );
             joker.shutdown().join();
-
             return retrieveThroughput();
         }
     }
 
     private FlowDef buildStatelessTopology ()
     {
-        final int emittedTupleCountPerSourceInvocation = 1;
+        final int emittedTupleCountPerSourceInvocation = 4;
 
         final ValueGenerator valueGenerator = new ValueGenerator( KEY_RANGE );
         final OperatorConfig sourceConfig = new OperatorConfig().set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator )

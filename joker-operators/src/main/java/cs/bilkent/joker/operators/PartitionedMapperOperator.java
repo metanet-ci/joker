@@ -1,5 +1,6 @@
 package cs.bilkent.joker.operators;
 
+import java.util.List;
 import java.util.function.BiConsumer;
 
 import cs.bilkent.joker.operator.InitCtx;
@@ -43,8 +44,10 @@ public class PartitionedMapperOperator implements Operator
     @Override
     public void invoke ( final InvocationCtx ctx )
     {
-        for ( Tuple input : ctx.getInputTuplesByDefaultPort() )
+        final List<Tuple> tuples = ctx.getInputTuplesByDefaultPort();
+        for ( int i = 0, j = tuples.size(); i < j; i++ )
         {
+            final Tuple input = tuples.get( i );
             final Tuple result = new Tuple( outputSchema );
             mapper.accept( input, result );
             result.attachTo( input );

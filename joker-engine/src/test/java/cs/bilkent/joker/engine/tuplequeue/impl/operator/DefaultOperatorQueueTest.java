@@ -147,7 +147,7 @@ public class DefaultOperatorQueueTest extends AbstractJokerTest
 
         for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
         {
-            List<Tuple> tuples = output.getTuplesModifiable( portIndex );
+            List<Tuple> tuples = output.getTuples( portIndex );
             assertThat( tuples.size(), equalTo( tupleCount ) );
 
             for ( int tupleIndex = 1; tupleIndex <= tupleCount; tupleIndex++ )
