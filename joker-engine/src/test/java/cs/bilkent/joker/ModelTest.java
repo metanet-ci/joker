@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -47,7 +46,7 @@ public class ModelTest extends AbstractJokerTest
     private static final String THROUGHPUT_RETRIEVER_FILE_PATH = "src/test/resources/grepThroughput.sh";
 
     private static final int KEY_RANGE = 1000;
-    private static final int MULTIPLICATION_COUNT = 100;
+    private static final int MULTIPLICATION_COUNT = 1000;
     private static final int MULTIPLIER_VALUE = 271;
 
 
@@ -197,9 +196,10 @@ public class ModelTest extends AbstractJokerTest
             }
             String[] throughputStrings = throughputOutputString.split( System.lineSeparator() );
             final int currentThroughputCount = throughputStrings.length;
-            if (currentThroughputCount == lastThroughputCount)
+            final int numNewThroughputs = currentThroughputCount - lastThroughputCount;
+            if (numNewThroughputs == 0)
             {
-                throw new RuntimeException("failed to find new throughput values");
+                throw new RuntimeException( "failed to find new throughput values" );
             }
             throughputStrings = Arrays.copyOfRange(throughputStrings, lastThroughputCount, currentThroughputCount);
             lastThroughputCount = currentThroughputCount;
@@ -213,7 +213,14 @@ public class ModelTest extends AbstractJokerTest
 
         double runTestAndGetThroughput ()
         {
-            return runTestAndGetThroughput( (joker, execPlan) ->  {} );
+            final Joker joker = new JokerBuilder().setJokerConfig( config ).build();
+            joker.run( flow );
+            sleepUninterruptibly( JOKER_APPLICATION_WARM_UP_TIME_IN_SECONDS, SECONDS );
+            retrieveThroughput();
+            sleepUninterruptibly( JOKER_APPLICATION_RUNNING_TIME_IN_SECONDS, SECONDS );
+            double throughput = retrieveThroughput();
+            joker.shutdown().join();
+            return throughput;
         }
 
         double runTestAndGetThroughput ( final BiConsumer<Joker, FlowExecPlan> testCustomizer )
@@ -221,10 +228,13 @@ public class ModelTest extends AbstractJokerTest
             final Joker joker = new JokerBuilder().setJokerConfig( config ).build();
             final FlowExecPlan execPlan = joker.run( flow );
             sleepUninterruptibly( JOKER_APPLICATION_WARM_UP_TIME_IN_SECONDS, SECONDS );
-            testCustomizer.accept( joker, execPlan );
+            testCustomizer.accept(joker, execPlan);
+            sleepUninterruptibly( JOKER_APPLICATION_WARM_UP_TIME_IN_SECONDS, SECONDS );
+            retrieveThroughput();
             sleepUninterruptibly( JOKER_APPLICATION_RUNNING_TIME_IN_SECONDS, SECONDS );
+            double throughput = retrieveThroughput();
             joker.shutdown().join();
-            return retrieveThroughput();
+            return throughput;
         }
     }
 
