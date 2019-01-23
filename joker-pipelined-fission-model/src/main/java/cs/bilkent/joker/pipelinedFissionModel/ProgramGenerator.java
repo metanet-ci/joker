@@ -1,9 +1,9 @@
-package cs.bilkent.joker.test.pipelinedFissionModel;
+package cs.bilkent.joker.pipelinedFissionModel;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import cs.bilkent.joker.test.pipelinedFissionModel.scalabilityFunction.LinearScalabilityFunction;
+import cs.bilkent.joker.pipelinedFissionModel.scalabilityFunction.LinearScalabilityFunction;
 
 public class ProgramGenerator
 {

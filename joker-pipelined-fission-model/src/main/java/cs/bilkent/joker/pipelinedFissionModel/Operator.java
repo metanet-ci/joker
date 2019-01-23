@@ -1,8 +1,8 @@
-package cs.bilkent.joker.test.pipelinedFissionModel;
+package cs.bilkent.joker.pipelinedFissionModel;
 
 import java.util.ArrayList;
 
-import cs.bilkent.joker.test.pipelinedFissionModel.scalabilityFunction.ScalabilityFunction;
+import cs.bilkent.joker.pipelinedFissionModel.scalabilityFunction.ScalabilityFunction;
 
 public class Operator
 {

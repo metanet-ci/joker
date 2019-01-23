@@ -1,4 +1,4 @@
-package cs.bilkent.joker.test.pipelinedFissionModel.scalabilityFunction;
+package cs.bilkent.joker.pipelinedFissionModel.scalabilityFunction;
 
 public abstract class ScalabilityFunction
 {

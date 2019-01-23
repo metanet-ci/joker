@@ -14,6 +14,7 @@
         <module>joker-operator-api</module>
         <module>joker-operators</module>
         <module>joker-engine</module>
+        <module>joker-pipelined-fission-model</module>
         <!--<module>joker-pcj</module>-->
         <module>joker-examples</module>
         <module>joker-experiments</module>

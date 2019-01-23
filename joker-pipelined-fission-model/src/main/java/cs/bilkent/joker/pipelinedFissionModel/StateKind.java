@@ -1,4 +1,4 @@
-package cs.bilkent.joker.test.pipelinedFissionModel;
+package cs.bilkent.joker.pipelinedFissionModel;
 
 public enum StateKind
 {
