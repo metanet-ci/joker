@@ -70,12 +70,6 @@ import static cs.bilkent.joker.engine.util.RegionUtils.getFirstOperator;
 import cs.bilkent.joker.flow.FlowDef;
 import cs.bilkent.joker.flow.Port;
 import cs.bilkent.joker.operator.OperatorDef;
-import cs.bilkent.joker.operator.Tuple;
-import cs.bilkent.joker.operator.Tuple.LatencyStage;
-import cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType;
-import static cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType.INTER_ARRIVAL_TIME;
-import static cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType.QUEUE_WAITING_TIME;
-import static cs.bilkent.joker.operator.Tuple.LatencyStage.LatencyStageType.SERVICE_TIME;
 import cs.bilkent.joker.operator.impl.TuplesImpl;
 import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import static cs.bilkent.joker.operator.spec.OperatorType.STATEFUL;
@@ -1228,62 +1222,63 @@ public class PipelineManagerImpl implements PipelineManager
         @Override
         public void accept ( final TuplesImpl tuples )
         {
-            final long now = System.nanoTime();
-
-            if ( loop++ % 100 == 0 )
-            {
-                if ( now - last >= pipelineMetricsScanningPeriodNs )
-                {
-                    last = now;
-                    if ( latencyMeter.publish() )
-                    {
-                        LOGGER.warn( "MetricManager missed a published set of latency records..." );
-                    }
-                }
-            }
-
-            for ( int i = 0; i < tuples.getPortCount(); i++ )
-            {
-                final List<Tuple> l = tuples.getTuples( i );
-                for ( int j = 0; j < l.size(); j++ )
-                {
-                    final Tuple tuple = l.get( j );
-
-                    latencyMeter.recordTuple( tuple.getLatency( now ) );
-
-                    final List<LatencyStage> stages = tuple.getLatencyStages();
-                    if ( stages == null )
-                    {
-                        continue;
-                    }
-
-                    for ( int k = 0; k < stages.size(); k++ )
-                    {
-                        final LatencyStage stage = stages.get( k );
-                        final String operatorId = stage.getOperatorId();
-                        final long duration = stage.getDuration();
-                        final LatencyStageType type = stage.getType();
-                        if ( type == SERVICE_TIME )
-                        {
-                            assert stage.getTimes() == 1;
-                            latencyMeter.recordServiceTime( operatorId, duration );
-                        }
-                        else if ( type == QUEUE_WAITING_TIME )
-                        {
-                            assert stage.getTimes() == 1;
-                            latencyMeter.recordQueueWaitingTime( operatorId, duration );
-                        }
-                        else if ( type == INTER_ARRIVAL_TIME )
-                        {
-                            latencyMeter.recordInterArrivalTime( operatorId, duration, stage.getTimes() );
-                        }
-                        else
-                        {
-                            throw new IllegalArgumentException( "Invalid latency stage type: " + type + " for operator: " + operatorId );
-                        }
-                    }
-                }
-            }
+            // TODO FIX_LATENCY
+            //            final long now = System.nanoTime();
+            //
+            //            if ( loop++ % 100 == 0 )
+            //            {
+            //                if ( now - last >= pipelineMetricsScanningPeriodNs )
+            //                {
+            //                    last = now;
+            //                    if ( latencyMeter.publish() )
+            //                    {
+            //                        LOGGER.warn( "MetricManager missed a published set of latency records..." );
+            //                    }
+            //                }
+            //            }
+            //
+            //            for ( int i = 0; i < tuples.getPortCount(); i++ )
+            //            {
+            //                final List<Tuple> l = tuples.getTuples( i );
+            //                for ( int j = 0; j < l.size(); j++ )
+            //                {
+            //                    final Tuple tuple = l.get( j );
+            //
+            //                    latencyMeter.recordTuple( tuple.getLatency( now ) );
+            //
+            //                    final List<LatencyStage> stages = tuple.getLatencyStages();
+            //                    if ( stages == null )
+            //                    {
+            //                        continue;
+            //                    }
+            //
+            //                    for ( int k = 0; k < stages.size(); k++ )
+            //                    {
+            //                        final LatencyStage stage = stages.get( k );
+            //                        final String operatorId = stage.getOperatorId();
+            //                        final long duration = stage.getDuration();
+            //                        final LatencyStageType type = stage.getType();
+            //                        if ( type == SERVICE_TIME )
+            //                        {
+            //                            assert stage.getTimes() == 1;
+            //                            latencyMeter.recordServiceTime( operatorId, duration );
+            //                        }
+            //                        else if ( type == QUEUE_WAITING_TIME )
+            //                        {
+            //                            assert stage.getTimes() == 1;
+            //                            latencyMeter.recordQueueWaitingTime( operatorId, duration );
+            //                        }
+            //                        else if ( type == INTER_ARRIVAL_TIME )
+            //                        {
+            //                            latencyMeter.recordInterArrivalTime( operatorId, duration, stage.getTimes() );
+            //                        }
+            //                        else
+            //                        {
+            //                            throw new IllegalArgumentException( "Invalid latency stage type: " + type + " for operator: " + operatorId );
+            //                        }
+            //                    }
+            //                }
+            //            }
         }
     }
 

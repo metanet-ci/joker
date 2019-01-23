@@ -472,8 +472,10 @@ public class MetricManagerImpl implements MetricManager
                 if ( publish )
                 {
                     final int newPeriod = getNewPeriod();
-                    final Map<Pair<String, Integer>, LatencyMetricsHistory> latencyMetricsHistories = getLatencyMetrics( newPeriod );
-                    metrics = new FlowMetrics( newPeriod, pipelineMetricsHistories, latencyMetricsHistories );
+                    // TODO FIX_LATENCY
+                    //                    final Map<Pair<String, Integer>, LatencyMetricsHistory> latencyMetricsHistories =
+                    //                    getLatencyMetrics( newPeriod );
+                    metrics = new FlowMetrics( newPeriod, pipelineMetricsHistories, Collections.emptyMap() );
                 }
 
                 final long timeSpent = System.nanoTime() - scanStartTimeInNanos;
@@ -643,6 +645,7 @@ public class MetricManagerImpl implements MetricManager
                 pipelineMetricsHistory.getLatest().visit( logVisitor );
             }
 
+            // TODO FIX_LATENCY
             //            for ( LatencyMetricsHistory latencyMetricsHistory : metrics.getLatencyMetricsHistories() )
             for ( LatencyMetricsHistory latencyMetricsHistory : Collections.<LatencyMetricsHistory>emptyList() )
             {
