@@ -42,7 +42,8 @@ public class InterArrivalTimeTracker implements DownstreamCollector
     @Override
     public void accept ( final TuplesImpl tuples )
     {
-        trackInterArrivalTime( tuples );
+        // TODO FIX_LATENCY
+        //        trackInterArrivalTime( tuples );
         downstream.accept( tuples );
     }
 

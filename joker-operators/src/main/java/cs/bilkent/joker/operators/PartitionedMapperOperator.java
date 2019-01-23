@@ -48,9 +48,11 @@ public class PartitionedMapperOperator implements Operator
         for ( int i = 0, j = tuples.size(); i < j; i++ )
         {
             final Tuple input = tuples.get( i );
-            final Tuple result = new Tuple( outputSchema );
+            // TODO provide output schema to the Tuple c'tor
+            final Tuple result = new Tuple();
             mapper.accept( input, result );
-            result.attachTo( input );
+            // TODO FIX_LATENCY
+            //            result.attachTo( input );
             ctx.output( result );
         }
     }
