@@ -20,6 +20,8 @@ import cs.bilkent.joker.operator.schema.runtime.RuntimeSchemaField;
 import cs.bilkent.joker.operator.schema.runtime.TupleSchema;
 import static cs.bilkent.joker.operator.schema.runtime.TupleSchema.FIELD_NOT_FOUND;
 import static java.lang.Math.max;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 
 
 /**
@@ -67,6 +69,17 @@ public final class Tuple implements Fields<String>
 
         EMPTY_SCHEMA_INITIAL_CAPACITY = sysArg != -1 ? sysArg : DEFAULT_EMPTY_SCHEMA_INITIAL_CAPACITY;
     }
+
+    private static List[] POPULATORS = new List[] { singletonList( null ),
+                                                    asList( null, null ),
+                                                    asList( null, null, null ),
+                                                    asList( null, null, null, null ),
+                                                    asList( null, null, null, null, null ),
+                                                    asList( null, null, null, null, null, null ),
+                                                    asList( null, null, null, null, null, null, null ),
+                                                    asList( null, null, null, null, null, null, null, null ),
+                                                    asList( null, null, null, null, null, null, null, null, null ),
+                                                    asList( null, null, null, null, null, null, null, null, null, null ), };
 
     private static final int EMPTY_SCHEMA_INITIAL_CAPACITY;
 
@@ -214,10 +227,18 @@ public final class Tuple implements Fields<String>
     public Tuple ( final TupleSchema schema )
     {
         this.schema = schema;
-        this.values = new ArrayList<>( schema.getFieldCount() );
-        for ( int i = 0; i < schema.getFieldCount(); i++ )
+        final int fieldCount = schema.getFieldCount();
+        this.values = new ArrayList<>( fieldCount );
+        if ( fieldCount > 0 && fieldCount <= 10 )
         {
-            this.values.add( null );
+            this.values.addAll( POPULATORS[ fieldCount - 1 ] );
+        }
+        else
+        {
+            for ( int i = 0; i < fieldCount; i++ )
+            {
+                this.values.add( null );
+            }
         }
     }
 
