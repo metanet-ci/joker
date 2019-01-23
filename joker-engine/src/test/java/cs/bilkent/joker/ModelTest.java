@@ -47,7 +47,7 @@ public class ModelTest extends AbstractJokerTest
     private static final String THROUGHPUT_RETRIEVER_FILE_PATH = "src/test/resources/grepThroughput.sh";
 
     private static final int KEY_RANGE = 1000;
-    private static final int MULTIPLICATION_COUNT = 1000;
+    private static final int MULTIPLICATION_COUNT = 100;
     private static final int MULTIPLIER_VALUE = 271;
 
 
