@@ -1,16 +1,10 @@
 package cs.bilkent.joker;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -42,14 +36,10 @@ public class ModelTest extends AbstractJokerTest
 {
     private static final int JOKER_APPLICATION_RUNNING_TIME_IN_SECONDS = 50;
     private static final int JOKER_APPLICATION_WARM_UP_TIME_IN_SECONDS = 10;
-    private static final String TEST_OUTPUT_FILE_PATH = String.format( "target/surefire-reports/%s-output.txt",
-                                                                       ModelTest.class.getCanonicalName() );
-    private static final String THROUGHPUT_RETRIEVER_FILE_PATH = "src/test/resources/grepThroughput.sh";
 
     private static final int KEY_RANGE = 1000;
-    private static final int MULTIPLICATION_COUNT = 100;
+    private static final int MULTIPLICATION_COUNT = 1000;
     private static final int MULTIPLIER_VALUE = 271;
-
 
     static class ValueGenerator implements Consumer<Tuple>
     {
@@ -91,9 +81,19 @@ public class ModelTest extends AbstractJokerTest
         }
     }
 
+    private static class ThroughputRetriever extends cs.bilkent.joker.test.ThroughputRetriever
+    {
+        private static final String PIPELINE_SPECIFICATION = "P[1][0][0]";
+
+        ThroughputRetriever() throws Exception
+        {
+            super(PIPELINE_SPECIFICATION, ModelTest.class);
+        }
+    }
 
     private static class TestExecutionHelper
     {
+
         private final JokerConfig config;
         private final FlowDef flow;
 
@@ -117,7 +117,7 @@ public class ModelTest extends AbstractJokerTest
             config = configBuilder.build();
         }
 
-        double runTestAndGetThroughput ()
+        double runTestAndGetThroughput () throws Exception
         {
             final Joker joker = new JokerBuilder().setJokerConfig( config ).build();
             joker.run( flow );
@@ -129,7 +129,7 @@ public class ModelTest extends AbstractJokerTest
             return throughput;
         }
 
-        double runTestAndGetThroughput ( final BiConsumer<Joker, FlowExecPlan> testCustomizer )
+        double runTestAndGetThroughput ( final BiConsumer<Joker, FlowExecPlan> testCustomizer ) throws Exception
         {
             final Joker joker = new JokerBuilder().setJokerConfig( config ).build();
             final FlowExecPlan execPlan = joker.run( flow );
@@ -141,121 +141,6 @@ public class ModelTest extends AbstractJokerTest
             double throughput = throughputRetriever.retrieveThroughput();
             joker.shutdown().join();
             return throughput;
-        }
-    }
-
-
-    private static class ThroughputRetriever
-    {
-        private static final String PIPELINE_SPECIFICATION = "P[1][0][0]";
-
-        private int lastThroughputValueCount;
-
-        ThroughputRetriever ()
-        {
-            lastThroughputValueCount = retrieveThroughputValues().size();
-        }
-
-        public double retrieveThroughput ()
-        {
-            final List<Double> throughputValues = retrieveThroughputValues();
-            final int currentThroughputValueCount = throughputValues.size();
-            final int numNewThroughputValueCount = currentThroughputValueCount - lastThroughputValueCount;
-            if ( numNewThroughputValueCount == 0 )
-            {
-                throw new RuntimeException( "failed to find new throughput values" );
-            }
-            final double throughput = throughputValues.subList( lastThroughputValueCount, currentThroughputValueCount )
-                                                      .stream()
-                                                      .mapToDouble( Double::doubleValue )
-                                                      .average()
-                                                      .getAsDouble();
-            lastThroughputValueCount = currentThroughputValueCount;
-            return throughput;
-        }
-
-        private static List<Double> retrieveThroughputValues ()
-        {
-            final File outputFile;
-            try
-            {
-                outputFile = File.createTempFile( "standardErrorAndOutput-", "txt" );
-            }
-            catch ( final IOException e )
-            {
-                throw new RuntimeException( "failed to create a temporary file for the standard error/output of the throughput retriever",
-                                            e );
-            }
-            outputFile.deleteOnExit();
-            final File throughputFile;
-            try
-            {
-                throughputFile = File.createTempFile( "throughput-", "txt" );
-            }
-            catch ( final IOException e )
-            {
-                throw new RuntimeException( "failed to create a throughput file for the throughput retriever", e );
-            }
-            throughputFile.deleteOnExit();
-            final Process process;
-            try
-            {
-                process = new ProcessBuilder().command( THROUGHPUT_RETRIEVER_FILE_PATH,
-                                                        TEST_OUTPUT_FILE_PATH,
-                                                        PIPELINE_SPECIFICATION,
-                                                        throughputFile.toString() )
-                                              .inheritIO()
-                                              .redirectErrorStream( true )
-                                              .redirectOutput( outputFile )
-                                              .start();
-            }
-            catch ( final IOException e )
-            {
-                throw new RuntimeException( "failed to launch the throughput retriever process", e );
-            }
-            final int exitValue;
-            try
-            {
-                exitValue = process.waitFor();
-            }
-            catch ( final InterruptedException e )
-            {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException( "interrupted while waiting for the throughput retriever to complete", e );
-            }
-            if ( exitValue != 0 )
-            {
-                String outputString;
-                try
-                {
-                    outputString = readFileContents( outputFile );
-                }
-                catch ( final IOException e )
-                {
-                    outputString = "<failed to retrieve the script output>";
-                }
-                throw new RuntimeException( String.format(
-                        "failed to execute the throughput retriever process, the exit value was %d, the combined standard output/error "
-                        + "was:\n%s",
-                        exitValue,
-                        outputString ) );
-            }
-            final String throughputOutputString;
-            try
-            {
-                throughputOutputString = readFileContents( throughputFile );
-            }
-            catch ( final IOException e )
-            {
-                throw new RuntimeException( "failed to read the throughput file", e );
-            }
-            final String[] throughputStrings = throughputOutputString.split( System.lineSeparator() );
-            return Arrays.stream( throughputStrings ).map( Double::parseDouble ).collect( Collectors.toList() );
-        }
-
-        private static String readFileContents ( final File file ) throws IOException
-        {
-            return new String( Files.readAllBytes( file.toPath() ), StandardCharsets.UTF_8 );
         }
     }
 
@@ -408,7 +293,7 @@ public class ModelTest extends AbstractJokerTest
     }
 
     @Test
-    public void test_discover_thread_switching_overhead ()
+    public void test_discover_thread_switching_overhead () throws Exception
     {
         TestExecutionHelper testExecutionHelper = new TestExecutionHelper( buildStatelessTopology() );
         final double sequentialThroughput = testExecutionHelper.runTestAndGetThroughput();
@@ -428,7 +313,7 @@ public class ModelTest extends AbstractJokerTest
     }
 
     @Test
-    public void test_discover_replication_cost_factor ()
+    public void test_discover_replication_cost_factor () throws Exception
     {
         final int numReplicas = 4;
         TestExecutionHelper testExecutionHelper = new TestExecutionHelper( buildPartitionedStatefulTopology() );
