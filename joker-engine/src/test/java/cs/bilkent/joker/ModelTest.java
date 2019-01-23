@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -87,7 +89,6 @@ public class ModelTest extends AbstractJokerTest
             }
         }
     }
-
 
     private class TestExecutionHelper
     {
@@ -214,7 +215,12 @@ public class ModelTest extends AbstractJokerTest
             return new String( Files.readAllBytes( file.toPath() ), StandardCharsets.UTF_8 );
         }
 
-        private double runTestAndGetThroughput ( final BiConsumer<Joker, FlowExecPlan> testCustomizer )
+        double runTestAndGetThroughput ()
+        {
+            return runTestAndGetThroughput( (joker, execPlan) ->  {} );
+        }
+
+        double runTestAndGetThroughput ( final BiConsumer<Joker, FlowExecPlan> testCustomizer )
         {
             final Joker joker = new JokerBuilder().setJokerConfig( config ).build();
             final FlowExecPlan execPlan = joker.run( flow );
@@ -225,39 +231,6 @@ public class ModelTest extends AbstractJokerTest
 
             return retrieveThroughput();
         }
-
-        double runThreadSwitchingOverheadTestAndGetThroughput ( final boolean splitPipeline )
-        {
-            return runTestAndGetThroughput( ( joker, execPlan ) -> {
-                if ( splitPipeline )
-                {
-                    final RegionExecPlan partitionedStatefulRegionExecPlan = getProcessingRegion( execPlan );
-                    // the partitioned stateful region has a single pipeline, which contains 2 operators.
-                    // splits the pipeline from the 2nd operator (operatorIndex=1), which is the last parameter
-                    joker.splitPipeline( execPlan.getVersion(), partitionedStatefulRegionExecPlan.getPipelineId( 0 ), singletonList( 1 ) )
-                         .join();
-                }
-            } );
-        }
-    }
-
-    @Test
-    public void test_discover_thread_switching_overhead ()
-    {
-        final boolean splitPipeline = true;
-
-        TestExecutionHelper testExecutionHelper = new TestExecutionHelper( buildStatelessTopology() );
-        final double sequentialThroughput = testExecutionHelper.runThreadSwitchingOverheadTestAndGetThroughput( !splitPipeline );
-        System.out.println( String.format( "Sequential throughput is %.2f", sequentialThroughput ) );
-
-        testExecutionHelper = new TestExecutionHelper( buildStatelessTopology() );
-        final double parallelThroughput = testExecutionHelper.runThreadSwitchingOverheadTestAndGetThroughput( splitPipeline );
-        System.out.println( String.format( "Parallel throughput is %.2f", parallelThroughput ) );
-
-        // Computed based on Eq 17 from the earlier JPDC paper
-        final double threadSwitchingOverhead = 1.0 / parallelThroughput - 0.5 / sequentialThroughput;
-        System.out.println( String.format( "Thread switching overhead is %.4f", threadSwitchingOverhead ) );
-        // Value found in Bugra's machine: 0 :)
     }
 
     private FlowDef buildStatelessTopology ()
@@ -266,23 +239,23 @@ public class ModelTest extends AbstractJokerTest
 
         final ValueGenerator valueGenerator = new ValueGenerator( KEY_RANGE );
         final OperatorConfig sourceConfig = new OperatorConfig().set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator )
-                                                                .set( BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER,
-                                                                      emittedTupleCountPerSourceInvocation );
+                .set( BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER,
+                        emittedTupleCountPerSourceInvocation );
 
         final OperatorRuntimeSchema sourceSchema = new OperatorRuntimeSchemaBuilder( 0, 1 ).addOutputField( 0, "key", Integer.class )
-                                                                                           .addOutputField( 0, "value", Integer.class )
-                                                                                           .build();
+                .addOutputField( 0, "value", Integer.class )
+                .build();
 
         final OperatorDef source = OperatorDefBuilder.newInstance( "src", BeaconOperator.class )
-                                                     .setConfig( sourceConfig )
-                                                     .setExtendingSchema( sourceSchema )
-                                                     .build();
+                .setConfig( sourceConfig )
+                .setExtendingSchema( sourceSchema )
+                .build();
 
         final OperatorRuntimeSchema multiplier1Schema = new OperatorRuntimeSchemaBuilder( 1, 1 ).addInputField( 0, "key", Integer.class )
-                                                                                                .addInputField( 0, "value", Integer.class )
-                                                                                                .addOutputField( 0, "key", Integer.class )
-                                                                                                .addOutputField( 0, "mult1", Integer.class )
-                                                                                                .build();
+                .addInputField( 0, "value", Integer.class )
+                .addOutputField( 0, "key", Integer.class )
+                .addOutputField( 0, "mult1", Integer.class )
+                .build();
 
         final BiConsumer<Tuple, Tuple> multiplier1Func = ( input, output ) -> {
             int val = input.getInteger( "value" );
@@ -297,15 +270,15 @@ public class ModelTest extends AbstractJokerTest
         final OperatorConfig multiplier1Config = new OperatorConfig().set( MapperOperator.MAPPER_CONFIG_PARAMETER, multiplier1Func );
 
         final OperatorDef multiplier1 = OperatorDefBuilder.newInstance( "mult1", MapperOperator.class )
-                                                          .setExtendingSchema( multiplier1Schema )
-                                                          .setConfig( multiplier1Config )
-                                                          .build();
+                .setExtendingSchema( multiplier1Schema )
+                .setConfig( multiplier1Config )
+                .build();
 
         final OperatorRuntimeSchema multiplier2Schema = new OperatorRuntimeSchemaBuilder( 1, 1 ).addInputField( 0, "key", Integer.class )
-                                                                                                .addInputField( 0, "mult1", Integer.class )
-                                                                                                .addOutputField( 0, "key", Integer.class )
-                                                                                                .addOutputField( 0, "mult2", Integer.class )
-                                                                                                .build();
+                .addInputField( 0, "mult1", Integer.class )
+                .addOutputField( 0, "key", Integer.class )
+                .addOutputField( 0, "mult2", Integer.class )
+                .build();
 
         final BiConsumer<Tuple, Tuple> multiplier2Func = ( input, output ) -> {
             int val = input.getInteger( "mult1" );
@@ -320,16 +293,16 @@ public class ModelTest extends AbstractJokerTest
         final OperatorConfig multiplier2Config = new OperatorConfig().set( MapperOperator.MAPPER_CONFIG_PARAMETER, multiplier2Func );
 
         final OperatorDef multiplier2 = OperatorDefBuilder.newInstance( "mult2", MapperOperator.class )
-                                                          .setExtendingSchema( multiplier2Schema )
-                                                          .setConfig( multiplier2Config )
-                                                          .build();
+                .setExtendingSchema( multiplier2Schema )
+                .setConfig( multiplier2Config )
+                .build();
 
         return new FlowDefBuilder().add( source )
-                                   .add( multiplier1 )
-                                   .add( multiplier2 )
-                                   .connect( source.getId(), multiplier1.getId() )
-                                   .connect( multiplier1.getId(), multiplier2.getId() )
-                                   .build();
+                .add( multiplier1 )
+                .add( multiplier2 )
+                .connect( source.getId(), multiplier1.getId() )
+                .connect( multiplier1.getId(), multiplier2.getId() )
+                .build();
     }
 
     public FlowDef buildPartitionedStatefulTopology ()
@@ -338,23 +311,23 @@ public class ModelTest extends AbstractJokerTest
 
         final ValueGenerator valueGenerator = new ValueGenerator( KEY_RANGE );
         final OperatorConfig sourceConfig = new OperatorConfig().set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator )
-                                                                .set( BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER,
-                                                                      emittedTupleCountPerSourceInvocation );
+                .set( BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER,
+                        emittedTupleCountPerSourceInvocation );
 
         final OperatorRuntimeSchema sourceSchema = new OperatorRuntimeSchemaBuilder( 0, 1 ).addOutputField( 0, "key", Integer.class )
-                                                                                           .addOutputField( 0, "value", Integer.class )
-                                                                                           .build();
+                .addOutputField( 0, "value", Integer.class )
+                .build();
 
         final OperatorDef source = OperatorDefBuilder.newInstance( "src", BeaconOperator.class )
-                                                     .setConfig( sourceConfig )
-                                                     .setExtendingSchema( sourceSchema )
-                                                     .build();
+                .setConfig( sourceConfig )
+                .setExtendingSchema( sourceSchema )
+                .build();
 
         final OperatorRuntimeSchema multiplier1Schema = new OperatorRuntimeSchemaBuilder( 1, 1 ).addInputField( 0, "key", Integer.class )
-                                                                                                .addInputField( 0, "value", Integer.class )
-                                                                                                .addOutputField( 0, "key", Integer.class )
-                                                                                                .addOutputField( 0, "mult1", Integer.class )
-                                                                                                .build();
+                .addInputField( 0, "value", Integer.class )
+                .addOutputField( 0, "key", Integer.class )
+                .addOutputField( 0, "mult1", Integer.class )
+                .build();
 
         final BiConsumer<Tuple, Tuple> multiplier1Func = ( input, output ) -> {
             int val = input.getInteger( "value" );
@@ -367,19 +340,19 @@ public class ModelTest extends AbstractJokerTest
         };
 
         final OperatorConfig multiplier1Config = new OperatorConfig().set( PartitionedMapperOperator.MAPPER_CONFIG_PARAMETER,
-                                                                           multiplier1Func );
+                multiplier1Func );
 
         final OperatorDef multiplier1 = OperatorDefBuilder.newInstance( "mult1", PartitionedMapperOperator.class )
-                                                          .setExtendingSchema( multiplier1Schema )
-                                                          .setConfig( multiplier1Config )
-                                                          .setPartitionFieldNames( singletonList( "key" ) )
-                                                          .build();
+                .setExtendingSchema( multiplier1Schema )
+                .setConfig( multiplier1Config )
+                .setPartitionFieldNames( singletonList( "key" ) )
+                .build();
 
         final OperatorRuntimeSchema multiplier2Schema = new OperatorRuntimeSchemaBuilder( 1, 1 ).addInputField( 0, "key", Integer.class )
-                                                                                                .addInputField( 0, "mult1", Integer.class )
-                                                                                                .addOutputField( 0, "key", Integer.class )
-                                                                                                .addOutputField( 0, "mult2", Integer.class )
-                                                                                                .build();
+                .addInputField( 0, "mult1", Integer.class )
+                .addOutputField( 0, "key", Integer.class )
+                .addOutputField( 0, "mult2", Integer.class )
+                .build();
 
         final BiConsumer<Tuple, Tuple> multiplier2Func = ( input, output ) -> {
             int val = input.getInteger( "mult1" );
@@ -392,38 +365,60 @@ public class ModelTest extends AbstractJokerTest
         };
 
         final OperatorConfig multiplier2Config = new OperatorConfig().set( PartitionedMapperOperator.MAPPER_CONFIG_PARAMETER,
-                                                                           multiplier2Func );
+                multiplier2Func );
 
         final OperatorDef multiplier2 = OperatorDefBuilder.newInstance( "mult2", PartitionedMapperOperator.class )
-                                                          .setExtendingSchema( multiplier2Schema )
-                                                          .setConfig( multiplier2Config )
-                                                          .setPartitionFieldNames( singletonList( "key" ) )
-                                                          .build();
+                .setExtendingSchema( multiplier2Schema )
+                .setConfig( multiplier2Config )
+                .setPartitionFieldNames( singletonList( "key" ) )
+                .build();
 
         return new FlowDefBuilder().add( source )
-                                   .add( multiplier1 )
-                                   .add( multiplier2 )
-                                   .connect( source.getId(), multiplier1.getId() )
-                                   .connect( multiplier1.getId(), multiplier2.getId() )
-                                   .build();
+                .add( multiplier1 )
+                .add( multiplier2 )
+                .connect( source.getId(), multiplier1.getId() )
+                .connect( multiplier1.getId(), multiplier2.getId() )
+                .build();
     }
 
     @Test
-    public void test_replication_cost_factor ()
+    public void test_discover_thread_switching_overhead ()
     {
-        // TODO: Implement this
-        /*
-        final Joker joker = new JokerBuilder().setJokerConfig(config).build();
-        final FlowExecPlan execPlan = joker.run(flow);
+        TestExecutionHelper testExecutionHelper = new TestExecutionHelper( buildStatelessTopology() );
+        final double sequentialThroughput = testExecutionHelper.runTestAndGetThroughput();
+        testExecutionHelper = new TestExecutionHelper( buildStatelessTopology() );
+        final double parallelThroughput = testExecutionHelper.runTestAndGetThroughput((joker, execPlan) -> {
+                final RegionExecPlan partitionedStatefulRegionExecPlan = getProcessingRegion( execPlan );
+                // the partitioned stateful region has a single pipeline, which contains 2 operators.
+                // splits the pipeline from the 2nd operator (operatorIndex=1), which is the last parameter
+                joker.splitPipeline( execPlan.getVersion(), partitionedStatefulRegionExecPlan.getPipelineId( 0 ), singletonList( 1 ) )
+                        .join();
+        });
+        System.out.println( String.format( "Sequential throughput is %.2f", sequentialThroughput ) );
+        System.out.println( String.format( "Parallel throughput is %.2f", parallelThroughput ) );
+        // Computed based on Eq 17 from the earlier JPDC paper
+        final double threadSwitchingOverhead = 1.0 / parallelThroughput - 0.5 / sequentialThroughput;
+        System.out.println( String.format( "Multiplication cost is %.2e", 1.0 / (MULTIPLICATION_COUNT * sequentialThroughput ) ) );
+        System.out.println( String.format( "Thread switching overhead is %.2e", threadSwitchingOverhead ) );
+    }
 
-        sleepUninterruptibly(10, SECONDS);
-
-        // uncomment the following lines to change replica count
-        //        int newReplicaCount = 2;
-        //        joker.rebalanceRegion( execPlan.getVersion(), getProcessingRegion( execPlan ).getRegionId(), newReplicaCount);
-
-        sleepUninterruptibly(120, SECONDS);
-        */
+    @Test
+    public void test_discover_replication_cost_factor ()
+    {
+        final int numReplicas = 4;
+        TestExecutionHelper testExecutionHelper = new TestExecutionHelper( buildPartitionedStatefulTopology() );
+        final double sequentialThroughput = testExecutionHelper.runTestAndGetThroughput();
+        testExecutionHelper = new TestExecutionHelper( buildPartitionedStatefulTopology() );
+        final double parallelThroughput = testExecutionHelper.runTestAndGetThroughput((joker, execPlan) -> {
+            joker.rebalanceRegion( execPlan.getVersion(), getProcessingRegion( execPlan ).getRegionId(), numReplicas);
+        });
+        System.out.println( String.format( "Sequential throughput is %.2f", sequentialThroughput ) );
+        System.out.println( String.format( "Parallel throughput is %.2f", parallelThroughput ) );
+        final Function<Double, Double> log2 = value -> Math.log(value) / Math.log(2.0);
+        // Computed based on Eq 18 from the earlier JPDC paper
+        final double replicationCostFactor = (1.0 / (numReplicas * sequentialThroughput) - 1.0 / parallelThroughput) /
+                (log2.apply(1.0) / numReplicas - log2.apply((double) numReplicas));
+        System.out.println( String.format( "Replication cost factor is %.2e", replicationCostFactor ) );
     }
 
     @NotNull
