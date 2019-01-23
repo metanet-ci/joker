@@ -102,7 +102,8 @@ public class TupleCountBasedWindowReducerOperator implements Operator
                 currentTupleCount = 0;
                 accumulator.set( WINDOW_FIELD, windowCount++ );
 
-                accumulator.attachTo( input );
+                // TODO FIX_LATENCY
+                //                accumulator.attachTo( input );
                 ctx.output( accumulator );
                 accumulator = accumulatorSupplier.get();
             }

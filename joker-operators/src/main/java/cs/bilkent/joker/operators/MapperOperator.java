@@ -51,7 +51,8 @@ public class MapperOperator implements Operator
             // TODO provide output schema to the Tuple c'tor
             final Tuple result = new Tuple();
             mapper.accept( input, result );
-            result.attachTo( input );
+            // TODO FIX_LATENCY
+            //            result.attachTo( input );
             ctx.output( result );
         }
     }

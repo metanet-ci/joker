@@ -65,7 +65,8 @@ public class BarrierOperator implements Operator
             for ( int j = 0; j < inputPortCount; j++ )
             {
                 final Tuple input = ctx.getInputTupleOrFail( j, i );
-                result.attachTo( input );
+                // TODO FIX_LATENCY
+                //                result.attachTo( input );
                 input.sinkTo( entryMerger );
             }
 

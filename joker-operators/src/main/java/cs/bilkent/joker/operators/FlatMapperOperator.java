@@ -53,10 +53,12 @@ public class FlatMapperOperator implements Operator
         for ( int i = 0, j = tuples.size(); i < j; i++ )
         {
             final Tuple input = tuples.get( i );
-            flatMapper.accept( input, outputTupleSupplier, output -> {
-                output.attachTo( input );
-                ctx.output( output );
-            } );
+            // TODO FIX_LATENCY
+            //            flatMapper.accept( input, outputTupleSupplier, output -> {
+            //                output.attachTo( input );
+            //                ctx.output( output );
+            //            } );
+            flatMapper.accept( input, outputTupleSupplier, ctx::output );
         }
     }
 

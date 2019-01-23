@@ -86,7 +86,8 @@ public class ExponentialMovingAverageAggregationOperator implements Operator
             value = ( tupleCount++ == 0 ) ? tupleValue : ( weight * tupleValue + ( 1 - weight ) * value );
             // TODO provide output schema to the Tuple c'tor
             final Tuple avgTuple = Tuple.of( VALUE_FIELD, value );
-            avgTuple.attachTo( input );
+            // TODO FIX_LATENCY
+            //            avgTuple.attachTo( input );
 
             ctx.output( avgTuple );
         }
