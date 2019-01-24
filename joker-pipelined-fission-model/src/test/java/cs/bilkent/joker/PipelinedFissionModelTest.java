@@ -56,8 +56,8 @@ public class PipelinedFissionModelTest
         final double multiplicationCost = 1;
         // if a region has cost smaller than the fusion cost threshold, it won't be parallelized
         final double fusionCostThreshold = 20 * multiplicationCost;
-        final double threadSwitchingOverhead = 1e-2; // TBP: in terms of the multiplication cost
-        final double replicationCostFactor = 1e-2; // TBP: in terms of the multiplication cost
+        final double threadSwitchingOverhead = 10; // TBP: in terms of the multiplication cost
+        final double replicationCostFactor = 7.5; // TBP: in terms of the multiplication cost
 
         // index, cost, selectivity, kind
         final Operator o1 = new Operator( 1, 20, 1, StateKind.Stateless, linearSF );
@@ -77,7 +77,7 @@ public class PipelinedFissionModelTest
             System.out.println(String.format("\tstateKind: %s", operator.getKind()));
         }
 
-        for ( double selectivityFactor : new double[]{0.1, 0.2, 0.4, 0.8, 1.6})
+        for ( double selectivityFactor : new double[]{0.1, 0.2, 0.4, 0.8, 1.0})
         {
             final List<Operator> adjustedOperators = operators.stream()
                                                                   .map( operator -> new Operator( operator.getIndex(),
@@ -91,7 +91,42 @@ public class PipelinedFissionModelTest
                                                                                 fusionCostThreshold,
                                                                                 threadSwitchingOverhead,
                                                                                 replicationCostFactor );
-            System.out.println(String.format("For selectivity factor %f, the optimial configuration is: %s", selectivityFactor, program));
+            System.out.println(String.format("For selectivity factor %f, the optimal configuration is: %s", selectivityFactor, program));
+            /*
+            Operator 1
+                cost: 20.000000 multiplications
+                selectivity: 1.000000
+                stateKind: Stateless
+            Operator 2
+                cost: 10.000000 multiplications
+                selectivity: 1.000000
+                stateKind: Stateless
+            Operator 3
+                cost: 20.000000 multiplications
+                selectivity: 0.900000
+                stateKind: Stateless
+            Operator 4
+                cost: 480.000000 multiplications
+                selectivity: 0.600000
+                stateKind: Stateful
+            Operator 5
+                cost: 720.000000 multiplications
+                selectivity: 0.700000
+                stateKind: Stateless
+            Operator 6
+                cost: 1160.000000 multiplications
+                selectivity: 1.000000
+                stateKind: PartitionedStateful
+            Operator 7
+                cost: 200.000000 multiplications
+                selectivity: 1.000000
+                stateKind: Stateless
+            For selectivity factor 0.100000, the optimal configuration is: {[(1),(2,3)]x1,[(4)]x1,[(5,6,7)]x1}
+            For selectivity factor 0.200000, the optimal configuration is: {[(1,2,3)]x2,[(4)]x1,[(5,6,7)]x1}
+            For selectivity factor 0.400000, the optimal configuration is: {[(1,2,3)]x1,[(4)]x1,[(5,6,7)]x1}
+            For selectivity factor 0.800000, the optimal configuration is: {[(1,2,3)]x1,[(4)]x1,[(5,6,7)]x2}
+            For selectivity factor 1.000000, the optimal configuration is: {[(1,2,3)]x1,[(4)]x1,[(5,6,7)]x3}
+            */
         }
     }
 }
