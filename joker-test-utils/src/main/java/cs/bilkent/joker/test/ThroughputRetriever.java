@@ -7,8 +7,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import static java.util.stream.Collectors.toList;
+import java.util.stream.Collectors;
 
 public class ThroughputRetriever
 {
@@ -141,7 +140,7 @@ public class ThroughputRetriever
             throw new Exception( String.format( "failed to read the throughput file '%s'", throughputFile ), e );
         }
         final String[] throughputStrings = throughputOutputString.split( System.lineSeparator() );
-        return Arrays.stream( throughputStrings ).filter( s -> s.trim().length() > 0 ).map( Double::parseDouble ).collect( toList() );
+        return Arrays.stream( throughputStrings ).map( Double::parseDouble ).collect( Collectors.toList() );
     }
 
     private static String readFileContents ( final File file ) throws IOException
