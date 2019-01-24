@@ -23,6 +23,7 @@ import cs.bilkent.joker.operator.OperatorDefBuilder;
 import cs.bilkent.joker.operator.Tuple;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
+import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 import cs.bilkent.joker.operators.BeaconOperator;
 import static cs.bilkent.joker.operators.BeaconOperator.TUPLE_POPULATOR_CONFIG_PARAMETER;
 import cs.bilkent.joker.operators.ForEachOperator;
@@ -318,9 +319,7 @@ public class ModelTest extends AbstractJokerTest
         testExecutionHelper = new TestExecutionHelper( buildPartitionedStatefulTopology() );
         final double parallelThroughput = testExecutionHelper.runTestAndGetThroughput( ( joker, execPlan ) -> {
             final RegionExecPlan plan = execPlan.getRegionExecPlans()
-                                                .stream()
-                                                .filter( r -> !r.getRegionDef().isSource() )
-                                                .filter( r -> r.getOperatorDefsByPipelineIndex( 0 )[ 0 ].getId().equals( "mult2" ) )
+                                                .stream().filter( r -> r.getRegionType() == PARTITIONED_STATEFUL )
                                                 .findFirst()
                                                 .orElseThrow( IllegalStateException::new );
             joker.rebalanceRegion( execPlan.getVersion(), plan.getRegionId(), numReplicas );
