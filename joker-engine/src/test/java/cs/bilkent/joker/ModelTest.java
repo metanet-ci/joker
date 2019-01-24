@@ -25,6 +25,7 @@ import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.joker.operators.BeaconOperator;
 import static cs.bilkent.joker.operators.BeaconOperator.TUPLE_POPULATOR_CONFIG_PARAMETER;
+import cs.bilkent.joker.operators.ForEachOperator;
 import cs.bilkent.joker.operators.MapperOperator;
 import cs.bilkent.joker.operators.PartitionedMapperOperator;
 import cs.bilkent.joker.test.AbstractJokerTest;
@@ -40,6 +41,7 @@ public class ModelTest extends AbstractJokerTest
     private static final int KEY_RANGE = 1000;
     private static final int MULTIPLICATION_COUNT = 100;
     private static final int MULTIPLIER_VALUE = 271;
+
 
     static class ValueGenerator implements Consumer<Tuple>
     {
@@ -81,15 +83,17 @@ public class ModelTest extends AbstractJokerTest
         }
     }
 
+
     private static class ThroughputRetriever extends cs.bilkent.joker.test.ThroughputRetriever
     {
         private static final String PIPELINE_SPECIFICATION = "P[1][0][0]";
 
-        ThroughputRetriever() throws Exception
+        ThroughputRetriever () throws Exception
         {
-            super(PIPELINE_SPECIFICATION, ModelTest.class);
+            super( PIPELINE_SPECIFICATION, ModelTest.class );
         }
     }
+
 
     private static class TestExecutionHelper
     {
@@ -234,60 +238,50 @@ public class ModelTest extends AbstractJokerTest
                                                      .setExtendingSchema( sourceSchema )
                                                      .build();
 
-        final OperatorRuntimeSchema multiplier1Schema = new OperatorRuntimeSchemaBuilder( 1, 1 ).addInputField( 0, "key", Integer.class )
-                                                                                                .addInputField( 0, "value", Integer.class )
-                                                                                                .addOutputField( 0, "key1", Integer.class )
-                                                                                                .addOutputField( 0, "mult1", Integer.class )
-                                                                                                .build();
+        final OperatorRuntimeSchema forEachSchema = new OperatorRuntimeSchemaBuilder( 1, 1 ).addInputField( 0, "key", Integer.class )
+                                                                                            .addInputField( 0, "value", Integer.class )
+                                                                                            .addOutputField( 0, "key", Integer.class )
+                                                                                            .addOutputField( 0, "value", Integer.class )
+                                                                                            .build();
 
-        final BiConsumer<Tuple, Tuple> multiplier1Func = ( input, output ) -> {
+        final OperatorConfig forEachConfig = new OperatorConfig().set( ForEachOperator.CONSUMER_FUNCTION_CONFIG_PARAMETER,
+                                                                       (Consumer<Tuple>) tuple -> {
+                                                                       } );
+
+        final OperatorDef forEach = OperatorDefBuilder.newInstance( "forEach", ForEachOperator.class )
+                                                      .setExtendingSchema( forEachSchema )
+                                                      .setConfig( forEachConfig )
+                                                      .build();
+
+        final OperatorRuntimeSchema multiplierSchema = new OperatorRuntimeSchemaBuilder( 1, 1 ).addInputField( 0, "key", Integer.class )
+                                                                                               .addInputField( 0, "value", Integer.class )
+                                                                                               .addOutputField( 0, "mult", Integer.class )
+                                                                                               .build();
+
+        final BiConsumer<Tuple, Tuple> multiplierFunc = ( input, output ) -> {
             int val = input.getInteger( "value" );
             for ( int i = 0; i < MULTIPLICATION_COUNT; i++ )
             {
                 val = val * MULTIPLIER_VALUE;
             }
             val = val * MULTIPLIER_VALUE;
-            output.set( "key1", input.get( "key" ) ).set( "mult1", val );
+            output.set( "mult", val );
         };
 
-        final OperatorConfig multiplier1Config = new OperatorConfig().set( PartitionedMapperOperator.MAPPER_CONFIG_PARAMETER,
-                                                                           multiplier1Func );
+        final OperatorConfig multiplierConfig = new OperatorConfig().set( PartitionedMapperOperator.MAPPER_CONFIG_PARAMETER,
+                                                                          multiplierFunc );
 
-        final OperatorDef multiplier1 = OperatorDefBuilder.newInstance( "mult1", PartitionedMapperOperator.class )
-                                                          .setExtendingSchema( multiplier1Schema )
-                                                          .setConfig( multiplier1Config )
-                                                          .setPartitionFieldNames( singletonList( "key" ) )
-                                                          .build();
-
-        final OperatorRuntimeSchema multiplier2Schema = new OperatorRuntimeSchemaBuilder( 1, 1 ).addInputField( 0, "key1", Integer.class )
-                                                                                                .addInputField( 0, "mult1", Integer.class )
-                                                                                                .addOutputField( 0, "key2", Integer.class )
-                                                                                                .addOutputField( 0, "mult2", Integer.class )
-                                                                                                .build();
-
-        final BiConsumer<Tuple, Tuple> multiplier2Func = ( input, output ) -> {
-            int val = input.getInteger( "mult1" );
-            for ( int i = 0; i < MULTIPLICATION_COUNT; i++ )
-            {
-                val = val * MULTIPLIER_VALUE;
-            }
-            val = val * MULTIPLIER_VALUE;
-            output.set( "key2", input.get( "key1" ) ).set( "mult2", val );
-        };
-
-        final OperatorConfig multiplier2Config = new OperatorConfig().set( PartitionedMapperOperator.MAPPER_CONFIG_PARAMETER,
-                                                                           multiplier2Func );
-
-        final OperatorDef multiplier2 = OperatorDefBuilder.newInstance( "mult2", PartitionedMapperOperator.class )
-                                                          .setExtendingSchema( multiplier2Schema )
-                                                          .setConfig( multiplier2Config ).setPartitionFieldNames( singletonList( "key1" ) )
-                                                          .build();
+        final OperatorDef multiplier = OperatorDefBuilder.newInstance( "mult", PartitionedMapperOperator.class )
+                                                         .setExtendingSchema( multiplierSchema )
+                                                         .setConfig( multiplierConfig )
+                                                         .setPartitionFieldNames( singletonList( "key" ) )
+                                                         .build();
 
         return new FlowDefBuilder().add( source )
-                                   .add( multiplier1 )
-                                   .add( multiplier2 )
-                                   .connect( source.getId(), multiplier1.getId() )
-                                   .connect( multiplier1.getId(), multiplier2.getId() )
+                                   .add( forEach )
+                                   .add( multiplier )
+                                   .connect( source.getId(), forEach.getId() )
+                                   .connect( forEach.getId(), multiplier.getId() )
                                    .build();
     }
 
