@@ -80,7 +80,7 @@ public class Region implements Cloneable
 
     public double getDerivedScalability ()
     {
-        return pipelines.get( 0 ).getFirstOperator().getScalability().getScale( numReplicas );
+        return pipelines.get( 0 ).getFirstOperator().getScalabilityFunction().getScale( numReplicas );
     }
 
     public int getNumPipelines ()

@@ -38,7 +38,7 @@ public class ModelTest extends AbstractJokerTest
     private static final int JOKER_APPLICATION_WARM_UP_TIME_IN_SECONDS = 10;
 
     private static final int KEY_RANGE = 1000;
-    private static final int MULTIPLICATION_COUNT = 1000;
+    private static final int MULTIPLICATION_COUNT = 100;
     private static final int MULTIPLIER_VALUE = 271;
 
     static class ValueGenerator implements Consumer<Tuple>

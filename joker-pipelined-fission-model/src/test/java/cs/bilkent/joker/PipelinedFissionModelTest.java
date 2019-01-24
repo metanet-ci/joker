@@ -2,6 +2,7 @@ package cs.bilkent.joker;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.junit.Test;
 
@@ -26,7 +27,7 @@ public class PipelinedFissionModelTest
         final Operator o3 = new Operator( 3, 10, 0.9, StateKind.Stateless, linearSF );
         final Operator o4 = new Operator( 4, 240, 0.6, StateKind.Stateful, linearSF );
         final Operator o5 = new Operator( 5, 360, 0.7, StateKind.Stateless, linearSF );
-        final Operator o6 = new Operator( 6, 580, 1, StateKind.Stateless, linearSF );
+        final Operator o6 = new Operator( 6, 580, 1, StateKind.PartitionedStateful, linearSF );
         final Operator o7 = new Operator( 7, 100, 1, StateKind.Stateless, linearSF );
 
         final List<Operator> operators = Arrays.asList( o1, o2, o3, o4, o5, o6, o7 );
@@ -44,5 +45,53 @@ public class PipelinedFissionModelTest
                                                                             replicationCostFactor );
 
         assertThat( program.toString(), is( "{[(1,2,3),(4)]x1,[(5),(6),(7)]x2}" ) );
+    }
+
+    @Test
+    public void testConfigurations ()
+    {
+        final LinearScalabilityFunction linearSF = new LinearScalabilityFunction();
+
+        final int numCores = 12;
+        final double multiplicationCost = 1;
+        // if a region has cost smaller than the fusion cost threshold, it won't be parallelized
+        final double fusionCostThreshold = 20 * multiplicationCost;
+        final double threadSwitchingOverhead = 1e-2; // TBP: in terms of the multiplication cost
+        final double replicationCostFactor = 1e-2; // TBP: in terms of the multiplication cost
+
+        // index, cost, selectivity, kind
+        final Operator o1 = new Operator( 1, 20, 1, StateKind.Stateless, linearSF );
+        final Operator o2 = new Operator( 2, 10, 1, StateKind.Stateless, linearSF );
+        final Operator o3 = new Operator( 3, 20, 0.9, StateKind.Stateless, linearSF );
+        final Operator o4 = new Operator( 4, 480, 0.6, StateKind.Stateful, linearSF );
+        final Operator o5 = new Operator( 5, 720, 0.7, StateKind.Stateless, linearSF );
+        final Operator o6 = new Operator( 6, 1160, 1, StateKind.PartitionedStateful, linearSF );
+        final Operator o7 = new Operator( 7, 200, 1, StateKind.Stateless, linearSF );
+
+        final List<Operator> operators = Arrays.asList( o1, o2, o3, o4, o5, o6, o7 );
+        for (final Operator operator : operators)
+        {
+            System.out.println(String.format("Operator %d", operator.getIndex()));
+            System.out.println(String.format("\tcost: %f multiplications", operator.getCost()));
+            System.out.println(String.format("\tselectivity: %f", operator.getSelectivity()));
+            System.out.println(String.format("\tstateKind: %s", operator.getKind()));
+        }
+
+        for ( double selectivityFactor : new double[]{0.1, 0.2, 0.4, 0.8, 1.6})
+        {
+            final List<Operator> adjustedOperators = operators.stream()
+                                                                  .map( operator -> new Operator( operator.getIndex(),
+                                                                                                  operator.getCost() * multiplicationCost,
+                                                                                                  operator.getSelectivity() * selectivityFactor,
+                                                                                                  operator.getKind(),
+                                                                                                  operator.getScalabilityFunction() ) )
+                                                                  .collect( Collectors.toList() );
+            final Program program = PipelinedFissionAlgorithm.pipelinedFission( adjustedOperators,
+                                                                                numCores,
+                                                                                fusionCostThreshold,
+                                                                                threadSwitchingOverhead,
+                                                                                replicationCostFactor );
+            System.out.println(String.format("For selectivity factor %f, the optimial configuration is: %s", selectivityFactor, program));
+        }
     }
 }

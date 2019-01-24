@@ -47,7 +47,7 @@ public class Operator
         return index;
     }
 
-    public ScalabilityFunction getScalability ()
+    public ScalabilityFunction getScalabilityFunction ()
     {
         return scalabilityFunction;
     }
