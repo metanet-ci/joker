@@ -1,12 +1,10 @@
 package cs.bilkent.joker;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.IntStream;
 
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -30,7 +28,6 @@ import static cs.bilkent.joker.operators.BeaconOperator.TUPLE_POPULATOR_CONFIG_P
 import cs.bilkent.joker.operators.MapperOperator;
 import cs.bilkent.joker.operators.PartitionedMapperOperator;
 import cs.bilkent.joker.test.AbstractJokerTest;
-import cs.bilkent.joker.test.ThroughputRetriever;
 import static java.util.Collections.shuffle;
 import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -43,7 +40,6 @@ public class ModelTest extends AbstractJokerTest
     private static final int KEY_RANGE = 1000;
     private static final int MULTIPLICATION_COUNT = 100;
     private static final int MULTIPLIER_VALUE = 271;
-
 
     static class ValueGenerator implements Consumer<Tuple>
     {
@@ -85,6 +81,15 @@ public class ModelTest extends AbstractJokerTest
         }
     }
 
+    private static class ThroughputRetriever extends cs.bilkent.joker.test.ThroughputRetriever
+    {
+        private static final String PIPELINE_SPECIFICATION = "P[1][0][0]";
+
+        ThroughputRetriever() throws Exception
+        {
+            super(PIPELINE_SPECIFICATION, ModelTest.class);
+        }
+    }
 
     private static class TestExecutionHelper
     {
@@ -112,26 +117,30 @@ public class ModelTest extends AbstractJokerTest
             config = configBuilder.build();
         }
 
-        void runTest ( final Function<Void, Void> warmupCompletionCallback )
+        double runTestAndGetThroughput () throws Exception
         {
             final Joker joker = new JokerBuilder().setJokerConfig( config ).build();
             joker.run( flow );
             sleepUninterruptibly( JOKER_APPLICATION_WARM_UP_TIME_IN_SECONDS, SECONDS );
-            warmupCompletionCallback.apply( null );
+            final ThroughputRetriever throughputRetriever = new ThroughputRetriever();
             sleepUninterruptibly( JOKER_APPLICATION_RUNNING_TIME_IN_SECONDS, SECONDS );
+            double throughput = throughputRetriever.retrieveThroughput();
             joker.shutdown().join();
+            return throughput;
         }
 
-        void runTest ( final BiConsumer<Joker, FlowExecPlan> testCustomizer, final Function<Void, Void> warmupCompletionCallback )
+        double runTestAndGetThroughput ( final BiConsumer<Joker, FlowExecPlan> testCustomizer ) throws Exception
         {
             final Joker joker = new JokerBuilder().setJokerConfig( config ).build();
             final FlowExecPlan execPlan = joker.run( flow );
             sleepUninterruptibly( JOKER_APPLICATION_WARM_UP_TIME_IN_SECONDS, SECONDS );
             testCustomizer.accept( joker, execPlan );
             sleepUninterruptibly( JOKER_APPLICATION_WARM_UP_TIME_IN_SECONDS, SECONDS );
-            warmupCompletionCallback.apply( null );
+            final ThroughputRetriever throughputRetriever = new ThroughputRetriever();
             sleepUninterruptibly( JOKER_APPLICATION_RUNNING_TIME_IN_SECONDS, SECONDS );
+            double throughput = throughputRetriever.retrieveThroughput();
             joker.shutdown().join();
+            return throughput;
         }
     }
 
@@ -284,28 +293,17 @@ public class ModelTest extends AbstractJokerTest
     }
 
     @Test
-    public void test_discover_thread_switching_overhead ()
+    public void test_discover_thread_switching_overhead () throws Exception
     {
-        ThroughputRetriever throughputRetriever = new ThroughputRetriever( "P[1][0][0]", getClass() );
         TestExecutionHelper testExecutionHelper = new TestExecutionHelper( buildStatelessTopology() );
-        testExecutionHelper.runTest( v -> {
-            throughputRetriever.retrieveThroughput();
-            return null;
-        } );
-        final double sequentialThroughput = throughputRetriever.retrieveThroughput();
+        final double sequentialThroughput = testExecutionHelper.runTestAndGetThroughput();
         testExecutionHelper = new TestExecutionHelper( buildStatelessTopology() );
-        testExecutionHelper.runTest( ( joker, execPlan ) -> {
+        final double parallelThroughput = testExecutionHelper.runTestAndGetThroughput( ( joker, execPlan ) -> {
             final RegionExecPlan partitionedStatefulRegionExecPlan = getProcessingRegion( execPlan );
             // the partitioned stateful region has a single pipeline, which contains 2 operators.
             // splits the pipeline from the 2nd operator (operatorIndex=1), which is the last parameter
             joker.splitPipeline( execPlan.getVersion(), partitionedStatefulRegionExecPlan.getPipelineId( 0 ), singletonList( 1 ) ).join();
-        }, v -> {
-            throughputRetriever.retrieveThroughput();
-            return null;
         } );
-
-        final double parallelThroughput = throughputRetriever.retrieveThroughput();
-
         System.out.println( String.format( "Sequential throughput is %.2f", sequentialThroughput ) );
         System.out.println( String.format( "Parallel throughput is %.2f", parallelThroughput ) );
         // Computed based on Eq 17 from the earlier JPDC paper
@@ -315,34 +313,15 @@ public class ModelTest extends AbstractJokerTest
     }
 
     @Test
-    public void test_discover_replication_cost_factor ()
+    public void test_discover_replication_cost_factor () throws Exception
     {
         final int numReplicas = 4;
-        ThroughputRetriever throughputRetriever = new ThroughputRetriever( "P[1][0][0]", getClass() );
         TestExecutionHelper testExecutionHelper = new TestExecutionHelper( buildPartitionedStatefulTopology() );
-        testExecutionHelper.runTest( v -> {
-            throughputRetriever.retrieveThroughput();
-            return null;
-        } );
-
-        final double sequentialThroughput = throughputRetriever.retrieveThroughput();
-
-        final ThroughputRetriever[] throughputRetrievers = IntStream.range( 0, numReplicas )
-                                                                    .mapToObj( i -> new ThroughputRetriever( "P[1][0][" + i + "]",
-                                                                                                             ModelTest.class ) )
-                                                                    .toArray( ThroughputRetriever[]::new );
-
+        final double sequentialThroughput = testExecutionHelper.runTestAndGetThroughput();
         testExecutionHelper = new TestExecutionHelper( buildPartitionedStatefulTopology() );
-        testExecutionHelper.runTest( ( joker, execPlan ) -> {
+        final double parallelThroughput = testExecutionHelper.runTestAndGetThroughput( ( joker, execPlan ) -> {
             joker.rebalanceRegion( execPlan.getVersion(), getProcessingRegion( execPlan ).getRegionId(), numReplicas );
-        }, v -> {
-            Arrays.stream( throughputRetrievers ).forEach( ThroughputRetriever::retrieveThroughput );
-            return null;
         } );
-
-        final double parallelThroughput = Arrays.stream( throughputRetrievers )
-                                                .mapToDouble( ThroughputRetriever::retrieveThroughput )
-                                                .sum();
         System.out.println( String.format( "Sequential throughput is %.2f", sequentialThroughput ) );
         System.out.println( String.format( "Parallel throughput is %.2f", parallelThroughput ) );
         final Function<Double, Double> log2 = value -> Math.log( value ) / Math.log( 2.0 );
