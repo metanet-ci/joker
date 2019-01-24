@@ -190,7 +190,8 @@ public class PipelineReplica
 
     public TuplesImpl invoke ()
     {
-        tick();
+        meter.tryTick();
+        //        tick();
 
         inputTuplesSupplier.reset();
         queue.drain( drainer, inputTuplesSupplier );
