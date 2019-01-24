@@ -28,6 +28,7 @@ import static cs.bilkent.joker.operators.BeaconOperator.TUPLE_POPULATOR_CONFIG_P
 import cs.bilkent.joker.operators.MapperOperator;
 import cs.bilkent.joker.operators.PartitionedMapperOperator;
 import cs.bilkent.joker.test.AbstractJokerTest;
+import static java.util.Arrays.asList;
 import static java.util.Collections.shuffle;
 import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -83,11 +84,11 @@ public class ModelTest extends AbstractJokerTest
 
     private static class ThroughputRetriever extends cs.bilkent.joker.test.ThroughputRetriever
     {
-        private static final String PIPELINE_SPECIFICATION = "P[1][0][0]";
+        private static final List<String> PIPELINE_SPECIFICATIONS = asList( "P[1][0][0]", "P[1][0][1]", "P[1][0][3]", "P[1][0][4]" );
 
         ThroughputRetriever() throws Exception
         {
-            super(PIPELINE_SPECIFICATION, ModelTest.class);
+            super( PIPELINE_SPECIFICATIONS, ModelTest.class );
         }
     }
 
@@ -275,13 +276,12 @@ public class ModelTest extends AbstractJokerTest
             output.set( "key", input.get( "key" ) ).set( "mult2", val );
         };
 
-        final OperatorConfig multiplier2Config = new OperatorConfig().set( PartitionedMapperOperator.MAPPER_CONFIG_PARAMETER,
+        final OperatorConfig multiplier2Config = new OperatorConfig().set( MapperOperator.MAPPER_CONFIG_PARAMETER,
                                                                            multiplier2Func );
 
-        final OperatorDef multiplier2 = OperatorDefBuilder.newInstance( "mult2", PartitionedMapperOperator.class )
+        final OperatorDef multiplier2 = OperatorDefBuilder.newInstance( "mult2", MapperOperator.class )
                                                           .setExtendingSchema( multiplier2Schema )
                                                           .setConfig( multiplier2Config )
-                                                          .setPartitionFieldNames( singletonList( "key" ) )
                                                           .build();
 
         return new FlowDefBuilder().add( source )

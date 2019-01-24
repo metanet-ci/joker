@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -13,32 +14,44 @@ public class ThroughputRetriever
     private static final String TEST_OUTPUT_FILE_PATH_TEMPLATE = "target/surefire-reports/%s-output.txt";
     private static final String THROUGHPUT_RETRIEVER_FILE_PATH = "../joker-engine/src/test/resources/grepThroughput.sh";
 
-    private int lastThroughputValueCount;
-    private final String pipelineSpec;
+    private List<Integer> lastThroughputValueCounts;
+    private final List<String> pipelineSpecs;
     private final String testOutputFilePath;
 
-    public ThroughputRetriever ( final String pipelineSpec, final Class<?> testClass ) throws Exception
+    public ThroughputRetriever ( final List<String> pipelineSpecs, final Class<?> testClass ) throws Exception
     {
-        this.pipelineSpec = pipelineSpec;
+        this.pipelineSpecs = pipelineSpecs;
         testOutputFilePath = String.format( TEST_OUTPUT_FILE_PATH_TEMPLATE, testClass.getCanonicalName() );
-        lastThroughputValueCount = retrieveThroughputValues().size();
+        lastThroughputValueCounts = new ArrayList<>( pipelineSpecs.size() );
+        for ( String pipelineSpec : pipelineSpecs )
+        {
+            lastThroughputValueCounts.add( retrieveThroughputValues( pipelineSpec ).size() );
+        }
     }
 
     public double retrieveThroughput () throws Exception
     {
-        final List<Double> throughputValues = retrieveThroughputValues();
-        final int currentThroughputValueCount = throughputValues.size();
-        final int numNewThroughputValueCount = currentThroughputValueCount - lastThroughputValueCount;
-        if ( numNewThroughputValueCount == 0 )
+        List<Integer> t = new ArrayList<>();
+        double throughput = 0;
+        for ( int i = 0; i < pipelineSpecs.size(); i++ )
         {
-            throw new RuntimeException( "failed to find new throughput values" );
+            final List<Double> throughputValues = retrieveThroughputValues( pipelineSpecs.get( i ) );
+            final int currentThroughputValueCount = throughputValues.size();
+            t.add( currentThroughputValueCount );
+            final int numNewThroughputValueCount = currentThroughputValueCount - lastThroughputValueCounts.get( i );
+            if ( numNewThroughputValueCount == 0 )
+            {
+                throw new RuntimeException( "failed to find new throughput values" );
+            }
+            throughput += throughputValues.subList( lastThroughputValueCounts.get( i ), currentThroughputValueCount )
+                                          .stream()
+                                          .mapToDouble( Double::doubleValue )
+                                          .average()
+                                          .orElse( 0d );
         }
-        final double throughput = throughputValues.subList( lastThroughputValueCount, currentThroughputValueCount )
-                                                  .stream()
-                                                  .mapToDouble( Double::doubleValue )
-                                                  .average()
-                                                  .getAsDouble();
-        lastThroughputValueCount = currentThroughputValueCount;
+
+        lastThroughputValueCounts.clear();
+        lastThroughputValueCounts.addAll( t );
         return throughput;
     }
 
@@ -54,15 +67,15 @@ public class ThroughputRetriever
         }
     }
 
-    private List<Double> retrieveThroughputValues () throws Exception
+    private List<Double> retrieveThroughputValues ( final String pipelineSpec ) throws Exception
     {
         final File outputFile = createTempFile( "standardErrorAndOutput-", "throughput retriever standard output/error" );
-        try ( final AutoCloseable onClose1 = () -> outputFile.delete() )
+        try ( final AutoCloseable onClose1 = outputFile::delete )
         {
             final File throughputFile = createTempFile( "throughput-", "throughput values" );
-            try ( final AutoCloseable onClose2 = () -> throughputFile.delete() )
+            try ( final AutoCloseable onClose2 = throughputFile::delete )
             {
-                return retrieveThroughputValues( outputFile, throughputFile );
+                return retrieveThroughputValues( pipelineSpec, outputFile, throughputFile );
             }
             catch ( final IOException e )
             {
@@ -71,7 +84,9 @@ public class ThroughputRetriever
         }
     }
 
-    private List<Double> retrieveThroughputValues ( final File outputFile, final File throughputFile ) throws Exception
+    private List<Double> retrieveThroughputValues ( final String pipelineSpec,
+                                                    final File outputFile,
+                                                    final File throughputFile ) throws Exception
     {
         final Process process;
         final String[] commandLine = { THROUGHPUT_RETRIEVER_FILE_PATH, testOutputFilePath, pipelineSpec, throughputFile.toString() };
