@@ -236,7 +236,7 @@ public class ModelTest extends AbstractJokerTest
 
         final OperatorRuntimeSchema multiplier1Schema = new OperatorRuntimeSchemaBuilder( 1, 1 ).addInputField( 0, "key", Integer.class )
                                                                                                 .addInputField( 0, "value", Integer.class )
-                                                                                                .addOutputField( 0, "key", Integer.class )
+                                                                                                .addOutputField( 0, "key1", Integer.class )
                                                                                                 .addOutputField( 0, "mult1", Integer.class )
                                                                                                 .build();
 
@@ -247,7 +247,7 @@ public class ModelTest extends AbstractJokerTest
                 val = val * MULTIPLIER_VALUE;
             }
             val = val * MULTIPLIER_VALUE;
-            output.set( "key", input.get( "key" ) ).set( "mult1", val );
+            output.set( "key1", input.get( "key" ) ).set( "mult1", val );
         };
 
         final OperatorConfig multiplier1Config = new OperatorConfig().set( PartitionedMapperOperator.MAPPER_CONFIG_PARAMETER,
@@ -259,9 +259,9 @@ public class ModelTest extends AbstractJokerTest
                                                           .setPartitionFieldNames( singletonList( "key" ) )
                                                           .build();
 
-        final OperatorRuntimeSchema multiplier2Schema = new OperatorRuntimeSchemaBuilder( 1, 1 ).addInputField( 0, "key", Integer.class )
+        final OperatorRuntimeSchema multiplier2Schema = new OperatorRuntimeSchemaBuilder( 1, 1 ).addInputField( 0, "key1", Integer.class )
                                                                                                 .addInputField( 0, "mult1", Integer.class )
-                                                                                                .addOutputField( 0, "key", Integer.class )
+                                                                                                .addOutputField( 0, "key2", Integer.class )
                                                                                                 .addOutputField( 0, "mult2", Integer.class )
                                                                                                 .build();
 
@@ -272,7 +272,7 @@ public class ModelTest extends AbstractJokerTest
                 val = val * MULTIPLIER_VALUE;
             }
             val = val * MULTIPLIER_VALUE;
-            output.set( "key", input.get( "key" ) ).set( "mult2", val );
+            output.set( "key2", input.get( "key1" ) ).set( "mult2", val );
         };
 
         final OperatorConfig multiplier2Config = new OperatorConfig().set( PartitionedMapperOperator.MAPPER_CONFIG_PARAMETER,
@@ -280,8 +280,7 @@ public class ModelTest extends AbstractJokerTest
 
         final OperatorDef multiplier2 = OperatorDefBuilder.newInstance( "mult2", PartitionedMapperOperator.class )
                                                           .setExtendingSchema( multiplier2Schema )
-                                                          .setConfig( multiplier2Config )
-                                                          .setPartitionFieldNames( singletonList( "key" ) )
+                                                          .setConfig( multiplier2Config ).setPartitionFieldNames( singletonList( "key1" ) )
                                                           .build();
 
         return new FlowDefBuilder().add( source )
@@ -299,10 +298,14 @@ public class ModelTest extends AbstractJokerTest
         final double sequentialThroughput = testExecutionHelper.runTestAndGetThroughput();
         testExecutionHelper = new TestExecutionHelper( buildStatelessTopology() );
         final double parallelThroughput = testExecutionHelper.runTestAndGetThroughput( ( joker, execPlan ) -> {
-            final RegionExecPlan partitionedStatefulRegionExecPlan = getProcessingRegion( execPlan );
+            final RegionExecPlan plan = execPlan.getRegionExecPlans()
+                                                .stream()
+                                                .filter( r -> !r.getRegionDef().isSource() )
+                                                .findFirst()
+                                                .orElseThrow( IllegalStateException::new );
             // the partitioned stateful region has a single pipeline, which contains 2 operators.
             // splits the pipeline from the 2nd operator (operatorIndex=1), which is the last parameter
-            joker.splitPipeline( execPlan.getVersion(), partitionedStatefulRegionExecPlan.getPipelineId( 0 ), singletonList( 1 ) ).join();
+            joker.splitPipeline( execPlan.getVersion(), plan.getPipelineId( 0 ), singletonList( 1 ) ).join();
         } );
         System.out.println( String.format( "Sequential throughput is %.2f", sequentialThroughput ) );
         System.out.println( String.format( "Parallel throughput is %.2f", parallelThroughput ) );
@@ -320,7 +323,13 @@ public class ModelTest extends AbstractJokerTest
         final double sequentialThroughput = testExecutionHelper.runTestAndGetThroughput();
         testExecutionHelper = new TestExecutionHelper( buildPartitionedStatefulTopology() );
         final double parallelThroughput = testExecutionHelper.runTestAndGetThroughput( ( joker, execPlan ) -> {
-            joker.rebalanceRegion( execPlan.getVersion(), getProcessingRegion( execPlan ).getRegionId(), numReplicas );
+            final RegionExecPlan plan = execPlan.getRegionExecPlans()
+                                                .stream()
+                                                .filter( r -> !r.getRegionDef().isSource() )
+                                                .filter( r -> r.getOperatorDefsByPipelineIndex( 0 )[ 0 ].getId().equals( "mult2" ) )
+                                                .findFirst()
+                                                .orElseThrow( IllegalStateException::new );
+            joker.rebalanceRegion( execPlan.getVersion(), plan.getRegionId(), numReplicas );
         } );
         System.out.println( String.format( "Sequential throughput is %.2f", sequentialThroughput ) );
         System.out.println( String.format( "Parallel throughput is %.2f", parallelThroughput ) );
