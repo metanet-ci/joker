@@ -72,7 +72,7 @@ public class PipelinedFissionModelTest
         for (final Operator operator : operators)
         {
             System.out.println(String.format("Operator %d", operator.getIndex()));
-            System.out.println(String.format("\tcost: %f multiplications", operator.getCost()));
+            System.out.println(String.format("\tcost: %d multiplications", (int) operator.getCost()));
             System.out.println(String.format("\tselectivity: %f", operator.getSelectivity()));
             System.out.println(String.format("\tstateKind: %s", operator.getKind()));
         }
@@ -94,31 +94,31 @@ public class PipelinedFissionModelTest
             System.out.println(String.format("For selectivity factor %f, the optimal configuration is: %s", selectivityFactor, program));
             /*
             Operator 1
-                cost: 20.000000 multiplications
+                cost: 20 multiplications
                 selectivity: 1.000000
                 stateKind: Stateless
             Operator 2
-                cost: 10.000000 multiplications
+                cost: 10 multiplications
                 selectivity: 1.000000
                 stateKind: Stateless
             Operator 3
-                cost: 20.000000 multiplications
+                cost: 20 multiplications
                 selectivity: 0.900000
                 stateKind: Stateless
             Operator 4
-                cost: 480.000000 multiplications
+                cost: 480 multiplications
                 selectivity: 0.600000
                 stateKind: Stateful
             Operator 5
-                cost: 720.000000 multiplications
+                cost: 720 multiplications
                 selectivity: 0.700000
                 stateKind: Stateless
             Operator 6
-                cost: 1160.000000 multiplications
+                cost: 1160 multiplications
                 selectivity: 1.000000
                 stateKind: PartitionedStateful
             Operator 7
-                cost: 200.000000 multiplications
+                cost: 200 multiplications
                 selectivity: 1.000000
                 stateKind: Stateless
             For selectivity factor 0.100000, the optimal configuration is: {[(1),(2,3)]x1,[(4)]x1,[(5,6,7)]x1}
