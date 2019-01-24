@@ -17,14 +17,13 @@ public class ThroughputRetriever
     private final String pipelineSpec;
     private final String testOutputFilePath;
 
-    public ThroughputRetriever ( final String pipelineSpec, final Class<?> testClass ) throws Exception
+    public ThroughputRetriever ( final String pipelineSpec, final Class<?> testClass )
     {
         this.pipelineSpec = pipelineSpec;
         testOutputFilePath = String.format( TEST_OUTPUT_FILE_PATH_TEMPLATE, testClass.getCanonicalName() );
-        lastThroughputValueCount = retrieveThroughputValues().size();
     }
 
-    public double retrieveThroughput () throws Exception
+    public double retrieveThroughput ()
     {
         final List<Double> throughputValues = retrieveThroughputValues();
         final int currentThroughputValueCount = throughputValues.size();
@@ -42,7 +41,7 @@ public class ThroughputRetriever
         return throughput;
     }
 
-    private static File createTempFile ( final String prefix, final String use ) throws Exception
+    private static File createTempFile ( final String prefix, final String use )
     {
         try
         {
@@ -50,24 +49,28 @@ public class ThroughputRetriever
         }
         catch ( final IOException e )
         {
-            throw new Exception( String.format( "failed to create a temporary file for %s", use ), e );
+            throw new RuntimeException( String.format( "failed to create a temporary file for %s", use ), e );
         }
     }
 
-    private List<Double> retrieveThroughputValues () throws Exception
+    private List<Double> retrieveThroughputValues ()
     {
         final File outputFile = createTempFile( "standardErrorAndOutput-", "throughput retriever standard output/error" );
-        try ( final AutoCloseable onClose1 = () -> outputFile.delete() )
+        try ( final AutoCloseable onClose1 = outputFile::delete )
         {
             final File throughputFile = createTempFile( "throughput-", "throughput values" );
-            try ( final AutoCloseable onClose2 = () -> throughputFile.delete() )
+            try ( final AutoCloseable onClose2 = throughputFile::delete )
             {
                 return retrieveThroughputValues( outputFile, throughputFile );
             }
             catch ( final IOException e )
             {
-                throw new Exception( "failed to create a throughput file for the throughput retriever", e );
+                throw new RuntimeException( "failed to create a throughput file for the throughput retriever", e );
             }
+        }
+        catch ( Exception e )
+        {
+            throw new RuntimeException( e );
         }
     }
 
