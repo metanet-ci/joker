@@ -19,6 +19,7 @@ import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.joker.operators.BeaconOperator;
 import static cs.bilkent.joker.operators.BeaconOperator.TUPLE_POPULATOR_CONFIG_PARAMETER;
+import cs.bilkent.joker.operators.MapperOperator;
 import cs.bilkent.joker.operators.PartitionedMapperOperator;
 import static java.util.Collections.shuffle;
 import static java.util.Collections.singletonList;
@@ -80,14 +81,11 @@ public class SingleRegionFlowDefFactory2 implements FlowDefFactory
     {
         final Config config = jokerConfig.getRootConfig();
         final int keyRange = config.getInt( "keyRange" );
-        final int valueRange = config.getInt( "valueRange" );
-        final int tuplesPerKey = config.getInt( "tuplesPerKey" );
-        final int keysPerInvocation = config.getInt( "keysPerInvocation" );
+        final int tuplesPerInvocation = config.getInt( "tuplesPerInvocation" );
 
         final ValueGenerator valueGenerator = new ValueGenerator( keyRange );
         final OperatorConfig sourceConfig = new OperatorConfig().set( TUPLE_POPULATOR_CONFIG_PARAMETER, valueGenerator )
-                                                                .set( BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER,
-                                                                      tuplesPerKey * keysPerInvocation );
+                                                                .set( BeaconOperator.TUPLE_COUNT_CONFIG_PARAMETER, tuplesPerInvocation );
 
         final OperatorRuntimeSchema sourceSchema = new OperatorRuntimeSchemaBuilder( 0, 1 ).addOutputField( 0, "key", Integer.class )
                                                                                            .addOutputField( 0, "value", Integer.class )
@@ -162,13 +160,13 @@ public class SingleRegionFlowDefFactory2 implements FlowDefFactory
                                                                                                                     Integer.class )
                                                                                                    .build();
 
-            final OperatorConfig multiplierConfig = new OperatorConfig().set( PartitionedMapperOperator.MAPPER_CONFIG_PARAMETER,
+            final OperatorConfig multiplierConfig = new OperatorConfig().set( MapperOperator.MAPPER_CONFIG_PARAMETER,
                                                                               multiplierFunc );
 
-            final OperatorDef multiplier = OperatorDefBuilder.newInstance( "m" + i, PartitionedMapperOperator.class )
+            final OperatorDef multiplier = OperatorDefBuilder.newInstance( "m" + i, MapperOperator.class )
                                                              .setExtendingSchema( multiplierSchema )
                                                              .setConfig( multiplierConfig )
-                                                             .setPartitionFieldNames( singletonList( "key" ) )
+                                                             //                                                             .setPartitionFieldNames( singletonList( "key" ) )
                                                              .build();
 
             flowDefBuilder.add( multiplier );
