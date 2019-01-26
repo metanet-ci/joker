@@ -259,12 +259,16 @@ public class AdaptationConfig
 
             int max = 0;
 
+            LOGGER.info( "Pipeline {} possible split at index: {} with utility: {}", pipelineId, ( 1 ), thr[ 0 ] );
+
             for ( int i = 1; i < operatorCount - 1; i++ )
             {
                 final double operatorCost = pipelineMetrics.getAvgOperatorCost( i );
                 headUtility = min( 1, headUtility + operatorCost );
                 tailUtility = max( 0, tailUtility - operatorCost );
                 thr[ i ] = min( 1 / ( pipelineCost + headUtility ), 1 / ( pipelineCost + tailUtility ) );
+
+                LOGGER.info( "Pipeline {} possible split at index: {} with utility: {}", pipelineId, ( i + 1 ), thr[ i ] );
 
                 if ( thr[ i ] > thr[ max ] )
                 {
@@ -274,7 +278,7 @@ public class AdaptationConfig
 
             if ( ( thr[ max ] - 1 ) >= splitUtility )
             {
-                LOGGER.info( "Pipeline {} can be split at index: {} with utility: {}", pipelineId, ( max + 1 ), thr[ max ] );
+                LOGGER.info( "Pipeline {} will be split at index: {} with utility: {}", pipelineId, ( max + 1 ), thr[ max ] );
                 return max + 1;
             }
 
