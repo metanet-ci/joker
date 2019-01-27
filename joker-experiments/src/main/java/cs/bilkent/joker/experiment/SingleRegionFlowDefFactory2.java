@@ -19,7 +19,6 @@ import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.joker.operators.BeaconOperator;
 import static cs.bilkent.joker.operators.BeaconOperator.TUPLE_POPULATOR_CONFIG_PARAMETER;
-import cs.bilkent.joker.operators.MapperOperator;
 import cs.bilkent.joker.operators.PartitionedMapperOperator;
 import static java.util.Collections.shuffle;
 import static java.util.Collections.singletonList;
@@ -160,13 +159,12 @@ public class SingleRegionFlowDefFactory2 implements FlowDefFactory
                                                                                                                     Integer.class )
                                                                                                    .build();
 
-            final OperatorConfig multiplierConfig = new OperatorConfig().set( MapperOperator.MAPPER_CONFIG_PARAMETER,
+            final OperatorConfig multiplierConfig = new OperatorConfig().set( PartitionedMapperOperator.MAPPER_CONFIG_PARAMETER,
                                                                               multiplierFunc );
 
-            final OperatorDef multiplier = OperatorDefBuilder.newInstance( "m" + i, MapperOperator.class )
+            final OperatorDef multiplier = OperatorDefBuilder.newInstance( "m" + i, PartitionedMapperOperator.class )
                                                              .setExtendingSchema( multiplierSchema )
-                                                             .setConfig( multiplierConfig )
-                                                             //                                                             .setPartitionFieldNames( singletonList( "key" ) )
+                                                             .setConfig( multiplierConfig ).setPartitionFieldNames( singletonList( "key" ) )
                                                              .build();
 
             flowDefBuilder.add( multiplier );
