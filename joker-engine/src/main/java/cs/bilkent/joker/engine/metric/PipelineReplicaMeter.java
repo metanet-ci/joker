@@ -56,15 +56,17 @@ public class PipelineReplicaMeter
             currentlyInvokedOperator = null;
         }
 
-        if ( ticker.tryTick() )
+        final boolean ticked = ticker.tryTick();
+        if ( ticked )
         {
             currentlyInvokedOperator = pipelineReplicaId;
-            reportOperatorInputTupleCounts();
-
-            return true;
+            if ( inputPortCount > 0 )
+            {
+                reportOperatorInputTupleCounts();
+            }
         }
 
-        return false;
+        return ticked;
     }
 
     private void reportOperatorInputTupleCounts ()

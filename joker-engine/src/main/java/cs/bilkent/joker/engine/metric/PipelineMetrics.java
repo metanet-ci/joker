@@ -180,8 +180,8 @@ public class PipelineMetrics
     {
         return "PipelineMetrics{" + "pipelineId=" + pipelineId + ", flowVersion=" + flowVersion + ", replicaCount=" + replicaCount
                + ", operatorCount=" + operatorCount + ", inputPortCount=" + inputPortCount + ", cpuUtilizationRatios=" + Arrays.toString(
-                cpuUtilizationRatios ) + ", inboundThroughputs=" + Arrays.toString( inboundThroughputs ) + ", operatorCosts="
-               + Arrays.toString( operatorCosts ) + ", pipelineCosts=" + Arrays.toString( pipelineCosts ) + '}';
+                cpuUtilizationRatios ) + ", inboundThroughputs=" + Arrays.deepToString( inboundThroughputs ) + ", operatorCosts="
+               + Arrays.deepToString( operatorCosts ) + ", pipelineCosts=" + Arrays.toString( pipelineCosts ) + '}';
     }
 
     public interface PipelineMetricsVisitor
