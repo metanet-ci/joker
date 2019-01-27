@@ -59,7 +59,6 @@ import static cs.bilkent.joker.engine.pipeline.UpstreamCtx.createShutdownSourceU
 import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.CompositeDownstreamCollector;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.DownstreamCollector1;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.DownstreamCollectorN;
-import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.InterArrivalTimeTracker;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.PartitionedDownstreamCollector1;
 import cs.bilkent.joker.engine.pipeline.impl.downstreamcollector.PartitionedDownstreamCollectorN;
 import cs.bilkent.joker.engine.region.Region;
@@ -835,13 +834,17 @@ public class PipelineManagerImpl implements PipelineManager
                 {
                     final OperatorQueue pipelineQueue = pipelineQueues[ replicaIndex ];
                     final DownstreamCollector downstream = defaultDownstreamCollectorCtors[ j ].apply( pairs, pipelineQueue );
-                    collectorsToDownstreamOperators[ i ] = new InterArrivalTimeTracker( downstreamOperatorId,
-                                                                                        jokerConfig.getPipelineManagerConfig()
-                                                                                                   .getInterArrivalTimeTrackingPeriod(),
-                                                                                        jokerConfig.getPipelineManagerConfig()
-                                                                                                   .getInterArrivalTimeTrackingCount(),
-                                                                                        System::nanoTime,
-                                                                                        downstream );
+                    // TODO FIX_LATENCY
+                    //                    collectorsToDownstreamOperators[ i ] = new InterArrivalTimeTracker( downstreamOperatorId,
+                    //                                                                                        jokerConfig
+                    //                                                                                        .getPipelineManagerConfig()
+                    //                                                                                                   .getInterArrivalTimeTrackingPeriod(),
+                    //                                                                                        jokerConfig
+                    //                                                                                        .getPipelineManagerConfig()
+                    //                                                                                                   .getInterArrivalTimeTrackingCount(),
+                    //                                                                                        System::nanoTime,
+                    //                                                                                        downstream );
+                    collectorsToDownstreamOperators[ i ] = downstream;
                 }
                 else if ( downstreamRegionDef.getRegionType() == PARTITIONED_STATEFUL )
                 {
@@ -853,13 +856,16 @@ public class PipelineManagerImpl implements PipelineManager
                                                                                                            partitionDistribution,
                                                                                                            pipelineQueues,
                                                                                                            partitionKeyExtractor );
-                    collectorsToDownstreamOperators[ i ] = new InterArrivalTimeTracker( downstreamOperatorId,
-                                                                                        jokerConfig.getPipelineManagerConfig()
-                                                                                                   .getInterArrivalTimeTrackingPeriod(),
-                                                                                        jokerConfig.getPipelineManagerConfig()
-                                                                                                   .getInterArrivalTimeTrackingCount(),
-                                                                                        System::nanoTime,
-                                                                                        downstream );
+                    // TODO FIX_LATENCY
+                    //                    collectorsToDownstreamOperators[ i ] = new InterArrivalTimeTracker( downstreamOperatorId,
+                    //                                                                                        jokerConfig
+                    //                                                                                        .getPipelineManagerConfig()
+                    //                                                                                                   .getInterArrivalTimeTrackingPeriod(),
+                    //                                                                                        jokerConfig.getPipelineManagerConfig()
+                    //                                                                                                   .getInterArrivalTimeTrackingCount(),
+                    //                                                                                        System::nanoTime,
+                    //                                                                                        downstream );
+                    collectorsToDownstreamOperators[ i ] = downstream;
                 }
                 else if ( downstreamRegionDef.getRegionType() == STATELESS )
                 {
@@ -876,13 +882,16 @@ public class PipelineManagerImpl implements PipelineManager
                     if ( pipelineQueue != null )
                     {
                         final DownstreamCollector downstream = defaultDownstreamCollectorCtors[ j ].apply( pairs, pipelineQueue );
-                        collectorsToDownstreamOperators[ i ] = new InterArrivalTimeTracker( downstreamOperatorId,
-                                                                                            jokerConfig.getPipelineManagerConfig()
-                                                                                                       .getInterArrivalTimeTrackingPeriod(),
-                                                                                            jokerConfig.getPipelineManagerConfig()
-                                                                                                       .getInterArrivalTimeTrackingCount(),
-                                                                                            System::nanoTime,
-                                                                                            downstream );
+                        // TODO FIX_LATENCY
+                        //                        collectorsToDownstreamOperators[ i ] = new InterArrivalTimeTracker( downstreamOperatorId,
+                        //                                                                                            jokerConfig
+                        //                                                                                            .getPipelineManagerConfig()
+                        //                                                                                                       .getInterArrivalTimeTrackingPeriod(),
+                        //                                                                                            jokerConfig.getPipelineManagerConfig()
+                        //                                                                                                       .getInterArrivalTimeTrackingCount(),
+                        //                                                                                            System::nanoTime,
+                        //                                                                                            downstream );
+                        collectorsToDownstreamOperators[ i ] = downstream;
                     }
                     else
                     {
@@ -898,13 +907,15 @@ public class PipelineManagerImpl implements PipelineManager
                     checkState( l == 1, "Operator %s can not have %s replicas", downstreamOperatorId, l );
                     final OperatorQueue pipelineQueue = pipelineQueues[ 0 ];
                     final DownstreamCollector downstream = defaultDownstreamCollectorCtors[ j ].apply( pairs, pipelineQueue );
-                    collectorsToDownstreamOperators[ i ] = new InterArrivalTimeTracker( downstreamOperatorId,
-                                                                                        jokerConfig.getPipelineManagerConfig()
-                                                                                                   .getInterArrivalTimeTrackingPeriod(),
-                                                                                        jokerConfig.getPipelineManagerConfig()
-                                                                                                   .getInterArrivalTimeTrackingCount(),
-                                                                                        System::nanoTime,
-                                                                                        downstream );
+                    // TODO FIX_LATENCY
+                    //                    collectorsToDownstreamOperators[ i ] = new InterArrivalTimeTracker( downstreamOperatorId,
+                    //                                                                                        jokerConfig.getPipelineManagerConfig()
+                    //                                                                                                   .getInterArrivalTimeTrackingPeriod(),
+                    //                                                                                        jokerConfig.getPipelineManagerConfig()
+                    //                                                                                                   .getInterArrivalTimeTrackingCount(),
+                    //                                                                                        System::nanoTime,
+                    //                                                                                        downstream );
+                    collectorsToDownstreamOperators[ i ] = downstream;
                 }
                 else
                 {
@@ -940,8 +951,9 @@ public class PipelineManagerImpl implements PipelineManager
             {
                 final String tailOperatorId = pipeline.getLastOperatorDef().getId();
                 final LatencyMeter latencyMeter = metricManager.createLatencyMeter( flow, tailOperatorId, replicaIndex );
-                collector = new LatencyRecorder( latencyMeter );
-                //                collector = new NopDownstreamCollector();
+                // TODO FIX_LATENCY
+                //                collector = new LatencyRecorder( latencyMeter );
+                collector = new NopDownstreamCollector();
             }
 
             checkState( collector != null );
