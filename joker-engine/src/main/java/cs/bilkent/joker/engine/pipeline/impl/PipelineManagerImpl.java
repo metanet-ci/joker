@@ -30,7 +30,6 @@ import cs.bilkent.joker.engine.FlowStatus;
 import static cs.bilkent.joker.engine.FlowStatus.RUNNING;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import static cs.bilkent.joker.engine.config.JokerConfig.JOKER_THREAD_GROUP_NAME;
-import cs.bilkent.joker.engine.config.PipelineManagerConfig;
 import cs.bilkent.joker.engine.exception.InitializationException;
 import cs.bilkent.joker.engine.exception.JokerException;
 import cs.bilkent.joker.engine.flow.FlowExecPlan;
@@ -939,8 +938,9 @@ public class PipelineManagerImpl implements PipelineManager
             {
                 if ( i > 0 )
                 {
-                    final PipelineManagerConfig pipelineManagerConfig = jokerConfig.getPipelineManagerConfig();
-                    collector = new IngestionTimeInjector( collector, new Ticker( pipelineManagerConfig.getLatencyTickMask() ) );
+                    // TODO FIX_LATENCY
+                    //                    final PipelineManagerConfig pipelineManagerConfig = jokerConfig.getPipelineManagerConfig();
+                    //                    collector = new IngestionTimeInjector( collector, new Ticker( pipelineManagerConfig.getLatencyTickMask() ) );
                 }
                 else
                 {
