@@ -12,14 +12,13 @@ import cs.bilkent.joker.operator.Tuple;
 import static cs.bilkent.joker.operator.scheduling.ScheduleWhenTuplesAvailable.scheduleWhenTuplesAvailableOnDefaultPort;
 import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.operator.spec.OperatorSpec;
-import static cs.bilkent.joker.operator.spec.OperatorType.STATELESS;
-
+import static cs.bilkent.joker.operator.spec.OperatorType.PARTITIONED_STATEFUL;
 
 /**
  * Applies the given predicate function to each input tuple and only returns the ones that satisfy the predicate
  */
-@OperatorSpec( type = STATELESS, inputPortCount = 1, outputPortCount = 1 )
-public class FilterOperator implements Operator
+@OperatorSpec( type = PARTITIONED_STATEFUL, inputPortCount = 1, outputPortCount = 1 )
+public class PartitionedFilterOperator implements Operator
 {
 
     public static final String PREDICATE_CONFIG_PARAMETER = "predicate";
