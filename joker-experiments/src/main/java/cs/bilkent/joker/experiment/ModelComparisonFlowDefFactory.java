@@ -1,5 +1,7 @@
 package cs.bilkent.joker.experiment;
 
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -26,6 +28,38 @@ public class ModelComparisonFlowDefFactory implements FlowDefFactory
 {
 
     private static final int MULTIPLIER_VALUE = 271;
+
+    public static void main ( String[] args ) throws IllegalAccessException, InterruptedException, ExecutionException,
+                                                             InstantiationException, TimeoutException, ClassNotFoundException
+    {
+        System.setProperty( "flowFactory", "cs.bilkent.joker.experiment.ModelComparisonFlowDefFactory" );
+        System.setProperty( "vizPath", "joker-experiments/scripts/viz.py" );
+        System.setProperty( "joker.engine.metricManager.pipelineMetricsScanningPeriodInMillis", "1000" );
+        System.setProperty( "joker.engine.metricManager.warmupIterations", "10" );
+        System.setProperty( "joker.engine.metricManager.historySize", "20" );
+        System.setProperty( "reportDir", "joker-experiments/scripts/model" );
+
+        System.setProperty( "keyRange", "1084" );
+        System.setProperty( "tuplesPerInvocation", "1" );
+
+        System.setProperty( "multiplicationCount1", "20" );
+        System.setProperty( "multiplicationCount2", "10" );
+        System.setProperty( "multiplicationCount3", "20" );
+        System.setProperty( "multiplicationCount4", "480" );
+        System.setProperty( "multiplicationCount5", "720" );
+        System.setProperty( "multiplicationCount6", "1160" );
+        System.setProperty( "multiplicationCount7", "200" );
+
+        System.setProperty( "selectivity1", "100" );
+        System.setProperty( "selectivity2", "100" );
+        System.setProperty( "selectivity3", "90" );
+        System.setProperty( "selectivity4", "60" );
+        System.setProperty( "selectivity5", "70" );
+        System.setProperty( "selectivity6", "100" );
+        System.setProperty( "selectivity7", "100" );
+
+        ExperimentRunner.main( args );
+    }
 
 
     @Override
@@ -64,6 +98,24 @@ public class ModelComparisonFlowDefFactory implements FlowDefFactory
         final int selectivity5 = config.getInt( "selectivity5" );
         final int selectivity6 = config.getInt( "selectivity6" );
         final int selectivity7 = config.getInt( "selectivity7" );
+
+        System.out.println( "PARAMETERS: " );
+        System.out.println( "keyRange: " + keyRange );
+        System.out.println( "tuplesPerInvocation: " + tuplesPerInvocation );
+        System.out.println( "multiplicationCount1: " + multiplicationCount1 );
+        System.out.println( "multiplicationCount2: " + multiplicationCount2 );
+        System.out.println( "multiplicationCount3: " + multiplicationCount3 );
+        System.out.println( "multiplicationCount4: " + multiplicationCount4 );
+        System.out.println( "multiplicationCount5: " + multiplicationCount5 );
+        System.out.println( "multiplicationCount6: " + multiplicationCount6 );
+        System.out.println( "multiplicationCount7: " + multiplicationCount7 );
+        System.out.println( "selectivity1: " + selectivity1 );
+        System.out.println( "selectivity2: " + selectivity2 );
+        System.out.println( "selectivity3: " + selectivity3 );
+        System.out.println( "selectivity4: " + selectivity4 );
+        System.out.println( "selectivity5: " + selectivity5 );
+        System.out.println( "selectivity6: " + selectivity6 );
+        System.out.println( "selectivity7: " + selectivity7 );
 
         final int period = 100;
 
@@ -193,7 +245,7 @@ public class ModelComparisonFlowDefFactory implements FlowDefFactory
         @Override
         public boolean test ( final Tuple input )
         {
-            int val = input.getInteger( "value" );
+            int val = input.getInteger( "value" ) + sum;
             for ( int i = 0; i < multiplicationCount; i++ )
             {
                 val = val * MULTIPLIER_VALUE;
@@ -208,6 +260,7 @@ public class ModelComparisonFlowDefFactory implements FlowDefFactory
             else if ( count == period )
             {
                 count = 0;
+                sum = 0;
             }
 
             return false;
