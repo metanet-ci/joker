@@ -59,6 +59,20 @@ public class ModelComparisonFlowDefFactory implements FlowDefFactory
         System.setProperty( "selectivity7", "100" );
 
         ExperimentRunner.main( args );
+
+        //        SelectivityConfigurablePredicate pred = new SelectivityConfigurablePredicate( "op", 5, 5, 1 );
+        //        System.out.println(pred.test( Tuple.of( "key" , 1, "value", 1 ) ));
+        //        System.out.println(pred.test( Tuple.of( "key" , 1, "value", 1 ) ));
+        //        System.out.println(pred.test( Tuple.of( "key" , 1, "value", 1 ) ));
+        //        System.out.println(pred.test( Tuple.of( "key" , 1, "value", 1 ) ));
+        //        System.out.println(pred.test( Tuple.of( "key" , 1, "value", 1 ) ));
+        //        System.out.println(pred.test( Tuple.of( "key" , 1, "value", 1 ) ));
+        //        System.out.println(pred.test( Tuple.of( "key" , 1, "value", 1 ) ));
+        //        System.out.println(pred.test( Tuple.of( "key" , 1, "value", 1 ) ));
+        //        System.out.println(pred.test( Tuple.of( "key" , 1, "value", 1 ) ));
+        //        System.out.println(pred.test( Tuple.of( "key" , 1, "value", 1 ) ));
+        //        System.out.println(pred.test( Tuple.of( "key" , 1, "value", 1 ) ));
+        //        System.out.println(pred.test( Tuple.of( "key" , 1, "value", 1 ) ));
     }
 
 
@@ -117,27 +131,35 @@ public class ModelComparisonFlowDefFactory implements FlowDefFactory
         System.out.println( "selectivity6: " + selectivity6 );
         System.out.println( "selectivity7: " + selectivity7 );
 
+        final String multiplier1Id = "m1";
+        final String multiplier2Id = "m2";
+        final String multiplier3Id = "m3";
+        final String multiplier4Id = "m4";
+        final String multiplier5Id = "m5";
+        final String multiplier6Id = "m6";
+        final String multiplier7Id = "m7";
+
         final int period = 100;
 
-        final Supplier<Predicate<Tuple>> predicateSupplier1 = () -> new SelectivityConfigurablePredicate( selectivity1,
+        final Supplier<Predicate<Tuple>> predicateSupplier1 = () -> new SelectivityConfigurablePredicate( multiplier1Id, selectivity1,
                                                                                                           period,
                                                                                                           multiplicationCount1 );
-        final Supplier<Predicate<Tuple>> predicateSupplier2 = () -> new SelectivityConfigurablePredicate( selectivity2,
+        final Supplier<Predicate<Tuple>> predicateSupplier2 = () -> new SelectivityConfigurablePredicate( multiplier2Id, selectivity2,
                                                                                                           period,
                                                                                                           multiplicationCount2 );
-        final Supplier<Predicate<Tuple>> predicateSupplier3 = () -> new SelectivityConfigurablePredicate( selectivity3,
+        final Supplier<Predicate<Tuple>> predicateSupplier3 = () -> new SelectivityConfigurablePredicate( multiplier3Id, selectivity3,
                                                                                                           period,
                                                                                                           multiplicationCount3 );
-        final Supplier<Predicate<Tuple>> predicateSupplier4 = () -> new SelectivityConfigurablePredicate( selectivity4,
+        final Supplier<Predicate<Tuple>> predicateSupplier4 = () -> new SelectivityConfigurablePredicate( multiplier4Id, selectivity4,
                                                                                                           period,
                                                                                                           multiplicationCount4 );
-        final Supplier<Predicate<Tuple>> predicateSupplier5 = () -> new SelectivityConfigurablePredicate( selectivity5,
+        final Supplier<Predicate<Tuple>> predicateSupplier5 = () -> new SelectivityConfigurablePredicate( multiplier5Id, selectivity5,
                                                                                                           period,
                                                                                                           multiplicationCount5 );
-        final Supplier<Predicate<Tuple>> predicateSupplier6 = () -> new SelectivityConfigurablePredicate( selectivity6,
+        final Supplier<Predicate<Tuple>> predicateSupplier6 = () -> new SelectivityConfigurablePredicate( multiplier6Id, selectivity6,
                                                                                                           period,
                                                                                                           multiplicationCount6 );
-        final Supplier<Predicate<Tuple>> predicateSupplier7 = () -> new SelectivityConfigurablePredicate( selectivity7,
+        final Supplier<Predicate<Tuple>> predicateSupplier7 = () -> new SelectivityConfigurablePredicate( multiplier7Id, selectivity7,
                                                                                                           period,
                                                                                                           multiplicationCount7 );
 
@@ -150,7 +172,7 @@ public class ModelComparisonFlowDefFactory implements FlowDefFactory
         final OperatorConfig multiplierConfig1 = new OperatorConfig().set( PartitionedFilterOperator.PREDICATE_CONFIG_PARAMETER,
                                                                            predicateSupplier1 );
 
-        final OperatorDef multiplier1 = OperatorDefBuilder.newInstance( "m1", PartitionedFilterOperator.class )
+        final OperatorDef multiplier1 = OperatorDefBuilder.newInstance( multiplier1Id, PartitionedFilterOperator.class )
                                                           .setExtendingSchema( multiplierSchema )
                                                           .setConfig( multiplierConfig1 )
                                                           .setPartitionFieldNames( singletonList( "key" ) )
@@ -158,14 +180,14 @@ public class ModelComparisonFlowDefFactory implements FlowDefFactory
 
         final OperatorConfig multiplierConfig2 = new OperatorConfig().set( FilterOperator.PREDICATE_CONFIG_PARAMETER, predicateSupplier2 );
 
-        final OperatorDef multiplier2 = OperatorDefBuilder.newInstance( "m2", FilterOperator.class )
+        final OperatorDef multiplier2 = OperatorDefBuilder.newInstance( multiplier2Id, FilterOperator.class )
                                                           .setExtendingSchema( multiplierSchema )
                                                           .setConfig( multiplierConfig2 )
                                                           .build();
 
         final OperatorConfig multiplierConfig3 = new OperatorConfig().set( FilterOperator.PREDICATE_CONFIG_PARAMETER, predicateSupplier3 );
 
-        final OperatorDef multiplier3 = OperatorDefBuilder.newInstance( "m3", FilterOperator.class )
+        final OperatorDef multiplier3 = OperatorDefBuilder.newInstance( multiplier3Id, FilterOperator.class )
                                                           .setExtendingSchema( multiplierSchema )
                                                           .setConfig( multiplierConfig3 )
                                                           .build();
@@ -173,14 +195,14 @@ public class ModelComparisonFlowDefFactory implements FlowDefFactory
         final OperatorConfig multiplierConfig4 = new OperatorConfig().set( StatefulFilterOperator.PREDICATE_CONFIG_PARAMETER,
                                                                            predicateSupplier4 );
 
-        final OperatorDef multiplier4 = OperatorDefBuilder.newInstance( "m4", StatefulFilterOperator.class )
+        final OperatorDef multiplier4 = OperatorDefBuilder.newInstance( multiplier4Id, StatefulFilterOperator.class )
                                                           .setExtendingSchema( multiplierSchema )
                                                           .setConfig( multiplierConfig4 )
                                                           .build();
 
         final OperatorConfig multiplierConfig5 = new OperatorConfig().set( FilterOperator.PREDICATE_CONFIG_PARAMETER, predicateSupplier5 );
 
-        final OperatorDef multiplier5 = OperatorDefBuilder.newInstance( "m5", FilterOperator.class )
+        final OperatorDef multiplier5 = OperatorDefBuilder.newInstance( multiplier5Id, FilterOperator.class )
                                                           .setExtendingSchema( multiplierSchema )
                                                           .setConfig( multiplierConfig5 )
                                                           .build();
@@ -188,7 +210,7 @@ public class ModelComparisonFlowDefFactory implements FlowDefFactory
         final OperatorConfig multiplierConfig6 = new OperatorConfig().set( PartitionedFilterOperator.PREDICATE_CONFIG_PARAMETER,
                                                                            predicateSupplier6 );
 
-        final OperatorDef multiplier6 = OperatorDefBuilder.newInstance( "m6", PartitionedFilterOperator.class )
+        final OperatorDef multiplier6 = OperatorDefBuilder.newInstance( multiplier6Id, PartitionedFilterOperator.class )
                                                           .setExtendingSchema( multiplierSchema )
                                                           .setConfig( multiplierConfig6 )
                                                           .setPartitionFieldNames( singletonList( "key" ) )
@@ -196,7 +218,7 @@ public class ModelComparisonFlowDefFactory implements FlowDefFactory
 
         final OperatorConfig multiplierConfig7 = new OperatorConfig().set( FilterOperator.PREDICATE_CONFIG_PARAMETER, predicateSupplier7 );
 
-        final OperatorDef multiplier7 = OperatorDefBuilder.newInstance( "m7", FilterOperator.class )
+        final OperatorDef multiplier7 = OperatorDefBuilder.newInstance( multiplier7Id, FilterOperator.class )
                                                           .setExtendingSchema( multiplierSchema )
                                                           .setConfig( multiplierConfig7 )
                                                           .build();
@@ -225,6 +247,8 @@ public class ModelComparisonFlowDefFactory implements FlowDefFactory
     static class SelectivityConfigurablePredicate implements Predicate<Tuple>
     {
 
+        private final String operatorId;
+
         private final int selectivity;
 
         private final int period;
@@ -235,8 +259,12 @@ public class ModelComparisonFlowDefFactory implements FlowDefFactory
 
         private int count;
 
-        private SelectivityConfigurablePredicate ( final int selectivity, final int period, final int multiplicationCount )
+        private SelectivityConfigurablePredicate ( final String operatorId,
+                                                   final int selectivity,
+                                                   final int period,
+                                                   final int multiplicationCount )
         {
+            this.operatorId = operatorId;
             this.selectivity = selectivity;
             this.period = period;
             this.multiplicationCount = multiplicationCount;
@@ -255,9 +283,16 @@ public class ModelComparisonFlowDefFactory implements FlowDefFactory
 
             if ( ++count <= selectivity )
             {
+                if ( count == period )
+                {
+                    count = 0;
+                    sum = 0;
+                }
+
                 return true;
             }
-            else if ( count == period )
+
+            if ( count == period )
             {
                 count = 0;
                 sum = 0;
