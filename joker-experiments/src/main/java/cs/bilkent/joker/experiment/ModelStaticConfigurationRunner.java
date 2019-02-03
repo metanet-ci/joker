@@ -1,6 +1,5 @@
 package cs.bilkent.joker.experiment;
 
-import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -11,8 +10,6 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static com.typesafe.config.ConfigFactory.systemProperties;
 import cs.bilkent.joker.Joker;
 import cs.bilkent.joker.Joker.JokerBuilder;
-import cs.bilkent.joker.engine.adaptation.impl.adaptationtracker.ExperimentalAdaptationTracker;
-import cs.bilkent.joker.engine.adaptation.impl.adaptationtracker.FlowMetricsFileReporter;
 import cs.bilkent.joker.engine.config.JokerConfig;
 import cs.bilkent.joker.engine.config.JokerConfigBuilder;
 import cs.bilkent.joker.engine.flow.RegionDef;
@@ -66,14 +63,8 @@ public class ModelStaticConfigurationRunner
         final FlowDefFactory flowDefFactory = (FlowDefFactory) Class.forName( flowDefFactoryClassName ).newInstance();
         final FlowDef flow = flowDefFactory.createFlow( jokerConfig );
 
-        final String reportDir = config.getString( "reportDir" );
-        final FlowMetricsFileReporter reporter = new FlowMetricsFileReporter( jokerConfig, new File( reportDir ) );
-        reporter.init();
-
-        final ExperimentalAdaptationTracker adaptationTracker = new ExperimentalAdaptationTracker( jokerConfig, reporter );
         final Joker joker = new JokerBuilder().setJokerConfig( jokerConfig )
                                               .setRegionExecPlanFactory( staticRegionExecPlanFactory )
-                                              .setAdaptationTracker( adaptationTracker )
                                               .build();
 
         joker.run( flow );
