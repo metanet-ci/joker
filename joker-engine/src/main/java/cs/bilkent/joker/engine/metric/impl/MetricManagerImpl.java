@@ -624,7 +624,7 @@ public class MetricManagerImpl implements MetricManager
                 final double cpuUsage = threadUtilizationRatio / numberOfCores;
 
                 final String log = String.format(
-                        "%s -> flow version: %d thread utilization: %.3f cpu usage: %.3f throughput: %s pipeline cost: %s operator costs:"
+                        "%s -> flow version: %d thread utilization: %.3f cpu usage: %.3f throughput: %s pipeline cost: %.3f operator costs:"
                         + " %s",
                         pipelineReplicaId,
                         flowVersion,
@@ -632,7 +632,7 @@ public class MetricManagerImpl implements MetricManager
                         cpuUsage,
                         Arrays.toString( inboundThroughput ),
                         pipelineCost,
-                        Arrays.toString( operatorCosts ) );
+                        Arrays.toString( Arrays.stream( operatorCosts ).mapToObj( c -> String.format( "%.3f", c ) ).toArray() ) );
                 LOGGER.info( log );
             };
 

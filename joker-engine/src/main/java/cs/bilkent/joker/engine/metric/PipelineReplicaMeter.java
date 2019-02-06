@@ -78,8 +78,7 @@ public class PipelineReplicaMeter
 
             LOGGER.info( "{} => INPUT TUPLE COUNTS operator: {} -> average: {}",
                          pipelineReplicaId,
-                         headOperatorId,
-                         invocationTupleCounts.getAvg() );
+                         headOperatorId, (long) Math.ceil( invocationTupleCounts.getAvg() ) );
             invocationTupleCounts.reset();
         }
     }
