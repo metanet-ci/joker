@@ -137,12 +137,7 @@ public class MetricManagerImpl implements MetricManager
         final ThreadFactory threadFactory = new ThreadFactoryBuilder().setNameFormat( threadGroup.getName() + "_MetricsCollector-%d" )
                                                                       .build();
         this.scheduler = newScheduledThreadPool( METRICS_SCHEDULER_CORE_POOL_SIZE, threadFactory );
-        this.scheduler.scheduleWithFixedDelay( new CollectPipelineMetrics(),
-                                               metricManagerConfig.getPipelineMetricsScanningPeriodInMillis(),
-                                               metricManagerConfig.getPipelineMetricsScanningPeriodInMillis(),
-                                               MILLISECONDS );
-        this.scheduler.scheduleAtFixedRate( new SamplePipelines(),
-                                            metricManagerConfig.getOperatorInvocationSamplingPeriodInMicros(),
+        this.scheduler.scheduleAtFixedRate( new SamplePipelines(), 0,
                                             metricManagerConfig.getOperatorInvocationSamplingPeriodInMicros(),
                                             MICROSECONDS );
         this.scanOperatorsHistogram = pipelineMetricRegistry.histogram( "scanOperators" );
