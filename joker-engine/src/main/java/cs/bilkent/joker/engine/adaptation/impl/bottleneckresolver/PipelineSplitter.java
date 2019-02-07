@@ -59,6 +59,7 @@ public class PipelineSplitter implements BottleneckResolver
             final AdaptationAction action = resolve( currentExecPlan, pipelineMetrics );
             if ( action == null )
             {
+                LOGGER.warn( "Region: {} bottlenecks no candidate splits", execPlan.getRegionId() );
                 return emptyList();
             }
 
