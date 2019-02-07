@@ -15,10 +15,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
@@ -116,6 +118,8 @@ public class MetricManagerImpl implements MetricManager
 
     private volatile boolean pause;
 
+    private volatile ScheduledFuture collectPipelineMetricsFuture;
+
     @Inject
     public MetricManagerImpl ( final JokerConfig jokerConfig,
                                final MetricRegistry pipelineMetricRegistry,
@@ -148,13 +152,47 @@ public class MetricManagerImpl implements MetricManager
     @Override
     public void start ( final int flowVersion, final List<PipelineMeter> pipelineMeters )
     {
-        call( new StartTasks( flowVersion, pipelineMeters ), "starting" );
+        synchronized ( monitor )
+        {
+            checkState( collectPipelineMetricsFuture == null );
+            collectPipelineMetricsFuture = call( new StartTasks( flowVersion, pipelineMeters ), "starting" );
+        }
     }
 
     @Override
     public void pause ()
     {
-        call( new PauseTasks(), "pausing" );
+        synchronized ( monitor )
+        {
+            checkState( collectPipelineMetricsFuture != null );
+            call( new PauseTasks(), "pausing" );
+            try
+            {
+                if ( !collectPipelineMetricsFuture.cancel( false ) )
+                {
+                    LOGGER.warn( "Collect pipeline metrics future could not be cancelled..." );
+                }
+
+                collectPipelineMetricsFuture.get();
+            }
+            catch ( InterruptedException e )
+            {
+                LOGGER.warn( "Collect pipeline metrics future waiting is interrupted." );
+                Thread.currentThread().interrupt();
+            }
+            catch ( ExecutionException e )
+            {
+                LOGGER.warn( "Collect pipeline metrics future waiting failed.", e );
+            }
+            catch ( CancellationException e )
+            {
+                LOGGER.warn( "Collect pipeline metrics future is cancelled." );
+            }
+            finally
+            {
+                collectPipelineMetricsFuture = null;
+            }
+        }
     }
 
     @Override
@@ -166,7 +204,11 @@ public class MetricManagerImpl implements MetricManager
     @Override
     public void resume ()
     {
-        call( new ResumeTasks(), "pausing" );
+        synchronized ( monitor )
+        {
+            checkState( collectPipelineMetricsFuture == null );
+            collectPipelineMetricsFuture = call( new ResumeTasks(), "pausing" );
+        }
     }
 
     @Override
@@ -223,16 +265,18 @@ public class MetricManagerImpl implements MetricManager
                 Thread.currentThread().interrupt();
                 LOGGER.error( "Interrupted while awaiting termination" );
             }
+
+            collectPipelineMetricsFuture = null;
         }
     }
 
-    private void call ( final Callable<Void> callable, final String command )
+    private <T> T call ( final Callable<T> callable, final String command )
     {
         synchronized ( monitor )
         {
             try
             {
-                scheduler.submit( callable ).get();
+                return scheduler.submit( callable ).get();
             }
             catch ( InterruptedException e )
             {
@@ -764,7 +808,7 @@ public class MetricManagerImpl implements MetricManager
     }
 
 
-    private class StartTasks implements Callable<Void>
+    private class StartTasks implements Callable<ScheduledFuture>
     {
 
         final int flowVersion;
@@ -778,7 +822,7 @@ public class MetricManagerImpl implements MetricManager
         }
 
         @Override
-        public Void call ()
+        public ScheduledFuture call ()
         {
             final TaskStatus metricsFlagStatus = metricsFlag.get();
             final TaskStatus samplingFlagStatus = samplingFlag.get();
@@ -829,7 +873,10 @@ public class MetricManagerImpl implements MetricManager
 
             createCsvReporter();
 
-            return null;
+            return scheduler.scheduleWithFixedDelay( new CollectPipelineMetrics(),
+                                                     0,
+                                                     metricManagerConfig.getPipelineMetricsScanningPeriodInMillis(),
+                                                     MILLISECONDS );
         }
 
     }
@@ -921,11 +968,11 @@ public class MetricManagerImpl implements MetricManager
     }
 
 
-    private class ResumeTasks implements Callable<Void>
+    private class ResumeTasks implements Callable<ScheduledFuture>
     {
 
         @Override
-        public Void call ()
+        public ScheduledFuture call ()
         {
             final TaskStatus metricsFlagStatus = metricsFlag.get();
             final TaskStatus samplingFlagStatus = samplingFlag.get();
@@ -941,7 +988,10 @@ public class MetricManagerImpl implements MetricManager
             samplingFlag.set( TaskStatus.RUNNABLE );
             pause = false;
 
-            return null;
+            return scheduler.scheduleWithFixedDelay( new CollectPipelineMetrics(),
+                                                     0,
+                                                     metricManagerConfig.getPipelineMetricsScanningPeriodInMillis(),
+                                                     MILLISECONDS );
         }
 
     }
