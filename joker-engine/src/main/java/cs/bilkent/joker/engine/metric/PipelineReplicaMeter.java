@@ -39,7 +39,9 @@ public class PipelineReplicaMeter
         this.pipelineReplicaId = pipelineReplicaId;
         this.ticker = new Ticker( tickMask );
         this.headOperatorId = headOperatorDef.getId();
-        this.inputPortCount = headOperatorDef.getInputPortCount();
+        // TODO FIX HACK
+        this.inputPortCount =
+                pipelineReplicaId.pipelineId.getRegionId() > 0 ? headOperatorDef.getInputPortCount() : headOperatorDef.getOutputPortCount();
         this.inboundThroughput = new long[ inputPortCount ];
         this.samplingEnabled = ( inputPortCount > 0 );
     }
@@ -77,8 +79,7 @@ public class PipelineReplicaMeter
             lastOperatorInputTuplesReportTime = now;
 
             LOGGER.info( "{} => INPUT TUPLE COUNTS operator: {} -> average: {}",
-                         pipelineReplicaId,
-                         headOperatorId, (long) Math.ceil( invocationTupleCounts.getAvg() ) );
+                         pipelineReplicaId, headOperatorId, (long) Math.ceil( invocationTupleCounts.getAvg() ) );
             invocationTupleCounts.reset();
         }
     }

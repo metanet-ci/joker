@@ -160,7 +160,7 @@ public class MetricManagerImpl implements MetricManager
         synchronized ( monitor )
         {
             checkState( collectPipelineMetricsFuture != null );
-            call( new PauseTasks(), "pausing" );
+
             try
             {
                 if ( !collectPipelineMetricsFuture.cancel( false ) )
@@ -186,6 +186,11 @@ public class MetricManagerImpl implements MetricManager
             finally
             {
                 collectPipelineMetricsFuture = null;
+                call( new PauseTasks(), "pausing" );
+                //                call( () -> {
+                //                    new CollectPipelineMetrics( true ).run();
+                //                    return null;
+                //                }, "force-collect" );
             }
         }
     }
@@ -472,14 +477,30 @@ public class MetricManagerImpl implements MetricManager
     private class CollectPipelineMetrics implements Runnable
     {
 
+        // TODO FIX HACK
+        private final boolean forceCollect;
+
+        public CollectPipelineMetrics ( final boolean forceCollect )
+        {
+            this.forceCollect = forceCollect;
+        }
+
         long lastSystemNanoTime;
 
         @Override
         public void run ()
         {
-            if ( pause || !metricsFlag.compareAndSet( TaskStatus.RUNNABLE, TaskStatus.RUNNING ) )
+            if ( !forceCollect )
             {
-                return;
+                if ( pause || !metricsFlag.compareAndSet( TaskStatus.RUNNABLE, TaskStatus.RUNNING ) )
+                {
+                    return;
+                }
+            }
+            else
+            {
+                final TaskStatus status = metricsFlag.get();
+                checkState( status == TaskStatus.PAUSED, "cannot force-collect when status: %s", status );
             }
 
             try
@@ -499,7 +520,7 @@ public class MetricManagerImpl implements MetricManager
 
                 final long scanStartTimeInNanos = System.nanoTime();
                 final Pair<Boolean, Long> result = updateLastSystemTime( true );
-                final boolean publish = result._1;
+                final boolean publish = result._1 || forceCollect;
                 long systemTimeDiff = result._2;
 
                 final Map<PipelineId, long[]> pipelineIdToThreadCpuTimes = collectThreadCpuTimes();
@@ -532,7 +553,10 @@ public class MetricManagerImpl implements MetricManager
             finally
             {
                 iteration++;
-                metricsFlag.set( TaskStatus.RUNNABLE );
+                if ( !forceCollect )
+                {
+                    metricsFlag.set( TaskStatus.RUNNABLE );
+                }
             }
         }
 
@@ -868,7 +892,7 @@ public class MetricManagerImpl implements MetricManager
 
             createCsvReporter();
 
-            return scheduler.scheduleWithFixedDelay( new CollectPipelineMetrics(),
+            return scheduler.scheduleWithFixedDelay( new CollectPipelineMetrics( false ),
                                                      0,
                                                      metricManagerConfig.getPipelineMetricsScanningPeriodInMillis(),
                                                      MILLISECONDS );
@@ -897,6 +921,8 @@ public class MetricManagerImpl implements MetricManager
             setTaskPaused( samplingFlag );
 
             LOGGER.info( "Metric collector is paused." );
+
+            new CollectPipelineMetrics( true ).run();
 
             return null;
         }
@@ -983,7 +1009,7 @@ public class MetricManagerImpl implements MetricManager
             samplingFlag.set( TaskStatus.RUNNABLE );
             pause = false;
 
-            return scheduler.scheduleWithFixedDelay( new CollectPipelineMetrics(),
+            return scheduler.scheduleWithFixedDelay( new CollectPipelineMetrics( false ),
                                                      0,
                                                      metricManagerConfig.getPipelineMetricsScanningPeriodInMillis(),
                                                      MILLISECONDS );

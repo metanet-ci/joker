@@ -263,13 +263,14 @@ public class SupervisorImpl implements Supervisor
     {
         try
         {
-            metricManager.pause();
-
             pipelineManager.mergePipelines( flowVersion, pipelineIdsToMerge );
+
+            metricManager.pause();
 
             final FlowExecPlan flowExecPlan = pipelineManager.getFlowExecPlan();
             final PipelineMeter pipelineMeter = pipelineManager.getPipelineMeterOrFail( pipelineIdsToMerge.get( 0 ) );
             metricManager.update( flowExecPlan.getVersion(), pipelineIdsToMerge, singletonList( pipelineMeter ) );
+
             metricManager.resume();
             future.complete( flowExecPlan );
         }
@@ -298,8 +299,9 @@ public class SupervisorImpl implements Supervisor
             final boolean validPipelineId = unchangedPipelineIds.remove( pipelineId );
             checkArgument( validPipelineId, "Invalid PipelineId %s to split", pipelineId );
 
-            metricManager.pause();
             pipelineManager.splitPipeline( flowVersion, pipelineId, pipelineOperatorIndices );
+
+            metricManager.pause();
 
             final FlowExecPlan flowExecPlan = pipelineManager.getFlowExecPlan();
             final List<PipelineMeter> newPipelineMeters = pipelineManager.getRegionPipelineMetersOrFail( pipelineId.getRegionId() )
@@ -307,6 +309,7 @@ public class SupervisorImpl implements Supervisor
                                                                          .filter( p -> !unchangedPipelineIds.contains( p.getPipelineId() ) )
                                                                          .collect( toList() );
             metricManager.update( flowExecPlan.getVersion(), singletonList( pipelineId ), newPipelineMeters );
+
             metricManager.resume();
             future.complete( flowExecPlan );
         }
@@ -334,9 +337,9 @@ public class SupervisorImpl implements Supervisor
     {
         try
         {
-            metricManager.pause();
-
             pipelineManager.rebalanceRegion( flowVersion, regionId, newReplicaCount );
+
+            metricManager.pause();
 
             final FlowExecPlan flowExecPlan = pipelineManager.getFlowExecPlan();
             final RegionExecPlan regionExecPlan = flowExecPlan.getRegionExecPlan( regionId );
@@ -517,14 +520,15 @@ public class SupervisorImpl implements Supervisor
             return;
         }
 
-        metricManager.pause();
-
         for ( AdaptationAction action : actions )
         {
             LOGGER.info( "Performing: {}", action );
             // new adaptation performer for each iteration is needed to get the latest flow execution version
             final DefaultAdaptationPerformer performer = new DefaultAdaptationPerformer( pipelineManager );
             action.apply( performer );
+
+            metricManager.pause();
+
             final Pair<List<PipelineId>, List<PipelineId>> pipelineIdChanges = performer.getPipelineIdChanges();
 
             final int regionId = action.getCurrentExecPlan().getRegionId();
@@ -541,14 +545,14 @@ public class SupervisorImpl implements Supervisor
 
             LOGGER.info( "Flow execution plan after adaptation action: {}", flowExecPlan.toSummaryString() );
             metricManager.update( flowExecPlan.getVersion(), removedPipelineIds, addedPipelineMeters );
+
+            metricManager.resume();
         }
 
         adaptationTracker.onExecPlanChange( flowExecPlan );
 
         flowPeriod = metricManager.getMetrics().getPeriod();
         LOGGER.info( "Flow period after adaptation: {}", flowPeriod );
-
-        metricManager.resume();
     }
 
     private boolean shouldCheckAdaptation ( final FlowMetrics metrics )

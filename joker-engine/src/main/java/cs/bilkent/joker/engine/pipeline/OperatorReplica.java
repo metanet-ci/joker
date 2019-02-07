@@ -45,6 +45,7 @@ import cs.bilkent.joker.operator.scheduling.SchedulingStrategy;
 import cs.bilkent.joker.partition.impl.PartitionKey;
 import static java.lang.Math.min;
 import static java.lang.System.arraycopy;
+import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.joining;
 
 /**
@@ -494,7 +495,15 @@ public class OperatorReplica
         //            meter.onInvocationComplete( operatorDef.getId(), invocationCtx.getInputs(), invocationCtx.getInputCount(), false );
         //        }
 
-        meter.onInvocationComplete( operatorDef.getId(), invocationCtx.getInputs(), invocationCtx.getInputCount(), false );
+        // TODO FIX HACK
+        if ( meter.getPipelineReplicaId().pipelineId.getRegionId() > 0 )
+        {
+            meter.onInvocationComplete( operatorDef.getId(), invocationCtx.getInputs(), invocationCtx.getInputCount(), false );
+        }
+        else
+        {
+            meter.onInvocationComplete( operatorDef.getId(), singletonList( invocationCtx.getOutput() ), 1, false );
+        }
     }
 
     /**
