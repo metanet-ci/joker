@@ -140,6 +140,10 @@ public class MetricManagerImpl implements MetricManager
         this.scheduler.scheduleAtFixedRate( new SamplePipelines(), 0,
                                             metricManagerConfig.getOperatorInvocationSamplingPeriodInMicros(),
                                             MICROSECONDS );
+        this.scheduler.scheduleAtFixedRate( new CollectSourceMetrics(),
+                                            0,
+                                            metricManagerConfig.getPipelineMetricsScanningPeriodInMillis(),
+                                            MILLISECONDS );
         this.scanOperatorsHistogram = pipelineMetricRegistry.histogram( "scanOperators" );
         this.scanMetricsHistogram = pipelineMetricRegistry.histogram( "scanMetrics" );
     }
@@ -163,6 +167,7 @@ public class MetricManagerImpl implements MetricManager
 
             try
             {
+                call( new PauseTasks(), "pausing" );
                 if ( !collectPipelineMetricsFuture.cancel( false ) )
                 {
                     LOGGER.warn( "Collect pipeline metrics future could not be cancelled..." );
@@ -186,11 +191,6 @@ public class MetricManagerImpl implements MetricManager
             finally
             {
                 collectPipelineMetricsFuture = null;
-                call( new PauseTasks(), "pausing" );
-                //                call( () -> {
-                //                    new CollectPipelineMetrics( true ).run();
-                //                    return null;
-                //                }, "force-collect" );
             }
         }
     }
@@ -477,30 +477,14 @@ public class MetricManagerImpl implements MetricManager
     private class CollectPipelineMetrics implements Runnable
     {
 
-        // TODO FIX HACK
-        private final boolean forceCollect;
-
-        public CollectPipelineMetrics ( final boolean forceCollect )
-        {
-            this.forceCollect = forceCollect;
-        }
-
         long lastSystemNanoTime;
 
         @Override
         public void run ()
         {
-            if ( !forceCollect )
+            if ( pause || !metricsFlag.compareAndSet( TaskStatus.RUNNABLE, TaskStatus.RUNNING ) )
             {
-                if ( pause || !metricsFlag.compareAndSet( TaskStatus.RUNNABLE, TaskStatus.RUNNING ) )
-                {
-                    return;
-                }
-            }
-            else
-            {
-                final TaskStatus status = metricsFlag.get();
-                checkState( status == TaskStatus.PAUSED, "cannot force-collect when status: %s", status );
+                return;
             }
 
             try
@@ -520,7 +504,7 @@ public class MetricManagerImpl implements MetricManager
 
                 final long scanStartTimeInNanos = System.nanoTime();
                 final Pair<Boolean, Long> result = updateLastSystemTime( true );
-                final boolean publish = result._1 || forceCollect;
+                final boolean publish = result._1;
                 long systemTimeDiff = result._2;
 
                 final Map<PipelineId, long[]> pipelineIdToThreadCpuTimes = collectThreadCpuTimes();
@@ -553,10 +537,7 @@ public class MetricManagerImpl implements MetricManager
             finally
             {
                 iteration++;
-                if ( !forceCollect )
-                {
-                    metricsFlag.set( TaskStatus.RUNNABLE );
-                }
+                metricsFlag.set( TaskStatus.RUNNABLE );
             }
         }
 
@@ -596,6 +577,11 @@ public class MetricManagerImpl implements MetricManager
         {
             for ( PipelineMetricsContext context : pipelineMetricsContextMap.values() )
             {
+                if ( context.getPipelineMeter().getPipelineId().getRegionId() == 0 )
+                {
+                    continue;
+                }
+
                 context.initialize( threadMXBean );
             }
         }
@@ -605,6 +591,11 @@ public class MetricManagerImpl implements MetricManager
             final Map<PipelineId, long[]> threadCpuTimes = new HashMap<>();
             for ( Entry<PipelineId, PipelineMetricsContext> e : pipelineMetricsContextMap.entrySet() )
             {
+                if ( e.getKey().getRegionId() == 0 )
+                {
+                    continue;
+                }
+
                 final PipelineMetricsContext context = e.getValue();
                 final long[] t = context.getThreadCpuTimes( threadMXBean );
                 threadCpuTimes.put( e.getKey(), t );
@@ -704,6 +695,11 @@ public class MetricManagerImpl implements MetricManager
 
             for ( PipelineId pipelineId : pipelineIds )
             {
+                if ( pipelineId.getRegionId() == 0 )
+                {
+                    continue;
+                }
+
                 final PipelineMetricsHistory pipelineMetricsHistory = metrics.getPipelineMetricsHistory( pipelineId );
                 pipelineMetricsHistory.getLatest().visit( logVisitor );
             }
@@ -827,6 +823,143 @@ public class MetricManagerImpl implements MetricManager
     }
 
 
+    private class CollectSourceMetrics implements Runnable
+    {
+
+        long lastSystemNanoTime;
+
+        private boolean initialized;
+
+        @Override
+        public void run ()
+        {
+            try
+            {
+                if ( !initialized )
+                {
+                    updateLastSystemTime( false );
+                    if ( initializePipelineMetricsContexts() )
+                    {
+                        LOGGER.info( "Source metric collector initialized..." );
+                        initialized = true;
+                    }
+                    else
+                    {
+                        LOGGER.info( "Source metric collector not initialized yet..." );
+                    }
+
+                    return;
+                }
+
+                final long scanStartTimeInNanos = System.nanoTime();
+                final Pair<Boolean, Long> result = updateLastSystemTime( true );
+                final boolean publish = result._1;
+                long systemTimeDiff = result._2;
+
+                final long[] threadCpuTimes = collectThreadCpuTimes();
+                systemTimeDiff += ( System.nanoTime() - scanStartTimeInNanos ) / 2;
+
+                PipelineMetrics pipelineMetrics = updatePipelineMetrics( threadCpuTimes, systemTimeDiff );
+
+                final long timeSpent = System.nanoTime() - scanStartTimeInNanos;
+                scanMetricsHistogram.update( timeSpent );
+
+                if ( publish )
+                {
+                    logMetrics( pipelineMetrics );
+                }
+            }
+            catch ( Exception e )
+            {
+                LOGGER.error( "Scan pipeline metrics failed", e );
+            }
+        }
+
+        private Pair<Boolean, Long> updateLastSystemTime ( final boolean log )
+        {
+            final long systemNanoTime = System.nanoTime();
+            if ( systemNanoTime <= lastSystemNanoTime )
+            {
+                return Pair.of( false, -1L );
+            }
+
+            final long systemTimeDiff = systemNanoTime - lastSystemNanoTime;
+            lastSystemNanoTime = systemNanoTime;
+
+            if ( shouldUpdateMetrics( systemTimeDiff ) )
+            {
+                return Pair.of( true, systemTimeDiff );
+            }
+
+            if ( log )
+            {
+                LOGGER.warn( "It is too early for measuring pipelines. Time diff (ns): {}", systemTimeDiff );
+            }
+
+            return Pair.of( false, systemTimeDiff );
+        }
+
+        private boolean shouldUpdateMetrics ( final long systemTimeDiff )
+        {
+            final long periodInNanos = MILLISECONDS.toNanos( metricManagerConfig.getPipelineMetricsScanningPeriodInMillis() );
+            final double skew = abs( ( (double) ( systemTimeDiff - periodInNanos ) ) / periodInNanos );
+
+            return skew < metricManagerConfig.getPeriodSkewToleranceRatio();
+        }
+
+        private boolean initializePipelineMetricsContexts ()
+        {
+            final PipelineMetricsContext context = pipelineMetricsContextMap.get( new PipelineId( 0, 0 ) );
+            if ( context != null )
+            {
+                context.initialize( threadMXBean );
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private long[] collectThreadCpuTimes ()
+        {
+            final PipelineId sourcePipelineId = new PipelineId( 0, 0 );
+            final PipelineMetricsContext context = pipelineMetricsContextMap.get( sourcePipelineId );
+            return context.getThreadCpuTimes( threadMXBean );
+        }
+
+        private PipelineMetrics updatePipelineMetrics ( final long[] newThreadCpuTimes, final long systemTimeDiff )
+        {
+            return pipelineMetricsContextMap.get( new PipelineId( 0, 0 ) ).update( newThreadCpuTimes, systemTimeDiff );
+        }
+
+        private void logMetrics ( final PipelineMetrics pipelineMetrics )
+        {
+            final PipelineMetricsVisitor logVisitor = ( pipelineReplicaId, flowVersion, inboundThroughput, threadUtilizationRatio,
+                                                        pipelineCost, operatorCosts ) -> {
+                final double cpuUsage = threadUtilizationRatio / numberOfCores;
+
+                final String log = String.format(
+                        "%s -> flow version: %d thread utilization: %.3f cpu usage: %.3f throughput: %s pipeline cost: %.3f operator costs:"
+                        + " %s",
+                        pipelineReplicaId,
+                        flowVersion,
+                        threadUtilizationRatio,
+                        cpuUsage,
+                        Arrays.toString( inboundThroughput ),
+                        pipelineCost,
+                        Arrays.toString( Arrays.stream( operatorCosts ).mapToObj( c -> String.format( "%.3f", c ) ).toArray() ) );
+                LOGGER.info( log );
+            };
+
+            final List<PipelineId> pipelineIds = new ArrayList<>( pipelineMetricsContextMap.keySet() );
+            pipelineIds.sort( PipelineId::compareTo );
+
+            pipelineMetrics.visit( logVisitor );
+        }
+
+    }
+
+
     private class StartTasks implements Callable<ScheduledFuture>
     {
 
@@ -892,7 +1025,7 @@ public class MetricManagerImpl implements MetricManager
 
             createCsvReporter();
 
-            return scheduler.scheduleWithFixedDelay( new CollectPipelineMetrics( false ),
+            return scheduler.scheduleWithFixedDelay( new CollectPipelineMetrics(),
                                                      0,
                                                      metricManagerConfig.getPipelineMetricsScanningPeriodInMillis(),
                                                      MILLISECONDS );
@@ -921,8 +1054,6 @@ public class MetricManagerImpl implements MetricManager
             setTaskPaused( samplingFlag );
 
             LOGGER.info( "Metric collector is paused." );
-
-            new CollectPipelineMetrics( true ).run();
 
             return null;
         }
@@ -1009,7 +1140,7 @@ public class MetricManagerImpl implements MetricManager
             samplingFlag.set( TaskStatus.RUNNABLE );
             pause = false;
 
-            return scheduler.scheduleWithFixedDelay( new CollectPipelineMetrics( false ),
+            return scheduler.scheduleWithFixedDelay( new CollectPipelineMetrics(),
                                                      0,
                                                      metricManagerConfig.getPipelineMetricsScanningPeriodInMillis(),
                                                      MILLISECONDS );

@@ -53,6 +53,11 @@ public class FlowMetricsFileReporter implements FlowMetricsReporter
 
         for ( final RegionExecPlan regionExecPlan : execPlan.getRegionExecPlans() )
         {
+            if ( regionExecPlan.getRegionId() == 0 )
+            {
+                continue;
+            }
+
             final String regionFileNamePrefix = "flow" + execPlan.getVersion() + "_r" + regionExecPlan.getRegionId();
             writeToFile( regionFileNamePrefix + "_replicaCount.txt", writer -> writer.println( regionExecPlan.getReplicaCount() ) );
             writeToFile( regionFileNamePrefix + "_pipelineCount.txt", writer -> writer.println( regionExecPlan.getPipelineCount() ) );
