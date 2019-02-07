@@ -22,9 +22,9 @@ public class PipelineReplicaMeter
 
     private final String headOperatorId;
 
-    private final int inputPortCount;
+    private final int portCount;
 
-    private final long[] inboundThroughput;
+    private final long[] throughput;
 
     private final boolean samplingEnabled;
 
@@ -39,11 +39,10 @@ public class PipelineReplicaMeter
         this.pipelineReplicaId = pipelineReplicaId;
         this.ticker = new Ticker( tickMask );
         this.headOperatorId = headOperatorDef.getId();
-        // TODO FIX HACK
-        this.inputPortCount =
-                pipelineReplicaId.pipelineId.getRegionId() > 0 ? headOperatorDef.getInputPortCount() : headOperatorDef.getOutputPortCount();
-        this.inboundThroughput = new long[ inputPortCount ];
-        this.samplingEnabled = ( inputPortCount > 0 );
+        this.portCount =
+                headOperatorDef.getInputPortCount() > 0 ? headOperatorDef.getInputPortCount() : headOperatorDef.getOutputPortCount();
+        this.throughput = new long[ portCount ];
+        this.samplingEnabled = ( headOperatorDef.getInputPortCount() > 0 );
     }
 
     public PipelineReplicaId getPipelineReplicaId ()
@@ -62,7 +61,7 @@ public class PipelineReplicaMeter
         if ( ticked )
         {
             currentlyInvokedOperator = pipelineReplicaId;
-            if ( inputPortCount > 0 )
+            if ( samplingEnabled )
             {
                 reportOperatorInputTupleCounts();
             }
@@ -79,7 +78,9 @@ public class PipelineReplicaMeter
             lastOperatorInputTuplesReportTime = now;
 
             LOGGER.info( "{} => INPUT TUPLE COUNTS operator: {} -> average: {}",
-                         pipelineReplicaId, headOperatorId, (long) Math.ceil( invocationTupleCounts.getAvg() ) );
+                         pipelineReplicaId,
+                         headOperatorId,
+                         (long) Math.ceil( invocationTupleCounts.getAvg() ) );
             invocationTupleCounts.reset();
         }
     }
@@ -89,9 +90,9 @@ public class PipelineReplicaMeter
         return headOperatorId;
     }
 
-    public int getInputPortCount ()
+    public int getPortCount ()
     {
-        return inputPortCount;
+        return portCount;
     }
 
     public boolean isTicked ()
@@ -152,10 +153,10 @@ public class PipelineReplicaMeter
         {
             final TuplesImpl tuples = inputs.get( i );
 
-            for ( int j = 0; j < inputPortCount; j++ )
+            for ( int j = 0; j < portCount; j++ )
             {
                 final int tupleCount = tuples.getTupleCount( j );
-                inboundThroughput[ j ] += tupleCount;
+                throughput[ j ] += tupleCount;
                 total += tupleCount;
             }
         }
@@ -168,13 +169,13 @@ public class PipelineReplicaMeter
         return total;
     }
 
-    void readInboundThroughput ( final long[] inboundThroughput )
+    void readThroughput ( final long[] throughput )
     {
-        assert inboundThroughput.length == inputPortCount;
+        assert throughput.length == portCount;
 
-        for ( int i = 0; i < inputPortCount; i++ )
+        for ( int i = 0; i < portCount; i++ )
         {
-            inboundThroughput[ i ] = this.inboundThroughput[ i ];
+            throughput[ i ] = this.throughput[ i ];
         }
     }
 

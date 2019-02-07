@@ -28,16 +28,16 @@ public class ExponentialMovingAverage implements PipelineMetricsHistorySummarize
         double cpuUtilRatio = p.get( 0 ).getAvgCpuUtilizationRatio();
         double pipelineCost = p.get( 0 ).getAvgPipelineCost();
         final double[] operatorCosts = new double[ history.getOperatorCount() ];
-        final long[] throughputs = new long[ history.getInputPortCount() ];
+        final long[] throughputs = new long[ history.getPortCount() ];
 
         for ( int i = 0; i < history.getOperatorCount(); i++ )
         {
             operatorCosts[ i ] = p.get( 0 ).getAvgOperatorCost( i );
         }
 
-        for ( int i = 0; i < history.getInputPortCount(); i++ )
+        for ( int i = 0; i < history.getPortCount(); i++ )
         {
-            throughputs[ i ] = p.get( 0 ).getTotalInboundThroughput( i );
+            throughputs[ i ] = p.get( 0 ).getTotalThroughput( i );
         }
 
         for ( int i = 1; i < p.size(); i++ )
@@ -52,17 +52,16 @@ public class ExponentialMovingAverage implements PipelineMetricsHistorySummarize
                 operatorCosts[ j ] = ema( pipelineMetrics.getAvgOperatorCost( j ), operatorCosts[ j ] );
             }
 
-            for ( int j = 0; j < history.getInputPortCount(); j++ )
+            for ( int j = 0; j < history.getPortCount(); j++ )
             {
-                throughputs[ j ] = ema( pipelineMetrics.getTotalInboundThroughput( j ), throughputs[ j ] );
+                throughputs[ j ] = ema( pipelineMetrics.getTotalThroughput( j ), throughputs[ j ] );
             }
         }
 
         final PipelineMetricsBuilder builder = new PipelineMetricsBuilder( history.getPipelineId(),
                                                                            history.getFlowVersion(),
                                                                            1,
-                                                                           history.getOperatorCount(),
-                                                                           history.getInputPortCount() );
+                                                                           history.getOperatorCount(), history.getPortCount() );
 
         builder.setCpuUtilizationRatio( 0, cpuUtilRatio ).setPipelineCost( 0, pipelineCost );
 
@@ -71,9 +70,9 @@ public class ExponentialMovingAverage implements PipelineMetricsHistorySummarize
             builder.setOperatorCost( 0, i, operatorCosts[ i ] );
         }
 
-        for ( int i = 0; i < history.getInputPortCount(); i++ )
+        for ( int i = 0; i < history.getPortCount(); i++ )
         {
-            builder.setInboundThroughput( 0, i, throughputs[ i ] );
+            builder.setThroughput( 0, i, throughputs[ i ] );
         }
 
         return builder.build();

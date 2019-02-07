@@ -47,7 +47,7 @@ public class PipelineMetricsContextTest extends AbstractJokerTest
         when( meter.getPipelineId() ).thenReturn( PIPELINE_ID );
         when( meter.getReplicaCount() ).thenReturn( REPLICA_COUNT );
         when( meter.getOperatorCount() ).thenReturn( OPERATOR_COUNT );
-        when( meter.getInputPortCount() ).thenReturn( INPUT_PORT_COUNT );
+        when( meter.getPortCount() ).thenReturn( INPUT_PORT_COUNT );
 
         metricsCtx = new PipelineMetricsContext( FLOW_VERSION, meter );
     }

@@ -496,7 +496,7 @@ public class OperatorReplica
         //        }
 
         // TODO FIX HACK
-        if ( meter.getPipelineReplicaId().pipelineId.getRegionId() > 0 )
+        if ( operatorDef.getInputPortCount() > 0 )
         {
             meter.onInvocationComplete( operatorDef.getId(), invocationCtx.getInputs(), invocationCtx.getInputCount(), false );
         }

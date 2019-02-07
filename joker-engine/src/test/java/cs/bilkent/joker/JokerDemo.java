@@ -139,13 +139,13 @@ public class JokerDemo extends AbstractJokerTest
                                                                                   .get( 0 );
             final PipelineMetricsHistory finalMetricsHistory = adaptationTracker.getFinalMetrics().getRegionMetrics( regionId ).get( 0 );
 
-            for ( int portIndex = 0; portIndex < initialMetricsHistory.getInputPortCount(); portIndex++ )
+            for ( int portIndex = 0; portIndex < initialMetricsHistory.getPortCount(); portIndex++ )
             {
                 final PipelineMetrics initialMetrics = initialMetricsHistory.getLatest();
                 final PipelineMetrics finalMetrics = finalMetricsHistory.getLatest();
 
-                final long initialThroughput = initialMetrics.getTotalInboundThroughput( portIndex );
-                final long finalThroughput = finalMetrics.getTotalInboundThroughput( portIndex );
+                final long initialThroughput = initialMetrics.getTotalThroughput( portIndex );
+                final long finalThroughput = finalMetrics.getTotalThroughput( portIndex );
                 final double ratio = ( (double) finalThroughput ) / initialThroughput;
                 System.out.println( "Region: " + regionId + " portIndex: " + portIndex + " initial throughput: " + initialThroughput
                                     + " final throughput: " + finalThroughput + " ratio: " + ratio );

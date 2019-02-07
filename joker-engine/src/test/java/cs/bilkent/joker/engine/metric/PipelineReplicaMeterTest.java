@@ -107,7 +107,7 @@ public class PipelineReplicaMeterTest extends AbstractJokerTest
         pipelineReplicaMeter.onInvocationComplete( headOperatorId, Collections.singletonList( tuples ), 1, true );
 
         final long[] buffer = new long[] { 0, 0 };
-        pipelineReplicaMeter.readInboundThroughput( buffer );
+        pipelineReplicaMeter.readThroughput( buffer );
         assertArrayEquals( new long[] { 2, 1 }, buffer );
     }
 
@@ -120,7 +120,7 @@ public class PipelineReplicaMeterTest extends AbstractJokerTest
         pipelineReplicaMeter.onInvocationComplete( tailOperatorId, Collections.singletonList( tuples ), 1, true );
 
         final long[] buffer = new long[] { 0, 0 };
-        pipelineReplicaMeter.readInboundThroughput( buffer );
+        pipelineReplicaMeter.readThroughput( buffer );
         assertArrayEquals( new long[] { 0, 0 }, buffer );
     }
 

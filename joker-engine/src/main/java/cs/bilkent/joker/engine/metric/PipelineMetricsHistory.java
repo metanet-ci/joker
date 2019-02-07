@@ -78,9 +78,9 @@ public class PipelineMetricsHistory
         return getLatest().getOperatorCount();
     }
 
-    public int getInputPortCount ()
+    public int getPortCount ()
     {
-        return getLatest().getInputPortCount();
+        return getLatest().getPortCount();
     }
 
 }

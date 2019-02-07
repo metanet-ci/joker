@@ -22,11 +22,11 @@ public class PipelineMetrics
 
     private final int operatorCount;
 
-    private final int inputPortCount;
+    private final int portCount;
 
     private final double[] cpuUtilizationRatios;
 
-    private final long[][] inboundThroughputs;
+    private final long[][] throughputs;
 
     private final double[][] operatorCosts;
 
@@ -35,16 +35,15 @@ public class PipelineMetrics
     public PipelineMetrics ( final PipelineId pipelineId,
                              final int flowVersion,
                              final int replicaCount,
-                             final int operatorCount,
-                             final int inputPortCount )
+                             final int operatorCount, final int portCount )
     {
         this.pipelineId = pipelineId;
         this.flowVersion = flowVersion;
         this.replicaCount = replicaCount;
         this.operatorCount = operatorCount;
-        this.inputPortCount = inputPortCount;
+        this.portCount = portCount;
         this.cpuUtilizationRatios = new double[ replicaCount ];
-        this.inboundThroughputs = new long[ replicaCount ][ inputPortCount ];
+        this.throughputs = new long[ replicaCount ][ portCount ];
         this.operatorCosts = new double[ replicaCount ][ operatorCount ];
         this.pipelineCosts = new double[ replicaCount ];
     }
@@ -69,9 +68,9 @@ public class PipelineMetrics
         return operatorCount;
     }
 
-    public int getInputPortCount ()
+    public int getPortCount ()
     {
-        return inputPortCount;
+        return portCount;
     }
 
     public double getAvgPipelineCost ()
@@ -126,33 +125,33 @@ public class PipelineMetrics
         return stream( cpuUtilizationRatios ).average().orElse( NaN );
     }
 
-    public long[] getInboundThroughputs ( final int replicaIndex )
+    public long[] getThroughputs ( final int replicaIndex )
     {
-        return inboundThroughputs[ replicaIndex ];
+        return throughputs[ replicaIndex ];
     }
 
-    public long[] getTotalInboundThroughputs ()
+    public long[] getTotalThroughputs ()
     {
-        final long[] total = new long[ inputPortCount ];
-        for ( int portIndex = 0; portIndex < inputPortCount; portIndex++ )
+        final long[] total = new long[ portCount ];
+        for ( int portIndex = 0; portIndex < portCount; portIndex++ )
         {
-            total[ portIndex ] = getTotalInboundThroughput( portIndex );
+            total[ portIndex ] = getTotalThroughput( portIndex );
         }
 
         return total;
     }
 
-    public long getInboundThroughput ( final int replicaIndex, final int portIndex )
+    public long getThroughput ( final int replicaIndex, final int portIndex )
     {
-        return inboundThroughputs[ replicaIndex ][ portIndex ];
+        return throughputs[ replicaIndex ][ portIndex ];
     }
 
-    public long getTotalInboundThroughput ( final int portIndex )
+    public long getTotalThroughput ( final int portIndex )
     {
         long sum = 0;
         for ( int replicaIndex = 0; replicaIndex < getReplicaCount(); replicaIndex++ )
         {
-            sum += inboundThroughputs[ replicaIndex ][ portIndex ];
+            sum += throughputs[ replicaIndex ][ portIndex ];
         }
 
         return sum;
@@ -163,15 +162,12 @@ public class PipelineMetrics
         for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
         {
             final PipelineReplicaId pipelineReplicaId = new PipelineReplicaId( pipelineId, replicaIndex );
-            final long[] inboundThroughputs = getInboundThroughputs( replicaIndex );
+            final long[] throughputs = getThroughputs( replicaIndex );
             final double threadUtilizationRatio = getCpuUtilizationRatio( replicaIndex );
             final double pipelineCost = getPipelineCost( replicaIndex );
             final double[] operatorCosts = getOperatorCosts( replicaIndex );
 
-            visitor.handle( pipelineReplicaId,
-                            flowVersion,
-                            inboundThroughputs,
-                            threadUtilizationRatio, pipelineCost, operatorCosts );
+            visitor.handle( pipelineReplicaId, flowVersion, throughputs, threadUtilizationRatio, pipelineCost, operatorCosts );
         }
     }
 
@@ -179,8 +175,8 @@ public class PipelineMetrics
     public String toString ()
     {
         return "PipelineMetrics{" + "pipelineId=" + pipelineId + ", flowVersion=" + flowVersion + ", replicaCount=" + replicaCount
-               + ", operatorCount=" + operatorCount + ", inputPortCount=" + inputPortCount + ", cpuUtilizationRatios=" + Arrays.toString(
-                cpuUtilizationRatios ) + ", inboundThroughputs=" + Arrays.deepToString( inboundThroughputs ) + ", operatorCosts="
+               + ", operatorCount=" + operatorCount + ", portCount=" + portCount + ", cpuUtilizationRatios=" + Arrays.toString(
+                cpuUtilizationRatios ) + ", throughputs=" + Arrays.deepToString( throughputs ) + ", operatorCosts="
                + Arrays.deepToString( operatorCosts ) + ", pipelineCosts=" + Arrays.toString( pipelineCosts ) + '}';
     }
 
@@ -188,8 +184,7 @@ public class PipelineMetrics
     {
 
         void handle ( PipelineReplicaId pipelineReplicaId,
-                      int flowVersion,
-                      long[] inboundThroughput, double threadUtilizationRatio, double pipelineCost, double[] operatorCosts );
+                      int flowVersion, long[] throughput, double threadUtilizationRatio, double pipelineCost, double[] operatorCosts );
 
     }
 
@@ -205,10 +200,9 @@ public class PipelineMetrics
         public PipelineMetricsBuilder ( final PipelineId pipelineId,
                                         final int flowVersion,
                                         final int replicaCount,
-                                        final int operatorCount,
-                                        final int inputPortCount )
+                                        final int operatorCount, final int portCount )
         {
-            this.metrics = new PipelineMetrics( pipelineId, flowVersion, replicaCount, operatorCount, inputPortCount );
+            this.metrics = new PipelineMetrics( pipelineId, flowVersion, replicaCount, operatorCount, portCount );
         }
 
         public PipelineMetricsBuilder setPipelineCost ( final int replicaIndex, final double pipelineCost )
@@ -235,10 +229,10 @@ public class PipelineMetrics
             return this;
         }
 
-        public PipelineMetricsBuilder setInboundThroughput ( final int replicaIndex, final int portIndex, final long throughput )
+        public PipelineMetricsBuilder setThroughput ( final int replicaIndex, final int portIndex, final long throughput )
         {
             checkArgument( building );
-            metrics.inboundThroughputs[ replicaIndex ][ portIndex ] = throughput;
+            metrics.throughputs[ replicaIndex ][ portIndex ] = throughput;
 
             return this;
         }

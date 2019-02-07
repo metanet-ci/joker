@@ -16,8 +16,11 @@ public class LatestPipelineMetrics implements PipelineMetricsHistorySummarizer
     public PipelineMetrics summarize ( final PipelineMetricsHistory history )
     {
         final PipelineMetrics latest = history.getLatest();
-        final PipelineMetricsBuilder builder = new PipelineMetricsBuilder( latest.getPipelineId(), latest.getFlowVersion(),
-                                                                           1, latest.getOperatorCount(), latest.getInputPortCount() );
+        final PipelineMetricsBuilder builder = new PipelineMetricsBuilder( latest.getPipelineId(),
+                                                                           latest.getFlowVersion(),
+                                                                           1,
+                                                                           latest.getOperatorCount(),
+                                                                           latest.getPortCount() );
 
         builder.setCpuUtilizationRatio( 0, latest.getAvgCpuUtilizationRatio() ).setPipelineCost( 0, latest.getAvgPipelineCost() );
 
@@ -26,9 +29,9 @@ public class LatestPipelineMetrics implements PipelineMetricsHistorySummarizer
             builder.setOperatorCost( 0, operatorIndex, latest.getAvgOperatorCost( operatorIndex ) );
         }
 
-        for ( int portIndex = 0; portIndex < latest.getInputPortCount(); portIndex++ )
+        for ( int portIndex = 0; portIndex < latest.getPortCount(); portIndex++ )
         {
-            builder.setInboundThroughput( 0, portIndex, latest.getTotalInboundThroughput( portIndex ) );
+            builder.setThroughput( 0, portIndex, latest.getTotalThroughput( portIndex ) );
         }
 
         return builder.build();

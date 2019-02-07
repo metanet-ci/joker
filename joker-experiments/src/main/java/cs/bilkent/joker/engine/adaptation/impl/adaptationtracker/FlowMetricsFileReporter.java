@@ -76,12 +76,12 @@ public class FlowMetricsFileReporter implements FlowMetricsReporter
 
                 writeToFile( pipelineFileNamePrefix + "_cpu.txt", writer -> writer.println( pipelineMetrics.getAvgCpuUtilizationRatio() ) );
 
-                final long[] totalInboundThroughputs = pipelineMetrics.getTotalInboundThroughputs();
-                for ( int i = 0; i < pipelineMetrics.getInputPortCount(); i++ )
+                final long[] totalThroughputs = pipelineMetrics.getTotalThroughputs();
+                for ( int i = 0; i < pipelineMetrics.getPortCount(); i++ )
                 {
                     final int index = i;
                     writeToFile( pipelineFileNamePrefix + "_throughput_" + i + ".txt", writer -> {
-                        writer.println( totalInboundThroughputs[ index ] );
+                        writer.println( totalThroughputs[ index ] );
                     } );
                 }
 

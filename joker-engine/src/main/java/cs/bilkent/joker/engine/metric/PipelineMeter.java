@@ -20,6 +20,7 @@ public class PipelineMeter
 
     public static final int PIPELINE_EXECUTION_INDEX = -1;
 
+    private final boolean source;
 
     private final PipelineId pipelineId;
 
@@ -43,6 +44,7 @@ public class PipelineMeter
         checkArgument( pipelineReplicaMeters != null );
         checkArgument( replicaCount == threadIds.length );
         checkArgument( replicaCount == pipelineReplicaMeters.length );
+        this.source = ( operatorDefs[ 0 ].getInputPortCount() == 0 );
         this.pipelineId = pipelineId;
         this.operatorIds = new ArrayList<>( operatorDefs.length );
         for ( OperatorDef operatorDef : operatorDefs )
@@ -56,10 +58,22 @@ public class PipelineMeter
         for ( PipelineReplicaMeter replicaMeter : pipelineReplicaMeters )
         {
             checkArgument( replicaMeter.getPipelineReplicaId().pipelineId.equals( pipelineId ) );
-            checkArgument( replicaMeter.getHeadOperatorId().equals( operatorDefs[ 0 ].getId() ) );
-            // TODO FIX HACK
-            //checkArgument( replicaMeter.getInputPortCount() == operatorDefs[ 0 ].getInputPortCount() );
+            final OperatorDef operatorDef = operatorDefs[ 0 ];
+            checkArgument( replicaMeter.getHeadOperatorId().equals( operatorDef.getId() ) );
+            if ( source )
+            {
+                checkArgument( replicaMeter.getPortCount() == operatorDef.getOutputPortCount() );
+            }
+            else
+            {
+                checkArgument( replicaMeter.getPortCount() == operatorDef.getInputPortCount() );
+            }
         }
+    }
+
+    public boolean isSource ()
+    {
+        return source;
     }
 
     public PipelineId getPipelineId ()
@@ -82,9 +96,9 @@ public class PipelineMeter
         return replicaCount;
     }
 
-    public int getInputPortCount ()
+    public int getPortCount ()
     {
-        return pipelineReplicaMeters[ 0 ].getInputPortCount();
+        return pipelineReplicaMeters[ 0 ].getPortCount();
     }
 
     public int getCurrentlyExecutingComponentIndex ( final ThreadMXBean threadMXBean, final int replicaIndex )
@@ -121,12 +135,12 @@ public class PipelineMeter
         }
     }
 
-    public void readInboundThroughput ( final int replicaIndex, final long[] inboundThroughput )
+    public void readThroughput ( final int replicaIndex, final long[] throughput )
     {
         // happens-before
         final PipelineReplicaMeter pipelineReplicaMeter = pipelineReplicaMeters[ replicaIndex ];
         pipelineReplicaMeter.getCurrentlyExecutingComponent();
-        pipelineReplicaMeter.readInboundThroughput( inboundThroughput );
+        pipelineReplicaMeter.readThroughput( throughput );
     }
 
 }

@@ -41,7 +41,7 @@ class PipelineMetricsContext
     private final long[] threadCpuTimes;
 
     // updated and read by metrics thread
-    private final long[][] inboundThroughputs;
+    private final long[][] throughputs;
 
     // sample counts buffers can be updated in the sampling thread and read in the metrics thread.
     // this field is used to provide happens-before relationship among these two threads.
@@ -58,16 +58,15 @@ class PipelineMetricsContext
         this.pipelineSampleCounts = new long[ replicaCount ];
         this.pipelineSampleCountsBuffer = new long[ replicaCount ];
         this.threadCpuTimes = new long[ replicaCount ];
-        final int inputPortCount = pipelineMeter.getInputPortCount();
-        this.inboundThroughputs = new long[ replicaCount ][ inputPortCount ];
+        this.throughputs = new long[ replicaCount ][ pipelineMeter.getPortCount() ];
     }
 
     private PipelineMetricsBuilder newPipelineMetricsBuilder ()
     {
         final int replicaCount = pipelineMeter.getReplicaCount();
         final int operatorCount = pipelineMeter.getOperatorCount();
-        final int inputPortCount = pipelineMeter.getInputPortCount();
-        return new PipelineMetricsBuilder( pipelineMeter.getPipelineId(), flowVersion, replicaCount, operatorCount, inputPortCount );
+        final int portCount = pipelineMeter.getPortCount();
+        return new PipelineMetricsBuilder( pipelineMeter.getPipelineId(), flowVersion, replicaCount, operatorCount, portCount );
     }
 
     // called by sampler thread
@@ -94,9 +93,9 @@ class PipelineMetricsContext
         {
             fill( this.operatorSampleCounts[ replicaIndex ], 0 );
             fill( this.operatorSampleCountsBuffer[ replicaIndex ], 0 );
-            fill( this.inboundThroughputs[ replicaIndex ], 0 );
+            fill( this.throughputs[ replicaIndex ], 0 );
 
-            pipelineMeter.readInboundThroughput( replicaIndex, this.inboundThroughputs[ replicaIndex ] );
+            pipelineMeter.readThroughput( replicaIndex, this.throughputs[ replicaIndex ] );
         }
     }
 
@@ -194,23 +193,23 @@ class PipelineMetricsContext
     private void updateThroughputs ( final PipelineMetricsBuilder builder )
     {
         final int replicaCount = pipelineMeter.getReplicaCount();
-        final int inputPortCount = pipelineMeter.getInputPortCount();
+        final int portCount = pipelineMeter.getPortCount();
 
         for ( int replicaIndex = 0; replicaIndex < replicaCount; replicaIndex++ )
         {
-            final long[] newInboundThroughputs = new long[ inputPortCount ];
+            final long[] newThroughputs = new long[ portCount ];
 
-            pipelineMeter.readInboundThroughput( replicaIndex, newInboundThroughputs );
+            pipelineMeter.readThroughput( replicaIndex, newThroughputs );
 
-            final long[] currInboundThroughputs = this.inboundThroughputs[ replicaIndex ];
+            final long[] currentThroughputs = this.throughputs[ replicaIndex ];
 
-            for ( int portIndex = 0; portIndex < newInboundThroughputs.length; portIndex++ )
+            for ( int portIndex = 0; portIndex < newThroughputs.length; portIndex++ )
             {
-                long throughput = newInboundThroughputs[ portIndex ] - currInboundThroughputs[ portIndex ];
-                builder.setInboundThroughput( replicaIndex, portIndex, throughput );
+                long throughput = newThroughputs[ portIndex ] - currentThroughputs[ portIndex ];
+                builder.setThroughput( replicaIndex, portIndex, throughput );
             }
 
-            arraycopy( newInboundThroughputs, 0, currInboundThroughputs, 0, inputPortCount );
+            arraycopy( newThroughputs, 0, currentThroughputs, 0, portCount );
         }
     }
 

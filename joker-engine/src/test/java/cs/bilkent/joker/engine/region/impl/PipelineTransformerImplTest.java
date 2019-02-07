@@ -177,7 +177,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
 
         final PipelineReplicaMeter meter = newPipelineReplica.getMeter();
         assertThat( meter.getHeadOperatorId(), equalTo( pipelineOperator0.getOperatorDef( 0 ).getId() ) );
-        assertThat( meter.getInputPortCount(), equalTo( pipelineOperator0.getOperatorDef( 0 ).getInputPortCount() ) );
+        assertThat( meter.getPortCount(), equalTo( pipelineOperator0.getOperatorDef( 0 ).getInputPortCount() ) );
         assertPipelineReplicaMeter( newPipelineReplica );
     }
 
@@ -280,7 +280,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
 
         final PipelineReplicaMeter meter = newPipelineReplica.getMeter();
         assertThat( meter.getHeadOperatorId(), equalTo( pipelineOperator0.getOperatorDef( 0 ).getId() ) );
-        assertThat( meter.getInputPortCount(), equalTo( pipelineOperator0.getOperatorDef( 0 ).getInputPortCount() ) );
+        assertThat( meter.getPortCount(), equalTo( pipelineOperator0.getOperatorDef( 0 ).getInputPortCount() ) );
         assertPipelineReplicaMeter( newPipelineReplica );
     }
 
@@ -365,7 +365,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
         final OperatorDef[] mergedOperatorDefs = newRegion.getExecPlan().getOperatorDefsByPipelineStartIndex( 0 );
 
         assertThat( pipelineReplicaMeter.getHeadOperatorId(), equalTo( mergedOperatorDefs[ 0 ].getId() ) );
-        assertThat( pipelineReplicaMeter.getInputPortCount(), equalTo( mergedOperatorDefs[ 0 ].getInputPortCount() ) );
+        assertThat( pipelineReplicaMeter.getPortCount(), equalTo( mergedOperatorDefs[ 0 ].getInputPortCount() ) );
 
         assertPipelineReplicaMeter( newPipelineReplica );
     }
@@ -445,7 +445,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
 
         final PipelineReplicaMeter meter = newPipelineReplica.getMeter();
         assertThat( meter.getHeadOperatorId(), equalTo( pipelineOperator0.getOperatorDef( 0 ).getId() ) );
-        assertThat( meter.getInputPortCount(), equalTo( pipelineOperator0.getOperatorDef( 0 ).getInputPortCount() ) );
+        assertThat( meter.getPortCount(), equalTo( pipelineOperator0.getOperatorDef( 0 ).getInputPortCount() ) );
         assertPipelineReplicaMeter( newPipelineReplica );
     }
 
@@ -876,15 +876,15 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
 
         final PipelineReplicaMeter meter0 = newPipelineReplicas[ 0 ].getMeter();
         assertThat( meter0.getHeadOperatorId(), equalTo( pipelineOperator0.getOperatorDef( 0 ).getId() ) );
-        assertThat( meter0.getInputPortCount(), equalTo( pipelineOperator0.getOperatorDef( 0 ).getInputPortCount() ) );
+        assertThat( meter0.getPortCount(), equalTo( pipelineOperator0.getOperatorDef( 0 ).getInputPortCount() ) );
 
         final PipelineReplicaMeter meter1 = newPipelineReplicas[ 1 ].getMeter();
         assertThat( meter1.getHeadOperatorId(), equalTo( pipelineOperator1.getOperatorDef( 0 ).getId() ) );
-        assertThat( meter1.getInputPortCount(), equalTo( pipelineOperator1.getOperatorDef( 0 ).getInputPortCount() ) );
+        assertThat( meter1.getPortCount(), equalTo( pipelineOperator1.getOperatorDef( 0 ).getInputPortCount() ) );
 
         final PipelineReplicaMeter meter2 = newPipelineReplicas[ 2 ].getMeter();
         assertThat( meter2.getHeadOperatorId(), equalTo( pipelineOperator2.getOperatorDef( 0 ).getId() ) );
-        assertThat( meter2.getInputPortCount(), equalTo( pipelineOperator2.getOperatorDef( 0 ).getInputPortCount() ) );
+        assertThat( meter2.getPortCount(), equalTo( pipelineOperator2.getOperatorDef( 0 ).getInputPortCount() ) );
 
         for ( PipelineReplica p : newPipelineReplicas )
         {
@@ -970,7 +970,7 @@ public class PipelineTransformerImplTest extends AbstractJokerTest
             final PipelineReplicaMeter meter = newPipelineReplica.getMeter();
             final OperatorReplica operator = newPipelineReplica.getOperatorReplica( 0 );
             assertThat( meter.getHeadOperatorId(), equalTo( operator.getOperatorDef( 0 ).getId() ) );
-            assertThat( meter.getInputPortCount(), equalTo( operator.getOperatorDef( 0 ).getInputPortCount() ) );
+            assertThat( meter.getPortCount(), equalTo( operator.getOperatorDef( 0 ).getInputPortCount() ) );
             assertPipelineReplicaMeter( newPipelineReplica );
         }
     }

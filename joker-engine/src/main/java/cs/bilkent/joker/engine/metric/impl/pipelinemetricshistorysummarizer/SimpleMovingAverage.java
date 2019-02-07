@@ -18,7 +18,7 @@ public class SimpleMovingAverage implements PipelineMetricsHistorySummarizer
         double cpuUtilRatio = 0;
         double pipelineCost = 0;
         final double[] operatorCosts = new double[ history.getOperatorCount() ];
-        final long[] throughputs = new long[ history.getInputPortCount() ];
+        final long[] throughputs = new long[ history.getPortCount() ];
 
         for ( PipelineMetrics metrics : history.getAll() )
         {
@@ -30,9 +30,9 @@ public class SimpleMovingAverage implements PipelineMetricsHistorySummarizer
                 operatorCosts[ i ] += metrics.getAvgOperatorCost( i );
             }
 
-            for ( int i = 0; i < history.getInputPortCount(); i++ )
+            for ( int i = 0; i < history.getPortCount(); i++ )
             {
-                throughputs[ i ] += metrics.getTotalInboundThroughput( i );
+                throughputs[ i ] += metrics.getTotalThroughput( i );
             }
         }
 
@@ -41,8 +41,7 @@ public class SimpleMovingAverage implements PipelineMetricsHistorySummarizer
         final PipelineMetricsBuilder builder = new PipelineMetricsBuilder( history.getPipelineId(),
                                                                            history.getFlowVersion(),
                                                                            1,
-                                                                           history.getOperatorCount(),
-                                                                           history.getInputPortCount() );
+                                                                           history.getOperatorCount(), history.getPortCount() );
 
         builder.setCpuUtilizationRatio( 0, cpuUtilRatio / historySize ).setPipelineCost( 0, pipelineCost / historySize );
 
@@ -51,9 +50,9 @@ public class SimpleMovingAverage implements PipelineMetricsHistorySummarizer
             builder.setOperatorCost( 0, i, operatorCosts[ i ] / historySize );
         }
 
-        for ( int i = 0; i < history.getInputPortCount(); i++ )
+        for ( int i = 0; i < history.getPortCount(); i++ )
         {
-            builder.setInboundThroughput( 0, i, throughputs[ i ] / historySize );
+            builder.setThroughput( 0, i, throughputs[ i ] / historySize );
         }
 
         return builder.build();
