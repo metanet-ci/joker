@@ -1,6 +1,7 @@
 package cs.bilkent.joker.engine.config;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
@@ -223,10 +224,10 @@ public class AdaptationConfig
                 return true;
             }
 
-            for ( int portIndex = 0; portIndex < oldMetrics.getInputPortCount(); portIndex++ )
+            for ( int portIndex = 0; portIndex < oldMetrics.getPortCount(); portIndex++ )
             {
-                final long throughput = oldMetrics.getTotalInboundThroughput( portIndex );
-                final double throughputDiff = abs( newMetrics.getTotalInboundThroughput( portIndex ) - throughput );
+                final long throughput = oldMetrics.getTotalThroughput( portIndex );
+                final double throughputDiff = abs( newMetrics.getTotalThroughput( portIndex ) - throughput );
                 if ( ( throughputDiff / throughput ) >= throughputLoadChangeThreshold )
                 {
                     return true;
@@ -240,6 +241,47 @@ public class AdaptationConfig
     public Predicate<PipelineMetrics> getBottleneckPredicate ()
     {
         return pipelineMetrics -> pipelineMetrics.getAvgCpuUtilizationRatio() >= cpuUtilBottleneckThreshold;
+    }
+
+    public static void main ( String[] args )
+    {
+        double[] operatorCosts = new double[] { 0.49, 0.46 };
+        double pipelineCost = 1 - Arrays.stream( operatorCosts ).sum();
+        int operatorCount = operatorCosts.length;
+        double splitUtility = 0.2;
+
+        double totalOperatorCost = max( 0, 1 - pipelineCost );
+        double[] thr = new double[ operatorCount - 1 ];
+
+        double headUtility = min( 1, operatorCosts[ 0 ] );
+        double tailUtility = max( 0, totalOperatorCost - operatorCosts[ 0 ] );
+        thr[ 0 ] = min( 1 / ( pipelineCost + headUtility ), 1 / ( pipelineCost + tailUtility ) );
+        System.out.println( "head util: " + headUtility + " tail util: " + tailUtility + " thr: " + thr[ 0 ] + " index: " + 0 );
+
+        int max = 0;
+
+        for ( int i = 1; i < operatorCount - 1; i++ )
+        {
+            final double operatorCost = operatorCosts[ i ];
+            headUtility = min( 1, headUtility + operatorCost );
+            tailUtility = max( 0, tailUtility - operatorCost );
+            thr[ i ] = min( 1 / ( pipelineCost + headUtility ), 1 / ( pipelineCost + tailUtility ) );
+
+            System.out.println( "head util: " + headUtility + " tail util: " + tailUtility + " thr: " + thr[ i ] + " index: " + 1 );
+
+            if ( thr[ i ] > thr[ max ] )
+            {
+                max = i;
+            }
+        }
+
+        if ( ( thr[ max ] - 1 ) >= splitUtility )
+        {
+            System.out.println( "SPLIT AT INDEX: " + ( max + 1 ) + " THR: " + thr[ max ] );
+            return;
+        }
+
+        System.out.println( "NO SPLIT" );
     }
 
     public BiFunction<RegionExecPlan, PipelineMetrics, Integer> getPipelineSplitIndexExtractor ()
@@ -289,10 +331,10 @@ public class AdaptationConfig
     public BiPredicate<PipelineMetrics, PipelineMetrics> getAdaptationEvaluationPredicate ()
     {
         return ( oldMetrics, newMetrics ) -> {
-            for ( int portIndex = 0; portIndex < oldMetrics.getInputPortCount(); portIndex++ )
+            for ( int portIndex = 0; portIndex < oldMetrics.getPortCount(); portIndex++ )
             {
-                final long bottleneckThroughput = oldMetrics.getTotalInboundThroughput( portIndex );
-                final long newThroughput = newMetrics.getTotalInboundThroughput( portIndex );
+                final long bottleneckThroughput = oldMetrics.getTotalThroughput( portIndex );
+                final long newThroughput = newMetrics.getTotalThroughput( portIndex );
                 final double throughputIncrease = ( (double) ( newThroughput - bottleneckThroughput ) ) / bottleneckThroughput;
                 LOGGER.info( "Pipeline: {} input port: {} bottleneck throughput: {} new throughput: {} change: {}",
                              newMetrics.getPipelineId(),
