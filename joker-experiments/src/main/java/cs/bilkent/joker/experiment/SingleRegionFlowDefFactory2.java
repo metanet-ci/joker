@@ -103,17 +103,6 @@ public class SingleRegionFlowDefFactory2 implements FlowDefFactory
 
         flowDefBuilder.add( source );
 
-        final int multiplicationCount0 = operatorCosts.get( 0 );
-        final BiConsumer<Tuple, Tuple> multiplier0Func = ( input, output ) -> {
-            int val = input.getInteger( "value" );
-            for ( int i = 0; i < multiplicationCount0; i++ )
-            {
-                val = val * MULTIPLIER_VALUE;
-            }
-            val = val * MULTIPLIER_VALUE;
-            output.set( "key", input.get( "key" ) ).set( "value", val );
-        };
-
         final OperatorRuntimeSchema multiplier0Schema = new OperatorRuntimeSchemaBuilder( 1, 1 ).addInputField( 0, "key", Integer.class )
                                                                                                 .addInputField( 0, "value", Integer.class )
                                                                                                 .addOutputField( 0, "key", Integer.class )
@@ -121,7 +110,7 @@ public class SingleRegionFlowDefFactory2 implements FlowDefFactory
                                                                                                 .build();
 
         final OperatorConfig multiplier0Config = new OperatorConfig().set( PartitionedMapperOperator.MAPPER_CONFIG_PARAMETER,
-                                                                           multiplier0Func );
+                                                                           new Multiplication( operatorCosts.get( 0 ) ) );
 
         final OperatorDef multiplier0 = OperatorDefBuilder.newInstance( "m0", PartitionedMapperOperator.class )
                                                           .setExtendingSchema( multiplier0Schema )
@@ -135,18 +124,6 @@ public class SingleRegionFlowDefFactory2 implements FlowDefFactory
 
         for ( int i = 1; i < operatorCosts.size(); i++ )
         {
-
-            final int multiplicationCount = operatorCosts.get( i );
-            final BiConsumer<Tuple, Tuple> multiplierFunc = ( input, output ) -> {
-                int val = input.getInteger( "value" );
-                for ( int j = 0; j < multiplicationCount; j++ )
-                {
-                    val = val * MULTIPLIER_VALUE;
-                }
-                val = val * MULTIPLIER_VALUE;
-                output.set( "key", input.get( "key" ) ).set( "value", val );
-            };
-
             final OperatorRuntimeSchema multiplierSchema = new OperatorRuntimeSchemaBuilder( 1, 1 ).addInputField( 0, "key", Integer.class )
                                                                                                    .addInputField( 0,
                                                                                                                    "value",
@@ -160,11 +137,12 @@ public class SingleRegionFlowDefFactory2 implements FlowDefFactory
                                                                                                    .build();
 
             final OperatorConfig multiplierConfig = new OperatorConfig().set( PartitionedMapperOperator.MAPPER_CONFIG_PARAMETER,
-                                                                              multiplierFunc );
+                                                                              new Multiplication( operatorCosts.get( i ) ) );
 
             final OperatorDef multiplier = OperatorDefBuilder.newInstance( "m" + i, PartitionedMapperOperator.class )
                                                              .setExtendingSchema( multiplierSchema )
-                                                             .setConfig( multiplierConfig ).setPartitionFieldNames( singletonList( "key" ) )
+                                                             .setConfig( multiplierConfig )
+                                                             .setPartitionFieldNames( singletonList( "key" ) )
                                                              .build();
 
             flowDefBuilder.add( multiplier );
@@ -172,6 +150,29 @@ public class SingleRegionFlowDefFactory2 implements FlowDefFactory
         }
 
         return flowDefBuilder.build();
+    }
+
+    static class Multiplication implements BiConsumer<Tuple, Tuple>
+    {
+
+        private final int multiplicationCount;
+
+        Multiplication ( final int multiplicationCount )
+        {
+            this.multiplicationCount = multiplicationCount;
+        }
+
+        @Override
+        public void accept ( final Tuple input, final Tuple output )
+        {
+            int val = input.getInteger( "value" );
+            for ( int i = 0; i < multiplicationCount; i++ )
+            {
+                val = val * MULTIPLIER_VALUE;
+            }
+            val = val * MULTIPLIER_VALUE;
+            output.set( "key", input.get( "key" ) ).set( "value", val );
+        }
     }
 
 }
