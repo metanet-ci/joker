@@ -100,6 +100,28 @@ public class PartitionedOperatorQueue implements OperatorQueue
     }
 
     @Override
+    public boolean offer ( final int portIndex, final Tuple tuple )
+    {
+        final PartitionKey partitionKey = partitionKeyExtractor.getKey( tuple );
+        TupleQueue[] tupleQueues = drainableKeys.get( partitionKey );
+        if ( tupleQueues != null )
+        {
+            tupleQueues[ portIndex ].offer( tuple );
+        }
+        else
+        {
+            tupleQueues = getTupleQueues( partitionKey );
+            tupleQueues[ portIndex ].offer( tuple );
+            if ( checkIfDrainable( tupleQueues ) )
+            {
+                drainableKeys.put( partitionKey, tupleQueues );
+            }
+        }
+
+        return true;
+    }
+
+    @Override
     public int offer ( final int portIndex, final List<Tuple> tuples )
     {
         return offer( portIndex, tuples, 0 );

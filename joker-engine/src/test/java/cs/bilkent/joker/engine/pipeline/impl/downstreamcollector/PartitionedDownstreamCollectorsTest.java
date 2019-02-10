@@ -131,6 +131,12 @@ public class PartitionedDownstreamCollectorsTest extends AbstractJokerTest
         }
 
         @Override
+        public boolean offer ( final int portIndex, final Tuple tuple )
+        {
+            return tuplesByPortIndex.computeIfAbsent( portIndex, ArrayList::new ).add( tuple );
+        }
+
+        @Override
         public int offer ( final int portIndex, final List<Tuple> tuples )
         {
             tuplesByPortIndex.computeIfAbsent( portIndex, ArrayList::new ).addAll( tuples );

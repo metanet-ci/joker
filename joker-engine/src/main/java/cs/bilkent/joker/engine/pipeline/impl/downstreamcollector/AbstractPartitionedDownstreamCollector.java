@@ -71,52 +71,19 @@ public abstract class AbstractPartitionedDownstreamCollector implements Downstre
 
     final void send ( final TuplesImpl input, final int sourcePortIndex, final int destinationPortIndex )
     {
-        for ( Tuple tuple : input.getTuples( sourcePortIndex ) )
+        final List<Tuple> tuples = input.getTuples( sourcePortIndex );
+        for ( int i = 0, j = tuples.size(); i < j; i++ )
         {
+            final Tuple tuple = tuples.get( i );
             final int replicaIndex = partitionDistribution[ getPartitionId( partitionKeyExtractor.getHash( tuple ), partitionCount ) ];
-            tupleLists[ replicaIndex ].add( tuple );
-        }
 
-        final boolean recordQueueOfferTime = ticker.tryTick();
-        int completed = 0;
-        while ( completed < replicaCount )
-        {
-            completed = 0;
-            for ( int i = 0; i < replicaCount; i++ )
+            while ( !operatorQueues[ replicaIndex ].offer( destinationPortIndex, tuple ) )
             {
-                final List<Tuple> tuples = tupleLists[ i ];
-                int fromIndex = indices[ i ];
-                if ( fromIndex < tuples.size() )
+                if ( idleStrategy.idle() && failureFlag.get() )
                 {
-                    if ( recordQueueOfferTime && fromIndex == 0 )
-                    {
-                        tuples.get( 0 ).setQueueOfferTime( System.nanoTime() );
-                    }
-
-                    final int offered = operatorQueues[ i ].offer( destinationPortIndex, tuples, fromIndex );
-                    if ( offered > 0 )
-                    {
-                        fromIndex += offered;
-                        indices[ i ] = fromIndex;
-                    }
-                    else if ( idleStrategy.idle() && failureFlag.get() )
-                    {
-                        throw new JokerException( "Not sending tuples to downstream since failure flag is set" );
-                    }
-                }
-
-                if ( fromIndex == tuples.size() )
-                {
-                    completed++;
+                    throw new JokerException( "Not sending tuples to downstream since failure flag is set" );
                 }
             }
-        }
-
-        idleStrategy.reset();
-        for ( int i = 0; i < replicaCount; i++ )
-        {
-            tupleLists[ i ].clear();
-            indices[ i ] = 0;
         }
     }
 

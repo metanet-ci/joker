@@ -18,6 +18,8 @@ public interface OperatorQueue
 
     int getInputPortCount ();
 
+    boolean offer ( int portIndex, Tuple tuple );
+
     /**
      * Attempts to offer given tuples to the tuple queue of given port index without blocking,
      * and returns the number of tuples that are successfully offered.

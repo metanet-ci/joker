@@ -55,6 +55,12 @@ public class DefaultOperatorQueue implements OperatorQueue
     }
 
     @Override
+    public boolean offer ( final int portIndex, final Tuple tuple )
+    {
+        return tupleQueues[ portIndex ].offer( tuple );
+    }
+
+    @Override
     public int offer ( final int portIndex, final List<Tuple> tuples )
     {
         return offer( portIndex, tuples, 0 );

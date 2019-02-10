@@ -42,6 +42,12 @@ public class EmptyOperatorQueue implements OperatorQueue
     }
 
     @Override
+    public boolean offer ( final int portIndex, final Tuple tuple )
+    {
+        throw new UnsupportedOperationException( operatorId );
+    }
+
+    @Override
     public int offer ( final int portIndex, final List<Tuple> tuples )
     {
         if ( tuples == null || tuples.isEmpty() )
