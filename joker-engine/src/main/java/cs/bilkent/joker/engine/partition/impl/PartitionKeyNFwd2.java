@@ -24,8 +24,8 @@ public class PartitionKeyNFwd2 extends AbstractList<Object> implements Partition
         final int j = partitionFieldNames.size();
         this.values = new Object[ j ];
 
-        final Object headVal0 = tuple.getObject( partitionFieldNames.get( 0 ) );
-        final Object headVal1 = tuple.getObject( partitionFieldNames.get( 1 ) );
+        final Object headVal0 = tuple.get( partitionFieldNames.get( 0 ) );
+        final Object headVal1 = tuple.get( partitionFieldNames.get( 1 ) );
         int hashCode = computePartitionHash( headVal0, headVal1 );
         this.partitionHashCode = hashCode;
         this.values[ 0 ] = headVal0;
@@ -33,7 +33,7 @@ public class PartitionKeyNFwd2 extends AbstractList<Object> implements Partition
 
         for ( int i = 2; i < j; i++ )
         {
-            final Object val = tuple.getObject( partitionFieldNames.get( i ) );
+            final Object val = tuple.get( partitionFieldNames.get( i ) );
             this.values[ i ] = val;
             hashCode = hashTail( hashCode, val );
         }

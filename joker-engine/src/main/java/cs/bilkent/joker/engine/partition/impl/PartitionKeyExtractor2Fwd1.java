@@ -23,13 +23,13 @@ public class PartitionKeyExtractor2Fwd1 implements PartitionKeyExtractor
     @Override
     public PartitionKey getKey ( final Tuple tuple )
     {
-        return new PartitionKey2Fwd1( tuple.getObject( fieldName0 ), tuple.getObject( fieldName1 ) );
+        return new PartitionKey2Fwd1( tuple.get( fieldName0 ), tuple.get( fieldName1 ) );
     }
 
     @Override
     public int getHash ( final Tuple tuple )
     {
-        return computePartitionHashCode( tuple.getObject( fieldName0 ) );
+        return computePartitionHashCode( tuple.get( fieldName0 ) );
     }
 
 }

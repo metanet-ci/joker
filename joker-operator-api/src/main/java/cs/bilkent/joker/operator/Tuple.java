@@ -218,6 +218,8 @@ public final class Tuple implements Fields<String>
 
     private ArrayList<LatencyStage> latencyStages;
 
+    private Object partitionKey;
+
     public Tuple ()
     {
         this.schema = EMPTY_SCHEMA;
@@ -424,6 +426,16 @@ public final class Tuple implements Fields<String>
     public TupleSchema getSchema ()
     {
         return schema;
+    }
+
+    public Object getPartitionKey ()
+    {
+        return partitionKey;
+    }
+
+    public void setPartitionKey ( final Object partitionKey )
+    {
+        this.partitionKey = partitionKey;
     }
 
     public long getIngestionTime ()

@@ -27,13 +27,13 @@ public class PartitionKeyExtractor3 implements PartitionKeyExtractor
     @Override
     public PartitionKey getKey ( final Tuple tuple )
     {
-        return new PartitionKey3( tuple.getObject( fieldName0 ), tuple.getObject( fieldName1 ), tuple.getObject( fieldName2 ) );
+        return new PartitionKey3( tuple.get( fieldName0 ), tuple.get( fieldName1 ), tuple.get( fieldName2 ) );
     }
 
     @Override
     public int getHash ( final Tuple tuple )
     {
-        return computeHashCode( tuple.getObject( fieldName0 ), tuple.getObject( fieldName1 ), tuple.getObject( fieldName2 ) );
+        return computeHashCode( tuple.get( fieldName0 ), tuple.get( fieldName1 ), tuple.get( fieldName2 ) );
     }
 
 }

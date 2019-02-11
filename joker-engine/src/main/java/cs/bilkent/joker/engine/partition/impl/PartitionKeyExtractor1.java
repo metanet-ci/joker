@@ -21,13 +21,19 @@ public class PartitionKeyExtractor1 implements PartitionKeyExtractor
     @Override
     public PartitionKey getKey ( final Tuple tuple )
     {
-        return new PartitionKey1( tuple.getObject( fieldName ) );
+        return new PartitionKey1( getField( tuple, fieldName ) );
     }
 
     @Override
     public int getHash ( final Tuple tuple )
     {
-        return computeHashCode( tuple.getObject( fieldName ) );
+        return computeHashCode( getField( tuple, fieldName ) );
+    }
+
+    private Object getField ( final Tuple tuple, final String fieldName )
+    {
+        final Object key = tuple.getPartitionKey();
+        return key != null ? key : tuple.get( fieldName );
     }
 
 }

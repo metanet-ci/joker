@@ -63,7 +63,7 @@ public class SingleRegionFlowDefFactory4 implements FlowDefFactory
             final int key = vals[ curr++ ];
             final int value = key + 1;
 
-            tuple.set( "key", key ).set( "value", value );
+            tuple.set( "key", key ).set( "value", value ).setPartitionKey( key );
             if ( curr == vals.length )
             {
                 curr = 0;
@@ -171,7 +171,8 @@ public class SingleRegionFlowDefFactory4 implements FlowDefFactory
                 val = val * MULTIPLIER_VALUE;
             }
             val = val * MULTIPLIER_VALUE;
-            output.set( "key", input.get( "key" ) ).set( "value", val );
+            final Object key = input.get( "key" );
+            output.set( "key", key ).set( "value", val ).setPartitionKey( key );
         }
     }
 
