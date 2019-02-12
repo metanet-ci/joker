@@ -61,8 +61,8 @@ public class SingleRegionFlowDefFactory3 implements FlowDefFactory
             final int key = vals[ curr++ ];
             final int value = key + 1;
 
-            //            tuple.set( "key", key ).set( "value", value );
-            tuple.set( "key", 1 ).set( "value", value );
+            tuple.set( "key", key ).set( "value", value );
+            //            tuple.set( "key", 1 ).set( "value", value );
             if ( curr == vals.length )
             {
                 curr = 0;
