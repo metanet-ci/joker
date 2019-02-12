@@ -102,7 +102,7 @@ public class SingleRegionFlowDefFactory3 implements FlowDefFactory
                                                      .build();
 
         final OperatorRuntimeSchemaBuilder sinkSchemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
-        sinkSchemaBuilder.addInputField( 0, "key", String.class );
+        sinkSchemaBuilder.addInputField( 0, "key", Integer.class );
 
         final OperatorDef sink = OperatorDefBuilder.newInstance( "sink", PartitionedMapperOperator.class )
                                                    .setConfig( sinkConfig2 )
