@@ -2,6 +2,7 @@ package cs.bilkent.joker.experiment;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import com.typesafe.config.Config;
@@ -17,9 +18,10 @@ import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchema;
 import cs.bilkent.joker.operator.schema.runtime.OperatorRuntimeSchemaBuilder;
 import cs.bilkent.joker.operators.BeaconOperator;
 import static cs.bilkent.joker.operators.BeaconOperator.TUPLE_POPULATOR_CONFIG_PARAMETER;
-import cs.bilkent.joker.operators.ForEachOperator;
 import static cs.bilkent.joker.operators.ForEachOperator.CONSUMER_FUNCTION_CONFIG_PARAMETER;
+import cs.bilkent.joker.operators.PartitionedMapperOperator;
 import static java.util.Collections.shuffle;
+import static java.util.Collections.singletonList;
 
 public class SingleRegionFlowDefFactory3 implements FlowDefFactory
 {
@@ -59,7 +61,8 @@ public class SingleRegionFlowDefFactory3 implements FlowDefFactory
             final int key = vals[ curr++ ];
             final int value = key + 1;
 
-            tuple.set( "key", key ).set( "value", value );
+            //            tuple.set( "key", key ).set( "value", value );
+            tuple.set( "key", 1 ).set( "value", value );
             if ( curr == vals.length )
             {
                 curr = 0;
@@ -87,15 +90,25 @@ public class SingleRegionFlowDefFactory3 implements FlowDefFactory
                                                                                            .addOutputField( 0, "value", Integer.class )
                                                                                            .build();
 
-        final OperatorConfig sinkConfig = new OperatorConfig().set( CONSUMER_FUNCTION_CONFIG_PARAMETER, (Consumer<Tuple>) tuple -> {
+        final OperatorConfig sinkConfig1 = new OperatorConfig().set( CONSUMER_FUNCTION_CONFIG_PARAMETER, (Consumer<Tuple>) tuple -> {
         } );
+        final OperatorConfig sinkConfig2 = new OperatorConfig().set( PartitionedMapperOperator.MAPPER_CONFIG_PARAMETER,
+                                                                     (BiConsumer<Tuple, Tuple>) ( tuple, tuple2 ) -> {
+                                                                     } );
 
         final OperatorDef source = OperatorDefBuilder.newInstance( "src", BeaconOperator.class )
                                                      .setConfig( sourceConfig )
                                                      .setExtendingSchema( sourceSchema )
                                                      .build();
 
-        final OperatorDef sink = OperatorDefBuilder.newInstance( "sink", ForEachOperator.class ).setConfig( sinkConfig ).build();
+        final OperatorRuntimeSchemaBuilder sinkSchemaBuilder = new OperatorRuntimeSchemaBuilder( 1, 1 );
+        sinkSchemaBuilder.addInputField( 0, "key", String.class );
+
+        final OperatorDef sink = OperatorDefBuilder.newInstance( "sink", PartitionedMapperOperator.class )
+                                                   .setConfig( sinkConfig2 )
+                                                   .setExtendingSchema( sinkSchemaBuilder.build() )
+                                                   .setPartitionFieldNames( singletonList( "key" ) )
+                                                   .build();
 
         final FlowDefBuilder flowDefBuilder = new FlowDefBuilder();
 
