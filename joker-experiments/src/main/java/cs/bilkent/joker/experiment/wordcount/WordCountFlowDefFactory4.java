@@ -44,7 +44,7 @@ public class WordCountFlowDefFactory4 implements FlowDefFactory
                                                                         .set( SENTENCE_COUNT_PER_INVOCATION_PARAM,
                                                                               sentenceCountPerInvocation );
 
-        final OperatorDef sentenceBeaconOp = OperatorDefBuilder.newInstance( "sb", SentenceBeaconOperator3.class )
+        final OperatorDef sentenceBeaconOp = OperatorDefBuilder.newInstance( "sb", SentenceBeaconOperator4.class )
                                                                .setConfig( sentenceBeaconConfig )
                                                                .build();
 
