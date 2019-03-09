@@ -41,10 +41,11 @@ public class CounterOperator implements Operator
         kvStore.set( COUNT_FIELD, count );
 
         final Tuple result = new Tuple( outputSchema );
-        if ( inputTupleCount > 0 )
-        {
-            result.attachTo( ctx.getInputTupleOrFail( 0, 0 ) );
-        }
+        // TODO FIX_LATENCY
+        //        if ( inputTupleCount > 0 )
+        //        {
+        //            result.attachTo( ctx.getInputTupleOrFail( 0, 0 ) );
+        //        }
 
         final Tuple keyTuple = ctx.getInputTupleOrFail( 0, 0 );
         for ( int i = 0; i < partitionFieldNames.size(); i++ )
